@@ -6,8 +6,11 @@ import type {
   DINBenefit,
   DINCapability,
   DINEffort,
+  DINSession,
   EffortDomain,
+  AppStep,
 } from "./types";
+import { SECTORS } from "./types";
 import { deduplicateById } from "./persistence";
 
 // --- ID generatie ---
@@ -206,4 +209,84 @@ export function findGaps(
       .filter((c) => !capIdsWithEfforts.has(c.id))
       .map((c) => c.id),
   };
+}
+
+// --- Merged DIN helpers ---
+
+export function getEffortsByDomainAllSectors(
+  efforts: DINEffort[]
+): Record<EffortDomain, DINEffort[]> {
+  return {
+    mens: efforts.filter((e) => e.domain === "mens"),
+    processen: efforts.filter((e) => e.domain === "processen"),
+    data_systemen: efforts.filter((e) => e.domain === "data_systemen"),
+    cultuur: efforts.filter((e) => e.domain === "cultuur"),
+  };
+}
+
+// --- Voortgangsindicatoren ---
+
+export interface StepCompletion {
+  step: AppStep;
+  percentage: number;
+  details: string;
+}
+
+export function getStepCompletions(session: DINSession): StepCompletion[] {
+  return [
+    {
+      step: "import",
+      percentage: computeImportCompletion(session),
+      details: [
+        session.vision ? "Visie" : "",
+        session.goals.length > 0 ? `${session.goals.length} doelen` : "",
+        session.sectorPlans.length > 0 ? `${session.sectorPlans.length} sectorplannen` : "",
+        session.pmcEntries.length > 0 ? `${session.pmcEntries.length} PMC's` : "",
+      ].filter(Boolean).join(", ") || "Nog niets ingevuld",
+    },
+    {
+      step: "din-mapping",
+      percentage: computeDINCompletion(session),
+      details: `${session.benefits.length} baten, ${session.capabilities.length} vermogens, ${session.efforts.length} inspanningen`,
+    },
+    {
+      step: "cross-analyse",
+      percentage: session.benefits.length > 0 && session.capabilities.length > 0 ? 100 : 0,
+      details: session.benefits.length > 0 ? "Data beschikbaar" : "Vul eerst DIN in",
+    },
+    {
+      step: "prioritering",
+      percentage: session.efforts.filter((e) => e.status === "gepland" || e.quarter).length > 0
+        ? Math.round((session.efforts.filter((e) => e.quarter).length / Math.max(session.efforts.length, 1)) * 100)
+        : 0,
+      details: `${session.efforts.filter((e) => e.quarter).length}/${session.efforts.length} ingepland`,
+    },
+    {
+      step: "sector-integratie",
+      percentage: session.sectorPlans.length > 0 && session.efforts.length > 0 ? 100 : 0,
+      details: session.sectorPlans.length > 0 ? "Sectorplannen beschikbaar" : "Upload sectorplannen",
+    },
+    {
+      step: "export",
+      percentage: 0,
+      details: "Export wanneer gereed",
+    },
+  ];
+}
+
+function computeImportCompletion(session: DINSession): number {
+  let score = 0;
+  if (session.vision) score += 25;
+  if (session.goals.length > 0) score += 25;
+  if (session.sectorPlans.length > 0) score += 25;
+  if (session.pmcEntries.length > 0) score += 25;
+  return score;
+}
+
+function computeDINCompletion(session: DINSession): number {
+  if (session.goals.length === 0) return 0;
+  const sectorsWithData = SECTORS.filter((s) =>
+    session.benefits.some((b) => b.sectorId === s)
+  ).length;
+  return Math.round((sectorsWithData / SECTORS.length) * 100);
 }

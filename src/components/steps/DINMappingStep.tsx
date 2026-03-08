@@ -19,6 +19,10 @@ import {
 import SectorTabs from "@/components/din/SectorTabs";
 import BenefitCard from "@/components/din/BenefitCard";
 import EffortCard from "@/components/din/EffortCard";
+import DINChainIndicator from "@/components/din/DINChainIndicator";
+import MergedDINView from "@/components/din/MergedDINView";
+
+type DINPhase = "per-sector" | "samengevoegd";
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "mens", label: "Mens" },
@@ -29,6 +33,7 @@ const DOMAINS: { key: EffortDomain; label: string }[] = [
 
 export default function DINMappingStep() {
   const { session, updateSession } = useSession();
+  const [phase, setPhase] = useState<DINPhase>("per-sector");
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -43,6 +48,18 @@ export default function DINMappingStep() {
         </p>
       </div>
     );
+  }
+
+  // Voortgang per sector berekenen
+  const completionCounts: Record<string, { filled: number; total: number }> = {};
+  for (const sector of SECTORS) {
+    const goalsWithBenefits = session.goals.filter((g) =>
+      session.benefits.some((b) => b.goalId === g.id && b.sectorId === sector)
+    ).length;
+    completionCounts[sector] = {
+      filled: goalsWithBenefits,
+      total: session.goals.length,
+    };
   }
 
   const selectedGoal = activeGoalId || session.goals[0]?.id;
@@ -150,7 +167,6 @@ export default function DINMappingStep() {
       });
       const data = await res.json();
       if (data.success && data.data) {
-        // Merge AI-gegenereerde items met bestaande
         const newBenefits = (data.data.benefits || []).map(
           (b: Partial<DINBenefit>) => ({
             ...createBenefit(selectedGoal, activeSector, ""),
@@ -195,168 +211,229 @@ export default function DINMappingStep() {
 
   return (
     <div>
-      {/* Sector tabs */}
-      <SectorTabs
-        activeSector={activeSector}
-        onSelect={setActiveSector}
-        sectorPlans={session.sectorPlans}
-      />
+      {/* Fase toggle */}
+      <div className="flex items-center gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">
+        <button
+          onClick={() => setPhase("per-sector")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            phase === "per-sector"
+              ? "bg-white text-cito-blue shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Per Sector Invullen
+        </button>
+        <button
+          onClick={() => setPhase("samengevoegd")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            phase === "samengevoegd"
+              ? "bg-white text-cito-blue shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Samengevoegd DIN-Netwerk
+        </button>
+      </div>
 
-      <div className="flex gap-6">
-        {/* Doelen sidebar */}
-        <div className="w-56 shrink-0">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-            Doelen
-          </h4>
-          <div className="space-y-1">
-            {session.goals
-              .sort((a, b) => a.rank - b.rank)
-              .map((goal) => (
+      {/* Fase B: Samengevoegd */}
+      {phase === "samengevoegd" && (
+        <MergedDINView
+          session={session}
+          onSwitchToEdit={() => setPhase("per-sector")}
+        />
+      )}
+
+      {/* Fase A: Per Sector */}
+      {phase === "per-sector" && (
+        <>
+          {/* DIN keten indicator */}
+          <DINChainIndicator />
+
+          {/* Sector werkbanner */}
+          <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-gray-600">
+            U werkt aan sector:{" "}
+            <span className="font-semibold text-cito-blue">{activeSector}</span>
+          </div>
+
+          {/* Sector tabs met voortgang */}
+          <SectorTabs
+            activeSector={activeSector}
+            onSelect={setActiveSector}
+            sectorPlans={session.sectorPlans}
+            completionCounts={completionCounts}
+          />
+
+          <div className="flex gap-6">
+            {/* Doelen sidebar */}
+            <div className="w-56 shrink-0">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                Doelen
+              </h4>
+              <div className="space-y-1">
+                {session.goals
+                  .sort((a, b) => a.rank - b.rank)
+                  .map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => setActiveGoalId(goal.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        selectedGoal === goal.id
+                          ? "bg-cito-blue text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {goal.rank}. {goal.name}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            {/* DIN Editor */}
+            <div className="flex-1 space-y-6">
+              {/* AI genereer knop */}
+              <div className="flex justify-end">
                 <button
-                  key={goal.id}
-                  onClick={() => setActiveGoalId(goal.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedGoal === goal.id
-                      ? "bg-cito-blue text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  onClick={handleAIGenerate}
+                  disabled={isGenerating}
+                  className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
                 >
-                  {goal.rank}. {goal.name}
+                  {isGenerating
+                    ? "Genereren..."
+                    : "AI: Genereer DIN-netwerk"}
                 </button>
-              ))}
-          </div>
-        </div>
+              </div>
 
-        {/* DIN Editor */}
-        <div className="flex-1 space-y-6">
-          {/* AI genereer knop */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleAIGenerate}
-              disabled={isGenerating}
-              className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
-            >
-              {isGenerating
-                ? "Genereren..."
-                : "AI: Genereer DIN-netwerk"}
-            </button>
-          </div>
-
-          {/* Baten */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-din-baten">
-                Baten — welke effecten willen we bereiken?
-              </h4>
-              <button
-                onClick={addBenefit}
-                className="text-xs text-cito-blue hover:underline"
-              >
-                + Baat toevoegen
-              </button>
-            </div>
-            <div className="space-y-2">
-              {sectorBenefits.map((b) => (
-                <BenefitCard
-                  key={b.id}
-                  benefit={b}
-                  onChange={updateBenefit}
-                  onDelete={() => deleteBenefit(b.id)}
-                />
-              ))}
-              {sectorBenefits.length === 0 && (
-                <p className="text-sm text-gray-400 italic">
-                  Nog geen baten voor {activeSector}. Voeg ze toe of laat AI
-                  genereren.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Vermogens */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-din-vermogens">
-                Vermogens — wat moet {activeSector} kunnen?
-              </h4>
-              <button
-                onClick={addCapability}
-                className="text-xs text-cito-blue hover:underline"
-              >
-                + Vermogen toevoegen
-              </button>
-            </div>
-            <div className="space-y-2">
-              {sectorCapabilities.map((c) => (
-                <div
-                  key={c.id}
-                  className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 flex items-start gap-2"
-                >
-                  <input
-                    value={c.description}
-                    onChange={(e) =>
-                      updateCapability({ ...c, description: e.target.value })
-                    }
-                    className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-                    placeholder="Beschrijf het vermogen..."
-                  />
+              {/* Baten */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-sm font-semibold text-din-baten">
+                    Baten — welke effecten wil {activeSector} bereiken?
+                  </h4>
                   <button
-                    onClick={() => deleteCapability(c.id)}
-                    className="text-xs text-gray-400 hover:text-red-500"
+                    onClick={addBenefit}
+                    className="text-xs text-cito-blue hover:underline"
                   >
-                    ✕
+                    + Baat toevoegen
                   </button>
                 </div>
-              ))}
-              {sectorCapabilities.length === 0 && (
-                <p className="text-sm text-gray-400 italic">
-                  Nog geen vermogens voor {activeSector}.
+                <p className="text-xs text-gray-400 mb-2 italic">
+                  Hoe-vraag: Welke effecten wil {activeSector} bereiken voor dit
+                  doel?
                 </p>
-              )}
-            </div>
-          </div>
+                <div className="space-y-2">
+                  {sectorBenefits.map((b) => (
+                    <BenefitCard
+                      key={b.id}
+                      benefit={b}
+                      onChange={updateBenefit}
+                      onDelete={() => deleteBenefit(b.id)}
+                    />
+                  ))}
+                  {sectorBenefits.length === 0 && (
+                    <p className="text-sm text-gray-400 italic">
+                      Nog geen baten voor {activeSector}. Voeg ze toe of laat AI
+                      genereren.
+                    </p>
+                  )}
+                </div>
+              </div>
 
-          {/* Inspanningen per domein */}
-          <div>
-            <h4 className="text-sm font-semibold text-din-inspanningen mb-2">
-              Inspanningen — wat moet {activeSector} doen?
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              {DOMAINS.map((domain) => {
-                const domainEfforts = sectorEfforts.filter(
-                  (e) => e.domain === domain.key
-                );
-                return (
-                  <div key={domain.key} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-600">
-                        {domain.label}
-                      </span>
+              {/* Vermogens */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-sm font-semibold text-din-vermogens">
+                    Vermogens — wat moet {activeSector} kunnen?
+                  </h4>
+                  <button
+                    onClick={addCapability}
+                    className="text-xs text-cito-blue hover:underline"
+                  >
+                    + Vermogen toevoegen
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mb-2 italic">
+                  Hoe-vraag: Wat moet {activeSector} kunnen om deze baten te
+                  realiseren?
+                </p>
+                <div className="space-y-2">
+                  {sectorCapabilities.map((c) => (
+                    <div
+                      key={c.id}
+                      className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 flex items-start gap-2"
+                    >
+                      <input
+                        value={c.description}
+                        onChange={(e) =>
+                          updateCapability({
+                            ...c,
+                            description: e.target.value,
+                          })
+                        }
+                        className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
+                        placeholder="Beschrijf het vermogen..."
+                      />
                       <button
-                        onClick={() => addEffort(domain.key)}
-                        className="text-xs text-cito-blue hover:underline"
+                        onClick={() => deleteCapability(c.id)}
+                        className="text-xs text-gray-400 hover:text-red-500"
                       >
-                        +
+                        ✕
                       </button>
                     </div>
-                    {domainEfforts.map((e) => (
-                      <EffortCard
-                        key={e.id}
-                        effort={e}
-                        onChange={updateEffort}
-                        onDelete={() => deleteEffort(e.id)}
-                      />
-                    ))}
-                    {domainEfforts.length === 0 && (
-                      <p className="text-xs text-gray-400 italic">Geen</p>
-                    )}
-                  </div>
-                );
-              })}
+                  ))}
+                  {sectorCapabilities.length === 0 && (
+                    <p className="text-sm text-gray-400 italic">
+                      Nog geen vermogens voor {activeSector}.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Inspanningen per domein */}
+              <div>
+                <h4 className="text-sm font-semibold text-din-inspanningen mb-1">
+                  Inspanningen — wat moet {activeSector} doen?
+                </h4>
+                <p className="text-xs text-gray-400 mb-2 italic">
+                  Hoe-vraag: Welke concrete activiteiten bouwen de vermogens op?
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  {DOMAINS.map((domain) => {
+                    const domainEfforts = sectorEfforts.filter(
+                      (e) => e.domain === domain.key
+                    );
+                    return (
+                      <div key={domain.key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600">
+                            {domain.label}
+                          </span>
+                          <button
+                            onClick={() => addEffort(domain.key)}
+                            className="text-xs text-cito-blue hover:underline"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {domainEfforts.map((e) => (
+                          <EffortCard
+                            key={e.id}
+                            effort={e}
+                            onChange={updateEffort}
+                            onDelete={() => deleteEffort(e.id)}
+                          />
+                        ))}
+                        {domainEfforts.length === 0 && (
+                          <p className="text-xs text-gray-400 italic">Geen</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

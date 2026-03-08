@@ -9,9 +9,30 @@ import type { EffortDomain } from "@/lib/types";
 export default function ExportStep() {
   const { session } = useSession();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExportingWord, setIsExportingWord] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
 
   if (!session) return null;
+
+  async function handleExportWord() {
+    setIsExportingWord(true);
+    try {
+      const { generateWordDocument } = await import("@/lib/word-export");
+      const blob = await generateWordDocument(session!);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `programmaplan-${session!.name
+        .replace(/\s+/g, "-")
+        .toLowerCase()}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Word export mislukt:", e);
+    } finally {
+      setIsExportingWord(false);
+    }
+  }
 
   async function handleGeneratePlan() {
     setIsGenerating(true);
@@ -30,18 +51,6 @@ export default function ExportStep() {
     } finally {
       setIsGenerating(false);
     }
-  }
-
-  function handleExportJSON() {
-    const blob = new Blob([JSON.stringify(session, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `din-${session!.name.replace(/\s+/g, "-").toLowerCase()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   function generateTextSummary(): string {
@@ -141,14 +150,18 @@ export default function ExportStep() {
         </h3>
         <div className="grid grid-cols-3 gap-4">
           <button
-            onClick={handleExportJSON}
-            className="p-4 border border-gray-200 rounded-lg hover:border-cito-blue hover:bg-blue-50 transition-colors text-left"
+            onClick={handleExportWord}
+            disabled={isExportingWord}
+            className="p-4 border-2 border-cito-blue rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-left disabled:opacity-50"
           >
-            <div className="text-sm font-semibold text-gray-800">
-              JSON Export
+            <div className="text-sm font-semibold text-cito-blue">
+              {isExportingWord
+                ? "Word document aanmaken..."
+                : "Programmaplan downloaden (.docx)"}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Volledige sessiedata als JSON bestand
+              Volledig programmaplan als Word document met aparte pagina per
+              sector
             </div>
           </button>
 
@@ -167,9 +180,9 @@ export default function ExportStep() {
           <button
             onClick={handleGeneratePlan}
             disabled={isGenerating}
-            className="p-4 border border-cito-blue rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-left disabled:opacity-50"
+            className="p-4 border border-gray-200 rounded-lg hover:border-cito-blue hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
           >
-            <div className="text-sm font-semibold text-cito-blue">
+            <div className="text-sm font-semibold text-gray-800">
               {isGenerating ? "Genereren..." : "AI Programmaplan"}
             </div>
             <div className="text-xs text-gray-500 mt-1">

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession, SessionProvider } from "@/lib/session-context";
 import { APP_STEPS } from "@/lib/types";
 import type { AppStep } from "@/lib/types";
+import { getStepCompletions } from "@/lib/din-service";
 import ImportStep from "@/components/steps/ImportStep";
 import DINMappingStep from "@/components/steps/DINMappingStep";
 import CrossAnalyseStep from "@/components/steps/CrossAnalyseStep";
@@ -38,6 +39,11 @@ function SessionFlow() {
     if (id) loadSession(id);
   }, [id, loadSession]);
 
+  const completions = useMemo(() => {
+    if (!session) return [];
+    return getStepCompletions(session);
+  }, [session]);
+
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cito-bg">
@@ -69,19 +75,38 @@ function SessionFlow() {
 
       <nav className="bg-white border-b border-cito-border px-6 py-3">
         <div className="max-w-6xl mx-auto flex gap-1">
-          {APP_STEPS.map((step) => (
-            <button
-              key={step.key}
-              onClick={() => setCurrentStep(step.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                currentStep === step.key
-                  ? "bg-cito-blue text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {step.nummer}. {step.label}
-            </button>
-          ))}
+          {APP_STEPS.map((step) => {
+            const completion = completions.find((c) => c.step === step.key);
+            const pct = completion?.percentage ?? 0;
+            return (
+              <button
+                key={step.key}
+                onClick={() => setCurrentStep(step.key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  currentStep === step.key
+                    ? "bg-cito-blue text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {step.nummer}. {step.label}
+                {pct > 0 && (
+                  <span
+                    className={`text-xs ${
+                      currentStep === step.key
+                        ? pct === 100
+                          ? "text-green-300"
+                          : "text-blue-200"
+                        : pct === 100
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {pct === 100 ? "✓" : `${pct}%`}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </nav>
 
