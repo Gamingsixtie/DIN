@@ -38,10 +38,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (session) {
         const stepIndex = [
           "import",
-          "din-mapping",
+          "sectorwerk",
           "cross-analyse",
+          "samengevoegd-din",
           "prioritering",
-          "sector-integratie",
           "export",
         ].indexOf(step);
         const updated = { ...session, currentStep: stepIndex, updatedAt: new Date().toISOString() };
@@ -58,10 +58,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(loaded);
       const steps: AppStep[] = [
         "import",
-        "din-mapping",
+        "sectorwerk",
         "cross-analyse",
+        "samengevoegd-din",
         "prioritering",
-        "sector-integratie",
         "export",
       ];
       setCurrentStepState(steps[loaded.currentStep] || "import");

@@ -7,24 +7,24 @@ import { APP_STEPS } from "@/lib/types";
 import type { AppStep } from "@/lib/types";
 import { getStepCompletions } from "@/lib/din-service";
 import ImportStep from "@/components/steps/ImportStep";
-import DINMappingStep from "@/components/steps/DINMappingStep";
+import SectorWerkStep from "@/components/steps/SectorWerkStep";
 import CrossAnalyseStep from "@/components/steps/CrossAnalyseStep";
+import SamengevoegdDINStep from "@/components/steps/SamengevoegdDINStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
-import SectorIntegratieStep from "@/components/steps/SectorIntegratieStep";
 import ExportStep from "@/components/steps/ExportStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
     case "import":
       return <ImportStep />;
-    case "din-mapping":
-      return <DINMappingStep />;
+    case "sectorwerk":
+      return <SectorWerkStep />;
     case "cross-analyse":
       return <CrossAnalyseStep />;
+    case "samengevoegd-din":
+      return <SamengevoegdDINStep />;
     case "prioritering":
       return <PrioriteringStep />;
-    case "sector-integratie":
-      return <SectorIntegratieStep />;
     case "export":
       return <ExportStep />;
   }
@@ -68,7 +68,7 @@ function SessionFlow() {
             <h1 className="text-xl font-bold">DIN — {session.name}</h1>
           </div>
           <div className="text-sm text-blue-200">
-            Stap {currentStepIndex + 1} van 6
+            Stap {currentStepIndex + 1} van {APP_STEPS.length}
           </div>
         </div>
       </header>

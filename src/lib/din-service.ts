@@ -240,13 +240,12 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       details: [
         session.vision ? "Visie" : "",
         session.goals.length > 0 ? `${session.goals.length} doelen` : "",
-        session.sectorPlans.length > 0 ? `${session.sectorPlans.length} sectorplannen` : "",
       ].filter(Boolean).join(", ") || "Nog niets ingevuld",
     },
     {
-      step: "din-mapping",
-      percentage: computeDINCompletion(session),
-      details: `${session.benefits.length} baten, ${session.capabilities.length} vermogens, ${session.efforts.length} inspanningen`,
+      step: "sectorwerk",
+      percentage: computeSectorwerkCompletion(session),
+      details: `${session.sectorPlans.length} plannen, ${session.benefits.length} baten, ${session.efforts.length} inspanningen`,
     },
     {
       step: "cross-analyse",
@@ -254,16 +253,16 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       details: session.benefits.length > 0 ? "Data beschikbaar" : "Vul eerst DIN in",
     },
     {
+      step: "samengevoegd-din",
+      percentage: session.benefits.length > 0 ? 100 : 0,
+      details: session.benefits.length > 0 ? "Samengevoegd overzicht beschikbaar" : "Vul eerst per sector DIN in",
+    },
+    {
       step: "prioritering",
-      percentage: session.efforts.filter((e) => e.status === "gepland" || e.quarter).length > 0
+      percentage: session.efforts.filter((e) => e.quarter).length > 0
         ? Math.round((session.efforts.filter((e) => e.quarter).length / Math.max(session.efforts.length, 1)) * 100)
         : 0,
       details: `${session.efforts.filter((e) => e.quarter).length}/${session.efforts.length} ingepland`,
-    },
-    {
-      step: "sector-integratie",
-      percentage: session.sectorPlans.length > 0 && session.efforts.length > 0 ? 100 : 0,
-      details: session.sectorPlans.length > 0 ? "Sectorplannen beschikbaar" : "Upload sectorplannen",
     },
     {
       step: "export",
@@ -275,16 +274,17 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
 
 function computeImportCompletion(session: DINSession): number {
   let score = 0;
-  if (session.vision) score += 33;
-  if (session.goals.length > 0) score += 34;
-  if (session.sectorPlans.length > 0) score += 33;
+  if (session.vision) score += 50;
+  if (session.goals.length > 0) score += 50;
   return score;
 }
 
-function computeDINCompletion(session: DINSession): number {
-  if (session.goals.length === 0) return 0;
-  const sectorsWithData = SECTORS.filter((s) =>
-    session.benefits.some((b) => b.sectorId === s)
-  ).length;
-  return Math.round((sectorsWithData / SECTORS.length) * 100);
+function computeSectorwerkCompletion(session: DINSession): number {
+  let sectorsDone = 0;
+  for (const sector of SECTORS) {
+    const hasPlan = session.sectorPlans.some((s) => s.sectorName === sector);
+    const hasDIN = session.benefits.some((b) => b.sectorId === sector);
+    if (hasPlan && hasDIN) sectorsDone++;
+  }
+  return Math.round((sectorsDone / SECTORS.length) * 100);
 }

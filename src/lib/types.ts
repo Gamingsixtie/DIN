@@ -13,8 +13,8 @@ export type EffortStatus =
 // Prioriteit voor PMC
 export type Priority = "hoog" | "midden" | "laag";
 
-// Standaard sectoren
-export const SECTORS = ["PO", "VO", "Zakelijk", "Data & Tech"] as const;
+// Standaard sectoren (Data & Tech is ondersteunend, geen eigen sector)
+export const SECTORS = ["PO", "VO", "Zakelijk"] as const;
 export type SectorName = (typeof SECTORS)[number];
 
 // Sector kleuren voor tags/badges
@@ -22,7 +22,6 @@ export const SECTOR_COLORS: Record<SectorName, string> = {
   PO: "bg-blue-100 text-blue-800 border-blue-200",
   VO: "bg-green-100 text-green-800 border-green-200",
   Zakelijk: "bg-purple-100 text-purple-800 border-purple-200",
-  "Data & Tech": "bg-amber-100 text-amber-800 border-amber-200",
 };
 
 // --- KiB Import ---
@@ -155,20 +154,21 @@ export interface DINSession {
 }
 
 // --- App Flow Stappen ---
+// Flow: eerst per sector doorlopen (methodiek), dan gezamenlijke cross-analyse
 
 export type AppStep =
   | "import"
-  | "din-mapping"
+  | "sectorwerk"
   | "cross-analyse"
+  | "samengevoegd-din"
   | "prioritering"
-  | "sector-integratie"
   | "export";
 
 export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
-  { key: "import", label: "Import & Opzet", nummer: 1 },
-  { key: "din-mapping", label: "DIN-Mapping", nummer: 2 },
+  { key: "import", label: "KiB Import", nummer: 1 },
+  { key: "sectorwerk", label: "Sectorwerk", nummer: 2 },
   { key: "cross-analyse", label: "Cross-analyse", nummer: 3 },
-  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 4 },
-  { key: "sector-integratie", label: "Sectorplan-integratie", nummer: 5 },
+  { key: "samengevoegd-din", label: "Samengevoegd DIN", nummer: 4 },
+  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 5 },
   { key: "export", label: "Export", nummer: 6 },
 ];
