@@ -19,6 +19,7 @@ import {
   getBenefitsByGoalAndSector,
 } from "@/lib/din-service";
 import BenefitCard from "@/components/din/BenefitCard";
+import CapabilityCard from "@/components/din/CapabilityCard";
 import EffortCard from "@/components/din/EffortCard";
 import DINChainIndicator from "@/components/din/DINChainIndicator";
 
@@ -690,28 +691,12 @@ export default function SectorWerkStep() {
                     </p>
                     <div className="space-y-2">
                       {sectorCapabilities.map((c) => (
-                        <div
+                        <CapabilityCard
                           key={c.id}
-                          className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 flex items-start gap-2"
-                        >
-                          <input
-                            value={c.description}
-                            onChange={(e) =>
-                              updateCapability({
-                                ...c,
-                                description: e.target.value,
-                              })
-                            }
-                            className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-                            placeholder="Beschrijf het vermogen..."
-                          />
-                          <button
-                            onClick={() => deleteCapability(c.id)}
-                            className="text-xs text-gray-400 hover:text-red-500"
-                          >
-                            ✕
-                          </button>
-                        </div>
+                          capability={c}
+                          onChange={updateCapability}
+                          onDelete={() => deleteCapability(c.id)}
+                        />
                       ))}
                       {sectorCapabilities.length === 0 && (
                         <p className="text-sm text-gray-400 italic">

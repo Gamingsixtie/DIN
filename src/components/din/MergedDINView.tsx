@@ -161,11 +161,38 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
                             }`}
                           >
                             <SectorBadge sector={c.sectorId} />
-                            <span className="text-gray-700">
-                              {c.description || "(naamloos)"}
-                            </span>
+                            <div className="flex-1">
+                              <span className="text-gray-700">
+                                {c.description || "(naamloos)"}
+                              </span>
+                              {(c.currentLevel || c.targetLevel) && (
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {c.currentLevel && (
+                                    <span className="text-[10px] text-amber-600">
+                                      Nu: {c.currentLevel}/5
+                                    </span>
+                                  )}
+                                  {c.targetLevel && (
+                                    <span className="text-[10px] text-green-600">
+                                      Doel: {c.targetLevel}/5
+                                    </span>
+                                  )}
+                                  {c.currentLevel && c.targetLevel && c.targetLevel > c.currentLevel && (
+                                    <span className={`text-[10px] px-1 rounded font-medium ${
+                                      c.targetLevel - c.currentLevel >= 3
+                                        ? "bg-red-100 text-red-700"
+                                        : c.targetLevel - c.currentLevel >= 2
+                                        ? "bg-amber-100 text-amber-700"
+                                        : "bg-green-100 text-green-700"
+                                    }`}>
+                                      +{c.targetLevel - c.currentLevel}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             {isShared && sharedSectors && (
-                              <span className="ml-auto flex items-center gap-1">
+                              <span className="ml-auto flex items-center gap-1 shrink-0">
                                 <span className="text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
                                   Synergie
                                 </span>

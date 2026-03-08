@@ -128,19 +128,19 @@ export function createDemoSession(): DINSession {
 
     capabilities: [
       // PO
-      { id: capIds[0], sectorId: "PO", description: "Klantgericht werken is standaard werkwijze bij alle PO-medewerkers", relatedSectors: ["PO", "VO"] },
-      { id: capIds[1], sectorId: "PO", description: "PO-team kan adaptieve digitale toetsen ontwikkelen en beheren", relatedSectors: ["PO"] },
-      { id: capIds[2], sectorId: "PO", description: "Data-analyse en dashboarding voor onderwijsinzichten", relatedSectors: ["PO", "VO"] },
+      { id: capIds[0], sectorId: "PO", description: "Klantgericht werken is standaard werkwijze bij alle PO-medewerkers", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4 },
+      { id: capIds[1], sectorId: "PO", description: "PO-team kan adaptieve digitale toetsen ontwikkelen en beheren", relatedSectors: ["PO"], currentLevel: 1, targetLevel: 4 },
+      { id: capIds[2], sectorId: "PO", description: "Data-analyse en dashboarding voor onderwijsinzichten", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 5 },
 
       // VO
-      { id: capIds[3], sectorId: "VO", description: "VO-team beheerst volledig digitale toetsconstructie", relatedSectors: ["VO"] },
-      { id: capIds[4], sectorId: "VO", description: "Formatief toetsen is geïntegreerd in het productaanbod", relatedSectors: ["VO"] },
-      { id: capIds[5], sectorId: "VO", description: "Klantgericht werken is standaard werkwijze bij alle VO-medewerkers", relatedSectors: ["PO", "VO"] },
+      { id: capIds[3], sectorId: "VO", description: "VO-team beheerst volledig digitale toetsconstructie", relatedSectors: ["VO"], currentLevel: 2, targetLevel: 4 },
+      { id: capIds[4], sectorId: "VO", description: "Formatief toetsen is geïntegreerd in het productaanbod", relatedSectors: ["VO"], currentLevel: 1, targetLevel: 3 },
+      { id: capIds[5], sectorId: "VO", description: "Klantgericht werken is standaard werkwijze bij alle VO-medewerkers", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4 },
 
       // Zakelijk
-      { id: capIds[6], sectorId: "Zakelijk", description: "Assessment-expertise is gebundeld en schaalbaar ingericht", relatedSectors: ["Zakelijk"] },
-      { id: capIds[7], sectorId: "Zakelijk", description: "Digitale certificeringsinfrastructuur is operationeel", relatedSectors: ["Zakelijk"] },
-      { id: capIds[8], sectorId: "Zakelijk", description: "Commerciële vaardigheden en account-based selling zijn ontwikkeld", relatedSectors: ["Zakelijk"] },
+      { id: capIds[6], sectorId: "Zakelijk", description: "Assessment-expertise is gebundeld en schaalbaar ingericht", relatedSectors: ["Zakelijk"], currentLevel: 3, targetLevel: 5 },
+      { id: capIds[7], sectorId: "Zakelijk", description: "Digitale certificeringsinfrastructuur is operationeel", relatedSectors: ["Zakelijk"], currentLevel: 1, targetLevel: 4 },
+      { id: capIds[8], sectorId: "Zakelijk", description: "Commerciële vaardigheden en account-based selling zijn ontwikkeld", relatedSectors: ["Zakelijk"], currentLevel: 2, targetLevel: 4 },
     ],
 
     efforts: [

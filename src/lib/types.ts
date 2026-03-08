@@ -90,6 +90,8 @@ export interface DINCapability {
   sectorId: string;
   description: string;
   relatedSectors: string[];
+  currentLevel?: number; // 1-5: huidig vermogensniveau
+  targetLevel?: number;  // 1-5: gewenst vermogensniveau
 }
 
 export interface DINEffort {
