@@ -160,7 +160,7 @@ export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "import", label: "Import & Opzet", nummer: 1 },
   { key: "din-mapping", label: "DIN-Mapping", nummer: 2 },
   { key: "cross-analyse", label: "Cross-analyse", nummer: 3 },
-  { key: "prioritering", label: "Prioritering & Planning", nummer: 4 },
+  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 4 },
   { key: "sector-integratie", label: "Sectorplan-integratie", nummer: 5 },
   { key: "export", label: "Export", nummer: 6 },
 ];

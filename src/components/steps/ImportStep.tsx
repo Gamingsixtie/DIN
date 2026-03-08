@@ -158,8 +158,8 @@ export default function ImportStep() {
           Sectorplannen
         </h3>
         <p className="text-sm text-gray-500 mb-3">
-          Upload of plak het sectorplan per sector. De DIN-invulling verschilt
-          per sector.
+          Upload het sectorplan per sector (docx, pdf, of tekst). De
+          DIN-invulling verschilt per sector.
         </p>
         <div className="grid grid-cols-2 gap-4">
           {SECTORS.map((sector) => {
@@ -178,13 +178,59 @@ export default function ImportStep() {
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-sm">{sector}</h4>
                   {existing && (
-                    <span className="text-xs text-green-600">Uploaded</span>
+                    <span className="text-xs text-green-600">
+                      Uploaded ({existing.rawText.length > 100 ? `${Math.round(existing.rawText.length / 1000)}k tekens` : "tekst"})
+                    </span>
                   )}
                 </div>
+
+                {/* File upload */}
+                <label className="block mb-2">
+                  <div className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
+                    <span className="text-xs text-gray-500">
+                      Upload document (.docx, .pdf, .txt)
+                    </span>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".docx,.pdf,.txt,.doc"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      // Voor tekst-bestanden: lees direct
+                      if (file.name.endsWith(".txt")) {
+                        const text = await file.text();
+                        handleSectorUpload(sector, text);
+                      } else {
+                        // Voor docx/pdf: stuur naar API voor parsing
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        formData.append("sectorName", sector);
+                        try {
+                          const res = await fetch("/api/parse-sector", {
+                            method: "POST",
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          if (data.success && data.data) {
+                            handleSectorUpload(sector, data.data.rawText || `[Geüpload: ${file.name}]`);
+                          }
+                        } catch (err) {
+                          console.error("Upload mislukt:", err);
+                          // Fallback: sla bestandsnaam op
+                          handleSectorUpload(sector, `[Document: ${file.name}]`);
+                        }
+                      }
+                    }}
+                  />
+                </label>
+
+                {/* Tekst invoer als alternatief */}
                 <textarea
-                  placeholder={`Plak ${sector}-sectorplan hier...`}
-                  className="w-full h-20 px-2 py-1.5 border border-gray-200 rounded text-xs resize-y focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                  defaultValue={existing?.rawText || ""}
+                  placeholder={`Of plak ${sector}-sectorplan tekst hier...`}
+                  className="w-full h-16 px-2 py-1.5 border border-gray-200 rounded text-xs resize-y focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                  defaultValue={existing?.rawText.startsWith("[") ? "" : existing?.rawText || ""}
                   onBlur={(e) => {
                     if (e.target.value.trim()) {
                       handleSectorUpload(sector, e.target.value.trim());
