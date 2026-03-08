@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loadLocal, saveLocal, removeLocal } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
+import { createDemoSession } from "@/lib/demo-data";
 
 export default function Home() {
   const router = useRouter();
@@ -63,12 +64,21 @@ export default function Home() {
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
+  function handleLoadDemo() {
+    const demo = createDemoSession();
+    saveLocal(`session_${demo.id}`, demo);
+    const list = loadLocal<string[]>("session_list") || [];
+    list.push(demo.id);
+    saveLocal("session_list", list);
+    router.push(`/sessies/${demo.id}`);
+  }
+
   const stepLabels = [
-    "Import & Opzet",
-    "DIN-Mapping",
+    "KiB Import",
+    "Sectorwerk",
     "Cross-analyse",
-    "Prioritering",
-    "Sectorplan-integratie",
+    "Samengevoegd DIN",
+    "Planning & Goedkeuring",
     "Export",
   ];
 
@@ -124,12 +134,20 @@ export default function Home() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800">Sessies</h2>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors"
-            >
-              + Nieuwe sessie
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleLoadDemo}
+                className="px-4 py-2 border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+              >
+                Demo laden
+              </button>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors"
+              >
+                + Nieuwe sessie
+              </button>
+            </div>
           </div>
 
           {showCreate && (
