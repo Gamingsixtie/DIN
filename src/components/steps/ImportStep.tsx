@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "@/lib/session-context";
-import type { PMCEntry, Priority, SectorPlan } from "@/lib/types";
+import type { SectorPlan } from "@/lib/types";
 import { SECTORS } from "@/lib/types";
 import { importFromKiB } from "@/lib/kib-import";
 import { generateId } from "@/lib/din-service";
@@ -14,11 +14,6 @@ export default function ImportStep() {
     "idle"
   );
   const [kibError, setKibError] = useState("");
-
-  // PMC state
-  const [newProduct, setNewProduct] = useState("");
-  const [newMarket, setNewMarket] = useState("");
-  const [newPriority, setNewPriority] = useState<Priority>("midden");
 
   if (!session) return null;
 
@@ -51,28 +46,16 @@ export default function ImportStep() {
     updateSession({ sectorPlans: [...existing, plan] });
   }
 
-  function handleAddPMC() {
-    if (!newProduct.trim() || !newMarket.trim()) return;
-    const pmc: PMCEntry = {
-      id: generateId(),
-      product: newProduct.trim(),
-      marketSegment: newMarket.trim(),
-      priority: newPriority,
-    };
-    updateSession({ pmcEntries: [...session!.pmcEntries, pmc] });
-    setNewProduct("");
-    setNewMarket("");
-    setNewPriority("midden");
-  }
-
-  function handleRemovePMC(id: string) {
-    updateSession({
-      pmcEntries: session!.pmcEntries.filter((p) => p.id !== id),
-    });
-  }
-
   return (
     <div className="space-y-8">
+      {/* Uitleg */}
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-gray-700">
+        <strong>Werkwijze:</strong> Importeer eerst de KiB-uitkomsten (visie,
+        doelen, scope). Upload daarna per sector het sectorplan. Op basis van
+        de KiB-doelen en sectorplannen wordt vervolgens het DIN-netwerk per
+        sector ingevuld.
+      </div>
+
       {/* A. KiB Import */}
       <section>
         <h3 className="text-lg font-semibold text-cito-blue mb-3">
@@ -97,7 +80,9 @@ export default function ImportStep() {
             Importeer
           </button>
           {kibStatus === "success" && (
-            <span className="text-sm text-green-600">Succesvol geïmporteerd</span>
+            <span className="text-sm text-green-600">
+              Succesvol geïmporteerd
+            </span>
           )}
           {kibStatus === "error" && (
             <span className="text-sm text-red-600">{kibError}</span>
@@ -108,7 +93,9 @@ export default function ImportStep() {
         {session.vision && (
           <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
             <h4 className="font-medium text-sm text-cito-blue">Visie</h4>
-            <p className="text-sm text-gray-700 mt-1">{session.vision.beknopt}</p>
+            <p className="text-sm text-gray-700 mt-1">
+              {session.vision.beknopt}
+            </p>
           </div>
         )}
         {session.goals.length > 0 && (
@@ -132,18 +119,26 @@ export default function ImportStep() {
             <h4 className="font-medium text-sm text-cito-blue">Scope</h4>
             <div className="mt-1 grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-green-600 font-medium">Binnen scope:</span>
+                <span className="text-green-600 font-medium">
+                  Binnen scope:
+                </span>
                 <ul className="mt-1 space-y-0.5">
                   {session.scope.inScope.map((s, i) => (
-                    <li key={i} className="text-gray-700">• {s}</li>
+                    <li key={i} className="text-gray-700">
+                      • {s}
+                    </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <span className="text-red-500 font-medium">Buiten scope:</span>
+                <span className="text-red-500 font-medium">
+                  Buiten scope:
+                </span>
                 <ul className="mt-1 space-y-0.5">
                   {session.scope.outScope.map((s, i) => (
-                    <li key={i} className="text-gray-700">• {s}</li>
+                    <li key={i} className="text-gray-700">
+                      • {s}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -158,8 +153,9 @@ export default function ImportStep() {
           Sectorplannen
         </h3>
         <p className="text-sm text-gray-500 mb-3">
-          Upload het sectorplan per sector (docx, pdf, of tekst). De
-          DIN-invulling verschilt per sector.
+          Upload het sectorplan per sector (docx, pdf, of tekst). Op basis van
+          het sectorplan en de KiB-doelen geeft de app advies hoe het
+          DIN-netwerk toe te passen.
         </p>
         <div className="grid grid-cols-2 gap-4">
           {SECTORS.map((sector) => {
@@ -179,7 +175,11 @@ export default function ImportStep() {
                   <h4 className="font-medium text-sm">{sector}</h4>
                   {existing && (
                     <span className="text-xs text-green-600">
-                      Uploaded ({existing.rawText.length > 100 ? `${Math.round(existing.rawText.length / 1000)}k tekens` : "tekst"})
+                      Uploaded (
+                      {existing.rawText.length > 100
+                        ? `${Math.round(existing.rawText.length / 1000)}k tekens`
+                        : "tekst"}
+                      )
                     </span>
                   )}
                 </div>
@@ -198,12 +198,10 @@ export default function ImportStep() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      // Voor tekst-bestanden: lees direct
                       if (file.name.endsWith(".txt")) {
                         const text = await file.text();
                         handleSectorUpload(sector, text);
                       } else {
-                        // Voor docx/pdf: stuur naar API voor parsing
                         const formData = new FormData();
                         formData.append("file", file);
                         formData.append("sectorName", sector);
@@ -214,12 +212,17 @@ export default function ImportStep() {
                           });
                           const data = await res.json();
                           if (data.success && data.data) {
-                            handleSectorUpload(sector, data.data.rawText || `[Geüpload: ${file.name}]`);
+                            handleSectorUpload(
+                              sector,
+                              data.data.rawText || `[Geüpload: ${file.name}]`
+                            );
                           }
                         } catch (err) {
                           console.error("Upload mislukt:", err);
-                          // Fallback: sla bestandsnaam op
-                          handleSectorUpload(sector, `[Document: ${file.name}]`);
+                          handleSectorUpload(
+                            sector,
+                            `[Document: ${file.name}]`
+                          );
                         }
                       }
                     }}
@@ -230,7 +233,11 @@ export default function ImportStep() {
                 <textarea
                   placeholder={`Of plak ${sector}-sectorplan tekst hier...`}
                   className="w-full h-16 px-2 py-1.5 border border-gray-200 rounded text-xs resize-y focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                  defaultValue={existing?.rawText.startsWith("[") ? "" : existing?.rawText || ""}
+                  defaultValue={
+                    existing?.rawText.startsWith("[")
+                      ? ""
+                      : existing?.rawText || ""
+                  }
                   onBlur={(e) => {
                     if (e.target.value.trim()) {
                       handleSectorUpload(sector, e.target.value.trim());
@@ -240,97 +247,6 @@ export default function ImportStep() {
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* C. Product-Marktcombinaties */}
-      <section>
-        <h3 className="text-lg font-semibold text-cito-blue mb-3">
-          Product-Marktcombinaties
-        </h3>
-        <p className="text-sm text-gray-500 mb-3">
-          Welke producten/diensten voor welke marktsegmenten?
-        </p>
-
-        {session.pmcEntries.length > 0 && (
-          <table className="w-full text-sm mb-4">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500">
-                <th className="py-2 font-medium">Product</th>
-                <th className="py-2 font-medium">Marktsegment</th>
-                <th className="py-2 font-medium">Prioriteit</th>
-                <th className="py-2 w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {session.pmcEntries.map((pmc) => (
-                <tr key={pmc.id} className="border-b border-gray-100">
-                  <td className="py-2">{pmc.product}</td>
-                  <td className="py-2">{pmc.marketSegment}</td>
-                  <td className="py-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        pmc.priority === "hoog"
-                          ? "bg-red-100 text-red-700"
-                          : pmc.priority === "midden"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {pmc.priority}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleRemovePMC(pmc.id)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <label className="text-xs text-gray-500">Product</label>
-            <input
-              value={newProduct}
-              onChange={(e) => setNewProduct(e.target.value)}
-              placeholder="bijv. Toetsen"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="text-xs text-gray-500">Marktsegment</label>
-            <input
-              value={newMarket}
-              onChange={(e) => setNewMarket(e.target.value)}
-              placeholder="bijv. PO"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">Prioriteit</label>
-            <select
-              value={newPriority}
-              onChange={(e) => setNewPriority(e.target.value as Priority)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-            >
-              <option value="hoog">Hoog</option>
-              <option value="midden">Midden</option>
-              <option value="laag">Laag</option>
-            </select>
-          </div>
-          <button
-            onClick={handleAddPMC}
-            className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
-          >
-            +
-          </button>
         </div>
       </section>
     </div>

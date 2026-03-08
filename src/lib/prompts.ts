@@ -36,20 +36,28 @@ export const CROSS_ANALYSE_PROMPT = `Analyseer de complete set DIN-netwerken en 
 
 4. **Domein-balans**: Zijn alle 4 inspanningsdomeinen (Mens, Processen, Data & Systemen, Cultuur) voldoende afgedekt?
 
-5. **PMC-impact**: Welke product-marktcombinaties worden het meest geraakt?
+5. **Sector-overlap**: Welke inspanningen of vermogens komen bij meerdere sectoren terug? Waar kan gecombineerd worden?
 
 Presenteer als matrix-overzicht. Antwoord in het Nederlands.`;
 
-export const SECTOR_INTEGRATIE_PROMPT = `Gegeven een sectorplan en de relevante inspanningen uit het DIN-netwerk, genereer een sectorale vertaling:
+export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek). Je krijgt:
+- De KiB-doelen (gezamenlijke programmadoelen)
+- Het sectorplan van een specifieke sector
+- De huidige DIN-invulling (baten, vermogens, inspanningen) voor deze sector
 
-Per sector:
-- Welke baten raken deze sector direct?
-- Welke vermogens moet deze sector ontwikkelen?
-- Welke inspanningen vallen onder verantwoordelijkheid van deze sector?
-- Hoe sluit dit aan op het bestaande sectorplan?
-- Welke aanvullingen op het sectorplan zijn nodig?
+Geef concreet advies over hoe het DIN-netwerk geïntegreerd kan worden in het sectorplan:
 
-Antwoord in het Nederlands. Wees concreet over de koppeling met bestaande sectorplan-items.`;
+1. **Aansluiting**: Welke items uit het sectorplan sluiten direct aan op de KiB-doelen? Waar zit overlap?
+
+2. **Verrijking**: Welke baten/vermogens/inspanningen uit het DIN-netwerk versterken het bestaande sectorplan?
+
+3. **Aanvullingen**: Welke onderdelen ontbreken nog in het sectorplan om de KiB-doelen te realiseren?
+
+4. **Quick wins**: Welke bestaande activiteiten uit het sectorplan kunnen direct bijdragen aan DIN-inspanningen?
+
+5. **Aandachtspunten**: Waar zijn er conflicten of spanningen tussen sectorplan en DIN?
+
+Antwoord in het Nederlands. Wees concreet en verwijs naar specifieke items uit het sectorplan en de DIN-invulling.`;
 
 export const PROGRAMMAPLAN_PROMPT = `Genereer een samenhangend programmaplan document op basis van alle DIN-data.
 
@@ -58,7 +66,7 @@ Structuur:
 2. Programmadoelen (top 5, gerankt)
 3. Per doel: DIN-netwerk (baten → vermogens → inspanningen)
 4. Cross-analyse: synergieën, hefbomen, gaps
-5. Geprioriteerde inspanningen (na dot voting)
+5. Geprioriteerde inspanningen
 6. Tijdlijn/roadmap per kwartaal
 7. Sectorale vertalingen
 8. Governance en monitoring (batenprofielen)

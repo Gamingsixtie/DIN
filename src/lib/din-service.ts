@@ -241,7 +241,6 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
         session.vision ? "Visie" : "",
         session.goals.length > 0 ? `${session.goals.length} doelen` : "",
         session.sectorPlans.length > 0 ? `${session.sectorPlans.length} sectorplannen` : "",
-        session.pmcEntries.length > 0 ? `${session.pmcEntries.length} PMC's` : "",
       ].filter(Boolean).join(", ") || "Nog niets ingevuld",
     },
     {
@@ -276,10 +275,9 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
 
 function computeImportCompletion(session: DINSession): number {
   let score = 0;
-  if (session.vision) score += 25;
-  if (session.goals.length > 0) score += 25;
-  if (session.sectorPlans.length > 0) score += 25;
-  if (session.pmcEntries.length > 0) score += 25;
+  if (session.vision) score += 33;
+  if (session.goals.length > 0) score += 34;
+  if (session.sectorPlans.length > 0) score += 33;
   return score;
 }
 
