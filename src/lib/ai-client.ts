@@ -7,6 +7,7 @@ import {
   CROSS_ANALYSE_PROMPT,
   PROGRAMMAPLAN_PROMPT,
   BATENPROFIEL_PROMPT,
+  SECTORPLAN_ANALYSE_PROMPT,
 } from "./prompts";
 
 function getClient(): Anthropic {
@@ -72,4 +73,26 @@ export async function generateBatenprofiel(
 ): Promise<string> {
   const userMessage = `Baat: ${benefit.description}\n\nStel een volledig batenprofiel op.`;
   return callClaude(BATENPROFIEL_PROMPT, userMessage);
+}
+
+export async function analyzeSectorPlan(
+  sectorName: string,
+  planText: string,
+  goals: { name: string; description: string }[]
+): Promise<string> {
+  const goalsText = goals.length > 0
+    ? goals.map((g, i) => `${i + 1}. ${g.name}: ${g.description}`).join("\n")
+    : "Nog geen programmadoelen beschikbaar.";
+
+  const userMessage = `Sector: ${sectorName}
+
+Programmadoelen:
+${goalsText}
+
+Sectorplan:
+${planText.slice(0, 5000)}
+
+Analyseer dit sectorplan en geef advies voor het DIN-netwerk.`;
+
+  return callClaude(SECTORPLAN_ANALYSE_PROMPT, userMessage);
 }

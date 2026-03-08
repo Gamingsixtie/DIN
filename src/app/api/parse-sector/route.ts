@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mammoth from "mammoth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,9 +14,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rawText = await file.text();
+    let rawText: string;
 
-    // TODO: AI parsing van sectorplan
+    if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const result = await mammoth.extractRawText({ buffer });
+      rawText = result.value;
+    } else {
+      rawText = await file.text();
+    }
+
     return NextResponse.json({
       success: true,
       data: {

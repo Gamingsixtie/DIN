@@ -24,10 +24,10 @@ import DINChainIndicator from "@/components/din/DINChainIndicator";
 
 type SectorSubStep = "sectorplan" | "din-mapping" | "integratie";
 
-const SUB_STEPS: { key: SectorSubStep; label: string }[] = [
-  { key: "sectorplan", label: "Sectorplan" },
-  { key: "din-mapping", label: "DIN-Mapping" },
-  { key: "integratie", label: "Integratie-advies" },
+const SUB_STEPS: { key: SectorSubStep; label: string; nummer: number }[] = [
+  { key: "sectorplan", label: "Sectorplan", nummer: 1 },
+  { key: "din-mapping", label: "DIN-Mapping", nummer: 2 },
+  { key: "integratie", label: "Integratie-advies", nummer: 3 },
 ];
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
@@ -44,29 +44,19 @@ export default function SectorWerkStep() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingPlan, setIsAnalyzingPlan] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<Record<string, string>>({});
+  const [planAnalysis, setPlanAnalysis] = useState<Record<string, string>>({});
 
   if (!session) return null;
-
-  if (session.goals.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">
-          Geen doelen beschikbaar. Importeer eerst KiB-data in stap 1.
-        </p>
-      </div>
-    );
-  }
 
   const sectorPlan = session.sectorPlans.find(
     (s) => s.sectorName === activeSector
   );
   const selectedGoal = activeGoalId || session.goals[0]?.id;
-  const sectorBenefits = getBenefitsByGoalAndSector(
-    session.benefits,
-    selectedGoal,
-    activeSector
-  );
+  const sectorBenefits = selectedGoal
+    ? getBenefitsByGoalAndSector(session.benefits, selectedGoal, activeSector)
+    : [];
   const sectorCapabilities = session.capabilities.filter(
     (c) => c.sectorId === activeSector
   );
@@ -84,6 +74,30 @@ export default function SectorWerkStep() {
     if (hasPlan || hasDIN) return "bezig";
     return "leeg";
   }
+
+  function getSectorStepsDone(sector: SectorName) {
+    const hasPlan = session!.sectorPlans.some((s) => s.sectorName === sector);
+    const hasDIN =
+      session!.benefits.some((b) => b.sectorId === sector) ||
+      session!.efforts.some((e) => e.sectorId === sector);
+    let done = 0;
+    if (hasPlan) done++;
+    if (hasDIN) done++;
+    return done;
+  }
+
+  // Volgende sector navigatie
+  function goToNextSector() {
+    const currentIdx = SECTORS.indexOf(activeSector);
+    if (currentIdx < SECTORS.length - 1) {
+      setActiveSector(SECTORS[currentIdx + 1]);
+      setSubStep("sectorplan");
+      setActiveGoalId(null);
+    }
+  }
+
+  const currentSectorIdx = SECTORS.indexOf(activeSector);
+  const isLastSector = currentSectorIdx === SECTORS.length - 1;
 
   // --- Sectorplan functies ---
   function handleSectorUpload(text: string) {
@@ -116,6 +130,7 @@ export default function SectorWerkStep() {
     });
   }
   function addBenefit() {
+    if (!selectedGoal) return;
     const newBenefit = createBenefit(selectedGoal, activeSector, "");
     updateSession({
       benefits: [...session!.benefits, newBenefit],
@@ -165,6 +180,7 @@ export default function SectorWerkStep() {
   }
 
   async function handleAIGenerate() {
+    if (!selectedGoal) return;
     setIsGenerating(true);
     try {
       const goal = session!.goals.find((g) => g.id === selectedGoal);
@@ -250,62 +266,123 @@ export default function SectorWerkStep() {
     }
   }
 
+  async function handleAnalyzePlan() {
+    if (!sectorPlan) return;
+    setIsAnalyzingPlan(true);
+    try {
+      const res = await fetch("/api/analyze-sectorplan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectorName: activeSector,
+          planText: sectorPlan.rawText,
+          goals: session!.goals,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.analysis) {
+        setPlanAnalysis((prev) => ({
+          ...prev,
+          [activeSector]: data.data.analysis,
+        }));
+      }
+    } catch (e) {
+      console.error("AI analyse sectorplan mislukt:", e);
+    } finally {
+      setIsAnalyzingPlan(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Uitleg */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-gray-700">
-        <strong>Werkwijze:</strong> Selecteer een sector en doorloop per sector
-        de DIN-methodiek: upload het sectorplan, vul het DIN-netwerk in (Doelen →
-        Baten → Vermogens → Inspanningen), en bekijk het integratie-advies.
+        <strong>Werkwijze:</strong> Doorloop per sector de DIN-methodiek: upload
+        het sectorplan, vul het DIN-netwerk in (Doelen → Baten → Vermogens →
+        Inspanningen), en bekijk het integratie-advies. Voltooi een sector
+        volledig voordat je naar de volgende gaat.
       </div>
 
-      {/* Sector tabs */}
+      {/* Sector tabs met voortgang */}
       <div className="flex gap-1 border-b border-gray-200">
         {SECTORS.map((sector) => {
           const progress = getSectorProgress(sector);
+          const stepsDone = getSectorStepsDone(sector);
           return (
             <button
               key={sector}
               onClick={() => {
                 setActiveSector(sector);
+                setSubStep("sectorplan");
                 setActiveGoalId(null);
               }}
-              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeSector === sector
                   ? "border-cito-blue text-cito-blue"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               {sector}
-              <span
-                className={`ml-2 inline-block w-2 h-2 rounded-full ${
-                  progress === "compleet"
-                    ? "bg-green-500"
-                    : progress === "bezig"
-                    ? "bg-amber-400"
-                    : "bg-gray-300"
-                }`}
-              />
+              <span className="flex items-center gap-1">
+                <span
+                  className={`inline-block w-2 h-2 rounded-full ${
+                    progress === "compleet"
+                      ? "bg-green-500"
+                      : progress === "bezig"
+                      ? "bg-amber-400"
+                      : "bg-gray-300"
+                  }`}
+                />
+                <span className="text-[10px] text-gray-400">
+                  {stepsDone}/2
+                </span>
+              </span>
             </button>
           );
         })}
       </div>
 
+      {/* Actieve sector header */}
+      <div className="px-4 py-3 bg-cito-blue/5 border border-cito-blue/20 rounded-lg">
+        <div className="text-sm font-semibold text-cito-blue">
+          Sector: {activeSector}
+        </div>
+        <div className="text-xs text-gray-500 mt-0.5">
+          {getSectorProgress(activeSector) === "compleet"
+            ? "Sectorplan en DIN-netwerk ingevuld"
+            : getSectorProgress(activeSector) === "bezig"
+            ? "In bewerking — nog niet alle stappen afgerond"
+            : "Nog niet gestart — begin met het sectorplan"}
+        </div>
+      </div>
+
       {/* Sub-stap navigatie per sector */}
       <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
-        {SUB_STEPS.map((step, i) => (
-          <button
-            key={step.key}
-            onClick={() => setSubStep(step.key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              subStep === step.key
-                ? "bg-white text-cito-blue shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {i + 1}. {step.label}
-          </button>
-        ))}
+        {SUB_STEPS.map((step) => {
+          const disabled =
+            step.key === "din-mapping" && session.goals.length === 0;
+          return (
+            <button
+              key={step.key}
+              onClick={() => !disabled && setSubStep(step.key)}
+              disabled={disabled}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                subStep === step.key
+                  ? "bg-white text-cito-blue shadow-sm"
+                  : disabled
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              title={
+                disabled
+                  ? "Importeer eerst doelen in stap 1 (KiB Import)"
+                  : undefined
+              }
+            >
+              {step.nummer}. {step.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ===== SUB-STAP 1: Sectorplan ===== */}
@@ -314,10 +391,13 @@ export default function SectorWerkStep() {
           <h4 className="text-sm font-semibold text-cito-blue">
             Sectorplan: {activeSector}
           </h4>
+          <p className="text-xs text-gray-500">
+            Upload het sectorplan van {activeSector} of plak de tekst hieronder.
+          </p>
 
           {/* File upload */}
-          <label className="block">
-            <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
+          <label className="block cursor-pointer">
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
               <svg
                 className="w-8 h-8 text-gray-400"
                 fill="none"
@@ -335,12 +415,12 @@ export default function SectorWerkStep() {
                 Upload {activeSector}-sectorplan
               </span>
               <span className="text-xs text-gray-400">
-                .docx, .pdf, of .txt
+                .docx, .doc, of .txt
               </span>
             </div>
             <input
               type="file"
-              accept=".docx,.pdf,.txt,.doc"
+              accept=".docx,.doc,.txt"
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
@@ -368,6 +448,7 @@ export default function SectorWerkStep() {
                     handleSectorUpload(`[Document: ${file.name}]`);
                   }
                 }
+                e.target.value = "";
               }}
             />
           </label>
@@ -399,7 +480,7 @@ export default function SectorWerkStep() {
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-xs font-semibold text-gray-600">
-                  Huidige inhoud
+                  Huidige inhoud ({activeSector})
                 </h5>
                 <button
                   onClick={() => {
@@ -429,13 +510,49 @@ export default function SectorWerkStep() {
             </div>
           )}
 
-          {/* Volgende stap knop */}
-          <div className="flex justify-end">
+          {/* AI Analyse van sectorplan */}
+          {sectorPlan && !sectorPlan.rawText.startsWith("[") && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <button
+                  onClick={handleAnalyzePlan}
+                  disabled={isAnalyzingPlan}
+                  className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
+                >
+                  {isAnalyzingPlan
+                    ? "Analyseren..."
+                    : "AI: Analyseer sectorplan"}
+                </button>
+              </div>
+              {planAnalysis[activeSector] && (
+                <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-semibold text-cito-blue mb-2">
+                    AI Analyse: Sectorplan {activeSector}
+                  </h4>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {planAnalysis[activeSector]}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Navigatie */}
+          <div className="flex justify-between">
+            <div />
             <button
-              onClick={() => setSubStep("din-mapping")}
+              onClick={() => {
+                if (session.goals.length > 0) {
+                  setSubStep("din-mapping");
+                } else {
+                  setSubStep("integratie");
+                }
+              }}
               className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
             >
-              Volgende: DIN-Mapping →
+              {session.goals.length > 0
+                ? "Volgende: DIN-Mapping →"
+                : "Volgende: Integratie-advies →"}
             </button>
           </div>
         </div>
@@ -444,207 +561,231 @@ export default function SectorWerkStep() {
       {/* ===== SUB-STAP 2: DIN-Mapping ===== */}
       {subStep === "din-mapping" && (
         <>
-          <DINChainIndicator />
-
-          <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-gray-600">
-            U werkt aan het DIN-netwerk voor sector:{" "}
-            <span className="font-semibold text-cito-blue">{activeSector}</span>
-          </div>
-
-          <div className="flex gap-6">
-            {/* Doelen sidebar */}
-            <div className="w-56 shrink-0">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                Doelen
-              </h4>
-              <div className="space-y-1">
-                {session.goals
-                  .sort((a, b) => a.rank - b.rank)
-                  .map((goal) => {
-                    const hasBenefits = session.benefits.some(
-                      (b) =>
-                        b.goalId === goal.id && b.sectorId === activeSector
-                    );
-                    return (
-                      <button
-                        key={goal.id}
-                        onClick={() => setActiveGoalId(goal.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                          selectedGoal === goal.id
-                            ? "bg-cito-blue text-white"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        {goal.rank}. {goal.name}
-                        {hasBenefits && (
-                          <span className="ml-1 text-green-400">●</span>
-                        )}
-                      </button>
-                    );
-                  })}
-              </div>
+          {session.goals.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                Geen doelen beschikbaar. Importeer eerst KiB-data in stap 1
+                (KiB Import) om doelen te laden.
+              </p>
+              <button
+                onClick={() => setSubStep("sectorplan")}
+                className="mt-3 px-4 py-2 text-sm text-cito-blue hover:underline"
+              >
+                ← Terug naar sectorplan
+              </button>
             </div>
+          ) : (
+            <>
+              <DINChainIndicator />
 
-            {/* DIN Editor */}
-            <div className="flex-1 space-y-6">
-              {/* AI genereer knop */}
-              <div className="flex justify-end">
-                <button
-                  onClick={handleAIGenerate}
-                  disabled={isGenerating}
-                  className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
-                >
-                  {isGenerating
-                    ? "Genereren..."
-                    : "AI: Genereer DIN-netwerk"}
-                </button>
+              <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-gray-600">
+                U werkt aan het DIN-netwerk voor sector:{" "}
+                <span className="font-semibold text-cito-blue">
+                  {activeSector}
+                </span>
+                . Selecteer links een doel en vul rechts de baten, vermogens en
+                inspanningen in.
               </div>
 
-              {/* Baten */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-sm font-semibold text-din-baten">
-                    Baten — welke effecten wil {activeSector} bereiken?
+              <div className="flex gap-6">
+                {/* Doelen sidebar */}
+                <div className="w-56 shrink-0">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    Doelen
                   </h4>
-                  <button
-                    onClick={addBenefit}
-                    className="text-xs text-cito-blue hover:underline"
-                  >
-                    + Baat toevoegen
-                  </button>
+                  <div className="space-y-1">
+                    {session.goals
+                      .sort((a, b) => a.rank - b.rank)
+                      .map((goal) => {
+                        const hasBenefits = session.benefits.some(
+                          (b) =>
+                            b.goalId === goal.id &&
+                            b.sectorId === activeSector
+                        );
+                        return (
+                          <button
+                            key={goal.id}
+                            onClick={() => setActiveGoalId(goal.id)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              selectedGoal === goal.id
+                                ? "bg-cito-blue text-white"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {goal.rank}. {goal.name}
+                            {hasBenefits && (
+                              <span className="ml-1 text-green-400">●</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mb-2 italic">
-                  Hoe-vraag: Welke effecten wil {activeSector} bereiken voor dit
-                  doel?
-                </p>
-                <div className="space-y-2">
-                  {sectorBenefits.map((b) => (
-                    <BenefitCard
-                      key={b.id}
-                      benefit={b}
-                      onChange={updateBenefit}
-                      onDelete={() => deleteBenefit(b.id)}
-                    />
-                  ))}
-                  {sectorBenefits.length === 0 && (
-                    <p className="text-sm text-gray-400 italic">
-                      Nog geen baten. Voeg ze toe of laat AI genereren.
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              {/* Vermogens */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-sm font-semibold text-din-vermogens">
-                    Vermogens — wat moet {activeSector} kunnen?
-                  </h4>
-                  <button
-                    onClick={addCapability}
-                    className="text-xs text-cito-blue hover:underline"
-                  >
-                    + Vermogen toevoegen
-                  </button>
-                </div>
-                <p className="text-xs text-gray-400 mb-2 italic">
-                  Hoe-vraag: Wat moet {activeSector} kunnen om deze baten te
-                  realiseren?
-                </p>
-                <div className="space-y-2">
-                  {sectorCapabilities.map((c) => (
-                    <div
-                      key={c.id}
-                      className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 flex items-start gap-2"
+                {/* DIN Editor */}
+                <div className="flex-1 space-y-6">
+                  {/* AI genereer knop */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleAIGenerate}
+                      disabled={isGenerating}
+                      className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
                     >
-                      <input
-                        value={c.description}
-                        onChange={(e) =>
-                          updateCapability({
-                            ...c,
-                            description: e.target.value,
-                          })
-                        }
-                        className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-                        placeholder="Beschrijf het vermogen..."
-                      />
+                      {isGenerating
+                        ? "Genereren..."
+                        : "AI: Genereer DIN-netwerk"}
+                    </button>
+                  </div>
+
+                  {/* Baten */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-sm font-semibold text-din-baten">
+                        Baten — welke effecten wil {activeSector} bereiken?
+                      </h4>
                       <button
-                        onClick={() => deleteCapability(c.id)}
-                        className="text-xs text-gray-400 hover:text-red-500"
+                        onClick={addBenefit}
+                        className="text-xs text-cito-blue hover:underline"
                       >
-                        ✕
+                        + Baat toevoegen
                       </button>
                     </div>
-                  ))}
-                  {sectorCapabilities.length === 0 && (
-                    <p className="text-sm text-gray-400 italic">
-                      Nog geen vermogens voor {activeSector}.
+                    <p className="text-xs text-gray-400 mb-2 italic">
+                      Hoe-vraag: Welke effecten wil {activeSector} bereiken
+                      voor dit doel?
                     </p>
-                  )}
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      {sectorBenefits.map((b) => (
+                        <BenefitCard
+                          key={b.id}
+                          benefit={b}
+                          onChange={updateBenefit}
+                          onDelete={() => deleteBenefit(b.id)}
+                        />
+                      ))}
+                      {sectorBenefits.length === 0 && (
+                        <p className="text-sm text-gray-400 italic">
+                          Nog geen baten. Voeg ze toe of laat AI genereren.
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Inspanningen per domein */}
-              <div>
-                <h4 className="text-sm font-semibold text-din-inspanningen mb-1">
-                  Inspanningen — wat moet {activeSector} doen?
-                </h4>
-                <p className="text-xs text-gray-400 mb-2 italic">
-                  Hoe-vraag: Welke concrete activiteiten bouwen de vermogens op?
-                  Verdeeld over 4 domeinen.
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  {DOMAINS.map((domain) => {
-                    const domainEfforts = sectorEfforts.filter(
-                      (e) => e.domain === domain.key
-                    );
-                    return (
-                      <div key={domain.key} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-gray-600">
-                            {domain.label}
-                          </span>
+                  {/* Vermogens */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-sm font-semibold text-din-vermogens">
+                        Vermogens — wat moet {activeSector} kunnen?
+                      </h4>
+                      <button
+                        onClick={addCapability}
+                        className="text-xs text-cito-blue hover:underline"
+                      >
+                        + Vermogen toevoegen
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2 italic">
+                      Hoe-vraag: Wat moet {activeSector} kunnen om deze baten
+                      te realiseren?
+                    </p>
+                    <div className="space-y-2">
+                      {sectorCapabilities.map((c) => (
+                        <div
+                          key={c.id}
+                          className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 flex items-start gap-2"
+                        >
+                          <input
+                            value={c.description}
+                            onChange={(e) =>
+                              updateCapability({
+                                ...c,
+                                description: e.target.value,
+                              })
+                            }
+                            className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
+                            placeholder="Beschrijf het vermogen..."
+                          />
                           <button
-                            onClick={() => addEffort(domain.key)}
-                            className="text-xs text-cito-blue hover:underline"
+                            onClick={() => deleteCapability(c.id)}
+                            className="text-xs text-gray-400 hover:text-red-500"
                           >
-                            +
+                            ✕
                           </button>
                         </div>
-                        {domainEfforts.map((e) => (
-                          <EffortCard
-                            key={e.id}
-                            effort={e}
-                            onChange={updateEffort}
-                            onDelete={() => deleteEffort(e.id)}
-                          />
-                        ))}
-                        {domainEfforts.length === 0 && (
-                          <p className="text-xs text-gray-400 italic">Geen</p>
-                        )}
-                      </div>
-                    );
-                  })}
+                      ))}
+                      {sectorCapabilities.length === 0 && (
+                        <p className="text-sm text-gray-400 italic">
+                          Nog geen vermogens voor {activeSector}.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inspanningen per domein */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-din-inspanningen mb-1">
+                      Inspanningen — wat moet {activeSector} doen?
+                    </h4>
+                    <p className="text-xs text-gray-400 mb-2 italic">
+                      Hoe-vraag: Welke concrete activiteiten bouwen de vermogens
+                      op? Verdeeld over 4 domeinen.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {DOMAINS.map((domain) => {
+                        const domainEfforts = sectorEfforts.filter(
+                          (e) => e.domain === domain.key
+                        );
+                        return (
+                          <div key={domain.key} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-gray-600">
+                                {domain.label}
+                              </span>
+                              <button
+                                onClick={() => addEffort(domain.key)}
+                                className="text-xs text-cito-blue hover:underline"
+                              >
+                                +
+                              </button>
+                            </div>
+                            {domainEfforts.map((e) => (
+                              <EffortCard
+                                key={e.id}
+                                effort={e}
+                                onChange={updateEffort}
+                                onDelete={() => deleteEffort(e.id)}
+                              />
+                            ))}
+                            {domainEfforts.length === 0 && (
+                              <p className="text-xs text-gray-400 italic">
+                                Geen
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Navigatie */}
-          <div className="flex justify-between mt-4">
-            <button
-              onClick={() => setSubStep("sectorplan")}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-            >
-              ← Sectorplan
-            </button>
-            <button
-              onClick={() => setSubStep("integratie")}
-              className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
-            >
-              Volgende: Integratie-advies →
-            </button>
-          </div>
+              {/* Navigatie */}
+              <div className="flex justify-between mt-4">
+                <button
+                  onClick={() => setSubStep("sectorplan")}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                >
+                  ← Sectorplan
+                </button>
+                <button
+                  onClick={() => setSubStep("integratie")}
+                  className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
+                >
+                  Volgende: Integratie-advies →
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -655,14 +796,16 @@ export default function SectorWerkStep() {
           <div className="grid grid-cols-3 gap-4">
             <div className="p-4 bg-green-50 border border-green-100 rounded-lg text-center">
               <div className="text-2xl font-bold text-green-700">
-                {
-                  session.goals.filter((g) =>
-                    session.benefits.some(
-                      (b) => b.goalId === g.id && b.sectorId === activeSector
-                    )
-                  ).length
-                }
-                /{session.goals.length}
+                {session.goals.length > 0
+                  ? `${
+                      session.goals.filter((g) =>
+                        session.benefits.some(
+                          (b) =>
+                            b.goalId === g.id && b.sectorId === activeSector
+                        )
+                      ).length
+                    }/${session.goals.length}`
+                  : "—"}
               </div>
               <div className="text-xs text-gray-600">
                 Doelen met DIN-invulling
@@ -729,14 +872,37 @@ export default function SectorWerkStep() {
             </div>
           )}
 
-          {/* Navigatie */}
+          {/* Navigatie: volgende sector of klaar */}
           <div className="flex justify-between mt-4">
             <button
-              onClick={() => setSubStep("din-mapping")}
+              onClick={() => {
+                if (session.goals.length > 0) {
+                  setSubStep("din-mapping");
+                } else {
+                  setSubStep("sectorplan");
+                }
+              }}
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
             >
-              ← DIN-Mapping
+              {session.goals.length > 0 ? "← DIN-Mapping" : "← Sectorplan"}
             </button>
+            {!isLastSector ? (
+              <button
+                onClick={goToNextSector}
+                className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
+              >
+                Volgende sector: {SECTORS[currentSectorIdx + 1]} →
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-green-600">
+                  Alle sectoren doorlopen
+                </span>
+                <span className="text-xs text-gray-400">
+                  → Ga naar stap 3 (Cross-analyse)
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

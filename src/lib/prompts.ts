@@ -73,6 +73,28 @@ Structuur:
 
 Antwoord in het Nederlands. Gebruik professionele maar toegankelijke taal.`;
 
+export const SECTORPLAN_ANALYSE_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk).
+
+Je krijgt een sectorplan van een specifieke sector. Analyseer het plan en geef een gestructureerd advies:
+
+1. **Samenvatting**: Korte samenvatting van de belangrijkste punten uit het sectorplan (max 3 zinnen).
+
+2. **Aansluiting op programmadoelen**: Welke elementen uit het sectorplan sluiten aan op de beschikbare programmadoelen? Waar liggen de verbindingen?
+
+3. **Potentiële baten**: Welke baten (gewenste effecten) kun je afleiden uit het sectorplan? Denk aan meetbare resultaten voor klanten, markt of organisatie.
+
+4. **Benodigde vermogens**: Welke vermogens (capaciteiten die de organisatie moet ontwikkelen) zijn nodig volgens het sectorplan?
+
+5. **Voorgestelde inspanningen**: Welke concrete inspanningen kun je identificeren, verdeeld over de 4 domeinen:
+   - **Mens**: opleiding, training, bemensing
+   - **Processen**: werkwijzen, procedures, governance
+   - **Data & Systemen**: IT, data-infrastructuur, tooling
+   - **Cultuur**: gedrag, mindset, waarden
+
+6. **Aandachtspunten**: Ontbrekende elementen, risico's of aandachtspunten.
+
+Antwoord in het Nederlands. Wees concreet en verwijs naar specifieke onderdelen uit het sectorplan.`;
+
 export const BATENPROFIEL_PROMPT = `Stel voor een gegeven baat een volledig batenprofiel op:
 
 - **Omschrijving**: Wat is het gewenste effect? Wie merkt het?

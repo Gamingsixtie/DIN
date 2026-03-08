@@ -11,6 +11,7 @@ export default function ImportStep() {
     "idle"
   );
   const [kibError, setKibError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!session) return null;
 
@@ -30,6 +31,82 @@ export default function ImportStep() {
     }
   }
 
+  async function handleFileUpload(file: File) {
+    setIsUploading(true);
+    setKibStatus("idle");
+    setKibError("");
+
+    try {
+      // Tekstbestanden direct als JSON proberen
+      if (file.name.endsWith(".json") || file.name.endsWith(".txt")) {
+        const text = await file.text();
+        try {
+          const result = importFromKiB(text);
+          updateSession({
+            vision: result.vision || session!.vision,
+            goals: result.goals.length > 0 ? result.goals : session!.goals,
+            scope: result.scope || session!.scope,
+          });
+          setKibStatus("success");
+          return;
+        } catch {
+          // Niet geldig JSON, sla op als ruwe tekst
+          setKibJson(text);
+          setKibStatus("error");
+          setKibError(
+            "Bestand bevat geen geldig KiB JSON. De tekst is in het invoerveld gezet — pas het aan naar het juiste formaat."
+          );
+          return;
+        }
+      }
+
+      // Word bestanden via API
+      if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/import-kib", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          if (data.data.vision || data.data.goals?.length > 0) {
+            updateSession({
+              vision: data.data.vision || session!.vision,
+              goals:
+                data.data.goals?.length > 0
+                  ? data.data.goals
+                  : session!.goals,
+              scope: data.data.scope || session!.scope,
+            });
+            setKibStatus("success");
+          } else if (data.data.rawText) {
+            // Ruwe tekst uit Word, zet in tekstgebied
+            setKibJson(data.data.rawText);
+            setKibStatus("error");
+            setKibError(
+              "Word-bestand gelezen, maar bevat geen KiB JSON-structuur. De tekst is in het invoerveld gezet — plak handmatig de juiste JSON of kopieer de visie en doelen."
+            );
+          }
+        } else {
+          setKibStatus("error");
+          setKibError(data.error || "Upload mislukt");
+        }
+        return;
+      }
+
+      setKibStatus("error");
+      setKibError("Onbekend bestandsformaat. Gebruik .json, .txt, .docx of .doc");
+    } catch (e) {
+      setKibStatus("error");
+      setKibError(e instanceof Error ? e.message : "Upload mislukt");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Uitleg */}
@@ -45,23 +122,71 @@ export default function ImportStep() {
         <h3 className="text-lg font-semibold text-cito-blue mb-3">
           KiB Import
         </h3>
-        <p className="text-sm text-gray-500 mb-3">
-          Plak de JSON-export uit Klant in Beeld om visie, doelen en scope te
-          importeren.
-        </p>
-        <textarea
-          value={kibJson}
-          onChange={(e) => setKibJson(e.target.value)}
-          placeholder='{"visie": {"uitgebreid": "...", "beknopt": "..."}, "doelen": [...], "scope": {"binnen": [...], "buiten": [...]}}'
-          className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-cito-blue/30 focus:border-cito-blue"
-        />
-        <div className="mt-2 flex items-center gap-3">
+
+        {/* Bestand uploaden */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-500 mb-3">
+            Upload het KiB-exportbestand (.json, .docx, of .txt) of plak de
+            JSON hieronder.
+          </p>
+          <label className="block cursor-pointer">
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <span className="text-sm text-gray-600">
+                {isUploading
+                  ? "Bestand verwerken..."
+                  : "Upload KiB-export bestand"}
+              </span>
+              <span className="text-xs text-gray-400">
+                .json, .docx, .doc, of .txt
+              </span>
+            </div>
+            <input
+              type="file"
+              accept=".json,.txt,.docx,.doc"
+              className="hidden"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+
+        {/* JSON invoerveld */}
+        <div className="mb-3">
+          <label className="text-xs text-gray-500 block mb-1">
+            Of plak de KiB JSON-export:
+          </label>
+          <textarea
+            value={kibJson}
+            onChange={(e) => setKibJson(e.target.value)}
+            placeholder='{"visie": {"uitgebreid": "...", "beknopt": "..."}, "doelen": [...], "scope": {"binnen": [...], "buiten": [...]}}'
+            className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-cito-blue/30 focus:border-cito-blue"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
           <button
             onClick={handleKibImport}
             disabled={!kibJson.trim()}
             className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Importeer
+            Importeer JSON
           </button>
           {kibStatus === "success" && (
             <span className="text-sm text-green-600">
