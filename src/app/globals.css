@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  /* Cito Branding */
+  --color-cito-blue: #003366;
+  --color-cito-blue-light: #004d99;
+  --color-cito-blue-dark: #002244;
+  --color-cito-accent: #0066cc;
+  --color-cito-bg: #f5f7fa;
+  --color-cito-surface: #ffffff;
+  --color-cito-border: #e2e8f0;
+
+  /* DIN Domein kleuren */
+  --color-domain-mens: #2563eb;
+  --color-domain-processen: #059669;
+  --color-domain-data: #7c3aed;
+  --color-domain-cultuur: #d97706;
+
+  /* DIN Keten kleuren */
+  --color-din-doelen: #003366;
+  --color-din-baten: #0066cc;
+  --color-din-vermogens: #0891b2;
+  --color-din-inspanningen: #059669;
+
+  /* Typography */
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}

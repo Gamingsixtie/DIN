@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/pim-dev-skill/SKILL.md\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/frontend-design/SKILL.md\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/interface-design/SKILL.md\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/klant-in-beeld/SKILL.md\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/ui-design-system/SKILL.md\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/web-asset-generator/SKILL.md\")",
+      "Bash(npm run build)"
+    ]
+  }
+}
