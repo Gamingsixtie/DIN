@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateDINMapping } from "@/lib/ai-client";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goal, sectorPlans } = body;
+    const { goal, sectorPlan, sector } = body;
 
     if (!goal) {
       return NextResponse.json(
@@ -12,27 +13,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: AI DIN-mapping met DIN_MAPPING_PROMPT
-    // Genereert: baten (met profielen), vermogens, inspanningen per doel
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          benefits: [],
+          capabilities: [],
+          efforts: [],
+          message: "ANTHROPIC_API_KEY niet geconfigureerd. Voeg items handmatig toe.",
+        },
+      });
+    }
+
+    const result = await generateDINMapping(goal, sectorPlan || null, sector || "Algemeen");
+
+    let parsed;
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch {
+      parsed = null;
+    }
+
     return NextResponse.json({
       success: true,
-      data: {
-        goalId: goal.id,
-        benefits: [],
-        capabilities: [],
-        efforts: [],
-        message:
-          "DIN-mapping AI integratie nog te implementeren. Gebruik de DIN_MAPPING_PROMPT uit lib/prompts.ts.",
-      },
+      data: parsed || { benefits: [], capabilities: [], efforts: [], rawResponse: result },
     });
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Fout bij DIN-mapping generatie",
+        error: error instanceof Error ? error.message : "Fout bij DIN-mapping generatie",
       },
       { status: 500 }
     );

@@ -41,3 +41,5 @@ next-env.d.ts
 
 # Local planning documents (originals kept locally)
 /Documents/
+
+.vercel

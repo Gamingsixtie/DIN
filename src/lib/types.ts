@@ -13,6 +13,10 @@ export type EffortStatus =
 // Prioriteit voor PMC
 export type Priority = "hoog" | "midden" | "laag";
 
+// Standaard sectoren
+export const SECTORS = ["PO", "VO", "Zakelijk", "Data & Tech"] as const;
+export type SectorName = (typeof SECTORS)[number];
+
 // --- KiB Import ---
 
 export interface ProgrammeGoal {
@@ -69,24 +73,28 @@ export interface BatenProfiel {
 export interface DINBenefit {
   id: string;
   goalId: string;
+  sectorId: string;
   description: string;
   profiel: BatenProfiel;
 }
 
 export interface DINCapability {
   id: string;
+  sectorId: string;
   description: string;
   relatedSectors: string[];
 }
 
 export interface DINEffort {
   id: string;
+  sectorId: string;
   description: string;
   domain: EffortDomain;
   quarter?: string;
   responsibleSector?: string;
   status: EffortStatus;
   dependencies: string[];
+  votes?: number;
 }
 
 // --- Koppelingen ---
@@ -132,6 +140,10 @@ export interface DINSession {
   benefits: DINBenefit[];
   capabilities: DINCapability[];
   efforts: DINEffort[];
+  // Koppelingen
+  goalBenefitMaps: GoalBenefitMap[];
+  benefitCapabilityMaps: BenefitCapabilityMap[];
+  capabilityEffortMaps: CapabilityEffortMap[];
 }
 
 // --- App Flow Stappen ---

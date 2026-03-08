@@ -45,10 +45,11 @@ CREATE TABLE pmc_entries (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- DIN Keten: Baten
+-- DIN Keten: Baten (per sector per doel)
 CREATE TABLE din_benefits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   goal_id UUID REFERENCES programme_goals(id) ON DELETE CASCADE,
+  sector_id UUID REFERENCES sector_plans(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   indicator TEXT,
   indicator_owner TEXT,
@@ -58,23 +59,26 @@ CREATE TABLE din_benefits (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- DIN Keten: Vermogens
+-- DIN Keten: Vermogens (per sector)
 CREATE TABLE din_capabilities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sector_id UUID REFERENCES sector_plans(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   related_sectors TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- DIN Keten: Inspanningen
+-- DIN Keten: Inspanningen (per sector)
 CREATE TABLE din_efforts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sector_id UUID REFERENCES sector_plans(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   domain TEXT CHECK (domain IN ('mens', 'processen', 'data_systemen', 'cultuur')) NOT NULL,
   quarter TEXT,
   responsible_sector TEXT,
   status TEXT CHECK (status IN ('gepland', 'in_uitvoering', 'afgerond', 'on_hold')) DEFAULT 'gepland',
   dependencies UUID[] DEFAULT '{}',
+  votes INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -111,5 +115,8 @@ CREATE TABLE effort_sector_map (
 
 -- Indexes voor performance
 CREATE INDEX idx_din_benefits_goal ON din_benefits(goal_id);
+CREATE INDEX idx_din_benefits_sector ON din_benefits(sector_id);
+CREATE INDEX idx_din_capabilities_sector ON din_capabilities(sector_id);
 CREATE INDEX idx_din_efforts_domain ON din_efforts(domain);
+CREATE INDEX idx_din_efforts_sector ON din_efforts(sector_id);
 CREATE INDEX idx_din_efforts_status ON din_efforts(status);

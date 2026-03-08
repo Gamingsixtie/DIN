@@ -1,5 +1,6 @@
 // DIN CRUD operaties — beheer van de DIN-keten
 // Doelen → Baten → Vermogens → Inspanningen
+// Invulling is PER SECTOR anders, doelen zijn gezamenlijk
 
 import type {
   DINBenefit,
@@ -19,11 +20,13 @@ export function generateId(): string {
 
 export function createBenefit(
   goalId: string,
+  sectorId: string,
   description: string
 ): DINBenefit {
   return {
     id: generateId(),
     goalId,
+    sectorId,
     description,
     profiel: {
       indicator: "",
@@ -48,13 +51,34 @@ export function getBenefitsByGoal(
   return benefits.filter((b) => b.goalId === goalId);
 }
 
+export function getBenefitsByGoalAndSector(
+  benefits: DINBenefit[],
+  goalId: string,
+  sectorId: string
+): DINBenefit[] {
+  return benefits.filter(
+    (b) => b.goalId === goalId && b.sectorId === sectorId
+  );
+}
+
+export function getBenefitsBySector(
+  benefits: DINBenefit[],
+  sectorId: string
+): DINBenefit[] {
+  return benefits.filter((b) => b.sectorId === sectorId);
+}
+
 // --- Vermogens ---
 
-export function createCapability(description: string): DINCapability {
+export function createCapability(
+  sectorId: string,
+  description: string
+): DINCapability {
   return {
     id: generateId(),
+    sectorId,
     description,
-    relatedSectors: [],
+    relatedSectors: [sectorId],
   };
 }
 
@@ -65,18 +89,28 @@ export function addCapabilities(
   return deduplicateById([...existing, ...newCapabilities]);
 }
 
+export function getCapabilitiesBySector(
+  capabilities: DINCapability[],
+  sectorId: string
+): DINCapability[] {
+  return capabilities.filter((c) => c.sectorId === sectorId);
+}
+
 // --- Inspanningen ---
 
 export function createEffort(
+  sectorId: string,
   description: string,
   domain: EffortDomain
 ): DINEffort {
   return {
     id: generateId(),
+    sectorId,
     description,
     domain,
     status: "gepland",
     dependencies: [],
+    votes: 0,
   };
 }
 
@@ -94,34 +128,82 @@ export function getEffortsByDomain(
   return efforts.filter((e) => e.domain === domain);
 }
 
+export function getEffortsBySector(
+  efforts: DINEffort[],
+  sectorId: string
+): DINEffort[] {
+  return efforts.filter((e) => e.sectorId === sectorId);
+}
+
+export function getEffortsBySectorAndDomain(
+  efforts: DINEffort[],
+  sectorId: string,
+  domain: EffortDomain
+): DINEffort[] {
+  return efforts.filter(
+    (e) => e.sectorId === sectorId && e.domain === domain
+  );
+}
+
 // --- Cross-analyse helpers ---
 
 export function findSharedCapabilities(
-  benefitCapabilityMap: { benefitId: string; capabilityId: string }[],
-  goalBenefitMap: { goalId: string; benefitId: string }[]
+  capabilities: DINCapability[]
 ): Map<string, string[]> {
-  // capability → welke doelen het raakt
-  const capToGoals = new Map<string, Set<string>>();
+  // Groepeer vermogens op beschrijving (genormaliseerd) → welke sectoren
+  const descToSectors = new Map<string, { id: string; sectors: Set<string> }>();
 
-  for (const bc of benefitCapabilityMap) {
-    const goalIds = goalBenefitMap
-      .filter((gb) => gb.benefitId === bc.benefitId)
-      .map((gb) => gb.goalId);
-
-    if (!capToGoals.has(bc.capabilityId)) {
-      capToGoals.set(bc.capabilityId, new Set());
+  for (const cap of capabilities) {
+    const key = cap.description.toLowerCase().trim();
+    if (!descToSectors.has(key)) {
+      descToSectors.set(key, { id: cap.id, sectors: new Set() });
     }
-    for (const gid of goalIds) {
-      capToGoals.get(bc.capabilityId)!.add(gid);
-    }
+    descToSectors.get(key)!.sectors.add(cap.sectorId);
   }
 
-  // Filter op vermogens die bij meerdere doelen horen (synergie)
+  // Filter op vermogens die bij meerdere sectoren horen (synergie)
   const shared = new Map<string, string[]>();
-  for (const [capId, goalSet] of capToGoals) {
-    if (goalSet.size > 1) {
-      shared.set(capId, Array.from(goalSet));
+  for (const [, value] of descToSectors) {
+    if (value.sectors.size > 1) {
+      shared.set(value.id, Array.from(value.sectors));
     }
   }
   return shared;
+}
+
+export function getDomainBalance(
+  efforts: DINEffort[]
+): Record<EffortDomain, number> {
+  return {
+    mens: efforts.filter((e) => e.domain === "mens").length,
+    processen: efforts.filter((e) => e.domain === "processen").length,
+    data_systemen: efforts.filter((e) => e.domain === "data_systemen").length,
+    cultuur: efforts.filter((e) => e.domain === "cultuur").length,
+  };
+}
+
+export function findGaps(
+  goals: { id: string }[],
+  benefits: DINBenefit[],
+  capabilities: DINCapability[],
+  efforts: DINEffort[],
+  goalBenefitMaps: { goalId: string; benefitId: string }[],
+  benefitCapabilityMaps: { benefitId: string; capabilityId: string }[],
+  capabilityEffortMaps: { capabilityId: string; effortId: string }[]
+): { goalsWithoutBenefits: string[]; benefitsWithoutCapabilities: string[]; capabilitiesWithoutEfforts: string[] } {
+  const goalIdsWithBenefits = new Set(goalBenefitMaps.map((m) => m.goalId));
+  const benefitIdsWithCaps = new Set(benefitCapabilityMaps.map((m) => m.benefitId));
+  const capIdsWithEfforts = new Set(capabilityEffortMaps.map((m) => m.capabilityId));
+
+  return {
+    goalsWithoutBenefits: goals
+      .filter((g) => !goalIdsWithBenefits.has(g.id))
+      .map((g) => g.id),
+    benefitsWithoutCapabilities: benefits
+      .filter((b) => !benefitIdsWithCaps.has(b.id))
+      .map((b) => b.id),
+    capabilitiesWithoutEfforts: capabilities
+      .filter((c) => !capIdsWithEfforts.has(c.id))
+      .map((c) => c.id),
+  };
 }
