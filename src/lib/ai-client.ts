@@ -5,6 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   DIN_MAPPING_PROMPT,
   CROSS_ANALYSE_PROMPT,
+  SECTOR_INTEGRATIE_PROMPT,
   PROGRAMMAPLAN_PROMPT,
   BATENPROFIEL_PROMPT,
   SECTORPLAN_ANALYSE_PROMPT,
@@ -62,6 +63,88 @@ export async function generateCrossAnalyse(
 ): Promise<string> {
   const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 6000)}`;
   return callClaude(CROSS_ANALYSE_PROMPT, userMessage);
+}
+
+export async function generateSectorIntegratie(data: {
+  sector: string;
+  sectorPlan: string;
+  goals: { name: string; description: string }[];
+  benefits: { description: string; profiel?: { indicator?: string; targetValue?: string } }[];
+  capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
+  efforts: { description: string; domain: string; quarter?: string; status?: string }[];
+}): Promise<string> {
+  const domainLabels: Record<string, string> = {
+    mens: "Mens",
+    processen: "Processen",
+    data_systemen: "Data & Systemen",
+    cultuur: "Cultuur",
+  };
+
+  const parts: string[] = [];
+  parts.push(`=== Sector: ${data.sector} ===`);
+
+  parts.push("\n--- KiB Programmadoelen ---");
+  if (data.goals.length > 0) {
+    data.goals.forEach((g, i) => {
+      parts.push(`${i + 1}. ${g.name}${g.description ? `: ${g.description}` : ""}`);
+    });
+  } else {
+    parts.push("Nog geen doelen beschikbaar.");
+  }
+
+  parts.push("\n--- Sectorplan ---");
+  if (data.sectorPlan && data.sectorPlan.trim().length > 0 && !data.sectorPlan.startsWith("[")) {
+    parts.push(data.sectorPlan.slice(0, 4000));
+  } else {
+    parts.push("Geen sectorplan beschikbaar.");
+  }
+
+  parts.push("\n--- Huidige DIN-baten voor deze sector ---");
+  if (data.benefits.length > 0) {
+    data.benefits.forEach((b, i) => {
+      let line = `${i + 1}. ${b.description}`;
+      if (b.profiel?.indicator) line += ` (indicator: ${b.profiel.indicator}, doel: ${b.profiel.targetValue || "?"})`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Nog geen baten ingevuld.");
+  }
+
+  parts.push("\n--- Huidige DIN-vermogens voor deze sector ---");
+  if (data.capabilities.length > 0) {
+    data.capabilities.forEach((c, i) => {
+      let line = `${i + 1}. ${c.description}`;
+      if (c.currentLevel && c.targetLevel) line += ` (niveau: ${c.currentLevel}/5 \u2192 ${c.targetLevel}/5)`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Nog geen vermogens ingevuld.");
+  }
+
+  parts.push("\n--- Huidige DIN-inspanningen voor deze sector ---");
+  if (data.efforts.length > 0) {
+    const byDomain: Record<string, typeof data.efforts> = {};
+    data.efforts.forEach((e) => {
+      const domain = domainLabels[e.domain] || e.domain;
+      if (!byDomain[domain]) byDomain[domain] = [];
+      byDomain[domain].push(e);
+    });
+    Object.entries(byDomain).forEach(([domain, efforts]) => {
+      parts.push(`  ${domain}:`);
+      efforts.forEach((e) => {
+        let line = `    - ${e.description}`;
+        if (e.quarter) line += ` (${e.quarter})`;
+        if (e.status && e.status !== "gepland") line += ` [${e.status}]`;
+        parts.push(line);
+      });
+    });
+  } else {
+    parts.push("Nog geen inspanningen ingevuld.");
+  }
+
+  parts.push("\nGeef concreet integratie-advies voor deze sector. Verwijs naar specifieke items hierboven.");
+
+  return callClaude(SECTOR_INTEGRATIE_PROMPT, parts.join("\n"));
 }
 
 export async function generateProgrammaPlan(

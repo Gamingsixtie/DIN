@@ -40,24 +40,46 @@ export const CROSS_ANALYSE_PROMPT = `Analyseer de complete set DIN-netwerken en 
 
 Presenteer als matrix-overzicht. Antwoord in het Nederlands.`;
 
-export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek). Je krijgt:
+export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
+
+Je krijgt:
 - De KiB-doelen (gezamenlijke programmadoelen)
 - Het sectorplan van een specifieke sector
 - De huidige DIN-invulling (baten, vermogens, inspanningen) voor deze sector
 
-Geef concreet advies over hoe het DIN-netwerk geïntegreerd kan worden in het sectorplan:
+Analyseer de integratie en geef concreet advies in EXACT de volgende JSON-structuur.
+Elke sectie heeft een "titel" (korte kop), "toelichting" (1-2 zinnen context), en "punten" (lijst van concrete, specifieke items — minimaal 2, maximaal 6 per sectie).
 
-1. **Aansluiting**: Welke items uit het sectorplan sluiten direct aan op de KiB-doelen? Waar zit overlap?
+Verwijs altijd naar specifieke items uit het sectorplan en de DIN-invulling. Wees concreet, niet abstract. Noem specifieke namen, activiteiten, of doelen.
 
-2. **Verrijking**: Welke baten/vermogens/inspanningen uit het DIN-netwerk versterken het bestaande sectorplan?
-
-3. **Aanvullingen**: Welke onderdelen ontbreken nog in het sectorplan om de KiB-doelen te realiseren?
-
-4. **Quick wins**: Welke bestaande activiteiten uit het sectorplan kunnen direct bijdragen aan DIN-inspanningen?
-
-5. **Aandachtspunten**: Waar zijn er conflicten of spanningen tussen sectorplan en DIN?
-
-Antwoord in het Nederlands. Wees concreet en verwijs naar specifieke items uit het sectorplan en de DIN-invulling.`;
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst):
+{
+  "aansluiting": {
+    "titel": "Aansluiting op KiB-doelen",
+    "toelichting": "Welke elementen uit het sectorplan sluiten direct aan op de programmadoelen.",
+    "punten": ["Concreet punt 1 met verwijzing naar sectorplan-item en KiB-doel", "..."]
+  },
+  "verrijking": {
+    "titel": "Verrijking vanuit DIN",
+    "toelichting": "Welke baten, vermogens of inspanningen uit het DIN-netwerk versterken het sectorplan.",
+    "punten": ["Concreet punt met verwijzing naar DIN-item", "..."]
+  },
+  "aanvullingen": {
+    "titel": "Aanvullingen nodig",
+    "toelichting": "Welke onderdelen ontbreken nog in het sectorplan om de KiB-doelen volledig te realiseren.",
+    "punten": ["Ontbrekend punt 1", "..."]
+  },
+  "quickWins": {
+    "titel": "Quick wins",
+    "toelichting": "Bestaande activiteiten uit het sectorplan die direct kunnen bijdragen aan DIN-inspanningen.",
+    "punten": ["Quick win 1 met verwijzing naar sectorplan-activiteit", "..."]
+  },
+  "aandachtspunten": {
+    "titel": "Aandachtspunten",
+    "toelichting": "Conflicten, risico's of spanningen tussen sectorplan en DIN-netwerk.",
+    "punten": ["Aandachtspunt 1", "..."]
+  }
+}`;
 
 export const PROGRAMMAPLAN_PROMPT = `Genereer een samenhangend programmaplan document op basis van alle DIN-data.
 

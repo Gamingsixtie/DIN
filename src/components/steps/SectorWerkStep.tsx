@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "@/lib/session-context";
-import type { SectorName, SectorPlan } from "@/lib/types";
+import type { SectorName, SectorPlan, IntegratieAdviesResult, IntegratieAdviesItem } from "@/lib/types";
 import { SECTORS } from "@/lib/types";
 import { generateId } from "@/lib/din-service";
 
@@ -13,13 +13,71 @@ const SUB_STEPS: { key: SectorSubStep; label: string; nummer: number }[] = [
   { key: "integratie", label: "Integratie-advies", nummer: 2 },
 ];
 
+const ADVIES_SECTIONS: {
+  key: keyof Omit<IntegratieAdviesResult, "sectorName">;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  iconColor: string;
+}[] = [
+  { key: "aansluiting", color: "text-green-700", borderColor: "border-green-200", bgColor: "bg-green-50", iconColor: "bg-green-500" },
+  { key: "verrijking", color: "text-blue-700", borderColor: "border-blue-200", bgColor: "bg-blue-50", iconColor: "bg-blue-500" },
+  { key: "aanvullingen", color: "text-amber-700", borderColor: "border-amber-200", bgColor: "bg-amber-50", iconColor: "bg-amber-500" },
+  { key: "quickWins", color: "text-purple-700", borderColor: "border-purple-200", bgColor: "bg-purple-50", iconColor: "bg-purple-500" },
+  { key: "aandachtspunten", color: "text-red-700", borderColor: "border-red-200", bgColor: "bg-red-50", iconColor: "bg-red-500" },
+];
+
+function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
+  section: IntegratieAdviesItem;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  iconColor: string;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className={`border ${borderColor} rounded-lg ${bgColor} overflow-hidden`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-3 flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${iconColor} shrink-0`} />
+          <span className={`text-sm font-semibold ${color}`}>{section.titel}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{section.punten.length} punten</span>
+          <span className="text-xs text-gray-400">{open ? "\u25B2" : "\u25BC"}</span>
+        </div>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <p className="text-xs text-gray-500 italic mb-3">{section.toelichting}</p>
+          {section.punten.length > 0 ? (
+            <ul className="space-y-2">
+              {section.punten.map((punt, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${iconColor} shrink-0`} />
+                  <span>{punt}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-400 italic">Geen items ge\u00EFdentificeerd.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SectorWerkStep() {
   const { session, updateSession, setCurrentStep } = useSession();
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [subStep, setSubStep] = useState<SectorSubStep>("sectorplan");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingPlan, setIsAnalyzingPlan] = useState(false);
-  const [aiAdvice, setAiAdvice] = useState<Record<string, string>>({});
+  const [aiAdvice, setAiAdvice] = useState<Record<string, IntegratieAdviesResult | string>>({});
   const [planAnalysis, setPlanAnalysis] = useState<Record<string, string>>({});
 
   if (!session) return null;
@@ -37,14 +95,12 @@ export default function SectorWerkStep() {
     (e) => e.sectorId === activeSector
   );
 
-  // Voortgang per sector
   function getSectorProgress(sector: SectorName) {
     const hasPlan = session!.sectorPlans.some((s) => s.sectorName === sector);
     if (hasPlan) return "compleet";
     return "leeg";
   }
 
-  // Volgende sector navigatie
   function goToNextSector() {
     const currentIdx = SECTORS.indexOf(activeSector);
     if (currentIdx < SECTORS.length - 1) {
@@ -56,7 +112,6 @@ export default function SectorWerkStep() {
   const currentSectorIdx = SECTORS.indexOf(activeSector);
   const isLastSector = currentSectorIdx === SECTORS.length - 1;
 
-  // --- Sectorplan functies ---
   function handleSectorUpload(text: string) {
     const plan: SectorPlan = {
       id: generateId(),
@@ -88,9 +143,25 @@ export default function SectorWerkStep() {
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
+        let parsed: IntegratieAdviesResult | string;
+        try {
+          const raw = data.data.analysis;
+          const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+          const json = JSON.parse(cleaned);
+          parsed = {
+            sectorName: activeSector,
+            aansluiting: json.aansluiting,
+            verrijking: json.verrijking,
+            aanvullingen: json.aanvullingen,
+            quickWins: json.quickWins,
+            aandachtspunten: json.aandachtspunten,
+          } as IntegratieAdviesResult;
+        } catch {
+          parsed = data.data.analysis;
+        }
         setAiAdvice((prev) => ({
           ...prev,
-          [activeSector]: data.data.analysis,
+          [activeSector]: parsed,
         }));
       }
     } catch (e) {
@@ -171,7 +242,7 @@ export default function SectorWerkStep() {
         </div>
         <div className="text-xs text-gray-500 mt-0.5">
           {sectorPlan
-            ? "Sectorplan geüpload — bekijk het integratie-advies of ga naar DIN-Mapping"
+            ? "Sectorplan ge\u00FCpload \u2014 bekijk het integratie-advies of ga naar DIN-Mapping"
             : "Upload het sectorplan om te beginnen"}
         </div>
       </div>
@@ -248,7 +319,7 @@ export default function SectorWerkStep() {
                     const data = await res.json();
                     if (data.success && data.data) {
                       handleSectorUpload(
-                        data.data.rawText || `[Geüpload: ${file.name}]`
+                        data.data.rawText || `[Ge\u00FCpload: ${file.name}]`
                       );
                     }
                   } catch (err) {
@@ -446,15 +517,37 @@ export default function SectorWerkStep() {
             </button>
           </div>
 
-          {/* AI Advies resultaat */}
+          {/* AI Advies resultaat — gestructureerd */}
           {aiAdvice[activeSector] && (
-            <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-semibold text-cito-blue mb-2">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-cito-blue">
                 AI Advies: DIN-integratie in sectorplan {activeSector}
               </h4>
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                {aiAdvice[activeSector]}
-              </div>
+              {typeof aiAdvice[activeSector] === "string" ? (
+                <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {aiAdvice[activeSector] as string}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {ADVIES_SECTIONS.map(({ key, color, borderColor, bgColor, iconColor }) => {
+                    const advice = aiAdvice[activeSector] as IntegratieAdviesResult;
+                    const section = advice[key];
+                    if (!section) return null;
+                    return (
+                      <AdviesCard
+                        key={key}
+                        section={section}
+                        color={color}
+                        borderColor={borderColor}
+                        bgColor={bgColor}
+                        iconColor={iconColor}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

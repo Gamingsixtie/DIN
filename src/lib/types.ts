@@ -133,6 +133,23 @@ export interface EffortSectorMap {
   sectorPlanId: string;
 }
 
+// --- Integratie-advies gestructureerd resultaat ---
+
+export interface IntegratieAdviesItem {
+  titel: string;
+  toelichting: string;
+  punten: string[];
+}
+
+export interface IntegratieAdviesResult {
+  sectorName: string;
+  aansluiting: IntegratieAdviesItem;
+  verrijking: IntegratieAdviesItem;
+  aanvullingen: IntegratieAdviesItem;
+  quickWins: IntegratieAdviesItem;
+  aandachtspunten: IntegratieAdviesItem;
+}
+
 // --- Sessie ---
 
 export interface DINSession {

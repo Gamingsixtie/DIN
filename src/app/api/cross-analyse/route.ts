@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateCrossAnalyse } from "@/lib/ai-client";
+import { generateCrossAnalyse, generateSectorIntegratie } from "@/lib/ai-client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const analysis = await generateCrossAnalyse(body);
+    let analysis: string;
+
+    if (body.type === "sector-integratie") {
+      analysis = await generateSectorIntegratie({
+        sector: body.sector || "",
+        sectorPlan: body.sectorPlan || "",
+        goals: body.goals || [],
+        benefits: body.benefits || [],
+        capabilities: body.capabilities || [],
+        efforts: body.efforts || [],
+      });
+    } else {
+      analysis = await generateCrossAnalyse(body);
+    }
 
     return NextResponse.json({
       success: true,
