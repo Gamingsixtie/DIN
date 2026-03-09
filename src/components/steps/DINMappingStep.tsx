@@ -7,6 +7,7 @@ import type {
   DINCapability,
   DINEffort,
   EffortDomain,
+  EffortStatus,
   SectorName,
   IntegratieAdviesResult,
   IntegratieAdviesItem,
@@ -107,16 +108,32 @@ function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
   );
 }
 
+const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = [
+  { key: "gepland", label: "Gepland", color: "bg-gray-100 text-gray-600" },
+  { key: "in_uitvoering", label: "Actief", color: "bg-green-100 text-green-700" },
+  { key: "afgerond", label: "Afgerond", color: "bg-blue-100 text-blue-700" },
+  { key: "on_hold", label: "On hold", color: "bg-amber-100 text-amber-700" },
+];
+
 function LopendeInspanningenPanel({
   currentSector,
   allEfforts,
   currentSectorEfforts,
+  onUpdateEffort,
+  onDeleteEffort,
+  externalNotes,
+  onUpdateExternalNotes,
 }: {
   currentSector: SectorName;
   allEfforts: DINEffort[];
   currentSectorEfforts: DINEffort[];
+  onUpdateEffort: (updated: DINEffort) => void;
+  onDeleteEffort: (id: string) => void;
+  externalNotes: string;
+  onUpdateExternalNotes: (notes: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const otherEfforts = allEfforts.filter(
     (e) => e.sectorId !== currentSector && e.description.trim() !== ""
@@ -155,6 +172,13 @@ function LopendeInspanningenPanel({
   const overlaps = findOverlaps();
 
   if (otherEfforts.length === 0) return null;
+
+  function cycleStatus(effort: DINEffort) {
+    const order: EffortStatus[] = ["gepland", "in_uitvoering", "afgerond", "on_hold"];
+    const idx = order.indexOf(effort.status);
+    const next = order[(idx + 1) % order.length];
+    onUpdateEffort({ ...effort, status: next });
+  }
 
   return (
     <div className="border border-amber-200 rounded-lg bg-amber-50/50 overflow-hidden">
@@ -216,24 +240,94 @@ function LopendeInspanningenPanel({
                   {efforts.length} inspanningen
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 ml-4">
+              <div className="grid grid-cols-2 gap-2 ml-4 items-start">
                 {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
                   const domainEfforts = efforts.filter((e) => e.domain === domain);
                   if (domainEfforts.length === 0) return null;
                   return (
-                    <div key={domain}>
+                    <div key={domain} className="min-h-0">
                       <div className="text-[10px] font-medium text-gray-500 mb-0.5">
                         {DOMAIN_LABEL_MAP[domain]}
                       </div>
                       {domainEfforts.map((e) => (
-                        <div key={e.id} className="text-xs text-gray-600 flex items-center gap-1 py-0.5">
-                          <span className="text-gray-300">-</span>
-                          <span className="flex-1">{e.description || "(naamloos)"}</span>
-                          {e.quarter && (
-                            <span className="text-gray-400 text-[10px]">{e.quarter}</span>
-                          )}
-                          {e.status === "in_uitvoering" && (
-                            <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded">actief</span>
+                        <div key={e.id} className="group text-xs text-gray-600 py-1 border-b border-amber-100 last:border-0">
+                          {editingId === e.id ? (
+                            <div className="space-y-1.5">
+                              <input
+                                type="text"
+                                defaultValue={e.description}
+                                autoFocus
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
+                                onBlur={(ev) => {
+                                  if (ev.target.value.trim() !== e.description) {
+                                    onUpdateEffort({ ...e, description: ev.target.value.trim() });
+                                  }
+                                }}
+                                onKeyDown={(ev) => {
+                                  if (ev.key === "Enter") ev.currentTarget.blur();
+                                  if (ev.key === "Escape") setEditingId(null);
+                                }}
+                              />
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  defaultValue={e.quarter || ""}
+                                  placeholder="Q1 2026"
+                                  className="w-20 px-1.5 py-0.5 text-[10px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
+                                  onBlur={(ev) => {
+                                    if (ev.target.value.trim() !== (e.quarter || "")) {
+                                      onUpdateEffort({ ...e, quarter: ev.target.value.trim() || undefined });
+                                    }
+                                  }}
+                                />
+                                <select
+                                  defaultValue={e.status}
+                                  className="text-[10px] px-1 py-0.5 border border-gray-300 rounded focus:outline-none"
+                                  onChange={(ev) => {
+                                    onUpdateEffort({ ...e, status: ev.target.value as EffortStatus });
+                                  }}
+                                >
+                                  {STATUS_OPTIONS.map((s) => (
+                                    <option key={s.key} value={s.key}>{s.label}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => setEditingId(null)}
+                                  className="text-[10px] text-cito-blue hover:underline ml-auto"
+                                >
+                                  Klaar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => cycleStatus(e)}
+                                title={`Status: ${STATUS_OPTIONS.find((s) => s.key === e.status)?.label}`}
+                                className={`shrink-0 text-[10px] px-1 py-0.5 rounded cursor-pointer ${
+                                  STATUS_OPTIONS.find((s) => s.key === e.status)?.color || "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {STATUS_OPTIONS.find((s) => s.key === e.status)?.label}
+                              </button>
+                              <span
+                                className="flex-1 cursor-pointer hover:text-cito-blue"
+                                onClick={() => setEditingId(e.id)}
+                                title="Klik om te bewerken"
+                              >
+                                {e.description || "(naamloos)"}
+                              </span>
+                              {e.quarter && (
+                                <span className="text-gray-400 text-[10px]">{e.quarter}</span>
+                              )}
+                              <button
+                                onClick={() => onDeleteEffort(e.id)}
+                                className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 shrink-0 text-[10px]"
+                                title="Verwijderen"
+                              >
+                                {"\u2715"}
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}
@@ -261,6 +355,22 @@ function LopendeInspanningenPanel({
               })}
             </div>
           </div>
+
+          {/* Buiten het programma */}
+          <div className="pt-3 border-t border-amber-200">
+            <div className="text-xs font-semibold text-gray-600 mb-1">
+              Buiten het programma ({currentSector})
+            </div>
+            <p className="text-[10px] text-gray-400 mb-1.5">
+              Noteer hier lopende initiatieven buiten het programma die relevant zijn voor {currentSector}.
+            </p>
+            <textarea
+              defaultValue={externalNotes}
+              placeholder={`Bijv. bestaande trainingen, IT-projecten, reorganisaties bij ${currentSector}...`}
+              className="w-full h-20 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue resize-y"
+              onBlur={(e) => onUpdateExternalNotes(e.target.value)}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -274,6 +384,7 @@ export default function DINMappingStep() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
+  const [showAdviesPanel, setShowAdviesPanel] = useState(false);
   const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
     session?.integratieAdvies || {}
   );
@@ -622,6 +733,7 @@ export default function DINMappingStep() {
           ...prev,
           [activeSector]: parsed,
         }));
+        setShowAdviesPanel(true);
       }
     } catch (e) {
       console.error("Integratie-advies mislukt:", e);
@@ -759,8 +871,8 @@ export default function DINMappingStep() {
 
             {/* DIN Editor */}
             <div className="flex-1 space-y-6">
-              {/* AI genereer knop */}
-              <div className="flex justify-end">
+              {/* AI knoppen */}
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={handleAIGenerate}
                   disabled={isGenerating}
@@ -770,6 +882,22 @@ export default function DINMappingStep() {
                     ? "Genereren..."
                     : "AI: Genereer DIN-netwerk"}
                 </button>
+                <button
+                  onClick={handleIntegratieAdvies}
+                  disabled={isAnalyzingIntegratie}
+                  className="px-4 py-2 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 disabled:opacity-50"
+                >
+                  {isAnalyzingIntegratie ? "Analyseren..." : "Integratie-advies"}
+                </button>
+                {integratieAdvies[activeSector] && (
+                  <button
+                    onClick={() => setShowAdviesPanel(true)}
+                    className="px-3 py-2 bg-cito-blue/10 text-cito-blue rounded-lg text-sm hover:bg-cito-blue/20"
+                    title="Bekijk integratie-advies"
+                  >
+                    {"\uD83D\uDCCB"}
+                  </button>
+                )}
               </div>
 
               {/* Baten */}
@@ -887,63 +1015,85 @@ export default function DINMappingStep() {
                 </div>
               </div>
 
-              {/* Integratie-advies */}
-              <div className="border border-cito-blue/20 rounded-lg overflow-hidden">
-                <div className="px-4 py-3 bg-cito-blue/5 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-cito-blue">
-                      Integratie-advies: {activeSector}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Hoe past het DIN-netwerk in het sectorplan van {activeSector}?
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleIntegratieAdvies}
-                    disabled={isAnalyzingIntegratie}
-                    className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50 shrink-0"
-                  >
-                    {isAnalyzingIntegratie ? "Analyseren..." : "AI: Integratie-advies"}
-                  </button>
-                </div>
-                {integratieAdvies[activeSector] && (
-                  <div className="p-4 space-y-3">
-                    {typeof integratieAdvies[activeSector] === "string" ? (
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {integratieAdvies[activeSector] as string}
-                        </div>
-                      </div>
-                    ) : (
-                      ADVIES_SECTIONS.map(({ key, color, borderColor, bgColor, iconColor }) => {
-                        const advice = integratieAdvies[activeSector] as IntegratieAdviesResult;
-                        const section = advice[key];
-                        if (!section) return null;
-                        return (
-                          <AdviesCard
-                            key={key}
-                            section={section}
-                            color={color}
-                            borderColor={borderColor}
-                            bgColor={bgColor}
-                            iconColor={iconColor}
-                          />
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-
               {/* Lopende inspanningen andere sectoren */}
               <LopendeInspanningenPanel
                 currentSector={activeSector}
                 allEfforts={session.efforts}
                 currentSectorEfforts={sectorEfforts}
+                onUpdateEffort={updateEffort}
+                onDeleteEffort={deleteEffort}
+                externalNotes={session.externalNotes?.[activeSector] || ""}
+                onUpdateExternalNotes={(notes) => {
+                  updateSession({
+                    externalNotes: {
+                      ...session.externalNotes,
+                      [activeSector]: notes,
+                    },
+                  });
+                }}
               />
             </div>
           </div>
         </>
+      )}
+
+      {/* Integratie-advies slide-out panel */}
+      {showAdviesPanel && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setShowAdviesPanel(false)}
+          />
+          <div className="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto animate-slide-in-right">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-base font-semibold text-cito-blue">
+                  Integratie-advies: {activeSector}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Hoe past het DIN-netwerk in het sectorplan?
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAdviesPanel(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 text-lg"
+              >
+                {"\u2715"}
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              {integratieAdvies[activeSector] ? (
+                typeof integratieAdvies[activeSector] === "string" ? (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {integratieAdvies[activeSector] as string}
+                    </div>
+                  </div>
+                ) : (
+                  ADVIES_SECTIONS.map(({ key, color, borderColor, bgColor, iconColor }) => {
+                    const advice = integratieAdvies[activeSector] as IntegratieAdviesResult;
+                    const section = advice[key];
+                    if (!section) return null;
+                    return (
+                      <AdviesCard
+                        key={key}
+                        section={section}
+                        color={color}
+                        borderColor={borderColor}
+                        bgColor={bgColor}
+                        iconColor={iconColor}
+                      />
+                    );
+                  })
+                )
+              ) : (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  Klik &ldquo;Integratie-advies&rdquo; om AI-analyse te genereren.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

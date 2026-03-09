@@ -172,6 +172,8 @@ export interface DINSession {
   capabilityEffortMaps: CapabilityEffortMap[];
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies?: Record<string, IntegratieAdviesResult | string>;
+  // Externe inspanningen / notities buiten het programma, per sector
+  externalNotes?: Record<string, string>;
 }
 
 // --- App Flow Stappen ---
