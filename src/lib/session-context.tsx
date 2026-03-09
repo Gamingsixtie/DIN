@@ -40,7 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           "import",
           "sectorwerk",
           "cross-analyse",
-          "samengevoegd-din",
+          "din-mapping",
           "prioritering",
           "export",
         ].indexOf(step);
@@ -60,7 +60,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         "import",
         "sectorwerk",
         "cross-analyse",
-        "samengevoegd-din",
+        "din-mapping",
         "prioritering",
         "export",
       ];

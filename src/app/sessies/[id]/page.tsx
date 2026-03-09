@@ -9,7 +9,7 @@ import { getStepCompletions } from "@/lib/din-service";
 import ImportStep from "@/components/steps/ImportStep";
 import SectorWerkStep from "@/components/steps/SectorWerkStep";
 import CrossAnalyseStep from "@/components/steps/CrossAnalyseStep";
-import SamengevoegdDINStep from "@/components/steps/SamengevoegdDINStep";
+import DINMappingStep from "@/components/steps/DINMappingStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
 
@@ -19,10 +19,10 @@ function StepContent({ step }: { step: AppStep }) {
       return <ImportStep />;
     case "sectorwerk":
       return <SectorWerkStep />;
+    case "din-mapping":
+      return <DINMappingStep />;
     case "cross-analyse":
       return <CrossAnalyseStep />;
-    case "samengevoegd-din":
-      return <SamengevoegdDINStep />;
     case "prioritering":
       return <PrioriteringStep />;
     case "export":

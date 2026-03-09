@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import type { DINSession, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
 import { findSharedCapabilities, getEffortsByDomainAllSectors } from "@/lib/din-service";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
+import DINNetworkGraph from "@/components/din/DINNetworkGraph";
+
+type ViewMode = "grafisch" | "tabel";
 
 interface MergedDINViewProps {
   session: DINSession;
@@ -20,6 +24,7 @@ function SectorBadge({ sector }: { sector: string }) {
 }
 
 export default function MergedDINView({ session, onSwitchToEdit }: MergedDINViewProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("grafisch");
   const sharedCaps = findSharedCapabilities(session.capabilities);
   const effortsByDomain = getEffortsByDomainAllSectors(session.efforts);
 
@@ -49,7 +54,7 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
 
   return (
     <div className="space-y-8">
-      {/* Header met status */}
+      {/* Header met status + weergave toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-cito-blue">
@@ -59,13 +64,43 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
             {sectorsWithData.length}/{SECTORS.length} sectoren ingevuld
           </span>
         </div>
-        <button
-          onClick={onSwitchToEdit}
-          className="px-3 py-1.5 text-sm text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50"
-        >
-          Terug naar Per Sector bewerken
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 p-0.5 bg-gray-100 rounded-md">
+            <button
+              onClick={() => setViewMode("grafisch")}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "grafisch"
+                  ? "bg-white text-cito-blue shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Grafisch
+            </button>
+            <button
+              onClick={() => setViewMode("tabel")}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "tabel"
+                  ? "bg-white text-cito-blue shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Tabel
+            </button>
+          </div>
+          <button
+            onClick={onSwitchToEdit}
+            className="px-3 py-1.5 text-sm text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50"
+          >
+            Per Sector bewerken
+          </button>
+        </div>
       </div>
+
+      {/* Grafische weergave */}
+      {viewMode === "grafisch" && <DINNetworkGraph session={session} />}
+
+      {/* Tabel weergave — per doel */}
+      {viewMode === "tabel" && <>
 
       {/* Per doel */}
       {session.goals
@@ -301,6 +336,8 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
           )}
         </div>
       </div>
+
+      </>}
     </div>
   );
 }

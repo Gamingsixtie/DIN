@@ -161,16 +161,16 @@ export interface DINSession {
 export type AppStep =
   | "import"
   | "sectorwerk"
+  | "din-mapping"
   | "cross-analyse"
-  | "samengevoegd-din"
   | "prioritering"
   | "export";
 
 export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "import", label: "KiB Import", nummer: 1 },
   { key: "sectorwerk", label: "Sectorwerk", nummer: 2 },
-  { key: "cross-analyse", label: "Cross-analyse", nummer: 3 },
-  { key: "samengevoegd-din", label: "Samengevoegd DIN", nummer: 4 },
+  { key: "din-mapping", label: "DIN-Mapping", nummer: 3 },
+  { key: "cross-analyse", label: "Cross-analyse", nummer: 4 },
   { key: "prioritering", label: "Planning & Goedkeuring", nummer: 5 },
   { key: "export", label: "Export", nummer: 6 },
 ];

@@ -76,8 +76,8 @@ export default function Home() {
   const stepLabels = [
     "KiB Import",
     "Sectorwerk",
+    "DIN-Mapping",
     "Cross-analyse",
-    "Samengevoegd DIN",
     "Planning & Goedkeuring",
     "Export",
   ];
