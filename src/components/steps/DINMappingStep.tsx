@@ -309,6 +309,9 @@ export default function DINMappingStep() {
           <MergedDINView
             session={session}
             onSwitchToEdit={() => setPhase("per-sector")}
+            onDeleteBenefit={deleteBenefit}
+            onDeleteCapability={deleteCapability}
+            onDeleteEffort={deleteEffort}
           />
         </div>
       )}

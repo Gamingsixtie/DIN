@@ -12,6 +12,9 @@ type ViewMode = "grafisch" | "tabel";
 interface MergedDINViewProps {
   session: DINSession;
   onSwitchToEdit: () => void;
+  onDeleteBenefit?: (id: string) => void;
+  onDeleteCapability?: (id: string) => void;
+  onDeleteEffort?: (id: string) => void;
 }
 
 function SectorBadge({ sector }: { sector: string }) {
@@ -23,7 +26,7 @@ function SectorBadge({ sector }: { sector: string }) {
   );
 }
 
-export default function MergedDINView({ session, onSwitchToEdit }: MergedDINViewProps) {
+export default function MergedDINView({ session, onSwitchToEdit, onDeleteBenefit, onDeleteCapability, onDeleteEffort }: MergedDINViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grafisch");
   const sharedCaps = findSharedCapabilities(session.capabilities);
   const effortsByDomain = getEffortsByDomainAllSectors(session.efforts);
@@ -154,17 +157,26 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
                       {goalBenefits.map((b) => (
                         <div
                           key={b.id}
-                          className="flex items-start gap-2 text-sm"
+                          className="flex items-start gap-2 text-sm group"
                         >
                           <SectorBadge sector={b.sectorId} />
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 flex-1">
                             {b.description || "(naamloos)"}
                           </span>
                           {b.profiel.indicator && (
-                            <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">
+                            <span className="text-xs text-gray-400 whitespace-nowrap">
                               {b.profiel.indicator}: {b.profiel.currentValue} →{" "}
                               {b.profiel.targetValue}
                             </span>
+                          )}
+                          {onDeleteBenefit && (
+                            <button
+                              onClick={() => onDeleteBenefit(b.id)}
+                              className="text-xs text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                              title="Verwijder baat"
+                            >
+                              ✕
+                            </button>
                           )}
                         </div>
                       ))}
@@ -189,7 +201,7 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
                         return (
                           <div
                             key={c.id}
-                            className={`flex items-start gap-2 text-sm p-2 rounded ${
+                            className={`flex items-start gap-2 text-sm p-2 rounded group ${
                               isShared
                                 ? "bg-amber-50 border border-amber-200"
                                 : ""
@@ -238,6 +250,15 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
                                   ))}
                               </span>
                             )}
+                            {onDeleteCapability && (
+                              <button
+                                onClick={() => onDeleteCapability(c.id)}
+                                className="text-xs text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                title="Verwijder vermogen"
+                              >
+                                ✕
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -278,16 +299,25 @@ export default function MergedDINView({ session, onSwitchToEdit }: MergedDINView
                               {domainEfforts.map((e) => (
                                 <div
                                   key={e.id}
-                                  className="flex items-center gap-1.5 text-xs"
+                                  className="flex items-center gap-1.5 text-xs group"
                                 >
                                   <SectorBadge sector={e.sectorId} />
-                                  <span className="text-gray-600">
+                                  <span className="text-gray-600 flex-1">
                                     {e.description || "(naamloos)"}
                                   </span>
                                   {e.quarter && (
-                                    <span className="text-gray-400 ml-auto">
+                                    <span className="text-gray-400">
                                       {e.quarter}
                                     </span>
+                                  )}
+                                  {onDeleteEffort && (
+                                    <button
+                                      onClick={() => onDeleteEffort(e.id)}
+                                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                      title="Verwijder inspanning"
+                                    >
+                                      ✕
+                                    </button>
                                   )}
                                 </div>
                               ))}
