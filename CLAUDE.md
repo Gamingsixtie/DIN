@@ -11,6 +11,17 @@ npm run lint         # ESLint
 npx vercel --prod    # Deploy naar productie
 ```
 
+## Kwaliteitseis: Verificatie bij elke feature
+
+**VERPLICHT** bij elke wijziging of nieuwe feature:
+
+1. **`npm run build`** moet slagen zonder fouten
+2. **Functionele controle**: Verifieer dat bestaande functionaliteit niet kapot is — lees de relevante componenten, controleer imports, props, types
+3. **Skills gebruiken**: Gebruik altijd de beschikbare skills (pim-dev-skill, frontend-design, interface-design, etc.) bij implementatie
+4. **Methodiek volgen**: Elke feature moet aansluiten bij de DIN-methodiek uit `docs/programmaboek.doc`
+5. **Geen stille failures**: Altijd gebruikersfeedback tonen bij acties (loading states, success/error meldingen)
+6. **Direct committen en pushen** na elke werkende wijziging
+
 ## Methodiek — DIN Framework
 
 **Bron:** "Werken aan Programma's" (Prevaas & Van Loon), gebaseerd op Wijnen & Van der Tak (2002).

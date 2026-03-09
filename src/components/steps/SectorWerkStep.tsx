@@ -10,6 +10,8 @@ export default function SectorWerkStep() {
   const { session, updateSession, setCurrentStep } = useSession();
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [isAnalyzingPlan, setIsAnalyzingPlan] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadFeedback, setUploadFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [planAnalysis, setPlanAnalysis] = useState<Record<string, string>>({});
 
   if (!session) return null;
@@ -129,60 +131,92 @@ export default function SectorWerkStep() {
           Upload het sectorplan van {activeSector} of plak de tekst hieronder.
         </p>
 
+        {/* Upload feedback */}
+        {uploadFeedback && (
+          <div className={`p-3 rounded-lg text-sm ${
+            uploadFeedback.type === "success"
+              ? "bg-green-50 border border-green-200 text-green-700"
+              : "bg-red-50 border border-red-200 text-red-700"
+          }`}>
+            {uploadFeedback.msg}
+          </div>
+        )}
+
         {/* File upload */}
-        <label className="block cursor-pointer">
+        <label className={`block ${isUploading ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
           <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
-            <svg
-              className="w-8 h-8 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
+            {isUploading ? (
+              <div className="w-8 h-8 border-2 border-cito-blue border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+            )}
             <span className="text-sm text-gray-600">
-              Upload {activeSector}-sectorplan
+              {isUploading ? "Bezig met uploaden..." : `Upload ${activeSector}-sectorplan`}
             </span>
             <span className="text-xs text-gray-400">
-              .docx, .doc, of .txt
+              .docx of .txt
             </span>
           </div>
           <input
             type="file"
-            accept=".docx,.doc,.txt"
+            accept=".docx,.txt"
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              if (file.name.endsWith(".txt")) {
-                const text = await file.text();
-                handleSectorUpload(text);
-              } else {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("sectorName", activeSector);
-                try {
+              setIsUploading(true);
+              setUploadFeedback(null);
+              try {
+                if (file.name.endsWith(".txt")) {
+                  const text = await file.text();
+                  if (!text.trim()) {
+                    setUploadFeedback({ type: "error", msg: "Het bestand is leeg." });
+                    return;
+                  }
+                  handleSectorUpload(text);
+                  setUploadFeedback({ type: "success", msg: `Sectorplan ${activeSector} succesvol geladen (${text.length} tekens).` });
+                } else if (file.name.endsWith(".docx")) {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("sectorName", activeSector);
                   const res = await fetch("/api/parse-sector", {
                     method: "POST",
                     body: formData,
                   });
-                  const data = await res.json();
-                  if (data.success && data.data) {
-                    handleSectorUpload(
-                      data.data.rawText || `[Ge\u00FCpload: ${file.name}]`
-                    );
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => null);
+                    setUploadFeedback({ type: "error", msg: errData?.error || `Upload mislukt (HTTP ${res.status}).` });
+                    return;
                   }
-                } catch (err) {
-                  console.error("Upload mislukt:", err);
-                  handleSectorUpload(`[Document: ${file.name}]`);
+                  const data = await res.json();
+                  if (data.success && data.data?.rawText) {
+                    handleSectorUpload(data.data.rawText);
+                    setUploadFeedback({ type: "success", msg: `Sectorplan ${activeSector} succesvol verwerkt uit ${file.name}.` });
+                  } else {
+                    setUploadFeedback({ type: "error", msg: data.error || "Kon geen tekst uit het document halen." });
+                  }
+                } else {
+                  setUploadFeedback({ type: "error", msg: "Alleen .docx en .txt bestanden worden ondersteund." });
                 }
+              } catch (err) {
+                console.error("Upload mislukt:", err);
+                setUploadFeedback({ type: "error", msg: "Upload mislukt. Controleer het bestand en probeer opnieuw." });
+              } finally {
+                setIsUploading(false);
+                e.target.value = "";
               }
-              e.target.value = "";
             }}
           />
         </label>

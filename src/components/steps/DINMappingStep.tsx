@@ -11,12 +11,14 @@ import type {
   SectorName,
   IntegratieAdviesResult,
   IntegratieAdviesItem,
+  ExternalProject,
 } from "@/lib/types";
-import { SECTORS, SECTOR_COLORS } from "@/lib/types";
+import { SECTORS } from "@/lib/types";
 import {
   createBenefit,
   createCapability,
   createEffort,
+  generateId,
   getBenefitsByGoalAndSector,
 } from "@/lib/din-service";
 import BenefitCard from "@/components/din/BenefitCard";
@@ -34,21 +36,6 @@ const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "cultuur", label: "Cultuur" },
 ];
 
-function SectorBadge({ sector }: { sector: string }) {
-  const colors = SECTOR_COLORS[sector as SectorName] || "bg-gray-100 text-gray-700 border-gray-200";
-  return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${colors}`}>
-      {sector}
-    </span>
-  );
-}
-
-const DOMAIN_LABEL_MAP: Record<string, string> = {
-  mens: "Mens",
-  processen: "Processen",
-  data_systemen: "Data & Systemen",
-  cultuur: "Cultuur",
-};
 
 const ADVIES_SECTIONS: {
   key: keyof Omit<IntegratieAdviesResult, "sectorName">;
@@ -115,88 +102,42 @@ const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = [
   { key: "on_hold", label: "On hold", color: "bg-amber-100 text-amber-700" },
 ];
 
-function LopendeInspanningenPanel({
+function ExterneProjectenPanel({
   currentSector,
-  allEfforts,
-  currentSectorEfforts,
-  onUpdateEffort,
-  onDeleteEffort,
-  externalNotes,
-  onUpdateExternalNotes,
+  projects,
+  onAdd,
+  onUpdate,
+  onDelete,
 }: {
   currentSector: SectorName;
-  allEfforts: DINEffort[];
-  currentSectorEfforts: DINEffort[];
-  onUpdateEffort: (updated: DINEffort) => void;
-  onDeleteEffort: (id: string) => void;
-  externalNotes: string;
-  onUpdateExternalNotes: (notes: string) => void;
+  projects: ExternalProject[];
+  onAdd: () => void;
+  onUpdate: (updated: ExternalProject) => void;
+  onDelete: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(projects.length > 0);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const otherEfforts = allEfforts.filter(
-    (e) => e.sectorId !== currentSector && e.description.trim() !== ""
-  );
-
-  const bySector: Record<string, DINEffort[]> = {};
-  otherEfforts.forEach((e) => {
-    if (!bySector[e.sectorId]) bySector[e.sectorId] = [];
-    bySector[e.sectorId].push(e);
-  });
-
-  // Overlap-detectie: zoek inspanningen met gedeelde woorden
-  function findOverlaps() {
-    const overlaps: { current: DINEffort; other: DINEffort }[] = [];
-    const currentDescs = currentSectorEfforts
-      .filter((e) => e.description.trim())
-      .map((e) => ({
-        effort: e,
-        words: new Set(e.description.toLowerCase().split(/\s+/).filter((w) => w.length > 3)),
-      }));
-
-    otherEfforts.forEach((other) => {
-      const otherWords = new Set(
-        other.description.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
-      );
-      currentDescs.forEach(({ effort: current, words }) => {
-        const shared = [...words].filter((w) => otherWords.has(w));
-        if (shared.length >= 2) {
-          overlaps.push({ current, other });
-        }
-      });
-    });
-    return overlaps;
-  }
-
-  const overlaps = findOverlaps();
-
-  if (otherEfforts.length === 0) return null;
-
-  function cycleStatus(effort: DINEffort) {
+  function cycleStatus(project: ExternalProject) {
     const order: EffortStatus[] = ["gepland", "in_uitvoering", "afgerond", "on_hold"];
-    const idx = order.indexOf(effort.status);
+    const idx = order.indexOf(project.status);
     const next = order[(idx + 1) % order.length];
-    onUpdateEffort({ ...effort, status: next });
+    onUpdate({ ...project, status: next });
   }
 
   return (
-    <div className="border border-amber-200 rounded-lg bg-amber-50/50 overflow-hidden">
+    <div className="border border-gray-200 rounded-lg bg-gray-50/50 overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
         className="w-full px-4 py-3 flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm text-amber-600">{"\uD83D\uDD0D"}</span>
-          <span className="text-sm font-semibold text-amber-800">
-            Lopende inspanningen andere sectoren
+          <span className="text-sm font-semibold text-gray-700">
+            Buiten het programma
           </span>
-          <span className="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
-            {otherEfforts.length}
-          </span>
-          {overlaps.length > 0 && (
-            <span className="text-xs text-red-600 bg-red-100 px-1.5 py-0.5 rounded font-medium">
-              {overlaps.length} mogelijke overlap(s)
+          {projects.length > 0 && (
+            <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+              {projects.length}
             </span>
           )}
         </div>
@@ -204,173 +145,121 @@ function LopendeInspanningenPanel({
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-4">
-          {/* Overlap waarschuwingen */}
-          {overlaps.length > 0 && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <h5 className="text-xs font-semibold text-red-700 mb-2">
-                Mogelijke overlap met {currentSector}
-              </h5>
-              <div className="space-y-2">
-                {overlaps.slice(0, 5).map((o, i) => (
-                  <div key={i} className="text-xs text-gray-700 flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5 shrink-0">!</span>
-                    <div>
-                      <span className="font-medium">{currentSector}:</span>{" "}
-                      &ldquo;{o.current.description}&rdquo;
-                      <span className="mx-1 text-gray-400">~</span>
-                      <SectorBadge sector={o.other.sectorId} />{" "}
-                      &ldquo;{o.other.description}&rdquo;
-                      {o.other.quarter && (
-                        <span className="text-gray-400 ml-1">({o.other.quarter})</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-xs text-gray-400">
+            Lopende projecten en initiatieven bij {currentSector} die buiten dit programma vallen maar wel relevant zijn.
+          </p>
 
-          {/* Per sector overzicht */}
-          {Object.entries(bySector).map(([sector, efforts]) => (
-            <div key={sector}>
-              <div className="flex items-center gap-2 mb-2">
-                <SectorBadge sector={sector} />
-                <span className="text-xs font-medium text-gray-600">
-                  {efforts.length} inspanningen
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 ml-4 items-start">
-                {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
-                  const domainEfforts = efforts.filter((e) => e.domain === domain);
-                  if (domainEfforts.length === 0) return null;
-                  return (
-                    <div key={domain} className="min-h-0">
-                      <div className="text-[10px] font-medium text-gray-500 mb-0.5">
-                        {DOMAIN_LABEL_MAP[domain]}
-                      </div>
-                      {domainEfforts.map((e) => (
-                        <div key={e.id} className="group text-xs text-gray-600 py-1 border-b border-amber-100 last:border-0">
-                          {editingId === e.id ? (
-                            <div className="space-y-1.5">
-                              <input
-                                type="text"
-                                defaultValue={e.description}
-                                autoFocus
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
-                                onBlur={(ev) => {
-                                  if (ev.target.value.trim() !== e.description) {
-                                    onUpdateEffort({ ...e, description: ev.target.value.trim() });
-                                  }
-                                }}
-                                onKeyDown={(ev) => {
-                                  if (ev.key === "Enter") ev.currentTarget.blur();
-                                  if (ev.key === "Escape") setEditingId(null);
-                                }}
-                              />
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  defaultValue={e.quarter || ""}
-                                  placeholder="Q1 2026"
-                                  className="w-20 px-1.5 py-0.5 text-[10px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
-                                  onBlur={(ev) => {
-                                    if (ev.target.value.trim() !== (e.quarter || "")) {
-                                      onUpdateEffort({ ...e, quarter: ev.target.value.trim() || undefined });
-                                    }
-                                  }}
-                                />
-                                <select
-                                  defaultValue={e.status}
-                                  className="text-[10px] px-1 py-0.5 border border-gray-300 rounded focus:outline-none"
-                                  onChange={(ev) => {
-                                    onUpdateEffort({ ...e, status: ev.target.value as EffortStatus });
-                                  }}
-                                >
-                                  {STATUS_OPTIONS.map((s) => (
-                                    <option key={s.key} value={s.key}>{s.label}</option>
-                                  ))}
-                                </select>
-                                <button
-                                  onClick={() => setEditingId(null)}
-                                  className="text-[10px] text-cito-blue hover:underline ml-auto"
-                                >
-                                  Klaar
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => cycleStatus(e)}
-                                title={`Status: ${STATUS_OPTIONS.find((s) => s.key === e.status)?.label}`}
-                                className={`shrink-0 text-[10px] px-1 py-0.5 rounded cursor-pointer ${
-                                  STATUS_OPTIONS.find((s) => s.key === e.status)?.color || "bg-gray-100 text-gray-600"
-                                }`}
-                              >
-                                {STATUS_OPTIONS.find((s) => s.key === e.status)?.label}
-                              </button>
-                              <span
-                                className="flex-1 cursor-pointer hover:text-cito-blue"
-                                onClick={() => setEditingId(e.id)}
-                                title="Klik om te bewerken"
-                              >
-                                {e.description || "(naamloos)"}
-                              </span>
-                              {e.quarter && (
-                                <span className="text-gray-400 text-[10px]">{e.quarter}</span>
-                              )}
-                              <button
-                                onClick={() => onDeleteEffort(e.id)}
-                                className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 shrink-0 text-[10px]"
-                                title="Verwijderen"
-                              >
-                                {"\u2715"}
-                              </button>
-                            </div>
-                          )}
-                        </div>
+          {projects.map((p) => (
+            <div key={p.id} className="group p-3 bg-white border border-gray-200 rounded-lg">
+              {editingId === p.id ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    defaultValue={p.name}
+                    autoFocus
+                    placeholder="Projectnaam"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
+                    onBlur={(ev) => {
+                      if (ev.target.value.trim() !== p.name) {
+                        onUpdate({ ...p, name: ev.target.value.trim() });
+                      }
+                    }}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter") ev.currentTarget.blur();
+                    }}
+                  />
+                  <textarea
+                    defaultValue={p.description}
+                    placeholder="Korte beschrijving van het project..."
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue resize-y h-16"
+                    onBlur={(ev) => {
+                      if (ev.target.value.trim() !== p.description) {
+                        onUpdate({ ...p, description: ev.target.value.trim() });
+                      }
+                    }}
+                  />
+                  <input
+                    type="text"
+                    defaultValue={p.relevance || ""}
+                    placeholder="Waarom relevant voor het programma?"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
+                    onBlur={(ev) => {
+                      if (ev.target.value.trim() !== (p.relevance || "")) {
+                        onUpdate({ ...p, relevance: ev.target.value.trim() });
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      defaultValue={p.status}
+                      className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none"
+                      onChange={(ev) => {
+                        onUpdate({ ...p, status: ev.target.value as EffortStatus });
+                      }}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
                       ))}
+                    </select>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="text-xs text-cito-blue hover:underline ml-auto"
+                    >
+                      Klaar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <button
+                    onClick={() => cycleStatus(p)}
+                    title={`Status: ${STATUS_OPTIONS.find((s) => s.key === p.status)?.label}`}
+                    className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded mt-0.5 ${
+                      STATUS_OPTIONS.find((s) => s.key === p.status)?.color || "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {STATUS_OPTIONS.find((s) => s.key === p.status)?.label}
+                  </button>
+                  <div
+                    className="flex-1 cursor-pointer hover:text-cito-blue min-w-0"
+                    onClick={() => setEditingId(p.id)}
+                    title="Klik om te bewerken"
+                  >
+                    <div className="text-sm font-medium text-gray-700 truncate">
+                      {p.name || "(naamloos project)"}
                     </div>
-                  );
-                })}
-              </div>
+                    {p.description && (
+                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{p.description}</div>
+                    )}
+                    {p.relevance && (
+                      <div className="text-[10px] text-cito-blue mt-1 italic">Relevantie: {p.relevance}</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onDelete(p.id)}
+                    className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 shrink-0 text-xs mt-0.5"
+                    title="Verwijderen"
+                  >
+                    {"\u2715"}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
-          {/* Domein-totalen */}
-          <div className="pt-2 border-t border-amber-200">
-            <div className="text-xs font-medium text-gray-500 mb-1">
-              Totaal per domein (alle sectoren)
-            </div>
-            <div className="flex gap-4">
-              {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
-                const count = allEfforts.filter((e) => e.domain === domain).length;
-                return (
-                  <div key={domain} className="text-center">
-                    <div className="text-sm font-bold text-cito-blue">{count}</div>
-                    <div className="text-[10px] text-gray-400">{DOMAIN_LABEL_MAP[domain]}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Buiten het programma */}
-          <div className="pt-3 border-t border-amber-200">
-            <div className="text-xs font-semibold text-gray-600 mb-1">
-              Buiten het programma ({currentSector})
-            </div>
-            <p className="text-[10px] text-gray-400 mb-1.5">
-              Noteer hier lopende initiatieven buiten het programma die relevant zijn voor {currentSector}.
+          {projects.length === 0 && (
+            <p className="text-xs text-gray-400 italic py-2">
+              Nog geen externe projecten. Voeg projecten toe die buiten het programma lopen.
             </p>
-            <textarea
-              defaultValue={externalNotes}
-              placeholder={`Bijv. bestaande trainingen, IT-projecten, reorganisaties bij ${currentSector}...`}
-              className="w-full h-20 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue resize-y"
-              onBlur={(e) => onUpdateExternalNotes(e.target.value)}
-            />
-          </div>
+          )}
+
+          <button
+            onClick={onAdd}
+            className="text-xs text-cito-blue hover:underline"
+          >
+            + Project toevoegen
+          </button>
         </div>
       )}
     </div>
@@ -1015,20 +904,32 @@ export default function DINMappingStep() {
                 </div>
               </div>
 
-              {/* Lopende inspanningen andere sectoren */}
-              <LopendeInspanningenPanel
+              {/* Externe projecten buiten het programma */}
+              <ExterneProjectenPanel
                 currentSector={activeSector}
-                allEfforts={session.efforts}
-                currentSectorEfforts={sectorEfforts}
-                onUpdateEffort={updateEffort}
-                onDeleteEffort={deleteEffort}
-                externalNotes={session.externalNotes?.[activeSector] || ""}
-                onUpdateExternalNotes={(notes) => {
+                projects={(session.externalProjects || []).filter((p) => p.sectorId === activeSector)}
+                onAdd={() => {
+                  const newProject: ExternalProject = {
+                    id: generateId(),
+                    sectorId: activeSector,
+                    name: "",
+                    description: "",
+                    status: "in_uitvoering",
+                  };
                   updateSession({
-                    externalNotes: {
-                      ...session.externalNotes,
-                      [activeSector]: notes,
-                    },
+                    externalProjects: [...(session.externalProjects || []), newProject],
+                  });
+                }}
+                onUpdate={(updated) => {
+                  updateSession({
+                    externalProjects: (session.externalProjects || []).map((p) =>
+                      p.id === updated.id ? updated : p
+                    ),
+                  });
+                }}
+                onDelete={(id) => {
+                  updateSession({
+                    externalProjects: (session.externalProjects || []).filter((p) => p.id !== id),
                   });
                 }}
               />

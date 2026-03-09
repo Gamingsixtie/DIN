@@ -172,8 +172,19 @@ export interface DINSession {
   capabilityEffortMaps: CapabilityEffortMap[];
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies?: Record<string, IntegratieAdviesResult | string>;
-  // Externe inspanningen / notities buiten het programma, per sector
-  externalNotes?: Record<string, string>;
+  // Externe projecten buiten het programma, per sector
+  externalProjects?: ExternalProject[];
+}
+
+// --- Externe projecten (buiten het programma) ---
+
+export interface ExternalProject {
+  id: string;
+  sectorId: string;
+  name: string;
+  description: string;
+  status: EffortStatus;
+  relevance?: string; // Waarom relevant voor het programma
 }
 
 // --- App Flow Stappen ---
