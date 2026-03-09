@@ -8,6 +8,8 @@ import type {
   DINEffort,
   EffortDomain,
   SectorName,
+  IntegratieAdviesResult,
+  IntegratieAdviesItem,
 } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
 import {
@@ -46,6 +48,64 @@ const DOMAIN_LABEL_MAP: Record<string, string> = {
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
 };
+
+const ADVIES_SECTIONS: {
+  key: keyof Omit<IntegratieAdviesResult, "sectorName">;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  iconColor: string;
+}[] = [
+  { key: "aansluiting", color: "text-green-700", borderColor: "border-green-200", bgColor: "bg-green-50", iconColor: "bg-green-500" },
+  { key: "verrijking", color: "text-blue-700", borderColor: "border-blue-200", bgColor: "bg-blue-50", iconColor: "bg-blue-500" },
+  { key: "aanvullingen", color: "text-amber-700", borderColor: "border-amber-200", bgColor: "bg-amber-50", iconColor: "bg-amber-500" },
+  { key: "quickWins", color: "text-purple-700", borderColor: "border-purple-200", bgColor: "bg-purple-50", iconColor: "bg-purple-500" },
+  { key: "aandachtspunten", color: "text-red-700", borderColor: "border-red-200", bgColor: "bg-red-50", iconColor: "bg-red-500" },
+];
+
+function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
+  section: IntegratieAdviesItem;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  iconColor: string;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className={`border ${borderColor} rounded-lg ${bgColor} overflow-hidden`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-3 flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${iconColor} shrink-0`} />
+          <span className={`text-sm font-semibold ${color}`}>{section.titel}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{section.punten.length} punten</span>
+          <span className="text-xs text-gray-400">{open ? "\u25B2" : "\u25BC"}</span>
+        </div>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <p className="text-xs text-gray-500 italic mb-3">{section.toelichting}</p>
+          {section.punten.length > 0 ? (
+            <ul className="space-y-2">
+              {section.punten.map((punt, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${iconColor} shrink-0`} />
+                  <span>{punt}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-400 italic">Geen items ge\u00EFdentificeerd.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function LopendeInspanningenPanel({
   currentSector,
@@ -213,6 +273,8 @@ export default function DINMappingStep() {
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
+  const [integratieAdvies, setIntegratieAdvies] = useState<Record<string, IntegratieAdviesResult | string>>({});
 
   if (!session) return null;
 
@@ -447,6 +509,58 @@ export default function DINMappingStep() {
     }
   }
 
+  // --- Integratie-advies ---
+  async function handleIntegratieAdvies() {
+    setIsAnalyzingIntegratie(true);
+    try {
+      const res = await fetch("/api/cross-analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sector-integratie",
+          sector: activeSector,
+          sectorPlan: sectorPlan?.rawText || "",
+          goals: session!.goals,
+          benefits: session!.benefits.filter((b) => b.sectorId === activeSector),
+          capabilities: sectorCapabilities,
+          efforts: sectorEfforts,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.analysis) {
+        let parsed: IntegratieAdviesResult | string;
+        try {
+          const raw = data.data.analysis as string;
+          // Strip markdown code fences if present
+          const cleaned = raw
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/\s*```\s*$/i, "")
+            .trim();
+          const json = JSON.parse(cleaned);
+          parsed = {
+            sectorName: activeSector,
+            aansluiting: json.aansluiting,
+            verrijking: json.verrijking,
+            aanvullingen: json.aanvullingen,
+            quickWins: json.quickWins,
+            aandachtspunten: json.aandachtspunten,
+          } as IntegratieAdviesResult;
+        } catch {
+          // Fallback: platte tekst als JSON parsing faalt
+          parsed = data.data.analysis;
+        }
+        setIntegratieAdvies((prev) => ({
+          ...prev,
+          [activeSector]: parsed,
+        }));
+      }
+    } catch (e) {
+      console.error("Integratie-advies mislukt:", e);
+    } finally {
+      setIsAnalyzingIntegratie(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Fase toggle */}
@@ -668,13 +782,13 @@ export default function DINMappingStep() {
                   Hoe-vraag: Welke concrete activiteiten bouwen de vermogens op?
                   Verdeeld over 4 domeinen.
                 </p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 items-start">
                   {DOMAINS.map((domain) => {
                     const domainEfforts = sectorEfforts.filter(
                       (e) => e.domain === domain.key
                     );
                     return (
-                      <div key={domain.key} className="space-y-2">
+                      <div key={domain.key} className="space-y-2 min-h-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold text-gray-600">
                             {domain.label}
@@ -702,6 +816,54 @@ export default function DINMappingStep() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Integratie-advies */}
+              <div className="border border-cito-blue/20 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-cito-blue/5 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-cito-blue">
+                      Integratie-advies: {activeSector}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Hoe past het DIN-netwerk in het sectorplan van {activeSector}?
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleIntegratieAdvies}
+                    disabled={isAnalyzingIntegratie}
+                    className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50 shrink-0"
+                  >
+                    {isAnalyzingIntegratie ? "Analyseren..." : "AI: Integratie-advies"}
+                  </button>
+                </div>
+                {integratieAdvies[activeSector] && (
+                  <div className="p-4 space-y-3">
+                    {typeof integratieAdvies[activeSector] === "string" ? (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {integratieAdvies[activeSector] as string}
+                        </div>
+                      </div>
+                    ) : (
+                      ADVIES_SECTIONS.map(({ key, color, borderColor, bgColor, iconColor }) => {
+                        const advice = integratieAdvies[activeSector] as IntegratieAdviesResult;
+                        const section = advice[key];
+                        if (!section) return null;
+                        return (
+                          <AdviesCard
+                            key={key}
+                            section={section}
+                            color={color}
+                            borderColor={borderColor}
+                            bgColor={bgColor}
+                            iconColor={iconColor}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Lopende inspanningen andere sectoren */}
