@@ -72,6 +72,7 @@ export async function generateSectorIntegratie(data: {
   benefits: { description: string; profiel?: { indicator?: string; targetValue?: string } }[];
   capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
   efforts: { description: string; domain: string; quarter?: string; status?: string }[];
+  externalProjects?: { name: string; description: string; status: string; relevance?: string }[];
 }): Promise<string> {
   const domainLabels: Record<string, string> = {
     mens: "Mens",
@@ -142,7 +143,20 @@ export async function generateSectorIntegratie(data: {
     parts.push("Nog geen inspanningen ingevuld.");
   }
 
-  parts.push("\nGeef concreet integratie-advies voor deze sector. Verwijs naar specifieke items hierboven.");
+  parts.push("\n--- Lopende projecten BUITEN het programma ---");
+  if (data.externalProjects && data.externalProjects.length > 0) {
+    data.externalProjects.forEach((p, i) => {
+      let line = `${i + 1}. ${p.name}`;
+      if (p.description) line += `: ${p.description}`;
+      line += ` [${p.status}]`;
+      if (p.relevance) line += ` — Relevantie: ${p.relevance}`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Geen externe projecten geregistreerd.");
+  }
+
+  parts.push("\nGeef concreet integratie-advies voor deze sector. Verwijs naar specifieke items hierboven, inclusief externe projecten waar relevant.");
 
   return callClaude(SECTOR_INTEGRATIE_PROMPT, parts.join("\n"));
 }

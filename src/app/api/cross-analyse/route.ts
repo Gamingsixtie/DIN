@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
         benefits: body.benefits || [],
         capabilities: body.capabilities || [],
         efforts: body.efforts || [],
+        externalProjects: body.externalProjects || [],
       });
     } else {
       analysis = await generateCrossAnalyse(body);

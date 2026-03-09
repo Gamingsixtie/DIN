@@ -593,6 +593,7 @@ export default function DINMappingStep() {
           benefits: session!.benefits.filter((b) => b.sectorId === activeSector),
           capabilities: sectorCapabilities,
           efforts: sectorEfforts,
+          externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
         }),
       });
       const data = await res.json();

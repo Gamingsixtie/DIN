@@ -43,6 +43,7 @@ export default function CrossAnalyseStep() {
           benefits: session!.benefits,
           capabilities: session!.capabilities,
           efforts: session!.efforts,
+          externalProjects: session!.externalProjects || [],
         }),
       });
       const data = await res.json();

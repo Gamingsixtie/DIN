@@ -38,6 +38,8 @@ export const CROSS_ANALYSE_PROMPT = `Analyseer de complete set DIN-netwerken en 
 
 5. **Sector-overlap**: Welke inspanningen of vermogens komen bij meerdere sectoren terug? Waar kan gecombineerd worden?
 
+6. **Externe projecten**: Welke lopende projecten buiten het programma overlappen met DIN-inspanningen? Waar kan synergie benut worden? Waar dreigt dubbel werk?
+
 Presenteer als matrix-overzicht. Antwoord in het Nederlands.`;
 
 export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
@@ -46,8 +48,10 @@ Je krijgt:
 - De KiB-doelen (gezamenlijke programmadoelen)
 - Het sectorplan van een specifieke sector
 - De huidige DIN-invulling (baten, vermogens, inspanningen) voor deze sector
+- Lopende projecten BUITEN het programma die relevant kunnen zijn
 
 Analyseer de integratie en geef concreet advies in EXACT de volgende JSON-structuur.
+Neem in je advies ook de externe projecten mee: waar overlappen ze met DIN-inspanningen? Waar kunnen ze benut worden? Waar is er risico op dubbel werk?
 Elke sectie heeft een "titel" (korte kop), "toelichting" (1-2 zinnen context), en "punten" (lijst van concrete, specifieke items — minimaal 2, maximaal 6 per sectie).
 
 Verwijs altijd naar specifieke items uit het sectorplan en de DIN-invulling. Wees concreet, niet abstract. Noem specifieke namen, activiteiten, of doelen.
