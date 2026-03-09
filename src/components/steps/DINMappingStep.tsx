@@ -273,6 +273,8 @@ export default function DINMappingStep() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [verrijktSectorplan, setVerrijktSectorplan] = useState<Record<string, string>>({});
   const [showAdviesPanel, setShowAdviesPanel] = useState(false);
   const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
     session?.integratieAdvies || {}
@@ -632,8 +634,89 @@ export default function DINMappingStep() {
     }
   }
 
+  // --- Verrijkt sectorplan genereren ---
+  async function handleGenerateVerrijktPlan() {
+    setIsGeneratingPlan(true);
+    try {
+      // Integratie-advies als tekst meegeven
+      let adviesText = "";
+      const advies = integratieAdvies[activeSector];
+      if (advies && typeof advies !== "string") {
+        const sections = ["aansluiting", "verrijking", "aanvullingen", "quickWins", "aandachtspunten"] as const;
+        adviesText = sections
+          .map((key) => {
+            const s = advies[key];
+            if (!s) return "";
+            return `${s.titel}: ${s.toelichting}\n${s.punten.map((p) => `- ${p}`).join("\n")}`;
+          })
+          .filter(Boolean)
+          .join("\n\n");
+      } else if (typeof advies === "string") {
+        adviesText = advies;
+      }
+
+      const res = await fetch("/api/cross-analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "verrijkt-sectorplan",
+          sector: activeSector,
+          sectorPlan: sectorPlan?.rawText || "",
+          goals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
+          benefits: session!.benefits
+            .filter((b) => b.sectorId === activeSector)
+            .map((b) => ({
+              description: b.description,
+              profiel: b.profiel,
+            })),
+          capabilities: sectorCapabilities.map((c) => ({
+            description: c.description,
+            currentLevel: c.currentLevel,
+            targetLevel: c.targetLevel,
+          })),
+          efforts: sectorEfforts.map((e) => ({
+            description: e.description,
+            domain: e.domain,
+            quarter: e.quarter,
+            status: e.status,
+          })),
+          integratieAdvies: adviesText,
+          externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.analysis) {
+        setVerrijktSectorplan((prev) => ({
+          ...prev,
+          [activeSector]: data.data.analysis,
+        }));
+      }
+    } catch (e) {
+      console.error("Verrijkt sectorplan genereren mislukt:", e);
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
+      {/* Loading overlay bij genereren verrijkt sectorplan */}
+      {isGeneratingPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm">
+            <div className="w-12 h-12 border-3 border-cito-blue border-t-transparent rounded-full animate-spin" />
+            <div className="text-center">
+              <h3 className="text-base font-semibold text-cito-blue">
+                Verrijkt sectorplan wordt gegenereerd...
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                KiB-doelen + DIN-items worden verwerkt in het sectorplan van {activeSector}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fase toggle */}
       <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
         <button
@@ -991,6 +1074,63 @@ export default function DINMappingStep() {
               ) : (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   Klik &ldquo;Integratie-advies&rdquo; om AI-analyse te genereren.
+                </div>
+              )}
+
+              {/* Vervolgactie: Genereer verrijkt sectorplan */}
+              {integratieAdvies[activeSector] && (
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Vervolgactie
+                  </h4>
+                  <button
+                    onClick={handleGenerateVerrijktPlan}
+                    disabled={isGeneratingPlan}
+                    className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {isGeneratingPlan ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Sectorplan wordt gegenereerd...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Genereer verrijkt sectorplan
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Combineert het oorspronkelijke sectorplan met KiB-doelen en DIN-items tot een compleet plan.
+                  </p>
+                </div>
+              )}
+
+              {/* Verrijkt sectorplan resultaat */}
+              {verrijktSectorplan[activeSector] && (
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-cito-blue">
+                      Verrijkt sectorplan: {activeSector}
+                    </h4>
+                    <button
+                      onClick={() =>
+                        setVerrijktSectorplan((prev) => {
+                          const next = { ...prev };
+                          delete next[activeSector];
+                          return next;
+                        })
+                      }
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Sluiten
+                    </button>
+                  </div>
+                  <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
+                    {verrijktSectorplan[activeSector]}
+                  </div>
                 </div>
               )}
             </div>

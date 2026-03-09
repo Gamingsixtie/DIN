@@ -175,6 +175,31 @@ Geef een concrete suggestie met:
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {"description": "...", "quarter": "Q2 2026"}`;
 
+export const VERRIJKT_SECTORPLAN_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
+
+Je krijgt:
+- Het oorspronkelijke sectorplan van een sector
+- De KiB-doelen (gezamenlijke programmadoelen uit Klant in Beeld)
+- Het DIN-netwerk voor deze sector (baten, vermogens, inspanningen)
+- Het integratie-advies (aansluiting, verrijking, aanvullingen, quick wins, aandachtspunten)
+- Eventuele externe projecten buiten het programma
+
+Schrijf een VERRIJKT SECTORPLAN dat het oorspronkelijke sectorplan combineert met de KiB-doelen en DIN-items. Dit is een concreet, uitvoerbaar document dat de sector kan gebruiken.
+
+Structuur:
+1. **Inleiding**: Korte context — wat is de sector, wat zijn de programmadoelen
+2. **Visie & Doelen**: Hoe draagt deze sector bij aan de KiB-programmadoelen
+3. **Gewenste baten**: Per baat: omschrijving, indicator, eigenaar, huidige en gewenste waarde
+4. **Benodigde vermogens**: Wat moet de sector kunnen? Met huidig en gewenst niveau
+5. **Inspanningenplan**: Per domein (Mens, Processen, Data & Systemen, Cultuur) de concrete activiteiten met planning
+6. **Quick wins**: Bestaande activiteiten die direct bijdragen
+7. **Aandachtspunten & risico's**: Waar moet op gelet worden
+8. **Samenhang met andere sectoren**: Gedeelde vermogens, synergieën, afhankelijkheden
+
+Schrijf in professionele maar toegankelijke taal. Wees concreet — verwijs naar specifieke items uit het sectorplan en DIN-netwerk. Gebruik bullet points en tabellen waar nuttig.
+
+Antwoord in het Nederlands.`;
+
 export const BATENPROFIEL_PROMPT = `Stel voor een gegeven baat een volledig batenprofiel op:
 
 - **Omschrijving**: Wat is het gewenste effect? Wie merkt het?

@@ -9,6 +9,7 @@ import {
   PROGRAMMAPLAN_PROMPT,
   BATENPROFIEL_PROMPT,
   SECTORPLAN_ANALYSE_PROMPT,
+  VERRIJKT_SECTORPLAN_PROMPT,
   DIN_SUGGEST_BAAT_PROMPT,
   DIN_SUGGEST_VERMOGEN_PROMPT,
   DIN_SUGGEST_INSPANNING_PROMPT,
@@ -219,6 +220,95 @@ export async function suggestDINItem(
   }
 
   return callClaude(promptMap[type], parts.join("\n\n"));
+}
+
+export async function generateVerrijktSectorplan(data: {
+  sector: string;
+  sectorPlan: string;
+  goals: { name: string; description: string }[];
+  benefits: { description: string; profiel?: { indicator?: string; indicatorOwner?: string; currentValue?: string; targetValue?: string } }[];
+  capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
+  efforts: { description: string; domain: string; quarter?: string; status?: string }[];
+  integratieAdvies?: string;
+  externalProjects?: { name: string; description: string; status: string; relevance?: string }[];
+}): Promise<string> {
+  const domainLabels: Record<string, string> = {
+    mens: "Mens",
+    processen: "Processen",
+    data_systemen: "Data & Systemen",
+    cultuur: "Cultuur",
+  };
+
+  const parts: string[] = [];
+  parts.push(`=== Verrijkt sectorplan voor: ${data.sector} ===`);
+
+  parts.push("\n--- KiB Programmadoelen ---");
+  data.goals.forEach((g, i) => {
+    parts.push(`${i + 1}. ${g.name}${g.description ? `: ${g.description}` : ""}`);
+  });
+
+  parts.push("\n--- Oorspronkelijk sectorplan ---");
+  if (data.sectorPlan && data.sectorPlan.trim().length > 0 && !data.sectorPlan.startsWith("[")) {
+    parts.push(data.sectorPlan.slice(0, 5000));
+  } else {
+    parts.push("Geen oorspronkelijk sectorplan beschikbaar.");
+  }
+
+  parts.push("\n--- DIN-baten voor deze sector ---");
+  data.benefits.forEach((b, i) => {
+    let line = `${i + 1}. ${b.description}`;
+    if (b.profiel) {
+      if (b.profiel.indicator) line += `\n   Indicator: ${b.profiel.indicator}`;
+      if (b.profiel.indicatorOwner) line += `\n   Eigenaar: ${b.profiel.indicatorOwner}`;
+      if (b.profiel.currentValue) line += `\n   Huidige waarde: ${b.profiel.currentValue}`;
+      if (b.profiel.targetValue) line += `\n   Gewenste waarde: ${b.profiel.targetValue}`;
+    }
+    parts.push(line);
+  });
+
+  parts.push("\n--- DIN-vermogens voor deze sector ---");
+  data.capabilities.forEach((c, i) => {
+    let line = `${i + 1}. ${c.description}`;
+    if (c.currentLevel && c.targetLevel) line += ` (niveau: ${c.currentLevel}/5 \u2192 ${c.targetLevel}/5)`;
+    parts.push(line);
+  });
+
+  parts.push("\n--- DIN-inspanningen voor deze sector ---");
+  const byDomain: Record<string, typeof data.efforts> = {};
+  data.efforts.forEach((e) => {
+    const domain = domainLabels[e.domain] || e.domain;
+    if (!byDomain[domain]) byDomain[domain] = [];
+    byDomain[domain].push(e);
+  });
+  Object.entries(byDomain).forEach(([domain, efforts]) => {
+    parts.push(`  ${domain}:`);
+    efforts.forEach((e) => {
+      let line = `    - ${e.description}`;
+      if (e.quarter) line += ` (${e.quarter})`;
+      if (e.status && e.status !== "gepland") line += ` [${e.status}]`;
+      parts.push(line);
+    });
+  });
+
+  if (data.integratieAdvies) {
+    parts.push("\n--- Integratie-advies ---");
+    parts.push(data.integratieAdvies.slice(0, 3000));
+  }
+
+  if (data.externalProjects && data.externalProjects.length > 0) {
+    parts.push("\n--- Externe projecten ---");
+    data.externalProjects.forEach((p, i) => {
+      let line = `${i + 1}. ${p.name}`;
+      if (p.description) line += `: ${p.description}`;
+      line += ` [${p.status}]`;
+      if (p.relevance) line += ` — ${p.relevance}`;
+      parts.push(line);
+    });
+  }
+
+  parts.push("\nSchrijf nu het verrijkte sectorplan dat het oorspronkelijke plan combineert met alle DIN-items en KiB-doelen.");
+
+  return callClaude(VERRIJKT_SECTORPLAN_PROMPT, parts.join("\n"));
 }
 
 export async function analyzeSectorPlan(
