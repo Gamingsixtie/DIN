@@ -56,6 +56,20 @@ export default function SectorWerkStep() {
 
   return (
     <div className="space-y-4">
+      {/* Loading overlay tijdens uploaden */}
+      {isUploading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm">
+            <div className="w-12 h-12 border-3 border-cito-blue border-t-transparent rounded-full animate-spin" />
+            <div className="text-center">
+              <h3 className="text-base font-semibold text-cito-blue">
+                Sectorplan {activeSector} wordt verwerkt...
+              </h3>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Instructie + voortgang */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-start justify-between gap-4">
@@ -359,31 +373,28 @@ export default function SectorWerkStep() {
         </div>
       </div>
 
-      {/* Preview van ge-uploade plan (compact) */}
+      {/* Inhoud sectorplan */}
       {sectorPlan && !sectorPlan.rawText.startsWith("[") && (
-        <details className="group">
-          <summary className="flex items-center gap-2 cursor-pointer text-sm text-cito-blue hover:text-cito-blue-light py-2">
-            <svg
-              className="w-4 h-4 transition-transform group-open:rotate-90"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-            Inhoud sectorplan bekijken ({sectorPlan.rawText.length} tekens)
-          </summary>
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-2">
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">
-              {sectorPlan.rawText}
-            </p>
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <h5 className="text-xs font-semibold text-gray-600">
+              Sectorplan {activeSector} ({sectorPlan.rawText.length} tekens)
+            </h5>
           </div>
-        </details>
+          <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-[20]">
+            {sectorPlan.rawText}
+          </p>
+          {sectorPlan.rawText.length > 2000 && (
+            <details className="mt-2">
+              <summary className="text-xs text-cito-blue cursor-pointer hover:underline">
+                Volledig plan tonen
+              </summary>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">
+                {sectorPlan.rawText}
+              </p>
+            </details>
+          )}
+        </div>
       )}
     </div>
   );
