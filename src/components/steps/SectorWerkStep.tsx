@@ -9,7 +9,6 @@ import { generateId } from "@/lib/din-service";
 export default function SectorWerkStep() {
   const { session, updateSession, setCurrentStep } = useSession();
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
-  const [isAnalyzingPlan, setIsAnalyzingPlan] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFeedback, setUploadFeedback] = useState<{
     type: "success" | "error";
@@ -55,72 +54,15 @@ export default function SectorWerkStep() {
     updateSession({ sectorPlans: [...existing, plan] });
   }
 
-  async function handleAnalyzePlan() {
-    if (!sectorPlan) return;
-    setIsAnalyzingPlan(true);
-    setUploadFeedback(null);
-    try {
-      const res = await fetch("/api/analyze-sectorplan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sectorName: activeSector,
-          planText: sectorPlan.rawText,
-          goals: session!.goals,
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        setUploadFeedback({
-          type: "error",
-          msg: errData?.error || `Analyse mislukt (HTTP ${res.status}).`,
-        });
-        return;
-      }
-      const data = await res.json();
-      if (data.success && data.data?.analysis) {
-        // Na succesvolle analyse: navigeer naar DIN-Mapping
-        setCurrentStep("din-mapping");
-      } else if (data.data?.message) {
-        setUploadFeedback({ type: "error", msg: data.data.message });
-      }
-    } catch (e) {
-      console.error("AI analyse sectorplan mislukt:", e);
-      setUploadFeedback({
-        type: "error",
-        msg: "AI analyse mislukt. Probeer opnieuw.",
-      });
-    } finally {
-      setIsAnalyzingPlan(false);
-    }
-  }
-
   return (
     <div className="space-y-4">
-      {/* Loading overlay tijdens analyse */}
-      {isAnalyzingPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm">
-            <div className="w-12 h-12 border-3 border-cito-blue border-t-transparent rounded-full animate-spin" />
-            <div className="text-center">
-              <h3 className="text-base font-semibold text-cito-blue">
-                Sectorplan {activeSector} wordt geanalyseerd...
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Na afronding ga je automatisch naar DIN-Mapping
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Instructie + voortgang */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="text-sm text-gray-700">
-            <strong>Werkwijze:</strong> Upload per sector het sectorplan. Klik
-            daarna op &ldquo;Analyseer &amp; ga naar DIN-Mapping&rdquo; om het
-            DIN-netwerk in te vullen.
+            <strong>Werkwijze:</strong> Upload per sector het sectorplan (.docx
+            of .txt). Ga daarna naar DIN-Mapping om het DIN-netwerk in te vullen
+            en integratie-advies te genereren.
           </div>
           <div className="shrink-0 text-right">
             <div className="text-xs text-gray-500">Voortgang</div>
@@ -342,18 +284,14 @@ export default function SectorWerkStep() {
 
           {/* Acties */}
           <div className="space-y-2">
-            {sectorPlan &&
-              !sectorPlan.rawText.startsWith("[") && (
-                <button
-                  onClick={handleAnalyzePlan}
-                  disabled={isAnalyzingPlan}
-                  className="w-full px-4 py-3 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50 transition-colors"
-                >
-                  {isAnalyzingPlan
-                    ? "Analyseren..."
-                    : "Analyseer & ga naar DIN-Mapping"}
-                </button>
-              )}
+            {sectorPlan && (
+              <button
+                onClick={() => setCurrentStep("din-mapping")}
+                className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors"
+              >
+                Naar DIN-Mapping {"\u2192"}
+              </button>
+            )}
 
             {!isLastSector ? (
               <button
@@ -362,14 +300,14 @@ export default function SectorWerkStep() {
               >
                 Volgende: {SECTORS[currentSectorIdx + 1]} {"\u2192"}
               </button>
-            ) : (
+            ) : !sectorPlan ? (
               <button
                 onClick={() => setCurrentStep("din-mapping")}
                 className="w-full px-4 py-2.5 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors"
               >
                 Naar DIN-Mapping {"\u2192"}
               </button>
-            )}
+            ) : null}
 
             {sectorPlan && (
               <button
