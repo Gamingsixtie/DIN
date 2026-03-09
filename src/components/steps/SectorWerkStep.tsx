@@ -10,6 +10,8 @@ export default function SectorWerkStep() {
   const { session, updateSession, setCurrentStep } = useSession();
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [planAnalysis, setPlanAnalysis] = useState<Record<string, string | null>>({});
   const [uploadFeedback, setUploadFeedback] = useState<{
     type: "success" | "error";
     msg: string;
@@ -54,17 +56,64 @@ export default function SectorWerkStep() {
     updateSession({ sectorPlans: [...existing, plan] });
   }
 
+  async function handleAnalyzePlan() {
+    if (!sectorPlan) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze-sectorplan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectorName: activeSector,
+          planText: sectorPlan.rawText,
+          goals: session!.goals.map((g) => ({
+            name: g.name,
+            description: g.description,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.analysis) {
+        setPlanAnalysis((prev) => ({
+          ...prev,
+          [activeSector]: data.data.analysis,
+        }));
+      } else {
+        setPlanAnalysis((prev) => ({
+          ...prev,
+          [activeSector]: data.data?.message || "Analyse niet beschikbaar.",
+        }));
+      }
+    } catch {
+      setPlanAnalysis((prev) => ({
+        ...prev,
+        [activeSector]: "Fout bij het analyseren. Probeer opnieuw.",
+      }));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
+
+  const currentAnalysis = planAnalysis[activeSector];
+
   return (
     <div className="space-y-4">
-      {/* Loading overlay tijdens uploaden */}
-      {isUploading && (
+      {/* Loading overlay tijdens uploaden of analyseren */}
+      {(isUploading || isAnalyzing) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm">
             <div className="w-12 h-12 border-3 border-cito-blue border-t-transparent rounded-full animate-spin" />
             <div className="text-center">
               <h3 className="text-base font-semibold text-cito-blue">
-                Sectorplan {activeSector} wordt verwerkt...
+                {isAnalyzing
+                  ? `Sectorplan ${activeSector} wordt geanalyseerd...`
+                  : `Sectorplan ${activeSector} wordt verwerkt...`}
               </h3>
+              {isAnalyzing && (
+                <p className="text-xs text-gray-500 mt-1">
+                  AI analyseert het sectorplan op DIN-aansluiting
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -300,28 +349,34 @@ export default function SectorWerkStep() {
           <div className="space-y-2">
             {sectorPlan && (
               <button
+                onClick={handleAnalyzePlan}
+                disabled={isAnalyzing}
+                className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                AI: Analyseer sectorplan
+              </button>
+            )}
+
+            {sectorPlan && (
+              <button
                 onClick={() => setCurrentStep("din-mapping")}
-                className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors"
+                className="w-full px-4 py-3 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors"
               >
                 Naar DIN-Mapping {"\u2192"}
               </button>
             )}
 
-            {!isLastSector ? (
+            {!isLastSector && (
               <button
                 onClick={goToNextSector}
-                className="w-full px-4 py-2.5 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors"
+                className="w-full px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 Volgende: {SECTORS[currentSectorIdx + 1]} {"\u2192"}
               </button>
-            ) : !sectorPlan ? (
-              <button
-                onClick={() => setCurrentStep("din-mapping")}
-                className="w-full px-4 py-2.5 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors"
-              >
-                Naar DIN-Mapping {"\u2192"}
-              </button>
-            ) : null}
+            )}
 
             {sectorPlan && (
               <button
@@ -394,6 +449,36 @@ export default function SectorWerkStep() {
               </p>
             </details>
           )}
+        </div>
+      )}
+
+      {/* AI Analyse resultaat */}
+      {currentAnalysis && (
+        <div className="p-5 bg-white rounded-lg border-2 border-cito-blue/20 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-cito-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <h4 className="text-sm font-bold text-cito-blue">
+                AI-analyse: {activeSector}-sectorplan
+              </h4>
+            </div>
+            <button
+              onClick={() =>
+                setPlanAnalysis((prev) => ({
+                  ...prev,
+                  [activeSector]: null,
+                }))
+              }
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Sluiten
+            </button>
+          </div>
+          <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
+            {currentAnalysis}
+          </div>
         </div>
       )}
     </div>
