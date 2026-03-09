@@ -274,7 +274,18 @@ export default function DINMappingStep() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
-  const [integratieAdvies, setIntegratieAdvies] = useState<Record<string, IntegratieAdviesResult | string>>({});
+  const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
+    session?.integratieAdvies || {}
+  );
+
+  // Wrapper: sla integratie-advies ook op in sessie (persistentie)
+  function setIntegratieAdvies(updater: (prev: Record<string, IntegratieAdviesResult | string>) => Record<string, IntegratieAdviesResult | string>) {
+    setIntegratieAdviesState((prev) => {
+      const next = updater(prev);
+      updateSession({ integratieAdvies: next });
+      return next;
+    });
+  }
 
   if (!session) return null;
 
@@ -303,12 +314,37 @@ export default function DINMappingStep() {
   const sectorBenefits = selectedGoal
     ? getBenefitsByGoalAndSector(session.benefits, selectedGoal, activeSector)
     : [];
-  const sectorCapabilities = session.capabilities.filter(
-    (c) => c.sectorId === activeSector
+
+  // Vermogens per doel: filter via benefitCapabilityMaps (DIN-keten)
+  const goalBenefitIds = new Set(sectorBenefits.map((b) => b.id));
+  const linkedCapIds = new Set(
+    session.benefitCapabilityMaps
+      .filter((m) => goalBenefitIds.has(m.benefitId))
+      .map((m) => m.capabilityId)
   );
-  const sectorEfforts = session.efforts.filter(
-    (e) => e.sectorId === activeSector
+  // Fallback: als geen maps bestaan voor deze sector, toon alle sector-vermogens
+  const allSectorCaps = session.capabilities.filter((c) => c.sectorId === activeSector);
+  const hasCapMaps = allSectorCaps.some((c) =>
+    session.benefitCapabilityMaps.some((m) => m.capabilityId === c.id)
   );
+  const sectorCapabilities = hasCapMaps
+    ? allSectorCaps.filter((c) => linkedCapIds.has(c.id))
+    : allSectorCaps;
+
+  // Inspanningen per doel: filter via capabilityEffortMaps (DIN-keten)
+  const goalCapIds = new Set(sectorCapabilities.map((c) => c.id));
+  const linkedEffortIds = new Set(
+    session.capabilityEffortMaps
+      .filter((m) => goalCapIds.has(m.capabilityId))
+      .map((m) => m.effortId)
+  );
+  const allSectorEfforts = session.efforts.filter((e) => e.sectorId === activeSector);
+  const hasEffortMaps = allSectorEfforts.some((e) =>
+    session.capabilityEffortMaps.some((m) => m.effortId === e.id)
+  );
+  const sectorEfforts = hasEffortMaps
+    ? allSectorEfforts.filter((e) => linkedEffortIds.has(e.id))
+    : allSectorEfforts;
 
   // Voortgang per sector
   function getSectorProgress(sector: SectorName) {
@@ -364,7 +400,15 @@ export default function DINMappingStep() {
   }
   function addCapability() {
     const newCap = createCapability(activeSector, "");
-    updateSession({ capabilities: [...session!.capabilities, newCap] });
+    // DIN-keten: koppel aan alle baten van het huidige doel in deze sector
+    const newMaps = sectorBenefits.map((b) => ({
+      benefitId: b.id,
+      capabilityId: newCap.id,
+    }));
+    updateSession({
+      capabilities: [...session!.capabilities, newCap],
+      benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...newMaps],
+    });
   }
   function updateEffort(updated: DINEffort) {
     updateSession({
@@ -383,7 +427,15 @@ export default function DINMappingStep() {
   }
   function addEffort(domain: EffortDomain) {
     const newEffort = createEffort(activeSector, "", domain);
-    updateSession({ efforts: [...session!.efforts, newEffort] });
+    // DIN-keten: koppel aan alle vermogens van het huidige doel in deze sector
+    const newMaps = sectorCapabilities.map((c) => ({
+      capabilityId: c.id,
+      effortId: newEffort.id,
+    }));
+    updateSession({
+      efforts: [...session!.efforts, newEffort],
+      capabilityEffortMaps: [...session!.capabilityEffortMaps, ...newMaps],
+    });
   }
 
   // --- Per-item AI suggesties ---
@@ -489,17 +541,34 @@ export default function DINMappingStep() {
             sectorId: activeSector,
           })
         );
+        // DIN-keten: koppel alle niveaus aan elkaar
+        // Doel → Baten
+        const newGoalBenefitMaps = newBenefits.map((b: DINBenefit) => ({
+          goalId: selectedGoal,
+          benefitId: b.id,
+        }));
+        // Baten → Vermogens (elke baat aan elk vermogen binnen dit doel)
+        const newBenCapMaps = newBenefits.flatMap((b: DINBenefit) =>
+          newCaps.map((c: DINCapability) => ({
+            benefitId: b.id,
+            capabilityId: c.id,
+          }))
+        );
+        // Vermogens → Inspanningen (elk vermogen aan elke inspanning)
+        const newCapEffMaps = newCaps.flatMap((c: DINCapability) =>
+          newEfforts.map((e: DINEffort) => ({
+            capabilityId: c.id,
+            effortId: e.id,
+          }))
+        );
+
         updateSession({
           benefits: [...session!.benefits, ...newBenefits],
           capabilities: [...session!.capabilities, ...newCaps],
           efforts: [...session!.efforts, ...newEfforts],
-          goalBenefitMaps: [
-            ...session!.goalBenefitMaps,
-            ...newBenefits.map((b: DINBenefit) => ({
-              goalId: selectedGoal,
-              benefitId: b.id,
-            })),
-          ],
+          goalBenefitMaps: [...session!.goalBenefitMaps, ...newGoalBenefitMaps],
+          benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...newBenCapMaps],
+          capabilityEffortMaps: [...session!.capabilityEffortMaps, ...newCapEffMaps],
         });
       }
     } catch (e) {

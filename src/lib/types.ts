@@ -170,6 +170,8 @@ export interface DINSession {
   goalBenefitMaps: GoalBenefitMap[];
   benefitCapabilityMaps: BenefitCapabilityMap[];
   capabilityEffortMaps: CapabilityEffortMap[];
+  // Opgeslagen integratie-adviezen per sector
+  integratieAdvies?: Record<string, IntegratieAdviesResult | string>;
 }
 
 // --- App Flow Stappen ---
