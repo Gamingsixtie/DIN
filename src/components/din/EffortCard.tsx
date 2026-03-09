@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import type { DINEffort, EffortDomain } from "@/lib/types";
+
+interface EffortSuggestion {
+  description: string;
+  quarter: string;
+}
 
 interface EffortCardProps {
   effort: DINEffort;
   onChange: (updated: DINEffort) => void;
   onDelete: () => void;
+  onAISuggest?: () => Promise<EffortSuggestion | null>;
 }
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string }> = {
@@ -26,8 +33,36 @@ export default function EffortCard({
   effort,
   onChange,
   onDelete,
+  onAISuggest,
 }: EffortCardProps) {
   const colors = DOMAIN_COLORS[effort.domain];
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<EffortSuggestion | null>(null);
+
+  async function handleAISuggest() {
+    if (!onAISuggest || isAILoading) return;
+    setIsAILoading(true);
+    try {
+      const result = await onAISuggest();
+      if (result) {
+        setAiSuggestion(result);
+      }
+    } catch (e) {
+      console.error("AI suggestie mislukt:", e);
+    } finally {
+      setIsAILoading(false);
+    }
+  }
+
+  function applySuggestion() {
+    if (!aiSuggestion) return;
+    onChange({
+      ...effort,
+      description: aiSuggestion.description || effort.description,
+      quarter: aiSuggestion.quarter || effort.quarter,
+    });
+    setAiSuggestion(null);
+  }
 
   return (
     <div className={`border rounded-lg p-3 ${colors.bg} border-gray-200`}>
@@ -42,13 +77,59 @@ export default function EffortCard({
             placeholder="Beschrijf de inspanning..."
           />
         </div>
-        <button
-          onClick={onDelete}
-          className="text-xs text-gray-400 hover:text-red-500 px-1"
-        >
-          ✕
-        </button>
+        <div className="flex gap-1">
+          {onAISuggest && (
+            <button
+              onClick={handleAISuggest}
+              disabled={isAILoading}
+              className="text-xs px-1.5 py-0.5 rounded text-cito-accent hover:bg-cito-accent/10 disabled:opacity-50 transition-colors"
+              title="AI-suggestie voor deze inspanning"
+            >
+              {isAILoading ? (
+                <span className="inline-block animate-spin">&#9881;</span>
+              ) : (
+                "AI"
+              )}
+            </button>
+          )}
+          <button
+            onClick={onDelete}
+            className="text-xs text-gray-400 hover:text-red-500 px-1"
+          >
+            \u2715
+          </button>
+        </div>
       </div>
+
+      {/* AI Suggestie */}
+      {aiSuggestion && (
+        <div className="mt-2 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-cito-accent">AI Suggestie</span>
+            <div className="flex gap-2">
+              <button
+                onClick={applySuggestion}
+                className="text-xs px-2 py-1 bg-cito-accent text-white rounded hover:bg-cito-blue transition-colors"
+              >
+                Toepassen
+              </button>
+              <button
+                onClick={() => setAiSuggestion(null)}
+                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+              >
+                Sluiten
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-700">
+            <p><span className="font-medium">Inspanning:</span> {aiSuggestion.description}</p>
+            {aiSuggestion.quarter && (
+              <p className="mt-1"><span className="font-medium">Planning:</span> {aiSuggestion.quarter}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="mt-2 flex items-center gap-2 text-xs">
         <span className={`font-medium ${colors.text}`}>
           {DOMAIN_LABELS[effort.domain]}

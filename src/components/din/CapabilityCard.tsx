@@ -3,10 +3,17 @@
 import { useState } from "react";
 import type { DINCapability } from "@/lib/types";
 
+interface CapabilitySuggestion {
+  description: string;
+  currentLevel: number;
+  targetLevel: number;
+}
+
 interface CapabilityCardProps {
   capability: DINCapability;
   onChange: (updated: DINCapability) => void;
   onDelete: () => void;
+  onAISuggest?: () => Promise<CapabilitySuggestion | null>;
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -34,7 +41,6 @@ function LevelSelector({
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((level) => {
           const isActive = value !== undefined && level <= value;
-          const isExact = value === level;
           return (
             <button
               key={level}
@@ -66,13 +72,43 @@ export default function CapabilityCard({
   capability,
   onChange,
   onDelete,
+  onAISuggest,
 }: CapabilityCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<CapabilitySuggestion | null>(null);
 
   const gap =
     capability.targetLevel && capability.currentLevel
       ? capability.targetLevel - capability.currentLevel
       : undefined;
+
+  async function handleAISuggest() {
+    if (!onAISuggest || isAILoading) return;
+    setIsAILoading(true);
+    try {
+      const result = await onAISuggest();
+      if (result) {
+        setAiSuggestion(result);
+        setExpanded(true);
+      }
+    } catch (e) {
+      console.error("AI suggestie mislukt:", e);
+    } finally {
+      setIsAILoading(false);
+    }
+  }
+
+  function applySuggestion() {
+    if (!aiSuggestion) return;
+    onChange({
+      ...capability,
+      description: aiSuggestion.description || capability.description,
+      currentLevel: aiSuggestion.currentLevel || capability.currentLevel,
+      targetLevel: aiSuggestion.targetLevel || capability.targetLevel,
+    });
+    setAiSuggestion(null);
+  }
 
   return (
     <div className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50">
@@ -86,6 +122,20 @@ export default function CapabilityCard({
           placeholder="Beschrijf het vermogen..."
         />
         <div className="flex gap-1 shrink-0">
+          {onAISuggest && (
+            <button
+              onClick={handleAISuggest}
+              disabled={isAILoading}
+              className="text-xs px-1.5 py-0.5 rounded text-cito-accent hover:bg-cito-accent/10 disabled:opacity-50 transition-colors"
+              title="AI-suggestie voor dit vermogen"
+            >
+              {isAILoading ? (
+                <span className="inline-block animate-spin">&#9881;</span>
+              ) : (
+                "AI"
+              )}
+            </button>
+          )}
           {gap !== undefined && gap > 0 && (
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
@@ -103,16 +153,48 @@ export default function CapabilityCard({
             onClick={() => setExpanded(!expanded)}
             className="text-xs text-gray-400 hover:text-cito-blue px-1"
           >
-            {expanded ? "▲" : "▼"}
+            {expanded ? "\u25B2" : "\u25BC"}
           </button>
           <button
             onClick={onDelete}
             className="text-xs text-gray-400 hover:text-red-500 px-1"
           >
-            ✕
+            \u2715
           </button>
         </div>
       </div>
+
+      {/* AI Suggestie */}
+      {aiSuggestion && (
+        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-cito-accent">AI Suggestie</span>
+            <div className="flex gap-2">
+              <button
+                onClick={applySuggestion}
+                className="text-xs px-2 py-1 bg-cito-accent text-white rounded hover:bg-cito-blue transition-colors"
+              >
+                Toepassen
+              </button>
+              <button
+                onClick={() => setAiSuggestion(null)}
+                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+              >
+                Sluiten
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-700 space-y-1">
+            <p><span className="font-medium">Vermogen:</span> {aiSuggestion.description}</p>
+            <p>
+              <span className="font-medium">Niveau:</span>{" "}
+              <span className="text-amber-600">{aiSuggestion.currentLevel}/5 ({LEVEL_LABELS[aiSuggestion.currentLevel]})</span>
+              {" \u2192 "}
+              <span className="text-green-600">{aiSuggestion.targetLevel}/5 ({LEVEL_LABELS[aiSuggestion.targetLevel]})</span>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Compact score weergave als niet expanded */}
       {!expanded &&

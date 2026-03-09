@@ -180,6 +180,74 @@ export default function SectorWerkStep() {
     updateSession({ efforts: [...session!.efforts, newEffort] });
   }
 
+  // --- Per-item AI suggesties ---
+  async function fetchAISuggestion(
+    type: "baat" | "vermogen" | "inspanning",
+    extra: Record<string, unknown> = {}
+  ) {
+    const goal = session!.goals.find((g) => g.id === selectedGoal);
+    const context: Record<string, unknown> = {
+      sector: activeSector,
+      goalName: goal?.name,
+      goalDescription: goal?.description,
+      sectorPlanText: sectorPlan?.rawText,
+      ...extra,
+    };
+    const res = await fetch("/api/din-suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, context }),
+    });
+    const data = await res.json();
+    if (data.success && data.data?.suggestion) {
+      return data.data.suggestion;
+    }
+    return null;
+  }
+
+  function makeBenefitSuggest(benefit: DINBenefit) {
+    return async () => {
+      return fetchAISuggestion("baat", {
+        existingDescription: benefit.description || undefined,
+        relatedBenefits: sectorBenefits
+          .filter((b) => b.id !== benefit.id && b.description)
+          .map((b) => b.description),
+      });
+    };
+  }
+
+  function makeCapabilitySuggest(cap: DINCapability) {
+    return async () => {
+      return fetchAISuggestion("vermogen", {
+        existingDescription: cap.description || undefined,
+        relatedBenefits: sectorBenefits
+          .filter((b) => b.description)
+          .map((b) => b.description),
+        relatedCapabilities: sectorCapabilities
+          .filter((c) => c.id !== cap.id && c.description)
+          .map((c) => c.description),
+      });
+    };
+  }
+
+  function makeEffortSuggest(effort: DINEffort) {
+    return async () => {
+      const domainLabels: Record<string, string> = {
+        mens: "Mens",
+        processen: "Processen",
+        data_systemen: "Data & Systemen",
+        cultuur: "Cultuur",
+      };
+      return fetchAISuggestion("inspanning", {
+        existingDescription: effort.description || undefined,
+        domain: domainLabels[effort.domain] || effort.domain,
+        relatedCapabilities: sectorCapabilities
+          .filter((c) => c.description)
+          .map((c) => c.description),
+      });
+    };
+  }
+
   async function handleAIGenerate() {
     if (!selectedGoal) return;
     setIsGenerating(true);
@@ -662,6 +730,7 @@ export default function SectorWerkStep() {
                           benefit={b}
                           onChange={updateBenefit}
                           onDelete={() => deleteBenefit(b.id)}
+                          onAISuggest={makeBenefitSuggest(b)}
                         />
                       ))}
                       {sectorBenefits.length === 0 && (
@@ -696,6 +765,7 @@ export default function SectorWerkStep() {
                           capability={c}
                           onChange={updateCapability}
                           onDelete={() => deleteCapability(c.id)}
+                          onAISuggest={makeCapabilitySuggest(c)}
                         />
                       ))}
                       {sectorCapabilities.length === 0 && (
@@ -739,6 +809,7 @@ export default function SectorWerkStep() {
                                 effort={e}
                                 onChange={updateEffort}
                                 onDelete={() => deleteEffort(e.id)}
+                                onAISuggest={makeEffortSuggest(e)}
                               />
                             ))}
                             {domainEfforts.length === 0 && (
