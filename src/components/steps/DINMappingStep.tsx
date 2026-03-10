@@ -1209,7 +1209,7 @@ export default function DINMappingStep() {
             </div>
           </div>
 
-          <div className="flex gap-6">
+          <div className="flex gap-6 min-w-0">
             {/* Doelen sidebar */}
             <div className="w-56 shrink-0">
               <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
@@ -1244,7 +1244,7 @@ export default function DINMappingStep() {
             </div>
 
             {/* DIN Editor */}
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 min-w-0 space-y-6">
               {/* AI knoppen */}
               <div className="flex justify-end gap-2">
                 <button
@@ -1332,7 +1332,7 @@ export default function DINMappingStep() {
 
                       {/* Uitgeklapte inhoud */}
                       {!isCollapsed && (
-                        <div className="p-4 space-y-4 border-t border-din-baten/10">
+                        <div className="p-4 space-y-4 border-t border-din-baten/10 min-w-0 overflow-hidden">
                           {/* BenefitCard */}
                           <BenefitCard
                             benefit={benefit}

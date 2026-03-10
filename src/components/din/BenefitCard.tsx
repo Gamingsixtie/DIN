@@ -129,9 +129,9 @@ export default function BenefitCard({
   if (!benefit.profiel.targetValue) missing.push("gewenste waarde");
 
   return (
-    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
+    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50 min-w-0 overflow-hidden">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
           <input
             value={benefit.description}
             onChange={(e) =>

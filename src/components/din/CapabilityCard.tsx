@@ -164,14 +164,14 @@ export default function CapabilityCard({
   }
 
   return (
-    <div className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50">
-      <div className="flex items-start gap-2">
+    <div className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 min-w-0 overflow-hidden">
+      <div className="flex items-start gap-2 min-w-0">
         <input
           value={capability.description}
           onChange={(e) =>
             onChange({ ...capability, description: e.target.value })
           }
-          className="flex-1 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
+          className="flex-1 min-w-0 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
           placeholder="Beschrijf het vermogen..."
         />
         <div className="flex gap-1.5 shrink-0 items-center">
