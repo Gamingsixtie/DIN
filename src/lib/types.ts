@@ -10,6 +10,9 @@ export type EffortStatus =
   | "afgerond"
   | "on_hold";
 
+// Goedkeuringsstatus (apart van executie-status)
+export type ApprovalStatus = "voorstel" | "goedgekeurd" | "afgewezen" | "aangepast";
+
 // Prioriteit voor PMC
 export type Priority = "hoog" | "midden" | "laag";
 
@@ -104,6 +107,9 @@ export interface DINEffort {
   status: EffortStatus;
   dependencies: string[];
   votes?: number;
+  opmerking?: string;
+  approvalStatus?: ApprovalStatus;
+  approvalDate?: string;
 }
 
 // --- Koppelingen ---
