@@ -216,19 +216,39 @@ BELANGRIJK: Het oorspronkelijke sectorplan bevat onderwerpen die NIETS met Klant
 
 Structuur:
 1. **Oorspronkelijk sectorplan**: Neem de volledige inhoud van het oorspronkelijke sectorplan over. Alle bestaande hoofdstukken, onderwerpen en plannen blijven ongewijzigd staan. Herformuleer niet, voeg alleen structuur toe waar nodig.
-2. **Programma Klant in Beeld**: Dit is het NIEUWE hoofdstuk dat wordt toegevoegd aan het sectorplan. Bevat:
-   - Wat is het programma Klant in Beeld en de gezamenlijke programmadoelen
-   - Hoe draagt deze sector bij aan de programmadoelen
-   - **Gewenste baten**: Per baat: omschrijving, indicator, eigenaar, huidige en gewenste waarde
-   - **Benodigde vermogens**: Wat moet de sector kunnen? Met huidig en gewenst niveau
-   - **Inspanningenplan**: Per domein (Mens, Processen, Data & Systemen, Cultuur) de concrete activiteiten met planning
-   - **Quick wins**: Bestaande activiteiten die direct bijdragen aan KiB
-   - **Aandachtspunten & risico's**
-   - **Samenhang met andere sectoren**: Gedeelde vermogens, synergieën, afhankelijkheden
+2. **Programma Klant in Beeld**: Dit is het NIEUWE hoofdstuk dat wordt toegevoegd aan het sectorplan. Bevat de secties hieronder.
 
-Het resultaat is dus: het complete oorspronkelijke sectorplan + een nieuw hoofdstuk "Programma Klant in Beeld" met alle DIN-items.
+## VERPLICHT: Gebruik MARKDOWN-TABELLEN voor compactheid
 
-Schrijf in professionele maar toegankelijke taal. Wees concreet — verwijs naar specifieke items uit het sectorplan en DIN-netwerk. Gebruik bullet points en tabellen waar nuttig.
+Het document moet COMPACT en OVERZICHTELIJK zijn. Gebruik voor ALLE DIN-items markdown-tabellen. GEEN lange bullet-lijsten.
+
+### Gewenste baten — als tabel:
+| Baat | Indicator | Eigenaar | Nu | Doel |
+|------|-----------|----------|----|------|
+| Omschrijving baat | KPI | Rol | Huidige waarde | Gewenste waarde |
+
+### Benodigde vermogens — als tabel:
+| Vermogen | Huidig niveau | Gewenst niveau |
+|----------|---------------|----------------|
+| Wat moet de sector kunnen | 2/5 | 4/5 |
+
+### Inspanningenplan — als tabel PER DOMEIN:
+| Inspanning | Domein | Planning | Status |
+|------------|--------|----------|--------|
+| Concrete activiteit | Mens/Processen/Data/Cultuur | Q2 2026 | Gepland |
+
+### Quick wins — korte bullet list (max 5 items)
+### Aandachtspunten & risico's — korte bullet list (max 5 items)
+### Samenhang met andere sectoren — kort en bondig (max 1 alinea + eventueel tabel)
+
+BELANGRIJK VOOR LENGTE:
+- Het hele document (inclusief origineel sectorplan) mag MAXIMAAL 6-8 A4-pagina's zijn
+- Gebruik tabellen, GEEN lange uitweidingen per item
+- Het oorspronkelijke sectorplan beknopt overnemen: behoud de kern maar vat samen waar het uitweidt
+- Het KiB-hoofdstuk zelf: max 3-4 pagina's dankzij tabelweergave
+- ALLE baten, vermogens en inspanningen MOETEN in het document staan — sla NIETS over
+
+Schrijf in professionele maar toegankelijke taal. Wees concreet — verwijs naar specifieke items uit het sectorplan en DIN-netwerk.
 
 Antwoord in het Nederlands.`;
 

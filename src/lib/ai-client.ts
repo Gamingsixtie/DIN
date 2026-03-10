@@ -21,12 +21,13 @@ function getClient(): Anthropic {
 
 async function callClaude(
   systemPrompt: string,
-  userMessage: string
+  userMessage: string,
+  maxTokens?: number
 ): Promise<string> {
   const client = getClient();
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    max_tokens: maxTokens || 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
@@ -412,7 +413,7 @@ export async function generateVerrijktSectorplan(data: {
 
   parts.push("\nSchrijf nu het bijgewerkte sectorplan. Neem het oorspronkelijke sectorplan VOLLEDIG over (alle bestaande onderwerpen blijven staan) en voeg een nieuw hoofdstuk 'Programma Klant in Beeld' toe met alle DIN-items.");
 
-  return callClaude(VERRIJKT_SECTORPLAN_PROMPT, parts.join("\n"));
+  return callClaude(VERRIJKT_SECTORPLAN_PROMPT, parts.join("\n"), 16384);
 }
 
 export async function analyzeSectorPlan(
