@@ -9,6 +9,14 @@ interface EffortSuggestion {
   quarter: string;
 }
 
+type AanscherpVeld = "alles" | "beschrijving" | "planning";
+
+const VELD_LABELS: Record<AanscherpVeld, string> = {
+  alles: "Alles",
+  beschrijving: "Beschrijving",
+  planning: "Planning",
+};
+
 interface EffortCardProps {
   effort: DINEffort;
   onChange: (updated: DINEffort) => void;
@@ -40,15 +48,37 @@ export default function EffortCard({
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<EffortSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
+  const [previousState, setPreviousState] = useState<DINEffort | null>(null);
+
+  function toggleVeld(veld: AanscherpVeld) {
+    const next = new Set(selectedVelden);
+    if (veld === "alles") {
+      setSelectedVelden(new Set(["alles"]));
+      return;
+    }
+    next.delete("alles");
+    if (next.has(veld)) {
+      next.delete(veld);
+      if (next.size === 0) next.add("alles");
+    } else {
+      next.add(veld);
+    }
+    setSelectedVelden(next);
+  }
 
   async function handleAISuggest() {
     if (!onAISuggest || isAILoading) return;
     setIsAILoading(true);
-    setShowPrompt(false);
     try {
-      const result = await onAISuggest(userPrompt || undefined);
+      let prefix = "";
+      if (!selectedVelden.has("alles")) {
+        const labels = Array.from(selectedVelden).map((v) => VELD_LABELS[v]);
+        prefix = `Focus ALLEEN op: ${labels.join(", ")}. `;
+      }
+      const result = await onAISuggest((prefix + (userPrompt || "")) || undefined);
       if (result) {
         setAiSuggestion(result);
       }
@@ -56,18 +86,33 @@ export default function EffortCard({
       console.error("AI suggestie mislukt:", e);
     } finally {
       setIsAILoading(false);
-      setUserPrompt("");
     }
   }
 
-  function applySuggestion() {
+  function applySuggestion(fields?: AanscherpVeld[]) {
     if (!aiSuggestion) return;
-    onChange({
-      ...effort,
-      description: aiSuggestion.description || effort.description,
-      quarter: aiSuggestion.quarter || effort.quarter,
-    });
+    setPreviousState({ ...effort });
+
+    const applyAll = !fields || fields.includes("alles");
+    const applySet = new Set(fields || ["alles"]);
+    const updated = { ...effort };
+
+    if (applyAll || applySet.has("beschrijving")) {
+      if (aiSuggestion.description) updated.description = aiSuggestion.description;
+    }
+    if (applyAll || applySet.has("planning")) {
+      if (aiSuggestion.quarter) updated.quarter = aiSuggestion.quarter;
+    }
+
+    onChange(updated);
     setAiSuggestion(null);
+    setShowAIPanel(false);
+  }
+
+  function handleUndo() {
+    if (!previousState) return;
+    onChange(previousState);
+    setPreviousState(null);
   }
 
   return (
@@ -86,9 +131,13 @@ export default function EffortCard({
         <div className="flex gap-1.5 items-center">
           {onAISuggest && (
             <button
-              onClick={() => showPrompt ? handleAISuggest() : setShowPrompt(true)}
+              onClick={() => setShowAIPanel(!showAIPanel)}
               disabled={isAILoading}
-              className="text-xs px-2 py-1 rounded-md bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20 disabled:opacity-50 transition-colors font-medium"
+              className={`text-xs px-2 py-1 rounded-md font-medium transition-colors disabled:opacity-50 ${
+                showAIPanel
+                  ? "bg-cito-accent text-white"
+                  : "bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20"
+              }`}
               title="AI analyseert en scherpt deze inspanning aan"
             >
               {isAILoading ? (
@@ -96,6 +145,15 @@ export default function EffortCard({
               ) : (
                 "Aanscherpen"
               )}
+            </button>
+          )}
+          {previousState && (
+            <button
+              onClick={handleUndo}
+              className="text-xs px-2 py-1 rounded-md bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors font-medium"
+              title="Laatste AI-wijziging ongedaan maken"
+            >
+              Ongedaan
             </button>
           )}
           {confirmDelete ? (
@@ -125,33 +183,45 @@ export default function EffortCard({
         </div>
       </div>
 
-      {/* Prompt veld voor AI */}
-      {showPrompt && !isAILoading && (
-        <div className="mt-2 flex gap-2 items-center">
-          <input
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
-            className="flex-1 text-xs px-2 py-1.5 border border-cito-accent/30 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
-            placeholder="Optioneel: wat wil je aanscherpen? (bijv. 'meer focus op training')"
-            autoFocus
-          />
-          <button
-            onClick={handleAISuggest}
-            className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0"
-          >
-            Verstuur
-          </button>
-          <button
-            onClick={() => { setShowPrompt(false); setUserPrompt(""); }}
-            className="text-xs text-gray-400 hover:text-gray-600 px-1"
-          >
-            &#10005;
-          </button>
+      {/* AI Panel: selectie + prompt */}
+      {showAIPanel && !aiSuggestion && (
+        <div className="mt-2 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-2">
+          <div className="text-xs font-semibold text-cito-accent mb-1">Wat wil je aanscherpen?</div>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
+              <button
+                key={veld}
+                onClick={() => toggleVeld(veld)}
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  selectedVelden.has(veld)
+                    ? "bg-cito-accent text-white"
+                    : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
+                }`}
+              >
+                {VELD_LABELS[veld]}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center mt-2">
+            <input
+              value={userPrompt}
+              onChange={(e) => setUserPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
+              className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
+              placeholder="Optioneel: wat wil je veranderen? (bijv. 'meer focus op training')"
+            />
+            <button
+              onClick={handleAISuggest}
+              disabled={isAILoading}
+              className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0 disabled:opacity-50"
+            >
+              {isAILoading ? "Bezig..." : "Verstuur"}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* AI Suggestie */}
+      {/* AI Suggestie met per-veld toepassen */}
       {aiSuggestion && (
         <div className="mt-2 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
           {aiSuggestion.feedback && (
@@ -161,26 +231,42 @@ export default function EffortCard({
             </div>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-cito-accent">Aangescherpte suggestie</span>
+            <span className="text-xs font-semibold text-cito-accent">Suggestie</span>
             <div className="flex gap-2">
               <button
-                onClick={applySuggestion}
+                onClick={() => applySuggestion(["alles"])}
                 className="text-xs px-3 py-1 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium"
               >
-                Toepassen
+                Alles toepassen
               </button>
               <button
-                onClick={() => setAiSuggestion(null)}
+                onClick={() => { setAiSuggestion(null); setShowAIPanel(false); }}
                 className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
               >
                 Sluiten
               </button>
             </div>
           </div>
-          <div className="text-sm text-gray-700">
-            <p><span className="font-medium">Inspanning:</span> {aiSuggestion.description}</p>
-            {aiSuggestion.quarter && (
-              <p className="mt-1"><span className="font-medium">Planning:</span> {aiSuggestion.quarter}</p>
+          <div className="space-y-1.5">
+            {aiSuggestion.description && aiSuggestion.description !== effort.description && (
+              <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                <span className="font-medium text-gray-500 w-20 shrink-0">Beschrijving</span>
+                <div className="flex-1 min-w-0">
+                  {effort.description && <div className="text-gray-400 line-through truncate">{effort.description}</div>}
+                  <div className="text-gray-700">{aiSuggestion.description}</div>
+                </div>
+                <button onClick={() => applySuggestion(["beschrijving"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
+              </div>
+            )}
+            {aiSuggestion.quarter && aiSuggestion.quarter !== effort.quarter && (
+              <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                <span className="font-medium text-gray-500 w-20 shrink-0">Planning</span>
+                <div className="flex-1 min-w-0">
+                  {effort.quarter && <div className="text-gray-400 line-through">{effort.quarter}</div>}
+                  <div className="text-gray-700">{aiSuggestion.quarter}</div>
+                </div>
+                <button onClick={() => applySuggestion(["planning"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
+              </div>
             )}
           </div>
         </div>

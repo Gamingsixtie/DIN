@@ -26,21 +26,98 @@ Redeneer van rechts naar links (hoe-vraag): "Hoe bereiken we dit doel?" → bate
 
 Antwoord in het Nederlands. Gebruik concrete, meetbare formuleringen.`;
 
-export const CROSS_ANALYSE_PROMPT = `Analyseer de complete set DIN-netwerken en identificeer:
+export const CROSS_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-1. **Synergie**: Welke vermogens komen bij meerdere doelen terug? Dit zijn hefbomen — investeren hierin heeft breed effect.
+Analyseer de complete set DIN-netwerken over alle sectoren heen. Identificeer patronen, risico's en kansen.
 
-2. **Gaps**: Zijn er doelen zonder voldoende inspanningen? Baten zonder vermogens? Vermogens zonder inspanningen?
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst). Gebruik EXACT deze structuur:
 
-3. **Hefboomwerking**: Welke inspanningen dragen bij aan meerdere baten? Prioriteer deze.
+{
+  "synergie": {
+    "titel": "Synergieën & Gedeelde Vermogens",
+    "toelichting": "Korte samenvatting van de belangrijkste synergieën (1-2 zinnen)",
+    "items": [
+      {
+        "vermogen": "Naam van het gedeelde vermogen",
+        "sectoren": ["PO", "VO"],
+        "impact": "Korte beschrijving van het effect als hierin geïnvesteerd wordt"
+      }
+    ]
+  },
+  "gaps": {
+    "titel": "Gap-analyse",
+    "toelichting": "Korte samenvatting van de belangrijkste gaps (1-2 zinnen)",
+    "doelenZonderBaten": ["Doel X heeft geen concrete baten gedefinieerd"],
+    "batenZonderVermogens": ["Baat Y heeft geen onderliggend vermogen"],
+    "vermogensZonderInspanningen": ["Vermogen Z wordt niet opgebouwd door inspanningen"]
+  },
+  "hefboomwerking": {
+    "titel": "Hefboomwerking",
+    "toelichting": "Korte samenvatting van de grootste hefbomen (1-2 zinnen)",
+    "items": [
+      {
+        "inspanning": "Naam van de inspanning met breed effect",
+        "bijdraagtAan": ["Baat A", "Baat B"],
+        "prioriteit": "hoog"
+      }
+    ]
+  },
+  "domeinBalans": {
+    "titel": "Domeinbalans",
+    "toelichting": "Korte samenvatting van de balans over de 4 domeinen (1-2 zinnen)",
+    "domeinen": [
+      {
+        "domein": "Mens",
+        "beoordeling": "voldoende / te weinig / oververtegenwoordigd",
+        "advies": "Concreet advies voor dit domein"
+      },
+      {
+        "domein": "Processen",
+        "beoordeling": "...",
+        "advies": "..."
+      },
+      {
+        "domein": "Data & Systemen",
+        "beoordeling": "...",
+        "advies": "..."
+      },
+      {
+        "domein": "Cultuur",
+        "beoordeling": "...",
+        "advies": "..."
+      }
+    ]
+  },
+  "sectorOverlap": {
+    "titel": "Sector-overlap",
+    "toelichting": "Korte samenvatting van de overlap tussen sectoren (1-2 zinnen)",
+    "items": [
+      {
+        "beschrijving": "Welke inspanning of vermogen overlapt",
+        "sectoren": ["PO", "VO", "Zakelijk"],
+        "advies": "Combineren / Afstemmen / Apart houden — met toelichting"
+      }
+    ]
+  },
+  "externeProjecten": {
+    "titel": "Externe Projecten",
+    "toelichting": "Korte samenvatting van de overlap met externe projecten (1-2 zinnen). Als er geen externe projecten zijn, schrijf dat op.",
+    "items": [
+      {
+        "project": "Naam extern project",
+        "overlapMet": "Met welke DIN-inspanning overlapt dit",
+        "advies": "Synergie benutten / Risico dubbel werk / Geen actie nodig"
+      }
+    ]
+  }
+}
 
-4. **Domein-balans**: Zijn alle 4 inspanningsdomeinen (Mens, Processen, Data & Systemen, Cultuur) voldoende afgedekt?
-
-5. **Sector-overlap**: Welke inspanningen of vermogens komen bij meerdere sectoren terug? Waar kan gecombineerd worden?
-
-6. **Externe projecten**: Welke lopende projecten buiten het programma overlappen met DIN-inspanningen? Waar kan synergie benut worden? Waar dreigt dubbel werk?
-
-Presenteer als matrix-overzicht. Antwoord in het Nederlands.`;
+BELANGRIJK:
+- Wees concreet: verwijs naar specifieke doelen, baten, vermogens en inspanningen uit de data
+- Per sectie minimaal 2-3 items (als die er zijn), maximaal 8
+- Prioriteit bij hefboomwerking: "hoog", "midden", of "laag"
+- Als er geen externe projecten zijn, geef een lege items-array
+- Antwoord in het Nederlands`;
 
 export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 

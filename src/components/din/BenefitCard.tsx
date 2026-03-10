@@ -12,6 +12,16 @@ interface BenefitSuggestion {
   targetValue: string;
 }
 
+type AanscherpVeld = "alles" | "beschrijving" | "indicator" | "eigenaar" | "waarden";
+
+const VELD_LABELS: Record<AanscherpVeld, string> = {
+  alles: "Alles",
+  beschrijving: "Beschrijving",
+  indicator: "Indicator",
+  eigenaar: "Eigenaar",
+  waarden: "Waarden",
+};
+
 interface BenefitCardProps {
   benefit: DINBenefit;
   onChange: (updated: DINBenefit) => void;
@@ -29,15 +39,41 @@ export default function BenefitCard({
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<BenefitSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
+  // Undo: bewaar vorige staat na toepassen
+  const [previousState, setPreviousState] = useState<DINBenefit | null>(null);
+
+  function toggleVeld(veld: AanscherpVeld) {
+    const next = new Set(selectedVelden);
+    if (veld === "alles") {
+      setSelectedVelden(new Set(["alles"]));
+      return;
+    }
+    next.delete("alles");
+    if (next.has(veld)) {
+      next.delete(veld);
+      if (next.size === 0) next.add("alles");
+    } else {
+      next.add(veld);
+    }
+    setSelectedVelden(next);
+  }
+
+  function buildPromptPrefix(): string {
+    if (selectedVelden.has("alles")) return "";
+    const labels = Array.from(selectedVelden).map((v) => VELD_LABELS[v]);
+    return `Focus ALLEEN op het aanscherpen van: ${labels.join(", ")}. Laat de andere velden zo dicht mogelijk bij de huidige waarden. `;
+  }
 
   async function handleAISuggest() {
     if (!onAISuggest || isAILoading) return;
     setIsAILoading(true);
-    setShowPrompt(false);
     try {
-      const result = await onAISuggest(userPrompt || undefined);
+      const prefix = buildPromptPrefix();
+      const fullPrompt = prefix + (userPrompt || "");
+      const result = await onAISuggest(fullPrompt || undefined);
       if (result) {
         setAiSuggestion(result);
         setExpanded(true);
@@ -46,24 +82,42 @@ export default function BenefitCard({
       console.error("AI suggestie mislukt:", e);
     } finally {
       setIsAILoading(false);
-      setUserPrompt("");
     }
   }
 
-  function applySuggestion() {
+  function applySuggestion(fields?: AanscherpVeld[]) {
     if (!aiSuggestion) return;
-    onChange({
-      ...benefit,
-      description: aiSuggestion.description || benefit.description,
-      profiel: {
-        ...benefit.profiel,
-        indicator: aiSuggestion.indicator || benefit.profiel.indicator,
-        indicatorOwner: aiSuggestion.indicatorOwner || benefit.profiel.indicatorOwner,
-        currentValue: aiSuggestion.currentValue || benefit.profiel.currentValue,
-        targetValue: aiSuggestion.targetValue || benefit.profiel.targetValue,
-      },
-    });
+    // Bewaar huidige staat voor undo
+    setPreviousState({ ...benefit, profiel: { ...benefit.profiel } });
+
+    const applyAll = !fields || fields.includes("alles");
+    const applySet = new Set(fields || ["alles"]);
+
+    const updated = { ...benefit, profiel: { ...benefit.profiel } };
+
+    if (applyAll || applySet.has("beschrijving")) {
+      if (aiSuggestion.description) updated.description = aiSuggestion.description;
+    }
+    if (applyAll || applySet.has("indicator")) {
+      if (aiSuggestion.indicator) updated.profiel.indicator = aiSuggestion.indicator;
+    }
+    if (applyAll || applySet.has("eigenaar")) {
+      if (aiSuggestion.indicatorOwner) updated.profiel.indicatorOwner = aiSuggestion.indicatorOwner;
+    }
+    if (applyAll || applySet.has("waarden")) {
+      if (aiSuggestion.currentValue) updated.profiel.currentValue = aiSuggestion.currentValue;
+      if (aiSuggestion.targetValue) updated.profiel.targetValue = aiSuggestion.targetValue;
+    }
+
+    onChange(updated);
     setAiSuggestion(null);
+    setShowAIPanel(false);
+  }
+
+  function handleUndo() {
+    if (!previousState) return;
+    onChange(previousState);
+    setPreviousState(null);
   }
 
   // Completeness check
@@ -95,9 +149,13 @@ export default function BenefitCard({
         <div className="flex gap-1.5 ml-2 items-center">
           {onAISuggest && (
             <button
-              onClick={() => showPrompt ? handleAISuggest() : setShowPrompt(true)}
+              onClick={() => setShowAIPanel(!showAIPanel)}
               disabled={isAILoading}
-              className="text-xs px-2 py-1 rounded-md bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20 disabled:opacity-50 transition-colors font-medium"
+              className={`text-xs px-2 py-1 rounded-md font-medium transition-colors disabled:opacity-50 ${
+                showAIPanel
+                  ? "bg-cito-accent text-white"
+                  : "bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20"
+              }`}
               title="AI analyseert en scherpt deze baat aan"
             >
               {isAILoading ? (
@@ -105,6 +163,15 @@ export default function BenefitCard({
               ) : (
                 "Aanscherpen"
               )}
+            </button>
+          )}
+          {previousState && (
+            <button
+              onClick={handleUndo}
+              className="text-xs px-2 py-1 rounded-md bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors font-medium"
+              title="Laatste AI-wijziging ongedaan maken"
+            >
+              Ongedaan
             </button>
           )}
           <button
@@ -141,33 +208,45 @@ export default function BenefitCard({
         </div>
       </div>
 
-      {/* Prompt veld voor AI */}
-      {showPrompt && !isAILoading && (
-        <div className="mt-2 flex gap-2 items-center">
-          <input
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
-            className="flex-1 text-xs px-2 py-1.5 border border-cito-accent/30 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
-            placeholder="Optioneel: wat wil je aanscherpen? (bijv. 'maak indicator specifieker')"
-            autoFocus
-          />
-          <button
-            onClick={handleAISuggest}
-            className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0"
-          >
-            Verstuur
-          </button>
-          <button
-            onClick={() => { setShowPrompt(false); setUserPrompt(""); }}
-            className="text-xs text-gray-400 hover:text-gray-600 px-1"
-          >
-            &#10005;
-          </button>
+      {/* AI Panel: selectie + prompt */}
+      {showAIPanel && !aiSuggestion && (
+        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-2">
+          <div className="text-xs font-semibold text-cito-accent mb-1">Wat wil je aanscherpen?</div>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
+              <button
+                key={veld}
+                onClick={() => toggleVeld(veld)}
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  selectedVelden.has(veld)
+                    ? "bg-cito-accent text-white"
+                    : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
+                }`}
+              >
+                {VELD_LABELS[veld]}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center mt-2">
+            <input
+              value={userPrompt}
+              onChange={(e) => setUserPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
+              className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
+              placeholder="Optioneel: beschrijf wat je wilt (bijv. 'maak meetbaarder')"
+            />
+            <button
+              onClick={handleAISuggest}
+              disabled={isAILoading}
+              className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0 disabled:opacity-50"
+            >
+              {isAILoading ? "Bezig..." : "Verstuur"}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* AI Suggestie met feedback */}
+      {/* AI Suggestie met per-veld toepassen */}
       {aiSuggestion && (
         <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
           {aiSuggestion.feedback && (
@@ -178,32 +257,57 @@ export default function BenefitCard({
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-cito-accent">Aangescherpte suggestie</span>
+            <span className="text-xs font-semibold text-cito-accent">Suggestie</span>
             <div className="flex gap-2">
               <button
-                onClick={applySuggestion}
+                onClick={() => applySuggestion(["alles"])}
                 className="text-xs px-3 py-1 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium"
               >
-                Toepassen
+                Alles toepassen
               </button>
               <button
-                onClick={() => setAiSuggestion(null)}
+                onClick={() => { setAiSuggestion(null); setShowAIPanel(false); }}
                 className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
               >
                 Sluiten
               </button>
             </div>
           </div>
-          <div className="text-sm text-gray-700 space-y-1">
-            <p><span className="font-medium">Baat:</span> {aiSuggestion.description}</p>
-            {aiSuggestion.indicator && (
-              <p><span className="font-medium">Indicator:</span> {aiSuggestion.indicator}</p>
+
+          {/* Per-veld vergelijking met individuele toepas-knoppen */}
+          <div className="space-y-1.5">
+            {aiSuggestion.description && aiSuggestion.description !== benefit.description && (
+              <SuggestionRow
+                label="Beschrijving"
+                current={benefit.description}
+                suggested={aiSuggestion.description}
+                onApply={() => applySuggestion(["beschrijving"])}
+              />
             )}
-            {aiSuggestion.indicatorOwner && (
-              <p><span className="font-medium">Eigenaar:</span> {aiSuggestion.indicatorOwner}</p>
+            {aiSuggestion.indicator && aiSuggestion.indicator !== benefit.profiel.indicator && (
+              <SuggestionRow
+                label="Indicator"
+                current={benefit.profiel.indicator}
+                suggested={aiSuggestion.indicator}
+                onApply={() => applySuggestion(["indicator"])}
+              />
             )}
-            {aiSuggestion.currentValue && (
-              <p><span className="font-medium">Nu:</span> {aiSuggestion.currentValue} <span className="font-medium">&#8594; Doel:</span> {aiSuggestion.targetValue}</p>
+            {aiSuggestion.indicatorOwner && aiSuggestion.indicatorOwner !== benefit.profiel.indicatorOwner && (
+              <SuggestionRow
+                label="Eigenaar"
+                current={benefit.profiel.indicatorOwner}
+                suggested={aiSuggestion.indicatorOwner}
+                onApply={() => applySuggestion(["eigenaar"])}
+              />
+            )}
+            {(aiSuggestion.currentValue || aiSuggestion.targetValue) &&
+              (aiSuggestion.currentValue !== benefit.profiel.currentValue || aiSuggestion.targetValue !== benefit.profiel.targetValue) && (
+              <SuggestionRow
+                label="Waarden"
+                current={`${benefit.profiel.currentValue || "?"} \u2192 ${benefit.profiel.targetValue || "?"}`}
+                suggested={`${aiSuggestion.currentValue || "?"} \u2192 ${aiSuggestion.targetValue || "?"}`}
+                onApply={() => applySuggestion(["waarden"])}
+              />
             )}
           </div>
         </div>
@@ -278,6 +382,32 @@ export default function BenefitCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Rij die huidig vs. gesuggereerd veld toont met een toepas-knop */
+function SuggestionRow({ label, current, suggested, onApply }: {
+  label: string;
+  current: string;
+  suggested: string;
+  onApply: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+      <span className="font-medium text-gray-500 w-20 shrink-0">{label}</span>
+      <div className="flex-1 min-w-0">
+        {current && (
+          <div className="text-gray-400 line-through truncate">{current}</div>
+        )}
+        <div className="text-gray-700">{suggested}</div>
+      </div>
+      <button
+        onClick={onApply}
+        className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 transition-colors font-medium shrink-0"
+      >
+        Toepassen
+      </button>
     </div>
   );
 }

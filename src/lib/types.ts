@@ -157,6 +157,73 @@ export interface SectorplanAnalyseResult {
   aandachtspunten: { titel: string; toelichting: string; punten: string[] };
 }
 
+// --- Cross-analyse gestructureerd resultaat ---
+
+export interface CrossAnalyseSynergieItem {
+  vermogen: string;
+  sectoren: string[];
+  impact: string;
+}
+
+export interface CrossAnalyseHefboomItem {
+  inspanning: string;
+  bijdraagtAan: string[];
+  prioriteit: string;
+}
+
+export interface CrossAnalyseDomeinItem {
+  domein: string;
+  beoordeling: string;
+  advies: string;
+}
+
+export interface CrossAnalyseSectorOverlapItem {
+  beschrijving: string;
+  sectoren: string[];
+  advies: string;
+}
+
+export interface CrossAnalyseExternItem {
+  project: string;
+  overlapMet: string;
+  advies: string;
+}
+
+export interface CrossAnalyseResult {
+  synergie: {
+    titel: string;
+    toelichting: string;
+    items: CrossAnalyseSynergieItem[];
+  };
+  gaps: {
+    titel: string;
+    toelichting: string;
+    doelenZonderBaten: string[];
+    batenZonderVermogens: string[];
+    vermogensZonderInspanningen: string[];
+  };
+  hefboomwerking: {
+    titel: string;
+    toelichting: string;
+    items: CrossAnalyseHefboomItem[];
+  };
+  domeinBalans: {
+    titel: string;
+    toelichting: string;
+    domeinen: CrossAnalyseDomeinItem[];
+  };
+  sectorOverlap: {
+    titel: string;
+    toelichting: string;
+    items: CrossAnalyseSectorOverlapItem[];
+  };
+  externeProjecten: {
+    titel: string;
+    toelichting: string;
+    items: CrossAnalyseExternItem[];
+  };
+}
+
 // --- Integratie-advies gestructureerd resultaat ---
 
 export interface IntegratieAdviesItem {
