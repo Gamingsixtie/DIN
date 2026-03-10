@@ -9,7 +9,8 @@ import {
 } from "@/lib/din-service";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
-import type { EffortDomain, SectorName } from "@/lib/types";
+import MarkdownContent from "@/components/ui/MarkdownContent";
+import type { EffortDomain, SectorName, CrossAnalyseResult } from "@/lib/types";
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; bar: string; light: string }> = {
   mens: { bg: "bg-blue-50", text: "text-blue-700", bar: "#2563eb", light: "bg-blue-100" },
@@ -35,10 +36,7 @@ function LoadingOverlay() {
         <div className="flex items-center justify-center gap-2 mb-6">
           {["Doelen", "Baten", "Vermogens", "Inspanningen"].map((label, i) => (
             <div key={label} className="flex items-center gap-2">
-              <div
-                className="flex flex-col items-center"
-                style={{ animationDelay: `${i * 200}ms` }}
-              >
+              <div className="flex flex-col items-center">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse"
                   style={{
@@ -73,13 +71,10 @@ function LoadingOverlay() {
           De AI analyseert synergieën, gaps en hefboomwerking over alle sectoren en domeinen...
         </p>
 
-        {/* Progress bar */}
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-cito-blue via-cito-accent to-din-inspanningen rounded-full"
-            style={{
-              animation: "loading-progress 3s ease-in-out infinite",
-            }}
+            style={{ animation: "loading-progress 3s ease-in-out infinite" }}
           />
         </div>
         <p className="text-xs text-gray-400 mt-3">Dit kan 10-20 seconden duren</p>
@@ -96,86 +91,341 @@ function LoadingOverlay() {
   );
 }
 
-function AIAnalysisResult({ analysis }: { analysis: string }) {
-  // Try to parse sections from the AI output
-  const sections = parseAIAnalysis(analysis);
+// --- Gestructureerde AI Analyse Renderers ---
 
-  if (sections.length === 0) {
-    return (
-      <div className="p-5 bg-blue-50 border border-blue-200 rounded-xl text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-        {analysis}
-      </div>
-    );
-  }
-
-  const sectionIcons: Record<string, { color: string; bg: string; border: string }> = {
-    synergie: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
-    gaps: { color: "text-red-700", bg: "bg-red-50", border: "border-red-200" },
-    hefboom: { color: "text-green-700", bg: "bg-green-50", border: "border-green-200" },
-    domein: { color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
-    sector: { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
-    extern: { color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-200" },
-  };
-
+function SynergieSection({ data }: { data: CrossAnalyseResult["synergie"] }) {
   return (
-    <div className="space-y-4">
-      {sections.map((section, i) => {
-        const key = Object.keys(sectionIcons).find((k) =>
-          section.title.toLowerCase().includes(k)
-        );
-        const style = key
-          ? sectionIcons[key]
-          : { color: "text-gray-700", bg: "bg-gray-50", border: "border-gray-200" };
-
-        return (
-          <div key={i} className={`border ${style.border} rounded-xl overflow-hidden`}>
-            <div className={`${style.bg} px-5 py-3 border-b ${style.border}`}>
-              <h4 className={`text-sm font-semibold ${style.color}`}>{section.title}</h4>
-            </div>
-            <div className="px-5 py-4 bg-white text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {section.content}
-            </div>
+    <div className="border border-amber-200 rounded-xl overflow-hidden">
+      <div className="bg-amber-50 px-5 py-3 border-b border-amber-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-amber-800">{data.titel}</h4>
+          <p className="text-xs text-amber-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-amber-50/30 border border-amber-100">
+                <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-800">{item.vermogen}</div>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.impact}</p>
+                  <div className="flex gap-1 mt-1.5">
+                    {item.sectoren.map((s) => (
+                      <SectorBadge key={s} sector={s} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        );
-      })}
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen synergieën geïdentificeerd.</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function parseAIAnalysis(text: string): { title: string; content: string }[] {
-  const sections: { title: string; content: string }[] = [];
-  // Split on markdown headers (## or **...**)
-  const lines = text.split("\n");
-  let currentTitle = "";
-  let currentContent: string[] = [];
+function GapsSection({ data }: { data: CrossAnalyseResult["gaps"] }) {
+  const categories = [
+    { key: "doelenZonderBaten" as const, label: "Doelen zonder baten", items: data.doelenZonderBaten },
+    { key: "batenZonderVermogens" as const, label: "Baten zonder vermogens", items: data.batenZonderVermogens },
+    { key: "vermogensZonderInspanningen" as const, label: "Vermogens zonder inspanningen", items: data.vermogensZonderInspanningen },
+  ];
 
-  for (const line of lines) {
-    const headerMatch = line.match(/^#{1,3}\s+\*?\*?(.+?)\*?\*?\s*$/);
-    const boldHeaderMatch = line.match(/^\*\*(\d+\.\s+)?(.+?)\*\*\s*$/);
-
-    if (headerMatch || boldHeaderMatch) {
-      if (currentTitle && currentContent.length > 0) {
-        sections.push({
-          title: currentTitle,
-          content: currentContent.join("\n").trim(),
-        });
-      }
-      currentTitle = headerMatch ? headerMatch[1].replace(/\*\*/g, "").trim() : (boldHeaderMatch![2] || boldHeaderMatch![0]).replace(/\*\*/g, "").trim();
-      currentContent = [];
-    } else {
-      currentContent.push(line);
-    }
-  }
-
-  if (currentTitle && currentContent.length > 0) {
-    sections.push({
-      title: currentTitle,
-      content: currentContent.join("\n").trim(),
-    });
-  }
-
-  return sections;
+  return (
+    <div className="border border-red-200 rounded-xl overflow-hidden">
+      <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-red-800">{data.titel}</h4>
+          <p className="text-xs text-red-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {categories.map(({ key, label, items }) => {
+            const hasGaps = items.length > 0;
+            return (
+              <div key={key} className={`rounded-lg border p-4 ${hasGaps ? "border-red-200 bg-red-50/30" : "border-green-200 bg-green-50/30"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-700">{label}</span>
+                  <span className={`text-lg font-bold ${hasGaps ? "text-red-600" : "text-green-600"}`}>
+                    {items.length}
+                  </span>
+                </div>
+                {hasGaps ? (
+                  <ul className="space-y-1.5">
+                    {items.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs text-green-600">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                    <span>Volledig afgedekt</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
+
+function HefboomSection({ data }: { data: CrossAnalyseResult["hefboomwerking"] }) {
+  const priorityColors: Record<string, string> = {
+    hoog: "bg-red-100 text-red-700 border-red-200",
+    midden: "bg-amber-100 text-amber-700 border-amber-200",
+    laag: "bg-gray-100 text-gray-600 border-gray-200",
+  };
+
+  return (
+    <div className="border border-green-200 rounded-xl overflow-hidden">
+      <div className="bg-green-50 px-5 py-3 border-b border-green-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-green-800">{data.titel}</h4>
+          <p className="text-xs text-green-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-green-100 bg-green-50/20">
+                <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-800">{item.inspanning}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${priorityColors[item.prioriteit] || priorityColors.midden}`}>
+                      {item.prioriteit}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    <span className="text-[10px] text-gray-400 mr-1">Draagt bij aan:</span>
+                    {item.bijdraagtAan.map((baat, j) => (
+                      <span key={j} className="text-[10px] bg-din-baten/10 text-din-baten px-1.5 py-0.5 rounded font-medium">
+                        {baat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen hefbomen geïdentificeerd.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DomeinBalansSection({ data }: { data: CrossAnalyseResult["domeinBalans"] }) {
+  const domeinMapping: Record<string, EffortDomain> = {
+    "mens": "mens",
+    "processen": "processen",
+    "data & systemen": "data_systemen",
+    "data_systemen": "data_systemen",
+    "data en systemen": "data_systemen",
+    "cultuur": "cultuur",
+  };
+
+  const beoordelingColors: Record<string, string> = {
+    "voldoende": "bg-green-100 text-green-700",
+    "te weinig": "bg-red-100 text-red-700",
+    "oververtegenwoordigd": "bg-amber-100 text-amber-700",
+  };
+
+  return (
+    <div className="border border-purple-200 rounded-xl overflow-hidden">
+      <div className="bg-purple-50 px-5 py-3 border-b border-purple-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-purple-800">{data.titel}</h4>
+          <p className="text-xs text-purple-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {data.domeinen.map((item, i) => {
+            const domainKey = domeinMapping[item.domein.toLowerCase()] || "mens";
+            const colors = DOMAIN_COLORS[domainKey];
+            const beoordelingStyle = Object.entries(beoordelingColors).find(
+              ([key]) => item.beoordeling.toLowerCase().includes(key)
+            );
+
+            return (
+              <div key={i} className={`border rounded-xl p-4 ${colors.bg} border-gray-200`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.bar }} />
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+                    {item.domein}
+                  </span>
+                </div>
+                {beoordelingStyle && (
+                  <span className={`inline-block text-[10px] px-2 py-0.5 rounded font-medium mb-2 ${beoordelingStyle[1]}`}>
+                    {item.beoordeling}
+                  </span>
+                )}
+                <p className="text-xs text-gray-600 leading-relaxed">{item.advies}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectorOverlapSection({ data }: { data: CrossAnalyseResult["sectorOverlap"] }) {
+  return (
+    <div className="border border-blue-200 rounded-xl overflow-hidden">
+      <div className="bg-blue-50 px-5 py-3 border-b border-blue-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-blue-800">{data.titel}</h4>
+          <p className="text-xs text-blue-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-blue-100 bg-blue-50/20">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-800">{item.beschrijving}</div>
+                  <p className="text-xs text-gray-500 mt-1">{item.advies}</p>
+                  <div className="flex gap-1 mt-1.5">
+                    {item.sectoren.map((s) => (
+                      <SectorBadge key={s} sector={s} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen sector-overlap geïdentificeerd.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ExterneProjectenSection({ data }: { data: CrossAnalyseResult["externeProjecten"] }) {
+  return (
+    <div className="border border-cyan-200 rounded-xl overflow-hidden">
+      <div className="bg-cyan-50 px-5 py-3 border-b border-cyan-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-cyan-800">{data.titel}</h4>
+          <p className="text-xs text-cyan-600 italic">{data.toelichting}</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50/20">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-800">{item.project}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    Overlapt met: <span className="font-medium text-gray-700">{item.overlapMet}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{item.advies}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen relevante externe projecten gevonden.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Hoofdcomponent voor AI resultaat ---
+
+function AIAnalysisResult({ analysis }: { analysis: string }) {
+  // Probeer gestructureerde JSON te parsen
+  let parsed: CrossAnalyseResult | null = null;
+  try {
+    const jsonMatch = analysis.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const obj = JSON.parse(jsonMatch[0]);
+      if (obj.synergie && obj.gaps && obj.hefboomwerking && obj.domeinBalans) {
+        parsed = obj;
+      }
+    }
+  } catch {
+    // Fallback naar MarkdownContent
+  }
+
+  if (parsed) {
+    return (
+      <div className="space-y-4">
+        <SynergieSection data={parsed.synergie} />
+        <GapsSection data={parsed.gaps} />
+        <HefboomSection data={parsed.hefboomwerking} />
+        <DomeinBalansSection data={parsed.domeinBalans} />
+        <SectorOverlapSection data={parsed.sectorOverlap} />
+        {parsed.externeProjecten && parsed.externeProjecten.items && (
+          <ExterneProjectenSection data={parsed.externeProjecten} />
+        )}
+      </div>
+    );
+  }
+
+  // Fallback: render als markdown
+  return (
+    <div className="p-5 bg-blue-50/30 border border-blue-200 rounded-xl">
+      <MarkdownContent content={analysis} />
+    </div>
+  );
+}
+
+// --- Hoofd CrossAnalyseStep ---
 
 export default function CrossAnalyseStep() {
   const { session } = useSession();
@@ -203,7 +453,7 @@ export default function CrossAnalyseStep() {
   const totalCapabilities = session.capabilities.length;
   const hasData = totalBenefits > 0 || totalCapabilities > 0 || totalEfforts > 0;
 
-  // Find which goals have gaps
+  // Details voor gap-analyse
   const goalsWithoutBenefitsDetails = session.goals.filter((g) =>
     gaps.goalsWithoutBenefits.includes(g.id)
   );
@@ -437,7 +687,6 @@ export default function CrossAnalyseStep() {
               const colors = DOMAIN_COLORS[domain];
               const isEmpty = count === 0;
 
-              // Get efforts for this domain grouped by sector
               const domainEfforts = session.efforts.filter((e) => e.domain === domain);
 
               return (
@@ -464,7 +713,6 @@ export default function CrossAnalyseStep() {
                       style={{ width: `${pct}%`, backgroundColor: colors.bar }}
                     />
                   </div>
-                  {/* Sector breakdown */}
                   {domainEfforts.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1">
                       {SECTORS.map((s) => {
@@ -537,14 +785,10 @@ export default function CrossAnalyseStep() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Doelen zonder baten */}
             <div className={`rounded-xl border overflow-hidden ${
-              goalsWithoutBenefitsDetails.length > 0
-                ? "border-red-200"
-                : "border-green-200"
+              goalsWithoutBenefitsDetails.length > 0 ? "border-red-200" : "border-green-200"
             }`}>
               <div className={`px-4 py-3 ${
-                goalsWithoutBenefitsDetails.length > 0
-                  ? "bg-red-50"
-                  : "bg-green-50"
+                goalsWithoutBenefitsDetails.length > 0 ? "bg-red-50" : "bg-green-50"
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-gray-700">Doelen zonder baten</div>
@@ -580,14 +824,10 @@ export default function CrossAnalyseStep() {
 
             {/* Baten zonder vermogens */}
             <div className={`rounded-xl border overflow-hidden ${
-              benefitsWithoutCapDetails.length > 0
-                ? "border-red-200"
-                : "border-green-200"
+              benefitsWithoutCapDetails.length > 0 ? "border-red-200" : "border-green-200"
             }`}>
               <div className={`px-4 py-3 ${
-                benefitsWithoutCapDetails.length > 0
-                  ? "bg-red-50"
-                  : "bg-green-50"
+                benefitsWithoutCapDetails.length > 0 ? "bg-red-50" : "bg-green-50"
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-gray-700">Baten zonder vermogens</div>
@@ -614,6 +854,7 @@ export default function CrossAnalyseStep() {
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <span>{b.description || "(naamloos)"}</span>
+                            {" "}
                             <SectorBadge sector={b.sectorId} />
                           </div>
                         </div>
@@ -626,14 +867,10 @@ export default function CrossAnalyseStep() {
 
             {/* Vermogens zonder inspanningen */}
             <div className={`rounded-xl border overflow-hidden ${
-              capsWithoutEffortDetails.length > 0
-                ? "border-red-200"
-                : "border-green-200"
+              capsWithoutEffortDetails.length > 0 ? "border-red-200" : "border-green-200"
             }`}>
               <div className={`px-4 py-3 ${
-                capsWithoutEffortDetails.length > 0
-                  ? "bg-red-50"
-                  : "bg-green-50"
+                capsWithoutEffortDetails.length > 0 ? "bg-red-50" : "bg-green-50"
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-gray-700">Vermogens zonder inspanningen</div>
@@ -660,6 +897,7 @@ export default function CrossAnalyseStep() {
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <span>{c.description || "(naamloos)"}</span>
+                            {" "}
                             <SectorBadge sector={c.sectorId} />
                           </div>
                         </div>
