@@ -710,15 +710,17 @@ export default function DINMappingStep() {
           goalId: selectedGoal,
           benefitId: b.id,
         }));
-        // Baten → Vermogens (elke baat aan elk vermogen binnen dit doel)
-        const newBenCapMaps = newBenefits.flatMap((b: DINBenefit) =>
+        // Baten → Vermogens: bestaande + nieuwe baten koppelen aan nieuwe vermogens
+        const allGoalBenefits = [...sectorBenefits, ...newBenefits];
+        const newBenCapMaps = allGoalBenefits.flatMap((b: DINBenefit) =>
           newCaps.map((c: DINCapability) => ({
             benefitId: b.id,
             capabilityId: c.id,
           }))
         );
-        // Vermogens → Inspanningen (elk vermogen aan elke inspanning)
-        const newCapEffMaps = newCaps.flatMap((c: DINCapability) =>
+        // Vermogens → Inspanningen: bestaande + nieuwe vermogens koppelen aan nieuwe inspanningen
+        const allGoalCaps = [...allSectorCaps, ...newCaps];
+        const newCapEffMaps = allGoalCaps.flatMap((c: DINCapability) =>
           newEfforts.map((e: DINEffort) => ({
             capabilityId: c.id,
             effortId: e.id,
@@ -1186,40 +1188,54 @@ export default function DINMappingStep() {
                       <div key={cap.id} className="border border-din-vermogens/20 rounded-lg overflow-hidden bg-white">
                         {/* Compact header */}
                         <div
-                          className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-din-vermogens/[0.04] transition-colors"
+                          className="px-4 py-2.5 cursor-pointer hover:bg-din-vermogens/[0.04] transition-colors"
                           onClick={() => setExpandedCapability(isExpanded ? null : cap.id)}
                         >
-                          <span className="w-6 h-6 rounded bg-din-vermogens/10 text-din-vermogens font-bold text-xs flex items-center justify-center shrink-0">
-                            V{cIdx + 1}
-                          </span>
-                          <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
-                            {cap.description || "(naamloos vermogen)"}
-                          </span>
-                          {/* Niveau-indicator */}
-                          {(cap.currentLevel || cap.targetLevel) && (
-                            <span className="text-[10px] text-gray-400 shrink-0">
-                              {cap.currentLevel || "?"}/5 {"\u2192"} {cap.targetLevel || "?"}/5
+                          <div className="flex items-center gap-3">
+                            <span className="w-6 h-6 rounded bg-din-vermogens/10 text-din-vermogens font-bold text-xs flex items-center justify-center shrink-0">
+                              V{cIdx + 1}
                             </span>
-                          )}
-                          {/* Gekoppelde baten als gekleurde pills */}
-                          {linkedBenefits.length > 0 ? (
-                            <div className="flex gap-1 shrink-0">
-                              {linkedBenefits.map((b) => (
-                                <span
-                                  key={b.id}
-                                  className="text-[9px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full"
-                                  title={b.description || "Baat"}
-                                >
-                                  B{sectorBenefits.indexOf(b) + 1}
+                            <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
+                              {cap.description || "(naamloos vermogen)"}
+                            </span>
+                            {/* Niveau-indicator */}
+                            {(cap.currentLevel || cap.targetLevel) && (
+                              <span className="text-[10px] text-gray-400 shrink-0">
+                                {cap.currentLevel || "?"}/5 {"\u2192"} {cap.targetLevel || "?"}/5
+                              </span>
+                            )}
+                            {/* Gekoppelde baten als gekleurde pills */}
+                            {linkedBenefits.length > 0 ? (
+                              <div className="flex gap-1 shrink-0">
+                                {linkedBenefits.map((b) => (
+                                  <span
+                                    key={b.id}
+                                    className="text-[9px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full"
+                                    title={b.description || "Baat"}
+                                  >
+                                    B{sectorBenefits.indexOf(b) + 1}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                                niet gekoppeld
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400 shrink-0">{isExpanded ? "\u25B2" : "\u25BC"}</span>
+                          </div>
+                          {/* Subtitel: gekoppelde baten beschrijvingen */}
+                          {!isExpanded && linkedBenefits.length > 0 && (
+                            <div className="text-[10px] text-gray-400 mt-1 ml-9 truncate">
+                              <span className="text-din-baten">{"\u2192"} Baten:</span>{" "}
+                              {linkedBenefits.map((b, i) => (
+                                <span key={b.id}>
+                                  {i > 0 && ", "}
+                                  {b.description || "(naamloos)"}
                                 </span>
                               ))}
                             </div>
-                          ) : (
-                            <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
-                              niet gekoppeld
-                            </span>
                           )}
-                          <span className="text-xs text-gray-400 shrink-0">{isExpanded ? "\u25B2" : "\u25BC"}</span>
                         </div>
 
                         {/* Uitgeklapt: CapabilityCard + koppeling-beheer */}
@@ -1339,64 +1355,89 @@ export default function DINMappingStep() {
                         <div key={effort.id} className="border border-din-inspanningen/20 rounded-lg overflow-hidden bg-white">
                           {/* Compact header */}
                           <div
-                            className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-din-inspanningen/[0.04] transition-colors"
+                            className="px-4 py-2.5 cursor-pointer hover:bg-din-inspanningen/[0.04] transition-colors"
                             onClick={() => setExpandedEffort(isExpEff ? null : effort.id)}
                           >
-                            {/* Domain badge */}
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOMAIN_DOT_COLORS[effort.domain]}`}
-                              title={DOMAINS.find((d) => d.key === effort.domain)?.label}
-                            />
-                            <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
-                              {effort.description || "(naamloos)"}
-                            </span>
-                            {/* Quarter */}
-                            {effort.quarter && (
-                              <span className="text-[10px] text-gray-400 shrink-0">{effort.quarter}</span>
-                            )}
-                            {/* Status badge */}
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
-                                STATUS_OPTIONS.find((s) => s.key === effort.status)?.color || "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {STATUS_OPTIONS.find((s) => s.key === effort.status)?.label || effort.status}
-                            </span>
-                            {/* Linked vermogens */}
-                            {linkedCaps.length > 0 && (
-                              <div className="flex gap-0.5 shrink-0">
-                                {linkedCaps.map((c) => (
-                                  <span
-                                    key={c.id}
-                                    className="text-[9px] px-1.5 py-0.5 bg-din-vermogens/10 text-din-vermogens rounded-full"
-                                    title={c.description || "Vermogen"}
-                                  >
-                                    V{allSectorCaps.indexOf(c) + 1}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {/* Linked baten (via vermogens) */}
-                            {linkedBaten.length > 0 && (
-                              <div className="flex gap-0.5 shrink-0">
-                                {linkedBaten.map((b) => (
-                                  <span
-                                    key={b.id}
-                                    className="text-[9px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full"
-                                    title={b.description || "Baat"}
-                                  >
-                                    B{sectorBenefits.indexOf(b) + 1}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {/* No links warning */}
-                            {linkedCaps.length === 0 && (
-                              <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
-                                niet gekoppeld
+                            <div className="flex items-center gap-2">
+                              {/* Domain badge */}
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOMAIN_DOT_COLORS[effort.domain]}`}
+                                title={DOMAINS.find((d) => d.key === effort.domain)?.label}
+                              />
+                              <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
+                                {effort.description || "(naamloos)"}
                               </span>
+                              {/* Quarter */}
+                              {effort.quarter && (
+                                <span className="text-[10px] text-gray-400 shrink-0">{effort.quarter}</span>
+                              )}
+                              {/* Status badge */}
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                                  STATUS_OPTIONS.find((s) => s.key === effort.status)?.color || "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {STATUS_OPTIONS.find((s) => s.key === effort.status)?.label || effort.status}
+                              </span>
+                              {/* Linked vermogens */}
+                              {linkedCaps.length > 0 && (
+                                <div className="flex gap-0.5 shrink-0">
+                                  {linkedCaps.map((c) => (
+                                    <span
+                                      key={c.id}
+                                      className="text-[9px] px-1.5 py-0.5 bg-din-vermogens/10 text-din-vermogens rounded-full"
+                                      title={c.description || "Vermogen"}
+                                    >
+                                      V{allSectorCaps.indexOf(c) + 1}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Linked baten (via vermogens) */}
+                              {linkedBaten.length > 0 && (
+                                <div className="flex gap-0.5 shrink-0">
+                                  {linkedBaten.map((b) => (
+                                    <span
+                                      key={b.id}
+                                      className="text-[9px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full"
+                                      title={b.description || "Baat"}
+                                    >
+                                      B{sectorBenefits.indexOf(b) + 1}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* No links warning */}
+                              {linkedCaps.length === 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                                  niet gekoppeld
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-400 shrink-0">{isExpEff ? "\u25B2" : "\u25BC"}</span>
+                            </div>
+                            {/* Subtitel: DIN-keten samenvatting */}
+                            {!isExpEff && linkedCaps.length > 0 && (
+                              <div className="text-[10px] text-gray-400 mt-1 ml-5 truncate">
+                                <span className="text-din-vermogens">{"\u2192"} Vermogens:</span>{" "}
+                                {linkedCaps.map((c, i) => (
+                                  <span key={c.id}>
+                                    {i > 0 && ", "}
+                                    {c.description || "(naamloos)"}
+                                  </span>
+                                ))}
+                                {linkedBaten.length > 0 && (
+                                  <>
+                                    {" "}<span className="text-din-baten">{"\u2192"} Baten:</span>{" "}
+                                    {linkedBaten.map((b, i) => (
+                                      <span key={b.id}>
+                                        {i > 0 && ", "}
+                                        {b.description || "(naamloos)"}
+                                      </span>
+                                    ))}
+                                  </>
+                                )}
+                              </div>
                             )}
-                            <span className="text-xs text-gray-400 shrink-0">{isExpEff ? "\u25B2" : "\u25BC"}</span>
                           </div>
 
                           {/* Uitgeklapt: EffortCard + koppeling-beheer */}
