@@ -38,6 +38,27 @@ const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "cultuur", label: "Cultuur" },
 ];
 
+const DOMAIN_DOT_COLORS: Record<EffortDomain, string> = {
+  mens: "bg-domain-mens",
+  processen: "bg-domain-processen",
+  data_systemen: "bg-domain-data",
+  cultuur: "bg-domain-cultuur",
+};
+
+const DOMAIN_DOT_BG: Record<EffortDomain, string> = {
+  mens: "bg-domain-mens/15",
+  processen: "bg-domain-processen/15",
+  data_systemen: "bg-domain-data/15",
+  cultuur: "bg-domain-cultuur/15",
+};
+
+const DOMAIN_EFFORT_BTN: Record<EffortDomain, string> = {
+  mens: "bg-domain-mens/10 hover:bg-domain-mens/20 border-domain-mens/20",
+  processen: "bg-domain-processen/10 hover:bg-domain-processen/20 border-domain-processen/20",
+  data_systemen: "bg-domain-data/10 hover:bg-domain-data/20 border-domain-data/20",
+  cultuur: "bg-domain-cultuur/10 hover:bg-domain-cultuur/20 border-domain-cultuur/20",
+};
+
 
 const ADVIES_SECTIONS: {
   key: keyof Omit<IntegratieAdviesResult, "sectorName">;
@@ -271,72 +292,112 @@ function ExterneProjectenPanel({
 
 function CompactCapabilityRow({
   capability,
-  effortCount,
+  efforts,
   sharedWith,
   onExpand,
   onUnlink,
   onDelete,
 }: {
   capability: DINCapability;
-  effortCount: number;
+  efforts: DINEffort[];
   sharedWith: string[];
   onExpand: () => void;
   onUnlink: () => void;
   onDelete: () => void;
 }) {
   const [confirmDel, setConfirmDel] = useState(false);
+
+  // Groepeer inspanningen per domein voor visuele indicatoren
+  const domainCounts = efforts.reduce((acc, e) => {
+    acc[e.domain] = (acc[e.domain] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-100 hover:border-din-vermogens/30 group transition-colors">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onExpand}>
-        <span className="text-sm text-gray-700 truncate block">
+    <div
+      className="flex items-center gap-3 px-3 py-2.5 bg-white rounded-lg border border-gray-100 hover:border-din-vermogens/30 group transition-colors cursor-pointer"
+      onClick={onExpand}
+    >
+      {/* Kleur-indicator links */}
+      <div className="w-1 h-8 rounded-full bg-din-vermogens/40 shrink-0" />
+
+      <div className="flex-1 min-w-0">
+        <span className="text-sm text-gray-700 block truncate">
           {capability.description || "(naamloos vermogen)"}
         </span>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {capability.currentLevel && (
-            <span className="text-[10px] text-amber-600 font-medium">Nu: {capability.currentLevel}/5</span>
+        <div className="flex items-center gap-3 mt-1 flex-wrap">
+          {/* Niveau-indicatoren */}
+          {(capability.currentLevel || capability.targetLevel) && (
+            <div className="flex items-center gap-1">
+              {capability.currentLevel && (
+                <span className="text-[10px] font-medium text-amber-600">{capability.currentLevel}/5</span>
+              )}
+              {capability.currentLevel && capability.targetLevel && (
+                <span className="text-[10px] text-gray-300">{"\u2192"}</span>
+              )}
+              {capability.targetLevel && (
+                <span className="text-[10px] font-medium text-green-600">{capability.targetLevel}/5</span>
+              )}
+            </div>
           )}
-          {capability.currentLevel && capability.targetLevel && (
-            <span className="text-[10px] text-gray-300">{"\u2192"}</span>
+
+          {/* Domein-inspanning dots */}
+          {efforts.length > 0 ? (
+            <div className="flex items-center gap-1">
+              {Object.entries(domainCounts).map(([domain, count]) => (
+                <span
+                  key={domain}
+                  className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded ${DOMAIN_DOT_BG[domain as EffortDomain]} text-gray-500`}
+                  title={`${DOMAINS.find(d => d.key === domain)?.label}: ${count} inspanning(en)`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_DOT_COLORS[domain as EffortDomain]}`} />
+                  {count}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[10px] text-gray-300 italic">geen inspanningen</span>
           )}
-          {capability.targetLevel && (
-            <span className="text-[10px] text-green-600 font-medium">Doel: {capability.targetLevel}/5</span>
-          )}
-          {effortCount > 0 && (
-            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-              {effortCount} insp.
-            </span>
-          )}
+
+          {/* Gedeeld met andere baten */}
           {sharedWith.length > 0 && (
-            <span className="text-[10px] text-din-baten bg-din-baten/10 px-1.5 py-0.5 rounded-full" title={`Ook bij: ${sharedWith.join(", ")}`}>
+            <span
+              className="text-[10px] text-din-baten bg-din-baten/10 px-1.5 py-0.5 rounded-full"
+              title={`Ook bij: ${sharedWith.join(", ")}`}
+            >
               +{sharedWith.length} baten
             </span>
           )}
         </div>
       </div>
-      <button onClick={onExpand} className="text-xs text-gray-400 hover:text-cito-blue shrink-0" title="Bewerken">
-        {"\u270E"}
-      </button>
-      <button
-        onClick={onUnlink}
-        className="text-xs text-gray-300 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        title="Ontkoppel van deze baat"
-      >
-        {"\u2715"}
-      </button>
-      {confirmDel ? (
-        <div className="flex items-center gap-1 shrink-0">
-          <button onClick={onDelete} className="text-[10px] px-1.5 py-0.5 bg-red-500 text-white rounded font-medium">Ja</button>
-          <button onClick={() => setConfirmDel(false)} className="text-[10px] px-1 py-0.5 text-gray-500">Nee</button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setConfirmDel(true)}
-          className="text-xs text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-          title="Verwijderen"
-        >
-          &#128465;
+
+      {/* Acties */}
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onExpand} className="text-xs text-gray-400 hover:text-cito-blue p-1" title="Bewerken">
+          {"\u270E"}
         </button>
-      )}
+        <button
+          onClick={onUnlink}
+          className="text-xs text-gray-300 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+          title="Ontkoppel van deze baat"
+        >
+          {"\u2715"}
+        </button>
+        {confirmDel ? (
+          <div className="flex items-center gap-1">
+            <button onClick={onDelete} className="text-[10px] px-1.5 py-0.5 bg-red-500 text-white rounded font-medium">Ja</button>
+            <button onClick={() => setConfirmDel(false)} className="text-[10px] px-1 py-0.5 text-gray-500">Nee</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDel(true)}
+            className="text-xs text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+            title="Verwijderen"
+          >
+            &#128465;
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -360,6 +421,7 @@ export default function DINMappingStep() {
   const [collapsedBenefits, setCollapsedBenefits] = useState<Set<string>>(new Set());
   const [linkDropdownForBenefit, setLinkDropdownForBenefit] = useState<string | null>(null);
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null);
+  const [effortLinkDropdownForCap, setEffortLinkDropdownForCap] = useState<string | null>(null);
 
   // Undo state voor verwijderde items
   const [deletedItem, setDeletedItem] = useState<{
@@ -674,6 +736,45 @@ export default function DINMappingStep() {
         .map((m) => m.capabilityId)
     );
     return allSectorCaps.filter((c) => !linkedCapIds.has(c.id));
+  }
+
+  function linkEffortToCapability(capabilityId: string, effortId: string) {
+    const exists = session!.capabilityEffortMaps.some(
+      (m) => m.capabilityId === capabilityId && m.effortId === effortId
+    );
+    if (exists) return;
+    updateSession({
+      capabilityEffortMaps: [
+        ...session!.capabilityEffortMaps,
+        { capabilityId, effortId },
+      ],
+    });
+    setEffortLinkDropdownForCap(null);
+  }
+
+  function unlinkEffortFromCapability(capabilityId: string, effortId: string) {
+    updateSession({
+      capabilityEffortMaps: session!.capabilityEffortMaps.filter(
+        (m) => !(m.capabilityId === capabilityId && m.effortId === effortId)
+      ),
+    });
+  }
+
+  function getAvailableEffortsForCapability(capabilityId: string) {
+    const linkedEffIds = new Set(
+      session!.capabilityEffortMaps
+        .filter((m) => m.capabilityId === capabilityId)
+        .map((m) => m.effortId)
+    );
+    return allSectorEfforts.filter((e) => !linkedEffIds.has(e.id));
+  }
+
+  function getOtherCapsForEffort(effortId: string, currentCapId: string) {
+    return session!.capabilityEffortMaps
+      .filter((m) => m.effortId === effortId && m.capabilityId !== currentCapId)
+      .map((m) => allSectorCaps.find((c) => c.id === m.capabilityId))
+      .filter(Boolean)
+      .map((c) => c!.description || "(naamloos)");
   }
 
   // --- Per-item AI suggesties ---
@@ -1176,11 +1277,11 @@ export default function DINMappingStep() {
               {/* Baten — inklapbare secties met koppeling-beheer */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-din-baten">
-                    Baten {"\u2192"} Vermogens
+                  <h4 className="text-sm font-semibold text-cito-blue">
+                    DIN-keten: Baten {"\u2192"} Vermogens {"\u2192"} Inspanningen
                   </h4>
                   <p className="text-xs text-gray-400 italic">
-                    Per baat zie je welke vermogens eraan gekoppeld zijn. Klik om te bewerken.
+                    Per baat zie je de volledige keten: welke vermogens nodig zijn en welke inspanningen die opbouwen.
                   </p>
                 </div>
                 <button
@@ -1202,6 +1303,10 @@ export default function DINMappingStep() {
                   const benefitCaps = getCapabilitiesForBenefit(benefit.id);
                   const isCollapsed = collapsedBenefits.has(benefit.id);
                   const availableCaps = getAvailableCapsForBenefit(benefit.id);
+                  // Tel inspanningen voor deze baat (via vermogens)
+                  const benefitEffortCount = benefitCaps.reduce(
+                    (sum, cap) => sum + getEffortsForCapability(cap.id).length, 0
+                  );
 
                   return (
                     <div key={benefit.id} className="border border-din-baten/25 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -1218,6 +1323,9 @@ export default function DINMappingStep() {
                         </span>
                         <span className="text-[10px] bg-din-vermogens/10 text-din-vermogens px-2 py-0.5 rounded-full shrink-0 font-medium">
                           {benefitCaps.length} verm.
+                        </span>
+                        <span className="text-[10px] bg-din-inspanningen/10 text-din-inspanningen px-2 py-0.5 rounded-full shrink-0 font-medium">
+                          {benefitEffortCount} insp.
                         </span>
                         <span className="text-xs text-gray-400 shrink-0">{isCollapsed ? "\u25B6" : "\u25BC"}</span>
                       </button>
@@ -1254,23 +1362,140 @@ export default function DINMappingStep() {
                                 const sharedWith = getOtherBenefitsForCapability(cap.id, benefit.id);
 
                                 if (expandedCapability === cap.id) {
+                                  const capEffortsExpanded = getEffortsForCapability(cap.id);
+                                  const availableEfforts = getAvailableEffortsForCapability(cap.id);
                                   return (
-                                    <div key={cap.id} className="border border-din-vermogens/20 rounded-lg p-3 bg-din-vermogens/[0.02]">
-                                      <div className="flex justify-end mb-1">
+                                    <div key={cap.id} className="border border-din-vermogens/20 rounded-xl overflow-hidden bg-din-vermogens/[0.02]">
+                                      {/* Vermogen header */}
+                                      <div className="flex items-center justify-between px-3 py-2 bg-din-vermogens/[0.06] border-b border-din-vermogens/10">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-1.5 h-4 bg-din-vermogens rounded-full" />
+                                          <span className="text-xs font-semibold text-din-vermogens">Vermogen bewerken</span>
+                                        </div>
                                         <button
-                                          onClick={() => setExpandedCapability(null)}
-                                          className="text-[10px] text-gray-400 hover:text-gray-600"
+                                          onClick={() => { setExpandedCapability(null); setEffortLinkDropdownForCap(null); }}
+                                          className="text-[10px] text-gray-400 hover:text-gray-600 px-2 py-1"
                                         >
                                           Inklappen {"\u25B2"}
                                         </button>
                                       </div>
-                                      <CapabilityCard
-                                        capability={cap}
-                                        onChange={updateCapability}
-                                        onDelete={() => deleteCapability(cap.id)}
-                                        onAISuggest={makeCapabilitySuggest(cap)}
-                                        sharedWithBenefits={sharedWith}
-                                      />
+
+                                      <div className="p-3 space-y-4">
+                                        {/* CapabilityCard */}
+                                        <CapabilityCard
+                                          capability={cap}
+                                          onChange={updateCapability}
+                                          onDelete={() => deleteCapability(cap.id)}
+                                          onAISuggest={makeCapabilitySuggest(cap)}
+                                          sharedWithBenefits={sharedWith}
+                                        />
+
+                                        {/* Inspanningen bij dit vermogen */}
+                                        <div>
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span className="w-1.5 h-4 bg-din-inspanningen rounded-full" />
+                                            <span className="text-xs font-semibold text-din-inspanningen">
+                                              Inspanningen bij dit vermogen ({capEffortsExpanded.length})
+                                            </span>
+                                          </div>
+
+                                          {capEffortsExpanded.length === 0 && (
+                                            <p className="text-xs text-gray-400 italic ml-4 mb-2">
+                                              Nog geen inspanningen. Voeg er een toe per domein.
+                                            </p>
+                                          )}
+
+                                          <div className="space-y-2">
+                                            {capEffortsExpanded.map((effort) => {
+                                              const otherCaps = getOtherCapsForEffort(effort.id, cap.id);
+                                              return (
+                                                <div key={effort.id}>
+                                                  {otherCaps.length > 0 && (
+                                                    <div className="mb-1 flex items-center gap-1 ml-1">
+                                                      <span className="text-[9px] text-gray-400">Ook bij:</span>
+                                                      {otherCaps.map((name, i) => (
+                                                        <span key={i} className="text-[9px] px-1.5 py-0.5 bg-din-vermogens/10 text-din-vermogens rounded-full truncate max-w-[120px]">
+                                                          {name}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                  <div className="flex items-start gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                      <EffortCard
+                                                        effort={effort}
+                                                        onChange={updateEffort}
+                                                        onDelete={() => deleteEffort(effort.id)}
+                                                        onAISuggest={makeEffortSuggest(effort)}
+                                                      />
+                                                    </div>
+                                                    <button
+                                                      onClick={() => unlinkEffortFromCapability(cap.id, effort.id)}
+                                                      className="shrink-0 text-[10px] text-gray-300 hover:text-amber-500 mt-3 transition-colors"
+                                                      title="Ontkoppel inspanning van dit vermogen"
+                                                    >
+                                                      {"\u2715"}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+
+                                          {/* Inspanning toevoegen per domein */}
+                                          <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                            <span className="text-[10px] text-gray-400 font-medium">+ Inspanning:</span>
+                                            {DOMAINS.map((d) => (
+                                              <button
+                                                key={d.key}
+                                                onClick={() => addEffortForCapability(cap.id, d.key)}
+                                                className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors border ${DOMAIN_EFFORT_BTN[d.key]} text-gray-600`}
+                                              >
+                                                {d.label}
+                                              </button>
+                                            ))}
+                                          </div>
+
+                                          {/* Bestaande inspanning koppelen */}
+                                          {availableEfforts.length > 0 && (
+                                            <div className="mt-2">
+                                              <button
+                                                onClick={() => setEffortLinkDropdownForCap(
+                                                  effortLinkDropdownForCap === cap.id ? null : cap.id
+                                                )}
+                                                className={`text-[10px] px-2.5 py-1 rounded-md font-medium transition-colors ${
+                                                  effortLinkDropdownForCap === cap.id
+                                                    ? "bg-din-inspanningen text-white"
+                                                    : "text-gray-500 bg-gray-50 hover:bg-gray-100"
+                                                }`}
+                                              >
+                                                Bestaande inspanning koppelen {effortLinkDropdownForCap === cap.id ? "\u25B2" : "\u25BC"}
+                                              </button>
+
+                                              {effortLinkDropdownForCap === cap.id && (
+                                                <div className="mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-md max-h-48 overflow-y-auto">
+                                                  <div className="text-[10px] font-semibold text-gray-500 mb-2">
+                                                    Kies een inspanning om te koppelen:
+                                                  </div>
+                                                  <div className="space-y-1">
+                                                    {availableEfforts.map((eff) => (
+                                                      <button
+                                                        key={eff.id}
+                                                        onClick={() => linkEffortToCapability(cap.id, eff.id)}
+                                                        className="w-full text-left px-2.5 py-2 text-sm hover:bg-din-inspanningen/10 rounded-md transition-colors flex items-center gap-2"
+                                                      >
+                                                        <span className={`w-2 h-2 rounded-full ${DOMAIN_DOT_COLORS[eff.domain]}`} />
+                                                        <span className="text-gray-700 truncate">{eff.description || "(naamloos)"}</span>
+                                                        {eff.quarter && <span className="text-[10px] text-gray-400 shrink-0">{eff.quarter}</span>}
+                                                      </button>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
                                   );
                                 }
@@ -1279,7 +1504,7 @@ export default function DINMappingStep() {
                                   <CompactCapabilityRow
                                     key={cap.id}
                                     capability={cap}
-                                    effortCount={capEfforts.length}
+                                    efforts={capEfforts}
                                     sharedWith={sharedWith}
                                     onExpand={() => setExpandedCapability(cap.id)}
                                     onUnlink={() => unlinkCapabilityFromBenefit(benefit.id, cap.id)}
@@ -1350,74 +1575,60 @@ export default function DINMappingStep() {
                 })}
               </div>
 
-              {/* Inspanningen — APART, 4-domein grid */}
-              <div>
-                <h4 className="text-sm font-semibold text-din-inspanningen mb-1">
-                  Inspanningen — wat moet {activeSector} doen?
-                </h4>
-                <p className="text-xs text-gray-400 mb-3 italic">
-                  Concrete activiteiten die de vermogens opbouwen, verdeeld over 4 domeinen.
-                </p>
-                <div className="grid grid-cols-2 gap-4 items-start">
-                  {DOMAINS.map((domain) => {
-                    const domainEfforts = sectorEfforts.filter(
-                      (e) => e.domain === domain.key
-                    );
-                    return (
-                      <div key={domain.key} className="space-y-2 min-h-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-gray-600">
-                            {domain.label}
-                          </span>
-                          <button
-                            onClick={() => addEffort(domain.key)}
-                            className="text-xs text-cito-blue hover:underline"
-                          >
-                            +
-                          </button>
-                        </div>
-                        {domainEfforts.map((e) => (
-                          <EffortCard
-                            key={e.id}
-                            effort={e}
-                            onChange={updateEffort}
-                            onDelete={() => deleteEffort(e.id)}
-                            onAISuggest={makeEffortSuggest(e)}
-                          />
-                        ))}
-                        {domainEfforts.length === 0 && (
-                          <p className="text-xs text-gray-400 italic">Geen</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Niet-gekoppelde vermogens */}
+              {/* Niet-gekoppelde items */}
               {(() => {
                 const unlinkedCaps = getUnlinkedCapabilities();
-                if (unlinkedCaps.length === 0) return null;
+                const unlinkedEffs = getUnlinkedEfforts();
+                if (unlinkedCaps.length === 0 && unlinkedEffs.length === 0) return null;
+
                 return (
-                  <details className="mt-2 p-3 bg-amber-50/50 rounded-lg border border-amber-200/50">
-                    <summary className="text-xs font-semibold text-amber-700 cursor-pointer select-none">
-                      Niet-gekoppelde vermogens ({unlinkedCaps.length})
-                      <span className="font-normal text-amber-500 ml-2">
-                        Niet aan een baat gekoppeld
-                      </span>
-                    </summary>
-                    <div className="mt-3 space-y-2">
-                      {unlinkedCaps.map((c) => (
-                        <CapabilityCard
-                          key={c.id}
-                          capability={c}
-                          onChange={updateCapability}
-                          onDelete={() => deleteCapability(c.id)}
-                          onAISuggest={makeCapabilitySuggest(c)}
-                        />
-                      ))}
-                    </div>
-                  </details>
+                  <div className="space-y-3">
+                    {/* Niet-gekoppelde vermogens */}
+                    {unlinkedCaps.length > 0 && (
+                      <details className="p-3 bg-amber-50/50 rounded-lg border border-amber-200/50">
+                        <summary className="text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                          Niet-gekoppelde vermogens ({unlinkedCaps.length})
+                          <span className="font-normal text-amber-500 ml-2">
+                            Niet aan een baat gekoppeld
+                          </span>
+                        </summary>
+                        <div className="mt-3 space-y-2">
+                          {unlinkedCaps.map((c) => (
+                            <CapabilityCard
+                              key={c.id}
+                              capability={c}
+                              onChange={updateCapability}
+                              onDelete={() => deleteCapability(c.id)}
+                              onAISuggest={makeCapabilitySuggest(c)}
+                            />
+                          ))}
+                        </div>
+                      </details>
+                    )}
+
+                    {/* Niet-gekoppelde inspanningen */}
+                    {unlinkedEffs.length > 0 && (
+                      <details className="p-3 bg-amber-50/50 rounded-lg border border-amber-200/50">
+                        <summary className="text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                          Niet-gekoppelde inspanningen ({unlinkedEffs.length})
+                          <span className="font-normal text-amber-500 ml-2">
+                            Niet aan een vermogen gekoppeld
+                          </span>
+                        </summary>
+                        <div className="mt-3 space-y-2">
+                          {unlinkedEffs.map((e) => (
+                            <EffortCard
+                              key={e.id}
+                              effort={e}
+                              onChange={updateEffort}
+                              onDelete={() => deleteEffort(e.id)}
+                              onAISuggest={makeEffortSuggest(e)}
+                            />
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
                 );
               })()}
 
