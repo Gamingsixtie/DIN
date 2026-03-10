@@ -210,17 +210,23 @@ Je krijgt:
 - Het integratie-advies (aansluiting, verrijking, aanvullingen, quick wins, aandachtspunten)
 - Eventuele externe projecten buiten het programma
 
-Schrijf een BIJGEWERKT SECTORPLAN dat het oorspronkelijke sectorplan combineert met de KiB-doelen en DIN-items. Dit is een concreet, uitvoerbaar document dat de sector kan gebruiken.
+Schrijf een BIJGEWERKT SECTORPLAN. Dit is het oorspronkelijke sectorplan AANGEVULD met een nieuw hoofdstuk over Klant in Beeld.
+
+BELANGRIJK: Het oorspronkelijke sectorplan bevat onderwerpen die NIETS met Klant in Beeld te maken hebben. Deze moeten VOLLEDIG behouden blijven — verwijder of wijzig ze niet. Het sectorplan gaat over meer dan alleen KiB.
 
 Structuur:
-1. **Inleiding**: Korte context — wat is de sector, wat is het oorspronkelijke sectorplan
-2. **Programma Klant in Beeld**: Beschrijf het programma KiB (Klant in Beeld) en de gezamenlijke programmadoelen. Leg uit hoe deze sector bijdraagt aan de programmadoelen. Dit hoofdstuk maakt de verbinding tussen het sectorplan en het overkoepelende programma.
-3. **Gewenste baten**: Per baat: omschrijving, indicator, eigenaar, huidige en gewenste waarde
-4. **Benodigde vermogens**: Wat moet de sector kunnen? Met huidig en gewenst niveau
-5. **Inspanningenplan**: Per domein (Mens, Processen, Data & Systemen, Cultuur) de concrete activiteiten met planning
-6. **Quick wins**: Bestaande activiteiten die direct bijdragen
-7. **Aandachtspunten & risico's**: Waar moet op gelet worden
-8. **Samenhang met andere sectoren**: Gedeelde vermogens, synergieën, afhankelijkheden
+1. **Oorspronkelijk sectorplan**: Neem de volledige inhoud van het oorspronkelijke sectorplan over. Alle bestaande hoofdstukken, onderwerpen en plannen blijven ongewijzigd staan. Herformuleer niet, voeg alleen structuur toe waar nodig.
+2. **Programma Klant in Beeld**: Dit is het NIEUWE hoofdstuk dat wordt toegevoegd aan het sectorplan. Bevat:
+   - Wat is het programma Klant in Beeld en de gezamenlijke programmadoelen
+   - Hoe draagt deze sector bij aan de programmadoelen
+   - **Gewenste baten**: Per baat: omschrijving, indicator, eigenaar, huidige en gewenste waarde
+   - **Benodigde vermogens**: Wat moet de sector kunnen? Met huidig en gewenst niveau
+   - **Inspanningenplan**: Per domein (Mens, Processen, Data & Systemen, Cultuur) de concrete activiteiten met planning
+   - **Quick wins**: Bestaande activiteiten die direct bijdragen aan KiB
+   - **Aandachtspunten & risico's**
+   - **Samenhang met andere sectoren**: Gedeelde vermogens, synergieën, afhankelijkheden
+
+Het resultaat is dus: het complete oorspronkelijke sectorplan + een nieuw hoofdstuk "Programma Klant in Beeld" met alle DIN-items.
 
 Schrijf in professionele maar toegankelijke taal. Wees concreet — verwijs naar specifieke items uit het sectorplan en DIN-netwerk. Gebruik bullet points en tabellen waar nuttig.
 

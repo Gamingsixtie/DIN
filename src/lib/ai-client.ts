@@ -351,9 +351,9 @@ export async function generateVerrijktSectorplan(data: {
     parts.push(`${i + 1}. ${g.name}${g.description ? `: ${g.description}` : ""}`);
   });
 
-  parts.push("\n--- Oorspronkelijk sectorplan ---");
+  parts.push("\n--- Oorspronkelijk sectorplan (VOLLEDIG overnemen in het bijgewerkte plan) ---");
   if (data.sectorPlan && data.sectorPlan.trim().length > 0 && !data.sectorPlan.startsWith("[")) {
-    parts.push(data.sectorPlan.slice(0, 5000));
+    parts.push(data.sectorPlan.slice(0, 10000));
   } else {
     parts.push("Geen oorspronkelijk sectorplan beschikbaar.");
   }
@@ -410,7 +410,7 @@ export async function generateVerrijktSectorplan(data: {
     });
   }
 
-  parts.push("\nSchrijf nu het verrijkte sectorplan dat het oorspronkelijke plan combineert met alle DIN-items en KiB-doelen.");
+  parts.push("\nSchrijf nu het bijgewerkte sectorplan. Neem het oorspronkelijke sectorplan VOLLEDIG over (alle bestaande onderwerpen blijven staan) en voeg een nieuw hoofdstuk 'Programma Klant in Beeld' toe met alle DIN-items.");
 
   return callClaude(VERRIJKT_SECTORPLAN_PROMPT, parts.join("\n"));
 }

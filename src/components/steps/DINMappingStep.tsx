@@ -1109,7 +1109,7 @@ export default function DINMappingStep() {
                           Verwerk in sectorplan
                         </h4>
                         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                          Genereer een bijgewerkt sectorplan voor {activeSector} inclusief een hoofdstuk &ldquo;Programma Klant in Beeld&rdquo; met de programmadoelen, DIN-baten, vermogens en inspanningen.
+                          Het oorspronkelijke sectorplan blijft volledig behouden. Er wordt een nieuw hoofdstuk &ldquo;Programma Klant in Beeld&rdquo; aan toegevoegd met de programmadoelen, DIN-baten, vermogens en inspanningen.
                         </p>
                       </div>
                     </div>
