@@ -317,6 +317,8 @@ export default function DINMappingStep() {
   // DIN-editor UI state
   const [expandedBenefit, setExpandedBenefit] = useState<string | null>(null);
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null);
+  const [expandedEffort, setExpandedEffort] = useState<string | null>(null);
+  const [domainFilter, setDomainFilter] = useState<EffortDomain | "alle">("alle");
 
   // Undo state voor verwijderde items
   const [deletedItem, setDeletedItem] = useState<{
@@ -383,36 +385,12 @@ export default function DINMappingStep() {
     ? getBenefitsByGoalAndSector(session.benefits, selectedGoal, activeSector)
     : [];
 
-  // Vermogens per doel: filter via benefitCapabilityMaps (DIN-keten)
+  // Alle sector-vermogens en -inspanningen (koppeling wordt visueel beheerd)
   const goalBenefitIds = new Set(sectorBenefits.map((b) => b.id));
-  const linkedCapIds = new Set(
-    session.benefitCapabilityMaps
-      .filter((m) => goalBenefitIds.has(m.benefitId))
-      .map((m) => m.capabilityId)
-  );
-  // Fallback: als geen maps bestaan voor deze sector, toon alle sector-vermogens
   const allSectorCaps = session.capabilities.filter((c) => c.sectorId === activeSector);
-  const hasCapMaps = allSectorCaps.some((c) =>
-    session.benefitCapabilityMaps.some((m) => m.capabilityId === c.id)
-  );
-  const sectorCapabilities = hasCapMaps
-    ? allSectorCaps.filter((c) => linkedCapIds.has(c.id))
-    : allSectorCaps;
-
-  // Inspanningen per doel: filter via capabilityEffortMaps (DIN-keten)
-  const goalCapIds = new Set(sectorCapabilities.map((c) => c.id));
-  const linkedEffortIds = new Set(
-    session.capabilityEffortMaps
-      .filter((m) => goalCapIds.has(m.capabilityId))
-      .map((m) => m.effortId)
-  );
+  const sectorCapabilities = allSectorCaps;
   const allSectorEfforts = session.efforts.filter((e) => e.sectorId === activeSector);
-  const hasEffortMaps = allSectorEfforts.some((e) =>
-    session.capabilityEffortMaps.some((m) => m.effortId === e.id)
-  );
-  const sectorEfforts = hasEffortMaps
-    ? allSectorEfforts.filter((e) => linkedEffortIds.has(e.id))
-    : allSectorEfforts;
+  const sectorEfforts = allSectorEfforts;
 
   // Voortgang per sector
   function getSectorProgress(sector: SectorName) {
@@ -482,15 +460,10 @@ export default function DINMappingStep() {
   }
   function addCapability() {
     const newCap = createCapability(activeSector, "");
-    // DIN-keten: koppel aan alle baten van het huidige doel in deze sector
-    const newMaps = sectorBenefits.map((b) => ({
-      benefitId: b.id,
-      capabilityId: newCap.id,
-    }));
     updateSession({
       capabilities: [...session!.capabilities, newCap],
-      benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...newMaps],
     });
+    setExpandedCapability(newCap.id);
   }
   function updateEffort(updated: DINEffort) {
     updateSession({
@@ -516,15 +489,51 @@ export default function DINMappingStep() {
   }
   function addEffort(domain: EffortDomain) {
     const newEffort = createEffort(activeSector, "", domain);
-    // DIN-keten: koppel aan alle vermogens van het huidige doel in deze sector
-    const newMaps = sectorCapabilities.map((c) => ({
-      capabilityId: c.id,
-      effortId: newEffort.id,
-    }));
     updateSession({
       efforts: [...session!.efforts, newEffort],
-      capabilityEffortMaps: [...session!.capabilityEffortMaps, ...newMaps],
     });
+    setExpandedEffort(newEffort.id);
+  }
+
+  // --- Koppeling-beheer ---
+  function toggleCapBenefitLink(capId: string, benefitId: string) {
+    const exists = session!.benefitCapabilityMaps.some(
+      (m) => m.benefitId === benefitId && m.capabilityId === capId
+    );
+    if (exists) {
+      updateSession({
+        benefitCapabilityMaps: session!.benefitCapabilityMaps.filter(
+          (m) => !(m.benefitId === benefitId && m.capabilityId === capId)
+        ),
+      });
+    } else {
+      updateSession({
+        benefitCapabilityMaps: [
+          ...session!.benefitCapabilityMaps,
+          { benefitId, capabilityId: capId },
+        ],
+      });
+    }
+  }
+
+  function toggleEffortCapLink(effortId: string, capId: string) {
+    const exists = session!.capabilityEffortMaps.some(
+      (m) => m.effortId === effortId && m.capabilityId === capId
+    );
+    if (exists) {
+      updateSession({
+        capabilityEffortMaps: session!.capabilityEffortMaps.filter(
+          (m) => !(m.effortId === effortId && m.capabilityId === capId)
+        ),
+      });
+    } else {
+      updateSession({
+        capabilityEffortMaps: [
+          ...session!.capabilityEffortMaps,
+          { capabilityId: capId, effortId },
+        ],
+      });
+    }
   }
 
   // --- Geneste DIN-keten helpers ---
@@ -1193,7 +1202,7 @@ export default function DINMappingStep() {
                             </span>
                           )}
                           {/* Gekoppelde baten als gekleurde pills */}
-                          {linkedBenefits.length > 0 && (
+                          {linkedBenefits.length > 0 ? (
                             <div className="flex gap-1 shrink-0">
                               {linkedBenefits.map((b) => (
                                 <span
@@ -1205,13 +1214,17 @@ export default function DINMappingStep() {
                                 </span>
                               ))}
                             </div>
+                          ) : (
+                            <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                              niet gekoppeld
+                            </span>
                           )}
                           <span className="text-xs text-gray-400 shrink-0">{isExpanded ? "\u25B2" : "\u25BC"}</span>
                         </div>
 
-                        {/* Uitgeklapt: CapabilityCard voor bewerken */}
+                        {/* Uitgeklapt: CapabilityCard + koppeling-beheer */}
                         {isExpanded && (
-                          <div className="border-t border-din-vermogens/10 p-3">
+                          <div className="border-t border-din-vermogens/10 p-3 space-y-3">
                             <CapabilityCard
                               capability={cap}
                               onChange={updateCapability}
@@ -1219,139 +1232,259 @@ export default function DINMappingStep() {
                               onAISuggest={makeCapabilitySuggest(cap)}
                               sharedWithBenefits={linkedBenefits.map((b) => b.description || "(naamloos)")}
                             />
+                            {/* Koppeling aan baten */}
+                            <div className="border-t border-gray-100 pt-3">
+                              <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan baten:</div>
+                              {sectorBenefits.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {sectorBenefits.map((b, bIdx) => {
+                                    const isLinked = session!.benefitCapabilityMaps.some(
+                                      (m) => m.benefitId === b.id && m.capabilityId === cap.id
+                                    );
+                                    return (
+                                      <button
+                                        key={b.id}
+                                        onClick={() => toggleCapBenefitLink(cap.id, b.id)}
+                                        className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                                          isLinked
+                                            ? "bg-din-baten text-white"
+                                            : "bg-gray-100 text-gray-500 hover:bg-din-baten/20 hover:text-din-baten"
+                                        }`}
+                                        title={isLinked ? "Klik om te ontkoppelen" : "Klik om te koppelen"}
+                                      >
+                                        B{bIdx + 1}: {(b.description || "(naamloos)").slice(0, 35)}{(b.description || "").length > 35 ? "\u2026" : ""}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-400 italic">Voeg eerst baten toe.</p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Niet-gekoppelde vermogens */}
-                {(() => {
-                  const unlinkedCaps = getUnlinkedCapabilities();
-                  if (unlinkedCaps.length === 0) return null;
-                  return (
-                    <details className="mt-2 p-3 bg-amber-50/50 rounded-lg border border-amber-200/50">
-                      <summary className="text-xs font-semibold text-amber-700 cursor-pointer select-none">
-                        Niet-gekoppeld ({unlinkedCaps.length})
-                        <span className="font-normal text-amber-500 ml-2">Niet aan een baat gekoppeld</span>
-                      </summary>
-                      <div className="mt-3 space-y-2">
-                        {unlinkedCaps.map((c) => (
-                          <CapabilityCard
-                            key={c.id}
-                            capability={c}
-                            onChange={updateCapability}
-                            onDelete={() => deleteCapability(c.id)}
-                            onAISuggest={makeCapabilitySuggest(c)}
-                          />
-                        ))}
-                      </div>
-                    </details>
-                  );
-                })()}
               </div>
 
-              {/* ===== SECTIE 3: INSPANNINGEN — 4-Domein Grid ===== */}
+              {/* ===== SECTIE 3: INSPANNINGEN ===== */}
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-5 bg-din-inspanningen rounded-full" />
-                  <h4 className="text-sm font-semibold text-din-inspanningen">
-                    Inspanningen ({sectorEfforts.length})
-                  </h4>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-5 bg-din-inspanningen rounded-full" />
+                    <h4 className="text-sm font-semibold text-din-inspanningen">
+                      Inspanningen ({sectorEfforts.length})
+                    </h4>
+                  </div>
+                  {/* Domain filter */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setDomainFilter("alle")}
+                      className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                        domainFilter === "alle"
+                          ? "bg-din-inspanningen text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      }`}
+                    >
+                      Alle
+                    </button>
+                    {DOMAINS.map((d) => {
+                      const count = sectorEfforts.filter((e) => e.domain === d.key).length;
+                      return (
+                        <button
+                          key={d.key}
+                          onClick={() => setDomainFilter(domainFilter === d.key ? "alle" : d.key)}
+                          className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
+                            domainFilter === d.key
+                              ? `${DOMAIN_DOT_COLORS[d.key]} text-white`
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${domainFilter === d.key ? "bg-white" : DOMAIN_DOT_COLORS[d.key]}`} />
+                          {d.label}
+                          {count > 0 && <span className="opacity-70">({count})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <p className="text-[10px] text-gray-400 mb-3 ml-4">
                   Concrete projecten en activiteiten die vermogens opbouwen, verdeeld over 4 domeinen.
                   Alle 4 domeinen moeten vertegenwoordigd zijn voor een evenwichtig programma.
                 </p>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {DOMAINS.map((domain) => {
-                    const domainEfforts = sectorEfforts.filter((e) => e.domain === domain.key);
-                    return (
-                      <div
-                        key={domain.key}
-                        className={`rounded-lg border p-3 ${DOMAIN_DOT_BG[domain.key]} border-gray-200`}
-                      >
-                        {/* Domein header */}
-                        <div className="mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${DOMAIN_DOT_COLORS[domain.key]}`} />
-                            <span className="text-xs font-semibold text-gray-700">{domain.label}</span>
-                            <span className="text-[10px] text-gray-400 ml-auto">{domainEfforts.length}</span>
-                          </div>
-                          <div className="text-[9px] text-gray-400 mt-0.5 ml-4.5 leading-tight">
-                            {DOMAIN_DESCRIPTIONS[domain.key]}
-                          </div>
-                        </div>
+                {sectorEfforts.length === 0 && (
+                  <p className="text-sm text-gray-400 italic ml-4">
+                    Nog geen inspanningen. Voeg ze toe of laat AI genereren.
+                  </p>
+                )}
 
-                        {/* Inspanning kaarten */}
-                        <div className="space-y-2">
-                          {domainEfforts.map((effort) => {
-                            const linkedCaps = getCapsForEffort(effort.id);
-                            return (
-                              <div key={effort.id}>
-                                <EffortCard
-                                  effort={effort}
-                                  onChange={updateEffort}
-                                  onDelete={() => deleteEffort(effort.id)}
-                                  onAISuggest={makeEffortSuggest(effort)}
-                                />
-                                {/* Gekoppelde vermogens als tags */}
-                                {linkedCaps.length > 0 && (
-                                  <div className="flex gap-1 mt-1 ml-1 flex-wrap">
-                                    {linkedCaps.map((c) => (
-                                      <span
-                                        key={c.id}
-                                        className="text-[9px] px-1.5 py-0.5 bg-din-vermogens/10 text-din-vermogens rounded-full truncate max-w-[100px]"
-                                        title={c.description || "Vermogen"}
-                                      >
-                                        V{sectorCapabilities.indexOf(c) + 1}
-                                      </span>
-                                    ))}
+                {/* Inspanningen als overzichtelijke lijst */}
+                <div className="space-y-2">
+                  {sectorEfforts
+                    .filter((e) => domainFilter === "alle" || e.domain === domainFilter)
+                    .map((effort) => {
+                      const linkedCaps = getCapsForEffort(effort.id);
+                      const linkedBatenIds = new Set(
+                        linkedCaps.flatMap((c) =>
+                          getBenefitsForCapability(c.id).map((b) => b.id)
+                        )
+                      );
+                      const linkedBaten = sectorBenefits.filter((b) => linkedBatenIds.has(b.id));
+                      const isExpEff = expandedEffort === effort.id;
+
+                      return (
+                        <div key={effort.id} className="border border-din-inspanningen/20 rounded-lg overflow-hidden bg-white">
+                          {/* Compact header */}
+                          <div
+                            className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-din-inspanningen/[0.04] transition-colors"
+                            onClick={() => setExpandedEffort(isExpEff ? null : effort.id)}
+                          >
+                            {/* Domain badge */}
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOMAIN_DOT_COLORS[effort.domain]}`}
+                              title={DOMAINS.find((d) => d.key === effort.domain)?.label}
+                            />
+                            <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
+                              {effort.description || "(naamloos)"}
+                            </span>
+                            {/* Quarter */}
+                            {effort.quarter && (
+                              <span className="text-[10px] text-gray-400 shrink-0">{effort.quarter}</span>
+                            )}
+                            {/* Status badge */}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                                STATUS_OPTIONS.find((s) => s.key === effort.status)?.color || "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {STATUS_OPTIONS.find((s) => s.key === effort.status)?.label || effort.status}
+                            </span>
+                            {/* Linked vermogens */}
+                            {linkedCaps.length > 0 && (
+                              <div className="flex gap-0.5 shrink-0">
+                                {linkedCaps.map((c) => (
+                                  <span
+                                    key={c.id}
+                                    className="text-[9px] px-1.5 py-0.5 bg-din-vermogens/10 text-din-vermogens rounded-full"
+                                    title={c.description || "Vermogen"}
+                                  >
+                                    V{allSectorCaps.indexOf(c) + 1}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {/* Linked baten (via vermogens) */}
+                            {linkedBaten.length > 0 && (
+                              <div className="flex gap-0.5 shrink-0">
+                                {linkedBaten.map((b) => (
+                                  <span
+                                    key={b.id}
+                                    className="text-[9px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full"
+                                    title={b.description || "Baat"}
+                                  >
+                                    B{sectorBenefits.indexOf(b) + 1}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {/* No links warning */}
+                            {linkedCaps.length === 0 && (
+                              <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                                niet gekoppeld
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400 shrink-0">{isExpEff ? "\u25B2" : "\u25BC"}</span>
+                          </div>
+
+                          {/* Uitgeklapt: EffortCard + koppeling-beheer */}
+                          {isExpEff && (
+                            <div className="border-t border-din-inspanningen/10 p-3 space-y-3">
+                              <EffortCard
+                                effort={effort}
+                                onChange={updateEffort}
+                                onDelete={() => deleteEffort(effort.id)}
+                                onAISuggest={makeEffortSuggest(effort)}
+                              />
+                              {/* Koppeling aan vermogens */}
+                              <div className="border-t border-gray-100 pt-3">
+                                <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan vermogens:</div>
+                                {allSectorCaps.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {allSectorCaps.map((c, cIdx) => {
+                                      const isLinked = session!.capabilityEffortMaps.some(
+                                        (m) => m.effortId === effort.id && m.capabilityId === c.id
+                                      );
+                                      return (
+                                        <button
+                                          key={c.id}
+                                          onClick={() => toggleEffortCapLink(effort.id, c.id)}
+                                          className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                                            isLinked
+                                              ? "bg-din-vermogens text-white"
+                                              : "bg-gray-100 text-gray-500 hover:bg-din-vermogens/20 hover:text-din-vermogens"
+                                          }`}
+                                          title={isLinked ? "Klik om te ontkoppelen" : "Klik om te koppelen"}
+                                        >
+                                          V{cIdx + 1}: {(c.description || "(naamloos)").slice(0, 30)}{(c.description || "").length > 30 ? "\u2026" : ""}
+                                        </button>
+                                      );
+                                    })}
                                   </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400 italic">Voeg eerst vermogens toe.</p>
                                 )}
                               </div>
-                            );
-                          })}
+                              {/* DIN-keten weergave */}
+                              {linkedCaps.length > 0 && (
+                                <div className="text-[10px] text-gray-400 border-t border-gray-100 pt-2">
+                                  <span className="font-medium">DIN-keten: </span>
+                                  {linkedCaps.map((c, i) => {
+                                    const capBaten = getBenefitsForCapability(c.id);
+                                    return (
+                                      <span key={c.id}>
+                                        {i > 0 && " \u2502 "}
+                                        <span className="text-din-inspanningen font-medium">I</span>
+                                        {" \u2192 "}
+                                        <span className="text-din-vermogens font-medium">V{allSectorCaps.indexOf(c) + 1}</span>
+                                        {capBaten.length > 0 && (
+                                          <>
+                                            {" \u2192 "}
+                                            {capBaten.map((b, j) => (
+                                              <span key={b.id}>
+                                                {j > 0 && ", "}
+                                                <span className="text-din-baten font-medium">B{sectorBenefits.indexOf(b) + 1}</span>
+                                              </span>
+                                            ))}
+                                          </>
+                                        )}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-
-                        {/* Prominente toevoeg-knop */}
-                        <button
-                          onClick={() => addEffort(domain.key)}
-                          className={`w-full mt-3 py-2 text-xs font-medium rounded-md border-2 border-dashed transition-colors ${DOMAIN_EFFORT_BTN[domain.key]} text-gray-500 hover:text-gray-700`}
-                        >
-                          + {domain.label}
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
 
-                {/* Niet-gekoppelde inspanningen */}
-                {(() => {
-                  const unlinkedEffs = getUnlinkedEfforts();
-                  if (unlinkedEffs.length === 0) return null;
-                  return (
-                    <details className="mt-2 p-3 bg-amber-50/50 rounded-lg border border-amber-200/50">
-                      <summary className="text-xs font-semibold text-amber-700 cursor-pointer select-none">
-                        Niet-gekoppeld ({unlinkedEffs.length})
-                        <span className="font-normal text-amber-500 ml-2">Niet aan een vermogen gekoppeld</span>
-                      </summary>
-                      <div className="mt-3 space-y-2">
-                        {unlinkedEffs.map((e) => (
-                          <EffortCard
-                            key={e.id}
-                            effort={e}
-                            onChange={updateEffort}
-                            onDelete={() => deleteEffort(e.id)}
-                            onAISuggest={makeEffortSuggest(e)}
-                          />
-                        ))}
-                      </div>
-                    </details>
-                  );
-                })()}
+                {/* Toevoegen knoppen per domein */}
+                <div className="flex gap-2 mt-3">
+                  {DOMAINS.map((d) => (
+                    <button
+                      key={d.key}
+                      onClick={() => addEffort(d.key)}
+                      className={`flex-1 py-2.5 text-xs font-medium rounded-lg border-2 border-dashed transition-colors ${DOMAIN_EFFORT_BTN[d.key]} text-gray-500 hover:text-gray-700 flex items-center justify-center gap-1.5`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${DOMAIN_DOT_COLORS[d.key]}`} />
+                      + {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Externe projecten buiten het programma */}
