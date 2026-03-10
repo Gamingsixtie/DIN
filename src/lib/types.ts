@@ -267,6 +267,8 @@ export interface DINSession {
   sectorAnalyses?: Record<string, string>;
   // Opgeslagen verrijkte sectorplannen per sector (uit DIN-Mapping)
   verrijkteSectorplannen?: Record<string, string>;
+  // Opgeslagen AI cross-analyse resultaat
+  crossAnalyse?: string;
   // Lopende projecten die passen bij het programma KiB, per sector
   externalProjects?: ExternalProject[];
 }

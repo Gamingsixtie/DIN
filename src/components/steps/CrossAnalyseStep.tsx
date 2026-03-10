@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "@/lib/session-context";
 import {
   findSharedCapabilities,
@@ -428,11 +428,18 @@ function AIAnalysisResult({ analysis }: { analysis: string }) {
 // --- Hoofd CrossAnalyseStep ---
 
 export default function CrossAnalyseStep() {
-  const { session } = useSession();
+  const { session, updateSession } = useSession();
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
+
+  // Laad opgeslagen cross-analyse bij mount
+  useEffect(() => {
+    if (session?.crossAnalyse && !aiAnalysis) {
+      setAiAnalysis(session.crossAnalyse);
+    }
+  }, [session?.crossAnalyse]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!session) return null;
 
@@ -477,11 +484,17 @@ export default function CrossAnalyseStep() {
           capabilities: session!.capabilities,
           efforts: session!.efforts,
           externalProjects: session!.externalProjects || [],
+          // Koppelingen meesturen zodat AI gaps en hefboomwerking correct kan analyseren
+          goalBenefitMaps: session!.goalBenefitMaps,
+          benefitCapabilityMaps: session!.benefitCapabilityMaps,
+          capabilityEffortMaps: session!.capabilityEffortMaps,
         }),
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
         setAiAnalysis(data.data.analysis);
+        // Opslaan in sessie zodat het bewaard blijft bij navigatie
+        updateSession({ crossAnalyse: data.data.analysis });
       } else {
         setError("De AI-analyse heeft geen resultaat opgeleverd. Probeer het opnieuw.");
       }
