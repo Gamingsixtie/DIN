@@ -73,11 +73,12 @@ export interface PMCEntry {
 // --- DIN Keten ---
 
 export interface BatenProfiel {
-  indicator: string;
-  indicatorOwner: string;
-  currentValue: string;
-  targetValue: string;
-  measurementMoment?: string;
+  indicator: string;           // Meetbare indicator / KPI
+  indicatorOwner: string;      // Meetverantwoordelijke (rol/functie)
+  currentValue: string;        // Startwaarde / nulmeting
+  targetValue: string;         // Doelwaarde
+  meetmethode?: string;        // Hoe wordt gemeten? (enquête, data-analyse, etc.)
+  measurementMoment?: string;  // Wanneer wordt gemeten?
 }
 
 export interface DINBenefit {

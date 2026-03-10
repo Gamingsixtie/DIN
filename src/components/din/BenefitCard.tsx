@@ -120,13 +120,13 @@ export default function BenefitCard({
     setPreviousState(null);
   }
 
-  // Completeness check
+  // Completeness check — op basis van batenprofiel uit methodiek
   const missing: string[] = [];
-  if (!benefit.description) missing.push("beschrijving");
+  if (!benefit.description) missing.push("omschrijving");
   if (!benefit.profiel.indicator) missing.push("indicator");
-  if (!benefit.profiel.indicatorOwner) missing.push("eigenaar");
-  if (!benefit.profiel.currentValue) missing.push("huidige waarde");
-  if (!benefit.profiel.targetValue) missing.push("gewenste waarde");
+  if (!benefit.profiel.indicatorOwner) missing.push("meetverantwoordelijke");
+  if (!benefit.profiel.currentValue) missing.push("startwaarde");
+  if (!benefit.profiel.targetValue) missing.push("doelwaarde");
 
   return (
     <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50 min-w-0 overflow-hidden">
@@ -138,7 +138,7 @@ export default function BenefitCard({
               onChange({ ...benefit, description: e.target.value })
             }
             className="w-full font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
-            placeholder="Beschrijf de baat..."
+            placeholder="Omschrijving: welk gewenst effect in de buitenwereld?"
           />
           {missing.length > 0 && !expanded && (
             <p className="text-[10px] text-amber-500 mt-1">
@@ -297,7 +297,7 @@ export default function BenefitCard({
             )}
             {aiSuggestion.indicatorOwner && aiSuggestion.indicatorOwner !== benefit.profiel.indicatorOwner && (
               <SuggestionRow
-                label="Eigenaar"
+                label="Verantwoordelijke"
                 current={benefit.profiel.indicatorOwner}
                 suggested={aiSuggestion.indicatorOwner}
                 onApply={() => applySuggestion(["eigenaar"])}
@@ -306,7 +306,7 @@ export default function BenefitCard({
             {(aiSuggestion.currentValue || aiSuggestion.targetValue) &&
               (aiSuggestion.currentValue !== benefit.profiel.currentValue || aiSuggestion.targetValue !== benefit.profiel.targetValue) && (
               <SuggestionRow
-                label="Waarden"
+                label="Start/doel"
                 current={`${benefit.profiel.currentValue || "?"} \u2192 ${benefit.profiel.targetValue || "?"}`}
                 suggested={`${aiSuggestion.currentValue || "?"} \u2192 ${aiSuggestion.targetValue || "?"}`}
                 onApply={() => applySuggestion(["waarden"])}
@@ -317,71 +317,110 @@ export default function BenefitCard({
       )}
 
       {expanded && (
-        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <label className="text-xs text-gray-500">Indicator</label>
-            <input
-              value={benefit.profiel.indicator}
-              onChange={(e) =>
-                onChange({
-                  ...benefit,
-                  profiel: { ...benefit.profiel, indicator: e.target.value },
-                })
-              }
-              className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-              placeholder="Meetbare KPI..."
-            />
+        <div className="mt-3 space-y-3">
+          <div className="text-[10px] text-gray-400 italic px-1">
+            Batenprofiel volgens DIN-methodiek (Wijnen &amp; Van der Tak)
           </div>
-          <div>
-            <label className="text-xs text-gray-500">Eigenaar</label>
-            <input
-              value={benefit.profiel.indicatorOwner}
-              onChange={(e) =>
-                onChange({
-                  ...benefit,
-                  profiel: {
-                    ...benefit.profiel,
-                    indicatorOwner: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-              placeholder="Rol/functie..."
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">Huidige waarde</label>
-            <input
-              value={benefit.profiel.currentValue}
-              onChange={(e) =>
-                onChange({
-                  ...benefit,
-                  profiel: {
-                    ...benefit.profiel,
-                    currentValue: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-              placeholder="Nu..."
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">Gewenste waarde</label>
-            <input
-              value={benefit.profiel.targetValue}
-              onChange={(e) =>
-                onChange({
-                  ...benefit,
-                  profiel: {
-                    ...benefit.profiel,
-                    targetValue: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-              placeholder="Doel..."
-            />
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <label className="text-xs text-gray-500">Indicator (meetbare KPI)</label>
+              <input
+                value={benefit.profiel.indicator}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: { ...benefit.profiel, indicator: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Welke KPI meet deze baat?"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Meetverantwoordelijke</label>
+              <input
+                value={benefit.profiel.indicatorOwner}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: {
+                      ...benefit.profiel,
+                      indicatorOwner: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wie is verantwoordelijk? (rol/functie)"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Startwaarde (nulmeting)</label>
+              <input
+                value={benefit.profiel.currentValue}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: {
+                      ...benefit.profiel,
+                      currentValue: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Huidige stand van de indicator"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Doelwaarde</label>
+              <input
+                value={benefit.profiel.targetValue}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: {
+                      ...benefit.profiel,
+                      targetValue: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Gewenste waarde van de indicator"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Meetmethode</label>
+              <input
+                value={benefit.profiel.meetmethode || ""}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: {
+                      ...benefit.profiel,
+                      meetmethode: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Hoe wordt gemeten? (enquête, data-analyse...)"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Meetmoment</label>
+              <input
+                value={benefit.profiel.measurementMoment || ""}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: {
+                      ...benefit.profiel,
+                      measurementMoment: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wanneer wordt gemeten? (Q2 2026, jaarlijks...)"
+              />
+            </div>
           </div>
         </div>
       )}

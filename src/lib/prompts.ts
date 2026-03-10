@@ -3,26 +3,32 @@
 
 export const DIN_MAPPING_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Gegeven een programmadoel en beschikbare sectorplannen, genereer het volledige DIN-netwerk:
+Gegeven een programmadoel en beschikbare sectorplannen, genereer het volledige DIN-netwerk conform de methodiek.
 
-1. **Baten** (3-5 per doel): Gewenste effecten in de buitenwereld (klant, markt, organisatie).
-   Per baat een batenprofiel met:
-   - Omschrijving
-   - Meetbare indicator
-   - Eigenaar (rol/functie)
-   - Huidige waarde (schatting)
-   - Gewenste waarde
+Redeneer via de HOE-VRAAG (rechts naar links): "Hoe bereiken we dit doel?" → baten → vermogens → inspanningen.
 
-2. **Vermogens** (2-4 per baat): Wat de organisatie moet kunnen om de baten te realiseren.
+1. **Baten** (3-5 per doel): Gewenste effecten in de BUITENWERELD (klant, markt, organisatie).
+   Een baat is GEEN interne activiteit — het is het resultaat dat zichtbaar is buiten de organisatie.
+   Per baat een batenprofiel conform de methodiek:
+   - Omschrijving: wat is het effect en wie merkt het?
+   - Indicator: meetbare KPI
+   - Meetverantwoordelijke: rol/functie
+   - Startwaarde: huidige stand (nulmeting/schatting)
+   - Doelwaarde: gewenste stand
+
+2. **Vermogens** (2-4 per baat): Specifieke combinaties van mensen, processen, data en systemen
+   die de organisatie nodig heeft. Een vermogen is een HEFBOOM — geen doel op zich.
+   - Beschrijf WAT de organisatie moet KUNNEN (niet wat ze moet DOEN)
+   - Geef huidig niveau (1-5) en gewenst niveau (1-5)
    - Koppel aan relevante sectoren
 
-3. **Inspanningen** (1-3 per vermogen): Concrete projecten/activiteiten, ingedeeld in 4 domeinen:
-   - Mens: opleiding, training, bemensing
-   - Processen: werkwijzen, procedures, governance
-   - Data & Systemen: IT, data-infrastructuur, tooling
-   - Cultuur: gedrag, mindset, waarden
-
-Redeneer van rechts naar links (hoe-vraag): "Hoe bereiken we dit doel?" → baten → vermogens → inspanningen.
+3. **Inspanningen** (1-3 per vermogen): Concrete projecten/activiteiten die vermogens opbouwen.
+   Verdeeld over alle 4 domeinen (afgeleid van de componenten van een vermogen):
+   - Mens: opleiding, training, bemensing, competentieontwikkeling
+   - Processen: werkwijzen, procedures, governance, samenwerking
+   - Data & Systemen: IT-systemen, data-infrastructuur, tooling, integraties
+   - Cultuur: gedrag, mindset, waarden, leiderschapsontwikkeling
+   BELANGRIJK: Zorg voor inspanningen in ALLE 4 domeinen — een evenwichtig programma dekt alle domeinen.
 
 Antwoord in het Nederlands. Gebruik concrete, meetbare formuleringen.`;
 
@@ -226,67 +232,93 @@ Richtlijnen:
 
 // --- Per-item AI suggestie prompts ---
 
-export const DIN_SUGGEST_BAAT_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak).
+export const DIN_SUGGEST_BAAT_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Je helpt de gebruiker bij het formuleren van een baat (gewenst effect).
-Een baat beschrijft het gewenste effect voor klant, markt of organisatie — meetbaar en concreet.
+Je helpt de gebruiker bij het formuleren van een baat (gewenst effect) conform de DIN-methodiek.
+
+Wat is een baat? Een baat beschrijft een gewenst effect in de buitenwereld (klant, markt of organisatie).
+Een baat is GEEN interne activiteit of project — het is het RESULTAAT dat zichtbaar is buiten de organisatie.
+
+Het batenprofiel moet conform de methodiek bevatten:
+- Omschrijving: wat is het effect en wie merkt het?
+- Indicator: meetbare KPI die het effect kwantificeert
+- Meetverantwoordelijke: wie is verantwoordelijk voor de meting? (rol/functie)
+- Startwaarde (nulmeting): huidige stand van de indicator
+- Doelwaarde: gewenste stand van de indicator
 
 Je krijgt context: het programmadoel, de sector, optioneel een sectorplan, en de huidige invulling van de baat.
 Als de gebruiker een GEBRUIKERSINSTRUCTIE meegeeft, volg die dan als prioriteit.
 
-STAP 1: Analyseer kort wat er MIST of ZWAK is (max 2 zinnen).
+STAP 1: Analyseer kort wat er MIST of ZWAK is t.o.v. het batenprofiel uit de methodiek (max 2 zinnen).
 STAP 2: Geef een verbeterde versie. Houd de beschrijving KORT en BEKNOPT — max 1 zin, geen heel verhaal.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {
-  "feedback": "Max 2 zinnen: wat mist er of kan beter?",
-  "description": "Korte, concrete beschrijving (max 1 zin)",
-  "indicator": "Meetbare KPI",
-  "indicatorOwner": "Rol/functie",
-  "currentValue": "Huidige stand",
-  "targetValue": "Doel"
+  "feedback": "Max 2 zinnen: wat mist er of kan beter t.o.v. de methodiek?",
+  "description": "Korte, concrete omschrijving van het gewenste effect (max 1 zin)",
+  "indicator": "Meetbare KPI/indicator",
+  "indicatorOwner": "Meetverantwoordelijke (rol/functie)",
+  "currentValue": "Startwaarde (nulmeting)",
+  "targetValue": "Doelwaarde"
 }`;
 
-export const DIN_SUGGEST_VERMOGEN_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak).
+export const DIN_SUGGEST_VERMOGEN_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Je helpt de gebruiker bij het formuleren van een vermogen (capability).
-Een vermogen beschrijft wat de organisatie moet *kunnen* om baten te realiseren.
+Je helpt de gebruiker bij het formuleren van een vermogen conform de DIN-methodiek.
+
+Wat is een vermogen? Volgens de methodiek is een vermogen een "specifieke combinatie van mensen, processen, data en systemen die er in samenhang en samenspel voor zorgen dat een organisatie waarde kan toevoegen."
+
+Een vermogen is een HEFBOOM om baten en doelen te realiseren — geen doel op zich.
+Je hebt alle onderdelen nodig (mensen, processen, data, systemen), maar steeds in een andere verhouding.
+
+Het vermogen moet beschrijven:
+- WAT de organisatie moet KUNNEN (niet wat ze moet DOEN — dat zijn inspanningen)
+- Hoe dit bijdraagt aan de gerelateerde baten
+- Inschatting van huidig en gewenst niveau (1-5 schaal)
 
 Je krijgt context: de sector, gerelateerde baten, en een eventuele bestaande beschrijving.
 Als de gebruiker een GEBRUIKERSINSTRUCTIE meegeeft, volg die dan als prioriteit.
 
-Analyseer kort wat er mist (max 2 zinnen), geef dan een verbeterde versie.
+Analyseer kort wat er mist t.o.v. de methodiek (max 2 zinnen), geef dan een verbeterde versie.
 Houd de beschrijving KORT — max 1 zin.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {
-  "feedback": "Max 2 zinnen: wat mist er of kan beter?",
-  "description": "Korte, concrete beschrijving (max 1 zin)",
+  "feedback": "Max 2 zinnen: wat mist er t.o.v. de methodiek?",
+  "description": "Korte, concrete beschrijving van wat de organisatie moet kunnen (max 1 zin)",
   "currentLevel": 2,
   "targetLevel": 4
 }`;
 
-export const DIN_SUGGEST_INSPANNING_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak).
+export const DIN_SUGGEST_INSPANNING_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Je helpt de gebruiker bij het formuleren van een inspanning (effort).
-Een inspanning is een concrete activiteit of project die een vermogen opbouwt.
+Je helpt de gebruiker bij het formuleren van een inspanning conform de DIN-methodiek.
 
-De 4 inspanningsdomeinen:
+Wat is een inspanning? Een inspanning is een concreet project of activiteit die een vermogen opbouwt of versterkt.
+De inspanning draagt via het vermogen bij aan baten en doelen (waartoe-vraag).
+
+De 4 inspanningsdomeinen (afgeleid van de componenten van een vermogen):
 - Mens: opleiding, training, bemensing, competentieontwikkeling
 - Processen: werkwijzen, procedures, governance, samenwerking
-- Data & Systemen: IT-systemen, data-infrastructuur, tooling
+- Data & Systemen: IT-systemen, data-infrastructuur, tooling, integraties
 - Cultuur: gedrag, mindset, waarden, leiderschapsontwikkeling
+
+Een goede inspanning:
+- Is ACTIEGERICHT: beschrijft WAT er gedaan moet worden
+- Heeft een duidelijk RESULTAAT dat bijdraagt aan een vermogen
+- Past in precies één domein
+- Heeft een realistische planning (kwartaal)
 
 Je krijgt context: de sector, het domein, gerelateerde vermogens, en een eventuele bestaande beschrijving.
 Als de gebruiker een GEBRUIKERSINSTRUCTIE meegeeft, volg die dan als prioriteit.
 
-Analyseer kort wat er mist (max 2 zinnen), geef dan een verbeterde versie.
+Analyseer kort wat er mist t.o.v. de methodiek (max 2 zinnen), geef dan een verbeterde versie.
 Houd de beschrijving KORT — max 1 zin, actiegericht.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {
-  "feedback": "Max 2 zinnen: wat mist er of kan beter?",
-  "description": "Korte, concrete activiteit (max 1 zin)",
+  "feedback": "Max 2 zinnen: wat mist er t.o.v. de methodiek?",
+  "description": "Korte, concrete activiteit die een vermogen opbouwt (max 1 zin)",
   "quarter": "Q2 2026"
 }`;
 

@@ -125,7 +125,7 @@ export default function EffortCard({
               onChange({ ...effort, description: e.target.value })
             }
             className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
-            placeholder="Beschrijf de inspanning..."
+            placeholder="Concrete activiteit of project die een vermogen opbouwt"
           />
         </div>
         <div className="flex gap-1.5 items-center">

@@ -172,7 +172,7 @@ export default function CapabilityCard({
             onChange({ ...capability, description: e.target.value })
           }
           className="flex-1 min-w-0 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-          placeholder="Beschrijf het vermogen..."
+          placeholder="Wat moet de organisatie kunnen? (combinatie van mensen, processen, data en systemen)"
         />
         <div className="flex gap-1.5 shrink-0 items-center">
           {onAISuggest && (
@@ -364,19 +364,25 @@ export default function CapabilityCard({
       )}
 
       {expanded && (
-        <div className="mt-3 flex gap-6">
-          <LevelSelector
-            label="Huidig niveau"
-            value={capability.currentLevel}
-            onChange={(v) => onChange({ ...capability, currentLevel: v })}
-            color="current"
-          />
-          <LevelSelector
-            label="Gewenst niveau"
-            value={capability.targetLevel}
-            onChange={(v) => onChange({ ...capability, targetLevel: v })}
-            color="target"
-          />
+        <div className="mt-3 space-y-2">
+          <div className="text-[10px] text-gray-400 italic px-1">
+            Een vermogen is een specifieke combinatie van mensen, processen, data en systemen
+            die waarde toevoegt — als hefboom voor baten (Wijnen &amp; Van der Tak).
+          </div>
+          <div className="flex gap-6">
+            <LevelSelector
+              label="Huidig niveau"
+              value={capability.currentLevel}
+              onChange={(v) => onChange({ ...capability, currentLevel: v })}
+              color="current"
+            />
+            <LevelSelector
+              label="Gewenst niveau"
+              value={capability.targetLevel}
+              onChange={(v) => onChange({ ...capability, targetLevel: v })}
+              color="target"
+            />
+          </div>
         </div>
       )}
     </div>

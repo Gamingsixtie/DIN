@@ -59,6 +59,14 @@ const DOMAIN_EFFORT_BTN: Record<EffortDomain, string> = {
   cultuur: "bg-domain-cultuur/10 hover:bg-domain-cultuur/20 border-domain-cultuur/20",
 };
 
+// Domein-beschrijvingen conform methodiek (Wijnen & Van der Tak)
+const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
+  mens: "Opleiding, training, bemensing, competentieontwikkeling",
+  processen: "Werkwijzen, procedures, governance, samenwerking",
+  data_systemen: "IT-systemen, data-infrastructuur, tooling, integraties",
+  cultuur: "Gedrag, mindset, waarden, leiderschapsontwikkeling",
+};
+
 
 const ADVIES_SECTIONS: {
   key: keyof Omit<IntegratieAdviesResult, "sectorName">;
@@ -995,11 +1003,11 @@ export default function DINMappingStep() {
           {/* Actieve sector header */}
           <div className="px-4 py-3 bg-cito-blue/5 border border-cito-blue/20 rounded-lg">
             <div className="text-sm font-semibold text-cito-blue">
-              DIN-netwerk voor sector: {activeSector}
+              Doelen-Inspanningennetwerk: {activeSector}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
-              Selecteer links een doel en vul rechts de baten, vermogens en
-              inspanningen in. Gebruik de AI-knoppen per item voor hulp.
+              Redeneer via de hoe-vraag: Welke <strong className="text-din-baten">baten</strong> (effecten) levert dit doel op?
+              Welke <strong className="text-din-vermogens">vermogens</strong> zijn nodig? Welke <strong className="text-din-inspanningen">inspanningen</strong> bouwen die op?
             </div>
           </div>
 
@@ -1070,15 +1078,12 @@ export default function DINMappingStep() {
 
               {/* ===== SECTIE 1: BATEN ===== */}
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-5 bg-din-baten rounded-full" />
                     <h4 className="text-sm font-semibold text-din-baten">
                       Baten ({sectorBenefits.length})
                     </h4>
-                    <span className="text-[10px] text-gray-400">
-                      Welke meetbare effecten wil je bereiken?
-                    </span>
                   </div>
                   <button
                     onClick={addBenefit}
@@ -1087,6 +1092,10 @@ export default function DINMappingStep() {
                     + Baat toevoegen
                   </button>
                 </div>
+                <p className="text-[10px] text-gray-400 mb-3 ml-4">
+                  Gewenste effecten in de buitenwereld (klant, markt, organisatie) — meetbaar en concreet.
+                  Elk met een batenprofiel: indicator, eigenaar, huidige en gewenste waarde.
+                </p>
 
                 {sectorBenefits.length === 0 && (
                   <p className="text-sm text-gray-400 italic ml-4">
@@ -1134,15 +1143,12 @@ export default function DINMappingStep() {
 
               {/* ===== SECTIE 2: VERMOGENS ===== */}
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-5 bg-din-vermogens rounded-full" />
                     <h4 className="text-sm font-semibold text-din-vermogens">
                       Vermogens ({sectorCapabilities.length})
                     </h4>
-                    <span className="text-[10px] text-gray-400">
-                      Wat moet de organisatie kunnen?
-                    </span>
                   </div>
                   <button
                     onClick={addCapability}
@@ -1151,6 +1157,10 @@ export default function DINMappingStep() {
                     + Vermogen toevoegen
                   </button>
                 </div>
+                <p className="text-[10px] text-gray-400 mb-3 ml-4">
+                  Specifieke combinaties van mensen, processen, data en systemen die de organisatie nodig heeft
+                  om baten te realiseren. Een vermogen is een hefboom — geen doel op zich.
+                </p>
 
                 {sectorCapabilities.length === 0 && (
                   <p className="text-sm text-gray-400 italic ml-4">
@@ -1244,15 +1254,16 @@ export default function DINMappingStep() {
 
               {/* ===== SECTIE 3: INSPANNINGEN — 4-Domein Grid ===== */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                   <span className="w-1.5 h-5 bg-din-inspanningen rounded-full" />
                   <h4 className="text-sm font-semibold text-din-inspanningen">
                     Inspanningen ({sectorEfforts.length})
                   </h4>
-                  <span className="text-[10px] text-gray-400">
-                    Concrete acties per domein
-                  </span>
                 </div>
+                <p className="text-[10px] text-gray-400 mb-3 ml-4">
+                  Concrete projecten en activiteiten die vermogens opbouwen, verdeeld over 4 domeinen.
+                  Alle 4 domeinen moeten vertegenwoordigd zijn voor een evenwichtig programma.
+                </p>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {DOMAINS.map((domain) => {
@@ -1263,10 +1274,15 @@ export default function DINMappingStep() {
                         className={`rounded-lg border p-3 ${DOMAIN_DOT_BG[domain.key]} border-gray-200`}
                       >
                         {/* Domein header */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className={`w-2.5 h-2.5 rounded-full ${DOMAIN_DOT_COLORS[domain.key]}`} />
-                          <span className="text-xs font-semibold text-gray-700">{domain.label}</span>
-                          <span className="text-[10px] text-gray-400 ml-auto">{domainEfforts.length}</span>
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${DOMAIN_DOT_COLORS[domain.key]}`} />
+                            <span className="text-xs font-semibold text-gray-700">{domain.label}</span>
+                            <span className="text-[10px] text-gray-400 ml-auto">{domainEfforts.length}</span>
+                          </div>
+                          <div className="text-[9px] text-gray-400 mt-0.5 ml-4.5 leading-tight">
+                            {DOMAIN_DESCRIPTIONS[domain.key]}
+                          </div>
                         </div>
 
                         {/* Inspanning kaarten */}
