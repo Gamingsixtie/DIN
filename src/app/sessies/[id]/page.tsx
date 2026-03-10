@@ -77,7 +77,8 @@ function SessionFlow() {
         <div className="max-w-6xl mx-auto flex gap-1">
           {APP_STEPS.map((step) => {
             const completion = completions.find((c) => c.step === step.key);
-            const pct = completion?.percentage ?? 0;
+            const hasData = completion && completion.percentage > 0;
+            const isComplete = completion && completion.percentage >= 100;
             return (
               <button
                 key={step.key}
@@ -89,20 +90,13 @@ function SessionFlow() {
                 }`}
               >
                 {step.nummer}. {step.label}
-                {pct > 0 && (
-                  <span
-                    className={`text-xs ${
-                      currentStep === step.key
-                        ? pct === 100
-                          ? "text-green-300"
-                          : "text-blue-200"
-                        : pct === 100
-                        ? "text-green-600"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    {pct === 100 ? "✓" : `${pct}%`}
+                {isComplete && (
+                  <span className={`text-xs ${currentStep === step.key ? "text-green-300" : "text-green-600"}`}>
+                    ✓
                   </span>
+                )}
+                {hasData && !isComplete && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${currentStep === step.key ? "bg-blue-200" : "bg-gray-400"}`} />
                 )}
               </button>
             );
