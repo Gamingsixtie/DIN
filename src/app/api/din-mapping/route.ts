@@ -4,7 +4,7 @@ import { generateDINMapping } from "@/lib/ai-client";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goal, sectorPlan, sector } = body;
+    const { goal, sectorPlan, sector, allGoals, sectorAnalysis } = body;
 
     if (!goal) {
       return NextResponse.json(
@@ -25,7 +25,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const result = await generateDINMapping(goal, sectorPlan || null, sector || "Algemeen");
+    const result = await generateDINMapping(
+      goal,
+      sectorPlan || null,
+      sector || "Algemeen",
+      allGoals || [],
+      sectorAnalysis || ""
+    );
 
     let parsed;
     try {

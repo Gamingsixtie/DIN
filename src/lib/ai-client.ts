@@ -38,25 +38,48 @@ async function callClaude(
 export async function generateDINMapping(
   goal: { name: string; description: string },
   sectorPlan: { sectorName: string; rawText: string } | null,
-  sector: string
+  sector: string,
+  allGoals?: { name: string; description: string }[],
+  sectorAnalysis?: string
 ): Promise<string> {
-  const userMessage = `
-Doel: ${goal.name}
-Beschrijving: ${goal.description}
+  const parts: string[] = [];
 
-Sector: ${sector}
-${sectorPlan ? `Sectorplan ${sectorPlan.sectorName}:\n${sectorPlan.rawText.slice(0, 3000)}` : "Geen sectorplan beschikbaar."}
+  parts.push(`Doel: ${goal.name}`);
+  parts.push(`Beschrijving: ${goal.description}`);
+  parts.push(`Sector: ${sector}`);
 
-Genereer het DIN-netwerk voor dit doel specifiek voor sector ${sector}.
+  // Alle KiB-doelen als context
+  if (allGoals && allGoals.length > 1) {
+    parts.push("\nOverige KiB-programmadoelen (voor context):");
+    allGoals
+      .filter((g) => g.name !== goal.name)
+      .forEach((g, i) => {
+        parts.push(`${i + 1}. ${g.name}${g.description ? `: ${g.description}` : ""}`);
+      });
+  }
 
-Antwoord als JSON met de volgende structuur:
+  // Sectorplan
+  if (sectorPlan) {
+    parts.push(`\nSectorplan ${sectorPlan.sectorName}:\n${sectorPlan.rawText.slice(0, 3000)}`);
+  } else {
+    parts.push("\nGeen sectorplan beschikbaar.");
+  }
+
+  // AI-analyse van het sectorplan (als die er is)
+  if (sectorAnalysis) {
+    parts.push(`\nEerdere AI-analyse van het sectorplan:\n${sectorAnalysis.slice(0, 2000)}`);
+  }
+
+  parts.push(`\nGenereer het DIN-netwerk voor dit doel specifiek voor sector ${sector}.`);
+  parts.push(`Baseer je op het sectorplan en de analyse daarvan. Zorg dat de baten, vermogens en inspanningen concreet aansluiten bij wat in het sectorplan staat.`);
+  parts.push(`\nAntwoord als JSON met de volgende structuur:
 {
   "benefits": [{"description": "...", "profiel": {"indicator": "...", "indicatorOwner": "...", "currentValue": "...", "targetValue": "..."}}],
   "capabilities": [{"description": "..."}],
   "efforts": [{"description": "...", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026"}]
-}`;
+}`);
 
-  return callClaude(DIN_MAPPING_PROMPT, userMessage);
+  return callClaude(DIN_MAPPING_PROMPT, parts.join("\n"));
 }
 
 export async function generateCrossAnalyse(

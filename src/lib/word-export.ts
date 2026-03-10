@@ -423,6 +423,155 @@ function roadmapSection(session: DINSession) {
   return { properties: {}, children };
 }
 
+// --- Verrijkt sectorplan als Word ---
+
+function parseMarkdownToDocx(content: string): (Paragraph | Table)[] {
+  const elements: (Paragraph | Table)[] = [];
+  const lines = content.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      elements.push(emptyLine());
+      continue;
+    }
+
+    // Heading 1: # ...
+    if (trimmed.startsWith("# ")) {
+      elements.push(heading(trimmed.slice(2), HeadingLevel.HEADING_1));
+      continue;
+    }
+    // Heading 2: ## ...
+    if (trimmed.startsWith("## ")) {
+      elements.push(heading(trimmed.slice(3), HeadingLevel.HEADING_2));
+      continue;
+    }
+    // Heading 3: ### ...
+    if (trimmed.startsWith("### ")) {
+      elements.push(
+        new Paragraph({
+          spacing: { before: 200, after: 80 },
+          children: [
+            new TextRun({ text: trimmed.slice(4), bold: true, size: 24, color: CITO_BLUE }),
+          ],
+        })
+      );
+      continue;
+    }
+    // Numbered heading: 1. **Tekst**
+    const numberedBold = trimmed.match(/^\d+\.\s+\*\*(.+?)\*\*:?\s*(.*)/);
+    if (numberedBold) {
+      elements.push(
+        new Paragraph({
+          spacing: { before: 200, after: 60 },
+          children: [
+            new TextRun({ text: numberedBold[1], bold: true, size: 24, color: CITO_BLUE }),
+            ...(numberedBold[2] ? [new TextRun({ text: `: ${numberedBold[2]}`, size: 22 })] : []),
+          ],
+        })
+      );
+      continue;
+    }
+    // Bullet point: - ... or * ...
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const bulletText = trimmed.slice(2);
+      // Handle **bold** within bullet
+      const parts = bulletText.split(/\*\*(.+?)\*\*/g);
+      const runs: TextRun[] = [];
+      parts.forEach((part, i) => {
+        if (i % 2 === 1) {
+          runs.push(new TextRun({ text: part, bold: true, size: 22 }));
+        } else if (part) {
+          runs.push(new TextRun({ text: part, size: 22 }));
+        }
+      });
+      elements.push(
+        new Paragraph({
+          spacing: { after: 40 },
+          indent: { left: 360 },
+          children: [new TextRun({ text: "• ", color: CITO_BLUE }), ...runs],
+        })
+      );
+      continue;
+    }
+    // Regular text with possible **bold** segments
+    const parts = trimmed.split(/\*\*(.+?)\*\*/g);
+    const runs: TextRun[] = [];
+    parts.forEach((part, i) => {
+      if (i % 2 === 1) {
+        runs.push(new TextRun({ text: part, bold: true, size: 22 }));
+      } else if (part) {
+        runs.push(new TextRun({ text: part, size: 22, color: "333333" }));
+      }
+    });
+    if (runs.length > 0) {
+      elements.push(new Paragraph({ spacing: { after: 60 }, children: runs }));
+    }
+  }
+
+  return elements;
+}
+
+export async function generateVerrijktSectorplanDocument(
+  sectorName: string,
+  verrijktPlanText: string,
+  sessionName: string
+): Promise<Blob> {
+  const doc = new Document({
+    styles: {
+      default: {
+        heading1: {
+          run: { color: CITO_BLUE, bold: true, size: 32, font: "Calibri" },
+        },
+        heading2: {
+          run: { color: CITO_BLUE, bold: true, size: 26, font: "Calibri" },
+        },
+        document: {
+          run: { font: "Calibri", size: 22 },
+        },
+      },
+    },
+    sections: [
+      {
+        properties: {},
+        children: [
+          // Titel
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 2000, after: 200 },
+            children: [
+              new TextRun({ text: `Verrijkt Sectorplan: ${sectorName}`, size: 48, color: CITO_BLUE, bold: true }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 100 },
+            children: [
+              new TextRun({ text: sessionName, size: 28, color: CITO_BLUE }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 600 },
+            children: [
+              new TextRun({
+                text: `Gegenereerd: ${new Date().toLocaleDateString("nl-NL")} — Doelen-Inspanningennetwerk (DIN)`,
+                size: 20,
+                color: "888888",
+                italics: true,
+              }),
+            ],
+          }),
+          // Content
+          ...parseMarkdownToDocx(verrijktPlanText),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
 // --- Hoofdfunctie ---
 
 export async function generateWordDocument(session: DINSession): Promise<Blob> {

@@ -11,13 +11,28 @@ export default function SectorWerkStep() {
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [planAnalysis, setPlanAnalysis] = useState<Record<string, string | null>>({});
+  const [planAnalysis, setPlanAnalysisState] = useState<Record<string, string | null>>(
+    session?.sectorAnalyses || {}
+  );
   const [uploadFeedback, setUploadFeedback] = useState<{
     type: "success" | "error";
     msg: string;
   } | null>(null);
 
   if (!session) return null;
+
+  function setPlanAnalysis(updater: (prev: Record<string, string | null>) => Record<string, string | null>) {
+    setPlanAnalysisState((prev) => {
+      const next = updater(prev);
+      // Sla op in sessie (filter null waarden)
+      const cleaned: Record<string, string> = {};
+      Object.entries(next).forEach(([k, v]) => {
+        if (v) cleaned[k] = v;
+      });
+      updateSession({ sectorAnalyses: cleaned });
+      return next;
+    });
+  }
 
   const sectorPlan = session.sectorPlans.find(
     (s) => s.sectorName === activeSector

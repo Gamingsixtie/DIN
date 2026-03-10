@@ -172,6 +172,10 @@ export interface DINSession {
   capabilityEffortMaps: CapabilityEffortMap[];
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies?: Record<string, IntegratieAdviesResult | string>;
+  // Opgeslagen AI sectorplan-analyses per sector (uit Sectorwerk)
+  sectorAnalyses?: Record<string, string>;
+  // Opgeslagen verrijkte sectorplannen per sector (uit DIN-Mapping)
+  verrijkteSectorplannen?: Record<string, string>;
   // Externe projecten buiten het programma, per sector
   externalProjects?: ExternalProject[];
 }

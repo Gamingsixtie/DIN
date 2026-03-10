@@ -26,6 +26,7 @@ import CapabilityCard from "@/components/din/CapabilityCard";
 import EffortCard from "@/components/din/EffortCard";
 import DINChainIndicator from "@/components/din/DINChainIndicator";
 import MergedDINView from "@/components/din/MergedDINView";
+import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
 
 type DINPhase = "per-sector" | "samengevoegd";
 
@@ -274,7 +275,9 @@ export default function DINMappingStep() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [verrijktSectorplan, setVerrijktSectorplan] = useState<Record<string, string>>({});
+  const [verrijktSectorplan, setVerrijktSectorplanState] = useState<Record<string, string>>(
+    session?.verrijkteSectorplannen || {}
+  );
   const [showAdviesPanel, setShowAdviesPanel] = useState(false);
   const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
     session?.integratieAdvies || {}
@@ -285,6 +288,15 @@ export default function DINMappingStep() {
     setIntegratieAdviesState((prev) => {
       const next = updater(prev);
       updateSession({ integratieAdvies: next });
+      return next;
+    });
+  }
+
+  // Wrapper: sla verrijkt sectorplan ook op in sessie
+  function setVerrijktSectorplan(updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) {
+    setVerrijktSectorplanState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      updateSession({ verrijkteSectorplannen: next });
       return next;
     });
   }
@@ -517,7 +529,13 @@ export default function DINMappingStep() {
       const res = await fetch("/api/din-mapping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, sectorPlan, sector: activeSector }),
+        body: JSON.stringify({
+          goal,
+          sectorPlan,
+          sector: activeSector,
+          allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
+          sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        }),
       });
       const data = await res.json();
       if (data.success && data.data) {
@@ -1131,6 +1149,29 @@ export default function DINMappingStep() {
                   <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
                     {verrijktSectorplan[activeSector]}
                   </div>
+
+                  {/* Download als Word */}
+                  <button
+                    onClick={async () => {
+                      const blob = await generateVerrijktSectorplanDocument(
+                        activeSector,
+                        verrijktSectorplan[activeSector],
+                        session.name
+                      );
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `Verrijkt-Sectorplan-${activeSector}-${new Date().toISOString().slice(0, 10)}.docx`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="w-full mt-3 px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download als Word (.docx)
+                  </button>
                 </div>
               )}
             </div>
