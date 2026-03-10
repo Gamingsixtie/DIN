@@ -133,6 +133,24 @@ export interface EffortSectorMap {
   sectorPlanId: string;
 }
 
+// --- Sectorplan-analyse gestructureerd resultaat (Sectorwerk) ---
+
+export interface SectorplanAnalyseResult {
+  samenvatting: string;
+  aansluiting: { titel: string; toelichting: string; punten: string[] };
+  baten: { titel: string; toelichting: string; punten: string[] };
+  vermogens: { titel: string; toelichting: string; punten: string[] };
+  inspanningen: {
+    titel: string;
+    toelichting: string;
+    mens: string[];
+    processen: string[];
+    data_systemen: string[];
+    cultuur: string[];
+  };
+  aandachtspunten: { titel: string; toelichting: string; punten: string[] };
+}
+
 // --- Integratie-advies gestructureerd resultaat ---
 
 export interface IntegratieAdviesItem {

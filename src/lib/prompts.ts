@@ -99,27 +99,53 @@ Structuur:
 
 Antwoord in het Nederlands. Gebruik professionele maar toegankelijke taal.`;
 
-export const SECTORPLAN_ANALYSE_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk).
+export const SECTORPLAN_ANALYSE_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Je krijgt een sectorplan van een specifieke sector. Analyseer het plan en geef een gestructureerd advies:
+Je krijgt een sectorplan van een specifieke sector en de programmadoelen uit Klant in Beeld (KiB).
 
-1. **Samenvatting**: Korte samenvatting van de belangrijkste punten uit het sectorplan (max 3 zinnen).
+Analyseer het sectorplan en geef concreet advies dat de gebruiker helpt om het DIN-netwerk in te vullen.
 
-2. **Aansluiting op programmadoelen**: Welke elementen uit het sectorplan sluiten aan op de beschikbare programmadoelen? Waar liggen de verbindingen?
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst):
+{
+  "samenvatting": "Korte samenvatting van het sectorplan (2-3 zinnen, wat is de kern van dit sectorplan?)",
+  "aansluiting": {
+    "titel": "Aansluiting op KiB-doelen",
+    "toelichting": "Hoe sluit het sectorplan aan op de programmadoelen.",
+    "punten": ["Concreet verband tussen sectorplan-item en KiB-doel, bijv: 'Het sectorplan noemt X, dat direct bijdraagt aan programmadoel Y'", "..."]
+  },
+  "baten": {
+    "titel": "Voorgestelde baten voor het DIN",
+    "toelichting": "Baten (gewenste effecten) die je kunt afleiden uit het sectorplan — gebruik deze als startpunt voor het DIN-netwerk.",
+    "punten": ["Concrete baat met indicator, bijv: 'Klanttevredenheid stijgt van X naar Y (NPS) — eigenaar: sectormanager'", "..."]
+  },
+  "vermogens": {
+    "titel": "Benodigde vermogens",
+    "toelichting": "Vermogens die de organisatie moet ontwikkelen om de baten te realiseren.",
+    "punten": ["Concreet vermogen met niveau-inschatting, bijv: 'Data-analysecapaciteit — huidig niveau: 2/5, gewenst: 4/5'", "..."]
+  },
+  "inspanningen": {
+    "titel": "Voorgestelde inspanningen",
+    "toelichting": "Concrete activiteiten en projecten, verdeeld over de 4 inspanningsdomeinen.",
+    "mens": ["Concrete inspanning op het gebied van Mens (opleiding, training, bemensing)", "..."],
+    "processen": ["Concrete inspanning op het gebied van Processen (werkwijzen, procedures, governance)", "..."],
+    "data_systemen": ["Concrete inspanning op het gebied van Data & Systemen (IT, tooling, data-infra)", "..."],
+    "cultuur": ["Concrete inspanning op het gebied van Cultuur (gedrag, mindset, waarden)", "..."]
+  },
+  "aandachtspunten": {
+    "titel": "Aandachtspunten & hiaten",
+    "toelichting": "Wat ontbreekt in het sectorplan om de KiB-doelen volledig te realiseren?",
+    "punten": ["Concreet aandachtspunt of ontbrekend element", "..."]
+  }
+}
 
-3. **Potentiële baten**: Welke baten (gewenste effecten) kun je afleiden uit het sectorplan? Denk aan meetbare resultaten voor klanten, markt of organisatie.
-
-4. **Benodigde vermogens**: Welke vermogens (capaciteiten die de organisatie moet ontwikkelen) zijn nodig volgens het sectorplan?
-
-5. **Voorgestelde inspanningen**: Welke concrete inspanningen kun je identificeren, verdeeld over de 4 domeinen:
-   - **Mens**: opleiding, training, bemensing
-   - **Processen**: werkwijzen, procedures, governance
-   - **Data & Systemen**: IT, data-infrastructuur, tooling
-   - **Cultuur**: gedrag, mindset, waarden
-
-6. **Aandachtspunten**: Ontbrekende elementen, risico's of aandachtspunten.
-
-Antwoord in het Nederlands. Wees concreet en verwijs naar specifieke onderdelen uit het sectorplan.`;
+Richtlijnen:
+- Wees CONCREET: verwijs naar specifieke onderdelen uit het sectorplan en de programmadoelen
+- Baten: formuleer meetbaar met indicator en doelwaarde waar mogelijk
+- Vermogens: geef een inschatting van huidig en gewenst niveau (1-5 schaal)
+- Inspanningen: verdeel ALTIJD over alle 4 domeinen — minimaal 1 per domein
+- Minimaal 2, maximaal 5 items per sectie
+- Dit advies dient als voorbereiding: de gebruiker gebruikt het om het DIN-netwerk in te vullen
+- Antwoord in het Nederlands`;
 
 // --- Per-item AI suggestie prompts ---
 
