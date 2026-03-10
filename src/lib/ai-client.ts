@@ -67,7 +67,45 @@ export async function generateDINMapping(
 
   // AI-analyse van het sectorplan (als die er is)
   if (sectorAnalysis) {
-    parts.push(`\nEerdere AI-analyse van het sectorplan:\n${sectorAnalysis.slice(0, 2000)}`);
+    // Probeer gestructureerde JSON-analyse leesbaar samen te vatten
+    let analysisSummary = sectorAnalysis;
+    try {
+      const jsonMatch = sectorAnalysis.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.samenvatting) {
+          const summaryParts: string[] = [];
+          summaryParts.push(`Samenvatting: ${parsed.samenvatting}`);
+          if (parsed.aansluiting?.punten?.length) {
+            summaryParts.push(`\nAansluiting op KiB-doelen:\n${parsed.aansluiting.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.baten?.punten?.length) {
+            summaryParts.push(`\nVoorgestelde baten:\n${parsed.baten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.vermogens?.punten?.length) {
+            summaryParts.push(`\nBenodigde vermogens:\n${parsed.vermogens.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.inspanningen) {
+            const domains = { mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur" };
+            const domainParts: string[] = [];
+            for (const [key, label] of Object.entries(domains)) {
+              const items = parsed.inspanningen[key];
+              if (items?.length) {
+                domainParts.push(`  ${label}: ${items.map((i: string) => i).join("; ")}`);
+              }
+            }
+            if (domainParts.length) {
+              summaryParts.push(`\nVoorgestelde inspanningen:\n${domainParts.join("\n")}`);
+            }
+          }
+          if (parsed.aandachtspunten?.punten?.length) {
+            summaryParts.push(`\nAandachtspunten:\n${parsed.aandachtspunten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          analysisSummary = summaryParts.join("\n");
+        }
+      }
+    } catch { /* gebruik originele string */ }
+    parts.push(`\nEerdere AI-analyse van het sectorplan:\n${analysisSummary.slice(0, 3000)}`);
   }
 
   parts.push(`\nGenereer het DIN-netwerk voor dit doel specifiek voor sector ${sector}.`);
