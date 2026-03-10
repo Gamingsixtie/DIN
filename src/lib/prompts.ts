@@ -210,11 +210,11 @@ Je krijgt:
 - Het integratie-advies (aansluiting, verrijking, aanvullingen, quick wins, aandachtspunten)
 - Eventuele externe projecten buiten het programma
 
-Schrijf een VERRIJKT SECTORPLAN dat het oorspronkelijke sectorplan combineert met de KiB-doelen en DIN-items. Dit is een concreet, uitvoerbaar document dat de sector kan gebruiken.
+Schrijf een BIJGEWERKT SECTORPLAN dat het oorspronkelijke sectorplan combineert met de KiB-doelen en DIN-items. Dit is een concreet, uitvoerbaar document dat de sector kan gebruiken.
 
 Structuur:
-1. **Inleiding**: Korte context — wat is de sector, wat zijn de programmadoelen
-2. **Visie & Doelen**: Hoe draagt deze sector bij aan de KiB-programmadoelen
+1. **Inleiding**: Korte context — wat is de sector, wat is het oorspronkelijke sectorplan
+2. **Programma Klant in Beeld**: Beschrijf het programma KiB (Klant in Beeld) en de gezamenlijke programmadoelen. Leg uit hoe deze sector bijdraagt aan de programmadoelen. Dit hoofdstuk maakt de verbinding tussen het sectorplan en het overkoepelende programma.
 3. **Gewenste baten**: Per baat: omschrijving, indicator, eigenaar, huidige en gewenste waarde
 4. **Benodigde vermogens**: Wat moet de sector kunnen? Met huidig en gewenst niveau
 5. **Inspanningenplan**: Per domein (Mens, Processen, Data & Systemen, Cultuur) de concrete activiteiten met planning
