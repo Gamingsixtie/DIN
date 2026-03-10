@@ -23,6 +23,7 @@ interface CapabilityCardProps {
   onChange: (updated: DINCapability) => void;
   onDelete: () => void;
   onAISuggest?: (userPrompt?: string) => Promise<CapabilitySuggestion | null>;
+  sharedWithBenefits?: string[];
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -82,6 +83,7 @@ export default function CapabilityCard({
   onChange,
   onDelete,
   onAISuggest,
+  sharedWithBenefits,
 }: CapabilityCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -243,6 +245,18 @@ export default function CapabilityCard({
           )}
         </div>
       </div>
+
+      {/* Gedeeld met andere baten */}
+      {sharedWithBenefits && sharedWithBenefits.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1 items-center">
+          <span className="text-[10px] text-gray-400">Ook bij:</span>
+          {sharedWithBenefits.map((label, i) => (
+            <span key={i} className="text-[10px] px-1.5 py-0.5 bg-din-baten/10 text-din-baten rounded-full truncate max-w-[150px]">
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* AI Panel */}
       {showAIPanel && !aiSuggestion && (
