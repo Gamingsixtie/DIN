@@ -134,12 +134,20 @@ export default function EffortCard({
         <span className={`font-medium ${colors.text}`}>
           {DOMAIN_LABELS[effort.domain]}
         </span>
-        <input
+        <select
           value={effort.quarter || ""}
           onChange={(e) => onChange({ ...effort, quarter: e.target.value })}
-          className="px-2 py-0.5 border border-gray-200 rounded bg-white/70 text-xs w-20 focus:outline-none"
-          placeholder="Q1 2026"
-        />
+          className="px-2 py-0.5 border border-gray-200 rounded bg-white/70 text-xs focus:outline-none"
+        >
+          <option value="">Kwartaal...</option>
+          <option value="Nader te bepalen">Nader te bepalen</option>
+          <option value="Q1 2026">Q1 2026</option>
+          <option value="Q2 2026">Q2 2026</option>
+          <option value="Q3 2026">Q3 2026</option>
+          <option value="Q4 2026">Q4 2026</option>
+          <option value="Q1 2027">Q1 2027</option>
+          <option value="Q2 2027">Q2 2027</option>
+        </select>
         <select
           value={effort.status}
           onChange={(e) =>

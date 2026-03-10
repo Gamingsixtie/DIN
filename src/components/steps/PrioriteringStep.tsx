@@ -9,6 +9,7 @@ import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 type ApprovalStatus = "voorstel" | "goedgekeurd" | "afgewezen" | "aangepast";
 
 const QUARTERS = [
+  "Nader te bepalen",
   "Q1 2026",
   "Q2 2026",
   "Q3 2026",
@@ -198,7 +199,7 @@ export default function PrioriteringStep() {
         <h3 className="text-lg font-semibold text-cito-blue mb-3">
           Tijdlijn — alle sectoren
         </h3>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-7 gap-2">
           {effortsByQuarter.map(({ quarter, efforts }) => (
             <div
               key={quarter}

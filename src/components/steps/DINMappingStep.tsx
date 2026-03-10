@@ -134,7 +134,7 @@ function ExterneProjectenPanel({
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-700">
-            Buiten het programma
+            Lopende projecten
           </span>
           {projects.length > 0 && (
             <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
@@ -148,7 +148,7 @@ function ExterneProjectenPanel({
       {open && (
         <div className="px-4 pb-4 space-y-3">
           <p className="text-xs text-gray-400">
-            Lopende projecten en initiatieven bij {currentSector} die buiten dit programma vallen maar wel relevant zijn.
+            Lopende projecten bij {currentSector} die vanwege hun kenmerken passen bij het programma Klant in Beeld.
           </p>
 
           {projects.map((p) => (
@@ -251,7 +251,7 @@ function ExterneProjectenPanel({
 
           {projects.length === 0 && (
             <p className="text-xs text-gray-400 italic py-2">
-              Nog geen externe projecten. Voeg projecten toe die buiten het programma lopen.
+              Nog geen lopende projecten toegevoegd. Voeg projecten toe die passen bij Klant in Beeld.
             </p>
           )}
 
@@ -614,6 +614,7 @@ export default function DINMappingStep() {
           capabilities: sectorCapabilities,
           efforts: sectorEfforts,
           externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
+          sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
         }),
       });
       const data = await res.json();

@@ -135,6 +135,7 @@ export async function generateSectorIntegratie(data: {
   capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
   efforts: { description: string; domain: string; quarter?: string; status?: string }[];
   externalProjects?: { name: string; description: string; status: string; relevance?: string }[];
+  sectorAnalysis?: string;
 }): Promise<string> {
   const domainLabels: Record<string, string> = {
     mens: "Mens",
@@ -205,7 +206,49 @@ export async function generateSectorIntegratie(data: {
     parts.push("Nog geen inspanningen ingevuld.");
   }
 
-  parts.push("\n--- Lopende projecten BUITEN het programma ---");
+  if (data.sectorAnalysis) {
+    parts.push("\n--- Eerdere AI-analyse van het sectorplan ---");
+    let analysisSummary = data.sectorAnalysis;
+    try {
+      const jsonMatch = data.sectorAnalysis.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.samenvatting) {
+          const summaryParts: string[] = [];
+          summaryParts.push(`Samenvatting: ${parsed.samenvatting}`);
+          if (parsed.aansluiting?.punten?.length) {
+            summaryParts.push(`Aansluiting op KiB-doelen:\n${parsed.aansluiting.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.baten?.punten?.length) {
+            summaryParts.push(`Voorgestelde baten:\n${parsed.baten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.vermogens?.punten?.length) {
+            summaryParts.push(`Benodigde vermogens:\n${parsed.vermogens.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.inspanningen) {
+            const domains = { mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur" };
+            const domainParts: string[] = [];
+            for (const [key, label] of Object.entries(domains)) {
+              const items = parsed.inspanningen[key];
+              if (items?.length) {
+                domainParts.push(`  ${label}: ${items.map((i: string) => i).join("; ")}`);
+              }
+            }
+            if (domainParts.length) {
+              summaryParts.push(`Voorgestelde inspanningen:\n${domainParts.join("\n")}`);
+            }
+          }
+          if (parsed.aandachtspunten?.punten?.length) {
+            summaryParts.push(`Aandachtspunten:\n${parsed.aandachtspunten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          analysisSummary = summaryParts.join("\n\n");
+        }
+      }
+    } catch { /* gebruik originele string */ }
+    parts.push(analysisSummary.slice(0, 3000));
+  }
+
+  parts.push("\n--- Lopende projecten passend bij KiB ---");
   if (data.externalProjects && data.externalProjects.length > 0) {
     data.externalProjects.forEach((p, i) => {
       let line = `${i + 1}. ${p.name}`;

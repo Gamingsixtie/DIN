@@ -194,11 +194,11 @@ export interface DINSession {
   sectorAnalyses?: Record<string, string>;
   // Opgeslagen verrijkte sectorplannen per sector (uit DIN-Mapping)
   verrijkteSectorplannen?: Record<string, string>;
-  // Externe projecten buiten het programma, per sector
+  // Lopende projecten die passen bij het programma KiB, per sector
   externalProjects?: ExternalProject[];
 }
 
-// --- Externe projecten (buiten het programma) ---
+// --- Lopende projecten (passend bij KiB-programma) ---
 
 export interface ExternalProject {
   id: string;

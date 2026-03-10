@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         capabilities: body.capabilities || [],
         efforts: body.efforts || [],
         externalProjects: body.externalProjects || [],
+        sectorAnalysis: body.sectorAnalysis || "",
       });
     } else {
       analysis = await generateCrossAnalyse(body);
