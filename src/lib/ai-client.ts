@@ -118,14 +118,14 @@ export async function generateDINMapping(
   "efforts": [{"description": "...", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026"}]
 }`);
 
-  return callClaude(DIN_MAPPING_PROMPT, parts.join("\n"));
+  return callClaude(DIN_MAPPING_PROMPT, parts.join("\n"), 8192);
 }
 
 export async function generateCrossAnalyse(
   data: Record<string, unknown>
 ): Promise<string> {
   const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 6000)}`;
-  return callClaude(CROSS_ANALYSE_PROMPT, userMessage);
+  return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192);
 }
 
 export async function generateSectorIntegratie(data: {
@@ -271,7 +271,7 @@ export async function generateProgrammaPlan(
   sessionData: Record<string, unknown>
 ): Promise<string> {
   const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 6000)}`;
-  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage);
+  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384);
 }
 
 export async function generateBatenprofiel(
