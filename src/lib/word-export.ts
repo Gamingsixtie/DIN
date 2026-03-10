@@ -540,7 +540,7 @@ export async function generateVerrijktSectorplanDocument(
             alignment: AlignmentType.CENTER,
             spacing: { before: 2000, after: 200 },
             children: [
-              new TextRun({ text: `Verrijkt Sectorplan: ${sectorName}`, size: 48, color: CITO_BLUE, bold: true }),
+              new TextRun({ text: `Sectorplan ${sectorName} — Klant in Beeld`, size: 48, color: CITO_BLUE, bold: true }),
             ],
           }),
           new Paragraph({

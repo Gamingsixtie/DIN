@@ -96,6 +96,85 @@ function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
   );
 }
 
+// Markdown-naar-JSX renderer voor bijgewerkt sectorplan
+function MarkdownContent({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+
+  function renderInline(text: string): React.ReactNode[] {
+    // **bold** segments
+    const parts = text.split(/\*\*(.+?)\*\*/g);
+    return parts.map((part, i) =>
+      i % 2 === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>
+    );
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      elements.push(<div key={i} className="h-2" />);
+      continue;
+    }
+    // # H1
+    if (trimmed.startsWith("# ")) {
+      elements.push(
+        <h2 key={i} className="text-lg font-bold text-cito-blue mt-5 mb-2 border-b border-cito-blue/20 pb-1">
+          {renderInline(trimmed.slice(2))}
+        </h2>
+      );
+      continue;
+    }
+    // ## H2
+    if (trimmed.startsWith("## ")) {
+      elements.push(
+        <h3 key={i} className="text-base font-bold text-cito-blue mt-4 mb-1.5">
+          {renderInline(trimmed.slice(3))}
+        </h3>
+      );
+      continue;
+    }
+    // ### H3
+    if (trimmed.startsWith("### ")) {
+      elements.push(
+        <h4 key={i} className="text-sm font-bold text-gray-800 mt-3 mb-1">
+          {renderInline(trimmed.slice(4))}
+        </h4>
+      );
+      continue;
+    }
+    // Numbered heading: 1. **Tekst**
+    const numberedBold = trimmed.match(/^(\d+)\.\s+\*\*(.+?)\*\*:?\s*(.*)/);
+    if (numberedBold) {
+      elements.push(
+        <h4 key={i} className="text-sm font-bold text-cito-blue mt-3 mb-1">
+          {numberedBold[1]}. {numberedBold[2]}{numberedBold[3] ? `: ${numberedBold[3]}` : ""}
+        </h4>
+      );
+      continue;
+    }
+    // Bullet: - or *
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      elements.push(
+        <div key={i} className="flex items-start gap-2 ml-4 mb-0.5">
+          <span className="text-cito-blue mt-1 shrink-0">&bull;</span>
+          <span className="text-sm text-gray-700 leading-relaxed">{renderInline(trimmed.slice(2))}</span>
+        </div>
+      );
+      continue;
+    }
+    // Regular text
+    elements.push(
+      <p key={i} className="text-sm text-gray-700 leading-relaxed mb-1">
+        {renderInline(trimmed)}
+      </p>
+    );
+  }
+
+  return <div>{elements}</div>;
+}
+
 const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = [
   { key: "gepland", label: "Gepland", color: "bg-gray-100 text-gray-600" },
   { key: "in_uitvoering", label: "Actief", color: "bg-green-100 text-green-700" },
@@ -1156,8 +1235,8 @@ export default function DINMappingStep() {
                       Sluiten
                     </button>
                   </div>
-                  <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
-                    {verrijktSectorplan[activeSector]}
+                  <div className="bg-white p-5 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
+                    <MarkdownContent content={verrijktSectorplan[activeSector]} />
                   </div>
 
                   {/* Download als Word */}

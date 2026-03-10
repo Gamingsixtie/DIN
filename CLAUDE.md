@@ -21,6 +21,7 @@ npx vercel --prod    # Deploy naar productie
 4. **Methodiek volgen**: Elke feature moet aansluiten bij de DIN-methodiek uit `docs/programmaboek.doc`
 5. **Geen stille failures**: Altijd gebruikersfeedback tonen bij acties (loading states, success/error meldingen)
 6. **Direct committen en pushen** na elke werkende wijziging
+7. **UX design voor alle output**: Alle AI-output, documenten en gegenereerde content MOET visueel aantrekkelijk en overzichtelijk zijn. Nooit platte tekst of raw markdown tonen — altijd renderen met gestructureerde opmaak (headings, kleuren, kaarten, bullet points). Dit geldt voor zowel de in-app weergave als de Word-export. Behandel elke output als een professioneel document.
 
 ## Methodiek — DIN Framework
 

@@ -8,7 +8,11 @@
       "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/klant-in-beeld/SKILL.md\")",
       "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/ui-design-system/SKILL.md\")",
       "Bash(curl -sL \"https://raw.githubusercontent.com/Gamingsixtie/pim-skills/main/web-asset-generator/SKILL.md\")",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(npx vercel --name din-app --yes)",
+      "Bash(npx vercel env add NEXT_PUBLIC_SUPABASE_URL production --value \"https://mrlrbpljkhubrqtiurer.supabase.co\" --yes)",
+      "Bash(npm install docx)",
+      "Bash(npm install mammoth)"
     ]
   }
 }
