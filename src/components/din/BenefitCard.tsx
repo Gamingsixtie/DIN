@@ -211,7 +211,10 @@ export default function BenefitCard({
       {/* AI Panel: selectie + prompt */}
       {showAIPanel && !aiSuggestion && (
         <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-2">
-          <div className="text-xs font-semibold text-cito-accent mb-1">Wat wil je aanscherpen?</div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-cito-accent">Wat wil je aanscherpen?</span>
+            <button onClick={() => setShowAIPanel(false)} className="text-xs text-gray-400 hover:text-gray-600">&#10005;</button>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
               <button
