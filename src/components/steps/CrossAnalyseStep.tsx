@@ -460,6 +460,20 @@ export default function CrossAnalyseStep() {
   const totalCapabilities = session.capabilities.length;
   const hasData = totalBenefits > 0 || totalCapabilities > 0 || totalEfforts > 0;
 
+  // Parse AI-analyse voor hergebruik in data-secties
+  let parsedAI: CrossAnalyseResult | null = null;
+  if (aiAnalysis) {
+    try {
+      const jsonMatch = aiAnalysis.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const obj = JSON.parse(jsonMatch[0]);
+        if (obj.synergie && obj.gaps && obj.hefboomwerking && obj.domeinBalans) {
+          parsedAI = obj;
+        }
+      }
+    } catch { /* geen parsed data */ }
+  }
+
   // Details voor gap-analyse
   const goalsWithoutBenefitsDetails = session.goals.filter((g) =>
     gaps.goalsWithoutBenefits.includes(g.id)
@@ -702,6 +716,17 @@ export default function CrossAnalyseStep() {
 
               const domainEfforts = session.efforts.filter((e) => e.domain === domain);
 
+              // AI-beoordeling voor dit domein ophalen
+              const domainNameMap: Record<EffortDomain, string[]> = {
+                mens: ["mens"],
+                processen: ["processen"],
+                data_systemen: ["data & systemen", "data_systemen", "data en systemen"],
+                cultuur: ["cultuur"],
+              };
+              const aiDomein = parsedAI?.domeinBalans?.domeinen?.find(
+                (d) => domainNameMap[domain]?.some((n) => d.domein.toLowerCase().includes(n))
+              );
+
               return (
                 <div
                   key={domain}
@@ -709,8 +734,20 @@ export default function CrossAnalyseStep() {
                     isEmpty ? "border-red-200 bg-red-50/50" : `border-gray-200 ${colors.bg}`
                   }`}
                 >
-                  <div className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
-                    {DOMAIN_LABELS[domain]}
+                  <div className="flex items-center justify-between">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+                      {DOMAIN_LABELS[domain]}
+                    </div>
+                    {aiDomein && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        aiDomein.beoordeling.toLowerCase().includes("voldoende") ? "bg-green-100 text-green-700" :
+                        aiDomein.beoordeling.toLowerCase().includes("te weinig") ? "bg-red-100 text-red-700" :
+                        aiDomein.beoordeling.toLowerCase().includes("oververtegenwoordigd") ? "bg-amber-100 text-amber-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {aiDomein.beoordeling}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-end gap-2 mt-2">
                     <div className={`text-3xl font-bold ${isEmpty ? "text-red-400" : colors.text}`}>
@@ -739,7 +776,7 @@ export default function CrossAnalyseStep() {
                       })}
                     </div>
                   )}
-                  {isEmpty && (
+                  {isEmpty && !aiDomein && (
                     <div className="mt-2 text-[10px] text-red-500 font-medium flex items-center gap-1">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -747,35 +784,57 @@ export default function CrossAnalyseStep() {
                       Niet afgedekt
                     </div>
                   )}
+                  {aiDomein?.advies && (
+                    <p className="mt-2 text-[10px] text-gray-500 leading-relaxed italic">{aiDomein.advies}</p>
+                  )}
                 </div>
               );
             })}
           </div>
 
           {/* Balans-check */}
-          {totalEfforts > 0 && (
-            <div className={`mt-4 p-3 rounded-lg text-sm flex items-center gap-2 ${
-              Object.values(domainBalance).some((v) => v === 0)
-                ? "bg-red-50 border border-red-200 text-red-700"
-                : "bg-green-50 border border-green-200 text-green-700"
-            }`}>
-              {Object.values(domainBalance).some((v) => v === 0) ? (
-                <>
-                  <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                  <span><strong>Balans-check:</strong> Niet alle domeinen zijn afgedekt! Voeg inspanningen toe voor de ontbrekende domeinen.</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                  </svg>
-                  <span><strong>Balans-check:</strong> Alle 4 domeinen zijn afgedekt.</span>
-                </>
-              )}
-            </div>
-          )}
+          {totalEfforts > 0 && (() => {
+            const hasEmptyDomains = Object.values(domainBalance).some((v) => v === 0);
+            const aiTeWeinig = parsedAI?.domeinBalans?.domeinen?.filter(
+              (d) => d.beoordeling.toLowerCase().includes("te weinig")
+            ) || [];
+            const hasAIWarnings = aiTeWeinig.length > 0;
+            const isWarning = hasEmptyDomains || hasAIWarnings;
+
+            return (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${
+                isWarning
+                  ? "bg-red-50 border border-red-200 text-red-700"
+                  : "bg-green-50 border border-green-200 text-green-700"
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isWarning ? (
+                    <>
+                      <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      <span>
+                        <strong>Balans-check:</strong>{" "}
+                        {hasEmptyDomains
+                          ? "Niet alle domeinen zijn afgedekt!"
+                          : `AI beoordeelt ${aiTeWeinig.map((d) => d.domein).join(", ")} als onvoldoende.`}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                      <span><strong>Balans-check:</strong> Alle 4 domeinen zijn afgedekt.</span>
+                    </>
+                  )}
+                </div>
+                {parsedAI?.domeinBalans?.toelichting && (
+                  <p className="text-xs mt-1.5 opacity-80 italic ml-6">{parsedAI.domeinBalans.toelichting}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </section>
 
