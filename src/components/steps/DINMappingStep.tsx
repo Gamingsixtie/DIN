@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/session-context";
 import type {
   DINBenefit,
@@ -431,6 +431,25 @@ export default function DINMappingStep() {
     session?.integratieAdvies || {}
   );
 
+  // Undo state voor verwijderde items
+  const [deletedItem, setDeletedItem] = useState<{
+    type: "baat" | "vermogen" | "inspanning";
+    item: DINBenefit | DINCapability | DINEffort;
+    maps: { goalBenefitMaps?: { goalId: string; benefitId: string }[]; benefitCapabilityMaps?: { benefitId: string; capabilityId: string }[]; capabilityEffortMaps?: { capabilityId: string; effortId: string }[] };
+  } | null>(null);
+  const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-dismiss undo toast na 8 seconden
+  const dismissUndo = useCallback(() => {
+    setDeletedItem(null);
+    if (undoTimer) clearTimeout(undoTimer);
+    setUndoTimer(null);
+  }, [undoTimer]);
+
+  useEffect(() => {
+    return () => { if (undoTimer) clearTimeout(undoTimer); };
+  }, [undoTimer]);
+
   // Wrapper: sla integratie-advies ook op in sessie (persistentie)
   function setIntegratieAdvies(updater: (prev: Record<string, IntegratieAdviesResult | string>) => Record<string, IntegratieAdviesResult | string>) {
     setIntegratieAdviesState((prev) => {
@@ -527,6 +546,13 @@ export default function DINMappingStep() {
     });
   }
   function deleteBenefit(id: string) {
+    const item = session!.benefits.find((b) => b.id === id);
+    const maps = session!.goalBenefitMaps.filter((m) => m.benefitId === id);
+    if (item) {
+      if (undoTimer) clearTimeout(undoTimer);
+      setDeletedItem({ type: "baat", item, maps: { goalBenefitMaps: maps } });
+      setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
+    }
     updateSession({
       benefits: session!.benefits.filter((b) => b.id !== id),
       goalBenefitMaps: session!.goalBenefitMaps.filter(
@@ -553,6 +579,13 @@ export default function DINMappingStep() {
     });
   }
   function deleteCapability(id: string) {
+    const item = session!.capabilities.find((c) => c.id === id);
+    const maps = session!.benefitCapabilityMaps.filter((m) => m.capabilityId === id);
+    if (item) {
+      if (undoTimer) clearTimeout(undoTimer);
+      setDeletedItem({ type: "vermogen", item, maps: { benefitCapabilityMaps: maps } });
+      setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
+    }
     updateSession({
       capabilities: session!.capabilities.filter((c) => c.id !== id),
       benefitCapabilityMaps: session!.benefitCapabilityMaps.filter(
@@ -580,6 +613,13 @@ export default function DINMappingStep() {
     });
   }
   function deleteEffort(id: string) {
+    const item = session!.efforts.find((e) => e.id === id);
+    const maps = session!.capabilityEffortMaps.filter((m) => m.effortId === id);
+    if (item) {
+      if (undoTimer) clearTimeout(undoTimer);
+      setDeletedItem({ type: "inspanning", item, maps: { capabilityEffortMaps: maps } });
+      setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
+    }
     updateSession({
       efforts: session!.efforts.filter((e) => e.id !== id),
       capabilityEffortMaps: session!.capabilityEffortMaps.filter(
@@ -629,6 +669,10 @@ export default function DINMappingStep() {
     return async () => {
       return fetchAISuggestion("baat", {
         existingDescription: benefit.description || undefined,
+        existingIndicator: benefit.profiel.indicator || undefined,
+        existingOwner: benefit.profiel.indicatorOwner || undefined,
+        existingCurrentValue: benefit.profiel.currentValue || undefined,
+        existingTargetValue: benefit.profiel.targetValue || undefined,
         relatedBenefits: sectorBenefits
           .filter((b) => b.id !== benefit.id && b.description)
           .map((b) => b.description),
@@ -865,8 +909,58 @@ export default function DINMappingStep() {
     }
   }
 
+  // --- Undo handler ---
+  function handleUndo() {
+    if (!deletedItem) return;
+    const { type, item, maps } = deletedItem;
+    if (type === "baat") {
+      updateSession({
+        benefits: [...session!.benefits, item as DINBenefit],
+        goalBenefitMaps: [...session!.goalBenefitMaps, ...(maps.goalBenefitMaps || [])],
+      });
+    } else if (type === "vermogen") {
+      updateSession({
+        capabilities: [...session!.capabilities, item as DINCapability],
+        benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...(maps.benefitCapabilityMaps || [])],
+      });
+    } else if (type === "inspanning") {
+      updateSession({
+        efforts: [...session!.efforts, item as DINEffort],
+        capabilityEffortMaps: [...session!.capabilityEffortMaps, ...(maps.capabilityEffortMaps || [])],
+      });
+    }
+    dismissUndo();
+  }
+
+  const deletedItemLabel = deletedItem
+    ? deletedItem.type === "baat"
+      ? `Baat "${(deletedItem.item as DINBenefit).description || "(naamloos)"}"`
+      : deletedItem.type === "vermogen"
+      ? `Vermogen "${(deletedItem.item as DINCapability).description || "(naamloos)"}"`
+      : `Inspanning "${(deletedItem.item as DINEffort).description || "(naamloos)"}"`
+    : "";
+
   return (
     <div className="space-y-4">
+      {/* Undo toast */}
+      {deletedItem && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-lg animate-slide-in-right">
+          <span className="text-sm">{deletedItemLabel} verwijderd</span>
+          <button
+            onClick={handleUndo}
+            className="text-sm font-semibold text-cito-accent hover:text-white bg-white/10 px-3 py-1 rounded-lg transition-colors"
+          >
+            Terughalen
+          </button>
+          <button
+            onClick={dismissUndo}
+            className="text-gray-400 hover:text-white text-xs ml-1"
+          >
+            &#10005;
+          </button>
+        </div>
+      )}
+
       {/* Loading overlay bij genereren verrijkt sectorplan */}
       {isGeneratingPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">

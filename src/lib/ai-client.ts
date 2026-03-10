@@ -289,6 +289,10 @@ export async function suggestDINItem(
     goalDescription?: string;
     sectorPlanText?: string;
     existingDescription?: string;
+    existingIndicator?: string;
+    existingOwner?: string;
+    existingCurrentValue?: string;
+    existingTargetValue?: string;
     relatedBenefits?: string[];
     relatedCapabilities?: string[];
     domain?: string;
@@ -313,6 +317,18 @@ export async function suggestDINItem(
     parts.push(`Bestaande beschrijving: "${context.existingDescription}"\nVerbeter of vul aan.`);
   } else {
     parts.push("Er is nog geen beschrijving. Genereer een nieuwe suggestie.");
+  }
+  if (context.existingIndicator) {
+    parts.push(`Huidige indicator: "${context.existingIndicator}"`);
+  }
+  if (context.existingOwner) {
+    parts.push(`Huidige eigenaar: "${context.existingOwner}"`);
+  }
+  if (context.existingCurrentValue) {
+    parts.push(`Huidige waarde: "${context.existingCurrentValue}"`);
+  }
+  if (context.existingTargetValue) {
+    parts.push(`Gewenste waarde: "${context.existingTargetValue}"`);
   }
   if (context.relatedBenefits?.length) {
     parts.push(`Gerelateerde baten:\n${context.relatedBenefits.map((b, i) => `${i + 1}. ${b}`).join("\n")}`);

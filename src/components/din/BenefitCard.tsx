@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { DINBenefit } from "@/lib/types";
 
 interface BenefitSuggestion {
+  feedback?: string;
   description: string;
   indicator: string;
   indicatorOwner: string;
@@ -27,6 +28,7 @@ export default function BenefitCard({
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<BenefitSuggestion | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function handleAISuggest() {
     if (!onAISuggest || isAILoading) return;
@@ -60,6 +62,14 @@ export default function BenefitCard({
     setAiSuggestion(null);
   }
 
+  // Completeness check
+  const missing: string[] = [];
+  if (!benefit.description) missing.push("beschrijving");
+  if (!benefit.profiel.indicator) missing.push("indicator");
+  if (!benefit.profiel.indicatorOwner) missing.push("eigenaar");
+  if (!benefit.profiel.currentValue) missing.push("huidige waarde");
+  if (!benefit.profiel.targetValue) missing.push("gewenste waarde");
+
   return (
     <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
       <div className="flex items-start justify-between">
@@ -72,46 +82,78 @@ export default function BenefitCard({
             className="w-full font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
             placeholder="Beschrijf de baat..."
           />
+          {missing.length > 0 && !expanded && (
+            <p className="text-[10px] text-amber-500 mt-1">
+              Ontbreekt: {missing.join(", ")}
+            </p>
+          )}
         </div>
-        <div className="flex gap-1 ml-2">
+        <div className="flex gap-1.5 ml-2 items-center">
           {onAISuggest && (
             <button
               onClick={handleAISuggest}
               disabled={isAILoading}
-              className="text-xs px-1.5 py-0.5 rounded text-cito-accent hover:bg-cito-accent/10 disabled:opacity-50 transition-colors"
-              title="AI-suggestie voor deze baat"
+              className="text-xs px-2 py-1 rounded-md bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20 disabled:opacity-50 transition-colors font-medium"
+              title="AI analyseert en scherpt deze baat aan"
             >
               {isAILoading ? (
                 <span className="inline-block animate-spin">&#9881;</span>
               ) : (
-                "AI"
+                "Aanscherpen"
               )}
             </button>
           )}
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-xs text-gray-400 hover:text-cito-blue px-1"
+            title={expanded ? "Inklappen" : "Profiel bewerken"}
           >
             {expanded ? "\u25B2" : "\u25BC"}
           </button>
-          <button
-            onClick={onDelete}
-            className="text-xs text-gray-400 hover:text-red-500 px-1"
-          >
-            \u2715
-          </button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-1 ml-1">
+              <button
+                onClick={onDelete}
+                className="text-[10px] px-2 py-0.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors font-medium"
+              >
+                Verwijderen
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-[10px] px-1.5 py-0.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Annuleren
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs text-gray-300 hover:text-red-500 px-1 transition-colors"
+              title="Verwijderen"
+            >
+              &#128465;
+            </button>
+          )}
         </div>
       </div>
 
-      {/* AI Suggestie */}
+      {/* AI Suggestie met feedback */}
       {aiSuggestion && (
-        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-cito-accent">AI Suggestie</span>
+        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
+          {/* Feedback: wat mist er */}
+          {aiSuggestion.feedback && (
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+              <span className="font-semibold">Analyse: </span>
+              {aiSuggestion.feedback}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-cito-accent">Aangescherpte suggestie</span>
             <div className="flex gap-2">
               <button
                 onClick={applySuggestion}
-                className="text-xs px-2 py-1 bg-cito-accent text-white rounded hover:bg-cito-blue transition-colors"
+                className="text-xs px-3 py-1 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium"
               >
                 Toepassen
               </button>
@@ -132,7 +174,7 @@ export default function BenefitCard({
               <p><span className="font-medium">Eigenaar:</span> {aiSuggestion.indicatorOwner}</p>
             )}
             {aiSuggestion.currentValue && (
-              <p><span className="font-medium">Nu:</span> {aiSuggestion.currentValue} <span className="font-medium">Doel:</span> {aiSuggestion.targetValue}</p>
+              <p><span className="font-medium">Nu:</span> {aiSuggestion.currentValue} <span className="font-medium">&#8594; Doel:</span> {aiSuggestion.targetValue}</p>
             )}
           </div>
         </div>

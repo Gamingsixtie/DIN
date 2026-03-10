@@ -154,17 +154,26 @@ export const DIN_SUGGEST_BAAT_PROMPT = `Je bent een DIN-methodiek expert (Doelen
 Je helpt de gebruiker bij het formuleren van een baat (gewenst effect).
 Een baat beschrijft het gewenste effect voor klant, markt of organisatie — meetbaar en concreet.
 
-Je krijgt context: het programmadoel, de sector, optioneel een sectorplan, en een eventuele bestaande beschrijving.
+Je krijgt context: het programmadoel, de sector, optioneel een sectorplan, en de huidige invulling van de baat.
 
-Geef een concrete suggestie met:
-- description: Het gewenste effect (vanuit klant/markt/organisatie-perspectief)
-- indicator: Meetbare KPI (specifiek, niet vaag)
-- indicatorOwner: Verantwoordelijke rol/functie
-- currentValue: Schatting van de huidige stand
-- targetValue: Concreet doel
+STAP 1: Analyseer wat er MIST of ZWAK is aan de huidige baat:
+- Is de beschrijving concreet genoeg? Of vaag/abstract?
+- Is er een meetbare indicator? Of ontbreekt die?
+- Is er een eigenaar benoemd?
+- Zijn de huidige en gewenste waarden ingevuld en realistisch?
+- Sluit de baat goed aan op het programmadoel?
+
+STAP 2: Geef een verbeterde versie met alle velden aangescherpt.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
-{"description": "...", "indicator": "...", "indicatorOwner": "...", "currentValue": "...", "targetValue": "..."}`;
+{
+  "feedback": "Korte analyse (1-3 zinnen) van wat er mist of beter kan aan de huidige baat. Wees specifiek.",
+  "description": "Verbeterde/aangescherpte beschrijving",
+  "indicator": "Meetbare KPI (specifiek, niet vaag)",
+  "indicatorOwner": "Verantwoordelijke rol/functie",
+  "currentValue": "Schatting van de huidige stand",
+  "targetValue": "Concreet doel"
+}`;
 
 export const DIN_SUGGEST_VERMOGEN_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak).
 
