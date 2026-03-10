@@ -1,11 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { DINSession, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
-
-interface DINNetworkGraphProps {
-  session: DINSession;
-}
 
 const DOMAIN_COLORS: Record<EffortDomain, { border: string; bg: string; text: string }> = {
   mens: { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-700" },
@@ -46,31 +43,92 @@ const SECTOR_LABEL_STYLES: Record<SectorName, string> = {
   Zakelijk: "bg-purple-100 text-purple-800",
 };
 
+// Chevron SVG
+function ChevronIcon({ expanded, className = "" }: { expanded: boolean; className?: string }) {
+  return (
+    <svg
+      className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""} ${className}`}
+      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+// DIN chain completeness dots
+function ChainIndicator({ hasBenefits, hasCaps, hasEfforts }: { hasBenefits: boolean; hasCaps: boolean; hasEfforts: boolean }) {
+  return (
+    <div className="flex items-center gap-1">
+      <div className={`w-2 h-2 rounded-full ${hasBenefits ? "bg-din-baten" : "bg-gray-200"}`} />
+      <div className={`w-2 h-2 rounded-full ${hasCaps ? "bg-din-vermogens" : "bg-gray-200"}`} />
+      <div className={`w-2 h-2 rounded-full ${hasEfforts ? "bg-din-inspanningen" : "bg-gray-200"}`} />
+    </div>
+  );
+}
+
+// Flow arrow between stats
+function FlowArrow() {
+  return (
+    <svg className="w-5 h-5 text-gray-300 shrink-0 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+    </svg>
+  );
+}
+
+// Column connector (vertical line + chevron)
+function ColumnConnector() {
+  return (
+    <div className="w-6 flex flex-col items-center justify-center shrink-0">
+      <div className="w-px flex-1 bg-gradient-to-b from-gray-200 to-gray-200 min-h-4" />
+      <svg className="w-3 h-3 text-gray-300 my-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+      <div className="w-px flex-1 bg-gradient-to-b from-gray-200 to-gray-200 min-h-4" />
+    </div>
+  );
+}
+
+interface DINNetworkGraphProps {
+  session: DINSession;
+}
+
 export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
-  const totalBenefits = session.benefits.length;
-  const totalCapabilities = session.capabilities.length;
-  const totalEfforts = session.efforts.length;
+  const [collapsedGoals, setCollapsedGoals] = useState<Set<string>>(new Set());
+
+  function toggleGoal(id: string) {
+    const next = new Set(collapsedGoals);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCollapsedGoals(next);
+  }
+
   const synergieCount = session.capabilities.filter(
     (c) => c.relatedSectors && c.relatedSectors.length > 1
   ).length;
 
   const stats = [
-    { label: "Doelen", value: session.goals.length, color: "bg-din-doelen" },
-    { label: "Baten", value: totalBenefits, color: "bg-din-baten" },
-    { label: "Vermogens", value: totalCapabilities, color: "bg-din-vermogens" },
-    { label: "Inspanningen", value: totalEfforts, color: "bg-din-inspanningen" },
+    { label: "Doelen", value: session.goals.length, color: "bg-din-doelen", sub: "uit KiB" },
+    { label: "Baten", value: session.benefits.length, color: "bg-din-baten", sub: "totaal" },
+    { label: "Vermogens", value: session.capabilities.length, color: "bg-din-vermogens", sub: "totaal" },
+    { label: "Inspanningen", value: session.efforts.length, color: "bg-din-inspanningen", sub: "totaal" },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
-            <div className={`w-10 h-10 rounded-lg ${s.color} flex items-center justify-center text-white text-lg font-bold`}>
-              {s.value}
+      {/* Stats header met flow-pijlen */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        {stats.map((s, i) => (
+          <div key={s.label} className="flex items-center">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center text-white text-xl font-bold shadow-sm`}>
+                {s.value}
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-800">{s.label}</div>
+                <div className="text-[10px] text-gray-400">{s.sub}</div>
+              </div>
             </div>
-            <div className="text-xs text-gray-600 font-medium">{s.label}</div>
+            {i < stats.length - 1 && <FlowArrow />}
           </div>
         ))}
       </div>
@@ -87,6 +145,23 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
           </div>
         </div>
       )}
+
+      {/* Alles in-/uitklappen */}
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => {
+            if (collapsedGoals.size === 0) {
+              setCollapsedGoals(new Set(session.goals.map((g) => g.id)));
+            } else {
+              setCollapsedGoals(new Set());
+            }
+          }}
+          className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+        >
+          <ChevronIcon expanded={collapsedGoals.size === 0} className="w-3 h-3" />
+          {collapsedGoals.size === 0 ? "Alles inklappen" : "Alles uitklappen"}
+        </button>
+      </div>
 
       {/* DIN-keten per doel — met sector-groepering */}
       {session.goals
@@ -117,8 +192,8 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
           const hasBenefits = goalBenefits.length > 0;
           const hasCaps = goalCapabilities.length > 0;
           const hasEfforts = goalEfforts.length > 0;
+          const isCollapsed = collapsedGoals.has(goal.id);
 
-          // Determine which sectors have items for this goal
           const sectorsForGoal = SECTORS.filter(
             (s) =>
               goalBenefits.some((b) => b.sectorId === s) ||
@@ -130,157 +205,162 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
             <div key={goal.id} className="relative">
               {/* Doel */}
               <div className="bg-white border-2 border-din-doelen rounded-xl overflow-hidden shadow-sm">
-                <div className="bg-din-doelen/10 px-5 py-3 flex items-center gap-3">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-din-doelen text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                {/* Doel header — klikbaar */}
+                <div
+                  className="bg-gradient-to-r from-din-doelen/15 to-din-doelen/5 px-5 py-3 flex items-center gap-3 cursor-pointer hover:from-din-doelen/20 hover:to-din-doelen/10 transition-all select-none"
+                  onClick={() => toggleGoal(goal.id)}
+                >
+                  <div className="shrink-0 w-8 h-8 rounded-lg bg-din-doelen text-white flex items-center justify-center text-sm font-bold shadow-sm">
                     {goal.rank}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-gray-800">{goal.name}</div>
-                    {goal.description && (
+                    {goal.description && !isCollapsed && (
                       <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{goal.description}</div>
                     )}
                   </div>
+                  <ChainIndicator hasBenefits={hasBenefits} hasCaps={hasCaps} hasEfforts={hasEfforts} />
                   <div className="flex gap-1.5 shrink-0">
                     {hasBenefits && <span className="text-[10px] bg-din-baten/10 text-din-baten px-1.5 py-0.5 rounded font-medium">{goalBenefits.length} baten</span>}
                     {hasCaps && <span className="text-[10px] bg-din-vermogens/10 text-din-vermogens px-1.5 py-0.5 rounded font-medium">{goalCapabilities.length} vermogens</span>}
                     {hasEfforts && <span className="text-[10px] bg-din-inspanningen/10 text-din-inspanningen px-1.5 py-0.5 rounded font-medium">{goalEfforts.length} inspanningen</span>}
                   </div>
+                  <ChevronIcon expanded={!isCollapsed} className="text-gray-400 shrink-0" />
                 </div>
 
-                {/* DIN-keten flow — gegroepeerd per sector */}
-                {hasBenefits ? (
-                  <div className="p-5 space-y-3">
-                    {sectorsForGoal.map((sector) => {
-                      const sectorBenefits = goalBenefits.filter((b) => b.sectorId === sector);
-                      const sectorCaps = goalCapabilities.filter((c) => c.sectorId === sector);
-                      const sectorEfforts = goalEfforts.filter((e) => e.sectorId === sector);
+                {/* Content — inklapbaar */}
+                <div className="collapse-wrapper" data-collapsed={isCollapsed ? "true" : "false"}>
+                  <div>
+                    {hasBenefits ? (
+                      <div className="p-5 space-y-3">
+                        {sectorsForGoal.map((sector) => {
+                          const sectorBenefits = goalBenefits.filter((b) => b.sectorId === sector);
+                          const sectorCaps = goalCapabilities.filter((c) => c.sectorId === sector);
+                          const sectorEfforts = goalEfforts.filter((e) => e.sectorId === sector);
 
-                      if (sectorBenefits.length === 0 && sectorCaps.length === 0 && sectorEfforts.length === 0) return null;
+                          if (sectorBenefits.length === 0 && sectorCaps.length === 0 && sectorEfforts.length === 0) return null;
 
-                      return (
-                        <div key={sector} className={`rounded-lg border ${SECTOR_BORDER_COLORS[sector]} ${SECTOR_BG_COLORS[sector]} p-3`}>
-                          {/* Sector label */}
-                          <div className="mb-2">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${SECTOR_LABEL_STYLES[sector]}`}>
-                              {sector}
-                            </span>
-                          </div>
-
-                          {/* 3 kolommen */}
-                          <div className="grid grid-cols-3 gap-3">
-                            {/* Baten kolom */}
-                            <div>
-                              <div className="flex items-center gap-1 mb-1.5">
-                                <div className="w-2 h-2 rounded-full bg-din-baten" />
-                                <span className="text-[10px] uppercase tracking-wider text-din-baten font-semibold">Baten</span>
+                          return (
+                            <div key={sector} className={`rounded-lg border ${SECTOR_BORDER_COLORS[sector]} ${SECTOR_BG_COLORS[sector]} p-3`}>
+                              {/* Sector label */}
+                              <div className="mb-2">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${SECTOR_LABEL_STYLES[sector]}`}>
+                                  {sector}
+                                </span>
                               </div>
-                              {sectorBenefits.length > 0 ? (
-                                <div className="space-y-1">
-                                  {sectorBenefits.map((b) => (
-                                    <div key={b.id} className="bg-white/80 border border-din-baten/15 rounded-lg px-2.5 py-1.5">
-                                      <span className="text-[11px] text-gray-700 leading-snug">{b.description || "(naamloos)"}</span>
-                                      {b.profiel.indicator && (
-                                        <div className="mt-0.5 text-[9px] text-gray-400">
-                                          {b.profiel.indicator}: {b.profiel.currentValue} {"\u2192"} {b.profiel.targetValue}
+
+                              {/* 3 kolommen met connectoren */}
+                              <div className="flex">
+                                {/* Baten kolom */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 mb-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-din-baten" />
+                                    <span className="text-[10px] uppercase tracking-wider text-din-baten font-semibold">Baten</span>
+                                  </div>
+                                  {sectorBenefits.length > 0 ? (
+                                    <div className="space-y-1">
+                                      {sectorBenefits.map((b) => (
+                                        <div key={b.id} className="bg-white/80 border border-din-baten/15 rounded-lg px-2.5 py-1.5">
+                                          <span className="text-[11px] text-gray-700 leading-snug">{b.description || "(naamloos)"}</span>
+                                          {b.profiel.indicator && (
+                                            <div className="mt-0.5 text-[9px] text-gray-400">
+                                              {b.profiel.indicator}: {b.profiel.currentValue} {"\u2192"} {b.profiel.targetValue}
+                                            </div>
+                                          )}
                                         </div>
-                                      )}
+                                      ))}
                                     </div>
-                                  ))}
+                                  ) : (
+                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
+                                  )}
                                 </div>
-                              ) : (
-                                <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                              )}
-                            </div>
 
-                            {/* Vermogens kolom */}
-                            <div>
-                              <div className="flex items-center gap-1 mb-1.5">
-                                <div className="w-2 h-2 rounded-full bg-din-vermogens" />
-                                <span className="text-[10px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogens</span>
-                              </div>
-                              {sectorCaps.length > 0 ? (
-                                <div className="space-y-1">
-                                  {sectorCaps.map((c) => (
-                                    <div key={c.id} className={`bg-white/80 border rounded-lg px-2.5 py-1.5 ${c.relatedSectors && c.relatedSectors.length > 1 ? "border-amber-200" : "border-din-vermogens/15"}`}>
-                                      <span className="text-[11px] text-gray-700 leading-snug">{c.description || "(naamloos)"}</span>
-                                      <div className="flex items-center gap-2 mt-0.5">
-                                        {c.currentLevel && c.targetLevel && (
-                                          <span className="text-[9px]">
-                                            <span className="text-amber-600">{c.currentLevel}/5</span>
-                                            {" \u2192 "}
-                                            <span className="text-green-600">{c.targetLevel}/5</span>
-                                          </span>
-                                        )}
-                                        {c.relatedSectors && c.relatedSectors.length > 1 && (
-                                          <span className="text-[8px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">Synergie</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                              )}
-                            </div>
+                                <ColumnConnector />
 
-                            {/* Inspanningen kolom */}
-                            <div>
-                              <div className="flex items-center gap-1 mb-1.5">
-                                <div className="w-2 h-2 rounded-full bg-din-inspanningen" />
-                                <span className="text-[10px] uppercase tracking-wider text-din-inspanningen font-semibold">Inspanningen</span>
-                              </div>
-                              {sectorEfforts.length > 0 ? (
-                                <div className="space-y-1.5">
-                                  {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
-                                    const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
-                                    if (domainEfforts.length === 0) return null;
-                                    const dc = DOMAIN_COLORS[domain];
-                                    return (
-                                      <div key={domain}>
-                                        <div className={`text-[9px] font-medium ${dc.text} mb-0.5`}>{DOMAIN_LABELS[domain]}</div>
-                                        <div className="space-y-0.5">
-                                          {domainEfforts.map((e) => {
-                                            const st = STATUS_LABELS[e.status] || STATUS_LABELS.gepland;
-                                            return (
-                                              <div key={e.id} className={`border-l-2 ${dc.border} bg-white/80 rounded-r px-2 py-1`}>
-                                                <span className="text-[10px] text-gray-700 leading-snug">{e.description || "(naamloos)"}</span>
-                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                  {e.quarter && <span className="text-[8px] text-gray-400">{e.quarter}</span>}
-                                                  {e.status && e.status !== "gepland" && (
-                                                    <span className={`text-[8px] px-1 rounded ${st.color}`}>{st.label}</span>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            );
-                                          })}
+                                {/* Vermogens kolom */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 mb-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-din-vermogens" />
+                                    <span className="text-[10px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogens</span>
+                                  </div>
+                                  {sectorCaps.length > 0 ? (
+                                    <div className="space-y-1">
+                                      {sectorCaps.map((c) => (
+                                        <div key={c.id} className={`bg-white/80 border rounded-lg px-2.5 py-1.5 ${c.relatedSectors && c.relatedSectors.length > 1 ? "border-amber-200" : "border-din-vermogens/15"}`}>
+                                          <span className="text-[11px] text-gray-700 leading-snug">{c.description || "(naamloos)"}</span>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                            {c.currentLevel && c.targetLevel && (
+                                              <span className="text-[9px]">
+                                                <span className="text-amber-600">{c.currentLevel}/5</span>
+                                                {" \u2192 "}
+                                                <span className="text-green-600">{c.targetLevel}/5</span>
+                                              </span>
+                                            )}
+                                            {c.relatedSectors && c.relatedSectors.length > 1 && (
+                                              <span className="text-[8px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">Synergie</span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
+                                  )}
                                 </div>
-                              ) : (
-                                <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Flow indicator */}
-                          <div className="flex items-center justify-center gap-1 mt-2 text-[9px] text-gray-300">
-                            <span className="text-din-baten">Baten</span>
-                            <span>{"\u2192"}</span>
-                            <span className="text-din-vermogens">Vermogens</span>
-                            <span>{"\u2192"}</span>
-                            <span className="text-din-inspanningen">Inspanningen</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                                <ColumnConnector />
+
+                                {/* Inspanningen kolom */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 mb-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-din-inspanningen" />
+                                    <span className="text-[10px] uppercase tracking-wider text-din-inspanningen font-semibold">Inspanningen</span>
+                                  </div>
+                                  {sectorEfforts.length > 0 ? (
+                                    <div className="space-y-1.5">
+                                      {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
+                                        const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
+                                        if (domainEfforts.length === 0) return null;
+                                        const dc = DOMAIN_COLORS[domain];
+                                        return (
+                                          <div key={domain}>
+                                            <div className={`text-[9px] font-medium ${dc.text} mb-0.5`}>{DOMAIN_LABELS[domain]}</div>
+                                            <div className="space-y-0.5">
+                                              {domainEfforts.map((e) => {
+                                                const st = STATUS_LABELS[e.status] || STATUS_LABELS.gepland;
+                                                return (
+                                                  <div key={e.id} className={`border-l-2 ${dc.border} bg-white/80 rounded-r px-2 py-1`}>
+                                                    <span className="text-[10px] text-gray-700 leading-snug">{e.description || "(naamloos)"}</span>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                      {e.quarter && <span className="text-[8px] text-gray-400">{e.quarter}</span>}
+                                                      {e.status && e.status !== "gepland" && (
+                                                        <span className={`text-[8px] px-1 rounded ${st.color}`}>{st.label}</span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-5 text-center">
+                        <p className="text-xs text-gray-400 italic">Nog geen DIN-netwerk voor dit doel.</p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="p-5 text-center">
-                    <p className="text-xs text-gray-400 italic">Nog geen DIN-netwerk voor dit doel.</p>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Connector to next goal */}
@@ -294,7 +374,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
         })}
 
       {/* Domeinbalans */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h4 className="text-sm font-semibold text-cito-blue mb-4">Domeinbalans inspanningen</h4>
         <div className="grid grid-cols-4 gap-4">
           {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
@@ -329,7 +409,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                     );
                   })}
                 </div>
-                {count === 0 && <div className="text-[10px] text-red-400 mt-1">Ontbreekt</div>}
+                {count === 0 && <div className="text-[10px] text-red-400 mt-1 font-medium">Ontbreekt</div>}
               </div>
             );
           })}

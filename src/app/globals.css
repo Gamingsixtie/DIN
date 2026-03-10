@@ -37,3 +37,16 @@
     transform: translateX(0);
   }
 }
+
+/* Smooth expand/collapse animatie */
+.collapse-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease-out;
+}
+.collapse-wrapper[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+}
+.collapse-wrapper > div {
+  overflow: hidden;
+}
