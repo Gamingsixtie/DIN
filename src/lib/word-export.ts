@@ -9,6 +9,7 @@ import {
   TableCell,
   WidthType,
   AlignmentType,
+  BorderStyle,
 } from "docx";
 import type { DINSession, EffortDomain, SectorName } from "./types";
 import { SECTORS } from "./types";
@@ -425,25 +426,157 @@ function roadmapSection(session: DINSession) {
 
 // --- Verrijkt sectorplan als Word ---
 
+/** Parse inline markdown (**bold**, *italic*) to TextRun array */
+function parseInlineMarkdown(text: string, baseSize?: number): TextRun[] {
+  const size = baseSize || 22;
+  const runs: TextRun[] = [];
+  // Split on **bold** and *italic* patterns
+  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith("**") && part.endsWith("**")) {
+      runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size }));
+    } else if (part.startsWith("*") && part.endsWith("*") && !part.startsWith("**")) {
+      runs.push(new TextRun({ text: part.slice(1, -1), italics: true, size }));
+    } else {
+      runs.push(new TextRun({ text: part, size, color: "333333" }));
+    }
+  }
+  return runs;
+}
+
+/** Parse markdown table lines into a docx Table */
+function parseMarkdownTable(tableLines: string[]): Table {
+  const THIN_BORDER = { style: BorderStyle.SINGLE, size: 1, color: "BBBBBB" };
+  const cellBorders = {
+    top: THIN_BORDER,
+    bottom: THIN_BORDER,
+    left: THIN_BORDER,
+    right: THIN_BORDER,
+  };
+
+  // Parse cells from a pipe-separated line
+  function parseCells(line: string): string[] {
+    return line
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((c) => c.trim());
+  }
+
+  // Detect separator line (|---|---|)
+  function isSeparator(line: string): boolean {
+    return /^\|?[\s:]*-{2,}[\s:]*(\|[\s:]*-{2,}[\s:]*)*\|?$/.test(line.trim());
+  }
+
+  const dataLines = tableLines.filter((l) => !isSeparator(l));
+  if (dataLines.length === 0) return new Table({ rows: [], width: { size: 100, type: WidthType.PERCENTAGE } });
+
+  const headerCells = parseCells(dataLines[0]);
+  const colCount = headerCells.length;
+  const colWidth = Math.floor(100 / colCount);
+
+  // Header row
+  const headerRow = new TableRow({
+    children: headerCells.map(
+      (cell) =>
+        new TableCell({
+          width: { size: colWidth, type: WidthType.PERCENTAGE },
+          shading: { fill: "E8EDF3" },
+          borders: cellBorders,
+          children: [
+            new Paragraph({
+              spacing: { before: 60, after: 60 },
+              children: [new TextRun({ text: cell, bold: true, size: 20, color: CITO_BLUE })],
+            }),
+          ],
+        })
+    ),
+  });
+
+  // Data rows
+  const dataRows = dataLines.slice(1).map(
+    (line, rowIdx) =>
+      new TableRow({
+        children: parseCells(line).slice(0, colCount).map(
+          (cell) =>
+            new TableCell({
+              width: { size: colWidth, type: WidthType.PERCENTAGE },
+              shading: rowIdx % 2 === 1 ? { fill: "F8F9FA" } : undefined,
+              borders: cellBorders,
+              children: [
+                new Paragraph({
+                  spacing: { before: 40, after: 40 },
+                  children: parseInlineMarkdown(cell, 20),
+                }),
+              ],
+            })
+        ),
+      })
+  );
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [headerRow, ...dataRows],
+  });
+}
+
 function parseMarkdownToDocx(content: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
   const lines = content.split("\n");
+  let i = 0;
 
-  for (const line of lines) {
+  while (i < lines.length) {
+    const line = lines[i];
     const trimmed = line.trim();
+
+    // Empty line
     if (!trimmed) {
       elements.push(emptyLine());
+      i++;
+      continue;
+    }
+
+    // Horizontal rule: --- or *** or ___
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      elements.push(
+        new Paragraph({
+          spacing: { before: 200, after: 200 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 1 } },
+          children: [],
+        })
+      );
+      i++;
+      continue;
+    }
+
+    // Markdown table: lines starting with |
+    if (trimmed.startsWith("|")) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      if (tableLines.length >= 2) {
+        elements.push(parseMarkdownTable(tableLines));
+        elements.push(emptyLine());
+      } else {
+        // Single pipe line — treat as text
+        elements.push(new Paragraph({ spacing: { after: 60 }, children: parseInlineMarkdown(tableLines[0]) }));
+      }
       continue;
     }
 
     // Heading 1: # ...
     if (trimmed.startsWith("# ")) {
       elements.push(heading(trimmed.slice(2), HeadingLevel.HEADING_1));
+      i++;
       continue;
     }
     // Heading 2: ## ...
     if (trimmed.startsWith("## ")) {
       elements.push(heading(trimmed.slice(3), HeadingLevel.HEADING_2));
+      i++;
       continue;
     }
     // Heading 3: ### ...
@@ -456,57 +589,95 @@ function parseMarkdownToDocx(content: string): (Paragraph | Table)[] {
           ],
         })
       );
+      i++;
       continue;
     }
-    // Numbered heading: 1. **Tekst**
-    const numberedBold = trimmed.match(/^\d+\.\s+\*\*(.+?)\*\*:?\s*(.*)/);
-    if (numberedBold) {
+    // Heading 4: #### ...
+    if (trimmed.startsWith("#### ")) {
       elements.push(
         new Paragraph({
-          spacing: { before: 200, after: 60 },
+          spacing: { before: 160, after: 60 },
           children: [
-            new TextRun({ text: numberedBold[1], bold: true, size: 24, color: CITO_BLUE }),
-            ...(numberedBold[2] ? [new TextRun({ text: `: ${numberedBold[2]}`, size: 22 })] : []),
+            new TextRun({ text: trimmed.slice(5), bold: true, size: 22, color: "444444" }),
           ],
         })
       );
+      i++;
       continue;
     }
-    // Bullet point: - ... or * ...
-    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      const bulletText = trimmed.slice(2);
-      // Handle **bold** within bullet
-      const parts = bulletText.split(/\*\*(.+?)\*\*/g);
-      const runs: TextRun[] = [];
-      parts.forEach((part, i) => {
-        if (i % 2 === 1) {
-          runs.push(new TextRun({ text: part, bold: true, size: 22 }));
-        } else if (part) {
-          runs.push(new TextRun({ text: part, size: 22 }));
-        }
-      });
+
+    // Numbered heading: 1. **Tekst**: rest
+    const numberedBold = trimmed.match(/^(\d+)\.\s+\*\*(.+?)\*\*:?\s*(.*)/);
+    if (numberedBold) {
+      const runs: TextRun[] = [
+        new TextRun({ text: `${numberedBold[1]}. ${numberedBold[2]}`, bold: true, size: 24, color: CITO_BLUE }),
+      ];
+      if (numberedBold[3]) {
+        runs.push(new TextRun({ text: `: ${numberedBold[3]}`, size: 22, color: "333333" }));
+      }
+      elements.push(
+        new Paragraph({ spacing: { before: 200, after: 60 }, children: runs })
+      );
+      i++;
+      continue;
+    }
+
+    // Numbered list: 1. text (without bold)
+    const numberedItem = trimmed.match(/^(\d+)\.\s+(.+)/);
+    if (numberedItem) {
       elements.push(
         new Paragraph({
           spacing: { after: 40 },
           indent: { left: 360 },
-          children: [new TextRun({ text: "• ", color: CITO_BLUE }), ...runs],
+          children: [
+            new TextRun({ text: `${numberedItem[1]}. `, bold: true, size: 22, color: CITO_BLUE }),
+            ...parseInlineMarkdown(numberedItem[2]),
+          ],
         })
       );
+      i++;
       continue;
     }
-    // Regular text with possible **bold** segments
-    const parts = trimmed.split(/\*\*(.+?)\*\*/g);
-    const runs: TextRun[] = [];
-    parts.forEach((part, i) => {
-      if (i % 2 === 1) {
-        runs.push(new TextRun({ text: part, bold: true, size: 22 }));
-      } else if (part) {
-        runs.push(new TextRun({ text: part, size: 22, color: "333333" }));
-      }
-    });
+
+    // Sub-bullet: starts with spaces/tabs + - or *
+    const subBullet = line.match(/^(\s{2,}|\t+)[-*]\s+(.*)/);
+    if (subBullet) {
+      elements.push(
+        new Paragraph({
+          spacing: { after: 30 },
+          indent: { left: 720 },
+          children: [
+            new TextRun({ text: "◦ ", color: "888888", size: 20 }),
+            ...parseInlineMarkdown(subBullet[2], 20),
+          ],
+        })
+      );
+      i++;
+      continue;
+    }
+
+    // Bullet point: - ... or * ...
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      elements.push(
+        new Paragraph({
+          spacing: { after: 40 },
+          indent: { left: 360 },
+          children: [
+            new TextRun({ text: "• ", color: CITO_BLUE }),
+            ...parseInlineMarkdown(trimmed.slice(2)),
+          ],
+        })
+      );
+      i++;
+      continue;
+    }
+
+    // Regular text with possible **bold** and *italic* segments
+    const runs = parseInlineMarkdown(trimmed);
     if (runs.length > 0) {
       elements.push(new Paragraph({ spacing: { after: 60 }, children: runs }));
     }
+    i++;
   }
 
   return elements;
