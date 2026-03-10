@@ -293,6 +293,7 @@ export async function suggestDINItem(
     existingOwner?: string;
     existingCurrentValue?: string;
     existingTargetValue?: string;
+    userPrompt?: string;
     relatedBenefits?: string[];
     relatedCapabilities?: string[];
     domain?: string;
@@ -329,6 +330,9 @@ export async function suggestDINItem(
   }
   if (context.existingTargetValue) {
     parts.push(`Gewenste waarde: "${context.existingTargetValue}"`);
+  }
+  if (context.userPrompt) {
+    parts.push(`\nGEBRUIKERSINSTRUCTIE (prioriteit!): ${context.userPrompt}`);
   }
   if (context.relatedBenefits?.length) {
     parts.push(`Gerelateerde baten:\n${context.relatedBenefits.map((b, i) => `${i + 1}. ${b}`).join("\n")}`);

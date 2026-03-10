@@ -16,7 +16,7 @@ interface BenefitCardProps {
   benefit: DINBenefit;
   onChange: (updated: DINBenefit) => void;
   onDelete: () => void;
-  onAISuggest?: () => Promise<BenefitSuggestion | null>;
+  onAISuggest?: (userPrompt?: string) => Promise<BenefitSuggestion | null>;
 }
 
 export default function BenefitCard({
@@ -29,12 +29,15 @@ export default function BenefitCard({
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<BenefitSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [userPrompt, setUserPrompt] = useState("");
 
   async function handleAISuggest() {
     if (!onAISuggest || isAILoading) return;
     setIsAILoading(true);
+    setShowPrompt(false);
     try {
-      const result = await onAISuggest();
+      const result = await onAISuggest(userPrompt || undefined);
       if (result) {
         setAiSuggestion(result);
         setExpanded(true);
@@ -43,6 +46,7 @@ export default function BenefitCard({
       console.error("AI suggestie mislukt:", e);
     } finally {
       setIsAILoading(false);
+      setUserPrompt("");
     }
   }
 
@@ -91,7 +95,7 @@ export default function BenefitCard({
         <div className="flex gap-1.5 ml-2 items-center">
           {onAISuggest && (
             <button
-              onClick={handleAISuggest}
+              onClick={() => showPrompt ? handleAISuggest() : setShowPrompt(true)}
               disabled={isAILoading}
               className="text-xs px-2 py-1 rounded-md bg-cito-accent/10 text-cito-accent hover:bg-cito-accent/20 disabled:opacity-50 transition-colors font-medium"
               title="AI analyseert en scherpt deze baat aan"
@@ -137,12 +141,37 @@ export default function BenefitCard({
         </div>
       </div>
 
+      {/* Prompt veld voor AI */}
+      {showPrompt && !isAILoading && (
+        <div className="mt-2 flex gap-2 items-center">
+          <input
+            value={userPrompt}
+            onChange={(e) => setUserPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
+            className="flex-1 text-xs px-2 py-1.5 border border-cito-accent/30 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
+            placeholder="Optioneel: wat wil je aanscherpen? (bijv. 'maak indicator specifieker')"
+            autoFocus
+          />
+          <button
+            onClick={handleAISuggest}
+            className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0"
+          >
+            Verstuur
+          </button>
+          <button
+            onClick={() => { setShowPrompt(false); setUserPrompt(""); }}
+            className="text-xs text-gray-400 hover:text-gray-600 px-1"
+          >
+            &#10005;
+          </button>
+        </div>
+      )}
+
       {/* AI Suggestie met feedback */}
       {aiSuggestion && (
         <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
-          {/* Feedback: wat mist er */}
           {aiSuggestion.feedback && (
-            <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
               <span className="font-semibold">Analyse: </span>
               {aiSuggestion.feedback}
             </div>

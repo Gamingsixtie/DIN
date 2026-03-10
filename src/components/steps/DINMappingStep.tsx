@@ -666,13 +666,14 @@ export default function DINMappingStep() {
   }
 
   function makeBenefitSuggest(benefit: DINBenefit) {
-    return async () => {
+    return async (userPrompt?: string) => {
       return fetchAISuggestion("baat", {
         existingDescription: benefit.description || undefined,
         existingIndicator: benefit.profiel.indicator || undefined,
         existingOwner: benefit.profiel.indicatorOwner || undefined,
         existingCurrentValue: benefit.profiel.currentValue || undefined,
         existingTargetValue: benefit.profiel.targetValue || undefined,
+        userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
           .filter((b) => b.id !== benefit.id && b.description)
           .map((b) => b.description),
@@ -681,9 +682,10 @@ export default function DINMappingStep() {
   }
 
   function makeCapabilitySuggest(cap: DINCapability) {
-    return async () => {
+    return async (userPrompt?: string) => {
       return fetchAISuggestion("vermogen", {
         existingDescription: cap.description || undefined,
+        userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
           .filter((b) => b.description)
           .map((b) => b.description),
@@ -695,7 +697,7 @@ export default function DINMappingStep() {
   }
 
   function makeEffortSuggest(effort: DINEffort) {
-    return async () => {
+    return async (userPrompt?: string) => {
       const domainLabels: Record<string, string> = {
         mens: "Mens",
         processen: "Processen",
@@ -705,6 +707,7 @@ export default function DINMappingStep() {
       return fetchAISuggestion("inspanning", {
         existingDescription: effort.description || undefined,
         domain: domainLabels[effort.domain] || effort.domain,
+        userPrompt: userPrompt || undefined,
         relatedCapabilities: sectorCapabilities
           .filter((c) => c.description)
           .map((c) => c.description),
