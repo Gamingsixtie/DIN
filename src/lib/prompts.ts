@@ -8,9 +8,10 @@ Gegeven een programmadoel en beschikbare sectorplannen, genereer het volledige D
 Redeneer via de HOE-VRAAG (rechts naar links): "Hoe bereiken we dit doel?" → baten → vermogens → inspanningen.
 
 BELANGRIJK — BEPERK HET AANTAL: Kwaliteit boven kwantiteit. Een overvol DIN-netwerk is onwerkbaar.
-Maximaal ~10 baten per programma, ~15 vermogens totaal, ~20 inspanningen totaal.
+Houd rekening met de schaal: er zijn meerdere sectoren (PO, VO, Zakelijk) en meerdere doelen.
+Per sector per doel: 2-4 baten. Totaal per sector: ~8-15 baten is realistisch.
 
-1. **Baten** (2-3 per doel, MAX 10 totaal): Gewenste effecten in de BUITENWERELD (klant, markt, organisatie).
+1. **Baten** (2-4 per doel per sector): Gewenste effecten in de BUITENWERELD (klant, markt, organisatie).
    Een baat is GEEN interne activiteit — het is het resultaat dat zichtbaar is buiten de organisatie.
    Een baat is een HEFBOOM voor het doel — niet het doel zelf meetbaar gemaakt, maar een INDIRECT EFFECT dat het doel dichterbij brengt.
    FORMULERING: zelfstandig naamwoord + bijvoeglijk naamwoord in de VERGROTENDE TRAP (-er).
@@ -24,14 +25,14 @@ Maximaal ~10 baten per programma, ~15 vermogens totaal, ~20 inspanningen totaal.
    - Startwaarde: huidige stand (nulmeting/schatting)
    - Doelwaarde: gewenste stand
 
-2. **Vermogens** (1-2 per baat, MAX 15 totaal): Specifieke combinaties van mensen, processen, data en systemen
+2. **Vermogens** (1-2 per baat): Specifieke combinaties van mensen, processen, data en systemen
    die de organisatie nodig heeft. Een vermogen is een HEFBOOM — geen doel op zich.
    - Beschrijf WAT de organisatie moet KUNNEN (niet wat ze moet DOEN)
    - Geef huidig niveau (1-5) en gewenst niveau (1-5)
    - Koppel aan relevante sectoren
    - Gedeelde vermogens (meerdere baten) zijn sterke hefbomen — hergebruik waar mogelijk
 
-3. **Inspanningen** (1-2 per vermogen, MAX 20 totaal): Concrete projecten/activiteiten die vermogens opbouwen.
+3. **Inspanningen** (1-2 per vermogen): Concrete projecten/activiteiten die vermogens opbouwen.
    FORMULERING: gebruik WERKWOORDEN ("werk = werkwoord"). Bijv. "Training uitvoeren", "Systeem implementeren".
    Concreet genoeg om er middelen aan te koppelen, maar niet te klein — cluster gerelateerde activiteiten.
    Verdeeld over alle 4 domeinen (afgeleid van de componenten van een vermogen):
@@ -234,10 +235,10 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
 
 Richtlijnen:
 - Wees CONCREET: verwijs naar specifieke onderdelen uit het sectorplan en de programmadoelen
-- BEPERK HET AANTAL: kwaliteit boven kwantiteit, voorkom overload
-  - Baten: max 3-4 suggesties, formuleer met VERGROTENDE TRAP ("Hogere...", "Meer...", "Lagere..."), GEEN werkwoorden
-  - Vermogens: max 3-4 suggesties, beschrijf de combinatie van mensen+processen+data+systemen
-  - Inspanningen: max 2 per domein, formuleer met WERKWOORDEN ("Training uitvoeren", "Systeem implementeren")
+- KWALITEIT boven kwantiteit, maar houd rekening met de schaal (meerdere doelen per sector)
+  - Baten: 2-4 per doel, formuleer met VERGROTENDE TRAP ("Hogere...", "Meer...", "Lagere..."), GEEN werkwoorden
+  - Vermogens: 1-2 per baat, beschrijf de combinatie van mensen+processen+data+systemen
+  - Inspanningen: 1-2 per vermogen, verdeeld over de 4 domeinen, formuleer met WERKWOORDEN ("Training uitvoeren", "Systeem implementeren")
 - Vermogens: geef een inschatting van huidig en gewenst niveau (1-5 schaal)
 - Inspanningen: verdeel ALTIJD over alle 4 domeinen — minimaal 1 per domein
 - Dit advies dient als voorbereiding: de gebruiker gebruikt het om het DIN-netwerk in te vullen
