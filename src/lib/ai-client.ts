@@ -591,6 +591,11 @@ export async function createDINItem(
 
   const parts: string[] = [`Sector: ${context.sector}`];
 
+  // Domein BOVENAAN prominent plaatsen voor inspanningen
+  if (context.domain && type === "inspanning") {
+    parts.push(`⚠️ INSPANNINGSDOMEIN: ${context.domain}\nGenereer een inspanning die UITSLUITEND past binnen het domein "${context.domain}". Alle aspecten (titel, beschrijving, verwacht resultaat) moeten specifiek gericht zijn op dit domein.`);
+  }
+
   // Context-keten tonen
   if (context.goalName) {
     parts.push(`Programmadoel: ${context.goalName}`);
@@ -603,7 +608,7 @@ export async function createDINItem(
   if (context.capabilityTitle || context.capabilityDescription) {
     parts.push(`Gerelateerd vermogen: ${context.capabilityTitle || context.capabilityDescription}`);
   }
-  if (context.domain) {
+  if (context.domain && type !== "inspanning") {
     parts.push(`Domein: ${context.domain}`);
   }
   if (context.sectorPlanText) {
@@ -616,6 +621,11 @@ export async function createDINItem(
     if (value.trim()) {
       parts.push(`${key}: ${value}`);
     }
+  }
+
+  // Domein ONDERAAN herhalen als afsluiting
+  if (context.domain && type === "inspanning") {
+    parts.push(`\nHERHALING: Genereer ALLEEN voor domein "${context.domain}". De titel, beschrijving en verwacht resultaat moeten uniek zijn voor dit domein en mogen NIET generiek zijn.`);
   }
 
   return callClaude(promptMap[type], parts.join("\n\n"));

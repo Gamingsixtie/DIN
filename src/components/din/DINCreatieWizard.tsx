@@ -243,6 +243,10 @@ export default function DINCreatieWizard({
   );
   const [generateProgress, setGenerateProgress] = useState<string>("");
 
+  // Per-domein flow: bij meerdere domeinen doorloop je elk domein apart
+  const [currentDomeinIndex, setCurrentDomeinIndex] = useState(0);
+  const [confirmedPreviews, setConfirmedPreviews] = useState<WizardResult[]>([]);
+
   const questions = type === "baat" ? BAAT_VRAGEN : type === "vermogen" ? VERMOGEN_VRAGEN : INSPANNING_VRAGEN;
 
   const typeLabel = type === "baat" ? "baat" : type === "vermogen" ? "vermogen" : "inspanning";
@@ -380,7 +384,7 @@ export default function DINCreatieWizard({
     return null;
   }
 
-  // --- AI generatie (single voor baat/vermogen, multi voor inspanningen) ---
+  // --- AI generatie: per domein apart (inspanningen) of single (baat/vermogen) ---
   async function handleGenerate() {
     setIsGenerating(true);
     setError(null);
@@ -388,32 +392,21 @@ export default function DINCreatieWizard({
 
     try {
       if (type === "inspanning" && gekozenDomeinen.length > 0) {
-        // Genereer voor elk gekozen domein — sequentieel, niet parallel
-        const results: WizardResult[] = [];
-        const failedDomains: string[] = [];
-        for (let i = 0; i < gekozenDomeinen.length; i++) {
-          const d = gekozenDomeinen[i];
-          setGenerateProgress(`${DOMAIN_LABELS[d]} genereren... (${i + 1}/${gekozenDomeinen.length})`);
-          try {
-            const result = await generateForDomain(d);
-            if (result) {
-              results.push(result);
-            } else {
-              failedDomains.push(DOMAIN_LABELS[d]);
-            }
-          } catch {
-            failedDomains.push(DOMAIN_LABELS[d]);
+        // Genereer alleen voor het HUIDIGE domein
+        const currentDomain = gekozenDomeinen[currentDomeinIndex];
+        setGenerateProgress(`${DOMAIN_LABELS[currentDomain]} genereren...`);
+        try {
+          const result = await generateForDomain(currentDomain);
+          setGenerateProgress("");
+          if (result) {
+            setPreviews([result]);
+            setPhase("preview");
+          } else {
+            setError(`AI kon geen inspanning genereren voor ${DOMAIN_LABELS[currentDomain]}. Probeer het opnieuw.`);
           }
-        }
-        setGenerateProgress("");
-        if (results.length > 0) {
-          setPreviews(results);
-          setPhase("preview");
-          if (failedDomains.length > 0) {
-            setError(`${failedDomains.join(", ")} kon niet gegenereerd worden. De overige inspanningen zijn wel beschikbaar.`);
-          }
-        } else {
-          setError("AI kon geen inspanningen genereren. Probeer het opnieuw.");
+        } catch {
+          setGenerateProgress("");
+          setError(`Fout bij genereren voor ${DOMAIN_LABELS[currentDomain]}. Probeer het opnieuw.`);
         }
       } else {
         // Baat of vermogen: enkele generatie
@@ -486,8 +479,31 @@ export default function DINCreatieWizard({
   }
 
   function handleApply() {
-    if (previews.length > 0) {
-      onGenerate(previews);
+    if (type === "inspanning" && gekozenDomeinen.length > 1) {
+      // Multi-domein: bevestig huidig domein, ga naar volgende
+      const currentPreview = previews[0];
+      if (currentPreview) {
+        const newConfirmed = [...confirmedPreviews, currentPreview];
+        const nextIndex = currentDomeinIndex + 1;
+
+        if (nextIndex < gekozenDomeinen.length) {
+          // Nog meer domeinen te doen → reset en ga naar vragen voor volgend domein
+          setConfirmedPreviews(newConfirmed);
+          setCurrentDomeinIndex(nextIndex);
+          setPreviews([]);
+          setAnswers({}); // Reset vragen voor volgend domein
+          setError(null);
+          setPhase("vragen");
+        } else {
+          // Alle domeinen afgerond → pas alles toe
+          onGenerate(newConfirmed);
+        }
+      }
+    } else {
+      // Single domein of baat/vermogen: direct toepassen
+      if (previews.length > 0) {
+        onGenerate(previews);
+      }
     }
   }
 
@@ -705,7 +721,7 @@ export default function DINCreatieWizard({
 
         {gekozenDomeinen.length > 1 && (
           <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
-            {gekozenDomeinen.length} domeinen geselecteerd &mdash; er wordt per domein een inspanning gegenereerd
+            {gekozenDomeinen.length} domeinen geselecteerd &mdash; elk domein wordt apart uitgewerkt met eigen vragen en AI-generatie
           </div>
         )}
 
@@ -741,16 +757,36 @@ export default function DINCreatieWizard({
 
     return (
       <div className="space-y-3">
+        {/* Reeds bevestigde domeinen tonen */}
+        {confirmedPreviews.length > 0 && (
+          <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+            {confirmedPreviews.map((cp, i) => (
+              <span key={i}>
+                {cp.domain && <span className={`font-semibold ${DOMAIN_COLORS[cp.domain].text}`}>{DOMAIN_LABELS[cp.domain]}</span>}
+                {cp.title && <span className="text-gray-600"> — {cp.title}</span>}
+                {i < confirmedPreviews.length - 1 && <span className="mx-1">|</span>}
+              </span>
+            ))}
+            <span className="ml-1 text-green-600">&#10003;</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-gray-700">
-            AI-gegenereerd{previews.length > 1 ? ` (${previews.length} inspanningen)` : " resultaat"}
+            {type === "inspanning" && gekozenDomeinen.length > 1 && previews[0]?.domain
+              ? `${DOMAIN_LABELS[previews[0].domain]} — AI-gegenereerde inspanning`
+              : "AI-gegenereerd resultaat"}
           </span>
           <div className="flex gap-2">
             <button
               onClick={handleApply}
               className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium"
             >
-              {previews.length > 1 ? `Alle ${previews.length} toepassen` : "Toepassen"}
+              {type === "inspanning" && gekozenDomeinen.length > 1
+                ? currentDomeinIndex + 1 < gekozenDomeinen.length
+                  ? `Bevestig & ${DOMAIN_LABELS[gekozenDomeinen[currentDomeinIndex + 1]]} starten`
+                  : `Bevestig & alle ${gekozenDomeinen.length} toepassen`
+                : "Toepassen"}
             </button>
             <button
               onClick={() => { setPreviews([]); setPhase("vragen"); handleGenerate(); }}
@@ -843,9 +879,27 @@ export default function DINCreatieWizard({
   function renderVragen() {
     return (
       <div className="space-y-3">
+        {/* Bij multi-domein: toon welk domein nu aan de beurt is */}
+        {type === "inspanning" && gekozenDomeinen.length > 1 && (
+          <div className={`p-2.5 rounded-lg border-2 ${DOMAIN_COLORS[gekozenDomeinen[currentDomeinIndex]].border} ${DOMAIN_COLORS[gekozenDomeinen[currentDomeinIndex]].bg}`}>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${DOMAIN_COLORS[gekozenDomeinen[currentDomeinIndex]].dot}`} />
+              <span className={`text-sm font-semibold ${DOMAIN_COLORS[gekozenDomeinen[currentDomeinIndex]].text}`}>
+                Domein {currentDomeinIndex + 1}/{gekozenDomeinen.length}: {DOMAIN_LABELS[gekozenDomeinen[currentDomeinIndex]]}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-1 ml-[18px]">
+              Beantwoord de vragen specifiek voor een inspanning in het domein {DOMAIN_LABELS[gekozenDomeinen[currentDomeinIndex]]}.
+              {confirmedPreviews.length > 0 && (
+                <span className="text-green-600 font-medium"> ({confirmedPreviews.length} domein{confirmedPreviews.length > 1 ? "en" : ""} al bevestigd)</span>
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="text-xs font-medium text-gray-600">
           {type === "inspanning" && gekozenDomeinen.length > 1
-            ? `Beantwoord de vragen — AI genereert inspanningen voor ${gekozenDomeinen.length} domeinen`
+            ? `Beantwoord de vragen voor domein "${DOMAIN_LABELS[gekozenDomeinen[currentDomeinIndex]]}"`
             : `Beantwoord de vragen — AI genereert een methodiek-conforme ${typeLabel}`}
         </div>
 
@@ -946,7 +1000,7 @@ export default function DINCreatieWizard({
                 {generateProgress || "Genereren..."}
               </>
             ) : gekozenDomeinen.length > 1 ? (
-              `Genereer ${gekozenDomeinen.length} inspanningen`
+              `Genereer ${DOMAIN_LABELS[gekozenDomeinen[currentDomeinIndex]]} inspanning`
             ) : (
               "Genereer met AI"
             )}
