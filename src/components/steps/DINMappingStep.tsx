@@ -524,8 +524,8 @@ export default function DINMappingStep() {
       ),
     });
   }
-  function addEffort(domain: EffortDomain, capabilityId?: string) {
-    setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, domain });
+  function addEffort(domain?: EffortDomain, capabilityId?: string, benefitId?: string, goalId?: string) {
+    setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, parentBenefitId: benefitId, parentGoalId: goalId || selectedGoal || undefined, domain });
   }
   function addEffortManual(domain: EffortDomain, capabilityId?: string) {
     const newEffort = createEffort(activeSector, "", domain);
@@ -588,7 +588,7 @@ export default function DINMappingStep() {
       updateSession(updates);
       setExpandedCapability(newCap.id);
     } else if (wizardState.type === "inspanning") {
-      const domain = wizardState.domain || "mens";
+      const domain = result.domain || wizardState.domain || "mens";
       const newEffort = createEffort(activeSector, result.description, domain, result.title);
       if (result.quarter) newEffort.quarter = result.quarter;
       if (result.inspanningsEigenaar || result.inspanningsleider || result.verwachtResultaat || result.kostenraming || result.randvoorwaarden) {
@@ -1469,18 +1469,15 @@ export default function DINMappingStep() {
                                           })}
                                         </div>
 
-                                        {/* Add inspanning per domain */}
+                                        {/* Add inspanning — slimme domeinherkenning */}
                                         <div className="flex gap-1.5 mt-2 ml-2">
-                                          {DOMAINS.map((d) => (
-                                            <button
-                                              key={d.key}
-                                              onClick={(e) => { e.stopPropagation(); addEffort(d.key, cap.id); }}
-                                              className={`text-[10px] px-2 py-1 rounded-md border border-dashed font-medium transition-colors ${DOMAIN_EFFORT_BTN[d.key]} text-gray-500 hover:text-gray-700 flex items-center gap-1`}
-                                            >
-                                              <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_DOT_COLORS[d.key]}`} />
-                                              + {d.label}
-                                            </button>
-                                          ))}
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); addEffort(undefined, cap.id, benefit.id, selectedGoal || undefined); }}
+                                            className="text-[10px] px-3 py-1.5 rounded-md border border-dashed font-medium transition-colors bg-din-inspanningen/5 hover:bg-din-inspanningen/15 border-din-inspanningen/30 text-din-inspanningen hover:text-din-inspanningen flex items-center gap-1.5"
+                                          >
+                                            <span className="w-1.5 h-1.5 rounded-full bg-din-inspanningen" />
+                                            + Inspanning toevoegen
+                                          </button>
                                         </div>
                                       </div>
                                     </div>

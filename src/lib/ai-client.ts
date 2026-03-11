@@ -16,6 +16,7 @@ import {
   DIN_CREATE_BAAT_PROMPT,
   DIN_CREATE_VERMOGEN_PROMPT,
   DIN_CREATE_INSPANNING_PROMPT,
+  DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "./prompts";
 
 function getClient(): Anthropic {
@@ -504,6 +505,49 @@ ${planText.slice(0, 5000)}
 Analyseer dit sectorplan en geef advies voor het DIN-netwerk.`;
 
   return callClaude(SECTORPLAN_ANALYSE_PROMPT, userMessage);
+}
+
+export async function recommendDomain(
+  context: {
+    sector: string;
+    goalName?: string;
+    goalDescription?: string;
+    benefitTitle?: string;
+    benefitDescription?: string;
+    benefitIndicator?: string;
+    capabilityTitle?: string;
+    capabilityDescription?: string;
+    sectorPlanText?: string;
+    answers: Record<string, string>;
+  }
+): Promise<string> {
+  const parts: string[] = [`Sector: ${context.sector}`];
+
+  // DIN-keten context
+  if (context.goalName) {
+    parts.push(`Programmadoel: ${context.goalName}`);
+    if (context.goalDescription) parts.push(`Doelbeschrijving: ${context.goalDescription}`);
+  }
+  if (context.benefitTitle || context.benefitDescription) {
+    parts.push(`Baat: ${context.benefitTitle || context.benefitDescription}`);
+    if (context.benefitIndicator) parts.push(`Indicator: ${context.benefitIndicator}`);
+  }
+  if (context.capabilityTitle || context.capabilityDescription) {
+    parts.push(`Vermogen: ${context.capabilityTitle || context.capabilityDescription}`);
+  }
+  if (context.sectorPlanText) {
+    parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+  }
+
+  // Antwoorden op verkenningsvragen
+  parts.push("\nANTWOORDEN OP VERKENNINGSVRAGEN:");
+  for (const [key, value] of Object.entries(context.answers)) {
+    if (value.trim()) {
+      parts.push(`${key}: ${value}`);
+    }
+  }
+
+  return callClaude(DIN_DOMAIN_RECOMMEND_PROMPT, parts.join("\n\n"));
 }
 
 export async function createDINItem(

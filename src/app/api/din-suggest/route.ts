@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { suggestDINItem, createDINItem } from "@/lib/ai-client";
+import { suggestDINItem, createDINItem, recommendDomain } from "@/lib/ai-client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
 
     let raw: string;
 
-    if (mode === "create") {
+    if (mode === "domain-recommend") {
+      // Domein-aanbeveling: analyseer gap en stel domein voor
+      raw = await recommendDomain(context);
+    } else if (mode === "create") {
       // Geleide creatie-modus: genereer nieuw item op basis van vragenlijst
       raw = await createDINItem(type, context);
     } else {
