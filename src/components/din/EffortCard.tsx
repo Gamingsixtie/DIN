@@ -343,6 +343,24 @@ export default function EffortCard({
                     </div>
                   </div>
                 )}
+                {aiSuggestion.kostenraming && aiSuggestion.kostenraming !== (dossier.kostenraming || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Kosten</span>
+                    <div className="flex-1 min-w-0">
+                      {dossier.kostenraming && <div className="text-gray-400 line-through truncate">{dossier.kostenraming}</div>}
+                      <div className="text-gray-700">{aiSuggestion.kostenraming}</div>
+                    </div>
+                  </div>
+                )}
+                {aiSuggestion.randvoorwaarden && aiSuggestion.randvoorwaarden !== (dossier.randvoorwaarden || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Voorwaarden</span>
+                    <div className="flex-1 min-w-0">
+                      {dossier.randvoorwaarden && <div className="text-gray-400 line-through truncate">{dossier.randvoorwaarden}</div>}
+                      <div className="text-gray-700">{aiSuggestion.randvoorwaarden}</div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <button onClick={() => applySuggestion(["dossier"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium">Dossier toepassen</button>
                 </div>

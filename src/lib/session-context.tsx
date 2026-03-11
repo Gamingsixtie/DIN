@@ -85,6 +85,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       benefitCapabilityMaps: [],
       capabilityEffortMaps: [],
       integratieAdvies: {},
+      sectorAnalyses: {},
+      verrijkteSectorplannen: {},
     };
     setSession(newSession);
     saveLocal(`session_${newSession.id}`, newSession);

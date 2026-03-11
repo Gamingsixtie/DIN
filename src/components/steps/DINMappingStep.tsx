@@ -745,17 +745,16 @@ export default function DINMappingStep() {
           goalId: selectedGoal,
           benefitId: b.id,
         }));
-        // Baten → Vermogens: bestaande + nieuwe baten koppelen aan nieuwe vermogens
-        const allGoalBenefits = [...sectorBenefits, ...newBenefits];
-        const newBenCapMaps = allGoalBenefits.flatMap((b: DINBenefit) =>
+        // Baten → Vermogens: ALLEEN nieuwe baten koppelen aan nieuwe vermogens
+        // (voorkomt massale ongewenste koppelingen bij hergeneratie)
+        const newBenCapMaps = newBenefits.flatMap((b: DINBenefit) =>
           newCaps.map((c: DINCapability) => ({
             benefitId: b.id,
             capabilityId: c.id,
           }))
         );
-        // Vermogens → Inspanningen: bestaande + nieuwe vermogens koppelen aan nieuwe inspanningen
-        const allGoalCaps = [...allSectorCaps, ...newCaps];
-        const newCapEffMaps = allGoalCaps.flatMap((c: DINCapability) =>
+        // Vermogens → Inspanningen: ALLEEN nieuwe vermogens koppelen aan nieuwe inspanningen
+        const newCapEffMaps = newCaps.flatMap((c: DINCapability) =>
           newEfforts.map((e: DINEffort) => ({
             capabilityId: c.id,
             effortId: e.id,

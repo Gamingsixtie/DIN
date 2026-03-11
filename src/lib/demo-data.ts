@@ -8,7 +8,7 @@ export function createDemoSession(): DINSession {
   // IDs
   const goalIds = [g(), g(), g(), g(), g()];
   const benefitIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
-  const capIds = [g(), g(), g(), g(), g(), g(), g(), g(), g()];
+  const capIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
   const effortIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
 
   return {
@@ -141,6 +141,11 @@ export function createDemoSession(): DINSession {
       { id: capIds[6], sectorId: "Zakelijk", description: "Assessment-expertise is gebundeld en schaalbaar ingericht", relatedSectors: ["Zakelijk"], currentLevel: 3, targetLevel: 5, profiel: { eigenaar: "Hoofd Assessment & Certificering", huidieSituatie: "Expertise verspreid over individuele consultants; hergebruik van materiaal is beperkt.", gewensteSituatie: "Gestandaardiseerde assessment-methodiek met schaalbare templates en kennisdeling." } },
       { id: capIds[7], sectorId: "Zakelijk", description: "Digitale certificeringsinfrastructuur is operationeel", relatedSectors: ["Zakelijk"], currentLevel: 1, targetLevel: 4, profiel: { eigenaar: "IT-manager Zakelijk", huidieSituatie: "Certificering verloopt grotendeels handmatig met papieren processen.", gewensteSituatie: "Volledig digitaal certificeringsplatform met online afname, verificatie en rapportage." } },
       { id: capIds[8], sectorId: "Zakelijk", description: "Commerciële vaardigheden en account-based selling zijn ontwikkeld", relatedSectors: ["Zakelijk"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Commercieel directeur", huidieSituatie: "Sales is reactief; geen structureel accountmanagement voor zakelijke klanten.", gewensteSituatie: "Proactief account-based sales met gestructureerde pijplijn en klantrelatiebeheer." } },
+
+      // Wendbaarheid — cross-sectoraal
+      { id: capIds[9], sectorId: "PO", description: "Agile productontwikkeling is standaard werkwijze in PO", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Productmanager PO", huidieSituatie: "Waterval-aanpak met lange doorlooptijden; releases 1-2x per jaar.", gewensteSituatie: "Iteratieve productontwikkeling in sprints met releases elke 6 weken." } },
+      { id: capIds[10], sectorId: "VO", description: "VO-organisatie kan snel reageren op curriculumwijzigingen en marktbehoeften", relatedSectors: ["VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Sectormanager VO", huidieSituatie: "Lange doorlooptijden bij aanpassingen; besluitvorming via meerdere lagen.", gewensteSituatie: "Korte beslislijnen en snelle aanpassing van producten bij curriculumwijzigingen." } },
+      { id: capIds[11], sectorId: "Zakelijk", description: "Zakelijke dienstverlening is flexibel en snel schaalbaar", relatedSectors: ["Zakelijk"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Projectmanager Zakelijk", huidieSituatie: "Maatwerkprojecten duren lang door gebrek aan standaardcomponenten.", gewensteSituatie: "Modulaire opzet waarmee maatwerkproducten snel worden samengesteld uit standaardcomponenten." } },
     ],
 
     efforts: [
@@ -210,6 +215,10 @@ export function createDemoSession(): DINSession {
       { benefitId: benefitIds[7], capabilityId: capIds[6] },
       { benefitId: benefitIds[8], capabilityId: capIds[7] },
       { benefitId: benefitIds[2], capabilityId: capIds[8] },
+      // Wendbaarheid — baten gekoppeld aan vermogens
+      { benefitId: benefitIds[9], capabilityId: capIds[9] },
+      { benefitId: benefitIds[10], capabilityId: capIds[10] },
+      { benefitId: benefitIds[11], capabilityId: capIds[11] },
     ],
     capabilityEffortMaps: [
       { capabilityId: capIds[0], effortId: effortIds[0] },
@@ -224,6 +233,10 @@ export function createDemoSession(): DINSession {
       { capabilityId: capIds[7], effortId: effortIds[13] },
       { capabilityId: capIds[8], effortId: effortIds[12] },
       { capabilityId: capIds[8], effortId: effortIds[14] },
+      // Wendbaarheid — vermogens gekoppeld aan inspanningen
+      { capabilityId: capIds[9], effortId: effortIds[2] },   // Klantfeedbackloop → agile PO
+      { capabilityId: capIds[10], effortId: effortIds[7] },  // Agile werkwijze → wendbaarheid VO
+      { capabilityId: capIds[11], effortId: effortIds[12] },  // ABM proces → flexibiliteit Zakelijk
     ],
   };
 }
