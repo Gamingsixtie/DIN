@@ -183,10 +183,11 @@ function goalDINSections(session: DINSession) {
 
         const headerRow = new TableRow({
           children: [
-            tableCell("Sector", { bold: true, shading: "E8EDF3", width: 15 }),
-            tableCell("Baat", { bold: true, shading: "E8EDF3", width: 30 }),
-            tableCell("Indicator", { bold: true, shading: "E8EDF3", width: 20 }),
-            tableCell("Eigenaar", { bold: true, shading: "E8EDF3", width: 15 }),
+            tableCell("Sector", { bold: true, shading: "E8EDF3", width: 10 }),
+            tableCell("Baat", { bold: true, shading: "E8EDF3", width: 25 }),
+            tableCell("Indicator", { bold: true, shading: "E8EDF3", width: 15 }),
+            tableCell("Bateneigenaar", { bold: true, shading: "E8EDF3", width: 15 }),
+            tableCell("Meetverantw.", { bold: true, shading: "E8EDF3", width: 15 }),
             tableCell("Nu → Doel", { bold: true, shading: "E8EDF3", width: 20 }),
           ],
         });
@@ -198,6 +199,7 @@ function goalDINSections(session: DINSession) {
                 tableCell(b.sectorId),
                 tableCell(b.description || "(naamloos)"),
                 tableCell(b.profiel.indicator || "—"),
+                tableCell(b.profiel.bateneigenaar || "—"),
                 tableCell(b.profiel.indicatorOwner || "—"),
                 tableCell(
                   b.profiel.currentValue && b.profiel.targetValue
@@ -342,9 +344,36 @@ function sectorSection(session: DINSession, sector: SectorName) {
   );
   if (sectorCaps.length > 0) {
     children.push(heading("Vermogens", HeadingLevel.HEADING_2));
-    sectorCaps.forEach((c) => {
-      children.push(bullet(c.description || "(naamloos)"));
+
+    const capHeaderRow = new TableRow({
+      children: [
+        tableCell("Vermogen", { bold: true, shading: "E8EDF3", width: 30 }),
+        tableCell("Eigenaar", { bold: true, shading: "E8EDF3", width: 20 }),
+        tableCell("Huidig", { bold: true, shading: "E8EDF3", width: 10 }),
+        tableCell("Gewenst", { bold: true, shading: "E8EDF3", width: 10 }),
+        tableCell("Huidige situatie", { bold: true, shading: "E8EDF3", width: 30 }),
+      ],
     });
+
+    const capDataRows = sectorCaps.map(
+      (c) =>
+        new TableRow({
+          children: [
+            tableCell(c.description || "(naamloos)"),
+            tableCell(c.profiel?.eigenaar || "—"),
+            tableCell(c.currentLevel ? `${c.currentLevel}/5` : "—"),
+            tableCell(c.targetLevel ? `${c.targetLevel}/5` : "—"),
+            tableCell(c.profiel?.huidieSituatie || "—"),
+          ],
+        })
+    );
+
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [capHeaderRow, ...capDataRows],
+      })
+    );
     children.push(emptyLine());
   }
 
@@ -358,12 +387,37 @@ function sectorSection(session: DINSession, sector: SectorName) {
       const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
       if (domainEfforts.length === 0) return;
       children.push(text(DOMAIN_LABELS[domain], { bold: true }));
-      domainEfforts.forEach((e) => {
-        const parts = [e.description || "(naamloos)"];
-        if (e.quarter) parts.push(`— ${e.quarter}`);
-        if (e.status) parts.push(`[${e.status}]`);
-        children.push(bullet(parts.join(" ")));
+
+      const effortHeaderRow = new TableRow({
+        children: [
+          tableCell("Inspanning", { bold: true, shading: "E8EDF3", width: 30 }),
+          tableCell("Planning", { bold: true, shading: "E8EDF3", width: 12 }),
+          tableCell("Opdrachtgever", { bold: true, shading: "E8EDF3", width: 18 }),
+          tableCell("Leider", { bold: true, shading: "E8EDF3", width: 18 }),
+          tableCell("Status", { bold: true, shading: "E8EDF3", width: 12 }),
+        ],
       });
+
+      const effortDataRows = domainEfforts.map(
+        (e) =>
+          new TableRow({
+            children: [
+              tableCell(e.description || "(naamloos)"),
+              tableCell(e.quarter || "—"),
+              tableCell(e.dossier?.eigenaar || "—"),
+              tableCell(e.dossier?.inspanningsleider || "—"),
+              tableCell(e.status),
+            ],
+          })
+      );
+
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [effortHeaderRow, ...effortDataRows],
+        })
+      );
+      children.push(emptyLine());
     });
   }
 

@@ -94,6 +94,9 @@ export default function ExportStep() {
           if (b.profiel.indicator) {
             text += ` (${b.profiel.indicator}: ${b.profiel.currentValue} → ${b.profiel.targetValue})`;
           }
+          if (b.profiel.bateneigenaar) {
+            text += ` — Eigenaar: ${b.profiel.bateneigenaar}`;
+          }
           text += "\n";
         });
         text += "\n";
@@ -102,7 +105,14 @@ export default function ExportStep() {
       if (sectorCaps.length > 0) {
         text += `### Vermogens\n`;
         sectorCaps.forEach((c) => {
-          text += `- ${c.description}\n`;
+          text += `- ${c.description}`;
+          if (c.currentLevel || c.targetLevel) {
+            text += ` (${c.currentLevel || "?"}/5 → ${c.targetLevel || "?"}/5)`;
+          }
+          if (c.profiel?.eigenaar) {
+            text += ` — Eigenaar: ${c.profiel.eigenaar}`;
+          }
+          text += "\n";
         });
         text += "\n";
       }
@@ -118,6 +128,7 @@ export default function ExportStep() {
           domainEfforts.forEach((e) => {
             text += `- ${e.description}`;
             if (e.quarter) text += ` (${e.quarter})`;
+            if (e.dossier?.eigenaar) text += ` — Opdrachtgever: ${e.dossier.eigenaar}`;
             text += "\n";
           });
         });
