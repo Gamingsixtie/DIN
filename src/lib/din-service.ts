@@ -82,6 +82,11 @@ export function createCapability(
     sectorId,
     description,
     relatedSectors: [sectorId],
+    profiel: {
+      eigenaar: "",
+      huidieSituatie: "",
+      gewensteSituatie: "",
+    },
   };
 }
 
@@ -114,6 +119,13 @@ export function createEffort(
     status: "gepland",
     dependencies: [],
     votes: 0,
+    dossier: {
+      eigenaar: "",
+      inspanningsleider: "",
+      verwachtResultaat: "",
+      kostenraming: "",
+      randvoorwaarden: "",
+    },
   };
 }
 

@@ -1,20 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import type { DINEffort, EffortDomain } from "@/lib/types";
+import type { DINEffort, EffortDomain, InspanningsDossier } from "@/lib/types";
 
 interface EffortSuggestion {
   feedback?: string;
   description: string;
   quarter: string;
+  eigenaar?: string;
+  inspanningsleider?: string;
+  verwachtResultaat?: string;
+  kostenraming?: string;
+  randvoorwaarden?: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "planning";
+type AanscherpVeld = "alles" | "beschrijving" | "planning" | "dossier";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
   beschrijving: "Beschrijving",
   planning: "Planning",
+  dossier: "Dossier",
 };
 
 interface EffortCardProps {
@@ -52,6 +58,23 @@ export default function EffortCard({
   const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
   const [previousState, setPreviousState] = useState<DINEffort | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const dossier: InspanningsDossier = effort.dossier || {
+    eigenaar: "",
+    inspanningsleider: "",
+    verwachtResultaat: "",
+    kostenraming: "",
+    randvoorwaarden: "",
+  };
+
+  // Completeness check — inspanningsdossier conform methodiek (Hfst 11.3)
+  const missing: string[] = [];
+  if (!effort.description) missing.push("beschrijving");
+  if (!effort.quarter) missing.push("planning");
+  if (!dossier.eigenaar) missing.push("eigenaar");
+  if (!dossier.inspanningsleider) missing.push("inspanningsleider");
+  if (!dossier.verwachtResultaat) missing.push("verwacht resultaat");
 
   function toggleVeld(veld: AanscherpVeld) {
     const next = new Set(selectedVelden);
@@ -91,17 +114,24 @@ export default function EffortCard({
 
   function applySuggestion(fields?: AanscherpVeld[]) {
     if (!aiSuggestion) return;
-    setPreviousState({ ...effort });
+    setPreviousState({ ...effort, dossier: effort.dossier ? { ...effort.dossier } : undefined });
 
     const applyAll = !fields || fields.includes("alles");
     const applySet = new Set(fields || ["alles"]);
-    const updated = { ...effort };
+    const updated = { ...effort, dossier: { ...dossier } };
 
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
     }
     if (applyAll || applySet.has("planning")) {
       if (aiSuggestion.quarter) updated.quarter = aiSuggestion.quarter;
+    }
+    if (applyAll || applySet.has("dossier")) {
+      if (aiSuggestion.eigenaar) updated.dossier.eigenaar = aiSuggestion.eigenaar;
+      if (aiSuggestion.inspanningsleider) updated.dossier.inspanningsleider = aiSuggestion.inspanningsleider;
+      if (aiSuggestion.verwachtResultaat) updated.dossier.verwachtResultaat = aiSuggestion.verwachtResultaat;
+      if (aiSuggestion.kostenraming) updated.dossier.kostenraming = aiSuggestion.kostenraming;
+      if (aiSuggestion.randvoorwaarden) updated.dossier.randvoorwaarden = aiSuggestion.randvoorwaarden;
     }
 
     onChange(updated);
@@ -125,8 +155,13 @@ export default function EffortCard({
               onChange({ ...effort, description: e.target.value })
             }
             className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
-            placeholder="Concrete activiteit of project die een vermogen opbouwt"
+            placeholder="Concrete activiteit of project die een vermogen opbouwt (formuleer met werkwoorden)"
           />
+          {missing.length > 0 && !expanded && (
+            <p className="text-[10px] text-amber-500 mt-1">
+              Ontbreekt: {missing.join(", ")}
+            </p>
+          )}
         </div>
         <div className="flex gap-1.5 items-center">
           {onAISuggest && (
@@ -156,6 +191,13 @@ export default function EffortCard({
               Ongedaan
             </button>
           )}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-gray-400 hover:text-cito-blue px-1"
+            title={expanded ? "Inklappen" : "Dossier bewerken"}
+          >
+            {expanded ? "\u25B2" : "\u25BC"}
+          </button>
           {confirmDelete ? (
             <div className="flex items-center gap-1">
               <button
@@ -271,6 +313,40 @@ export default function EffortCard({
                 <button onClick={() => applySuggestion(["planning"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
               </div>
             )}
+            {(aiSuggestion.eigenaar || aiSuggestion.inspanningsleider || aiSuggestion.verwachtResultaat || aiSuggestion.kostenraming || aiSuggestion.randvoorwaarden) && (
+              <div className="space-y-1">
+                {aiSuggestion.eigenaar && aiSuggestion.eigenaar !== (dossier.eigenaar || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Eigenaar</span>
+                    <div className="flex-1 min-w-0">
+                      {dossier.eigenaar && <div className="text-gray-400 line-through truncate">{dossier.eigenaar}</div>}
+                      <div className="text-gray-700">{aiSuggestion.eigenaar}</div>
+                    </div>
+                  </div>
+                )}
+                {aiSuggestion.inspanningsleider && aiSuggestion.inspanningsleider !== (dossier.inspanningsleider || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Leider</span>
+                    <div className="flex-1 min-w-0">
+                      {dossier.inspanningsleider && <div className="text-gray-400 line-through truncate">{dossier.inspanningsleider}</div>}
+                      <div className="text-gray-700">{aiSuggestion.inspanningsleider}</div>
+                    </div>
+                  </div>
+                )}
+                {aiSuggestion.verwachtResultaat && aiSuggestion.verwachtResultaat !== (dossier.verwachtResultaat || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Resultaat</span>
+                    <div className="flex-1 min-w-0">
+                      {dossier.verwachtResultaat && <div className="text-gray-400 line-through truncate">{dossier.verwachtResultaat}</div>}
+                      <div className="text-gray-700">{aiSuggestion.verwachtResultaat}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <button onClick={() => applySuggestion(["dossier"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium">Dossier toepassen</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -309,6 +385,88 @@ export default function EffortCard({
           <option value="on_hold">On hold</option>
         </select>
       </div>
+
+      {/* Inspanningsdossier — expandable profiel conform methodiek */}
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          <div className="text-[10px] text-gray-400 italic px-1">
+            Inspanningsdossier volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 11.3)
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <label className="text-xs text-gray-500">Eigenaar / opdrachtgever</label>
+              <input
+                value={dossier.eigenaar}
+                onChange={(e) =>
+                  onChange({
+                    ...effort,
+                    dossier: { ...dossier, eigenaar: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wie is opdrachtgever? (rol/functie)"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Inspanningsleider</label>
+              <input
+                value={dossier.inspanningsleider}
+                onChange={(e) =>
+                  onChange({
+                    ...effort,
+                    dossier: { ...dossier, inspanningsleider: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wie leidt deze inspanning? (rol/functie)"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500">Verwacht resultaat</label>
+              <textarea
+                value={dossier.verwachtResultaat}
+                onChange={(e) =>
+                  onChange({
+                    ...effort,
+                    dossier: { ...dossier, verwachtResultaat: e.target.value },
+                  })
+                }
+                rows={2}
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30 resize-none"
+                placeholder="Wat levert deze inspanning concreet op? Hoe draagt het bij aan het vermogen?"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Kostenraming</label>
+              <input
+                value={dossier.kostenraming}
+                onChange={(e) =>
+                  onChange({
+                    ...effort,
+                    dossier: { ...dossier, kostenraming: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Eerste kostenraming + onzekerheidsmarge"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Randvoorwaarden</label>
+              <input
+                value={dossier.randvoorwaarden}
+                onChange={(e) =>
+                  onChange({
+                    ...effort,
+                    dossier: { ...dossier, randvoorwaarden: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Faciliteiten en randvoorwaarden v&#243;&#243;r start"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

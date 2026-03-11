@@ -297,6 +297,17 @@ export async function suggestDINItem(
     relatedBenefits?: string[];
     relatedCapabilities?: string[];
     domain?: string;
+    // Vermogensprofiel velden
+    existingEigenaar?: string;
+    existingHuidieSituatie?: string;
+    existingGewensteSituatie?: string;
+    existingCurrentLevel?: number;
+    existingTargetLevel?: number;
+    // Inspanningsdossier velden
+    existingInspanningsleider?: string;
+    existingVerwachtResultaat?: string;
+    existingKostenraming?: string;
+    existingRandvoorwaarden?: string;
   }
 ): Promise<string> {
   const promptMap = {
@@ -330,6 +341,35 @@ export async function suggestDINItem(
   }
   if (context.existingTargetValue) {
     parts.push(`Gewenste waarde: "${context.existingTargetValue}"`);
+  }
+  // Vermogensprofiel context
+  if (context.existingEigenaar) {
+    parts.push(`Huidige eigenaar vermogen: "${context.existingEigenaar}"`);
+  }
+  if (context.existingHuidieSituatie) {
+    parts.push(`Huidige situatie (as-is): "${context.existingHuidieSituatie}"`);
+  }
+  if (context.existingGewensteSituatie) {
+    parts.push(`Gewenste situatie (to-be): "${context.existingGewensteSituatie}"`);
+  }
+  if (context.existingCurrentLevel) {
+    parts.push(`Huidig niveau: ${context.existingCurrentLevel}/5`);
+  }
+  if (context.existingTargetLevel) {
+    parts.push(`Gewenst niveau: ${context.existingTargetLevel}/5`);
+  }
+  // Inspanningsdossier context
+  if (context.existingInspanningsleider) {
+    parts.push(`Huidige inspanningsleider: "${context.existingInspanningsleider}"`);
+  }
+  if (context.existingVerwachtResultaat) {
+    parts.push(`Huidig verwacht resultaat: "${context.existingVerwachtResultaat}"`);
+  }
+  if (context.existingKostenraming) {
+    parts.push(`Huidige kostenraming: "${context.existingKostenraming}"`);
+  }
+  if (context.existingRandvoorwaarden) {
+    parts.push(`Huidige randvoorwaarden: "${context.existingRandvoorwaarden}"`);
   }
   if (context.userPrompt) {
     parts.push(`\nGEBRUIKERSINSTRUCTIE (prioriteit!): ${context.userPrompt}`);

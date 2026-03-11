@@ -657,6 +657,11 @@ export default function DINMappingStep() {
     return async (userPrompt?: string) => {
       return fetchAISuggestion("vermogen", {
         existingDescription: cap.description || undefined,
+        existingEigenaar: cap.profiel?.eigenaar || undefined,
+        existingHuidieSituatie: cap.profiel?.huidieSituatie || undefined,
+        existingGewensteSituatie: cap.profiel?.gewensteSituatie || undefined,
+        existingCurrentLevel: cap.currentLevel || undefined,
+        existingTargetLevel: cap.targetLevel || undefined,
         userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
           .filter((b) => b.description)
@@ -678,6 +683,11 @@ export default function DINMappingStep() {
       };
       return fetchAISuggestion("inspanning", {
         existingDescription: effort.description || undefined,
+        existingOwner: effort.dossier?.eigenaar || undefined,
+        existingInspanningsleider: effort.dossier?.inspanningsleider || undefined,
+        existingVerwachtResultaat: effort.dossier?.verwachtResultaat || undefined,
+        existingKostenraming: effort.dossier?.kostenraming || undefined,
+        existingRandvoorwaarden: effort.dossier?.randvoorwaarden || undefined,
         domain: domainLabels[effort.domain] || effort.domain,
         userPrompt: userPrompt || undefined,
         relatedCapabilities: sectorCapabilities

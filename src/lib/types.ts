@@ -89,6 +89,15 @@ export interface DINBenefit {
   profiel: BatenProfiel;
 }
 
+// Vermogensprofiel conform DIN-methodiek (Wijnen & Van der Tak, Hfst 10)
+// Een vermogen is een "specifieke combinatie van mensen, processen, data en systemen
+// die er in samenhang en samenspel voor zorgen dat een organisatie waarde kan toevoegen."
+export interface VermogensProfiel {
+  eigenaar: string;           // Wie is verantwoordelijk voor het opbouwen van dit vermogen
+  huidieSituatie: string;     // As-is: beschrijving huidige staat
+  gewensteSituatie: string;   // To-be: beschrijving gewenste staat
+}
+
 export interface DINCapability {
   id: string;
   sectorId: string;
@@ -96,6 +105,18 @@ export interface DINCapability {
   relatedSectors: string[];
   currentLevel?: number; // 1-5: huidig vermogensniveau
   targetLevel?: number;  // 1-5: gewenst vermogensniveau
+  profiel?: VermogensProfiel;
+}
+
+// Inspanningsdossier conform DIN-methodiek (Wijnen & Van der Tak, Hfst 11.3)
+// "Het inspanningendossier is een levend overzicht, op programmaniveau,
+// dat je periodiek bijwerkt en actueel houdt."
+export interface InspanningsDossier {
+  eigenaar: string;           // Opdrachtgever / beoogde eigenaar
+  inspanningsleider: string;  // Projectleider / inspanningsleider
+  verwachtResultaat: string;  // Beoogd resultaat dat bijdraagt aan het vermogen
+  kostenraming: string;       // Eerste kostenraming + onzekerheidsmarge
+  randvoorwaarden: string;    // Faciliteiten en randvoorwaarden vóór start
 }
 
 export interface DINEffort {
@@ -111,6 +132,7 @@ export interface DINEffort {
   opmerking?: string;
   approvalStatus?: ApprovalStatus;
   approvalDate?: string;
+  dossier?: InspanningsDossier;
 }
 
 // --- Koppelingen ---

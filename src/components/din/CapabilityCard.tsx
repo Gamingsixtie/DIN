@@ -1,21 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import type { DINCapability } from "@/lib/types";
+import type { DINCapability, VermogensProfiel } from "@/lib/types";
 
 interface CapabilitySuggestion {
   feedback?: string;
   description: string;
   currentLevel: number;
   targetLevel: number;
+  eigenaar?: string;
+  huidieSituatie?: string;
+  gewensteSituatie?: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "niveaus";
+type AanscherpVeld = "alles" | "beschrijving" | "niveaus" | "profiel";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
   beschrijving: "Beschrijving",
   niveaus: "Niveaus",
+  profiel: "Profiel",
 };
 
 interface CapabilityCardProps {
@@ -94,10 +98,21 @@ export default function CapabilityCard({
   const [userPrompt, setUserPrompt] = useState("");
   const [previousState, setPreviousState] = useState<DINCapability | null>(null);
 
+  const profiel: VermogensProfiel = capability.profiel || { eigenaar: "", huidieSituatie: "", gewensteSituatie: "" };
+
   const gap =
     capability.targetLevel && capability.currentLevel
       ? capability.targetLevel - capability.currentLevel
       : undefined;
+
+  // Completeness check — vermogensprofiel conform methodiek
+  const missing: string[] = [];
+  if (!capability.description) missing.push("beschrijving");
+  if (!capability.currentLevel) missing.push("huidig niveau");
+  if (!capability.targetLevel) missing.push("gewenst niveau");
+  if (!profiel.eigenaar) missing.push("eigenaar");
+  if (!profiel.huidieSituatie) missing.push("huidige situatie");
+  if (!profiel.gewensteSituatie) missing.push("gewenste situatie");
 
   function toggleVeld(veld: AanscherpVeld) {
     const next = new Set(selectedVelden);
@@ -138,11 +153,11 @@ export default function CapabilityCard({
 
   function applySuggestion(fields?: AanscherpVeld[]) {
     if (!aiSuggestion) return;
-    setPreviousState({ ...capability });
+    setPreviousState({ ...capability, profiel: capability.profiel ? { ...capability.profiel } : undefined });
 
     const applyAll = !fields || fields.includes("alles");
     const applySet = new Set(fields || ["alles"]);
-    const updated = { ...capability };
+    const updated = { ...capability, profiel: { ...(capability.profiel || { eigenaar: "", huidieSituatie: "", gewensteSituatie: "" }) } };
 
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
@@ -150,6 +165,11 @@ export default function CapabilityCard({
     if (applyAll || applySet.has("niveaus")) {
       if (aiSuggestion.currentLevel) updated.currentLevel = aiSuggestion.currentLevel;
       if (aiSuggestion.targetLevel) updated.targetLevel = aiSuggestion.targetLevel;
+    }
+    if (applyAll || applySet.has("profiel")) {
+      if (aiSuggestion.eigenaar) updated.profiel!.eigenaar = aiSuggestion.eigenaar;
+      if (aiSuggestion.huidieSituatie) updated.profiel!.huidieSituatie = aiSuggestion.huidieSituatie;
+      if (aiSuggestion.gewensteSituatie) updated.profiel!.gewensteSituatie = aiSuggestion.gewensteSituatie;
     }
 
     onChange(updated);
@@ -166,14 +186,21 @@ export default function CapabilityCard({
   return (
     <div className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 min-w-0 overflow-hidden">
       <div className="flex items-start gap-2 min-w-0">
-        <input
-          value={capability.description}
-          onChange={(e) =>
-            onChange({ ...capability, description: e.target.value })
-          }
-          className="flex-1 min-w-0 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-          placeholder="Wat moet de organisatie kunnen? (combinatie van mensen, processen, data en systemen)"
-        />
+        <div className="flex-1 min-w-0">
+          <input
+            value={capability.description}
+            onChange={(e) =>
+              onChange({ ...capability, description: e.target.value })
+            }
+            className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
+            placeholder="Wat moet de organisatie kunnen? (combinatie van mensen, processen, data en systemen)"
+          />
+          {missing.length > 0 && !expanded && (
+            <p className="text-[10px] text-amber-500 mt-1">
+              Ontbreekt: {missing.join(", ")}
+            </p>
+          )}
+        </div>
         <div className="flex gap-1.5 shrink-0 items-center">
           {onAISuggest && (
             <button
@@ -347,6 +374,40 @@ export default function CapabilityCard({
                 <button onClick={() => applySuggestion(["niveaus"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
               </div>
             )}
+            {(aiSuggestion.eigenaar || aiSuggestion.huidieSituatie || aiSuggestion.gewensteSituatie) && (
+              <div className="space-y-1">
+                {aiSuggestion.eigenaar && aiSuggestion.eigenaar !== (profiel.eigenaar || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Eigenaar</span>
+                    <div className="flex-1 min-w-0">
+                      {profiel.eigenaar && <div className="text-gray-400 line-through truncate">{profiel.eigenaar}</div>}
+                      <div className="text-gray-700">{aiSuggestion.eigenaar}</div>
+                    </div>
+                  </div>
+                )}
+                {aiSuggestion.huidieSituatie && aiSuggestion.huidieSituatie !== (profiel.huidieSituatie || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Huidige sit.</span>
+                    <div className="flex-1 min-w-0">
+                      {profiel.huidieSituatie && <div className="text-gray-400 line-through truncate">{profiel.huidieSituatie}</div>}
+                      <div className="text-gray-700">{aiSuggestion.huidieSituatie}</div>
+                    </div>
+                  </div>
+                )}
+                {aiSuggestion.gewensteSituatie && aiSuggestion.gewensteSituatie !== (profiel.gewensteSituatie || "") && (
+                  <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                    <span className="font-medium text-gray-500 w-20 shrink-0">Gewenste sit.</span>
+                    <div className="flex-1 min-w-0">
+                      {profiel.gewensteSituatie && <div className="text-gray-400 line-through truncate">{profiel.gewensteSituatie}</div>}
+                      <div className="text-gray-700">{aiSuggestion.gewensteSituatie}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <button onClick={() => applySuggestion(["profiel"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium">Profiel toepassen</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -364,10 +425,9 @@ export default function CapabilityCard({
       )}
 
       {expanded && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
           <div className="text-[10px] text-gray-400 italic px-1">
-            Een vermogen is een specifieke combinatie van mensen, processen, data en systemen
-            die waarde toevoegt — als hefboom voor baten (Wijnen &amp; Van der Tak).
+            Vermogensprofiel volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 10)
           </div>
           <div className="flex gap-6">
             <LevelSelector
@@ -382,6 +442,52 @@ export default function CapabilityCard({
               onChange={(v) => onChange({ ...capability, targetLevel: v })}
               color="target"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500">Eigenaar (verantwoordelijk voor opbouw)</label>
+              <input
+                value={profiel.eigenaar}
+                onChange={(e) =>
+                  onChange({
+                    ...capability,
+                    profiel: { ...profiel, eigenaar: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wie is verantwoordelijk? (rol/functie)"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Huidige situatie (as-is)</label>
+              <textarea
+                value={profiel.huidieSituatie}
+                onChange={(e) =>
+                  onChange({
+                    ...capability,
+                    profiel: { ...profiel, huidieSituatie: e.target.value },
+                  })
+                }
+                rows={2}
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30 resize-none"
+                placeholder="Hoe staat het er nu voor? Wat kan de organisatie al?"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Gewenste situatie (to-be)</label>
+              <textarea
+                value={profiel.gewensteSituatie}
+                onChange={(e) =>
+                  onChange({
+                    ...capability,
+                    profiel: { ...profiel, gewensteSituatie: e.target.value },
+                  })
+                }
+                rows={2}
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30 resize-none"
+                placeholder="Hoe moet het eruitzien? Wat moet de organisatie kunnen?"
+              />
+            </div>
           </div>
         </div>
       )}
