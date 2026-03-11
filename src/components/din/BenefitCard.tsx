@@ -26,6 +26,13 @@ const VELD_LABELS: Record<AanscherpVeld, string> = {
   waarden: "Waarden",
 };
 
+// Zetvragen conform DIN-methodiek — helpen nadenken over de juiste formulering
+const BAAT_ZETVRAGEN = [
+  { key: "effectVraag", label: "Welk effect in de buitenwereld wil je versterken?", placeholder: "Bijv: klanttevredenheid, marktaandeel, medewerkerstevredenheid, doorlooptijd..." },
+  { key: "doelgroepVraag", label: "Bij wie is dit effect zichtbaar?", placeholder: "Bijv: leerlingen, scholen, werkgevers, medewerkers..." },
+  { key: "onderscheidVraag", label: "Hoe verschilt deze baat van het doel zelf?", placeholder: "Een baat is een indirect effect, niet het doel herhaald. Wat is het hefboom-effect?" },
+];
+
 interface BenefitCardProps {
   benefit: DINBenefit;
   onChange: (updated: DINBenefit) => void;
@@ -46,6 +53,7 @@ export default function BenefitCard({
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
+  const [zetvraagAntwoorden, setZetvraagAntwoorden] = useState<Record<string, string>>({});
   // Undo: bewaar vorige staat na toepassen
   const [previousState, setPreviousState] = useState<DINBenefit | null>(null);
   const [showTip, setShowTip] = useState(false);
@@ -67,9 +75,21 @@ export default function BenefitCard({
   }
 
   function buildPromptPrefix(): string {
-    if (selectedVelden.has("alles")) return "";
-    const labels = Array.from(selectedVelden).map((v) => VELD_LABELS[v]);
-    return `Focus ALLEEN op het aanscherpen van: ${labels.join(", ")}. Laat de andere velden zo dicht mogelijk bij de huidige waarden. `;
+    let prefix = "";
+    if (!selectedVelden.has("alles")) {
+      const labels = Array.from(selectedVelden).map((v) => VELD_LABELS[v]);
+      prefix += `Focus ALLEEN op het aanscherpen van: ${labels.join(", ")}. Laat de andere velden zo dicht mogelijk bij de huidige waarden. `;
+    }
+    // Zetvragen-antwoorden meesturen als context
+    const filledAnswers = BAAT_ZETVRAGEN.filter((z) => zetvraagAntwoorden[z.key]?.trim());
+    if (filledAnswers.length > 0) {
+      prefix += "\n\nDe gebruiker heeft de volgende zetvragen beantwoord:\n";
+      filledAnswers.forEach((z) => {
+        prefix += `- ${z.label} → ${zetvraagAntwoorden[z.key]}\n`;
+      });
+      prefix += "\nGebruik deze antwoorden om een scherper en methodiek-conformer voorstel te doen.\n";
+    }
+    return prefix;
   }
 
   async function handleAISuggest() {
@@ -231,42 +251,65 @@ export default function BenefitCard({
         </div>
       </div>
 
-      {/* AI Panel: selectie + prompt */}
+      {/* AI Panel: zetvragen + selectie + prompt */}
       {showAIPanel && !aiSuggestion && (
-        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-2">
+        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-cito-accent">Wat wil je aanscherpen?</span>
+            <span className="text-xs font-semibold text-cito-accent">Aanscherpen met zetvragen</span>
             <button onClick={() => setShowAIPanel(false)} className="text-xs text-gray-400 hover:text-gray-600">&#10005;</button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
-              <button
-                key={veld}
-                onClick={() => toggleVeld(veld)}
-                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
-                  selectedVelden.has(veld)
-                    ? "bg-cito-accent text-white"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
-                }`}
-              >
-                {VELD_LABELS[veld]}
-              </button>
+
+          {/* Zetvragen — methodiek-vragen die helpen nadenken */}
+          <div className="space-y-2 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg">
+            <div className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Zetvragen (optioneel, helpt AI scherper formuleren)</div>
+            {BAAT_ZETVRAGEN.map((z) => (
+              <div key={z.key}>
+                <label className="text-[11px] font-medium text-gray-700 block mb-0.5">{z.label}</label>
+                <input
+                  value={zetvraagAntwoorden[z.key] || ""}
+                  onChange={(e) => setZetvraagAntwoorden((prev) => ({ ...prev, [z.key]: e.target.value }))}
+                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white"
+                  placeholder={z.placeholder}
+                />
+              </div>
             ))}
           </div>
-          <div className="flex gap-2 items-center mt-2">
+
+          {/* Veld-selectie */}
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Welke velden aanscherpen?</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
+                <button
+                  key={veld}
+                  onClick={() => toggleVeld(veld)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    selectedVelden.has(veld)
+                      ? "bg-cito-accent text-white"
+                      : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
+                  }`}
+                >
+                  {VELD_LABELS[veld]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Extra vrije prompt */}
+          <div className="flex gap-2 items-center">
             <input
               value={userPrompt}
               onChange={(e) => setUserPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
               className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
-              placeholder="Optioneel: beschrijf wat je wilt (bijv. 'maak meetbaarder')"
+              placeholder="Optioneel: extra instructie (bijv. 'maak meetbaarder')"
             />
             <button
               onClick={handleAISuggest}
               disabled={isAILoading}
               className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0 disabled:opacity-50"
             >
-              {isAILoading ? "Bezig..." : "Verstuur"}
+              {isAILoading ? "Bezig..." : "Aanscherpen"}
             </button>
           </div>
         </div>

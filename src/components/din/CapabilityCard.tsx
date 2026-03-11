@@ -24,6 +24,13 @@ const VELD_LABELS: Record<AanscherpVeld, string> = {
   profiel: "Profiel",
 };
 
+// Zetvragen conform DIN-methodiek — helpen nadenken over de juiste formulering
+const VERMOGEN_ZETVRAGEN = [
+  { key: "watKunnenVraag", label: "Wat moet de organisatie beter KUNNEN (niet DOEN)?", placeholder: "Beschrijf een capaciteit, geen activiteit. Bijv: 'klantgesprekken voeren' i.p.v. 'training geven'" },
+  { key: "waaromNodigVraag", label: "Waarom is dit vermogen nu onvoldoende?", placeholder: "Wat ontbreekt er? Kennis, ervaring, tooling, processen...?" },
+  { key: "hoeHerkenVraag", label: "Hoe herken je dat het vermogen op gewenst niveau is?", placeholder: "Welk concreet gedrag of resultaat zie je dan?" },
+];
+
 interface CapabilityCardProps {
   capability: DINCapability;
   onChange: (updated: DINCapability) => void;
@@ -98,6 +105,7 @@ export default function CapabilityCard({
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
+  const [zetvraagAntwoorden, setZetvraagAntwoorden] = useState<Record<string, string>>({});
   const [previousState, setPreviousState] = useState<DINCapability | null>(null);
   const [showTip, setShowTip] = useState(false);
 
@@ -141,6 +149,15 @@ export default function CapabilityCard({
       if (!selectedVelden.has("alles")) {
         const labels = Array.from(selectedVelden).map((v) => VELD_LABELS[v]);
         prefix = `Focus ALLEEN op: ${labels.join(", ")}. `;
+      }
+      // Zetvragen-antwoorden meesturen
+      const filledAnswers = VERMOGEN_ZETVRAGEN.filter((z) => zetvraagAntwoorden[z.key]?.trim());
+      if (filledAnswers.length > 0) {
+        prefix += "\n\nDe gebruiker heeft de volgende zetvragen beantwoord:\n";
+        filledAnswers.forEach((z) => {
+          prefix += `- ${z.label} → ${zetvraagAntwoorden[z.key]}\n`;
+        });
+        prefix += "\nGebruik deze antwoorden om een scherper en methodiek-conformer voorstel te doen.\n";
       }
       const result = await onAISuggest((prefix + (userPrompt || "")) || undefined);
       if (result) {
@@ -300,42 +317,65 @@ export default function CapabilityCard({
         </div>
       )}
 
-      {/* AI Panel */}
+      {/* AI Panel: zetvragen + selectie + prompt */}
       {showAIPanel && !aiSuggestion && (
-        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-2">
+        <div className="mt-3 p-3 bg-cito-accent/5 border border-cito-accent/20 rounded-lg space-y-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-cito-accent">Wat wil je aanscherpen?</span>
+            <span className="text-xs font-semibold text-cito-accent">Aanscherpen met zetvragen</span>
             <button onClick={() => setShowAIPanel(false)} className="text-xs text-gray-400 hover:text-gray-600">&#10005;</button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
-              <button
-                key={veld}
-                onClick={() => toggleVeld(veld)}
-                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
-                  selectedVelden.has(veld)
-                    ? "bg-cito-accent text-white"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
-                }`}
-              >
-                {VELD_LABELS[veld]}
-              </button>
+
+          {/* Zetvragen */}
+          <div className="space-y-2 p-2.5 bg-cyan-50/50 border border-cyan-100 rounded-lg">
+            <div className="text-[10px] text-cyan-600 font-medium uppercase tracking-wider">Zetvragen (optioneel, helpt AI scherper formuleren)</div>
+            {VERMOGEN_ZETVRAGEN.map((z) => (
+              <div key={z.key}>
+                <label className="text-[11px] font-medium text-gray-700 block mb-0.5">{z.label}</label>
+                <input
+                  value={zetvraagAntwoorden[z.key] || ""}
+                  onChange={(e) => setZetvraagAntwoorden((prev) => ({ ...prev, [z.key]: e.target.value }))}
+                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-300 bg-white"
+                  placeholder={z.placeholder}
+                />
+              </div>
             ))}
           </div>
-          <div className="flex gap-2 items-center mt-2">
+
+          {/* Veld-selectie */}
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Welke velden aanscherpen?</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(VELD_LABELS) as AanscherpVeld[]).map((veld) => (
+                <button
+                  key={veld}
+                  onClick={() => toggleVeld(veld)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    selectedVelden.has(veld)
+                      ? "bg-cito-accent text-white"
+                      : "bg-white border border-gray-200 text-gray-600 hover:border-cito-accent/50"
+                  }`}
+                >
+                  {VELD_LABELS[veld]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Extra vrije prompt */}
+          <div className="flex gap-2 items-center">
             <input
               value={userPrompt}
               onChange={(e) => setUserPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAISuggest()}
               className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cito-accent/50 bg-white"
-              placeholder="Optioneel: wat wil je veranderen?"
+              placeholder="Optioneel: extra instructie"
             />
             <button
               onClick={handleAISuggest}
               disabled={isAILoading}
               className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0 disabled:opacity-50"
             >
-              {isAILoading ? "Bezig..." : "Verstuur"}
+              {isAILoading ? "Bezig..." : "Aanscherpen"}
             </button>
           </div>
         </div>
