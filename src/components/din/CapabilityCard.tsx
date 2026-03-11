@@ -97,6 +97,7 @@ export default function CapabilityCard({
   const [selectedVelden, setSelectedVelden] = useState<Set<AanscherpVeld>>(new Set(["alles"]));
   const [userPrompt, setUserPrompt] = useState("");
   const [previousState, setPreviousState] = useState<DINCapability | null>(null);
+  const [showTip, setShowTip] = useState(false);
 
   const profiel: VermogensProfiel = capability.profiel || { eigenaar: "", huidieSituatie: "", gewensteSituatie: "" };
 
@@ -426,9 +427,39 @@ export default function CapabilityCard({
 
       {expanded && (
         <div className="mt-3 space-y-3">
-          <div className="text-[10px] text-gray-400 italic px-1">
-            Vermogensprofiel volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 10)
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-[10px] text-gray-400 italic">
+              Vermogensprofiel volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 10)
+            </span>
+            <button
+              onClick={() => setShowTip(!showTip)}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 hover:bg-cyan-200 transition-colors font-medium"
+              title="Hoe formuleer ik een goed vermogen?"
+            >
+              ?
+            </button>
           </div>
+          {showTip && (
+            <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg text-xs text-cyan-900 space-y-2">
+              <div className="font-semibold">Hoe formuleer ik een goed vermogen?</div>
+              <div>
+                Een vermogen is een <span className="font-medium">specifieke combinatie</span> van mensen, processen, data en systemen die samen waarde toevoegen.
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2 py-0.5 bg-white rounded border border-cyan-200 text-[11px]">&quot;Klantgesprek-methodiek&quot;</span>
+                <span className="px-2 py-0.5 bg-white rounded border border-cyan-200 text-[11px]">&quot;Data-analyse competentie&quot;</span>
+                <span className="px-2 py-0.5 bg-white rounded border border-cyan-200 text-[11px]">&quot;Digitaal toetsplatform&quot;</span>
+              </div>
+              <div className="text-cyan-700 space-y-1">
+                <div>&bull; Beschrijf de <span className="font-medium">combinatie</span> &mdash; niet slechts &eacute;&eacute;n onderdeel (alleen IT of alleen mensen)</div>
+                <div>&bull; Een vermogen is een <span className="font-medium">hefboom</span> voor de baat, geen doel op zich</div>
+                <div>&bull; Werk uit met <span className="font-medium">as-is</span> (huidige situatie) en <span className="font-medium">to-be</span> (gewenste situatie)</div>
+                <div>&bull; Kan concreet zijn (&quot;klantenservice&quot;) of holistisch (&quot;lerend vermogen&quot;)</div>
+                <div>&bull; Zes aspecten: processen, data, mensen, organisatie, technologie, cultuur</div>
+              </div>
+              <div className="text-[10px] text-cyan-500 italic mt-1">Bron: &quot;Werken aan Programma&apos;s&quot;, Hfst 10 &mdash; De benodigde vermogens uitwerken</div>
+            </div>
+          )}
           <div className="flex gap-6">
             <LevelSelector
               label="Huidig niveau"

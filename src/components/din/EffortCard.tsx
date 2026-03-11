@@ -59,6 +59,7 @@ export default function EffortCard({
   const [userPrompt, setUserPrompt] = useState("");
   const [previousState, setPreviousState] = useState<DINEffort | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
   const dossier: InspanningsDossier = effort.dossier || {
     eigenaar: "",
@@ -389,9 +390,39 @@ export default function EffortCard({
       {/* Inspanningsdossier — expandable profiel conform methodiek */}
       {expanded && (
         <div className="mt-3 space-y-3">
-          <div className="text-[10px] text-gray-400 italic px-1">
-            Inspanningsdossier volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 11.3)
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-[10px] text-gray-400 italic">
+              Inspanningsdossier volgens DIN-methodiek (Wijnen &amp; Van der Tak, Hfst 11.3)
+            </span>
+            <button
+              onClick={() => setShowTip(!showTip)}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors font-medium"
+              title="Hoe formuleer ik een goede inspanning?"
+            >
+              ?
+            </button>
           </div>
+          {showTip && (
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-900 space-y-2">
+              <div className="font-semibold">Hoe formuleer ik een goede inspanning?</div>
+              <div>
+                Formuleer inspanningen met <span className="font-medium">werkwoorden</span> &mdash; het is <span className="italic">werk</span> (werk = werkwoord).
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2 py-0.5 bg-white rounded border border-orange-200 text-[11px]">&quot;Training outside-in werken uitvoeren&quot;</span>
+                <span className="px-2 py-0.5 bg-white rounded border border-orange-200 text-[11px]">&quot;CRM-systeem implementeren&quot;</span>
+                <span className="px-2 py-0.5 bg-white rounded border border-orange-200 text-[11px]">&quot;Feedbackproces inrichten&quot;</span>
+              </div>
+              <div className="text-orange-700 space-y-1">
+                <div>&bull; <span className="font-medium">Werkwoorden</span> gebruiken, niet zelfstandige naamwoorden (verschil met baten!)</div>
+                <div>&bull; <span className="font-medium">Concreet</span> genoeg om er middelen (geld, mensen, tijd) aan te koppelen</div>
+                <div>&bull; Niet te klein &mdash; cluster gerelateerde activiteiten, anders wordt het DIN onoverzichtelijk</div>
+                <div>&bull; Altijd koppelen aan het <span className="font-medium">vermogen</span> waaraan het bijdraagt</div>
+                <div>&bull; In &eacute;&eacute;n van de 4 domeinen: Mens, Processen, Data &amp; Systemen, Cultuur</div>
+              </div>
+              <div className="text-[10px] text-orange-500 italic mt-1">Bron: &quot;Werken aan Programma&apos;s&quot;, Hfst 11 &mdash; Overzicht en samenhang aanbrengen</div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <label className="text-xs text-gray-500">Opdrachtgever (geeft opdracht en is eindverantwoordelijk)</label>
