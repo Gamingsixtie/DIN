@@ -73,8 +73,9 @@ export interface PMCEntry {
 // --- DIN Keten ---
 
 export interface BatenProfiel {
+  bateneigenaar?: string;      // Eindverantwoordelijk voor realisatie (bijv. Sectormanager)
   indicator: string;           // Meetbare indicator / KPI
-  indicatorOwner: string;      // Meetverantwoordelijke (rol/functie)
+  indicatorOwner: string;      // Meetverantwoordelijke: voert meting uit en rapporteert (bijv. BI-specialist)
   currentValue: string;        // Startwaarde / nulmeting
   targetValue: string;         // Doelwaarde
   meetmethode?: string;        // Hoe wordt gemeten? (enquête, data-analyse, etc.)

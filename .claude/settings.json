@@ -12,7 +12,12 @@
       "Bash(npx vercel --name din-app --yes)",
       "Bash(npx vercel env add NEXT_PUBLIC_SUPABASE_URL production --value \"https://mrlrbpljkhubrqtiurer.supabase.co\" --yes)",
       "Bash(npm install docx)",
-      "Bash(npm install mammoth)"
+      "Bash(npm install mammoth)",
+      "Bash(python3 -c \"import docx; print\\(''python-docx available''\\)\")",
+      "Bash(python3 -c \"import olefile; print\\(''olefile available''\\)\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

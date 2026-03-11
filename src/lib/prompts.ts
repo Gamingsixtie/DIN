@@ -241,10 +241,15 @@ Een baat is GEEN interne activiteit of project — het is het RESULTAAT dat zich
 
 Het batenprofiel moet conform de methodiek bevatten:
 - Omschrijving: wat is het effect en wie merkt het?
+- Bateneigenaar: wie is EINDVERANTWOORDELIJK voor de realisatie van deze baat? (bijv. Sectormanager)
 - Indicator: meetbare KPI die het effect kwantificeert
-- Meetverantwoordelijke: wie is verantwoordelijk voor de meting? (rol/functie)
+- Meetverantwoordelijke: wie VOERT de meting UIT en levert data/rapportage? (bijv. BI-specialist, Data-analist, Controller)
 - Startwaarde (nulmeting): huidige stand van de indicator
 - Doelwaarde: gewenste stand van de indicator
+
+BELANGRIJK onderscheid:
+- Bateneigenaar = eindverantwoordelijk voor REALISATIE (rapporteert aan stuurgroep)
+- Meetverantwoordelijke = voert de METING uit en levert data (operationeel)
 
 Je krijgt context: het programmadoel, de sector, optioneel een sectorplan, en de huidige invulling van de baat.
 Als de gebruiker een GEBRUIKERSINSTRUCTIE meegeeft, volg die dan als prioriteit.
@@ -256,8 +261,9 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {
   "feedback": "Max 2 zinnen: wat mist er of kan beter t.o.v. de methodiek?",
   "description": "Korte, concrete omschrijving van het gewenste effect (max 1 zin)",
+  "bateneigenaar": "Eindverantwoordelijke voor realisatie (bijv. Sectormanager PO)",
   "indicator": "Meetbare KPI/indicator",
-  "indicatorOwner": "Meetverantwoordelijke (rol/functie)",
+  "indicatorOwner": "Meetverantwoordelijke die de meting uitvoert (bijv. BI-specialist, Controller)",
   "currentValue": "Startwaarde (nulmeting)",
   "targetValue": "Doelwaarde"
 }`;

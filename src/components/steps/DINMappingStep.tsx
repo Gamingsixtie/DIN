@@ -641,6 +641,7 @@ export default function DINMappingStep() {
     return async (userPrompt?: string) => {
       return fetchAISuggestion("baat", {
         existingDescription: benefit.description || undefined,
+        existingEigenaar: benefit.profiel.bateneigenaar || undefined,
         existingIndicator: benefit.profiel.indicator || undefined,
         existingOwner: benefit.profiel.indicatorOwner || undefined,
         existingCurrentValue: benefit.profiel.currentValue || undefined,

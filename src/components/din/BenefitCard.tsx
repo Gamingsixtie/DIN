@@ -6,19 +6,21 @@ import type { DINBenefit } from "@/lib/types";
 interface BenefitSuggestion {
   feedback?: string;
   description: string;
+  bateneigenaar?: string;
   indicator: string;
   indicatorOwner: string;
   currentValue: string;
   targetValue: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "indicator" | "eigenaar" | "waarden";
+type AanscherpVeld = "alles" | "beschrijving" | "bateneigenaar" | "indicator" | "eigenaar" | "waarden";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
   beschrijving: "Beschrijving",
+  bateneigenaar: "Bateneigenaar",
   indicator: "Indicator",
-  eigenaar: "Eigenaar",
+  eigenaar: "Meetverantw.",
   waarden: "Waarden",
 };
 
@@ -98,6 +100,9 @@ export default function BenefitCard({
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
     }
+    if (applyAll || applySet.has("bateneigenaar")) {
+      if (aiSuggestion.bateneigenaar) updated.profiel.bateneigenaar = aiSuggestion.bateneigenaar;
+    }
     if (applyAll || applySet.has("indicator")) {
       if (aiSuggestion.indicator) updated.profiel.indicator = aiSuggestion.indicator;
     }
@@ -123,6 +128,7 @@ export default function BenefitCard({
   // Completeness check — op basis van batenprofiel uit methodiek
   const missing: string[] = [];
   if (!benefit.description) missing.push("omschrijving");
+  if (!benefit.profiel.bateneigenaar) missing.push("bateneigenaar");
   if (!benefit.profiel.indicator) missing.push("indicator");
   if (!benefit.profiel.indicatorOwner) missing.push("meetverantwoordelijke");
   if (!benefit.profiel.currentValue) missing.push("startwaarde");
@@ -287,6 +293,14 @@ export default function BenefitCard({
                 onApply={() => applySuggestion(["beschrijving"])}
               />
             )}
+            {aiSuggestion.bateneigenaar && aiSuggestion.bateneigenaar !== (benefit.profiel.bateneigenaar || "") && (
+              <SuggestionRow
+                label="Bateneigenaar"
+                current={benefit.profiel.bateneigenaar || ""}
+                suggested={aiSuggestion.bateneigenaar}
+                onApply={() => applySuggestion(["bateneigenaar"])}
+              />
+            )}
             {aiSuggestion.indicator && aiSuggestion.indicator !== benefit.profiel.indicator && (
               <SuggestionRow
                 label="Indicator"
@@ -322,6 +336,20 @@ export default function BenefitCard({
             Batenprofiel volgens DIN-methodiek (Wijnen &amp; Van der Tak)
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500">Bateneigenaar (eindverantwoordelijk voor realisatie van deze baat)</label>
+              <input
+                value={benefit.profiel.bateneigenaar || ""}
+                onChange={(e) =>
+                  onChange({
+                    ...benefit,
+                    profiel: { ...benefit.profiel, bateneigenaar: e.target.value },
+                  })
+                }
+                className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+                placeholder="Wie is eindverantwoordelijk? (bijv. Sectormanager PO, Sectormanager VO)"
+              />
+            </div>
             <div>
               <label className="text-xs text-gray-500">Indicator (meetbare KPI)</label>
               <input
@@ -337,7 +365,7 @@ export default function BenefitCard({
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Meetverantwoordelijke (bewaakt of de baat daadwerkelijk wordt gerealiseerd)</label>
+              <label className="text-xs text-gray-500">Meetverantwoordelijke (voert de meting uit en levert data/rapportage)</label>
               <input
                 value={benefit.profiel.indicatorOwner}
                 onChange={(e) =>
@@ -350,7 +378,7 @@ export default function BenefitCard({
                   })
                 }
                 className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                placeholder="Wie meet en rapporteert over deze baat? (bijv. Controller, Kwaliteitsmanager)"
+                placeholder="Wie voert de meting uit? (bijv. BI-specialist, Data-analist, Controller)"
               />
             </div>
             <div>
