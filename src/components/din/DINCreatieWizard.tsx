@@ -19,7 +19,7 @@ interface WizardProps {
   parentCapability?: DINCapability;
   domain?: EffortDomain;
   sectorPlanText?: string;
-  onGenerate: (result: WizardResult) => void;
+  onGenerate: (results: WizardResult[]) => void;
   onCancel: () => void;
   onManual: () => void; // Fallback: handmatig invoeren (leeg item)
 }
@@ -226,18 +226,20 @@ export default function DINCreatieWizard({
 }: WizardProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [preview, setPreview] = useState<WizardResult | null>(null);
+  const [previews, setPreviews] = useState<WizardResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Domeinverkenning state (alleen voor inspanningen zonder vooraf gekozen domein)
   const needsDomainDiscovery = type === "inspanning" && !domain;
   const [domeinAntwoorden, setDomeinAntwoorden] = useState<Record<string, string>>({});
   const [domeinRecommendation, setDomeinRecommendation] = useState<DomeinRecommendation | null>(null);
-  const [gekozenDomein, setGekozenDomein] = useState<EffortDomain | null>(domain || null);
+  // Multi-select: meerdere domeinen kunnen gekozen worden
+  const [gekozenDomeinen, setGekozenDomeinen] = useState<EffortDomain[]>(domain ? [domain] : []);
   const [isDomeinLoading, setIsDomeinLoading] = useState(false);
   const [phase, setPhase] = useState<InspanningPhase | StandardPhase>(
     needsDomainDiscovery ? "domeinverkenning" : "vragen"
   );
+  const [generateProgress, setGenerateProgress] = useState<string>("");
 
   const questions = type === "baat" ? BAAT_VRAGEN : type === "vermogen" ? VERMOGEN_VRAGEN : INSPANNING_VRAGEN;
 
@@ -249,6 +251,12 @@ export default function DINCreatieWizard({
 
   function updateDomeinAnswer(key: string, value: string) {
     setDomeinAntwoorden((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleDomein(d: EffortDomain) {
+    setGekozenDomeinen((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+    );
   }
 
   // Controleer of minimaal de eerste vraag ingevuld is
@@ -298,11 +306,15 @@ export default function DINCreatieWizard({
           alternatiefRedenering: s.alternatiefRedenering || null,
         };
         setDomeinRecommendation(rec);
-        setGekozenDomein(rec.aanbevolenDomein);
+        // Pre-select: aanbevolen domein altijd, alternatief ook als het er is
+        const preSelected: EffortDomain[] = [rec.aanbevolenDomein];
+        if (rec.alternatiefDomein) {
+          preSelected.push(rec.alternatiefDomein);
+        }
+        setGekozenDomeinen(preSelected);
         setPhase("domeinkeuze");
       } else {
         setError("AI kon geen domein aanbevelen. Kies handmatig een domein.");
-        // Fallback: toon domeinkeuze zonder aanbeveling
         setPhase("domeinkeuze");
       }
     } catch (e) {
@@ -314,101 +326,163 @@ export default function DINCreatieWizard({
     }
   }
 
-  // --- AI generatie ---
+  // --- AI generatie voor één domein ---
+  async function generateForDomain(targetDomain: EffortDomain): Promise<WizardResult | null> {
+    const context: Record<string, unknown> = {
+      sector: sectorId,
+      answers: {
+        ...domeinAntwoorden,
+        ...answers,
+      },
+    };
+
+    if (parentGoal) {
+      context.goalName = parentGoal.name;
+      context.goalDescription = parentGoal.description;
+    }
+    if (parentBenefit) {
+      context.benefitTitle = parentBenefit.title || parentBenefit.description;
+      context.benefitDescription = parentBenefit.description;
+      context.benefitIndicator = parentBenefit.profiel?.indicator;
+    }
+    if (parentCapability) {
+      context.capabilityTitle = parentCapability.title || parentCapability.description;
+      context.capabilityDescription = parentCapability.description;
+    }
+    context.domain = DOMAIN_LABELS[targetDomain];
+    if (sectorPlanText) {
+      context.sectorPlanText = sectorPlanText;
+    }
+
+    const res = await fetch("/api/din-suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "inspanning", context, mode: "create" }),
+    });
+
+    const data = await res.json();
+    if (data.success && data.data?.suggestion) {
+      const s = data.data.suggestion;
+      return {
+        title: s.title || "",
+        description: s.description || "",
+        domain: targetDomain,
+        quarter: s.quarter,
+        inspanningsEigenaar: s.eigenaar,
+        inspanningsleider: s.inspanningsleider,
+        verwachtResultaat: s.verwachtResultaat,
+        kostenraming: s.kostenraming,
+        randvoorwaarden: s.randvoorwaarden,
+      };
+    }
+    return null;
+  }
+
+  // --- AI generatie (single voor baat/vermogen, multi voor inspanningen) ---
   async function handleGenerate() {
     setIsGenerating(true);
     setError(null);
+    setPreviews([]);
+
     try {
-      const context: Record<string, unknown> = {
-        sector: sectorId,
-        answers: {
-          ...domeinAntwoorden, // Domeinverkenning-antwoorden als extra context
-          ...answers,          // Inspanningsvragen
-        },
-      };
-
-      // Context-keten meesturen
-      if (parentGoal) {
-        context.goalName = parentGoal.name;
-        context.goalDescription = parentGoal.description;
-      }
-      if (parentBenefit) {
-        context.benefitTitle = parentBenefit.title || parentBenefit.description;
-        context.benefitDescription = parentBenefit.description;
-        context.benefitIndicator = parentBenefit.profiel?.indicator;
-      }
-      if (parentCapability) {
-        context.capabilityTitle = parentCapability.title || parentCapability.description;
-        context.capabilityDescription = parentCapability.description;
-      }
-      // Domein: gebruik gekozen domein of prop
-      const effectiveDomain = gekozenDomein || domain;
-      if (effectiveDomain) {
-        context.domain = DOMAIN_LABELS[effectiveDomain];
-      }
-      if (sectorPlanText) {
-        context.sectorPlanText = sectorPlanText;
-      }
-
-      const res = await fetch("/api/din-suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, context, mode: "create" }),
-      });
-
-      const data = await res.json();
-      if (data.success && data.data?.suggestion) {
-        const s = data.data.suggestion;
-        const result: WizardResult = {
-          title: s.title || "",
-          description: s.description || "",
-        };
-        // Type-specifieke velden
-        if (type === "baat") {
-          result.bateneigenaar = s.bateneigenaar;
-          result.indicator = s.indicator;
-          result.indicatorOwner = s.indicatorOwner;
-          result.currentValue = s.currentValue;
-          result.targetValue = s.targetValue;
-        } else if (type === "vermogen") {
-          result.currentLevel = s.currentLevel;
-          result.targetLevel = s.targetLevel;
-          result.eigenaar = s.eigenaar;
-          result.huidieSituatie = s.huidieSituatie;
-          result.gewensteSituatie = s.gewensteSituatie;
-        } else {
-          result.domain = gekozenDomein || domain;
-          result.quarter = s.quarter;
-          result.inspanningsEigenaar = s.eigenaar;
-          result.inspanningsleider = s.inspanningsleider;
-          result.verwachtResultaat = s.verwachtResultaat;
-          result.kostenraming = s.kostenraming;
-          result.randvoorwaarden = s.randvoorwaarden;
+      if (type === "inspanning" && gekozenDomeinen.length > 0) {
+        // Genereer voor elk gekozen domein
+        const results: WizardResult[] = [];
+        for (let i = 0; i < gekozenDomeinen.length; i++) {
+          const d = gekozenDomeinen[i];
+          setGenerateProgress(`${DOMAIN_LABELS[d]} genereren... (${i + 1}/${gekozenDomeinen.length})`);
+          const result = await generateForDomain(d);
+          if (result) results.push(result);
         }
-        setPreview(result);
-        setPhase("preview");
+        setGenerateProgress("");
+        if (results.length > 0) {
+          setPreviews(results);
+          setPhase("preview");
+        } else {
+          setError("AI kon geen inspanningen genereren. Probeer het opnieuw.");
+        }
       } else {
-        setError("AI kon geen suggestie genereren. Probeer het opnieuw of voer handmatig in.");
+        // Baat of vermogen: enkele generatie
+        const context: Record<string, unknown> = {
+          sector: sectorId,
+          answers,
+        };
+        if (parentGoal) {
+          context.goalName = parentGoal.name;
+          context.goalDescription = parentGoal.description;
+        }
+        if (parentBenefit) {
+          context.benefitTitle = parentBenefit.title || parentBenefit.description;
+          context.benefitDescription = parentBenefit.description;
+          context.benefitIndicator = parentBenefit.profiel?.indicator;
+        }
+        if (parentCapability) {
+          context.capabilityTitle = parentCapability.title || parentCapability.description;
+          context.capabilityDescription = parentCapability.description;
+        }
+        const effectiveDomain = gekozenDomeinen[0] || domain;
+        if (effectiveDomain) {
+          context.domain = DOMAIN_LABELS[effectiveDomain];
+        }
+        if (sectorPlanText) {
+          context.sectorPlanText = sectorPlanText;
+        }
+
+        const res = await fetch("/api/din-suggest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, context, mode: "create" }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.data?.suggestion) {
+          const s = data.data.suggestion;
+          const result: WizardResult = {
+            title: s.title || "",
+            description: s.description || "",
+          };
+          if (type === "baat") {
+            result.bateneigenaar = s.bateneigenaar;
+            result.indicator = s.indicator;
+            result.indicatorOwner = s.indicatorOwner;
+            result.currentValue = s.currentValue;
+            result.targetValue = s.targetValue;
+          } else if (type === "vermogen") {
+            result.currentLevel = s.currentLevel;
+            result.targetLevel = s.targetLevel;
+            result.eigenaar = s.eigenaar;
+            result.huidieSituatie = s.huidieSituatie;
+            result.gewensteSituatie = s.gewensteSituatie;
+          }
+          setPreviews([result]);
+          setPhase("preview");
+        } else {
+          setError("AI kon geen suggestie genereren. Probeer het opnieuw of voer handmatig in.");
+        }
       }
     } catch (e) {
       console.error("Creatie mislukt:", e);
       setError("Fout bij genereren. Controleer je internetverbinding.");
+      setGenerateProgress("");
     } finally {
       setIsGenerating(false);
     }
   }
 
   function handleApply() {
-    if (preview) {
-      onGenerate(preview);
+    if (previews.length > 0) {
+      onGenerate(previews);
     }
+  }
+
+  function removePreview(index: number) {
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   // --- Context weergave ---
   function renderContext() {
     return (
       <div className="p-3 rounded-lg border bg-gray-50 border-gray-200 text-xs text-gray-700">
-        {/* Volledige DIN-keten tonen voor inspanningen */}
         {parentGoal && (
           <div className="flex items-start gap-2 mb-1">
             <span className="text-[10px] px-1.5 py-0.5 bg-din-doelen/10 text-din-doelen rounded font-semibold shrink-0">Doel</span>
@@ -445,8 +519,14 @@ export default function DINCreatieWizard({
         )}
         {type === "inspanning" && parentCapability && (
           <div className="ml-12 text-gray-500">
-            {gekozenDomein ? (
-              <span>Nieuwe inspanning &mdash; domein: <span className={`font-semibold ${DOMAIN_COLORS[gekozenDomein].text}`}>{DOMAIN_LABELS[gekozenDomein]}</span></span>
+            {gekozenDomeinen.length > 0 ? (
+              <span>
+                Nieuwe inspanning{gekozenDomeinen.length > 1 ? "en" : ""} &mdash; {gekozenDomeinen.map((d) => (
+                  <span key={d} className={`font-semibold ${DOMAIN_COLORS[d].text}`}>
+                    {DOMAIN_LABELS[d]}{gekozenDomeinen.indexOf(d) < gekozenDomeinen.length - 1 ? ", " : ""}
+                  </span>
+                ))}
+              </span>
             ) : domain ? (
               <span>Nieuwe inspanning &mdash; domein: <span className="font-semibold">{DOMAIN_LABELS[domain]}</span></span>
             ) : (
@@ -517,7 +597,7 @@ export default function DINCreatieWizard({
     );
   }
 
-  // --- Domeinkeuze renderen ---
+  // --- Domeinkeuze renderen (multi-select) ---
   function renderDomeinKeuze() {
     const allDomains: EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"];
 
@@ -544,33 +624,47 @@ export default function DINCreatieWizard({
             </p>
             {domeinRecommendation.alternatiefDomein && domeinRecommendation.alternatiefRedenering && (
               <p className="text-[11px] text-gray-500 mt-1.5 pt-1.5 border-t border-gray-200">
-                Alternatief: <span className="font-medium">{DOMAIN_LABELS[domeinRecommendation.alternatiefDomein]}</span> &mdash; {domeinRecommendation.alternatiefRedenering}
+                Ook relevant: <span className="font-medium">{DOMAIN_LABELS[domeinRecommendation.alternatiefDomein]}</span> &mdash; {domeinRecommendation.alternatiefRedenering}
               </p>
             )}
           </div>
         )}
 
-        {/* Domein-keuze knoppen */}
+        {/* Domein-keuze: multi-select */}
         <div className="text-xs font-medium text-gray-600">
-          {domeinRecommendation ? "Bevestig of kies een ander domein:" : "Kies het inspanningsdomein:"}
+          {domeinRecommendation
+            ? "Selecteer de domeinen waarvoor je inspanningen wilt genereren (meerdere mogelijk):"
+            : "Kies de inspanningsdomein(en):"}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {allDomains.map((d) => {
-            const isSelected = gekozenDomein === d;
+            const isSelected = gekozenDomeinen.includes(d);
             const isRecommended = domeinRecommendation?.aanbevolenDomein === d;
+            const isAlternative = domeinRecommendation?.alternatiefDomein === d;
             const colors = DOMAIN_COLORS[d];
             return (
               <button
                 key={d}
-                onClick={() => setGekozenDomein(d)}
+                onClick={() => toggleDomein(d)}
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   isSelected
-                    ? `${colors.border} ${colors.bg} ring-2 ring-offset-1 ring-${d === "mens" ? "blue" : d === "processen" ? "green" : d === "data_systemen" ? "purple" : "amber"}-300`
+                    ? `${colors.border} ${colors.bg} shadow-sm`
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`w-3 h-3 rounded-full ${isSelected ? colors.dot : "bg-gray-300"}`} />
+                  {/* Checkbox */}
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    isSelected
+                      ? `${colors.border} ${colors.dot}`
+                      : "border-gray-300 bg-white"
+                  }`}>
+                    {isSelected && (
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
                   <span className={`text-sm font-semibold ${isSelected ? colors.text : "text-gray-600"}`}>
                     {DOMAIN_LABELS[d]}
                   </span>
@@ -579,14 +673,25 @@ export default function DINCreatieWizard({
                       Aanbevolen
                     </span>
                   )}
+                  {isAlternative && !isRecommended && (
+                    <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium ml-auto">
+                      Alternatief
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1 ml-5">
+                <p className="text-[11px] text-gray-500 mt-1 ml-6">
                   {DOMAIN_DESCRIPTIONS[d]}
                 </p>
               </button>
             );
           })}
         </div>
+
+        {gekozenDomeinen.length > 1 && (
+          <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+            {gekozenDomeinen.length} domeinen geselecteerd &mdash; er wordt per domein een inspanning gegenereerd
+          </div>
+        )}
 
         {error && (
           <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
@@ -600,39 +705,45 @@ export default function DINCreatieWizard({
               setError(null);
               setPhase("vragen");
             }}
-            disabled={!gekozenDomein}
+            disabled={gekozenDomeinen.length === 0}
             className="text-sm px-4 py-2 bg-cito-accent text-white rounded-lg hover:bg-cito-blue transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Bevestig: {gekozenDomein ? DOMAIN_LABELS[gekozenDomein] : "..."} &rarr; Inspanning formuleren
+            {gekozenDomeinen.length > 1
+              ? `${gekozenDomeinen.length} domeinen bevestigd — Inspanningen formuleren`
+              : gekozenDomeinen.length === 1
+                ? `Bevestig: ${DOMAIN_LABELS[gekozenDomeinen[0]]} — Inspanning formuleren`
+                : "Selecteer minimaal 1 domein"}
           </button>
         </div>
       </div>
     );
   }
 
-  // --- Preview renderen ---
+  // --- Preview renderen (meerdere resultaten) ---
   function renderPreview() {
-    if (!preview) return null;
+    if (previews.length === 0) return null;
 
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-gray-700">AI-gegenereerd resultaat</span>
+          <span className="text-xs font-semibold text-gray-700">
+            AI-gegenereerd{previews.length > 1 ? ` (${previews.length} inspanningen)` : " resultaat"}
+          </span>
           <div className="flex gap-2">
             <button
               onClick={handleApply}
               className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium"
             >
-              Toepassen
+              {previews.length > 1 ? `Alle ${previews.length} toepassen` : "Toepassen"}
             </button>
             <button
-              onClick={() => { setPreview(null); setPhase("vragen"); handleGenerate(); }}
+              onClick={() => { setPreviews([]); setPhase("vragen"); handleGenerate(); }}
               className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors font-medium"
             >
               Opnieuw
             </button>
             <button
-              onClick={() => { setPreview(null); setPhase("vragen"); }}
+              onClick={() => { setPreviews([]); setPhase("vragen"); }}
               className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
             >
               Bewerken
@@ -640,46 +751,74 @@ export default function DINCreatieWizard({
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-          <div>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">Titel</span>
-            <div className="text-sm font-semibold text-gray-800">{preview.title}</div>
-          </div>
-          <div>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">Beschrijving</span>
-            <div className="text-sm text-gray-600">{preview.description}</div>
-          </div>
+        {previews.map((preview, idx) => {
+          const previewDomain = preview.domain;
+          const domainColor = previewDomain ? DOMAIN_COLORS[previewDomain] : null;
 
-          {type === "baat" && (
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-              {preview.bateneigenaar && <PreviewField label="Bateneigenaar" value={preview.bateneigenaar} />}
-              {preview.indicator && <PreviewField label="Indicator" value={preview.indicator} />}
-              {preview.indicatorOwner && <PreviewField label="Meetverantw." value={preview.indicatorOwner} />}
-              {preview.currentValue && <PreviewField label="Startwaarde" value={preview.currentValue} />}
-              {preview.targetValue && <PreviewField label="Doelwaarde" value={preview.targetValue} />}
+          return (
+            <div key={idx} className={`bg-white border rounded-lg p-3 space-y-2 ${
+              domainColor ? `${domainColor.border}` : "border-gray-200"
+            }`}>
+              {/* Domein-header bij meerdere resultaten */}
+              {previews.length > 1 && previewDomain && (
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${domainColor?.dot}`} />
+                    <span className={`text-xs font-semibold ${domainColor?.text}`}>
+                      {DOMAIN_LABELS[previewDomain]}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removePreview(idx)}
+                    className="text-[10px] text-gray-400 hover:text-red-500"
+                    title="Deze inspanning verwijderen"
+                  >
+                    &#10005;
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide">Titel</span>
+                <div className="text-sm font-semibold text-gray-800">{preview.title}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide">Beschrijving</span>
+                <div className="text-sm text-gray-600">{preview.description}</div>
+              </div>
+
+              {type === "baat" && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                  {preview.bateneigenaar && <PreviewField label="Bateneigenaar" value={preview.bateneigenaar} />}
+                  {preview.indicator && <PreviewField label="Indicator" value={preview.indicator} />}
+                  {preview.indicatorOwner && <PreviewField label="Meetverantw." value={preview.indicatorOwner} />}
+                  {preview.currentValue && <PreviewField label="Startwaarde" value={preview.currentValue} />}
+                  {preview.targetValue && <PreviewField label="Doelwaarde" value={preview.targetValue} />}
+                </div>
+              )}
+              {type === "vermogen" && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                  {preview.currentLevel && <PreviewField label="Huidig niveau" value={`${preview.currentLevel}/5 — ${LEVEL_LABELS[preview.currentLevel] || ""}`} />}
+                  {preview.targetLevel && <PreviewField label="Gewenst niveau" value={`${preview.targetLevel}/5 — ${LEVEL_LABELS[preview.targetLevel] || ""}`} />}
+                  {preview.eigenaar && <PreviewField label="Eigenaar" value={preview.eigenaar} />}
+                  {preview.huidieSituatie && <PreviewField label="Huidige situatie" value={preview.huidieSituatie} />}
+                  {preview.gewensteSituatie && <PreviewField label="Gewenste situatie" value={preview.gewensteSituatie} />}
+                </div>
+              )}
+              {type === "inspanning" && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                  {previews.length === 1 && preview.domain && <PreviewField label="Domein" value={DOMAIN_LABELS[preview.domain]} />}
+                  {preview.quarter && <PreviewField label="Planning" value={preview.quarter} />}
+                  {preview.inspanningsEigenaar && <PreviewField label="Opdrachtgever" value={preview.inspanningsEigenaar} />}
+                  {preview.inspanningsleider && <PreviewField label="Inspanningsleider" value={preview.inspanningsleider} />}
+                  {preview.verwachtResultaat && <PreviewField label="Verwacht resultaat" value={preview.verwachtResultaat} />}
+                  {preview.kostenraming && <PreviewField label="Kostenraming" value={preview.kostenraming} />}
+                  {preview.randvoorwaarden && <PreviewField label="Randvoorwaarden" value={preview.randvoorwaarden} />}
+                </div>
+              )}
             </div>
-          )}
-          {type === "vermogen" && (
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-              {preview.currentLevel && <PreviewField label="Huidig niveau" value={`${preview.currentLevel}/5 — ${LEVEL_LABELS[preview.currentLevel] || ""}`} />}
-              {preview.targetLevel && <PreviewField label="Gewenst niveau" value={`${preview.targetLevel}/5 — ${LEVEL_LABELS[preview.targetLevel] || ""}`} />}
-              {preview.eigenaar && <PreviewField label="Eigenaar" value={preview.eigenaar} />}
-              {preview.huidieSituatie && <PreviewField label="Huidige situatie" value={preview.huidieSituatie} />}
-              {preview.gewensteSituatie && <PreviewField label="Gewenste situatie" value={preview.gewensteSituatie} />}
-            </div>
-          )}
-          {type === "inspanning" && (
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-              {preview.domain && <PreviewField label="Domein" value={DOMAIN_LABELS[preview.domain]} />}
-              {preview.quarter && <PreviewField label="Planning" value={preview.quarter} />}
-              {preview.inspanningsEigenaar && <PreviewField label="Opdrachtgever" value={preview.inspanningsEigenaar} />}
-              {preview.inspanningsleider && <PreviewField label="Inspanningsleider" value={preview.inspanningsleider} />}
-              {preview.verwachtResultaat && <PreviewField label="Verwacht resultaat" value={preview.verwachtResultaat} />}
-              {preview.kostenraming && <PreviewField label="Kostenraming" value={preview.kostenraming} />}
-              {preview.randvoorwaarden && <PreviewField label="Randvoorwaarden" value={preview.randvoorwaarden} />}
-            </div>
-          )}
-        </div>
+          );
+        })}
       </div>
     );
   }
@@ -689,7 +828,9 @@ export default function DINCreatieWizard({
     return (
       <div className="space-y-3">
         <div className="text-xs font-medium text-gray-600">
-          Beantwoord de vragen — AI genereert een methodiek-conforme {typeLabel}
+          {type === "inspanning" && gekozenDomeinen.length > 1
+            ? `Beantwoord de vragen — AI genereert inspanningen voor ${gekozenDomeinen.length} domeinen`
+            : `Beantwoord de vragen — AI genereert een methodiek-conforme ${typeLabel}`}
         </div>
 
         {questions.map((q) => (
@@ -786,8 +927,10 @@ export default function DINCreatieWizard({
             {isGenerating ? (
               <>
                 <span className="inline-block animate-spin">&#9881;</span>
-                Genereren...
+                {generateProgress || "Genereren..."}
               </>
+            ) : gekozenDomeinen.length > 1 ? (
+              `Genereer ${gekozenDomeinen.length} inspanningen`
             ) : (
               "Genereer met AI"
             )}

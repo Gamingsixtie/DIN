@@ -543,15 +543,15 @@ export default function DINMappingStep() {
     setWizardState(null);
   }
 
-  // --- Wizard result handler ---
-  function handleWizardResult(result: WizardResult) {
-    if (!wizardState) return;
+  // --- Wizard result handler (ondersteunt meerdere resultaten) ---
+  function handleWizardResult(results: WizardResult[]) {
+    if (!wizardState || results.length === 0) return;
 
     if (wizardState.type === "baat") {
+      const result = results[0];
       const goalId = wizardState.parentGoalId || selectedGoal;
       if (!goalId) return;
       const newBenefit = createBenefit(goalId, activeSector, result.description, result.title);
-      // Vul profiel-velden in vanuit wizard
       if (result.indicator) newBenefit.profiel.indicator = result.indicator;
       if (result.indicatorOwner) newBenefit.profiel.indicatorOwner = result.indicatorOwner;
       if (result.bateneigenaar) newBenefit.profiel.bateneigenaar = result.bateneigenaar;
@@ -566,6 +566,7 @@ export default function DINMappingStep() {
       });
       setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
     } else if (wizardState.type === "vermogen") {
+      const result = results[0];
       const newCap = createCapability(activeSector, result.description, result.title);
       if (result.currentLevel) newCap.currentLevel = result.currentLevel;
       if (result.targetLevel) newCap.targetLevel = result.targetLevel;
@@ -588,29 +589,38 @@ export default function DINMappingStep() {
       updateSession(updates);
       setExpandedCapability(newCap.id);
     } else if (wizardState.type === "inspanning") {
-      const domain = result.domain || wizardState.domain || "mens";
-      const newEffort = createEffort(activeSector, result.description, domain, result.title);
-      if (result.quarter) newEffort.quarter = result.quarter;
-      if (result.inspanningsEigenaar || result.inspanningsleider || result.verwachtResultaat || result.kostenraming || result.randvoorwaarden) {
-        newEffort.dossier = {
-          eigenaar: result.inspanningsEigenaar || "",
-          inspanningsleider: result.inspanningsleider || "",
-          verwachtResultaat: result.verwachtResultaat || "",
-          kostenraming: result.kostenraming || "",
-          randvoorwaarden: result.randvoorwaarden || "",
-        };
-      }
+      // Meerdere inspanningen aanmaken (multi-domein)
+      const newEfforts = results.map((result) => {
+        const domain = result.domain || wizardState.domain || "mens";
+        const newEffort = createEffort(activeSector, result.description, domain, result.title);
+        if (result.quarter) newEffort.quarter = result.quarter;
+        if (result.inspanningsEigenaar || result.inspanningsleider || result.verwachtResultaat || result.kostenraming || result.randvoorwaarden) {
+          newEffort.dossier = {
+            eigenaar: result.inspanningsEigenaar || "",
+            inspanningsleider: result.inspanningsleider || "",
+            verwachtResultaat: result.verwachtResultaat || "",
+            kostenraming: result.kostenraming || "",
+            randvoorwaarden: result.randvoorwaarden || "",
+          };
+        }
+        return newEffort;
+      });
+
       const updates: Partial<DINSession> = {
-        efforts: [...session!.efforts, newEffort],
+        efforts: [...session!.efforts, ...newEfforts],
       };
       if (wizardState.parentCapabilityId) {
         updates.capabilityEffortMaps = [
           ...session!.capabilityEffortMaps,
-          { capabilityId: wizardState.parentCapabilityId, effortId: newEffort.id },
+          ...newEfforts.map((e) => ({
+            capabilityId: wizardState.parentCapabilityId!,
+            effortId: e.id,
+          })),
         ];
       }
       updateSession(updates);
-      setExpandedEffort(newEffort.id);
+      // Expand de laatste inspanning
+      setExpandedEffort(newEfforts[newEfforts.length - 1].id);
     }
     setWizardState(null);
   }
