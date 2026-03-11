@@ -22,11 +22,12 @@ function getClient(): Anthropic {
 async function callClaude(
   systemPrompt: string,
   userMessage: string,
-  maxTokens?: number
+  maxTokens?: number,
+  model: "claude-sonnet-4-6" | "claude-opus-4-6" = "claude-sonnet-4-6"
 ): Promise<string> {
   const client = getClient();
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model,
     max_tokens: maxTokens || 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
@@ -125,7 +126,7 @@ export async function generateCrossAnalyse(
   data: Record<string, unknown>
 ): Promise<string> {
   const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 15000)}`;
-  return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192);
+  return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192, "claude-opus-4-6");
 }
 
 export async function generateSectorIntegratie(data: {
@@ -271,7 +272,7 @@ export async function generateProgrammaPlan(
   sessionData: Record<string, unknown>
 ): Promise<string> {
   const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 15000)}`;
-  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384);
+  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384, "claude-opus-4-6");
 }
 
 export async function generateBatenprofiel(
