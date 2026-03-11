@@ -337,7 +337,7 @@ export default function BenefitCard({
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Meetverantwoordelijke</label>
+              <label className="text-xs text-gray-500">Meetverantwoordelijke (bewaakt of de baat daadwerkelijk wordt gerealiseerd)</label>
               <input
                 value={benefit.profiel.indicatorOwner}
                 onChange={(e) =>
@@ -350,7 +350,7 @@ export default function BenefitCard({
                   })
                 }
                 className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                placeholder="Wie is verantwoordelijk? (rol/functie)"
+                placeholder="Wie meet en rapporteert over deze baat? (bijv. Controller, Kwaliteitsmanager)"
               />
             </div>
             <div>
