@@ -113,9 +113,9 @@ export async function generateDINMapping(
   parts.push(`Baseer je op het sectorplan en de analyse daarvan. Zorg dat de baten, vermogens en inspanningen concreet aansluiten bij wat in het sectorplan staat.`);
   parts.push(`\nAntwoord als JSON met de volgende structuur:
 {
-  "benefits": [{"description": "...", "profiel": {"indicator": "...", "indicatorOwner": "...", "currentValue": "...", "targetValue": "..."}}],
-  "capabilities": [{"description": "..."}],
-  "efforts": [{"description": "...", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026"}]
+  "benefits": [{"description": "...", "profiel": {"bateneigenaar": "Rol eindverantwoordelijke", "indicator": "Meetbare KPI", "indicatorOwner": "Rol meetverantwoordelijke", "currentValue": "Startwaarde", "targetValue": "Doelwaarde"}}],
+  "capabilities": [{"description": "...", "currentLevel": 2, "targetLevel": 4, "profiel": {"eigenaar": "Rol verantwoordelijk voor opbouw", "huidieSituatie": "Korte as-is beschrijving", "gewensteSituatie": "Korte to-be beschrijving"}}],
+  "efforts": [{"description": "...", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026", "dossier": {"eigenaar": "Opdrachtgever", "inspanningsleider": "Projectleider", "verwachtResultaat": "Beoogd resultaat", "kostenraming": "Raming + marge", "randvoorwaarden": "Voorwaarden vóór start"}}]
 }`);
 
   return callClaude(DIN_MAPPING_PROMPT, parts.join("\n"), 8192);
@@ -124,7 +124,7 @@ export async function generateDINMapping(
 export async function generateCrossAnalyse(
   data: Record<string, unknown>
 ): Promise<string> {
-  const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 6000)}`;
+  const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 15000)}`;
   return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192);
 }
 
@@ -270,7 +270,7 @@ export async function generateSectorIntegratie(data: {
 export async function generateProgrammaPlan(
   sessionData: Record<string, unknown>
 ): Promise<string> {
-  const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 6000)}`;
+  const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 15000)}`;
   return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384);
 }
 

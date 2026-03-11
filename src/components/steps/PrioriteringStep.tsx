@@ -564,6 +564,25 @@ function EffortApprovalCard({
                 <div className="text-sm font-medium text-gray-800">
                   {effort.description || "(naamloos)"}
                 </div>
+                {/* Dossier samenvatting */}
+                {effort.dossier && (effort.dossier.eigenaar || effort.dossier.inspanningsleider || effort.dossier.kostenraming) && (
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-500">
+                    {effort.dossier.eigenaar && (
+                      <span title="Opdrachtgever">📋 {effort.dossier.eigenaar}</span>
+                    )}
+                    {effort.dossier.inspanningsleider && (
+                      <span title="Inspanningsleider">👤 {effort.dossier.inspanningsleider}</span>
+                    )}
+                    {effort.dossier.kostenraming && (
+                      <span title="Kostenraming">💰 {effort.dossier.kostenraming}</span>
+                    )}
+                  </div>
+                )}
+                {effort.dossier?.verwachtResultaat && (
+                  <div className="mt-0.5 text-[11px] text-gray-400 italic line-clamp-1" title={effort.dossier.verwachtResultaat}>
+                    Resultaat: {effort.dossier.verwachtResultaat}
+                  </div>
+                )}
                 <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                   {/* Kwartaal dropdown */}
                   <select

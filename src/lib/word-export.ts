@@ -347,11 +347,11 @@ function sectorSection(session: DINSession, sector: SectorName) {
 
     const capHeaderRow = new TableRow({
       children: [
-        tableCell("Vermogen", { bold: true, shading: "E8EDF3", width: 30 }),
-        tableCell("Eigenaar", { bold: true, shading: "E8EDF3", width: 20 }),
-        tableCell("Huidig", { bold: true, shading: "E8EDF3", width: 10 }),
-        tableCell("Gewenst", { bold: true, shading: "E8EDF3", width: 10 }),
-        tableCell("Huidige situatie", { bold: true, shading: "E8EDF3", width: 30 }),
+        tableCell("Vermogen", { bold: true, shading: "E8EDF3", width: 25 }),
+        tableCell("Eigenaar", { bold: true, shading: "E8EDF3", width: 15 }),
+        tableCell("Niveau", { bold: true, shading: "E8EDF3", width: 10 }),
+        tableCell("Huidige situatie", { bold: true, shading: "E8EDF3", width: 25 }),
+        tableCell("Gewenste situatie", { bold: true, shading: "E8EDF3", width: 25 }),
       ],
     });
 
@@ -361,9 +361,9 @@ function sectorSection(session: DINSession, sector: SectorName) {
           children: [
             tableCell(c.description || "(naamloos)"),
             tableCell(c.profiel?.eigenaar || "—"),
-            tableCell(c.currentLevel ? `${c.currentLevel}/5` : "—"),
-            tableCell(c.targetLevel ? `${c.targetLevel}/5` : "—"),
+            tableCell(c.currentLevel && c.targetLevel ? `${c.currentLevel} → ${c.targetLevel}` : "—"),
             tableCell(c.profiel?.huidieSituatie || "—"),
+            tableCell(c.profiel?.gewensteSituatie || "—"),
           ],
         })
     );
@@ -390,11 +390,12 @@ function sectorSection(session: DINSession, sector: SectorName) {
 
       const effortHeaderRow = new TableRow({
         children: [
-          tableCell("Inspanning", { bold: true, shading: "E8EDF3", width: 30 }),
-          tableCell("Planning", { bold: true, shading: "E8EDF3", width: 12 }),
-          tableCell("Opdrachtgever", { bold: true, shading: "E8EDF3", width: 18 }),
-          tableCell("Leider", { bold: true, shading: "E8EDF3", width: 18 }),
-          tableCell("Status", { bold: true, shading: "E8EDF3", width: 12 }),
+          tableCell("Inspanning", { bold: true, shading: "E8EDF3", width: 22 }),
+          tableCell("Planning", { bold: true, shading: "E8EDF3", width: 10 }),
+          tableCell("Opdrachtgever", { bold: true, shading: "E8EDF3", width: 14 }),
+          tableCell("Leider", { bold: true, shading: "E8EDF3", width: 14 }),
+          tableCell("Kosten", { bold: true, shading: "E8EDF3", width: 14 }),
+          tableCell("Resultaat", { bold: true, shading: "E8EDF3", width: 26 }),
         ],
       });
 
@@ -406,7 +407,8 @@ function sectorSection(session: DINSession, sector: SectorName) {
               tableCell(e.quarter || "—"),
               tableCell(e.dossier?.eigenaar || "—"),
               tableCell(e.dossier?.inspanningsleider || "—"),
-              tableCell(e.status),
+              tableCell(e.dossier?.kostenraming || "—"),
+              tableCell(e.dossier?.verwachtResultaat || "—"),
             ],
           })
       );

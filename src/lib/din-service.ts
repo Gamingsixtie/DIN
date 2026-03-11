@@ -32,6 +32,7 @@ export function createBenefit(
     sectorId,
     description,
     profiel: {
+      bateneigenaar: "",
       indicator: "",
       indicatorOwner: "",
       currentValue: "",
