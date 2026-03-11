@@ -557,6 +557,8 @@ export default function DINMappingStep() {
       if (result.bateneigenaar) newBenefit.profiel.bateneigenaar = result.bateneigenaar;
       if (result.currentValue) newBenefit.profiel.currentValue = result.currentValue;
       if (result.targetValue) newBenefit.profiel.targetValue = result.targetValue;
+      if (result.meetmethode) newBenefit.profiel.meetmethode = result.meetmethode;
+      if (result.measurementMoment) newBenefit.profiel.measurementMoment = result.measurementMoment;
       updateSession({
         benefits: [...session!.benefits, newBenefit],
         goalBenefitMaps: [
@@ -572,9 +574,10 @@ export default function DINMappingStep() {
       if (result.targetLevel) newCap.targetLevel = result.targetLevel;
       if (result.eigenaar || result.huidieSituatie || result.gewensteSituatie) {
         newCap.profiel = {
-          eigenaar: result.eigenaar || "",
-          huidieSituatie: result.huidieSituatie || "",
-          gewensteSituatie: result.gewensteSituatie || "",
+          ...newCap.profiel,
+          eigenaar: result.eigenaar || newCap.profiel?.eigenaar || "",
+          huidieSituatie: result.huidieSituatie || newCap.profiel?.huidieSituatie || "",
+          gewensteSituatie: result.gewensteSituatie || newCap.profiel?.gewensteSituatie || "",
         };
       }
       const updates: Partial<DINSession> = {
@@ -753,6 +756,8 @@ export default function DINMappingStep() {
         existingOwner: benefit.profiel.indicatorOwner || undefined,
         existingCurrentValue: benefit.profiel.currentValue || undefined,
         existingTargetValue: benefit.profiel.targetValue || undefined,
+        existingMeetmethode: benefit.profiel.meetmethode || undefined,
+        existingMeasurementMoment: benefit.profiel.measurementMoment || undefined,
         userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
           .filter((b) => b.id !== benefit.id && (b.title || b.description))
@@ -794,6 +799,8 @@ export default function DINMappingStep() {
         existingTitle: effort.title || undefined,
         existingDescription: effort.description || undefined,
         existingOwner: effort.dossier?.eigenaar || undefined,
+        existingDossierEigenaar: effort.dossier?.eigenaar || undefined,
+        existingQuarter: effort.quarter || undefined,
         existingInspanningsleider: effort.dossier?.inspanningsleider || undefined,
         existingVerwachtResultaat: effort.dossier?.verwachtResultaat || undefined,
         existingKostenraming: effort.dossier?.kostenraming || undefined,

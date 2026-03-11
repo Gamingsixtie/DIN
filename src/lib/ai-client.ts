@@ -309,7 +309,12 @@ export async function suggestDINItem(
     existingGewensteSituatie?: string;
     existingCurrentLevel?: number;
     existingTargetLevel?: number;
+    // Baten meetmethode velden
+    existingMeetmethode?: string;
+    existingMeasurementMoment?: string;
     // Inspanningsdossier velden
+    existingDossierEigenaar?: string;
+    existingQuarter?: string;
     existingInspanningsleider?: string;
     existingVerwachtResultaat?: string;
     existingKostenraming?: string;
@@ -351,6 +356,12 @@ export async function suggestDINItem(
   if (context.existingTargetValue) {
     parts.push(`Gewenste waarde: "${context.existingTargetValue}"`);
   }
+  if (context.existingMeetmethode) {
+    parts.push(`Huidige meetmethode: "${context.existingMeetmethode}"`);
+  }
+  if (context.existingMeasurementMoment) {
+    parts.push(`Huidig meetmoment: "${context.existingMeasurementMoment}"`);
+  }
   // Vermogensprofiel context
   if (context.existingEigenaar) {
     parts.push(`Huidige eigenaar vermogen: "${context.existingEigenaar}"`);
@@ -368,6 +379,12 @@ export async function suggestDINItem(
     parts.push(`Gewenst niveau: ${context.existingTargetLevel}/5`);
   }
   // Inspanningsdossier context
+  if (context.existingDossierEigenaar) {
+    parts.push(`Huidige opdrachtgever: "${context.existingDossierEigenaar}"`);
+  }
+  if (context.existingQuarter) {
+    parts.push(`Huidige planning: "${context.existingQuarter}"`);
+  }
   if (context.existingInspanningsleider) {
     parts.push(`Huidige inspanningsleider: "${context.existingInspanningsleider}"`);
   }

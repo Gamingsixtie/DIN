@@ -33,6 +33,8 @@ export interface WizardResult {
   indicatorOwner?: string;
   currentValue?: string;
   targetValue?: string;
+  meetmethode?: string;
+  measurementMoment?: string;
   // Vermogen-specifiek
   currentLevel?: number;
   targetLevel?: number;
@@ -386,18 +388,30 @@ export default function DINCreatieWizard({
 
     try {
       if (type === "inspanning" && gekozenDomeinen.length > 0) {
-        // Genereer voor elk gekozen domein
+        // Genereer voor elk gekozen domein — sequentieel, niet parallel
         const results: WizardResult[] = [];
+        const failedDomains: string[] = [];
         for (let i = 0; i < gekozenDomeinen.length; i++) {
           const d = gekozenDomeinen[i];
           setGenerateProgress(`${DOMAIN_LABELS[d]} genereren... (${i + 1}/${gekozenDomeinen.length})`);
-          const result = await generateForDomain(d);
-          if (result) results.push(result);
+          try {
+            const result = await generateForDomain(d);
+            if (result) {
+              results.push(result);
+            } else {
+              failedDomains.push(DOMAIN_LABELS[d]);
+            }
+          } catch {
+            failedDomains.push(DOMAIN_LABELS[d]);
+          }
         }
         setGenerateProgress("");
         if (results.length > 0) {
           setPreviews(results);
           setPhase("preview");
+          if (failedDomains.length > 0) {
+            setError(`${failedDomains.join(", ")} kon niet gegenereerd worden. De overige inspanningen zijn wel beschikbaar.`);
+          }
         } else {
           setError("AI kon geen inspanningen genereren. Probeer het opnieuw.");
         }
@@ -447,6 +461,8 @@ export default function DINCreatieWizard({
             result.indicatorOwner = s.indicatorOwner;
             result.currentValue = s.currentValue;
             result.targetValue = s.targetValue;
+            result.meetmethode = s.meetmethode;
+            result.measurementMoment = s.measurementMoment;
           } else if (type === "vermogen") {
             result.currentLevel = s.currentLevel;
             result.targetLevel = s.targetLevel;

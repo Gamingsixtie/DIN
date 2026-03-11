@@ -289,7 +289,9 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
   "indicator": "Meetbare KPI/indicator",
   "indicatorOwner": "Meetverantwoordelijke die de meting uitvoert (bijv. BI-specialist, Controller)",
   "currentValue": "Startwaarde (nulmeting)",
-  "targetValue": "Doelwaarde"
+  "targetValue": "Doelwaarde",
+  "meetmethode": "Hoe wordt gemeten? (bijv. enquête, data-analyse, steekproef)",
+  "measurementMoment": "Wanneer wordt gemeten? (bijv. Elk kwartaal, Halfjaarlijks)"
 }`;
 
 export const DIN_SUGGEST_VERMOGEN_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
@@ -459,7 +461,9 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
   "indicator": "Meetbare KPI",
   "indicatorOwner": "Meetverantwoordelijke (rolnaam)",
   "currentValue": "Startwaarde/nulmeting",
-  "targetValue": "Doelwaarde"
+  "targetValue": "Doelwaarde",
+  "meetmethode": "Hoe wordt gemeten? (enquête, data-analyse, steekproef, etc.)",
+  "measurementMoment": "Wanneer wordt gemeten? (Elk kwartaal, Halfjaarlijks, etc.)"
 }`;
 
 export const DIN_CREATE_VERMOGEN_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
@@ -493,16 +497,40 @@ VERPLICHTE VALIDATIE:
 2. Ontbreekt een werkwoord? HERSCHRIJF met werkwoord.
 3. De inspanning bouwt een vermogen op — het is een concrete actie
 
+DOMEIN-SPECIFIEKE FOCUS — pas de inspanning aan op het opgegeven domein:
+
+Als het domein "Mens" is:
+- Focus op: training, opleiding, coaching, bemensing, competentieontwikkeling, werving
+- Titel met werkwoorden als: trainen, opleiden, werven, coachen, begeleiden, ontwikkelen
+- Resultaat beschrijft: welke competenties/vaardigheden mensen hebben na afloop
+
+Als het domein "Processen" is:
+- Focus op: werkwijzen, procedures, governance, procesinrichting, kwaliteitssystemen
+- Titel met werkwoorden als: inrichten, standaardiseren, herontwerpen, borgen, formaliseren
+- Resultaat beschrijft: welke processen anders/beter werken na afloop
+
+Als het domein "Data & Systemen" is:
+- Focus op: IT-systemen, data-infrastructuur, tooling, integraties, dashboards, automatisering
+- Titel met werkwoorden als: implementeren, integreren, bouwen, migreren, ontsluiten, automatiseren
+- Resultaat beschrijft: welke systemen/data beschikbaar of verbeterd zijn na afloop
+
+Als het domein "Cultuur" is:
+- Focus op: gedrag, mindset, waarden, leiderschap, verandermanagement, communicatie
+- Titel met werkwoorden als: verankeren, stimuleren, faciliteren, transformeren, communiceren
+- Resultaat beschrijft: welk gedrag/mindset veranderd is na afloop
+
+BELANGRIJK: De inspanning MOET uniek zijn voor het opgegeven domein. Als dezelfde gap voor meerdere domeinen wordt uitgewerkt, richt elke inspanning zich op het SPECIFIEKE aspect van dat domein — geen overlap in titel, beschrijving of verwacht resultaat.
+
 Gebruik de antwoorden van de gebruiker om een volledig inspanningsdossier te genereren.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
 {
-  "title": "Kort actielabel met werkwoorden (max 8 woorden)",
-  "description": "Uitgebreide toelichting (1-2 zinnen): wat wordt er gedaan en waarom?",
+  "title": "Kort actielabel met werkwoorden, specifiek voor het domein (max 8 woorden)",
+  "description": "Uitgebreide toelichting (1-2 zinnen): wat wordt er gedaan, specifiek voor dit domein?",
   "quarter": "Q2 2026",
   "eigenaar": "Opdrachtgever (rolnaam)",
   "inspanningsleider": "Projectleider (rolnaam)",
-  "verwachtResultaat": "Beoogd resultaat (max 2 zinnen)",
+  "verwachtResultaat": "Beoogd resultaat specifiek voor dit domein (max 2 zinnen)",
   "kostenraming": "Eerste raming + marge",
   "randvoorwaarden": "Voorwaarden vóór start"
 }`;
