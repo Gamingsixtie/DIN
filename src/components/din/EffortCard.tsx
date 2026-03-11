@@ -394,7 +394,7 @@ export default function EffortCard({
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <label className="text-xs text-gray-500">Eigenaar / opdrachtgever</label>
+              <label className="text-xs text-gray-500">Opdrachtgever (geeft opdracht en is eindverantwoordelijk)</label>
               <input
                 value={dossier.eigenaar}
                 onChange={(e) =>
@@ -404,11 +404,11 @@ export default function EffortCard({
                   })
                 }
                 className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                placeholder="Wie is opdrachtgever? (rol/functie)"
+                placeholder="Wie geeft opdracht voor dit project? (bijv. Directeur PO, Manager ICT)"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Inspanningsleider</label>
+              <label className="text-xs text-gray-500">Inspanningsleider (leidt de dagelijkse uitvoering)</label>
               <input
                 value={dossier.inspanningsleider}
                 onChange={(e) =>
@@ -418,7 +418,7 @@ export default function EffortCard({
                   })
                 }
                 className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                placeholder="Wie leidt deze inspanning? (rol/functie)"
+                placeholder="Wie leidt de uitvoering? (bijv. Projectleider Training, HR-adviseur)"
               />
             </div>
             <div className="col-span-2">

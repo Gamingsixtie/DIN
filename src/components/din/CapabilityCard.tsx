@@ -445,7 +445,7 @@ export default function CapabilityCard({
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="col-span-2">
-              <label className="text-xs text-gray-500">Eigenaar (verantwoordelijk voor opbouw)</label>
+              <label className="text-xs text-gray-500">Vermogenseigenaar (structureel verantwoordelijk voor opbouw en borging)</label>
               <input
                 value={profiel.eigenaar}
                 onChange={(e) =>
@@ -455,7 +455,7 @@ export default function CapabilityCard({
                   })
                 }
                 className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                placeholder="Wie is verantwoordelijk? (rol/functie)"
+                placeholder="Wie bewaakt dit vermogen structureel? (bijv. Directeur PO, Manager Klantenservice)"
               />
             </div>
             <div>
