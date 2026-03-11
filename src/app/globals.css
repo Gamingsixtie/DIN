@@ -43,6 +43,7 @@
   display: grid;
   grid-template-rows: 1fr;
   transition: grid-template-rows 0.25s ease-out;
+  will-change: grid-template-rows;
 }
 .collapse-wrapper[data-collapsed="true"] {
   grid-template-rows: 0fr;

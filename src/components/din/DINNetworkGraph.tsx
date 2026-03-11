@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import type { DINSession, EffortDomain, SectorName } from "@/lib/types";
+import type { DINSession, DINEffort, DINCapability, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
+import { buildChainsForSector } from "@/lib/din-service";
+import type { DINChain } from "@/lib/din-service";
 
-const DOMAIN_COLORS: Record<EffortDomain, { border: string; bg: string; text: string }> = {
-  mens: { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-700" },
-  processen: { border: "border-l-green-500", bg: "bg-green-50", text: "text-green-700" },
-  data_systemen: { border: "border-l-purple-500", bg: "bg-purple-50", text: "text-purple-700" },
-  cultuur: { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700" },
+const DOMAIN_COLORS: Record<EffortDomain, { border: string; bg: string; text: string; dot: string }> = {
+  mens: { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
+  processen: { border: "border-l-green-500", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
+  data_systemen: { border: "border-l-purple-500", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
+  cultuur: { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
 };
 
 const DOMAIN_LABELS: Record<EffortDomain, string> = {
@@ -16,6 +18,13 @@ const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+};
+
+const DOMAIN_BAR_COLORS: Record<EffortDomain, string> = {
+  mens: "#3b82f6",
+  processen: "#10b981",
+  data_systemen: "#8b5cf6",
+  cultuur: "#f59e0b",
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -58,7 +67,11 @@ function ChevronIcon({ expanded, className = "" }: { expanded: boolean; classNam
 // DIN chain completeness dots
 function ChainIndicator({ hasBenefits, hasCaps, hasEfforts }: { hasBenefits: boolean; hasCaps: boolean; hasEfforts: boolean }) {
   return (
-    <div className="flex items-center gap-1">
+    <div
+      className="flex items-center gap-1"
+      title={`Baten: ${hasBenefits ? "\u2713" : "\u2717"} | Vermogens: ${hasCaps ? "\u2713" : "\u2717"} | Inspanningen: ${hasEfforts ? "\u2713" : "\u2717"}`}
+      aria-label={`Keten: ${hasBenefits ? "baten aanwezig" : "baten ontbreken"}, ${hasCaps ? "vermogens aanwezig" : "vermogens ontbreken"}, ${hasEfforts ? "inspanningen aanwezig" : "inspanningen ontbreken"}`}
+    >
       <div className={`w-2 h-2 rounded-full ${hasBenefits ? "bg-din-baten" : "bg-gray-200"}`} />
       <div className={`w-2 h-2 rounded-full ${hasCaps ? "bg-din-vermogens" : "bg-gray-200"}`} />
       <div className={`w-2 h-2 rounded-full ${hasEfforts ? "bg-din-inspanningen" : "bg-gray-200"}`} />
@@ -75,15 +88,189 @@ function FlowArrow() {
   );
 }
 
-// Column connector (vertical line + chevron)
-function ColumnConnector() {
+// Inline chain connector (small arrow between cards)
+function ChainArrow() {
   return (
-    <div className="w-6 flex flex-col items-center justify-center shrink-0">
-      <div className="w-px flex-1 bg-gradient-to-b from-gray-200 to-gray-200 min-h-4" />
-      <svg className="w-3 h-3 text-gray-300 my-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="flex items-center justify-center shrink-0 w-6">
+      <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
-      <div className="w-px flex-1 bg-gradient-to-b from-gray-200 to-gray-200 min-h-4" />
+    </div>
+  );
+}
+
+// --- Chain Row: Baat → Vermogen(s) → Inspanning(en) ---
+function ChainRow({
+  chain,
+  chainIndex,
+  highlightedChain,
+  onHover,
+}: {
+  chain: DINChain;
+  chainIndex: number;
+  highlightedChain: number | null;
+  onHover: (idx: number | null) => void;
+}) {
+  const isHighlighted = highlightedChain === null || highlightedChain === chainIndex;
+  const isDimmed = highlightedChain !== null && highlightedChain !== chainIndex;
+
+  return (
+    <div
+      className={`flex items-stretch gap-0 transition-opacity duration-200 ${isDimmed ? "opacity-40" : "opacity-100"}`}
+      onMouseEnter={() => onHover(chainIndex)}
+      onMouseLeave={() => onHover(null)}
+    >
+      {/* Baat */}
+      <div className="flex-1 min-w-0">
+        <div className={`h-full bg-white border rounded-lg px-3 py-2 transition-all ${isHighlighted && highlightedChain !== null ? "border-din-baten shadow-sm ring-1 ring-din-baten/20" : "border-din-baten/20"}`}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <div className="w-2 h-2 rounded-full bg-din-baten shrink-0" />
+            <span className="text-[9px] uppercase tracking-wider text-din-baten font-semibold">Baat</span>
+          </div>
+          <div className="text-[11px] text-gray-800 font-medium leading-snug">
+            {chain.benefit.title || chain.benefit.description || "(naamloos)"}
+          </div>
+          {chain.benefit.profiel.indicator && (
+            <div className="mt-1 flex items-center gap-1.5 text-[9px]">
+              <span className="text-gray-400">{chain.benefit.profiel.indicator}:</span>
+              <span className="text-amber-600 font-semibold">{chain.benefit.profiel.currentValue}</span>
+              <span className="text-gray-300">{"\u2192"}</span>
+              <span className="text-green-600 font-semibold">{chain.benefit.profiel.targetValue}</span>
+            </div>
+          )}
+          {chain.benefit.profiel.bateneigenaar && (
+            <div className="mt-0.5 text-[9px] text-gray-400">Eigenaar: {chain.benefit.profiel.bateneigenaar}</div>
+          )}
+        </div>
+      </div>
+
+      <ChainArrow />
+
+      {/* Vermogen(s) */}
+      <div className="flex-1 min-w-0">
+        {chain.links.length > 0 ? (
+          <div className="space-y-1.5 h-full">
+            {chain.links.map((link) => (
+              <div
+                key={link.capability.id}
+                className={`bg-white border rounded-lg px-3 py-2 transition-all ${
+                  isHighlighted && highlightedChain !== null ? "border-din-vermogens shadow-sm ring-1 ring-din-vermogens/20" : "border-din-vermogens/20"
+                } ${link.capability.relatedSectors && link.capability.relatedSectors.length > 1 ? "border-amber-200" : ""}`}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-din-vermogens shrink-0" />
+                  <span className="text-[9px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogen</span>
+                  {link.capability.relatedSectors && link.capability.relatedSectors.length > 1 && (
+                    <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded font-medium ml-auto">Synergie</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-800 font-medium leading-snug">
+                  {link.capability.title || link.capability.description || "(naamloos)"}
+                </div>
+                {(link.capability.currentLevel || link.capability.targetLevel) && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <LevelDots value={link.capability.currentLevel || 0} color="amber" />
+                    <span className="text-[9px] text-gray-300">{"\u2192"}</span>
+                    <LevelDots value={link.capability.targetLevel || 0} color="green" />
+                    {link.capability.currentLevel && link.capability.targetLevel && link.capability.targetLevel > link.capability.currentLevel && (
+                      <span className={`text-[9px] px-1 rounded font-medium ${
+                        link.capability.targetLevel - link.capability.currentLevel >= 3 ? "bg-red-100 text-red-700" :
+                        link.capability.targetLevel - link.capability.currentLevel >= 2 ? "bg-amber-100 text-amber-700" :
+                        "bg-green-100 text-green-700"
+                      }`}>+{link.capability.targetLevel - link.capability.currentLevel}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center bg-gray-50/50 border border-dashed border-gray-200 rounded-lg px-3 py-2">
+            <span className="text-[10px] text-gray-300 italic">Geen vermogen gekoppeld</span>
+          </div>
+        )}
+      </div>
+
+      <ChainArrow />
+
+      {/* Inspanning(en) */}
+      <div className="flex-1 min-w-0">
+        {chain.links.length > 0 && chain.links.some((l) => l.efforts.length > 0) ? (
+          <div className="space-y-1 h-full">
+            {chain.links.map((link) =>
+              link.efforts.map((effort) => (
+                <EffortChip key={effort.id} effort={effort} highlighted={isHighlighted && highlightedChain !== null} />
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center bg-gray-50/50 border border-dashed border-gray-200 rounded-lg px-3 py-2">
+            <span className="text-[10px] text-gray-300 italic">Geen inspanning gekoppeld</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Effort chip with domain color
+function EffortChip({ effort, highlighted }: { effort: DINEffort; highlighted: boolean }) {
+  const dc = DOMAIN_COLORS[effort.domain] || DOMAIN_COLORS.mens;
+  const st = STATUS_LABELS[effort.status] || STATUS_LABELS.gepland;
+  return (
+    <div className={`border-l-2 ${dc.border} bg-white border border-gray-100 rounded-r-lg px-2.5 py-1.5 transition-all ${highlighted ? "shadow-sm ring-1 ring-din-inspanningen/20" : ""}`}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <div className={`w-1.5 h-1.5 rounded-full ${dc.dot} shrink-0`} />
+        <span className={`text-[8px] font-medium ${dc.text}`}>{DOMAIN_LABELS[effort.domain]}</span>
+      </div>
+      <div className="text-[10px] text-gray-700 leading-snug font-medium">{effort.title || effort.description || "(naamloos)"}</div>
+      <div className="flex items-center gap-1.5 mt-0.5">
+        {effort.quarter && <span className="text-[8px] text-gray-400">{effort.quarter}</span>}
+        {effort.status && effort.status !== "gepland" && (
+          <span className={`text-[8px] px-1 rounded ${st.color}`}>{st.label}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Unlinked items warning
+function UnlinkedSection({ caps, efforts }: { caps: DINCapability[]; efforts: DINEffort[] }) {
+  if (caps.length === 0 && efforts.length === 0) return null;
+  return (
+    <div className="mt-2 p-2.5 bg-amber-50/50 border border-amber-200/50 rounded-lg">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <svg className="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <span className="text-[10px] font-semibold text-amber-700">Ongekoppeld</span>
+      </div>
+      <div className="space-y-1">
+        {caps.map((c) => (
+          <div key={c.id} className="text-[10px] text-amber-600 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-din-vermogens shrink-0" />
+            <span>Vermogen: {c.title || c.description || "(naamloos)"}</span>
+          </div>
+        ))}
+        {efforts.map((e) => (
+          <div key={e.id} className="text-[10px] text-amber-600 flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${DOMAIN_COLORS[e.domain]?.dot || "bg-gray-400"} shrink-0`} />
+            <span>Inspanning: {e.title || e.description || "(naamloos)"}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 5-dot level display
+function LevelDots({ value, color }: { value: number; color: "amber" | "green" }) {
+  const fillColor = color === "amber" ? "bg-amber-400" : "bg-green-500";
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((l) => (
+        <div key={l} className={`w-1.5 h-1.5 rounded-full ${l <= value ? fillColor : "bg-gray-200"}`} />
+      ))}
     </div>
   );
 }
@@ -94,6 +281,7 @@ interface DINNetworkGraphProps {
 
 export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
   const [collapsedGoals, setCollapsedGoals] = useState<Set<string>>(new Set());
+  const [highlightedChain, setHighlightedChain] = useState<number | null>(null);
 
   function toggleGoal(id: string) {
     const next = new Set(collapsedGoals);
@@ -113,24 +301,49 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
     { label: "Inspanningen", value: session.efforts.length, color: "bg-din-inspanningen", sub: "totaal" },
   ];
 
+  // UX-5: Compact domain balance counts for header
+  const domainCounts = (["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((d) => ({
+    domain: d,
+    count: session.efforts.filter((e) => e.domain === d).length,
+  }));
+
   return (
     <div className="space-y-6">
-      {/* Stats header met flow-pijlen */}
-      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        {stats.map((s, i) => (
-          <div key={s.label} className="flex items-center">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center text-white text-xl font-bold shadow-sm`}>
-                {s.value}
+      {/* Stats header met flow-pijlen + domeinbalans */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          {stats.map((s, i) => (
+            <div key={s.label} className="flex items-center">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center text-white text-xl font-bold shadow-sm`}>
+                  {s.value}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-800">{s.label}</div>
+                  <div className="text-[10px] text-gray-400">{s.sub}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-sm font-semibold text-gray-800">{s.label}</div>
-                <div className="text-[10px] text-gray-400">{s.sub}</div>
-              </div>
+              {i < stats.length - 1 && <FlowArrow />}
             </div>
-            {i < stats.length - 1 && <FlowArrow />}
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* Compact domeinbalans inline */}
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4">
+          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Domeinen:</span>
+          {domainCounts.map(({ domain, count }) => (
+            <div key={domain} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[domain] }} />
+              <span className="text-[11px] text-gray-600">{DOMAIN_LABELS[domain]}</span>
+              <span className={`text-[11px] font-bold ${count === 0 ? "text-red-400" : "text-gray-800"}`}>{count}</span>
+            </div>
+          ))}
+          {synergieCount > 0 && (
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[9px] bg-amber-100 text-amber-700 px-1 rounded font-medium">Synergie</span>
+              <span className="text-[10px] text-gray-400">{synergieCount} gedeeld</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Visie */}
@@ -145,6 +358,24 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
           </div>
         </div>
       )}
+
+      {/* Kolom-headers */}
+      <div className="flex items-center gap-0 px-5">
+        <div className="flex-1 flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-din-baten" />
+          <span className="text-[10px] uppercase tracking-wider text-din-baten font-bold">Baten</span>
+        </div>
+        <div className="w-6" />
+        <div className="flex-1 flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-din-vermogens" />
+          <span className="text-[10px] uppercase tracking-wider text-din-vermogens font-bold">Vermogens</span>
+        </div>
+        <div className="w-6" />
+        <div className="flex-1 flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-din-inspanningen" />
+          <span className="text-[10px] uppercase tracking-wider text-din-inspanningen font-bold">Inspanningen</span>
+        </div>
+      </div>
 
       {/* Alles in-/uitklappen */}
       <div className="flex items-center justify-end">
@@ -163,7 +394,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
         </button>
       </div>
 
-      {/* DIN-keten per doel — met sector-groepering */}
+      {/* DIN-keten per doel — chain-based */}
       {session.goals
         .sort((a, b) => a.rank - b.rank)
         .map((goal, goalIdx) => {
@@ -232,124 +463,51 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                 <div className="collapse-wrapper" data-collapsed={isCollapsed ? "true" : "false"}>
                   <div>
                     {hasBenefits ? (
-                      <div className="p-5 space-y-3">
+                      <div className="p-5 space-y-4">
                         {sectorsForGoal.map((sector) => {
-                          const sectorBenefits = goalBenefits.filter((b) => b.sectorId === sector);
-                          const sectorCaps = goalCapabilities.filter((c) => c.sectorId === sector);
-                          const sectorEfforts = goalEfforts.filter((e) => e.sectorId === sector);
+                          const chainResult = buildChainsForSector(session, goal.id, sector);
+                          const sectorBenefitCount = goalBenefits.filter((b) => b.sectorId === sector).length;
+                          const sectorCapCount = goalCapabilities.filter((c) => c.sectorId === sector).length;
+                          const sectorEffortCount = goalEfforts.filter((e) => e.sectorId === sector).length;
 
-                          if (sectorBenefits.length === 0 && sectorCaps.length === 0 && sectorEfforts.length === 0) return null;
+                          if (sectorBenefitCount === 0 && sectorCapCount === 0 && sectorEffortCount === 0) return null;
 
                           return (
                             <div key={sector} className={`rounded-lg border ${SECTOR_BORDER_COLORS[sector]} ${SECTOR_BG_COLORS[sector]} p-3`}>
-                              {/* Sector label */}
-                              <div className="mb-2">
+                              {/* Sector label + chain indicator */}
+                              <div className="flex items-center gap-2 mb-3">
                                 <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${SECTOR_LABEL_STYLES[sector]}`}>
                                   {sector}
                                 </span>
+                                <ChainIndicator
+                                  hasBenefits={sectorBenefitCount > 0}
+                                  hasCaps={sectorCapCount > 0}
+                                  hasEfforts={sectorEffortCount > 0}
+                                />
+                                <span className="text-[9px] text-gray-400 ml-auto">
+                                  {chainResult.chains.length} keten{chainResult.chains.length !== 1 ? "s" : ""}
+                                </span>
                               </div>
 
-                              {/* 3 kolommen met connectoren */}
-                              <div className="flex">
-                                {/* Baten kolom */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 mb-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-din-baten" />
-                                    <span className="text-[10px] uppercase tracking-wider text-din-baten font-semibold">Baten</span>
-                                  </div>
-                                  {sectorBenefits.length > 0 ? (
-                                    <div className="space-y-1">
-                                      {sectorBenefits.map((b) => (
-                                        <div key={b.id} className="bg-white/80 border border-din-baten/15 rounded-lg px-2.5 py-1.5">
-                                          <span className="text-[11px] text-gray-700 leading-snug">{b.title || b.description || "(naamloos)"}</span>
-                                          {b.profiel.indicator && (
-                                            <div className="mt-0.5 text-[9px] text-gray-400">
-                                              {b.profiel.indicator}: {b.profiel.currentValue} {"\u2192"} {b.profiel.targetValue}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                                  )}
+                              {/* Chains */}
+                              {chainResult.chains.length > 0 ? (
+                                <div className="space-y-2.5">
+                                  {chainResult.chains.map((chain, idx) => (
+                                    <ChainRow
+                                      key={chain.benefit.id}
+                                      chain={chain}
+                                      chainIndex={idx}
+                                      highlightedChain={highlightedChain}
+                                      onHover={setHighlightedChain}
+                                    />
+                                  ))}
                                 </div>
+                              ) : (
+                                <p className="text-[10px] text-gray-300 italic text-center py-2">Geen ketens gevonden</p>
+                              )}
 
-                                <ColumnConnector />
-
-                                {/* Vermogens kolom */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 mb-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-din-vermogens" />
-                                    <span className="text-[10px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogens</span>
-                                  </div>
-                                  {sectorCaps.length > 0 ? (
-                                    <div className="space-y-1">
-                                      {sectorCaps.map((c) => (
-                                        <div key={c.id} className={`bg-white/80 border rounded-lg px-2.5 py-1.5 ${c.relatedSectors && c.relatedSectors.length > 1 ? "border-amber-200" : "border-din-vermogens/15"}`}>
-                                          <span className="text-[11px] text-gray-700 leading-snug">{c.title || c.description || "(naamloos)"}</span>
-                                          <div className="flex items-center gap-2 mt-0.5">
-                                            {c.currentLevel && c.targetLevel && (
-                                              <span className="text-[9px]">
-                                                <span className="text-amber-600">{c.currentLevel}/5</span>
-                                                {" \u2192 "}
-                                                <span className="text-green-600">{c.targetLevel}/5</span>
-                                              </span>
-                                            )}
-                                            {c.relatedSectors && c.relatedSectors.length > 1 && (
-                                              <span className="text-[8px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">Synergie</span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                                  )}
-                                </div>
-
-                                <ColumnConnector />
-
-                                {/* Inspanningen kolom */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 mb-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-din-inspanningen" />
-                                    <span className="text-[10px] uppercase tracking-wider text-din-inspanningen font-semibold">Inspanningen</span>
-                                  </div>
-                                  {sectorEfforts.length > 0 ? (
-                                    <div className="space-y-1.5">
-                                      {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
-                                        const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
-                                        if (domainEfforts.length === 0) return null;
-                                        const dc = DOMAIN_COLORS[domain];
-                                        return (
-                                          <div key={domain}>
-                                            <div className={`text-[9px] font-medium ${dc.text} mb-0.5`}>{DOMAIN_LABELS[domain]}</div>
-                                            <div className="space-y-0.5">
-                                              {domainEfforts.map((e) => {
-                                                const st = STATUS_LABELS[e.status] || STATUS_LABELS.gepland;
-                                                return (
-                                                  <div key={e.id} className={`border-l-2 ${dc.border} bg-white/80 rounded-r px-2 py-1`}>
-                                                    <span className="text-[10px] text-gray-700 leading-snug">{e.title || e.description || "(naamloos)"}</span>
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                      {e.quarter && <span className="text-[8px] text-gray-400">{e.quarter}</span>}
-                                                      {e.status && e.status !== "gepland" && (
-                                                        <span className={`text-[8px] px-1 rounded ${st.color}`}>{st.label}</span>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <p className="text-[10px] text-gray-300 italic">{"\u2014"}</p>
-                                  )}
-                                </div>
-                              </div>
+                              {/* Ongekoppelde items */}
+                              <UnlinkedSection caps={chainResult.unlinkedCaps} efforts={chainResult.unlinkedEfforts} />
                             </div>
                           );
                         })}
@@ -373,7 +531,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
           );
         })}
 
-      {/* Domeinbalans */}
+      {/* Domeinbalans detail */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h4 className="text-sm font-semibold text-cito-blue mb-4">Domeinbalans inspanningen</h4>
         <div className="grid grid-cols-4 gap-4">
@@ -383,20 +541,16 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
               ...["mens", "processen", "data_systemen", "cultuur"].map((d) => session.efforts.filter((e) => e.domain === d).length),
               1
             );
-            const dc = DOMAIN_COLORS[domain];
             const pct = Math.round((count / maxCount) * 100);
 
             return (
               <div key={domain} className="text-center">
-                <div className={`text-xs font-medium ${dc.text} mb-2`}>{DOMAIN_LABELS[domain]}</div>
+                <div className="text-xs font-medium mb-2" style={{ color: DOMAIN_BAR_COLORS[domain] }}>{DOMAIN_LABELS[domain]}</div>
                 <div className="text-2xl font-bold text-gray-800">{count}</div>
                 <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: domain === "mens" ? "#3b82f6" : domain === "processen" ? "#10b981" : domain === "data_systemen" ? "#8b5cf6" : "#f59e0b",
-                    }}
+                    style={{ width: `${pct}%`, backgroundColor: DOMAIN_BAR_COLORS[domain] }}
                   />
                 </div>
                 <div className="flex flex-wrap gap-0.5 justify-center mt-1">
@@ -414,12 +568,6 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
             );
           })}
         </div>
-        {synergieCount > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
-            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Synergie</span>
-            <span className="text-xs text-gray-500">{synergieCount} vermogens worden gedeeld door meerdere sectoren</span>
-          </div>
-        )}
       </div>
 
       {/* Legenda */}
@@ -451,6 +599,14 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
           <div className="border-l border-gray-300 pl-4 flex items-center gap-1.5">
             <span className="text-[9px] bg-amber-100 text-amber-700 px-1 rounded">Synergie</span>
             <span className="text-gray-400">= gedeeld vermogen</span>
+          </div>
+          <div className="border-l border-gray-300 pl-4 flex items-center gap-1.5">
+            {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((d) => (
+              <div key={d} className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DOMAIN_BAR_COLORS[d] }} />
+                <span className="text-gray-400 text-[9px]">{DOMAIN_LABELS[d]}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

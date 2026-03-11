@@ -230,6 +230,104 @@ export function findGaps(
   };
 }
 
+// --- Keten-building helpers ---
+
+export interface DINChainLink {
+  capability: DINCapability;
+  efforts: DINEffort[];
+}
+
+export interface DINChain {
+  benefit: DINBenefit;
+  links: DINChainLink[];
+}
+
+export interface ChainResult {
+  chains: DINChain[];
+  unlinkedCaps: DINCapability[];
+  unlinkedEfforts: DINEffort[];
+}
+
+/**
+ * Bouw DIN-ketens voor een specifiek doel + sector.
+ * Keten: Baat → Vermogen(s) → Inspanning(en)
+ * Ongekoppelde vermogens/inspanningen worden apart teruggegeven.
+ */
+export function buildChainsForSector(
+  session: DINSession,
+  goalId: string,
+  sectorId: string
+): ChainResult {
+  const sectorBenefits = session.benefits.filter(
+    (b) => b.goalId === goalId && b.sectorId === sectorId
+  );
+  const sectorCaps = session.capabilities.filter((c) => c.sectorId === sectorId);
+  const sectorEfforts = session.efforts.filter((e) => e.sectorId === sectorId);
+
+  const usedCapIds = new Set<string>();
+  const usedEffortIds = new Set<string>();
+
+  // Bouw ketens vanuit baten
+  const chains: DINChain[] = sectorBenefits.map((benefit) => {
+    // Vind gekoppelde vermogens via benefitCapabilityMaps
+    const linkedCapIds = session.benefitCapabilityMaps
+      .filter((m) => m.benefitId === benefit.id)
+      .map((m) => m.capabilityId);
+
+    const links: DINChainLink[] = linkedCapIds
+      .map((capId) => sectorCaps.find((c) => c.id === capId))
+      .filter((c): c is DINCapability => c !== undefined)
+      .map((capability) => {
+        usedCapIds.add(capability.id);
+
+        // Vind gekoppelde inspanningen via capabilityEffortMaps
+        const linkedEffortIds = session.capabilityEffortMaps
+          .filter((m) => m.capabilityId === capability.id)
+          .map((m) => m.effortId);
+
+        const efforts = linkedEffortIds
+          .map((eid) => sectorEfforts.find((e) => e.id === eid))
+          .filter((e): e is DINEffort => e !== undefined);
+
+        efforts.forEach((e) => usedEffortIds.add(e.id));
+
+        return { capability, efforts };
+      });
+
+    return { benefit, links };
+  });
+
+  // Vermogens in scope van dit doel die niet gekoppeld zijn via een baat
+  // We beperken tot vermogens die via goalBenefitMaps bij dit doel horen
+  const goalBenefitIds = new Set(
+    session.goalBenefitMaps
+      .filter((m) => m.goalId === goalId)
+      .map((m) => m.benefitId)
+  );
+  const allCapIdsForGoal = new Set(
+    session.benefitCapabilityMaps
+      .filter((m) => goalBenefitIds.has(m.benefitId))
+      .map((m) => m.capabilityId)
+  );
+
+  const unlinkedCaps = sectorCaps.filter(
+    (c) => !usedCapIds.has(c.id) && allCapIdsForGoal.has(c.id)
+  );
+
+  // Inspanningen die via capabilityEffortMaps gekoppeld zijn aan dit doel maar niet in een keten zitten
+  const allEffortIdsForGoal = new Set(
+    session.capabilityEffortMaps
+      .filter((m) => allCapIdsForGoal.has(m.capabilityId))
+      .map((m) => m.effortId)
+  );
+
+  const unlinkedEfforts = sectorEfforts.filter(
+    (e) => !usedEffortIds.has(e.id) && allEffortIdsForGoal.has(e.id)
+  );
+
+  return { chains, unlinkedCaps, unlinkedEfforts };
+}
+
 // --- Merged DIN helpers ---
 
 export function getEffortsByDomainAllSectors(

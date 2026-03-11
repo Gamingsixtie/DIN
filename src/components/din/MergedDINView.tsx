@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { DINSession, DINBenefit, DINCapability, DINEffort, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
-import { findSharedCapabilities } from "@/lib/din-service";
+import { findSharedCapabilities, findGaps } from "@/lib/din-service";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 
@@ -179,13 +179,13 @@ export default function MergedDINView({
               onClick={() => setViewMode("grafisch")}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${viewMode === "grafisch" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
-              Grafisch
+              Keten-overzicht
             </button>
             <button
               onClick={() => setViewMode("tabel")}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${viewMode === "tabel" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
-              Per Sector
+              Sector-dashboard
             </button>
           </div>
           <button onClick={onSwitchToEdit} className="px-3 py-1.5 text-sm text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50">
@@ -218,6 +218,22 @@ export default function MergedDINView({
             )}
           </div>
 
+          {/* UX-3: Zoekresultaten feedback */}
+          {searchQuery && (() => {
+            const totalItems = session.benefits.length + session.capabilities.length + session.efforts.length;
+            const matchedB = filterBenefits(session.benefits, searchQuery).length;
+            const matchedC = filterCapabilities(session.capabilities, searchQuery).length;
+            const matchedE = filterEfforts(session.efforts, searchQuery).length;
+            const matchedTotal = matchedB + matchedC + matchedE;
+            return (
+              <div className={`text-xs px-3 py-1.5 rounded-lg ${matchedTotal > 0 ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"}`}>
+                {matchedTotal > 0
+                  ? `${matchedTotal} van ${totalItems} items gevonden`
+                  : `Geen resultaten voor "${searchQuery}"`}
+              </div>
+            );
+          })()}
+
           {/* Sector tabs */}
           <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg border border-gray-200">
             {SECTORS.map((sector) => {
@@ -235,8 +251,12 @@ export default function MergedDINView({
                 >
                   <span>{sector}</span>
                   {hasData && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/60" : "bg-gray-100"}`}>
-                      {stats.benefits + stats.capabilities + stats.efforts}
+                    <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/60" : "bg-gray-100"}`}>
+                      <span className="text-din-baten font-semibold">{stats.benefits}</span>
+                      <span className="text-gray-300">|</span>
+                      <span className="text-din-vermogens font-semibold">{stats.capabilities}</span>
+                      <span className="text-gray-300">|</span>
+                      <span className="text-din-inspanningen font-semibold">{stats.efforts}</span>
                     </span>
                   )}
                 </button>
@@ -511,6 +531,23 @@ function SectorContent({
                             {b.profiel.indicatorOwner && (
                               <div className="mt-0.5 text-[10px] text-gray-400">Eigenaar: {b.profiel.indicatorOwner}</div>
                             )}
+                            {/* UX-1: Gekoppeld vermogen tonen */}
+                            {(() => {
+                              const linkedCaps = session.benefitCapabilityMaps
+                                .filter((m) => m.benefitId === b.id)
+                                .map((m) => session.capabilities.find((c) => c.id === m.capabilityId))
+                                .filter(Boolean);
+                              if (linkedCaps.length === 0) return null;
+                              return (
+                                <div className="mt-1 flex items-center gap-1 text-[10px]">
+                                  <span className="text-din-vermogens">{"\u2192"}</span>
+                                  <span className="text-gray-400">Vermogen:</span>
+                                  {linkedCaps.map((c) => (
+                                    <span key={c!.id} className="text-din-vermogens font-medium">{c!.title || c!.description?.slice(0, 30) || "?"}</span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
@@ -569,6 +606,26 @@ function SectorContent({
                                   )}
                                 </div>
                               )}
+                              {/* UX-1: Gekoppelde inspanningen tonen */}
+                              {(() => {
+                                const linkedEffs = session.capabilityEffortMaps
+                                  .filter((m) => m.capabilityId === c.id)
+                                  .map((m) => session.efforts.find((e) => e.id === m.effortId))
+                                  .filter(Boolean);
+                                if (linkedEffs.length === 0) return null;
+                                return (
+                                  <div className="mt-1 flex items-center gap-1 flex-wrap text-[10px]">
+                                    <span className="text-din-inspanningen">{"\u2192"}</span>
+                                    <span className="text-gray-400">Inspanningen:</span>
+                                    {linkedEffs.map((e, i) => (
+                                      <span key={e!.id}>
+                                        <span className="text-din-inspanningen font-medium">{e!.title || e!.description?.slice(0, 25) || "?"}</span>
+                                        {i < linkedEffs.length - 1 && <span className="text-gray-300">, </span>}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}
@@ -767,6 +824,56 @@ function CrossSectorContent({
           </div>
         </div>
       )}
+
+      {/* UX-4: Keten-dekking per sector */}
+      <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
+        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
+          <h4 className="text-sm font-semibold text-cito-blue">Keten-dekking</h4>
+          <p className="text-[10px] text-gray-400 mt-0.5">Hoeveel items hebben een volledige DIN-keten?</p>
+        </div>
+        <div className="p-5">
+          {(() => {
+            const gaps = findGaps(
+              session.goals,
+              session.benefits,
+              session.capabilities,
+              session.efforts,
+              session.goalBenefitMaps,
+              session.benefitCapabilityMaps,
+              session.capabilityEffortMaps
+            );
+            const totalBenefits = session.benefits.length;
+            const totalCaps = session.capabilities.length;
+            const linkedBenefits = totalBenefits - gaps.benefitsWithoutCapabilities.length;
+            const linkedCaps = totalCaps - gaps.capabilitiesWithoutEfforts.length;
+            return (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">{session.goals.length - gaps.goalsWithoutBenefits.length}/{session.goals.length}</div>
+                  <div className="text-[11px] text-gray-500">Doelen met baten</div>
+                  <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-din-baten rounded-full" style={{ width: `${session.goals.length > 0 ? ((session.goals.length - gaps.goalsWithoutBenefits.length) / session.goals.length) * 100 : 0}%` }} />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">{linkedBenefits}/{totalBenefits}</div>
+                  <div className="text-[11px] text-gray-500">Baten met vermogens</div>
+                  <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-din-vermogens rounded-full" style={{ width: `${totalBenefits > 0 ? (linkedBenefits / totalBenefits) * 100 : 0}%` }} />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">{linkedCaps}/{totalCaps}</div>
+                  <div className="text-[11px] text-gray-500">Vermogens met inspanningen</div>
+                  <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-din-inspanningen rounded-full" style={{ width: `${totalCaps > 0 ? (linkedCaps / totalCaps) * 100 : 0}%` }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
 
       {/* Domeinbalans totaaloverzicht */}
       <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
