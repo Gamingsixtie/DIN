@@ -5,6 +5,7 @@ import type { DINBenefit } from "@/lib/types";
 
 interface BenefitSuggestion {
   feedback?: string;
+  title?: string;
   description: string;
   bateneigenaar?: string;
   indicator: string;
@@ -13,10 +14,11 @@ interface BenefitSuggestion {
   targetValue: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "bateneigenaar" | "indicator" | "eigenaar" | "waarden";
+type AanscherpVeld = "alles" | "titel" | "beschrijving" | "bateneigenaar" | "indicator" | "eigenaar" | "waarden";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
+  titel: "Titel",
   beschrijving: "Beschrijving",
   bateneigenaar: "Bateneigenaar",
   indicator: "Indicator",
@@ -98,6 +100,9 @@ export default function BenefitCard({
 
     const updated = { ...benefit, profiel: { ...benefit.profiel } };
 
+    if (applyAll || applySet.has("titel")) {
+      if (aiSuggestion.title) updated.title = aiSuggestion.title;
+    }
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
     }
@@ -128,7 +133,7 @@ export default function BenefitCard({
 
   // Completeness check — op basis van batenprofiel uit methodiek
   const missing: string[] = [];
-  if (!benefit.description) missing.push("omschrijving");
+  if (!benefit.title && !benefit.description) missing.push("titel");
   if (!benefit.profiel.bateneigenaar) missing.push("bateneigenaar");
   if (!benefit.profiel.indicator) missing.push("indicator");
   if (!benefit.profiel.indicatorOwner) missing.push("meetverantwoordelijke");
@@ -138,22 +143,33 @@ export default function BenefitCard({
   return (
     <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50 min-w-0 overflow-hidden">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Titel — kort label, vergrotende trap */}
           <input
+            value={benefit.title || ""}
+            onChange={(e) =>
+              onChange({ ...benefit, title: e.target.value })
+            }
+            className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
+            placeholder="Titel: vergrotende trap, bijv. 'Hogere klanttevredenheid'"
+          />
+          {/* Beschrijving — uitgebreide toelichting */}
+          <textarea
             value={benefit.description}
             onChange={(e) =>
               onChange({ ...benefit, description: e.target.value })
             }
-            className="w-full font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
-            placeholder="Omschrijving: welk gewenst effect in de buitenwereld?"
+            rows={2}
+            className="w-full text-sm text-gray-600 bg-transparent border border-transparent hover:border-gray-200 focus:border-cito-blue/50 focus:outline-none rounded px-1 py-0.5 resize-none"
+            placeholder="Toelichting: wie merkt dit effect en hoe? (1-2 zinnen)"
           />
           {missing.length > 0 && !expanded && (
-            <p className="text-[10px] text-amber-500 mt-1">
+            <p className="text-[10px] text-amber-500">
               Ontbreekt: {missing.join(", ")}
             </p>
           )}
         </div>
-        <div className="flex gap-1.5 ml-2 items-center">
+        <div className="flex gap-1.5 ml-2 items-center shrink-0">
           {onAISuggest && (
             <button
               onClick={() => setShowAIPanel(!showAIPanel)}
@@ -286,6 +302,14 @@ export default function BenefitCard({
 
           {/* Per-veld vergelijking met individuele toepas-knoppen */}
           <div className="space-y-1.5">
+            {aiSuggestion.title && aiSuggestion.title !== (benefit.title || "") && (
+              <SuggestionRow
+                label="Titel"
+                current={benefit.title || ""}
+                suggested={aiSuggestion.title}
+                onApply={() => applySuggestion(["titel"])}
+              />
+            )}
             {aiSuggestion.description && aiSuggestion.description !== benefit.description && (
               <SuggestionRow
                 label="Beschrijving"

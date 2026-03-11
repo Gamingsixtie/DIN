@@ -91,7 +91,7 @@ export default function ExportStep() {
       if (sectorBenefits.length > 0) {
         text += `### Baten\n`;
         sectorBenefits.forEach((b) => {
-          text += `- ${b.description}`;
+          text += `- ${b.title || b.description}`;
           if (b.profiel.indicator) {
             text += ` (${b.profiel.indicator}: ${b.profiel.currentValue} → ${b.profiel.targetValue})`;
           }
@@ -106,7 +106,7 @@ export default function ExportStep() {
       if (sectorCaps.length > 0) {
         text += `### Vermogens\n`;
         sectorCaps.forEach((c) => {
-          text += `- ${c.description}`;
+          text += `- ${c.title || c.description}`;
           if (c.currentLevel || c.targetLevel) {
             text += ` (${c.currentLevel || "?"}/5 → ${c.targetLevel || "?"}/5)`;
           }
@@ -127,7 +127,7 @@ export default function ExportStep() {
           if (domainEfforts.length === 0) return;
           text += `**${DOMAIN_LABELS[domain]}:**\n`;
           domainEfforts.forEach((e) => {
-            text += `- ${e.description}`;
+            text += `- ${e.title || e.description}`;
             if (e.quarter) text += ` (${e.quarter})`;
             if (e.dossier?.eigenaar) text += ` — Opdrachtgever: ${e.dossier.eigenaar}`;
             text += "\n";

@@ -291,6 +291,7 @@ function matchesSearch(text: string, query: string): boolean {
 function filterBenefits(benefits: DINBenefit[], query: string): DINBenefit[] {
   if (!query) return benefits;
   return benefits.filter((b) =>
+    matchesSearch(b.title || "", query) ||
     matchesSearch(b.description, query) ||
     matchesSearch(b.profiel.indicator, query) ||
     matchesSearch(b.profiel.indicatorOwner, query)
@@ -299,12 +300,12 @@ function filterBenefits(benefits: DINBenefit[], query: string): DINBenefit[] {
 
 function filterCapabilities(capabilities: DINCapability[], query: string): DINCapability[] {
   if (!query) return capabilities;
-  return capabilities.filter((c) => matchesSearch(c.description, query));
+  return capabilities.filter((c) => matchesSearch(c.title || "", query) || matchesSearch(c.description, query));
 }
 
 function filterEfforts(efforts: DINEffort[], query: string): DINEffort[] {
   if (!query) return efforts;
-  return efforts.filter((e) => matchesSearch(e.description, query));
+  return efforts.filter((e) => matchesSearch(e.title || "", query) || matchesSearch(e.description, query));
 }
 
 // --- Sector Content ---
@@ -490,7 +491,7 @@ function SectorContent({
                         {goalBenefits.map((b) => (
                           <div key={b.id} className="bg-white border border-din-baten/20 rounded-lg p-2.5 group hover:border-din-baten/40 transition-colors">
                             <div className="flex items-start justify-between">
-                              <span className="text-xs text-gray-700 font-medium flex-1">{b.description || "(naamloos)"}</span>
+                              <span className="text-xs text-gray-700 font-medium flex-1">{b.title || b.description || "(naamloos)"}</span>
                               {onDeleteBenefit && (
                                 <button onClick={() => onDeleteBenefit(b.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" title="Verwijder">
                                   {"\u2715"}
@@ -530,7 +531,7 @@ function SectorContent({
                           return (
                             <div key={c.id} className={`p-2.5 rounded-lg group transition-colors ${isShared ? "bg-amber-50 border border-amber-200" : "bg-white border border-din-vermogens/20 hover:border-din-vermogens/40"}`}>
                               <div className="flex items-start justify-between">
-                                <span className="text-xs text-gray-700 font-medium flex-1">{c.description || "(naamloos)"}</span>
+                                <span className="text-xs text-gray-700 font-medium flex-1">{c.title || c.description || "(naamloos)"}</span>
                                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                   {isShared && sharedSectors && (
                                     <span className="flex items-center gap-1">
@@ -599,7 +600,7 @@ function SectorContent({
                                     className="flex items-center gap-1.5 text-[11px] group py-1 pl-2 border-l-2 rounded-r-sm hover:bg-white/60 transition-colors"
                                     style={{ borderLeftColor: STATUS_BORDER_COLORS[e.status] || STATUS_BORDER_COLORS.gepland }}
                                   >
-                                    <span className="text-gray-600 flex-1">{e.description || "(naamloos)"}</span>
+                                    <span className="text-gray-600 flex-1">{e.title || e.description || "(naamloos)"}</span>
                                     {e.quarter && <span className="text-[10px] bg-white text-gray-500 px-1.5 py-0.5 rounded shrink-0">{e.quarter}</span>}
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${STATUS_STYLES[e.status] || ""}`}>{STATUS_TEXT[e.status] || e.status}</span>
                                     {onDeleteEffort && (
@@ -731,7 +732,7 @@ function CrossSectorContent({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm text-gray-800 font-medium">{cap.description || "(naamloos)"}</div>
+                    <div className="text-sm text-gray-800 font-medium">{cap.title || cap.description || "(naamloos)"}</div>
                     {(cap.currentLevel || cap.targetLevel) && (
                       <div className="flex items-center gap-4 mt-1.5">
                         {cap.currentLevel && (

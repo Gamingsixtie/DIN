@@ -28,6 +28,8 @@ import CapabilityCard from "@/components/din/CapabilityCard";
 import EffortCard from "@/components/din/EffortCard";
 import DINChainIndicator from "@/components/din/DINChainIndicator";
 import MergedDINView from "@/components/din/MergedDINView";
+import DINCreatieWizard from "@/components/din/DINCreatieWizard";
+import type { WizardResult } from "@/components/din/DINCreatieWizard";
 import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
 
 type DINPhase = "per-sector" | "samengevoegd";
@@ -337,6 +339,15 @@ export default function DINMappingStep() {
   } | null>(null);
   const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
+  // Wizard state
+  const [wizardState, setWizardState] = useState<{
+    type: "baat" | "vermogen" | "inspanning";
+    parentGoalId?: string;
+    parentBenefitId?: string;
+    parentCapabilityId?: string;
+    domain?: EffortDomain;
+  } | null>(null);
+
   // Auto-dismiss undo toast na 8 seconden
   const dismissUndo = useCallback(() => {
     setDeletedItem(null);
@@ -436,6 +447,10 @@ export default function DINMappingStep() {
   }
   function addBenefit() {
     if (!selectedGoal) return;
+    setWizardState({ type: "baat", parentGoalId: selectedGoal });
+  }
+  function addBenefitManual() {
+    if (!selectedGoal) return;
     const newBenefit = createBenefit(selectedGoal, activeSector, "");
     updateSession({
       benefits: [...session!.benefits, newBenefit],
@@ -445,6 +460,7 @@ export default function DINMappingStep() {
       ],
     });
     setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
+    setWizardState(null);
   }
   function updateCapability(updated: DINCapability) {
     updateSession({
@@ -469,6 +485,9 @@ export default function DINMappingStep() {
     });
   }
   function addCapability(benefitId?: string) {
+    setWizardState({ type: "vermogen", parentBenefitId: benefitId });
+  }
+  function addCapabilityManual(benefitId?: string) {
     const newCap = createCapability(activeSector, "");
     const updates: Partial<DINSession> = {
       capabilities: [...session!.capabilities, newCap],
@@ -481,6 +500,7 @@ export default function DINMappingStep() {
     }
     updateSession(updates);
     setExpandedCapability(newCap.id);
+    setWizardState(null);
   }
   function updateEffort(updated: DINEffort) {
     updateSession({
@@ -505,6 +525,9 @@ export default function DINMappingStep() {
     });
   }
   function addEffort(domain: EffortDomain, capabilityId?: string) {
+    setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, domain });
+  }
+  function addEffortManual(domain: EffortDomain, capabilityId?: string) {
     const newEffort = createEffort(activeSector, "", domain);
     const updates: Partial<DINSession> = {
       efforts: [...session!.efforts, newEffort],
@@ -517,6 +540,79 @@ export default function DINMappingStep() {
     }
     updateSession(updates);
     setExpandedEffort(newEffort.id);
+    setWizardState(null);
+  }
+
+  // --- Wizard result handler ---
+  function handleWizardResult(result: WizardResult) {
+    if (!wizardState) return;
+
+    if (wizardState.type === "baat") {
+      const goalId = wizardState.parentGoalId || selectedGoal;
+      if (!goalId) return;
+      const newBenefit = createBenefit(goalId, activeSector, result.description, result.title);
+      // Vul profiel-velden in vanuit wizard
+      if (result.indicator) newBenefit.profiel.indicator = result.indicator;
+      if (result.indicatorOwner) newBenefit.profiel.indicatorOwner = result.indicatorOwner;
+      if (result.bateneigenaar) newBenefit.profiel.bateneigenaar = result.bateneigenaar;
+      if (result.currentValue) newBenefit.profiel.currentValue = result.currentValue;
+      if (result.targetValue) newBenefit.profiel.targetValue = result.targetValue;
+      updateSession({
+        benefits: [...session!.benefits, newBenefit],
+        goalBenefitMaps: [
+          ...session!.goalBenefitMaps,
+          { goalId, benefitId: newBenefit.id },
+        ],
+      });
+      setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
+    } else if (wizardState.type === "vermogen") {
+      const newCap = createCapability(activeSector, result.description, result.title);
+      if (result.currentLevel) newCap.currentLevel = result.currentLevel;
+      if (result.targetLevel) newCap.targetLevel = result.targetLevel;
+      if (result.eigenaar || result.huidieSituatie || result.gewensteSituatie) {
+        newCap.profiel = {
+          eigenaar: result.eigenaar || "",
+          huidieSituatie: result.huidieSituatie || "",
+          gewensteSituatie: result.gewensteSituatie || "",
+        };
+      }
+      const updates: Partial<DINSession> = {
+        capabilities: [...session!.capabilities, newCap],
+      };
+      if (wizardState.parentBenefitId) {
+        updates.benefitCapabilityMaps = [
+          ...session!.benefitCapabilityMaps,
+          { benefitId: wizardState.parentBenefitId, capabilityId: newCap.id },
+        ];
+      }
+      updateSession(updates);
+      setExpandedCapability(newCap.id);
+    } else if (wizardState.type === "inspanning") {
+      const domain = wizardState.domain || "mens";
+      const newEffort = createEffort(activeSector, result.description, domain, result.title);
+      if (result.quarter) newEffort.quarter = result.quarter;
+      if (result.inspanningsEigenaar || result.inspanningsleider || result.verwachtResultaat || result.kostenraming || result.randvoorwaarden) {
+        newEffort.dossier = {
+          eigenaar: result.inspanningsEigenaar || "",
+          inspanningsleider: result.inspanningsleider || "",
+          verwachtResultaat: result.verwachtResultaat || "",
+          kostenraming: result.kostenraming || "",
+          randvoorwaarden: result.randvoorwaarden || "",
+        };
+      }
+      const updates: Partial<DINSession> = {
+        efforts: [...session!.efforts, newEffort],
+      };
+      if (wizardState.parentCapabilityId) {
+        updates.capabilityEffortMaps = [
+          ...session!.capabilityEffortMaps,
+          { capabilityId: wizardState.parentCapabilityId, effortId: newEffort.id },
+        ];
+      }
+      updateSession(updates);
+      setExpandedEffort(newEffort.id);
+    }
+    setWizardState(null);
   }
 
   // --- Koppeling-beheer ---
@@ -640,6 +736,7 @@ export default function DINMappingStep() {
   function makeBenefitSuggest(benefit: DINBenefit) {
     return async (userPrompt?: string) => {
       return fetchAISuggestion("baat", {
+        existingTitle: benefit.title || undefined,
         existingDescription: benefit.description || undefined,
         existingEigenaar: benefit.profiel.bateneigenaar || undefined,
         existingIndicator: benefit.profiel.indicator || undefined,
@@ -648,8 +745,8 @@ export default function DINMappingStep() {
         existingTargetValue: benefit.profiel.targetValue || undefined,
         userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
-          .filter((b) => b.id !== benefit.id && b.description)
-          .map((b) => b.description),
+          .filter((b) => b.id !== benefit.id && (b.title || b.description))
+          .map((b) => b.title || b.description),
       });
     };
   }
@@ -657,6 +754,7 @@ export default function DINMappingStep() {
   function makeCapabilitySuggest(cap: DINCapability) {
     return async (userPrompt?: string) => {
       return fetchAISuggestion("vermogen", {
+        existingTitle: cap.title || undefined,
         existingDescription: cap.description || undefined,
         existingEigenaar: cap.profiel?.eigenaar || undefined,
         existingHuidieSituatie: cap.profiel?.huidieSituatie || undefined,
@@ -665,11 +763,11 @@ export default function DINMappingStep() {
         existingTargetLevel: cap.targetLevel || undefined,
         userPrompt: userPrompt || undefined,
         relatedBenefits: sectorBenefits
-          .filter((b) => b.description)
-          .map((b) => b.description),
+          .filter((b) => b.title || b.description)
+          .map((b) => b.title || b.description),
         relatedCapabilities: sectorCapabilities
-          .filter((c) => c.id !== cap.id && c.description)
-          .map((c) => c.description),
+          .filter((c) => c.id !== cap.id && (c.title || c.description))
+          .map((c) => c.title || c.description),
       });
     };
   }
@@ -683,6 +781,7 @@ export default function DINMappingStep() {
         cultuur: "Cultuur",
       };
       return fetchAISuggestion("inspanning", {
+        existingTitle: effort.title || undefined,
         existingDescription: effort.description || undefined,
         existingOwner: effort.dossier?.eigenaar || undefined,
         existingInspanningsleider: effort.dossier?.inspanningsleider || undefined,
@@ -692,8 +791,8 @@ export default function DINMappingStep() {
         domain: domainLabels[effort.domain] || effort.domain,
         userPrompt: userPrompt || undefined,
         relatedCapabilities: sectorCapabilities
-          .filter((c) => c.description)
-          .map((c) => c.description),
+          .filter((c) => c.title || c.description)
+          .map((c) => c.title || c.description),
       });
     };
   }
@@ -921,10 +1020,10 @@ export default function DINMappingStep() {
 
   const deletedItemLabel = deletedItem
     ? deletedItem.type === "baat"
-      ? `Baat "${(deletedItem.item as DINBenefit).description || "(naamloos)"}"`
+      ? `Baat "${(deletedItem.item as DINBenefit).title || (deletedItem.item as DINBenefit).description || "(naamloos)"}"`
       : deletedItem.type === "vermogen"
-      ? `Vermogen "${(deletedItem.item as DINCapability).description || "(naamloos)"}"`
-      : `Inspanning "${(deletedItem.item as DINEffort).description || "(naamloos)"}"`
+      ? `Vermogen "${(deletedItem.item as DINCapability).title || (deletedItem.item as DINCapability).description || "(naamloos)"}"`
+      : `Inspanning "${(deletedItem.item as DINEffort).title || (deletedItem.item as DINEffort).description || "(naamloos)"}"`
     : "";
 
   return (
@@ -1166,8 +1265,13 @@ export default function DINMappingStep() {
                           </span>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium text-gray-700 truncate block">
-                              {benefit.description || "Nieuwe baat..."}
+                              {benefit.title || benefit.description || "Nieuwe baat..."}
                             </span>
+                            {benefit.title && benefit.description && (
+                              <span className="text-[10px] text-gray-400 truncate block">
+                                {benefit.description.slice(0, 80)}{benefit.description.length > 80 ? "\u2026" : ""}
+                              </span>
+                            )}
                             {benefit.profiel?.indicator && (
                               <span className="text-[10px] text-gray-400 truncate block">
                                 KPI: {benefit.profiel.indicator}
@@ -1238,7 +1342,7 @@ export default function DINMappingStep() {
                                           V{allSectorCaps.indexOf(cap) + 1}
                                         </span>
                                         <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
-                                          {cap.description || "(naamloos vermogen)"}
+                                          {cap.title || cap.description || "(naamloos vermogen)"}
                                         </span>
                                         {(cap.currentLevel || cap.targetLevel) && (
                                           <span className="text-[10px] text-gray-400 shrink-0">
@@ -1246,7 +1350,7 @@ export default function DINMappingStep() {
                                           </span>
                                         )}
                                         {otherBaten.length > 0 && (
-                                          <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full shrink-0" title={`Gedeeld met: ${otherBaten.map((b) => b.description || "(naamloos)").join(", ")}`}>
+                                          <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full shrink-0" title={`Gedeeld met: ${otherBaten.map((b) => b.title || b.description || "(naamloos)").join(", ")}`}>
                                             gedeeld ({otherBaten.length + 1})
                                           </span>
                                         )}
@@ -1264,7 +1368,7 @@ export default function DINMappingStep() {
                                             onChange={updateCapability}
                                             onDelete={() => deleteCapability(cap.id)}
                                             onAISuggest={makeCapabilitySuggest(cap)}
-                                            sharedWithBenefits={otherBaten.map((b) => b.description || "(naamloos)")}
+                                            sharedWithBenefits={otherBaten.map((b) => b.title || b.description || "(naamloos)")}
                                           />
                                           <div className="border-t border-gray-100 pt-3">
                                             <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan baten:</div>
@@ -1284,7 +1388,7 @@ export default function DINMappingStep() {
                                                     }`}
                                                     title={isLinked ? "Klik om te ontkoppelen" : "Klik om te koppelen"}
                                                   >
-                                                    B{bI + 1}: {(b.description || "(naamloos)").slice(0, 35)}{(b.description || "").length > 35 ? "\u2026" : ""}
+                                                    B{bI + 1}: {(b.title || b.description || "(naamloos)").slice(0, 35)}{(b.title || b.description || "").length > 35 ? "\u2026" : ""}
                                                   </button>
                                                 );
                                               })}
@@ -1313,7 +1417,7 @@ export default function DINMappingStep() {
                                                 >
                                                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOMAIN_DOT_COLORS[effort.domain]}`} />
                                                   <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
-                                                    {effort.description || "(naamloos)"}
+                                                    {effort.title || effort.description || "(naamloos)"}
                                                   </span>
                                                   {effort.quarter && (
                                                     <span className="text-[10px] text-gray-400 shrink-0">{effort.quarter}</span>
@@ -1352,7 +1456,7 @@ export default function DINMappingStep() {
                                                               }`}
                                                               title={isLinked ? "Klik om te ontkoppelen" : "Klik om te koppelen"}
                                                             >
-                                                              V{cI + 1}: {(c.description || "(naamloos)").slice(0, 30)}{(c.description || "").length > 30 ? "\u2026" : ""}
+                                                              V{cI + 1}: {(c.title || c.description || "(naamloos)").slice(0, 30)}{(c.title || c.description || "").length > 30 ? "\u2026" : ""}
                                                             </button>
                                                           );
                                                         })}
@@ -1398,6 +1502,28 @@ export default function DINMappingStep() {
                 >
                   + Baat toevoegen
                 </button>
+
+                {/* === CREATIE WIZARD === */}
+                {wizardState && (
+                  <div className="mt-4">
+                    <DINCreatieWizard
+                      type={wizardState.type}
+                      sectorId={activeSector}
+                      parentGoal={wizardState.parentGoalId ? session.goals.find((g) => g.id === wizardState.parentGoalId) : undefined}
+                      parentBenefit={wizardState.parentBenefitId ? session.benefits.find((b) => b.id === wizardState.parentBenefitId) : undefined}
+                      parentCapability={wizardState.parentCapabilityId ? session.capabilities.find((c) => c.id === wizardState.parentCapabilityId) : undefined}
+                      domain={wizardState.domain}
+                      sectorPlanText={sectorPlan?.rawText}
+                      onGenerate={handleWizardResult}
+                      onCancel={() => setWizardState(null)}
+                      onManual={() => {
+                        if (wizardState.type === "baat") addBenefitManual();
+                        else if (wizardState.type === "vermogen") addCapabilityManual(wizardState.parentBenefitId);
+                        else addEffortManual(wizardState.domain || "mens", wizardState.parentCapabilityId);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* === NIET-GEKOPPELDE ITEMS === */}
@@ -1436,7 +1562,7 @@ export default function DINMappingStep() {
                                     <span className="w-5 h-5 rounded bg-din-vermogens/10 text-din-vermogens font-bold text-[10px] flex items-center justify-center shrink-0">
                                       V{allSectorCaps.indexOf(cap) + 1}
                                     </span>
-                                    <span className="text-sm text-gray-700 flex-1 truncate">{cap.description || "(naamloos)"}</span>
+                                    <span className="text-sm text-gray-700 flex-1 truncate">{cap.title || cap.description || "(naamloos)"}</span>
                                     <span className="text-xs text-gray-400">{isExpanded ? "\u25B2" : "\u25BC"}</span>
                                   </div>
                                   {isExpanded && (
@@ -1464,7 +1590,7 @@ export default function DINMappingStep() {
                                                     : "bg-gray-100 text-gray-500 hover:bg-din-baten/20 hover:text-din-baten"
                                                 }`}
                                               >
-                                                B{bI + 1}: {(b.description || "(naamloos)").slice(0, 35)}
+                                                B{bI + 1}: {(b.title || b.description || "(naamloos)").slice(0, 35)}
                                               </button>
                                             );
                                           })}
@@ -1491,7 +1617,7 @@ export default function DINMappingStep() {
                                     onClick={() => setExpandedEffort(isExpEff ? null : effort.id)}
                                   >
                                     <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOMAIN_DOT_COLORS[effort.domain]}`} />
-                                    <span className="text-sm text-gray-700 flex-1 truncate">{effort.description || "(naamloos)"}</span>
+                                    <span className="text-sm text-gray-700 flex-1 truncate">{effort.title || effort.description || "(naamloos)"}</span>
                                     {effort.quarter && <span className="text-[10px] text-gray-400 shrink-0">{effort.quarter}</span>}
                                     <span className="text-xs text-gray-400">{isExpEff ? "\u25B2" : "\u25BC"}</span>
                                   </div>
@@ -1520,7 +1646,7 @@ export default function DINMappingStep() {
                                                     : "bg-gray-100 text-gray-500 hover:bg-din-vermogens/20 hover:text-din-vermogens"
                                                 }`}
                                               >
-                                                V{cI + 1}: {(c.description || "(naamloos)").slice(0, 30)}
+                                                V{cI + 1}: {(c.title || c.description || "(naamloos)").slice(0, 30)}
                                               </button>
                                             );
                                           })}

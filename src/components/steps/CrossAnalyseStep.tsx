@@ -642,7 +642,7 @@ export default function CrossAnalyseStep() {
                       return (
                         <tr key={cap.id} className="border-b border-gray-50 hover:bg-amber-50/30 transition-colors">
                           <td className="py-3 text-gray-700 pr-4">
-                            <div className="text-sm">{cap.description || "(naamloos)"}</div>
+                            <div className="text-sm">{cap.title || cap.description || "(naamloos)"}</div>
                             {cap.currentLevel && cap.targetLevel && (
                               <div className="text-[10px] text-gray-400 mt-0.5">
                                 Niveau: {cap.currentLevel}/5 → {cap.targetLevel}/5
@@ -925,7 +925,7 @@ export default function CrossAnalyseStep() {
                         <div key={b.id} className="flex items-start gap-2 text-xs text-gray-600">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <span>{b.description || "(naamloos)"}</span>
+                            <span>{b.title || b.description || "(naamloos)"}</span>
                             {" "}
                             <SectorBadge sector={b.sectorId} />
                           </div>
@@ -968,7 +968,7 @@ export default function CrossAnalyseStep() {
                         <div key={c.id} className="flex items-start gap-2 text-xs text-gray-600">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <span>{c.description || "(naamloos)"}</span>
+                            <span>{c.title || c.description || "(naamloos)"}</span>
                             {" "}
                             <SectorBadge sector={c.sectorId} />
                           </div>

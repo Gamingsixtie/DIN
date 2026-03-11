@@ -197,7 +197,7 @@ function goalDINSections(session: DINSession) {
             new TableRow({
               children: [
                 tableCell(b.sectorId),
-                tableCell(b.description || "(naamloos)"),
+                tableCell(b.title || b.description || "(naamloos)"),
                 tableCell(b.profiel.indicator || "—"),
                 tableCell(b.profiel.bateneigenaar || "—"),
                 tableCell(b.profiel.indicatorOwner || "—"),
@@ -236,7 +236,7 @@ function goalDINSections(session: DINSession) {
       if (goalCaps.length > 0) {
         children.push(text("Vermogens", { bold: true, color: CITO_BLUE }));
         goalCaps.forEach((c) => {
-          children.push(bullet(`[${c.sectorId}] ${c.description || "(naamloos)"}`));
+          children.push(bullet(`[${c.sectorId}] ${c.title || c.description || "(naamloos)"}`));
         });
         children.push(emptyLine());
       }
@@ -253,7 +253,7 @@ function goalDINSections(session: DINSession) {
           if (domainEfforts.length === 0) return;
           children.push(text(DOMAIN_LABELS[domain], { bold: true, size: 20 }));
           domainEfforts.forEach((e) => {
-            const parts = [`[${e.sectorId}] ${e.description || "(naamloos)"}`];
+            const parts = [`[${e.sectorId}] ${e.title || e.description || "(naamloos)"}`];
             if (e.quarter) parts.push(`(${e.quarter})`);
             children.push(bullet(parts.join(" ")));
           });
@@ -278,7 +278,7 @@ function crossAnalysisSection(session: DINSession) {
       const cap = session.capabilities.find((c) => c.id === capId);
       if (cap) {
         children.push(
-          bullet(`${cap.description} — Sectoren: ${sectors.join(", ")}`)
+          bullet(`${cap.title || cap.description} — Sectoren: ${sectors.join(", ")}`)
         );
       }
     }
@@ -327,7 +327,7 @@ function sectorSection(session: DINSession, sector: SectorName) {
       const goal = session.goals.find((g) => g.id === b.goalId);
       children.push(
         bullet(
-          `${b.description || "(naamloos)"}${goal ? ` (Doel: ${goal.name})` : ""}${
+          `${b.title || b.description || "(naamloos)"}${goal ? ` (Doel: ${goal.name})` : ""}${
             b.profiel.indicator
               ? ` — ${b.profiel.indicator}: ${b.profiel.currentValue} → ${b.profiel.targetValue}`
               : ""
@@ -359,7 +359,7 @@ function sectorSection(session: DINSession, sector: SectorName) {
       (c) =>
         new TableRow({
           children: [
-            tableCell(c.description || "(naamloos)"),
+            tableCell(c.title || c.description || "(naamloos)"),
             tableCell(c.profiel?.eigenaar || "—"),
             tableCell(c.currentLevel && c.targetLevel ? `${c.currentLevel} → ${c.targetLevel}` : "—"),
             tableCell(c.profiel?.huidieSituatie || "—"),
@@ -403,7 +403,7 @@ function sectorSection(session: DINSession, sector: SectorName) {
         (e) =>
           new TableRow({
             children: [
-              tableCell(e.description || "(naamloos)"),
+              tableCell(e.title || e.description || "(naamloos)"),
               tableCell(e.quarter || "—"),
               tableCell(e.dossier?.eigenaar || "—"),
               tableCell(e.dossier?.inspanningsleider || "—"),
@@ -462,7 +462,7 @@ function roadmapSection(session: DINSession) {
           children: [
             tableCell(e.sectorId),
             tableCell(DOMAIN_LABELS[e.domain]),
-            tableCell(e.description || "(naamloos)"),
+            tableCell(e.title || e.description || "(naamloos)"),
             tableCell(e.status),
           ],
         })

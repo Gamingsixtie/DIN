@@ -5,6 +5,7 @@ import type { DINEffort, EffortDomain, InspanningsDossier } from "@/lib/types";
 
 interface EffortSuggestion {
   feedback?: string;
+  title?: string;
   description: string;
   quarter: string;
   eigenaar?: string;
@@ -14,10 +15,11 @@ interface EffortSuggestion {
   randvoorwaarden?: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "planning" | "dossier";
+type AanscherpVeld = "alles" | "titel" | "beschrijving" | "planning" | "dossier";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
+  titel: "Titel",
   beschrijving: "Beschrijving",
   planning: "Planning",
   dossier: "Dossier",
@@ -71,7 +73,7 @@ export default function EffortCard({
 
   // Completeness check — inspanningsdossier conform methodiek (Hfst 11.3)
   const missing: string[] = [];
-  if (!effort.description) missing.push("beschrijving");
+  if (!effort.title && !effort.description) missing.push("titel");
   if (!effort.quarter) missing.push("planning");
   if (!dossier.eigenaar) missing.push("eigenaar");
   if (!dossier.inspanningsleider) missing.push("inspanningsleider");
@@ -121,6 +123,9 @@ export default function EffortCard({
     const applySet = new Set(fields || ["alles"]);
     const updated = { ...effort, dossier: { ...dossier } };
 
+    if (applyAll || applySet.has("titel")) {
+      if (aiSuggestion.title) updated.title = aiSuggestion.title;
+    }
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
     }
@@ -149,17 +154,26 @@ export default function EffortCard({
   return (
     <div className={`border rounded-lg p-3 ${colors.bg} border-gray-200 min-w-0 overflow-hidden`}>
       <div className="flex items-start justify-between gap-2 min-w-0">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-1">
           <input
+            value={effort.title || ""}
+            onChange={(e) =>
+              onChange({ ...effort, title: e.target.value })
+            }
+            className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
+            placeholder="Titel: actie met werkwoorden, bijv. 'Training outside-in werken uitvoeren'"
+          />
+          <textarea
             value={effort.description}
             onChange={(e) =>
               onChange({ ...effort, description: e.target.value })
             }
-            className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
-            placeholder="Concrete activiteit of project die een vermogen opbouwt (formuleer met werkwoorden)"
+            rows={2}
+            className="w-full text-sm text-gray-600 bg-transparent border border-transparent hover:border-gray-200 focus:border-cito-blue/50 focus:outline-none rounded px-1 py-0.5 resize-none"
+            placeholder="Toelichting: wat wordt er concreet gedaan en waarom? (1-2 zinnen)"
           />
           {missing.length > 0 && !expanded && (
-            <p className="text-[10px] text-amber-500 mt-1">
+            <p className="text-[10px] text-amber-500">
               Ontbreekt: {missing.join(", ")}
             </p>
           )}
@@ -294,6 +308,16 @@ export default function EffortCard({
             </div>
           </div>
           <div className="space-y-1.5">
+            {aiSuggestion.title && aiSuggestion.title !== (effort.title || "") && (
+              <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                <span className="font-medium text-gray-500 w-20 shrink-0">Titel</span>
+                <div className="flex-1 min-w-0">
+                  {effort.title && <div className="text-gray-400 line-through truncate">{effort.title}</div>}
+                  <div className="text-gray-700 font-medium">{aiSuggestion.title}</div>
+                </div>
+                <button onClick={() => applySuggestion(["titel"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
+              </div>
+            )}
             {aiSuggestion.description && aiSuggestion.description !== effort.description && (
               <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
                 <span className="font-medium text-gray-500 w-20 shrink-0">Beschrijving</span>

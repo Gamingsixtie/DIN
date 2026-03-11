@@ -86,7 +86,8 @@ export interface DINBenefit {
   id: string;
   goalId: string;
   sectorId: string;
-  description: string;
+  title?: string;        // Kort label (vergrotende trap, bijv. "Hogere klanttevredenheid")
+  description: string;   // Uitgebreide beschrijving / toelichting
   profiel: BatenProfiel;
 }
 
@@ -102,6 +103,7 @@ export interface VermogensProfiel {
 export interface DINCapability {
   id: string;
   sectorId: string;
+  title?: string;        // Kort label (bijv. "Klantgesprek-methodiek")
   description: string;
   relatedSectors: string[];
   currentLevel?: number; // 1-5: huidig vermogensniveau
@@ -123,6 +125,7 @@ export interface InspanningsDossier {
 export interface DINEffort {
   id: string;
   sectorId: string;
+  title?: string;        // Kort label (werkwoorden, bijv. "Training uitvoeren")
   description: string;
   domain: EffortDomain;
   quarter?: string;

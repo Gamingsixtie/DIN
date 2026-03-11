@@ -5,6 +5,7 @@ import type { DINCapability, VermogensProfiel } from "@/lib/types";
 
 interface CapabilitySuggestion {
   feedback?: string;
+  title?: string;
   description: string;
   currentLevel: number;
   targetLevel: number;
@@ -13,10 +14,11 @@ interface CapabilitySuggestion {
   gewensteSituatie?: string;
 }
 
-type AanscherpVeld = "alles" | "beschrijving" | "niveaus" | "profiel";
+type AanscherpVeld = "alles" | "titel" | "beschrijving" | "niveaus" | "profiel";
 
 const VELD_LABELS: Record<AanscherpVeld, string> = {
   alles: "Alles",
+  titel: "Titel",
   beschrijving: "Beschrijving",
   niveaus: "Niveaus",
   profiel: "Profiel",
@@ -108,7 +110,7 @@ export default function CapabilityCard({
 
   // Completeness check — vermogensprofiel conform methodiek
   const missing: string[] = [];
-  if (!capability.description) missing.push("beschrijving");
+  if (!capability.title && !capability.description) missing.push("titel");
   if (!capability.currentLevel) missing.push("huidig niveau");
   if (!capability.targetLevel) missing.push("gewenst niveau");
   if (!profiel.eigenaar) missing.push("eigenaar");
@@ -160,6 +162,9 @@ export default function CapabilityCard({
     const applySet = new Set(fields || ["alles"]);
     const updated = { ...capability, profiel: { ...(capability.profiel || { eigenaar: "", huidieSituatie: "", gewensteSituatie: "" }) } };
 
+    if (applyAll || applySet.has("titel")) {
+      if (aiSuggestion.title) updated.title = aiSuggestion.title;
+    }
     if (applyAll || applySet.has("beschrijving")) {
       if (aiSuggestion.description) updated.description = aiSuggestion.description;
     }
@@ -187,17 +192,26 @@ export default function CapabilityCard({
   return (
     <div className="border border-cyan-200 rounded-lg p-3 bg-cyan-50/50 min-w-0 overflow-hidden">
       <div className="flex items-start gap-2 min-w-0">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-1">
           <input
+            value={capability.title || ""}
+            onChange={(e) =>
+              onChange({ ...capability, title: e.target.value })
+            }
+            className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
+            placeholder="Titel: wat moet de organisatie KUNNEN? (bijv. 'Klantgesprek-methodiek')"
+          />
+          <textarea
             value={capability.description}
             onChange={(e) =>
               onChange({ ...capability, description: e.target.value })
             }
-            className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
-            placeholder="Wat moet de organisatie kunnen? (combinatie van mensen, processen, data en systemen)"
+            rows={2}
+            className="w-full text-sm text-gray-600 bg-transparent border border-transparent hover:border-gray-200 focus:border-cito-blue/50 focus:outline-none rounded px-1 py-0.5 resize-none"
+            placeholder="Toelichting: welke combinatie van mensen, processen, data en systemen? (1-2 zinnen)"
           />
           {missing.length > 0 && !expanded && (
-            <p className="text-[10px] text-amber-500 mt-1">
+            <p className="text-[10px] text-amber-500">
               Ontbreekt: {missing.join(", ")}
             </p>
           )}
@@ -354,6 +368,16 @@ export default function CapabilityCard({
             </div>
           </div>
           <div className="space-y-1.5">
+            {aiSuggestion.title && aiSuggestion.title !== (capability.title || "") && (
+              <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
+                <span className="font-medium text-gray-500 w-20 shrink-0">Titel</span>
+                <div className="flex-1 min-w-0">
+                  {capability.title && <div className="text-gray-400 line-through truncate">{capability.title}</div>}
+                  <div className="text-gray-700 font-medium">{aiSuggestion.title}</div>
+                </div>
+                <button onClick={() => applySuggestion(["titel"])} className="text-[10px] px-2 py-0.5 bg-cito-accent/10 text-cito-accent rounded hover:bg-cito-accent/20 font-medium shrink-0">Toepassen</button>
+              </div>
+            )}
             {aiSuggestion.description && aiSuggestion.description !== capability.description && (
               <div className="flex items-start gap-2 text-xs bg-white/60 rounded px-2 py-1.5">
                 <span className="font-medium text-gray-500 w-20 shrink-0">Beschrijving</span>

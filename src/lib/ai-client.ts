@@ -13,6 +13,9 @@ import {
   DIN_SUGGEST_BAAT_PROMPT,
   DIN_SUGGEST_VERMOGEN_PROMPT,
   DIN_SUGGEST_INSPANNING_PROMPT,
+  DIN_CREATE_BAAT_PROMPT,
+  DIN_CREATE_VERMOGEN_PROMPT,
+  DIN_CREATE_INSPANNING_PROMPT,
 } from "./prompts";
 
 function getClient(): Anthropic {
@@ -114,9 +117,9 @@ export async function generateDINMapping(
   parts.push(`Baseer je op het sectorplan en de analyse daarvan. Zorg dat de baten, vermogens en inspanningen concreet aansluiten bij wat in het sectorplan staat.`);
   parts.push(`\nAntwoord als JSON met de volgende structuur:
 {
-  "benefits": [{"description": "...", "profiel": {"bateneigenaar": "Rol eindverantwoordelijke", "indicator": "Meetbare KPI", "indicatorOwner": "Rol meetverantwoordelijke", "currentValue": "Startwaarde", "targetValue": "Doelwaarde"}}],
-  "capabilities": [{"description": "...", "currentLevel": 2, "targetLevel": 4, "profiel": {"eigenaar": "Rol verantwoordelijk voor opbouw", "huidieSituatie": "Korte as-is beschrijving", "gewensteSituatie": "Korte to-be beschrijving"}}],
-  "efforts": [{"description": "...", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026", "dossier": {"eigenaar": "Opdrachtgever", "inspanningsleider": "Projectleider", "verwachtResultaat": "Beoogd resultaat", "kostenraming": "Raming + marge", "randvoorwaarden": "Voorwaarden vóór start"}}]
+  "benefits": [{"title": "Kort label in vergrotende trap (max 5 woorden)", "description": "Uitgebreide toelichting (1-2 zinnen)", "profiel": {"bateneigenaar": "Rol eindverantwoordelijke", "indicator": "Meetbare KPI", "indicatorOwner": "Rol meetverantwoordelijke", "currentValue": "Startwaarde", "targetValue": "Doelwaarde"}}],
+  "capabilities": [{"title": "Kort label (wat moet de org KUNNEN)", "description": "Uitgebreide toelichting (1-2 zinnen)", "currentLevel": 2, "targetLevel": 4, "profiel": {"eigenaar": "Rol verantwoordelijk voor opbouw", "huidieSituatie": "Korte as-is beschrijving", "gewensteSituatie": "Korte to-be beschrijving"}}],
+  "efforts": [{"title": "Kort actielabel met werkwoorden", "description": "Uitgebreide toelichting (1-2 zinnen)", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026", "dossier": {"eigenaar": "Opdrachtgever", "inspanningsleider": "Projectleider", "verwachtResultaat": "Beoogd resultaat", "kostenraming": "Raming + marge", "randvoorwaarden": "Voorwaarden vóór start"}}]
 }`);
 
   return callClaude(DIN_MAPPING_PROMPT, parts.join("\n"), 8192);
@@ -289,6 +292,7 @@ export async function suggestDINItem(
     goalName?: string;
     goalDescription?: string;
     sectorPlanText?: string;
+    existingTitle?: string;
     existingDescription?: string;
     existingIndicator?: string;
     existingOwner?: string;
@@ -325,6 +329,9 @@ export async function suggestDINItem(
   }
   if (context.sectorPlanText) {
     parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+  }
+  if (context.existingTitle) {
+    parts.push(`Bestaande titel: "${context.existingTitle}"`);
   }
   if (context.existingDescription) {
     parts.push(`Bestaande beschrijving: "${context.existingDescription}"\nVerbeter of vul aan.`);
@@ -497,4 +504,58 @@ ${planText.slice(0, 5000)}
 Analyseer dit sectorplan en geef advies voor het DIN-netwerk.`;
 
   return callClaude(SECTORPLAN_ANALYSE_PROMPT, userMessage);
+}
+
+export async function createDINItem(
+  type: "baat" | "vermogen" | "inspanning",
+  context: {
+    sector: string;
+    goalName?: string;
+    goalDescription?: string;
+    benefitTitle?: string;
+    benefitDescription?: string;
+    benefitIndicator?: string;
+    capabilityTitle?: string;
+    capabilityDescription?: string;
+    sectorPlanText?: string;
+    domain?: string;
+    answers: Record<string, string>;
+  }
+): Promise<string> {
+  const promptMap = {
+    baat: DIN_CREATE_BAAT_PROMPT,
+    vermogen: DIN_CREATE_VERMOGEN_PROMPT,
+    inspanning: DIN_CREATE_INSPANNING_PROMPT,
+  };
+
+  const parts: string[] = [`Sector: ${context.sector}`];
+
+  // Context-keten tonen
+  if (context.goalName) {
+    parts.push(`Programmadoel: ${context.goalName}`);
+    if (context.goalDescription) parts.push(`Doelbeschrijving: ${context.goalDescription}`);
+  }
+  if (context.benefitTitle || context.benefitDescription) {
+    parts.push(`Gerelateerde baat: ${context.benefitTitle || context.benefitDescription}`);
+    if (context.benefitIndicator) parts.push(`Indicator: ${context.benefitIndicator}`);
+  }
+  if (context.capabilityTitle || context.capabilityDescription) {
+    parts.push(`Gerelateerd vermogen: ${context.capabilityTitle || context.capabilityDescription}`);
+  }
+  if (context.domain) {
+    parts.push(`Domein: ${context.domain}`);
+  }
+  if (context.sectorPlanText) {
+    parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+  }
+
+  // Antwoorden van de vragenlijst
+  parts.push("\nANTWOORDEN VAN DE GEBRUIKER:");
+  for (const [key, value] of Object.entries(context.answers)) {
+    if (value.trim()) {
+      parts.push(`${key}: ${value}`);
+    }
+  }
+
+  return callClaude(promptMap[type], parts.join("\n\n"));
 }

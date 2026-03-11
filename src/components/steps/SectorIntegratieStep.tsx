@@ -222,7 +222,7 @@ export default function SectorIntegratieStep() {
                   className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm"
                 >
                   <div className="font-medium">
-                    {b.description || "(naamloos)"}
+                    {b.title || b.description || "(naamloos)"}
                   </div>
                   {goal && (
                     <div className="text-xs text-gray-500 mt-0.5">
@@ -258,7 +258,7 @@ export default function SectorIntegratieStep() {
                 key={c.id}
                 className="p-2 bg-cyan-50 border border-cyan-100 rounded text-sm"
               >
-                {c.description || "(naamloos)"}
+                {c.title || c.description || "(naamloos)"}
               </li>
             ))}
           </ul>
@@ -287,7 +287,7 @@ export default function SectorIntegratieStep() {
                 <ul className="space-y-1">
                   {efforts.map((e) => (
                     <li key={e.id} className="text-sm text-gray-700">
-                      • {e.description || "(naamloos)"}
+                      • {e.title || e.description || "(naamloos)"}
                       {e.quarter && (
                         <span className="text-xs text-gray-400 ml-1">
                           ({e.quarter})

@@ -24,12 +24,14 @@ export function generateId(): string {
 export function createBenefit(
   goalId: string,
   sectorId: string,
-  description: string
+  description: string,
+  title?: string
 ): DINBenefit {
   return {
     id: generateId(),
     goalId,
     sectorId,
+    title: title || "",
     description,
     profiel: {
       bateneigenaar: "",
@@ -76,11 +78,13 @@ export function getBenefitsBySector(
 
 export function createCapability(
   sectorId: string,
-  description: string
+  description: string,
+  title?: string
 ): DINCapability {
   return {
     id: generateId(),
     sectorId,
+    title: title || "",
     description,
     relatedSectors: [sectorId],
     profiel: {
@@ -110,11 +114,13 @@ export function getCapabilitiesBySector(
 export function createEffort(
   sectorId: string,
   description: string,
-  domain: EffortDomain
+  domain: EffortDomain,
+  title?: string
 ): DINEffort {
   return {
     id: generateId(),
     sectorId,
+    title: title || "",
     description,
     domain,
     status: "gepland",

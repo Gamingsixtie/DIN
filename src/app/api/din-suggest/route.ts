@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { suggestDINItem } from "@/lib/ai-client";
+import { suggestDINItem, createDINItem } from "@/lib/ai-client";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, context } = body;
+    const { type, context, mode } = body;
 
     if (!type || !["baat", "vermogen", "inspanning"].includes(type)) {
       return NextResponse.json(
@@ -30,7 +30,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const raw = await suggestDINItem(type, context);
+    let raw: string;
+
+    if (mode === "create") {
+      // Geleide creatie-modus: genereer nieuw item op basis van vragenlijst
+      raw = await createDINItem(type, context);
+    } else {
+      // Default: aanscherp-modus (bestaand item verbeteren)
+      raw = await suggestDINItem(type, context);
+    }
 
     // Parse JSON uit het antwoord
     let suggestion = null;

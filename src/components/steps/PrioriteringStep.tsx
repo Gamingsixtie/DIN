@@ -484,7 +484,7 @@ export default function PrioriteringStep() {
                     <div className="flex items-center gap-2 mb-2">
                       <SectorBadge sector={effort.sectorId} />
                       <span className="text-sm font-medium text-gray-700 flex-1">
-                        {effort.description || "(naamloos)"}
+                        {effort.title || effort.description || "(naamloos)"}
                       </span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${approvalStyle.bg} ${approvalStyle.text}`}>
                         {approvalStyle.label}
@@ -562,7 +562,7 @@ function EffortApprovalCard({
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-800">
-                  {effort.description || "(naamloos)"}
+                  {effort.title || effort.description || "(naamloos)"}
                 </div>
                 {/* Dossier samenvatting */}
                 {effort.dossier && (effort.dossier.eigenaar || effort.dossier.inspanningsleider || effort.dossier.kostenraming) && (
@@ -721,11 +721,11 @@ function TimelineChip({ effort }: { effort: DINEffort }) {
         isAfgewezen ? "opacity-40 line-through" : ""
       }`}
       style={{ borderLeftColor: domainColor }}
-      title={`${effort.description}${effort.opmerking ? `\n\nOpmerking: ${effort.opmerking}` : ""}`}
+      title={`${effort.title || effort.description}${effort.opmerking ? `\n\nOpmerking: ${effort.opmerking}` : ""}`}
     >
       <div className="flex items-center gap-1.5">
         <SectorBadge sector={effort.sectorId} />
-        <span className="text-gray-600 truncate flex-1">{effort.description || "(naamloos)"}</span>
+        <span className="text-gray-600 truncate flex-1">{effort.title || effort.description || "(naamloos)"}</span>
         {effort.opmerking && (
           <svg className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 3.89 1 5.198v5.6c0 1.3.983 2.438 2.418 2.672.168.027.338.052.508.076l-.707 2.121a.5.5 0 00.77.53l3.463-2.207c.81.056 1.63.085 2.458.085 2.236 0 4.43-.18 6.57-.524C17.007 13.44 18 12.3 18 11v-5.6c0-1.31-.983-2.444-2.418-2.676A47.71 47.71 0 0010 2z" clipRule="evenodd" />

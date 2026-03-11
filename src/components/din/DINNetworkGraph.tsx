@@ -261,7 +261,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                                     <div className="space-y-1">
                                       {sectorBenefits.map((b) => (
                                         <div key={b.id} className="bg-white/80 border border-din-baten/15 rounded-lg px-2.5 py-1.5">
-                                          <span className="text-[11px] text-gray-700 leading-snug">{b.description || "(naamloos)"}</span>
+                                          <span className="text-[11px] text-gray-700 leading-snug">{b.title || b.description || "(naamloos)"}</span>
                                           {b.profiel.indicator && (
                                             <div className="mt-0.5 text-[9px] text-gray-400">
                                               {b.profiel.indicator}: {b.profiel.currentValue} {"\u2192"} {b.profiel.targetValue}
@@ -287,7 +287,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                                     <div className="space-y-1">
                                       {sectorCaps.map((c) => (
                                         <div key={c.id} className={`bg-white/80 border rounded-lg px-2.5 py-1.5 ${c.relatedSectors && c.relatedSectors.length > 1 ? "border-amber-200" : "border-din-vermogens/15"}`}>
-                                          <span className="text-[11px] text-gray-700 leading-snug">{c.description || "(naamloos)"}</span>
+                                          <span className="text-[11px] text-gray-700 leading-snug">{c.title || c.description || "(naamloos)"}</span>
                                           <div className="flex items-center gap-2 mt-0.5">
                                             {c.currentLevel && c.targetLevel && (
                                               <span className="text-[9px]">
@@ -330,7 +330,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                                                 const st = STATUS_LABELS[e.status] || STATUS_LABELS.gepland;
                                                 return (
                                                   <div key={e.id} className={`border-l-2 ${dc.border} bg-white/80 rounded-r px-2 py-1`}>
-                                                    <span className="text-[10px] text-gray-700 leading-snug">{e.description || "(naamloos)"}</span>
+                                                    <span className="text-[10px] text-gray-700 leading-snug">{e.title || e.description || "(naamloos)"}</span>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                       {e.quarter && <span className="text-[8px] text-gray-400">{e.quarter}</span>}
                                                       {e.status && e.status !== "gepland" && (
