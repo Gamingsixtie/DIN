@@ -416,8 +416,9 @@ export default function EffortCard({
               <div className="text-orange-700 space-y-1">
                 <div>&bull; <span className="font-medium">Werkwoorden</span> gebruiken, niet zelfstandige naamwoorden (verschil met baten!)</div>
                 <div>&bull; <span className="font-medium">Concreet</span> genoeg om er middelen (geld, mensen, tijd) aan te koppelen</div>
+                <div>&bull; Een inspanning <span className="font-medium">bouwt een vermogen op</span> &mdash; het is de concrete actie die ervoor zorgt dat de organisatie iets nieuws <span className="italic">kan</span></div>
+                <div className="pl-4 text-[11px] text-orange-600">Voorbeeld: vermogen = &quot;Klantgesprek-methodiek&quot; &rarr; inspanning = &quot;Training outside-in werken uitvoeren&quot; (de actie die het vermogen opbouwt)</div>
                 <div>&bull; Niet te klein &mdash; cluster gerelateerde activiteiten, anders wordt het DIN onoverzichtelijk</div>
-                <div>&bull; Altijd koppelen aan het <span className="font-medium">vermogen</span> waaraan het bijdraagt</div>
                 <div>&bull; In &eacute;&eacute;n van de 4 domeinen: Mens, Processen, Data &amp; Systemen, Cultuur</div>
               </div>
               <div className="text-[10px] text-orange-500 italic mt-1">Bron: &quot;Werken aan Programma&apos;s&quot;, Hfst 11 &mdash; Overzicht en samenhang aanbrengen</div>

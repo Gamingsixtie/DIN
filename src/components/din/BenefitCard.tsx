@@ -358,7 +358,8 @@ export default function BenefitCard({
               </div>
               <div className="text-blue-700 space-y-1">
                 <div>&bull; <span className="font-medium">Geen werkwoorden</span> &mdash; een baat is een gewenst effect, geen activiteit</div>
-                <div>&bull; Een baat is een <span className="font-medium">hefboom</span> om het doel te bereiken, niet het doel zelf</div>
+                <div>&bull; Een baat is een <span className="font-medium">hefboom</span> voor het doel &mdash; niet het doel zelf meetbaar gemaakt, maar een <span className="italic">indirect effect</span> dat het doel dichterbij brengt</div>
+                <div className="pl-4 text-[11px] text-blue-600">Voorbeeld: doel = &quot;outside-in verankeren&quot; &rarr; baat is NIET &quot;meer outside-in&quot;, maar w&eacute;l &quot;Hogere klanttevredenheid&quot; (het effect dat je ziet als outside-in werkt)</div>
                 <div>&bull; Maak het <span className="font-medium">meetbaar</span> via een indicator met start- en doelwaarde</div>
                 <div>&bull; Maximaal ~10 baten per programma: meer is niet beter</div>
               </div>

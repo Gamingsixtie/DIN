@@ -452,7 +452,8 @@ export default function CapabilityCard({
               </div>
               <div className="text-cyan-700 space-y-1">
                 <div>&bull; Beschrijf de <span className="font-medium">combinatie</span> &mdash; niet slechts &eacute;&eacute;n onderdeel (alleen IT of alleen mensen)</div>
-                <div>&bull; Een vermogen is een <span className="font-medium">hefboom</span> voor de baat, geen doel op zich</div>
+                <div>&bull; Een vermogen is een <span className="font-medium">hefboom</span> voor de baat &mdash; het is wat de organisatie moet <span className="italic">kunnen</span> om de baat te realiseren</div>
+                <div className="pl-4 text-[11px] text-cyan-600">Voorbeeld: baat = &quot;Hogere klanttevredenheid&quot; &rarr; vermogen = &quot;Klantgesprek-methodiek&quot; (de combinatie van training, processen en tooling die medewerkers in staat stelt klantgericht te werken)</div>
                 <div>&bull; Werk uit met <span className="font-medium">as-is</span> (huidige situatie) en <span className="font-medium">to-be</span> (gewenste situatie)</div>
                 <div>&bull; Kan concreet zijn (&quot;klantenservice&quot;) of holistisch (&quot;lerend vermogen&quot;)</div>
                 <div>&bull; Zes aspecten: processen, data, mensen, organisatie, technologie, cultuur</div>
