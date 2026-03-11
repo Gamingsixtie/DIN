@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "@/lib/session-context";
 import { SECTORS } from "@/lib/types";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
+import MarkdownContent from "@/components/ui/MarkdownContent";
 import type { EffortDomain } from "@/lib/types";
 
 export default function ExportStep() {
@@ -242,8 +243,8 @@ export default function ExportStep() {
           <h3 className="text-lg font-semibold text-cito-blue mb-3">
             Gegenereerd Programmaplan
           </h3>
-          <div className="p-6 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 whitespace-pre-wrap">
-            {generatedPlan}
+          <div className="p-6 bg-white border border-gray-200 rounded-lg">
+            <MarkdownContent content={generatedPlan} />
           </div>
         </section>
       )}
