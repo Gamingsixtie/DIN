@@ -67,8 +67,17 @@ function SessionFlow() {
             </button>
             <h1 className="text-xl font-bold">DIN — {session.name}</h1>
           </div>
-          <div className="text-sm text-blue-200">
-            Stap {currentStepIndex + 1} van {APP_STEPS.length}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-blue-200">
+              Stap {currentStepIndex + 1} van {APP_STEPS.length}
+            </span>
+            <a
+              href="/methodiek"
+              className="text-blue-200 hover:text-white text-sm transition-colors"
+              title="Methodiek-toelichting"
+            >
+              Methodiek ↗
+            </a>
           </div>
         </div>
       </header>

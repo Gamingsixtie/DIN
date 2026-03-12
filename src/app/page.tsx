@@ -128,15 +128,27 @@ export default function Home() {
               Cultuur
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-cito-border text-center">
-            <a
-              href="/methodiek"
-              className="text-sm text-cito-accent hover:text-cito-blue font-medium transition-colors"
-            >
-              Bekijk de methodiek-toelichting →
-            </a>
-          </div>
         </div>
+
+        {/* Methodiek-toelichting kaart */}
+        <a
+          href="/methodiek"
+          className="block bg-white rounded-xl border border-cito-border p-5 shadow-sm hover:border-cito-blue/40 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 group-hover:text-cito-blue transition-colors">
+                Methodiek-toelichting
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Bekijk hoe het DIN-traject werkt — van visie tot programmaplan
+              </p>
+            </div>
+            <span className="text-cito-accent group-hover:translate-x-1 transition-transform text-lg">
+              →
+            </span>
+          </div>
+        </a>
 
         {/* Sessies */}
         <div className="space-y-3">
