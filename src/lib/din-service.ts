@@ -232,28 +232,73 @@ export function findGaps(
 
 // --- Cross-sector hefboomanalyse ---
 
+/** NL stopwoorden die geen thematische waarde hebben */
+const NL_STOPWORDS = new Set([
+  "de", "het", "een", "van", "voor", "met", "door", "aan", "bij",
+  "als", "dat", "die", "dit", "naar", "ook", "nog", "wel", "niet",
+  "wordt", "worden", "zijn", "hebben", "meer", "alle", "over",
+  "kan", "moet", "zal", "hun", "haar", "zijn", "onze", "ons",
+]);
+
 /**
  * Tokenize tekst voor similarity matching.
- * Verwijdert korte woorden en leestekens.
+ * - Behoudt afkortingen (NPS, KPI, ICT) door drempel op >2 chars
+ * - Splitst samengestelde woorden (≥8 chars) op mogelijke deelwoorden
+ * - Filtert NL-stopwoorden
  */
 function tokenize(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, "")
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-  );
+  if (!text || !text.trim()) return new Set();
+
+  const tokens = new Set<string>();
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-zA-ZÀ-ÿ0-9\s-]/g, "")
+    .split(/[\s-]+/)
+    .filter(Boolean);
+
+  for (const word of words) {
+    if (NL_STOPWORDS.has(word)) continue;
+    if (word.length <= 2) continue;
+
+    tokens.add(word);
+
+    // Compound word splitting: "klantervaring" → ook "klant" + "ervaring"
+    if (word.length >= 8) {
+      for (let i = 4; i <= word.length - 4; i++) {
+        tokens.add(word.slice(0, i));
+        tokens.add(word.slice(i));
+      }
+    }
+  }
+
+  return tokens;
 }
 
 /**
- * Jaccard similarity tussen twee token-sets.
+ * Gecombineerde similarity: Jaccard + substring-bonus.
+ * Vangt partial matches op die pure Jaccard mist.
  */
 function tokenSimilarity(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 0;
+  if (a.size === 0 || b.size === 0) return 0;
+
   const intersection = new Set([...a].filter((x) => b.has(x)));
   const union = new Set([...a, ...b]);
-  return union.size > 0 ? intersection.size / union.size : 0;
+  const jaccard = union.size > 0 ? intersection.size / union.size : 0;
+
+  // Substring bonus: "klant" matcht met "klanttevredenheid"
+  let substringMatches = 0;
+  for (const tA of a) {
+    for (const tB of b) {
+      if (tA !== tB && tA.length >= 4 && tB.length >= 4) {
+        if (tA.includes(tB) || tB.includes(tA)) {
+          substringMatches++;
+        }
+      }
+    }
+  }
+  const substringBonus = Math.min(substringMatches * 0.08, 0.25);
+
+  return Math.min(jaccard + substringBonus, 1.0);
 }
 
 /**
@@ -262,8 +307,9 @@ function tokenSimilarity(a: Set<string>, b: Set<string>): number {
 export interface BenefitCluster {
   benefits: DINBenefit[];
   sectors: string[];
-  hefboomScore: number; // Hoeveel sectoren (1-3), hoe hoger = meer hefboom
-  theme: string; // Representatieve titel/beschrijving
+  hefboomScore: number;
+  theme: string;
+  matchReason?: string; // Uitleg waarom geclusterd (gedeelde begrippen)
 }
 
 /**
@@ -282,12 +328,25 @@ export interface ClusterSectorChain {
 export interface HefboomResult {
   goalId: string;
   clusters: BenefitCluster[];
-  clusterChains: Map<string, ClusterSectorChain[]>; // keyed by first benefit id in cluster
+  clusterChains: Map<string, ClusterSectorChain[]>;
+}
+
+/**
+ * Cluster van vergelijkbare inspanningen over meerdere sectoren.
+ * DIT is de echte hefboom: inspanningen die gebundeld kunnen worden.
+ */
+export interface EffortCluster {
+  efforts: DINEffort[];
+  sectors: string[];
+  domain: EffortDomain;
+  hefboomScore: number;
+  theme: string;
+  matchReason: string;
+  consolidatieAdvies: string;
 }
 
 /**
  * Groepeer baten per doel op thematische overeenkomst over sectoren.
- * Baten die vergelijkbare titels/beschrijvingen hebben worden geclusterd.
  * Clusters met meerdere sectoren = hoge hefboomwerking.
  */
 export function findBenefitClusters(
@@ -305,43 +364,129 @@ export function findBenefitClusters(
     used.add(benefit.id);
 
     const tokens = tokenize((benefit.title || "") + " " + benefit.description);
+    if (tokens.size === 0) continue; // Skip lege baten als seed
+
+    // Max 1 baat per sector per cluster (deduplicatie)
+    const sectorsInCluster = new Set([benefit.sectorId]);
 
     for (const other of goalBenefits) {
       if (used.has(other.id)) continue;
-      if (other.sectorId === benefit.sectorId) continue; // Skip same sector
+      if (sectorsInCluster.has(other.sectorId)) continue;
 
       const otherTokens = tokenize(
         (other.title || "") + " " + other.description
       );
-      if (tokenSimilarity(tokens, otherTokens) > 0.25) {
+      if (otherTokens.size === 0) continue;
+
+      if (tokenSimilarity(tokens, otherTokens) >= 0.20) {
         cluster.push(other);
         used.add(other.id);
+        sectorsInCluster.add(other.sectorId);
       }
     }
 
-    const sectors = [...new Set(cluster.map((b) => b.sectorId))];
+    const sectors = [...sectorsInCluster];
+
+    // Bereken matchReason: welke woorden delen ze?
+    let matchReason: string | undefined;
+    if (sectors.length > 1) {
+      const allTokenSets = cluster.map((b) =>
+        tokenize((b.title || "") + " " + b.description)
+      );
+      const commonTokens = [...allTokenSets[0]].filter((t) =>
+        allTokenSets.every((s) => s.has(t))
+      );
+      if (commonTokens.length > 0) {
+        matchReason = `Gedeelde begrippen: ${commonTokens.slice(0, 5).join(", ")}`;
+      } else {
+        matchReason = "Thematische overlap gedetecteerd";
+      }
+    }
+
     clusters.push({
       benefits: cluster,
       sectors,
       hefboomScore: sectors.length,
       theme: benefit.title || benefit.description.slice(0, 60),
+      matchReason,
     });
   }
 
-  // Sort: hoogste hefboom eerst
+  return clusters.sort((a, b) => b.hefboomScore - a.hefboomScore);
+}
+
+/**
+ * Vind vergelijkbare inspanningen over sectoren heen.
+ * Dit beantwoordt de kernvraag: welke inspanningen kunnen gebundeld worden?
+ */
+export function findEffortClusters(efforts: DINEffort[]): EffortCluster[] {
+  const clusters: EffortCluster[] = [];
+  const used = new Set<string>();
+  const sorted = [...efforts].sort((a, b) => a.domain.localeCompare(b.domain));
+
+  for (const effort of sorted) {
+    if (used.has(effort.id)) continue;
+
+    const cluster: DINEffort[] = [effort];
+    used.add(effort.id);
+
+    const tokens = tokenize((effort.title || "") + " " + effort.description);
+    if (tokens.size === 0) continue;
+
+    const sectorsInCluster = new Set([effort.sectorId]);
+
+    for (const other of sorted) {
+      if (used.has(other.id)) continue;
+      if (sectorsInCluster.has(other.sectorId)) continue;
+
+      const otherTokens = tokenize(
+        (other.title || "") + " " + other.description
+      );
+      if (otherTokens.size === 0) continue;
+
+      if (tokenSimilarity(tokens, otherTokens) >= 0.20) {
+        cluster.push(other);
+        used.add(other.id);
+        sectorsInCluster.add(other.sectorId);
+      }
+    }
+
+    if (sectorsInCluster.size > 1) {
+      const sectors = [...sectorsInCluster];
+      const allTokenSets = cluster.map((e) =>
+        tokenize((e.title || "") + " " + e.description)
+      );
+      const commonTokens = [...allTokenSets[0]].filter((t) =>
+        allTokenSets.every((s) => s.has(t))
+      );
+
+      clusters.push({
+        efforts: cluster,
+        sectors,
+        domain: effort.domain,
+        hefboomScore: sectors.length,
+        theme: effort.title || effort.description.slice(0, 60),
+        matchReason: commonTokens.length > 0
+          ? `Gedeelde begrippen: ${commonTokens.slice(0, 5).join(", ")}`
+          : "Thematische overlap in inspanningen",
+        consolidatieAdvies: sectors.length === 3
+          ? "Alle sectoren hebben een vergelijkbare inspanning. Overweeg centraal op te pakken."
+          : `${sectors.join(" en ")} hebben vergelijkbare inspanningen. Bundelen kan kosten besparen.`,
+      });
+    }
+  }
+
   return clusters.sort((a, b) => b.hefboomScore - a.hefboomScore);
 }
 
 /**
  * Bouw de volledige DIN-keten per sector voor een cluster van baten.
- * Geeft per sector: benefit → capabilities → efforts.
  */
 export function buildClusterChains(
   session: DINSession,
   cluster: BenefitCluster
 ): ClusterSectorChain[] {
   return cluster.benefits.map((benefit) => {
-    // Vind gekoppelde capabilities
     const capIds = session.benefitCapabilityMaps
       .filter((m) => m.benefitId === benefit.id)
       .map((m) => m.capabilityId);
@@ -349,7 +494,6 @@ export function buildClusterChains(
       .map((cid) => session.capabilities.find((c) => c.id === cid))
       .filter((c): c is DINCapability => c !== undefined);
 
-    // Vind gekoppelde efforts via capabilities
     const effortIds = new Set(
       capabilities.flatMap((cap) =>
         session.capabilityEffortMaps
@@ -361,12 +505,7 @@ export function buildClusterChains(
       .map((eid) => session.efforts.find((e) => e.id === eid))
       .filter((e): e is DINEffort => e !== undefined);
 
-    return {
-      sector: benefit.sectorId,
-      benefit,
-      capabilities,
-      efforts,
-    };
+    return { sector: benefit.sectorId, benefit, capabilities, efforts };
   });
 }
 
