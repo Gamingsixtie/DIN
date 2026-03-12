@@ -99,7 +99,7 @@ function ChainArrow() {
   );
 }
 
-// --- Chain Row: Baat → Vermogen(s) → Inspanning(en) ---
+// --- Chain Row: Baat → Vermogen(s) → Inspanning(en) — UX-16: responsive, UX-19: tooltips ---
 function ChainRow({
   chain,
   chainIndex,
@@ -114,15 +114,26 @@ function ChainRow({
   const isHighlighted = highlightedChain === null || highlightedChain === chainIndex;
   const isDimmed = highlightedChain !== null && highlightedChain !== chainIndex;
 
+  // UX-19: Tooltip content builders
+  const benefitTooltip = [
+    chain.benefit.profiel.indicator && `Indicator: ${chain.benefit.profiel.indicator}`,
+    chain.benefit.profiel.currentValue && chain.benefit.profiel.targetValue && `${chain.benefit.profiel.currentValue} → ${chain.benefit.profiel.targetValue}`,
+    chain.benefit.profiel.bateneigenaar && `Eigenaar: ${chain.benefit.profiel.bateneigenaar}`,
+    chain.benefit.profiel.measurementMoment && `Meetmoment: ${chain.benefit.profiel.measurementMoment}`,
+  ].filter(Boolean).join(" | ");
+
   return (
     <div
-      className={`flex items-stretch gap-0 transition-opacity duration-200 ${isDimmed ? "opacity-40" : "opacity-100"}`}
+      className={`flex flex-col md:flex-row items-stretch gap-1 md:gap-0 transition-opacity duration-200 ${isDimmed ? "opacity-40" : "opacity-100"}`}
       onMouseEnter={() => onHover(chainIndex)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* Baat */}
+      {/* Baat — UX-19: tooltip */}
       <div className="flex-1 min-w-0">
-        <div className={`h-full bg-white border rounded-lg px-3 py-2 transition-all ${isHighlighted && highlightedChain !== null ? "border-din-baten shadow-sm ring-1 ring-din-baten/20" : "border-din-baten/20"}`}>
+        <div
+          className={`h-full bg-white border rounded-lg px-3 py-2 transition-all ${isHighlighted && highlightedChain !== null ? "border-din-baten shadow-sm ring-1 ring-din-baten/20" : "border-din-baten/20"}`}
+          title={benefitTooltip || undefined}
+        >
           <div className="flex items-center gap-1.5 mb-1">
             <div className="w-2 h-2 rounded-full bg-din-baten shrink-0" />
             <span className="text-[9px] uppercase tracking-wider text-din-baten font-semibold">Baat</span>
@@ -144,45 +155,53 @@ function ChainRow({
         </div>
       </div>
 
-      <ChainArrow />
+      <div className="hidden md:block"><ChainArrow /></div>
 
-      {/* Vermogen(s) */}
+      {/* Vermogen(s) — UX-19: tooltip */}
       <div className="flex-1 min-w-0">
         {chain.links.length > 0 ? (
           <div className="space-y-1.5 h-full">
-            {chain.links.map((link) => (
-              <div
-                key={link.capability.id}
-                className={`bg-white border rounded-lg px-3 py-2 transition-all ${
-                  isHighlighted && highlightedChain !== null ? "border-din-vermogens shadow-sm ring-1 ring-din-vermogens/20" : "border-din-vermogens/20"
-                } ${link.capability.relatedSectors && link.capability.relatedSectors.length > 1 ? "border-amber-200" : ""}`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-din-vermogens shrink-0" />
-                  <span className="text-[9px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogen</span>
-                  {link.capability.relatedSectors && link.capability.relatedSectors.length > 1 && (
-                    <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded font-medium ml-auto">Synergie</span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-800 font-medium leading-snug">
-                  {link.capability.title || link.capability.description || "(naamloos)"}
-                </div>
-                {(link.capability.currentLevel || link.capability.targetLevel) && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <LevelDots value={link.capability.currentLevel || 0} color="amber" />
-                    <span className="text-[9px] text-gray-300">{"\u2192"}</span>
-                    <LevelDots value={link.capability.targetLevel || 0} color="green" />
-                    {link.capability.currentLevel && link.capability.targetLevel && link.capability.targetLevel > link.capability.currentLevel && (
-                      <span className={`text-[9px] px-1 rounded font-medium ${
-                        link.capability.targetLevel - link.capability.currentLevel >= 3 ? "bg-red-100 text-red-700" :
-                        link.capability.targetLevel - link.capability.currentLevel >= 2 ? "bg-amber-100 text-amber-700" :
-                        "bg-green-100 text-green-700"
-                      }`}>+{link.capability.targetLevel - link.capability.currentLevel}</span>
+            {chain.links.map((link) => {
+              const capGap = (link.capability.currentLevel && link.capability.targetLevel)
+                ? `Niveau: ${link.capability.currentLevel} → ${link.capability.targetLevel} (gap: +${link.capability.targetLevel - link.capability.currentLevel})`
+                : undefined;
+              const capSectors = link.capability.relatedSectors?.join(", ");
+              const capTooltip = [capGap, capSectors && `Sectoren: ${capSectors}`].filter(Boolean).join(" | ");
+              return (
+                <div
+                  key={link.capability.id}
+                  className={`bg-white border rounded-lg px-3 py-2 transition-all ${
+                    isHighlighted && highlightedChain !== null ? "border-din-vermogens shadow-sm ring-1 ring-din-vermogens/20" : "border-din-vermogens/20"
+                  } ${link.capability.relatedSectors && link.capability.relatedSectors.length > 1 ? "border-amber-200" : ""}`}
+                  title={capTooltip || undefined}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-din-vermogens shrink-0" />
+                    <span className="text-[9px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogen</span>
+                    {link.capability.relatedSectors && link.capability.relatedSectors.length > 1 && (
+                      <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded font-medium ml-auto">Synergie</span>
                     )}
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="text-[11px] text-gray-800 font-medium leading-snug">
+                    {link.capability.title || link.capability.description || "(naamloos)"}
+                  </div>
+                  {(link.capability.currentLevel || link.capability.targetLevel) && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <LevelDots value={link.capability.currentLevel || 0} color="amber" />
+                      <span className="text-[9px] text-gray-300">{"\u2192"}</span>
+                      <LevelDots value={link.capability.targetLevel || 0} color="green" />
+                      {link.capability.currentLevel && link.capability.targetLevel && link.capability.targetLevel > link.capability.currentLevel && (
+                        <span className={`text-[9px] px-1 rounded font-medium ${
+                          link.capability.targetLevel - link.capability.currentLevel >= 3 ? "bg-red-100 text-red-700" :
+                          link.capability.targetLevel - link.capability.currentLevel >= 2 ? "bg-amber-100 text-amber-700" :
+                          "bg-green-100 text-green-700"
+                        }`}>+{link.capability.targetLevel - link.capability.currentLevel}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="h-full flex items-center justify-center bg-gray-50/50 border border-dashed border-gray-200 rounded-lg px-3 py-2">
@@ -191,7 +210,7 @@ function ChainRow({
         )}
       </div>
 
-      <ChainArrow />
+      <div className="hidden md:block"><ChainArrow /></div>
 
       {/* Inspanning(en) */}
       <div className="flex-1 min-w-0">
@@ -213,12 +232,21 @@ function ChainRow({
   );
 }
 
-// Effort chip with domain color
+// Effort chip with domain color — UX-19: tooltip
 function EffortChip({ effort, highlighted }: { effort: DINEffort; highlighted: boolean }) {
   const dc = DOMAIN_COLORS[effort.domain] || DOMAIN_COLORS.mens;
   const st = STATUS_LABELS[effort.status] || STATUS_LABELS.gepland;
+  const effortTooltip = [
+    `Domein: ${DOMAIN_LABELS[effort.domain]}`,
+    effort.quarter && `Planning: ${effort.quarter}`,
+    `Status: ${st.label}`,
+    effort.responsibleSector && `Sector: ${effort.responsibleSector}`,
+  ].filter(Boolean).join(" | ");
   return (
-    <div className={`border-l-2 ${dc.border} bg-white border border-gray-100 rounded-r-lg px-2.5 py-1.5 transition-all ${highlighted ? "shadow-sm ring-1 ring-din-inspanningen/20" : ""}`}>
+    <div
+      className={`border-l-2 ${dc.border} bg-white border border-gray-100 rounded-r-lg px-2.5 py-1.5 transition-all ${highlighted ? "shadow-sm ring-1 ring-din-inspanningen/20" : ""}`}
+      title={effortTooltip}
+    >
       <div className="flex items-center gap-1.5 mb-0.5">
         <div className={`w-1.5 h-1.5 rounded-full ${dc.dot} shrink-0`} />
         <span className={`text-[8px] font-medium ${dc.text}`}>{DOMAIN_LABELS[effort.domain]}</span>
@@ -275,11 +303,32 @@ function LevelDots({ value, color }: { value: number; color: "amber" | "green" }
   );
 }
 
-interface DINNetworkGraphProps {
-  session: DINSession;
+// UX-15: Search matching helper
+function matchesSearchText(text: string, query: string): boolean {
+  if (!query) return true;
+  return text.toLowerCase().includes(query.toLowerCase());
 }
 
-export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
+function chainMatchesSearch(chain: DINChain, query: string): boolean {
+  if (!query) return true;
+  const benefitText = chain.benefit.title || chain.benefit.description || "";
+  if (matchesSearchText(benefitText, query)) return true;
+  if (matchesSearchText(chain.benefit.profiel.indicator || "", query)) return true;
+  for (const link of chain.links) {
+    if (matchesSearchText(link.capability.title || link.capability.description || "", query)) return true;
+    for (const e of link.efforts) {
+      if (matchesSearchText(e.title || e.description || "", query)) return true;
+    }
+  }
+  return false;
+}
+
+interface DINNetworkGraphProps {
+  session: DINSession;
+  searchQuery?: string;
+}
+
+export default function DINNetworkGraph({ session, searchQuery = "" }: DINNetworkGraphProps) {
   const [collapsedGoals, setCollapsedGoals] = useState<Set<string>>(new Set());
   const [highlightedChain, setHighlightedChain] = useState<number | null>(null);
 
@@ -308,10 +357,10 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
   }));
 
   return (
-    <div className="space-y-6">
-      {/* Stats header met flow-pijlen + domeinbalans */}
+    <div className="space-y-8">
+      {/* Stats header met flow-pijlen + domeinbalans — UX-16: responsive */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           {stats.map((s, i) => (
             <div key={s.label} className="flex items-center">
               <div className="flex items-center gap-3">
@@ -359,8 +408,8 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
         </div>
       )}
 
-      {/* Kolom-headers */}
-      <div className="flex items-center gap-0 px-5">
+      {/* Kolom-headers — UX-16: hidden on mobile (chains stack vertically) */}
+      <div className="hidden md:flex items-center gap-0 px-5">
         <div className="flex-1 flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-din-baten" />
           <span className="text-[10px] uppercase tracking-wider text-din-baten font-bold">Baten</span>
@@ -377,7 +426,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
         </div>
       </div>
 
-      {/* Alles in-/uitklappen */}
+      {/* Alles in-/uitklappen — UX-18: focus-visible */}
       <div className="flex items-center justify-end">
         <button
           onClick={() => {
@@ -387,14 +436,14 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
               setCollapsedGoals(new Set());
             }
           }}
-          className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none rounded px-2 py-1"
         >
           <ChevronIcon expanded={collapsedGoals.size === 0} className="w-3 h-3" />
           {collapsedGoals.size === 0 ? "Alles inklappen" : "Alles uitklappen"}
         </button>
       </div>
 
-      {/* DIN-keten per doel — chain-based */}
+      {/* DIN-keten per doel — chain-based — UX-20: betere visuele scheiding */}
       {session.goals
         .sort((a, b) => a.rank - b.rank)
         .map((goal, goalIdx) => {
@@ -432,14 +481,27 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
               goalEfforts.some((e) => e.sectorId === s)
           );
 
+          // UX-15: Dim goal if search active and no chains match
+          const goalHasSearchMatch = !searchQuery || goalBenefits.some((b) =>
+            matchesSearchText(b.title || b.description || "", searchQuery)
+          ) || goalCapabilities.some((c) =>
+            matchesSearchText(c.title || c.description || "", searchQuery)
+          ) || goalEfforts.some((e) =>
+            matchesSearchText(e.title || e.description || "", searchQuery)
+          );
+
           return (
-            <div key={goal.id} className="relative">
-              {/* Doel */}
-              <div className="bg-white border-2 border-din-doelen rounded-xl overflow-hidden shadow-sm">
-                {/* Doel header — klikbaar */}
+            <div key={goal.id} className={`relative transition-opacity duration-200 ${searchQuery && !goalHasSearchMatch ? "opacity-30" : "opacity-100"}`}>
+              {/* UX-20: Doel met visueel accent — afwisselende achtergrond */}
+              <div className={`bg-white border-2 border-din-doelen rounded-xl overflow-hidden shadow-sm ${goalIdx % 2 === 1 ? "bg-gray-50/30" : ""}`}>
+                {/* Doel header — klikbaar — UX-18: accessibility */}
                 <div
                   className="bg-gradient-to-r from-din-doelen/15 to-din-doelen/5 px-5 py-3 flex items-center gap-3 cursor-pointer hover:from-din-doelen/20 hover:to-din-doelen/10 transition-all select-none"
                   onClick={() => toggleGoal(goal.id)}
+                  role="button"
+                  aria-expanded={!isCollapsed}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleGoal(goal.id); } }}
                 >
                   <div className="shrink-0 w-8 h-8 rounded-lg bg-din-doelen text-white flex items-center justify-center text-sm font-bold shadow-sm">
                     {goal.rank}
@@ -489,18 +551,22 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                                 </span>
                               </div>
 
-                              {/* Chains */}
+                              {/* Chains — UX-15: search-aware dimming */}
                               {chainResult.chains.length > 0 ? (
                                 <div className="space-y-2.5">
-                                  {chainResult.chains.map((chain, idx) => (
-                                    <ChainRow
-                                      key={chain.benefit.id}
-                                      chain={chain}
-                                      chainIndex={idx}
-                                      highlightedChain={highlightedChain}
-                                      onHover={setHighlightedChain}
-                                    />
-                                  ))}
+                                  {chainResult.chains.map((chain, idx) => {
+                                    const isSearchMatch = !searchQuery || chainMatchesSearch(chain, searchQuery);
+                                    return (
+                                      <div key={chain.benefit.id} className={`transition-opacity duration-200 ${searchQuery && !isSearchMatch ? "opacity-25" : "opacity-100"}`}>
+                                        <ChainRow
+                                          chain={chain}
+                                          chainIndex={idx}
+                                          highlightedChain={highlightedChain}
+                                          onHover={setHighlightedChain}
+                                        />
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <p className="text-[10px] text-gray-300 italic text-center py-2">Geen ketens gevonden</p>
@@ -521,10 +587,12 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
                 </div>
               </div>
 
-              {/* Connector to next goal */}
+              {/* UX-20: Betere connector met scheidingslijn */}
               {goalIdx < session.goals.length - 1 && (
-                <div className="flex justify-center">
-                  <div className="w-0.5 h-5 bg-gray-200" />
+                <div className="flex items-center justify-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <div className="w-0.5 h-6 bg-gradient-to-b from-din-doelen/30 to-din-doelen/10 rounded-full" />
+                  <div className="flex-1 h-px bg-gray-100" />
                 </div>
               )}
             </div>
@@ -534,7 +602,7 @@ export default function DINNetworkGraph({ session }: DINNetworkGraphProps) {
       {/* Domeinbalans detail */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h4 className="text-sm font-semibold text-cito-blue mb-4">Domeinbalans inspanningen</h4>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(["mens", "processen", "data_systemen", "cultuur"] as EffortDomain[]).map((domain) => {
             const count = session.efforts.filter((e) => e.domain === domain).length;
             const maxCount = Math.max(

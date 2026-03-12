@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { DINSession, DINBenefit, DINCapability, DINEffort, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
-import { findSharedCapabilities, findGaps } from "@/lib/din-service";
+import { findSharedCapabilities, findGaps, buildChainsForSector } from "@/lib/din-service";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 
@@ -67,6 +67,20 @@ function ChevronIcon({ expanded, className = "" }: { expanded: boolean; classNam
     >
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
+  );
+}
+
+// UX-11: Zoekterm highlighting
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query || !text) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-yellow-200/70 rounded px-0.5 text-inherit">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
   );
 }
 
@@ -155,11 +169,11 @@ export default function MergedDINView({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-semibold text-cito-blue">Samengevoegd DIN-Netwerk</h3>
           {/* Stats banner */}
-          <div className="flex items-center gap-2.5 mt-2">
+          <div className="flex items-center gap-2.5 mt-2 flex-wrap">
             {statItems.map((s, i) => (
               <div key={s.label} className="flex items-center gap-1.5">
                 {i > 0 && <div className="w-px h-4 bg-gray-200 -ml-1 mr-0.5" />}
@@ -174,127 +188,141 @@ export default function MergedDINView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-0.5 p-0.5 bg-gray-100 rounded-md">
+          <div className="flex items-center gap-0.5 p-0.5 bg-gray-100 rounded-md" role="tablist" aria-label="Weergavemodus">
             <button
+              role="tab"
+              aria-selected={viewMode === "grafisch"}
               onClick={() => setViewMode("grafisch")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${viewMode === "grafisch" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none ${viewMode === "grafisch" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
               Keten-overzicht
             </button>
             <button
+              role="tab"
+              aria-selected={viewMode === "tabel"}
               onClick={() => setViewMode("tabel")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${viewMode === "tabel" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none ${viewMode === "tabel" ? "bg-white text-cito-blue shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
               Sector-dashboard
             </button>
           </div>
-          <button onClick={onSwitchToEdit} className="px-3 py-1.5 text-sm text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50">
+          <button onClick={onSwitchToEdit} className="px-3 py-1.5 text-sm text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none">
             Per Sector bewerken
           </button>
         </div>
       </div>
 
+      {/* UX-15: Zoekbalk boven beide views */}
+      <div className="relative">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-cito-blue/30 focus:border-cito-blue/30"
+          placeholder="Zoek in baten, vermogens, inspanningen..."
+          aria-label="Zoek in DIN-items"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Zoekopdracht wissen">
+            &#10005;
+          </button>
+        )}
+      </div>
+
+      {/* UX-3: Zoekresultaten feedback */}
+      {searchQuery && (() => {
+        const totalItems = session.benefits.length + session.capabilities.length + session.efforts.length;
+        const matchedB = filterBenefits(session.benefits, searchQuery).length;
+        const matchedC = filterCapabilities(session.capabilities, searchQuery).length;
+        const matchedE = filterEfforts(session.efforts, searchQuery).length;
+        const matchedTotal = matchedB + matchedC + matchedE;
+        return (
+          <div className={`text-xs px-3 py-1.5 rounded-lg ${matchedTotal > 0 ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"}`} role="status" aria-live="polite">
+            {matchedTotal > 0
+              ? `${matchedTotal} van ${totalItems} items gevonden`
+              : `Geen resultaten voor "${searchQuery}"`}
+          </div>
+        );
+      })()}
+
       {/* Grafische weergave */}
-      {viewMode === "grafisch" && <DINNetworkGraph session={session} />}
+      {viewMode === "grafisch" && <DINNetworkGraph session={session} searchQuery={searchQuery} />}
 
       {/* Tabel weergave — per sector */}
       {viewMode === "tabel" && (
         <div className="space-y-4">
-          {/* Zoekbalk */}
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cito-blue/30 focus:border-cito-blue/30"
-              placeholder="Zoek in baten, vermogens, inspanningen..."
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                &#10005;
+          {/* UX-12: Sticky sector tabs + UX-18: Accessibility */}
+          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm py-2 -mx-1 px-1" role="tablist" aria-label="Sector navigatie">
+            <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg border border-gray-200">
+              {SECTORS.map((sector) => {
+                const stats = getSectorStats(sector);
+                const hasData = stats.benefits + stats.capabilities + stats.efforts > 0;
+                const isActive = activeTab === sector;
+                const styles = SECTOR_TAB_STYLES[sector];
+                return (
+                  <button
+                    key={sector}
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`sector-panel-${sector}`}
+                    onClick={() => setActiveTab(sector)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none ${
+                      isActive ? styles.active : `border-transparent ${styles.inactive}`
+                    } ${!hasData ? "opacity-40" : ""}`}
+                  >
+                    <span>{sector}</span>
+                    {hasData && (
+                      <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/60" : "bg-gray-100"}`}>
+                        <span className="text-din-baten font-semibold">{stats.benefits}</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="text-din-vermogens font-semibold">{stats.capabilities}</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="text-din-inspanningen font-semibold">{stats.efforts}</span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              <button
+                role="tab"
+                aria-selected={activeTab === "cross"}
+                aria-controls="sector-panel-cross"
+                onClick={() => setActiveTab("cross")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border ml-auto focus-visible:ring-2 focus-visible:ring-cito-blue/40 focus-visible:outline-none ${
+                  activeTab === "cross" ? "bg-cito-blue/10 text-cito-blue border-cito-blue/30" : "border-transparent text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                Cross-sector
               </button>
-            )}
+            </div>
           </div>
 
-          {/* UX-3: Zoekresultaten feedback */}
-          {searchQuery && (() => {
-            const totalItems = session.benefits.length + session.capabilities.length + session.efforts.length;
-            const matchedB = filterBenefits(session.benefits, searchQuery).length;
-            const matchedC = filterCapabilities(session.capabilities, searchQuery).length;
-            const matchedE = filterEfforts(session.efforts, searchQuery).length;
-            const matchedTotal = matchedB + matchedC + matchedE;
-            return (
-              <div className={`text-xs px-3 py-1.5 rounded-lg ${matchedTotal > 0 ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"}`}>
-                {matchedTotal > 0
-                  ? `${matchedTotal} van ${totalItems} items gevonden`
-                  : `Geen resultaten voor "${searchQuery}"`}
-              </div>
-            );
-          })()}
-
-          {/* Sector tabs */}
-          <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg border border-gray-200">
-            {SECTORS.map((sector) => {
-              const stats = getSectorStats(sector);
-              const hasData = stats.benefits + stats.capabilities + stats.efforts > 0;
-              const isActive = activeTab === sector;
-              const styles = SECTOR_TAB_STYLES[sector];
-              return (
-                <button
-                  key={sector}
-                  onClick={() => setActiveTab(sector)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
-                    isActive ? styles.active : `border-transparent ${styles.inactive}`
-                  } ${!hasData ? "opacity-40" : ""}`}
-                >
-                  <span>{sector}</span>
-                  {hasData && (
-                    <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/60" : "bg-gray-100"}`}>
-                      <span className="text-din-baten font-semibold">{stats.benefits}</span>
-                      <span className="text-gray-300">|</span>
-                      <span className="text-din-vermogens font-semibold">{stats.capabilities}</span>
-                      <span className="text-gray-300">|</span>
-                      <span className="text-din-inspanningen font-semibold">{stats.efforts}</span>
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setActiveTab("cross")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border ml-auto ${
-                activeTab === "cross" ? "bg-cito-blue/10 text-cito-blue border-cito-blue/30" : "border-transparent text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              Cross-sector
-            </button>
-          </div>
-
-          {/* Per sector content */}
+          {/* Per sector content — UX-14: geen delete-knoppen in overzicht */}
           {activeTab !== "cross" && (
-            <SectorContent
-              session={session}
-              sector={activeTab}
-              sharedCaps={sharedCaps}
-              collapsedGoals={collapsedGoals}
-              toggleGoal={toggleGoal}
-              setCollapsedGoals={setCollapsedGoals}
-              searchQuery={searchQuery}
-              onDeleteBenefit={onDeleteBenefit}
-              onDeleteCapability={onDeleteCapability}
-              onDeleteEffort={onDeleteEffort}
-            />
+            <div role="tabpanel" id={`sector-panel-${activeTab}`} aria-label={`Sector ${activeTab}`}>
+              <SectorContent
+                session={session}
+                sector={activeTab}
+                sharedCaps={sharedCaps}
+                collapsedGoals={collapsedGoals}
+                toggleGoal={toggleGoal}
+                setCollapsedGoals={setCollapsedGoals}
+                searchQuery={searchQuery}
+              />
+            </div>
           )}
 
           {/* Cross-sector content */}
           {activeTab === "cross" && (
-            <CrossSectorContent
-              session={session}
-              sharedCaps={sharedCaps}
-              sectorsWithData={sectorsWithData}
-            />
+            <div role="tabpanel" id="sector-panel-cross" aria-label="Cross-sector analyse">
+              <CrossSectorContent
+                session={session}
+                sharedCaps={sharedCaps}
+                sectorsWithData={sectorsWithData}
+              />
+            </div>
           )}
         </div>
       )}
@@ -338,9 +366,6 @@ function SectorContent({
   toggleGoal,
   setCollapsedGoals,
   searchQuery,
-  onDeleteBenefit,
-  onDeleteCapability,
-  onDeleteEffort,
 }: {
   session: DINSession;
   sector: SectorName;
@@ -349,9 +374,6 @@ function SectorContent({
   toggleGoal: (id: string) => void;
   setCollapsedGoals: (s: Set<string>) => void;
   searchQuery: string;
-  onDeleteBenefit?: (id: string) => void;
-  onDeleteCapability?: (id: string) => void;
-  onDeleteEffort?: (id: string) => void;
 }) {
   const sectorBenefits = session.benefits.filter((b) => b.sectorId === sector);
   const sectorCaps = session.capabilities.filter((c) => c.sectorId === sector);
@@ -374,51 +396,77 @@ function SectorContent({
   return (
     <div className="space-y-4">
       {/* Sector dashboard */}
-      <div className={`rounded-xl border-l-4 border border-gray-200 p-5 bg-white shadow-sm ${SECTOR_BORDER_LEFT[sector]}`}>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h4 className="text-base font-bold text-gray-800">Sector {sector}</h4>
-            <p className="text-xs text-gray-400 mt-0.5">{relevantGoals.length} doelen met DIN-invulling</p>
-          </div>
-        </div>
-
-        {/* Stat blokken */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-din-baten/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-din-baten">{sectorBenefits.length}</div>
-            <div className="text-[11px] text-gray-500 font-medium">Baten</div>
-          </div>
-          <div className="bg-din-vermogens/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-din-vermogens">{sectorCaps.length}</div>
-            <div className="text-[11px] text-gray-500 font-medium">Vermogens</div>
-          </div>
-          <div className="bg-din-inspanningen/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-din-inspanningen">{sectorEfforts.length}</div>
-            <div className="text-[11px] text-gray-500 font-medium">Inspanningen</div>
-          </div>
-        </div>
-
-        {/* Domeinbalans */}
-        <div className="grid grid-cols-4 gap-3">
-          {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
-            const count = sectorEfforts.filter((e) => e.domain === domain).length;
-            const maxCount = Math.max(...(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((d) => sectorEfforts.filter((e) => e.domain === d).length), 1);
-            const pct = Math.round((count / maxCount) * 100);
-            return (
-              <div key={domain}>
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="text-gray-600 font-medium">{label}</span>
-                  <span className="font-bold" style={{ color: DOMAIN_BAR_COLORS[domain] }}>{count}</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: DOMAIN_BAR_COLORS[domain] }} />
-                </div>
-                {count === 0 && <div className="text-[10px] text-red-400 mt-0.5 font-medium">Ontbreekt</div>}
+      {/* UX-13: Keten-completheid per sector */}
+      {(() => {
+        let totalChains = 0;
+        let completeChains = 0;
+        relevantGoals.forEach((g) => {
+          const cr = buildChainsForSector(session, g.id, sector);
+          cr.chains.forEach((c) => {
+            totalChains++;
+            if (c.links.length > 0 && c.links.some((l) => l.efforts.length > 0)) completeChains++;
+          });
+        });
+        const incompleteChains = totalChains - completeChains;
+        return (
+          <div className={`rounded-xl border-l-4 border border-gray-200 p-5 bg-white shadow-sm ${SECTOR_BORDER_LEFT[sector]}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h4 className="text-base font-bold text-gray-800">Sector {sector}</h4>
+                <p className="text-xs text-gray-400 mt-0.5">{relevantGoals.length} doelen met DIN-invulling</p>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              {totalChains > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-green-600 font-medium">{completeChains} volledige keten{completeChains !== 1 ? "s" : ""}</span>
+                  {incompleteChains > 0 && (
+                    <>
+                      <span className="text-gray-300">|</span>
+                      <span className="text-amber-600 font-medium">{incompleteChains} onvolledig</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Stat blokken */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div className="bg-din-baten/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-din-baten">{sectorBenefits.length}</div>
+                <div className="text-[11px] text-gray-500 font-medium">Baten</div>
+              </div>
+              <div className="bg-din-vermogens/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-din-vermogens">{sectorCaps.length}</div>
+                <div className="text-[11px] text-gray-500 font-medium">Vermogens</div>
+              </div>
+              <div className="bg-din-inspanningen/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-din-inspanningen">{sectorEfforts.length}</div>
+                <div className="text-[11px] text-gray-500 font-medium">Inspanningen</div>
+              </div>
+            </div>
+
+            {/* Domeinbalans — UX-16: responsive */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
+                const count = sectorEfforts.filter((e) => e.domain === domain).length;
+                const maxCount = Math.max(...(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((d) => sectorEfforts.filter((e) => e.domain === d).length), 1);
+                const pct = Math.round((count / maxCount) * 100);
+                return (
+                  <div key={domain}>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-gray-600 font-medium">{label}</span>
+                      <span className="font-bold" style={{ color: DOMAIN_BAR_COLORS[domain] }}>{count}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: DOMAIN_BAR_COLORS[domain] }} />
+                    </div>
+                    {count === 0 && <div className="text-[10px] text-red-400 mt-0.5 font-medium">Ontbreekt</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Alles in-/uitklappen */}
       <div className="flex items-center justify-end">
@@ -468,15 +516,24 @@ function SectorContent({
         const hasCaps = (linkedCapIds.size > 0 ? sectorCaps.filter((c) => linkedCapIds.has(c.id)) : sectorCaps).length > 0;
         const hasEfforts = (linkedEffortIds.size > 0 ? sectorEfforts.filter((e) => linkedEffortIds.has(e.id)) : sectorEfforts).length > 0;
 
+        // UX-13: Keten-samenvatting per doel
+        const goalChainResult = buildChainsForSector(session, goal.id, sector);
+        const goalCompleteChains = goalChainResult.chains.filter((c) => c.links.length > 0 && c.links.some((l) => l.efforts.length > 0)).length;
+        const goalIncompleteChains = goalChainResult.chains.length - goalCompleteChains;
+
         // Skip goal if search active and no matches
         if (searchQuery && goalBenefits.length === 0 && goalCaps.length === 0 && goalEfforts.length === 0) return null;
 
         return (
           <div key={goal.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-            {/* Goal header — klikbaar */}
+            {/* Goal header — klikbaar — UX-18: aria-expanded */}
             <div
               className="bg-gradient-to-r from-din-doelen/15 to-din-doelen/5 px-4 py-3 border-b border-gray-200 flex items-center gap-3 cursor-pointer hover:from-din-doelen/20 hover:to-din-doelen/10 transition-all select-none"
               onClick={() => toggleGoal(goal.id)}
+              role="button"
+              aria-expanded={!isCollapsed}
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleGoal(goal.id); } }}
             >
               <div className="shrink-0 w-7 h-7 rounded-lg bg-din-doelen text-white flex items-center justify-center text-xs font-bold shadow-sm">
                 {goal.rank}
@@ -488,6 +545,12 @@ function SectorContent({
                 )}
               </div>
               <ChainIndicator hasBenefits={hasBenefits} hasCapabilities={hasCaps} hasEfforts={hasEfforts} />
+              {/* UX-13: Mini keten-samenvatting */}
+              {goalChainResult.chains.length > 0 && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${goalIncompleteChains > 0 ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-600"}`}>
+                  {goalCompleteChains}/{goalChainResult.chains.length} ketens
+                </span>
+              )}
               <div className="flex gap-1.5 shrink-0">
                 {hasBenefits && <span className="text-[10px] bg-din-baten/10 text-din-baten px-1.5 py-0.5 rounded font-medium">{goalBenefits.length}</span>}
                 {hasCaps && <span className="text-[10px] bg-din-vermogens/10 text-din-vermogens px-1.5 py-0.5 rounded font-medium">{goalCaps.length}</span>}
@@ -500,7 +563,7 @@ function SectorContent({
             <div className="collapse-wrapper" data-collapsed={isCollapsed ? "true" : "false"}>
               <div>
                 <div className="p-4 space-y-4">
-                  {/* Baten */}
+                  {/* Baten — UX-11: HighlightText */}
                   {goalBenefits.length > 0 && (
                     <div>
                       <h5 className="text-[11px] font-semibold text-din-baten uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -509,18 +572,13 @@ function SectorContent({
                       </h5>
                       <div className="space-y-2">
                         {goalBenefits.map((b) => (
-                          <div key={b.id} className="bg-white border border-din-baten/20 rounded-lg p-2.5 group hover:border-din-baten/40 transition-colors">
-                            <div className="flex items-start justify-between">
-                              <span className="text-xs text-gray-700 font-medium flex-1">{b.title || b.description || "(naamloos)"}</span>
-                              {onDeleteBenefit && (
-                                <button onClick={() => onDeleteBenefit(b.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" title="Verwijder">
-                                  {"\u2715"}
-                                </button>
-                              )}
-                            </div>
+                          <div key={b.id} className="bg-white border border-din-baten/20 rounded-lg p-2.5 hover:border-din-baten/40 transition-colors">
+                            <span className="text-xs text-gray-700 font-medium">
+                              <HighlightText text={b.title || b.description || "(naamloos)"} query={searchQuery} />
+                            </span>
                             {b.profiel.indicator && (
                               <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-                                <span className="text-gray-400 font-medium">{b.profiel.indicator}</span>
+                                <span className="text-gray-400 font-medium"><HighlightText text={b.profiel.indicator} query={searchQuery} /></span>
                                 <div className="flex items-center gap-1 bg-gray-50 rounded px-1.5 py-0.5">
                                   <span className="text-amber-600 font-semibold">{b.profiel.currentValue}</span>
                                   <span className="text-gray-300">{"\u2192"}</span>
@@ -529,20 +587,20 @@ function SectorContent({
                               </div>
                             )}
                             {b.profiel.indicatorOwner && (
-                              <div className="mt-0.5 text-[10px] text-gray-400">Eigenaar: {b.profiel.indicatorOwner}</div>
+                              <div className="mt-0.5 text-[10px] text-gray-400">Eigenaar: <HighlightText text={b.profiel.indicatorOwner} query={searchQuery} /></div>
                             )}
-                            {/* UX-1: Gekoppeld vermogen tonen */}
+                            {/* Gekoppeld vermogen */}
                             {(() => {
-                              const linkedCaps = session.benefitCapabilityMaps
+                              const lCaps = session.benefitCapabilityMaps
                                 .filter((m) => m.benefitId === b.id)
                                 .map((m) => session.capabilities.find((c) => c.id === m.capabilityId))
                                 .filter(Boolean);
-                              if (linkedCaps.length === 0) return null;
+                              if (lCaps.length === 0) return null;
                               return (
                                 <div className="mt-1 flex items-center gap-1 text-[10px]">
                                   <span className="text-din-vermogens">{"\u2192"}</span>
                                   <span className="text-gray-400">Vermogen:</span>
-                                  {linkedCaps.map((c) => (
+                                  {lCaps.map((c) => (
                                     <span key={c!.id} className="text-din-vermogens font-medium">{c!.title || c!.description?.slice(0, 30) || "?"}</span>
                                   ))}
                                 </div>
@@ -554,7 +612,7 @@ function SectorContent({
                     </div>
                   )}
 
-                  {/* Vermogens */}
+                  {/* Vermogens — UX-11: HighlightText, UX-14: geen delete */}
                   {goalCaps.length > 0 && (
                     <div>
                       <h5 className="text-[11px] font-semibold text-din-vermogens uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -566,24 +624,19 @@ function SectorContent({
                           const isShared = sharedCaps.has(c.id);
                           const sharedSectors = sharedCaps.get(c.id);
                           return (
-                            <div key={c.id} className={`p-2.5 rounded-lg group transition-colors ${isShared ? "bg-amber-50 border border-amber-200" : "bg-white border border-din-vermogens/20 hover:border-din-vermogens/40"}`}>
+                            <div key={c.id} className={`p-2.5 rounded-lg transition-colors ${isShared ? "bg-amber-50 border border-amber-200" : "bg-white border border-din-vermogens/20 hover:border-din-vermogens/40"}`}>
                               <div className="flex items-start justify-between">
-                                <span className="text-xs text-gray-700 font-medium flex-1">{c.title || c.description || "(naamloos)"}</span>
-                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                  {isShared && sharedSectors && (
-                                    <span className="flex items-center gap-1">
-                                      <span className="text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Synergie</span>
-                                      <span className="text-[9px] text-gray-400">
-                                        ook: {sharedSectors.filter((s) => s !== sector).join(", ")}
-                                      </span>
+                                <span className="text-xs text-gray-700 font-medium flex-1">
+                                  <HighlightText text={c.title || c.description || "(naamloos)"} query={searchQuery} />
+                                </span>
+                                {isShared && sharedSectors && (
+                                  <span className="flex items-center gap-1 shrink-0 ml-2">
+                                    <span className="text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Synergie</span>
+                                    <span className="text-[9px] text-gray-400">
+                                      ook: {sharedSectors.filter((s) => s !== sector).join(", ")}
                                     </span>
-                                  )}
-                                  {onDeleteCapability && (
-                                    <button onClick={() => onDeleteCapability(c.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Verwijder">
-                                      {"\u2715"}
-                                    </button>
-                                  )}
-                                </div>
+                                  </span>
+                                )}
                               </div>
                               {(c.currentLevel || c.targetLevel) && (
                                 <div className="flex items-center gap-4 mt-1.5">
@@ -606,7 +659,7 @@ function SectorContent({
                                   )}
                                 </div>
                               )}
-                              {/* UX-1: Gekoppelde inspanningen tonen */}
+                              {/* Gekoppelde inspanningen */}
                               {(() => {
                                 const linkedEffs = session.capabilityEffortMaps
                                   .filter((m) => m.capabilityId === c.id)
@@ -633,14 +686,14 @@ function SectorContent({
                     </div>
                   )}
 
-                  {/* Inspanningen per domein */}
+                  {/* Inspanningen per domein — UX-11: HighlightText, UX-14: geen delete, UX-16: responsive */}
                   {goalEfforts.length > 0 && (
                     <div>
                       <h5 className="text-[11px] font-semibold text-din-inspanningen uppercase tracking-wider mb-2 flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-din-inspanningen" />
                         Inspanningen ({goalEfforts.length})
                       </h5>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
                           const domainEfforts = goalEfforts.filter((e) => e.domain === domain);
                           if (domainEfforts.length === 0) return null;
@@ -654,17 +707,14 @@ function SectorContent({
                                 {domainEfforts.map((e) => (
                                   <div
                                     key={e.id}
-                                    className="flex items-center gap-1.5 text-[11px] group py-1 pl-2 border-l-2 rounded-r-sm hover:bg-white/60 transition-colors"
+                                    className="flex items-center gap-1.5 text-[11px] py-1 pl-2 border-l-2 rounded-r-sm hover:bg-white/60 transition-colors"
                                     style={{ borderLeftColor: STATUS_BORDER_COLORS[e.status] || STATUS_BORDER_COLORS.gepland }}
                                   >
-                                    <span className="text-gray-600 flex-1">{e.title || e.description || "(naamloos)"}</span>
+                                    <span className="text-gray-600 flex-1">
+                                      <HighlightText text={e.title || e.description || "(naamloos)"} query={searchQuery} />
+                                    </span>
                                     {e.quarter && <span className="text-[10px] bg-white text-gray-500 px-1.5 py-0.5 rounded shrink-0">{e.quarter}</span>}
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${STATUS_STYLES[e.status] || ""}`}>{STATUS_TEXT[e.status] || e.status}</span>
-                                    {onDeleteEffort && (
-                                      <button onClick={() => onDeleteEffort(e.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Verwijder">
-                                        {"\u2715"}
-                                      </button>
-                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -672,6 +722,38 @@ function SectorContent({
                           );
                         })}
                       </div>
+
+                      {/* UX-17: Kwartaal-tijdlijn */}
+                      {(() => {
+                        const quarters = [...new Set(goalEfforts.map((e) => e.quarter).filter(Boolean))].sort();
+                        if (quarters.length === 0) return null;
+                        return (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Tijdlijn</div>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {quarters.map((q) => {
+                                const qEfforts = goalEfforts.filter((e) => e.quarter === q);
+                                return (
+                                  <div key={q} className="shrink-0 bg-white border border-gray-200 rounded-lg p-2 min-w-[120px]">
+                                    <div className="text-[10px] font-semibold text-gray-700 mb-1.5">{q}</div>
+                                    <div className="space-y-1">
+                                      {qEfforts.map((e) => {
+                                        const dc = DOMAIN_BAR_COLORS[e.domain] || "#6b7280";
+                                        return (
+                                          <div key={e.id} className="flex items-center gap-1 text-[9px]">
+                                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dc }} />
+                                            <span className="text-gray-600 truncate">{e.title || e.description?.slice(0, 20) || "?"}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -718,7 +800,7 @@ function CrossSectorContent({
           <h4 className="text-sm font-semibold text-cito-blue">Vergelijking per sector</h4>
         </div>
         <div className="p-5">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {sectorTotals.map(({ sector, benefits, capabilities, efforts }) => (
               <div key={sector} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 {/* Gekleurde header balk */}
@@ -881,7 +963,7 @@ function CrossSectorContent({
           <h4 className="text-sm font-semibold text-cito-blue">Domeinbalans alle sectoren</h4>
         </div>
         <div className="p-5">
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
               const allEfforts = session.efforts.filter((e) => e.domain === domain);
               const maxCount = Math.max(
