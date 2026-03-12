@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { DINSession, DINBenefit, DINCapability, DINEffort, EffortDomain, SectorName } from "@/lib/types";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
-import { findSharedCapabilities, findGaps, buildChainsForSector } from "@/lib/din-service";
+import { findSharedCapabilities, findGaps, buildChainsForSector, analyzeHefbomen } from "@/lib/din-service";
+import type { BenefitCluster, ClusterSectorChain } from "@/lib/din-service";
 import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 
@@ -777,14 +778,15 @@ function CrossSectorContent({
   sharedCaps: Map<string, string[]>;
   sectorsWithData: SectorName[];
 }) {
-  // Calculate max total for bar chart scaling
-  const sectorTotals = SECTORS.map((s) => {
-    const b = session.benefits.filter((x) => x.sectorId === s).length;
-    const c = session.capabilities.filter((x) => x.sectorId === s).length;
-    const e = session.efforts.filter((x) => x.sectorId === s).length;
-    return { sector: s, benefits: b, capabilities: c, efforts: e, total: b + c + e };
-  });
-  const maxItemCount = Math.max(...sectorTotals.flatMap((s) => [s.benefits, s.capabilities, s.efforts]), 1);
+  const hefboomResults = analyzeHefbomen(session);
+
+  // Tel totale hefboomclusters (multi-sector)
+  const multiSectorClusters = hefboomResults.flatMap((r) =>
+    r.clusters.filter((c) => c.hefboomScore > 1)
+  );
+  const singleSectorClusters = hefboomResults.flatMap((r) =>
+    r.clusters.filter((c) => c.hefboomScore === 1)
+  );
 
   const SECTOR_HEADER_COLORS: Record<SectorName, string> = {
     PO: "bg-blue-400",
@@ -792,67 +794,353 @@ function CrossSectorContent({
     Zakelijk: "bg-purple-400",
   };
 
+  const SECTOR_DOT_COLORS: Record<string, string> = {
+    PO: "bg-blue-400",
+    VO: "bg-green-400",
+    Zakelijk: "bg-purple-400",
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Sector vergelijking */}
+    <div className="space-y-5">
+
+      {/* Introductie — waarom cross-analyse? */}
+      <div className="bg-gradient-to-r from-cito-blue/5 to-cito-blue/10 rounded-xl border border-cito-blue/20 p-5">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-cito-blue/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-cito-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-cito-blue">Hefboomanalyse</h4>
+            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+              Waar benoemen meerdere sectoren vergelijkbare baten? Die overlap wijst op <strong>hefbomen</strong>: investeer hier en alle sectoren profiteren.
+              Hoe meer sectoren dezelfde richting op willen, hoe efficiënter het budget wordt ingezet.
+            </p>
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-lg bg-green-500 text-white flex items-center justify-center text-xs font-bold">{multiSectorClusters.length}</div>
+                <span className="text-xs text-gray-600">Cross-sector hefbomen</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold">{singleSectorClusters.length}</div>
+                <span className="text-xs text-gray-500">Sector-specifiek</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* === HEFBOOMANALYSE PER DOEL === */}
+      {hefboomResults
+        .filter((r) => r.clusters.length > 0)
+        .map((result) => {
+          const goal = session.goals.find((g) => g.id === result.goalId);
+          if (!goal) return null;
+          const hasMultiSector = result.clusters.some((c) => c.hefboomScore > 1);
+
+          return (
+            <div key={result.goalId} className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
+              {/* Goal header */}
+              <div className="bg-gradient-to-r from-din-doelen/15 to-din-doelen/5 px-5 py-3 border-b border-gray-200 flex items-center gap-3">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-din-doelen text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                  {goal.rank}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-gray-800">{goal.name}</div>
+                  {goal.description && (
+                    <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{goal.description}</div>
+                  )}
+                </div>
+                {hasMultiSector && (
+                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                    Hefboom gevonden
+                  </span>
+                )}
+              </div>
+
+              <div className="p-5 space-y-4">
+                {result.clusters.map((cluster, clusterIdx) => {
+                  const chains = result.clusterChains.get(cluster.benefits[0].id) || [];
+                  const isMultiSector = cluster.hefboomScore > 1;
+
+                  // Verzamel alle unieke capabilities en efforts over alle sectoren
+                  const allCapsInCluster = chains.flatMap((c) => c.capabilities);
+                  const allEffortsInCluster = chains.flatMap((c) => c.efforts);
+                  const uniqueEffortDomains = [...new Set(allEffortsInCluster.map((e) => e.domain))];
+
+                  return (
+                    <div
+                      key={clusterIdx}
+                      className={`rounded-xl border overflow-hidden ${
+                        isMultiSector
+                          ? "border-green-200 bg-green-50/30"
+                          : "border-gray-100 bg-gray-50/30"
+                      }`}
+                    >
+                      {/* Cluster header */}
+                      <div className={`px-4 py-2.5 border-b flex items-center gap-3 ${
+                        isMultiSector ? "border-green-200 bg-green-50" : "border-gray-100 bg-gray-50"
+                      }`}>
+                        {/* Hefboom score */}
+                        <div className={`shrink-0 flex items-center gap-0.5`} title={`${cluster.hefboomScore} sector${cluster.hefboomScore > 1 ? "en" : ""}`}>
+                          {[1, 2, 3].map((n) => (
+                            <svg
+                              key={n}
+                              className={`w-3.5 h-3.5 ${n <= cluster.hefboomScore ? "text-green-500" : "text-gray-200"}`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-gray-800">{cluster.theme}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">
+                            {isMultiSector
+                              ? `${cluster.hefboomScore} sectoren herkennen deze baat — investeer hier voor maximaal effect`
+                              : "Sector-specifieke baat"}
+                          </div>
+                        </div>
+
+                        {/* Sector badges */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {cluster.sectors.map((s) => {
+                            const colors = SECTOR_COLORS[s as SectorName] || "bg-gray-100 text-gray-700 border-gray-200";
+                            return (
+                              <span key={s} className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${colors}`}>
+                                {s}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Per sector: baat → vermogens → inspanningen */}
+                      <div className="divide-y divide-gray-100">
+                        {chains.map((chain) => {
+                          const sectorColor = SECTOR_DOT_COLORS[chain.sector] || "bg-gray-400";
+                          return (
+                            <div key={chain.benefit.id} className="px-4 py-3">
+                              <div className="flex items-start gap-3">
+                                {/* Sector indicator */}
+                                <div className="shrink-0 mt-0.5">
+                                  <div className={`w-2.5 h-2.5 rounded-full ${sectorColor}`} title={chain.sector} />
+                                </div>
+
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  {/* Baat */}
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] uppercase tracking-wider text-din-baten font-semibold">{chain.sector} — Baat</span>
+                                    </div>
+                                    <div className="text-xs text-gray-700 font-medium mt-0.5">
+                                      {chain.benefit.title || chain.benefit.description || "(naamloos)"}
+                                    </div>
+                                    {chain.benefit.profiel.indicator && (
+                                      <div className="flex items-center gap-2 mt-1 text-[10px]">
+                                        <span className="text-gray-400">{chain.benefit.profiel.indicator}:</span>
+                                        <span className="text-amber-600 font-semibold">{chain.benefit.profiel.currentValue}</span>
+                                        <span className="text-gray-300">{"\u2192"}</span>
+                                        <span className="text-green-600 font-semibold">{chain.benefit.profiel.targetValue}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Vermogens */}
+                                  {chain.capabilities.length > 0 && (
+                                    <div className="pl-3 border-l-2 border-din-vermogens/30">
+                                      <span className="text-[9px] uppercase tracking-wider text-din-vermogens font-semibold">Vermogens</span>
+                                      <div className="space-y-1 mt-0.5">
+                                        {chain.capabilities.map((cap) => (
+                                          <div key={cap.id} className="flex items-center gap-2 text-[11px]">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-din-vermogens shrink-0" />
+                                            <span className="text-gray-600">{cap.title || cap.description || "?"}</span>
+                                            {cap.currentLevel && cap.targetLevel && (
+                                              <span className="text-[9px] text-gray-400">
+                                                {cap.currentLevel}{"\u2192"}{cap.targetLevel}
+                                              </span>
+                                            )}
+                                            {cap.relatedSectors && cap.relatedSectors.length > 1 && (
+                                              <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded">Synergie</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Inspanningen */}
+                                  {chain.efforts.length > 0 && (
+                                    <div className="pl-3 border-l-2 border-din-inspanningen/30">
+                                      <span className="text-[9px] uppercase tracking-wider text-din-inspanningen font-semibold">Inspanningen</span>
+                                      <div className="space-y-1 mt-0.5">
+                                        {chain.efforts.map((effort) => (
+                                          <div key={effort.id} className="flex items-center gap-2 text-[11px]">
+                                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[effort.domain] || "#6b7280" }} />
+                                            <span className="text-gray-600">{effort.title || effort.description || "?"}</span>
+                                            <span className="text-[9px] text-gray-400">{DOMAIN_LABELS[effort.domain]}</span>
+                                            {effort.quarter && <span className="text-[9px] bg-gray-100 text-gray-500 px-1 rounded">{effort.quarter}</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {chain.capabilities.length === 0 && chain.efforts.length === 0 && (
+                                    <div className="text-[10px] text-gray-300 italic pl-3">Nog geen vermogens of inspanningen gekoppeld</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Samenvatting: overlap in inspanningsdomeinen */}
+                      {isMultiSector && uniqueEffortDomains.length > 0 && (
+                        <div className="px-4 py-2 bg-green-50 border-t border-green-200">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] uppercase tracking-wider text-green-700 font-semibold">Gedeelde domeinen:</span>
+                            {uniqueEffortDomains.map((d) => {
+                              const count = allEffortsInCluster.filter((e) => e.domain === d).length;
+                              return (
+                                <span key={d} className="flex items-center gap-1 text-[10px] bg-white/60 px-1.5 py-0.5 rounded border border-green-200">
+                                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[d] || "#6b7280" }} />
+                                  <span className="text-gray-700 font-medium">{DOMAIN_LABELS[d]}</span>
+                                  <span className="text-gray-400">({count})</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+      {/* === BUDGET-PRIORITEIT: inspanningen met hoogste cross-sector impact === */}
+      {(() => {
+        // Verzamel alle inspanningen die in multi-sector clusters zitten
+        const crossSectorEffortIds = new Set<string>();
+        hefboomResults.forEach((r) => {
+          r.clusters.filter((c) => c.hefboomScore > 1).forEach((cluster) => {
+            const chains = r.clusterChains.get(cluster.benefits[0].id) || [];
+            chains.forEach((chain) => {
+              chain.efforts.forEach((e) => crossSectorEffortIds.add(e.id));
+            });
+          });
+        });
+
+        const priorityEfforts = session.efforts.filter((e) => crossSectorEffortIds.has(e.id));
+        if (priorityEfforts.length === 0) return null;
+
+        return (
+          <div className="border border-green-200 rounded-xl bg-white overflow-hidden shadow-sm">
+            <div className="bg-green-50 px-5 py-3 border-b border-green-200 flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h4 className="text-sm font-semibold text-green-800">Budget-prioriteit: inspanningen met cross-sector impact</h4>
+              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium ml-auto">{priorityEfforts.length} inspanningen</span>
+            </div>
+            <div className="p-5">
+              <p className="text-xs text-gray-500 mb-3">
+                Deze inspanningen dragen bij aan baten die door meerdere sectoren worden herkend. Investeer hier voor maximale efficiëntie.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {priorityEfforts.map((effort) => (
+                  <div key={effort.id} className="flex items-center gap-2 bg-green-50/50 border border-green-100 rounded-lg px-3 py-2">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[effort.domain] || "#6b7280" }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] text-gray-700 font-medium truncate">{effort.title || effort.description || "?"}</div>
+                      <div className="flex items-center gap-2 text-[9px] text-gray-400">
+                        <span>{DOMAIN_LABELS[effort.domain]}</span>
+                        {effort.quarter && <span>{effort.quarter}</span>}
+                        <span className={`inline-block px-1 py-0 rounded text-[9px] font-medium border ${SECTOR_COLORS[effort.sectorId as SectorName] || ""}`}>{effort.sectorId}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* === SECTOR VERGELIJKING (compact) === */}
       <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
         <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
           <h4 className="text-sm font-semibold text-cito-blue">Vergelijking per sector</h4>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {sectorTotals.map(({ sector, benefits, capabilities, efforts }) => (
-              <div key={sector} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                {/* Gekleurde header balk */}
-                <div className={`h-1.5 ${SECTOR_HEADER_COLORS[sector]}`} />
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-bold text-gray-800">{sector}</span>
-                    <ChainIndicator hasBenefits={benefits > 0} hasCapabilities={capabilities > 0} hasEfforts={efforts > 0} />
-                  </div>
-
-                  {/* Horizontale staafgrafiek */}
-                  <div className="space-y-2.5">
-                    {[
-                      { label: "Baten", count: benefits, color: "bg-din-baten" },
-                      { label: "Vermogens", count: capabilities, color: "bg-din-vermogens" },
-                      { label: "Inspanningen", count: efforts, color: "bg-din-inspanningen" },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <div className="flex justify-between text-[11px] mb-0.5">
-                          <span className="text-gray-500">{item.label}</span>
-                          <span className="font-semibold text-gray-700">{item.count}</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${item.color} transition-all`} style={{ width: `${maxItemCount > 0 ? (item.count / maxItemCount) * 100 : 0}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Domain balance mini grid */}
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
-                        const count = session.efforts.filter((e) => e.sectorId === sector && e.domain === domain).length;
-                        return (
-                          <div key={domain} className="flex items-center gap-1.5 text-[10px]">
-                            <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[domain] }} />
-                            <span className="text-gray-500 flex-1">{label}</span>
-                            <span className={`font-semibold ${count === 0 ? "text-red-400" : "text-gray-700"}`}>{count}</span>
+            {SECTORS.map((sector) => {
+              const benefits = session.benefits.filter((x) => x.sectorId === sector).length;
+              const capabilities = session.capabilities.filter((x) => x.sectorId === sector).length;
+              const efforts = session.efforts.filter((x) => x.sectorId === sector).length;
+              const maxItemCount = Math.max(
+                ...SECTORS.flatMap((s) => [
+                  session.benefits.filter((x) => x.sectorId === s).length,
+                  session.capabilities.filter((x) => x.sectorId === s).length,
+                  session.efforts.filter((x) => x.sectorId === s).length,
+                ]),
+                1
+              );
+              return (
+                <div key={sector} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className={`h-1.5 ${SECTOR_HEADER_COLORS[sector]}`} />
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-gray-800">{sector}</span>
+                      <ChainIndicator hasBenefits={benefits > 0} hasCapabilities={capabilities > 0} hasEfforts={efforts > 0} />
+                    </div>
+                    <div className="space-y-2.5">
+                      {[
+                        { label: "Baten", count: benefits, color: "bg-din-baten" },
+                        { label: "Vermogens", count: capabilities, color: "bg-din-vermogens" },
+                        { label: "Inspanningen", count: efforts, color: "bg-din-inspanningen" },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <div className="flex justify-between text-[11px] mb-0.5">
+                            <span className="text-gray-500">{item.label}</span>
+                            <span className="font-semibold text-gray-700">{item.count}</span>
                           </div>
-                        );
-                      })}
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${item.color} transition-all`} style={{ width: `${maxItemCount > 0 ? (item.count / maxItemCount) * 100 : 0}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(Object.entries(DOMAIN_LABELS) as [EffortDomain, string][]).map(([domain, label]) => {
+                          const count = session.efforts.filter((e) => e.sectorId === sector && e.domain === domain).length;
+                          return (
+                            <div key={domain} className="flex items-center gap-1.5 text-[10px]">
+                              <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: DOMAIN_BAR_COLORS[domain] }} />
+                              <span className="text-gray-500 flex-1">{label}</span>
+                              <span className={`font-semibold ${count === 0 ? "text-red-400" : "text-gray-700"}`}>{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Gedeelde vermogens (synergieën) */}
+      {/* === GEDEELDE VERMOGENS (synergieën) === */}
       {sharedCaps.size > 0 && (
         <div className="border border-amber-200 rounded-xl bg-amber-50/30 overflow-hidden shadow-sm">
           <div className="bg-amber-50 px-5 py-3 border-b border-amber-200 flex items-center gap-2">
@@ -907,7 +1195,7 @@ function CrossSectorContent({
         </div>
       )}
 
-      {/* UX-4: Keten-dekking per sector */}
+      {/* === KETEN-DEKKING === */}
       <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
         <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
           <h4 className="text-sm font-semibold text-cito-blue">Keten-dekking</h4>
@@ -929,7 +1217,7 @@ function CrossSectorContent({
             const linkedBenefits = totalBenefits - gaps.benefitsWithoutCapabilities.length;
             const linkedCaps = totalCaps - gaps.capabilitiesWithoutEfforts.length;
             return (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="text-lg font-bold text-gray-800">{session.goals.length - gaps.goalsWithoutBenefits.length}/{session.goals.length}</div>
                   <div className="text-[11px] text-gray-500">Doelen met baten</div>
@@ -957,7 +1245,7 @@ function CrossSectorContent({
         </div>
       </div>
 
-      {/* Domeinbalans totaaloverzicht */}
+      {/* === DOMEINBALANS === */}
       <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
         <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
           <h4 className="text-sm font-semibold text-cito-blue">Domeinbalans alle sectoren</h4>
@@ -971,7 +1259,6 @@ function CrossSectorContent({
                 1
               );
               const pct = Math.round((allEfforts.length / maxCount) * 100);
-
               return (
                 <div key={domain} className="text-center">
                   <div className="text-2xl font-bold" style={{ color: DOMAIN_BAR_COLORS[domain] }}>{allEfforts.length}</div>

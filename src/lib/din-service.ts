@@ -230,6 +230,163 @@ export function findGaps(
   };
 }
 
+// --- Cross-sector hefboomanalyse ---
+
+/**
+ * Tokenize tekst voor similarity matching.
+ * Verwijdert korte woorden en leestekens.
+ */
+function tokenize(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 3)
+  );
+}
+
+/**
+ * Jaccard similarity tussen twee token-sets.
+ */
+function tokenSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  const intersection = new Set([...a].filter((x) => b.has(x)));
+  const union = new Set([...a, ...b]);
+  return union.size > 0 ? intersection.size / union.size : 0;
+}
+
+/**
+ * Een cluster van thematisch verwante baten over meerdere sectoren.
+ */
+export interface BenefitCluster {
+  benefits: DINBenefit[];
+  sectors: string[];
+  hefboomScore: number; // Hoeveel sectoren (1-3), hoe hoger = meer hefboom
+  theme: string; // Representatieve titel/beschrijving
+}
+
+/**
+ * Chain-info per sector binnen een hefboom-cluster.
+ */
+export interface ClusterSectorChain {
+  sector: string;
+  benefit: DINBenefit;
+  capabilities: DINCapability[];
+  efforts: DINEffort[];
+}
+
+/**
+ * Volledig hefboom-resultaat per doel.
+ */
+export interface HefboomResult {
+  goalId: string;
+  clusters: BenefitCluster[];
+  clusterChains: Map<string, ClusterSectorChain[]>; // keyed by first benefit id in cluster
+}
+
+/**
+ * Groepeer baten per doel op thematische overeenkomst over sectoren.
+ * Baten die vergelijkbare titels/beschrijvingen hebben worden geclusterd.
+ * Clusters met meerdere sectoren = hoge hefboomwerking.
+ */
+export function findBenefitClusters(
+  benefits: DINBenefit[],
+  goalId: string
+): BenefitCluster[] {
+  const goalBenefits = benefits.filter((b) => b.goalId === goalId);
+  const clusters: BenefitCluster[] = [];
+  const used = new Set<string>();
+
+  for (const benefit of goalBenefits) {
+    if (used.has(benefit.id)) continue;
+
+    const cluster: DINBenefit[] = [benefit];
+    used.add(benefit.id);
+
+    const tokens = tokenize((benefit.title || "") + " " + benefit.description);
+
+    for (const other of goalBenefits) {
+      if (used.has(other.id)) continue;
+      if (other.sectorId === benefit.sectorId) continue; // Skip same sector
+
+      const otherTokens = tokenize(
+        (other.title || "") + " " + other.description
+      );
+      if (tokenSimilarity(tokens, otherTokens) > 0.25) {
+        cluster.push(other);
+        used.add(other.id);
+      }
+    }
+
+    const sectors = [...new Set(cluster.map((b) => b.sectorId))];
+    clusters.push({
+      benefits: cluster,
+      sectors,
+      hefboomScore: sectors.length,
+      theme: benefit.title || benefit.description.slice(0, 60),
+    });
+  }
+
+  // Sort: hoogste hefboom eerst
+  return clusters.sort((a, b) => b.hefboomScore - a.hefboomScore);
+}
+
+/**
+ * Bouw de volledige DIN-keten per sector voor een cluster van baten.
+ * Geeft per sector: benefit → capabilities → efforts.
+ */
+export function buildClusterChains(
+  session: DINSession,
+  cluster: BenefitCluster
+): ClusterSectorChain[] {
+  return cluster.benefits.map((benefit) => {
+    // Vind gekoppelde capabilities
+    const capIds = session.benefitCapabilityMaps
+      .filter((m) => m.benefitId === benefit.id)
+      .map((m) => m.capabilityId);
+    const capabilities = capIds
+      .map((cid) => session.capabilities.find((c) => c.id === cid))
+      .filter((c): c is DINCapability => c !== undefined);
+
+    // Vind gekoppelde efforts via capabilities
+    const effortIds = new Set(
+      capabilities.flatMap((cap) =>
+        session.capabilityEffortMaps
+          .filter((m) => m.capabilityId === cap.id)
+          .map((m) => m.effortId)
+      )
+    );
+    const efforts = [...effortIds]
+      .map((eid) => session.efforts.find((e) => e.id === eid))
+      .filter((e): e is DINEffort => e !== undefined);
+
+    return {
+      sector: benefit.sectorId,
+      benefit,
+      capabilities,
+      efforts,
+    };
+  });
+}
+
+/**
+ * Bereken hefboomanalyse voor alle doelen.
+ */
+export function analyzeHefbomen(session: DINSession): HefboomResult[] {
+  return session.goals.map((goal) => {
+    const clusters = findBenefitClusters(session.benefits, goal.id);
+    const clusterChains = new Map<string, ClusterSectorChain[]>();
+
+    for (const cluster of clusters) {
+      const chains = buildClusterChains(session, cluster);
+      clusterChains.set(cluster.benefits[0].id, chains);
+    }
+
+    return { goalId: goal.id, clusters, clusterChains };
+  });
+}
+
 // --- Keten-building helpers ---
 
 export interface DINChainLink {
