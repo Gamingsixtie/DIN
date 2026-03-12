@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { DINEffort, EffortDomain, InspanningsDossier } from "@/lib/types";
+import { DOMAIN_LABELS, STATUS_LABELS, generateQuarters } from "@/lib/types";
 
 interface EffortSuggestion {
   feedback?: string;
@@ -46,12 +47,6 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string }> = {
   cultuur: { bg: "bg-domain-cultuur/10", text: "text-domain-cultuur" },
 };
 
-const DOMAIN_LABELS: Record<EffortDomain, string> = {
-  mens: "Mens",
-  processen: "Processen",
-  data_systemen: "Data & Systemen",
-  cultuur: "Cultuur",
-};
 
 export default function EffortCard({
   effort,
@@ -61,6 +56,7 @@ export default function EffortCard({
 }: EffortCardProps) {
   const colors = DOMAIN_COLORS[effort.domain];
   const [isAILoading, setIsAILoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<EffortSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
@@ -127,6 +123,7 @@ export default function EffortCard({
       }
     } catch (e) {
       console.error("AI suggestie mislukt:", e);
+      setAiError(true);
     } finally {
       setIsAILoading(false);
     }
@@ -225,6 +222,7 @@ export default function EffortCard({
           )}
           <button
             onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
             className="text-xs text-gray-400 hover:text-cito-blue px-1"
             title={expanded ? "Inklappen" : "Dossier bewerken"}
           >
@@ -318,6 +316,9 @@ export default function EffortCard({
               {isAILoading ? "Bezig..." : "Aanscherpen"}
             </button>
           </div>
+          {aiError && (
+            <p className="text-red-500 text-xs mt-1">AI-suggestie mislukt. Probeer het opnieuw.</p>
+          )}
         </div>
       )}
 
@@ -445,12 +446,9 @@ export default function EffortCard({
         >
           <option value="">Kwartaal...</option>
           <option value="Nader te bepalen">Nader te bepalen</option>
-          <option value="Q1 2026">Q1 2026</option>
-          <option value="Q2 2026">Q2 2026</option>
-          <option value="Q3 2026">Q3 2026</option>
-          <option value="Q4 2026">Q4 2026</option>
-          <option value="Q1 2027">Q1 2027</option>
-          <option value="Q2 2027">Q2 2027</option>
+          {generateQuarters().map((q) => (
+            <option key={q} value={q}>{q}</option>
+          ))}
         </select>
         <select
           value={effort.status}
@@ -462,10 +460,9 @@ export default function EffortCard({
           }
           className="px-2 py-0.5 border border-gray-200 rounded bg-white/70 text-xs focus:outline-none"
         >
-          <option value="gepland">Gepland</option>
-          <option value="in_uitvoering">In uitvoering</option>
-          <option value="afgerond">Afgerond</option>
-          <option value="on_hold">On hold</option>
+          {(Object.entries(STATUS_LABELS) as [string, string][]).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
         </select>
       </div>
 
@@ -585,4 +582,4 @@ export default function EffortCard({
   );
 }
 
-export { DOMAIN_LABELS, DOMAIN_COLORS };
+export { DOMAIN_COLORS };

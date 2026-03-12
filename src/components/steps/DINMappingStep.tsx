@@ -15,7 +15,7 @@ import type {
   ExternalProject,
 } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
-import { SECTORS } from "@/lib/types";
+import { SECTORS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import {
   createBenefit,
   createCapability,
@@ -130,12 +130,9 @@ function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
 }
 
 
-const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = [
-  { key: "gepland", label: "Gepland", color: "bg-gray-100 text-gray-600" },
-  { key: "in_uitvoering", label: "Actief", color: "bg-green-100 text-green-700" },
-  { key: "afgerond", label: "Afgerond", color: "bg-blue-100 text-blue-700" },
-  { key: "on_hold", label: "On hold", color: "bg-amber-100 text-amber-700" },
-];
+const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
+  Object.entries(STATUS_LABELS) as [EffortStatus, string][]
+).map(([key, label]) => ({ key, label, color: STATUS_STYLES[key] }));
 
 function ExterneProjectenPanel({
   currentSector,

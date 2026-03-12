@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSession } from "@/lib/session-context";
 import { SECTORS } from "@/lib/types";
 import type { SectorName, EffortDomain } from "@/lib/types";
-import { DOMAIN_LABELS } from "@/components/din/EffortCard";
+import { DOMAIN_LABELS } from "@/lib/types";
 
 export default function SectorIntegratieStep() {
   const { session } = useSession();

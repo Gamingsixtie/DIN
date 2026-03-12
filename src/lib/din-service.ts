@@ -661,11 +661,6 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       details: `${session.sectorPlans.length} plannen, ${session.benefits.length} baten, ${session.efforts.length} inspanningen`,
     },
     {
-      step: "cross-analyse",
-      percentage: session.benefits.length > 0 && session.capabilities.length > 0 ? 100 : 0,
-      details: session.benefits.length > 0 ? "Data beschikbaar" : "Vul eerst DIN in",
-    },
-    {
       step: "din-mapping",
       percentage: session.benefits.length > 0 || session.capabilities.length > 0
         ? Math.round(((session.benefits.length + session.capabilities.length + session.efforts.length) / Math.max(1, session.goals.length * 3)) * 100)
@@ -673,6 +668,11 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       details: session.benefits.length > 0
         ? `${session.benefits.length} baten, ${session.capabilities.length} vermogens, ${session.efforts.length} inspanningen`
         : "Vul het DIN-netwerk in per sector",
+    },
+    {
+      step: "cross-analyse",
+      percentage: session.benefits.length > 0 && session.capabilities.length > 0 ? 100 : 0,
+      details: session.benefits.length > 0 ? "Data beschikbaar" : "Vul eerst DIN in",
     },
     {
       step: "prioritering",

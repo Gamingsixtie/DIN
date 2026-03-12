@@ -19,12 +19,14 @@ export default function SectorTabs({
   const uploadedSectors = new Set(sectorPlans.map((s) => s.sectorName));
 
   return (
-    <div className="flex gap-1 border-b border-gray-200 mb-4">
+    <div className="flex gap-1 border-b border-gray-200 mb-4" role="tablist" aria-label="Sectoren">
       {SECTORS.map((sector) => {
         const counts = completionCounts?.[sector];
         return (
           <button
             key={sector}
+            role="tab"
+            aria-selected={activeSector === sector}
             onClick={() => onSelect(sector)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeSector === sector

@@ -18,6 +18,7 @@ export default function SectorWerkStep() {
     type: "success" | "error";
     msg: string;
   } | null>(null);
+  const [confirmDeletePlan, setConfirmDeletePlan] = useState(false);
 
   if (!session) return null;
 
@@ -399,18 +400,37 @@ export default function SectorWerkStep() {
             )}
 
             {sectorPlan && (
-              <button
-                onClick={() => {
-                  const cleared = session!.sectorPlans.filter(
-                    (s) => s.sectorName !== activeSector
-                  );
-                  updateSession({ sectorPlans: cleared });
-                  setUploadFeedback(null);
-                }}
-                className="w-full px-4 py-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                Sectorplan verwijderen
-              </button>
+              confirmDeletePlan ? (
+                <div className="flex items-center gap-2 w-full px-4 py-2">
+                  <span className="text-xs text-red-600">Weet je het zeker?</span>
+                  <button
+                    onClick={() => {
+                      const cleared = session!.sectorPlans.filter(
+                        (s) => s.sectorName !== activeSector
+                      );
+                      updateSession({ sectorPlans: cleared });
+                      setUploadFeedback(null);
+                      setConfirmDeletePlan(false);
+                    }}
+                    className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  >
+                    Verwijderen
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeletePlan(false)}
+                    className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Annuleren
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDeletePlan(true)}
+                  className="w-full px-4 py-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  Sectorplan verwijderen
+                </button>
+              )
             )}
           </div>
 

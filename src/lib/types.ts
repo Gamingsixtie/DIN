@@ -27,6 +27,53 @@ export const SECTOR_COLORS: Record<SectorName, string> = {
   Zakelijk: "bg-purple-100 text-purple-800 border-purple-200",
 };
 
+// --- Domein labels (single source of truth) ---
+
+export const DOMAIN_LABELS: Record<EffortDomain, string> = {
+  mens: "Mens",
+  processen: "Processen",
+  data_systemen: "Data & Systemen",
+  cultuur: "Cultuur",
+};
+
+// --- Status labels & stijlen (single source of truth) ---
+
+export const STATUS_LABELS: Record<EffortStatus, string> = {
+  gepland: "Gepland",
+  in_uitvoering: "In uitvoering",
+  afgerond: "Afgerond",
+  on_hold: "Gepauzeerd",
+};
+
+export const STATUS_STYLES: Record<EffortStatus, string> = {
+  gepland: "bg-gray-100 text-gray-600",
+  in_uitvoering: "bg-green-100 text-green-700",
+  afgerond: "bg-blue-100 text-blue-700",
+  on_hold: "bg-amber-100 text-amber-700",
+};
+
+export const STATUS_BORDER_COLORS: Record<EffortStatus, string> = {
+  gepland: "#d1d5db",
+  in_uitvoering: "#22c55e",
+  afgerond: "#3b82f6",
+  on_hold: "#f59e0b",
+};
+
+// --- Dynamische kwartalen ---
+
+export function generateQuarters(count = 8): string[] {
+  const now = new Date();
+  const currentQ = Math.ceil((now.getMonth() + 1) / 3);
+  const currentYear = now.getFullYear();
+  const quarters: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const q = ((currentQ - 1 + i) % 4) + 1;
+    const y = currentYear + Math.floor((currentQ - 1 + i) / 4);
+    quarters.push(`Q${q} ${y}`);
+  }
+  return quarters;
+}
+
 // --- KiB Import ---
 
 export interface ProgrammeGoal {

@@ -18,7 +18,7 @@ import {
   TabStopPosition,
 } from "docx";
 import type { DINSession, EffortDomain, SectorName, IntegratieAdviesResult } from "./types";
-import { SECTORS } from "./types";
+import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
 
 const CITO_BLUE = "003366";
@@ -28,12 +28,6 @@ const TEXT_SECONDARY = "4a4a4a";
 const TEXT_MUTED = "888888";
 const BORDER_COLOR = "D0D0D0";
 
-const DOMAIN_LABELS: Record<EffortDomain, string> = {
-  mens: "Mens",
-  processen: "Processen",
-  data_systemen: "Data & Systemen",
-  cultuur: "Cultuur",
-};
 
 const DOMAIN_COLORS: Record<EffortDomain, string> = {
   mens: "DBEAFE",       // blauw
@@ -929,13 +923,6 @@ function externalProjectsSection(session: DINSession) {
 
   const children: (Paragraph | Table)[] = [];
 
-  const statusLabels: Record<string, string> = {
-    gepland: "Gepland",
-    in_uitvoering: "In uitvoering",
-    afgerond: "Afgerond",
-    on_hold: "On hold",
-  };
-
   children.push(heading("Lopende projecten", HeadingLevel.HEADING_1));
   children.push(bodyText(
     "Bestaande projecten die aansluiten bij het programma en mogelijk bijdragen aan DIN-vermogens.",
@@ -950,7 +937,7 @@ function externalProjectsSection(session: DINSession) {
           styledCell(p.name, { bold: true, width: 20 }),
           styledCell(p.sectorId, { width: 10 }),
           styledCell(p.description, { width: 30 }),
-          styledCell(statusLabels[p.status] || p.status, { width: 15 }),
+          styledCell(STATUS_LABELS[p.status] || p.status, { width: 15 }),
           styledCell(p.relevance || "\u2014", { width: 25 }),
         ],
       })
@@ -1004,17 +991,18 @@ function sectorSection(session: DINSession, sector: SectorName) {
     const batenRows = sectorBenefits.map((b) =>
       new TableRow({
         children: [
-          styledCell(b.title || b.description || "\u2014", { bold: true, width: 18 }),
-          styledCell(b.profiel.indicator || "\u2014", { width: 14 }),
+          styledCell(b.title || b.description || "\u2014", { bold: true, width: 16 }),
+          styledCell(b.profiel.indicator || "\u2014", { width: 13 }),
+          styledCell(b.profiel.indicatorOwner || "\u2014", { width: 11 }),
           styledCell(
             b.profiel.currentValue && b.profiel.targetValue
               ? `${b.profiel.currentValue} \u2192 ${b.profiel.targetValue}`
               : "\u2014",
-            { width: 14 }
+            { width: 12 }
           ),
-          styledCell(b.profiel.bateneigenaar || "\u2014", { width: 14 }),
-          styledCell(b.profiel.meetmethode || "\u2014", { width: 20 }),
-          styledCell(b.profiel.measurementMoment || "\u2014", { width: 20 }),
+          styledCell(b.profiel.bateneigenaar || "\u2014", { width: 12 }),
+          styledCell(b.profiel.meetmethode || "\u2014", { width: 18 }),
+          styledCell(b.profiel.measurementMoment || "\u2014", { width: 18 }),
         ],
       })
     );
@@ -1025,12 +1013,13 @@ function sectorSection(session: DINSession, sector: SectorName) {
         rows: [
           new TableRow({
             children: [
-              headerCell("Baat", 18),
-              headerCell("Indicator", 14),
-              headerCell("Huidig \u2192 Doel", 14),
-              headerCell("Eigenaar", 14),
-              headerCell("Meetmethode", 20),
-              headerCell("Meetmoment", 20),
+              headerCell("Baat", 16),
+              headerCell("Indicator", 13),
+              headerCell("Ind. eigenaar", 11),
+              headerCell("Huidig \u2192 Doel", 12),
+              headerCell("Eigenaar", 12),
+              headerCell("Meetmethode", 18),
+              headerCell("Meetmoment", 18),
             ],
           }),
           ...batenRows,
@@ -1201,13 +1190,6 @@ function roadmapSection(session: DINSession) {
     return { properties: {}, children };
   }
 
-  const statusLabels: Record<string, string> = {
-    gepland: "Gepland",
-    in_uitvoering: "In uitvoering",
-    afgerond: "Afgerond",
-    on_hold: "On hold",
-  };
-
   quarters.forEach((q) => {
     children.push(heading(q, HeadingLevel.HEADING_2));
     const qEfforts = session.efforts.filter((e) => e.quarter === q);
@@ -1220,7 +1202,7 @@ function roadmapSection(session: DINSession) {
             styledCell(DOMAIN_LABELS[e.domain], { width: 18, shading: DOMAIN_COLORS[e.domain] }),
             styledCell(e.title || e.description || "\u2014", { bold: true, width: 40 }),
             styledCell(e.dossier?.eigenaar || "\u2014", { width: 15 }),
-            styledCell(statusLabels[e.status] || e.status, { width: 15 }),
+            styledCell(STATUS_LABELS[e.status] || e.status, { width: 15 }),
           ],
         })
     );

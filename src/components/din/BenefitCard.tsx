@@ -48,6 +48,7 @@ export default function BenefitCard({
 }: BenefitCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<BenefitSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
@@ -95,6 +96,7 @@ export default function BenefitCard({
   async function handleAISuggest() {
     if (!onAISuggest || isAILoading) return;
     setIsAILoading(true);
+    setAiError(false);
     try {
       const prefix = buildPromptPrefix();
       const fullPrompt = prefix + (userPrompt || "");
@@ -105,6 +107,7 @@ export default function BenefitCard({
       }
     } catch (e) {
       console.error("AI suggestie mislukt:", e);
+      setAiError(true);
     } finally {
       setIsAILoading(false);
     }
@@ -219,6 +222,7 @@ export default function BenefitCard({
           )}
           <button
             onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
             className="text-xs text-gray-400 hover:text-cito-blue px-1"
             title={expanded ? "Inklappen" : "Profiel bewerken"}
           >
@@ -312,6 +316,9 @@ export default function BenefitCard({
               {isAILoading ? "Bezig..." : "Aanscherpen"}
             </button>
           </div>
+          {aiError && (
+            <p className="text-red-500 text-xs mt-1">AI-suggestie mislukt. Probeer het opnieuw.</p>
+          )}
         </div>
       )}
 

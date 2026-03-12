@@ -7,6 +7,7 @@ import type {
   DINCapability,
   EffortDomain,
 } from "@/lib/types";
+import { DOMAIN_LABELS } from "@/lib/types";
 
 // --- Types ---
 
@@ -170,12 +171,6 @@ const DOMEIN_VRAGEN: WizardQuestion[] = [
   },
 ];
 
-const DOMAIN_LABELS: Record<EffortDomain, string> = {
-  mens: "Mens",
-  processen: "Processen",
-  data_systemen: "Data & Systemen",
-  cultuur: "Cultuur",
-};
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string; dot: string }> = {
   mens: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", dot: "bg-blue-500" },

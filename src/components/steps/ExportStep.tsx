@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSession } from "@/lib/session-context";
-import { SECTORS } from "@/lib/types";
-import { DOMAIN_LABELS } from "@/components/din/EffortCard";
+import { SECTORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import { buildChainsForSector, findGaps, analyzeHefbomen, getDomainBalance } from "@/lib/din-service";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 
@@ -21,29 +20,17 @@ const SECTOR_ACCENT: Record<SectorName, string> = {
   Zakelijk: "border-l-purple-500",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  gepland: "Gepland",
-  in_uitvoering: "In uitvoering",
-  afgerond: "Afgerond",
-  on_hold: "On hold",
-};
-const STATUS_STYLE: Record<string, string> = {
-  gepland: "bg-gray-100 text-gray-600",
-  in_uitvoering: "bg-blue-100 text-blue-700",
-  afgerond: "bg-emerald-100 text-emerald-700",
-  on_hold: "bg-amber-100 text-amber-700",
-};
 
 // --- Layout componenten ---
 
 function DocumentTitlePage({ session }: { session: DINSession }) {
   return (
-    <div className="text-center py-16 border-b-2 border-[#003366]/20">
+    <div className="text-center py-16 border-b-2 border-cito-blue/20">
       <div className="text-xs uppercase tracking-[0.3em] text-gray-400 mb-6">
         Doelen-Inspanningennetwerk
       </div>
-      <h1 className="text-3xl font-bold text-[#003366] mb-3">Programmaplan</h1>
-      <h2 className="text-xl text-[#003366]/70 mb-2">{session.name}</h2>
+      <h1 className="text-3xl font-bold text-cito-blue mb-3">Programmaplan</h1>
+      <h2 className="text-xl text-cito-blue/70 mb-2">{session.name}</h2>
       <div className="text-xs text-gray-400 mb-8">
         Methodiek: Werken aan Programma&apos;s (Prevaas &amp; Van Loon)
       </div>
@@ -59,7 +46,7 @@ function DocumentTitlePage({ session }: { session: DINSession }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-10">
-      <h2 className="text-lg font-bold text-[#003366] mb-4 pb-2 border-b border-[#003366]/15">
+      <h2 className="text-lg font-bold text-cito-blue mb-4 pb-2 border-b border-cito-blue/15">
         {title}
       </h2>
       {children}
@@ -70,7 +57,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-6">
-      <h3 className="text-sm font-bold text-[#003366]/80 mb-3 uppercase tracking-wide">
+      <h3 className="text-sm font-bold text-cito-blue/80 mb-3 uppercase tracking-wide">
         {title}
       </h3>
       {children}
@@ -140,7 +127,7 @@ function GoalsBlock({ session }: { session: DINSession }) {
       <div className="space-y-3">
         {session.goals.sort((a, b) => a.rank - b.rank).map((goal) => (
           <div key={goal.id} className="flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-[#003366] text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-8 h-8 rounded-full bg-cito-blue text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
               {goal.rank}
             </div>
             <div>
@@ -178,7 +165,7 @@ function DINKetenBlock({ session }: { session: DINSession }) {
 
       {goalsWithData.map((goal) => (
         <div key={goal.id} className="mb-10 last:mb-0">
-          <h3 className="text-sm font-bold text-[#003366] mb-4 pb-1 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-cito-blue mb-4 pb-1 border-b border-gray-100">
             Doel {goal.rank}: {goal.name}
           </h3>
 
@@ -197,7 +184,7 @@ function DINKetenBlock({ session }: { session: DINSession }) {
                   <div key={chain.benefit.id} className="mb-4 last:mb-2">
                     {/* Baat */}
                     <div className="flex items-start gap-2 mb-2">
-                      <span className="text-[10px] font-bold text-white bg-[#003366] rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                      <span className="text-[10px] font-bold text-white bg-cito-blue rounded px-1.5 py-0.5 shrink-0 mt-0.5">
                         BAAT
                       </span>
                       <div className="text-xs">
@@ -227,7 +214,7 @@ function DINKetenBlock({ session }: { session: DINSession }) {
                     {chain.links.map((link) => (
                       <div key={link.capability.id} className="ml-6 mb-2">
                         <div className="flex items-start gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-[#003366] bg-[#003366]/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                          <span className="text-[10px] font-bold text-cito-blue bg-cito-blue/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
                             VERM
                           </span>
                           <div className="text-xs">
@@ -361,7 +348,7 @@ function CrossAnalyseBlock({ session }: { session: DINSession }) {
           <div className="space-y-1.5">
             {sharedCaps.map(([cap, sectors], i) => (
               <div key={i} className="flex items-start gap-2 text-xs">
-                <span className="text-[#003366] mt-0.5 shrink-0">&bull;</span>
+                <span className="text-cito-blue mt-0.5 shrink-0">&bull;</span>
                 <span className="text-gray-700">
                   {cap}
                   <span className="text-gray-400 ml-1">— Sectoren: {Array.from(sectors).join(", ")}</span>
@@ -472,9 +459,9 @@ function HefboomBlock({ session }: { session: DINSession }) {
       </p>
 
       {multiSectorClusters.map(({ goal, cluster, chains }, i) => (
-        <div key={i} className="mb-4 p-4 bg-[#003366]/5 rounded-lg border border-[#003366]/10">
+        <div key={i} className="mb-4 p-4 bg-cito-blue/5 rounded-lg border border-cito-blue/10">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-bold text-[#003366]">
+            <span className="text-xs font-bold text-cito-blue">
               {cluster.theme}
             </span>
             <span className="text-[10px] text-gray-400">
@@ -645,8 +632,8 @@ function ExterneProjectenBlock({ session }: { session: DINSession }) {
                 <td className="px-3 py-2 text-gray-600">{p.sectorId}</td>
                 <td className="px-3 py-2 text-gray-600">{p.description}</td>
                 <td className="px-3 py-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLE[p.status] || "bg-gray-100 text-gray-600"}`}>
-                    {STATUS_LABEL[p.status] || p.status}
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLES[p.status] || "bg-gray-100 text-gray-600"}`}>
+                    {STATUS_LABELS[p.status] || p.status}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-gray-600">{p.relevance || "—"}</td>
@@ -718,7 +705,7 @@ function SectorBlocks({ session }: { session: DINSession }) {
 
         return (
           <div key={sector} className={`mb-8 last:mb-0 border-l-4 ${accent} pl-5`}>
-            <h3 className="text-sm font-bold text-[#003366] mb-4">Sector {sector}</h3>
+            <h3 className="text-sm font-bold text-cito-blue mb-4">Sector {sector}</h3>
 
             {/* Baten met volledig profiel */}
             {sectorBenefits.length > 0 && (
@@ -869,7 +856,7 @@ function RoadmapBlock({ session }: { session: DINSession }) {
           const qEfforts = session.efforts.filter((e) => e.quarter === q);
           return (
             <div key={q}>
-              <h4 className="text-sm font-bold text-[#003366]/70 mb-2">{q}</h4>
+              <h4 className="text-sm font-bold text-cito-blue/70 mb-2">{q}</h4>
               <div className="overflow-hidden border border-gray-200 rounded-lg">
                 <table className="w-full text-xs">
                   <thead>
@@ -889,8 +876,8 @@ function RoadmapBlock({ session }: { session: DINSession }) {
                         <td className="px-3 py-2 font-medium text-gray-800">{e.title || e.description}</td>
                         <td className="px-3 py-2 text-gray-600">{e.dossier?.eigenaar || "—"}</td>
                         <td className="px-3 py-2">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLE[e.status] || "bg-gray-100 text-gray-600"}`}>
-                            {STATUS_LABEL[e.status] || e.status}
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLES[e.status] || "bg-gray-100 text-gray-600"}`}>
+                            {STATUS_LABELS[e.status] || e.status}
                           </span>
                         </td>
                       </tr>
@@ -950,7 +937,7 @@ export default function ExportStep() {
       {/* Export actie-balk */}
       <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-5">
         <div>
-          <h3 className="text-base font-bold text-[#003366] mb-1">Programmaplan exporteren</h3>
+          <h3 className="text-base font-bold text-cito-blue mb-1">Programmaplan exporteren</h3>
           <p className="text-xs text-gray-500">
             Volledig programmaplan als professioneel Word document — alle DIN-methodiek informatie
           </p>
@@ -962,7 +949,7 @@ export default function ExportStep() {
           <button
             onClick={handleExportWord}
             disabled={isExportingWord || !hasContent}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#003366] text-white rounded-lg text-sm font-medium hover:bg-[#004488] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isExportingWord ? (
               <>
@@ -988,7 +975,7 @@ export default function ExportStep() {
       <div className="grid grid-cols-4 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-[#003366]">{s.count}</div>
+            <div className="text-2xl font-bold text-cito-blue">{s.count}</div>
             <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
           </div>
         ))}

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { DINSession, AppStep } from "./types";
+import { APP_STEPS } from "./types";
 import { loadLocal, saveLocal } from "./persistence";
 
 interface SessionContextValue {
@@ -36,15 +37,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (step: AppStep) => {
       setCurrentStepState(step);
       if (session) {
-        const stepIndex = [
-          "import",
-          "sectorwerk",
-          "cross-analyse",
-          "din-mapping",
-          "prioritering",
-          "export",
-        ].indexOf(step);
-        const updated = { ...session, currentStep: stepIndex, updatedAt: new Date().toISOString() };
+        const stepIndex = APP_STEPS.findIndex(s => s.key === step);
+        const updated = { ...session, currentStep: stepIndex >= 0 ? stepIndex : 0, updatedAt: new Date().toISOString() };
         setSession(updated);
         saveLocal(`session_${session.id}`, updated);
       }
@@ -56,15 +50,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const loaded = loadLocal<DINSession>(`session_${id}`);
     if (loaded) {
       setSession(loaded);
-      const steps: AppStep[] = [
-        "import",
-        "sectorwerk",
-        "cross-analyse",
-        "din-mapping",
-        "prioritering",
-        "export",
-      ];
-      setCurrentStepState(steps[loaded.currentStep] || "import");
+      const step = APP_STEPS[loaded.currentStep]?.key || "import";
+      setCurrentStepState(step);
     }
   }, []);
 

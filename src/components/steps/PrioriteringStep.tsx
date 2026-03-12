@@ -2,19 +2,10 @@
 
 import { useState } from "react";
 import { useSession } from "@/lib/session-context";
-import { SECTORS, SECTOR_COLORS } from "@/lib/types";
+import { SECTORS, SECTOR_COLORS, DOMAIN_LABELS, generateQuarters } from "@/lib/types";
 import type { SectorName, EffortDomain, ApprovalStatus, DINEffort } from "@/lib/types";
-import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 
-const QUARTERS = [
-  "Nader te bepalen",
-  "Q1 2026",
-  "Q2 2026",
-  "Q3 2026",
-  "Q4 2026",
-  "Q1 2027",
-  "Q2 2027",
-];
+const QUARTERS = ["Nader te bepalen", ...generateQuarters()];
 
 const DOMAIN_COLORS: Record<EffortDomain, { bar: string; bg: string; text: string }> = {
   mens: { bar: "#2563eb", bg: "bg-blue-50", text: "text-blue-700" },

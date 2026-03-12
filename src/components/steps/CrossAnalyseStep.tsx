@@ -8,7 +8,7 @@ import {
   findGaps,
 } from "@/lib/din-service";
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
-import { DOMAIN_LABELS } from "@/components/din/EffortCard";
+import { DOMAIN_LABELS } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
 import type { EffortDomain, SectorName, CrossAnalyseResult } from "@/lib/types";
 

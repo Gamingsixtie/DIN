@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { DINSession, DINEffort, DINCapability, EffortDomain, SectorName } from "@/lib/types";
-import { SECTORS, SECTOR_COLORS } from "@/lib/types";
+import { SECTORS, SECTOR_COLORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import { buildChainsForSector } from "@/lib/din-service";
 import type { DINChain } from "@/lib/din-service";
 
@@ -13,12 +13,6 @@ const DOMAIN_COLORS: Record<EffortDomain, { border: string; bg: string; text: st
   cultuur: { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
 };
 
-const DOMAIN_LABELS: Record<EffortDomain, string> = {
-  mens: "Mens",
-  processen: "Processen",
-  data_systemen: "Data & Systemen",
-  cultuur: "Cultuur",
-};
 
 const DOMAIN_BAR_COLORS: Record<EffortDomain, string> = {
   mens: "#3b82f6",
@@ -27,12 +21,6 @@ const DOMAIN_BAR_COLORS: Record<EffortDomain, string> = {
   cultuur: "#f59e0b",
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  gepland: { label: "Gepland", color: "bg-gray-100 text-gray-600" },
-  in_uitvoering: { label: "Actief", color: "bg-green-100 text-green-700" },
-  afgerond: { label: "Afgerond", color: "bg-blue-100 text-blue-700" },
-  on_hold: { label: "On hold", color: "bg-amber-100 text-amber-700" },
-};
 
 const SECTOR_BORDER_COLORS: Record<SectorName, string> = {
   PO: "border-blue-300",
@@ -102,17 +90,17 @@ function ChainArrow() {
 // --- Chain Row: Baat → Vermogen(s) → Inspanning(en) — UX-16: responsive, UX-19: tooltips ---
 function ChainRow({
   chain,
-  chainIndex,
+  chainKey,
   highlightedChain,
   onHover,
 }: {
   chain: DINChain;
-  chainIndex: number;
-  highlightedChain: number | null;
-  onHover: (idx: number | null) => void;
+  chainKey: string;
+  highlightedChain: string | null;
+  onHover: (key: string | null) => void;
 }) {
-  const isHighlighted = highlightedChain === null || highlightedChain === chainIndex;
-  const isDimmed = highlightedChain !== null && highlightedChain !== chainIndex;
+  const isHighlighted = highlightedChain === null || highlightedChain === chainKey;
+  const isDimmed = highlightedChain !== null && highlightedChain !== chainKey;
 
   // UX-19: Tooltip content builders
   const benefitTooltip = [
@@ -125,7 +113,7 @@ function ChainRow({
   return (
     <div
       className={`flex flex-col md:flex-row items-stretch gap-1 md:gap-0 transition-opacity duration-200 ${isDimmed ? "opacity-40" : "opacity-100"}`}
-      onMouseEnter={() => onHover(chainIndex)}
+      onMouseEnter={() => onHover(chainKey)}
       onMouseLeave={() => onHover(null)}
     >
       {/* Baat — UX-19: tooltip */}
@@ -235,11 +223,12 @@ function ChainRow({
 // Effort chip with domain color — UX-19: tooltip
 function EffortChip({ effort, highlighted }: { effort: DINEffort; highlighted: boolean }) {
   const dc = DOMAIN_COLORS[effort.domain] || DOMAIN_COLORS.mens;
-  const st = STATUS_LABELS[effort.status] || STATUS_LABELS.gepland;
+  const statusLabel = STATUS_LABELS[effort.status] || STATUS_LABELS.gepland;
+  const statusStyle = STATUS_STYLES[effort.status] || STATUS_STYLES.gepland;
   const effortTooltip = [
     `Domein: ${DOMAIN_LABELS[effort.domain]}`,
     effort.quarter && `Planning: ${effort.quarter}`,
-    `Status: ${st.label}`,
+    `Status: ${statusLabel}`,
     effort.responsibleSector && `Sector: ${effort.responsibleSector}`,
   ].filter(Boolean).join(" | ");
   return (
@@ -255,7 +244,7 @@ function EffortChip({ effort, highlighted }: { effort: DINEffort; highlighted: b
       <div className="flex items-center gap-1.5 mt-0.5">
         {effort.quarter && <span className="text-[8px] text-gray-400">{effort.quarter}</span>}
         {effort.status && effort.status !== "gepland" && (
-          <span className={`text-[8px] px-1 rounded ${st.color}`}>{st.label}</span>
+          <span className={`text-[8px] px-1 rounded ${statusStyle}`}>{statusLabel}</span>
         )}
       </div>
     </div>
@@ -330,7 +319,7 @@ interface DINNetworkGraphProps {
 
 export default function DINNetworkGraph({ session, searchQuery = "" }: DINNetworkGraphProps) {
   const [collapsedGoals, setCollapsedGoals] = useState<Set<string>>(new Set());
-  const [highlightedChain, setHighlightedChain] = useState<number | null>(null);
+  const [highlightedChain, setHighlightedChain] = useState<string | null>(null);
 
   function toggleGoal(id: string) {
     const next = new Set(collapsedGoals);
@@ -560,7 +549,7 @@ export default function DINNetworkGraph({ session, searchQuery = "" }: DINNetwor
                                       <div key={chain.benefit.id} className={`transition-opacity duration-200 ${searchQuery && !isSearchMatch ? "opacity-25" : "opacity-100"}`}>
                                         <ChainRow
                                           chain={chain}
-                                          chainIndex={idx}
+                                          chainKey={`${sector}-${idx}`}
                                           highlightedChain={highlightedChain}
                                           onHover={setHighlightedChain}
                                         />

@@ -2,10 +2,9 @@
 
 import { useState, useMemo } from "react";
 import type { DINSession, DINBenefit, DINCapability, DINEffort, EffortDomain, SectorName } from "@/lib/types";
-import { SECTORS, SECTOR_COLORS } from "@/lib/types";
+import { SECTORS, SECTOR_COLORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES, STATUS_BORDER_COLORS } from "@/lib/types";
 import { findSharedCapabilities, findGaps, buildChainsForSector, analyzeHefbomen, findEffortClusters } from "@/lib/din-service";
 import type { BenefitCluster, ClusterSectorChain, EffortCluster } from "@/lib/din-service";
-import { DOMAIN_LABELS } from "@/components/din/EffortCard";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 
 type ViewMode = "grafisch" | "tabel";
@@ -16,26 +15,6 @@ interface MergedDINViewProps {
   onSwitchToEdit: () => void;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  gepland: "bg-gray-100 text-gray-600",
-  in_uitvoering: "bg-green-100 text-green-700",
-  afgerond: "bg-blue-100 text-blue-700",
-  on_hold: "bg-amber-100 text-amber-700",
-};
-
-const STATUS_TEXT: Record<string, string> = {
-  gepland: "Gepland",
-  in_uitvoering: "Actief",
-  afgerond: "Afgerond",
-  on_hold: "On hold",
-};
-
-const STATUS_BORDER_COLORS: Record<string, string> = {
-  gepland: "#d1d5db",
-  in_uitvoering: "#22c55e",
-  afgerond: "#3b82f6",
-  on_hold: "#f59e0b",
-};
 
 const DOMAIN_BAR_COLORS: Record<EffortDomain, string> = {
   mens: "#3b82f6",
@@ -709,7 +688,7 @@ function SectorContent({
                                       <HighlightText text={e.title || e.description || "(naamloos)"} query={searchQuery} />
                                     </span>
                                     {e.quarter && <span className="text-[10px] bg-white text-gray-500 px-1.5 py-0.5 rounded shrink-0">{e.quarter}</span>}
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${STATUS_STYLES[e.status] || ""}`}>{STATUS_TEXT[e.status] || e.status}</span>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${STATUS_STYLES[e.status] || ""}`}>{STATUS_LABELS[e.status] || e.status}</span>
                                   </div>
                                 ))}
                               </div>
