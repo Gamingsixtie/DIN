@@ -128,6 +128,14 @@ export default function Home() {
               Cultuur
             </div>
           </div>
+          <div className="mt-4 pt-4 border-t border-cito-border text-center">
+            <a
+              href="/methodiek"
+              className="text-sm text-cito-accent hover:text-cito-blue font-medium transition-colors"
+            >
+              Bekijk de methodiek-toelichting →
+            </a>
+          </div>
         </div>
 
         {/* Sessies */}
