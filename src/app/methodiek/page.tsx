@@ -245,15 +245,126 @@ export default function MethodiekPage() {
             </div>
           </div>
 
-          {/* batenprofielen uitleg */}
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
-            <h4 className="font-bold text-blue-900 mb-1">Batenprofielen: baten concreet maken</h4>
-            <p className="text-blue-800 text-sm leading-relaxed">
-              Elke baat wordt uitgewerkt in een <strong>batenprofiel</strong>: wat meten we
-              precies (indicator), wie is verantwoordelijk (eigenaar), wat is de huidige
-              situatie (nulmeting), wat willen we bereiken (streefwaarde), en wanneer meten
-              we het resultaat (meetmoment). Zo wordt elke baat toetsbaar en concreet.
-            </p>
+          {/* Uitgewerkte voorbeeldkaarten */}
+          <div className="bg-white rounded-2xl border border-cito-border shadow-sm overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-cito-border bg-gray-50/50">
+              <h3 className="font-bold text-gray-900">Zo ziet dat er in de praktijk uit</h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Elk niveau wordt concreet uitgewerkt in een kaart met alle relevante informatie
+              </p>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* ─── Baat voorbeeld ─── */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#0066cc" }} />
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#0066cc" }}>Baat</span>
+                </div>
+                <div className="border-2 rounded-xl p-4" style={{ borderColor: "#0066cc30" }}>
+                  <h4 className="font-bold text-gray-900 mb-1">Hogere klanttevredenheid</h4>
+                  <p className="text-sm text-gray-600 mb-3">Klanten ervaren dat Cito beter aansluit bij hun behoeften en verwachtingen</p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Batenprofiel</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                      <div>
+                        <span className="text-gray-400 text-xs">Indicator</span>
+                        <p className="text-gray-700 font-medium">NPS-score</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Eigenaar</span>
+                        <p className="text-gray-700 font-medium">Sectormanager PO</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Huidige waarde</span>
+                        <p className="text-gray-700 font-medium">32</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Streefwaarde</span>
+                        <p className="text-gray-700 font-medium">45</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Meetmethode</span>
+                        <p className="text-gray-700 font-medium">Jaarlijkse NPS-enquête</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Meetmoment</span>
+                        <p className="text-gray-700 font-medium">Q4 2026</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── Vermogen voorbeeld ─── */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#0891b2" }} />
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#0891b2" }}>Vermogen</span>
+                </div>
+                <div className="border-2 rounded-xl p-4" style={{ borderColor: "#0891b230" }}>
+                  <h4 className="font-bold text-gray-900 mb-1">Klantgesprek-methodiek</h4>
+                  <p className="text-sm text-gray-600 mb-3">Medewerkers beheersen een gestructureerde aanpak voor klantgesprekken</p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Vermogensprofiel</p>
+                    <div className="space-y-1.5 text-sm">
+                      <div>
+                        <span className="text-gray-400 text-xs">Eigenaar</span>
+                        <p className="text-gray-700 font-medium">Hoofd Commercie</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Huidige situatie</span>
+                        <p className="text-gray-700 font-medium">Klantgesprekken verlopen ad-hoc, geen gedeelde werkwijze</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Gewenste situatie</span>
+                        <p className="text-gray-700 font-medium">Alle accountmanagers werken met dezelfde klantgesprek-methodiek</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── Inspanning voorbeeld ─── */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#059669" }} />
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#059669" }}>Inspanning</span>
+                </div>
+                <div className="border-2 rounded-xl p-4" style={{ borderColor: "#05966930" }}>
+                  <div className="flex items-start justify-between mb-1">
+                    <h4 className="font-bold text-gray-900">Training outside-in werken</h4>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Mens</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">Tweedaagse training voor alle accountmanagers in klantgerichte gespreksvoering</p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inspanningsdossier</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                      <div>
+                        <span className="text-gray-400 text-xs">Eigenaar</span>
+                        <p className="text-gray-700 font-medium">Sectormanager PO</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Inspanningsleider</span>
+                        <p className="text-gray-700 font-medium">HR Business Partner</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Verwacht resultaat</span>
+                        <p className="text-gray-700 font-medium">80% beheerst de methodiek</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Kostenraming</span>
+                        <p className="text-gray-700 font-medium">€ 45.000 (±20%)</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-400 text-xs">Randvoorwaarden</span>
+                        <p className="text-gray-700 font-medium">Externe trainer geselecteerd, management commitment voor vrijroostering</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 4 domeinen — geintegreerd bij inspanningen */}
