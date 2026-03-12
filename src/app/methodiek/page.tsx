@@ -4,10 +4,10 @@ import Link from "next/link";
 
 /* ─── constanten ─── */
 const KETEN = [
-  { label: "Doelen", sub: "Programmadoelstellingen uit Klant in Beeld", color: "#003366" },
-  { label: "Baten", sub: "Gewenste effecten voor klant, markt en organisatie", color: "#0066cc" },
-  { label: "Vermogens", sub: "Wat de organisatie moet kunnen om baten te realiseren", color: "#0891b2" },
-  { label: "Inspanningen", sub: "Concrete projecten en activiteiten die vermogens opbouwen", color: "#059669" },
+  { label: "Doelen", sub: "Programmadoelstellingen uit Klant in Beeld", voorbeeld: "\"Outside-in competentie organisatiebreed verankeren\"", color: "#003366" },
+  { label: "Baten", sub: "Gewenste effecten voor klant, markt en organisatie", voorbeeld: "\"NPS stijgt van 32 naar 45\"", color: "#0066cc" },
+  { label: "Vermogens", sub: "Wat de organisatie moet kunnen om baten te realiseren", voorbeeld: "\"Medewerkers beheersen klantgesprek-methodiek\"", color: "#0891b2" },
+  { label: "Inspanningen", sub: "Concrete projecten en activiteiten die vermogens opbouwen", voorbeeld: "\"Training outside-in werken (Q2 2026)\"", color: "#059669" },
 ] as const;
 
 const DOMEINEN = [
@@ -153,13 +153,13 @@ export default function MethodiekPage() {
               <div className="p-5">
                 <h4 className="font-bold text-gray-900 mb-1">Programmadoelen</h4>
                 <p className="text-sm text-gray-500">
-                  De top-doelen die via dot voting zijn vastgesteld en geprioriteerd.
+                  De top-doelen die via een stemmronde zijn vastgesteld en geprioriteerd.
                 </p>
               </div>
               <div className="p-5">
-                <h4 className="font-bold text-gray-900 mb-1">Scope</h4>
+                <h4 className="font-bold text-gray-900 mb-1">Afbakening</h4>
                 <p className="text-sm text-gray-500">
-                  Wat valt binnen en buiten de scope van het programma.
+                  Wat valt binnen en buiten de afbakening van het programma.
                 </p>
               </div>
             </div>
@@ -180,7 +180,9 @@ export default function MethodiekPage() {
             Elke sector werkt het Doelen-Inspanningennetwerk apart uit. Bij elk programmadoel
             stellen we de <strong>hoe-vraag</strong>: <em>&ldquo;Hoe bereiken we dit doel?&rdquo;</em> —
             welke baten willen we zien, welke vermogens zijn daarvoor nodig, en welke
-            inspanningen bouwen die vermogens op?
+            inspanningen bouwen die vermogens op? Andersom kun je ook de <strong>waartoe-vraag</strong> stellen:
+            <em>&ldquo;Waartoe dient deze inspanning?&rdquo;</em> — zo controleer je of elke
+            inspanning daadwerkelijk bijdraagt aan een programmadoel.
           </p>
 
           {/* sector cards */}
@@ -225,6 +227,7 @@ export default function MethodiekPage() {
                       {k.label}
                     </h4>
                     <p className="text-sm text-gray-600 mt-0.5">{k.sub}</p>
+                    <p className="text-xs text-gray-400 mt-1 italic">Voorbeeld: {k.voorbeeld}</p>
                   </div>
                 </div>
               ))}
@@ -234,11 +237,23 @@ export default function MethodiekPage() {
                 <p className="text-sm text-gray-500 leading-relaxed">
                   <strong className="text-gray-700">Veranderstrategie:</strong> Tussen de bovenste
                   niveaus (doelen en baten) en de onderste niveaus (vermogens en inspanningen)
-                  ligt de <em>veranderstrategie</em> — de keuze hoe de organisatie de gewenste
-                  verandering wil realiseren.
+                  ligt de <em>veranderstrategie</em>. Dit is de bewuste keuze <em>hoe</em> de
+                  organisatie de verandering aanpakt: stapsgewijs of in een keer? Via training
+                  en ontwikkeling, via nieuwe systemen, of via cultuurverandering?
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* batenprofielen uitleg */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
+            <h4 className="font-bold text-blue-900 mb-1">Batenprofielen: baten concreet maken</h4>
+            <p className="text-blue-800 text-sm leading-relaxed">
+              Elke baat wordt uitgewerkt in een <strong>batenprofiel</strong>: wat meten we
+              precies (indicator), wie is verantwoordelijk (eigenaar), wat is de huidige
+              situatie (nulmeting), wat willen we bereiken (streefwaarde), en wanneer meten
+              we het resultaat (meetmoment). Zo wordt elke baat toetsbaar en concreet.
+            </p>
           </div>
 
           {/* 4 domeinen — geintegreerd bij inspanningen */}
@@ -299,7 +314,7 @@ export default function MethodiekPage() {
                 </p>
               </div>
               <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                <h4 className="font-semibold text-orange-900 mb-1">Gaps</h4>
+                <h4 className="font-semibold text-orange-900 mb-1">Witte vlekken</h4>
                 <p className="text-sm text-orange-700">
                   Zijn er doelen zonder inspanningen? Ontbreken er vermogens of baten?
                 </p>
@@ -358,9 +373,9 @@ export default function MethodiekPage() {
             <div className="p-5">
               <div className="flex flex-col sm:flex-row items-stretch gap-2">
                 {[
-                  { label: "Klant in Beeld", sub: "Visie, doelen, scope", color: "#003366", num: "1" },
+                  { label: "Klant in Beeld", sub: "Visie, doelen, afbakening", color: "#003366", num: "1" },
                   { label: "Per sector het DIN", sub: "PO · VO · Zakelijk", color: "#0066cc", num: "2" },
-                  { label: "Cross-analyse", sub: "Synergieën & gaps", color: "#059669", num: "3" },
+                  { label: "Cross-analyse", sub: "Synergieën & witte vlekken", color: "#059669", num: "3" },
                   { label: "Programmaplan", sub: "Budget, tijdlijn, besluit", color: "#003366", num: "4" },
                 ].map((stap, i, arr) => (
                   <div key={stap.label} className="flex sm:flex-col items-center gap-2 flex-1">
