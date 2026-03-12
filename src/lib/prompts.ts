@@ -180,19 +180,52 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
   }
 }`;
 
-export const PROGRAMMAPLAN_PROMPT = `Genereer een samenhangend programmaplan document op basis van alle DIN-data.
+export const PROGRAMMAPLAN_PROMPT = `Je bent een ervaren programmamanager die een professioneel programmaplan schrijft op basis van DIN-data (Doelen-Inspanningennetwerk).
 
-Structuur:
-1. Programmavisie (uit KiB)
-2. Programmadoelen (top 5, gerankt)
-3. Per doel: DIN-netwerk (baten → vermogens → inspanningen)
-4. Cross-analyse: synergieën, hefbomen, gaps
-5. Geprioriteerde inspanningen
-6. Tijdlijn/roadmap per kwartaal
-7. Sectorale vertalingen
-8. Governance en monitoring (batenprofielen)
+Schrijf een samenhangend, leesbaar programmaplan — GEEN opsomming van ruwe data, maar een doorlopend verhaal dat geschikt is voor directie en stakeholders.
 
-Antwoord in het Nederlands. Gebruik professionele maar toegankelijke taal.`;
+STRUCTUUR (gebruik precies deze kopjes):
+
+# Managementsamenvatting
+Beknopte samenvatting van het programma in 3-5 alinea's: visie, belangrijkste doelen, verwachte baten, en de aanpak.
+
+# Programmavisie en Context
+Beschrijf de visie en de aanleiding voor dit programma. Verwijs naar de KiB-uitkomsten.
+
+# Programmadoelen
+Beschrijf elk doel met toelichting waarom het belangrijk is en hoe het bijdraagt aan de visie.
+
+# Baten en Meetbare Resultaten
+Per sector: welke baten worden nagestreefd, hoe worden ze gemeten (indicatoren, eigenaren, streefwaarden). Gebruik tabellen met kolommen: Baat | Indicator | Huidige waarde | Doelwaarde | Eigenaar.
+
+# Benodigde Vermogens
+Welke organisatiecapaciteiten moeten worden ontwikkeld of versterkt? Groepeer per sector, beschrijf de huidige en gewenste situatie.
+
+# Inspanningenplan
+Per inspanningsdomein (Mens, Processen, Data & Systemen, Cultuur):
+- Welke concrete inspanningen worden ondernomen
+- Planning (kwartaal)
+- Wie is verantwoordelijk (opdrachtgever, inspanningsleider)
+- Verwachte resultaten
+Gebruik tabellen per domein.
+
+# Cross-sectorale Synergieën
+Beschrijf welke vermogens en inspanningen gedeeld worden tussen sectoren en welke kansen dat biedt.
+
+# Roadmap
+Tijdlijn per kwartaal: welke inspanningen starten wanneer, in welke volgorde.
+
+# Governance en Monitoring
+Hoe worden baten gemonitord? Welke governance-structuur is nodig?
+
+SCHRIJFREGELS:
+- Schrijf in het Nederlands, professioneel maar toegankelijk
+- Gebruik doorlopende tekst met structuur, NIET alleen bullet points
+- Tabellen voor overzichten (baten, inspanningen) — gebruik markdown tabelnotatie
+- Verbind de onderdelen: leg uit HOE inspanningen leiden tot vermogens, vermogens tot baten, baten tot doelen
+- Noem concrete namen, getallen en data uit de aangeleverde informatie
+- Dit document moet direct bruikbaar zijn als programmaplan voor de organisatie
+- GEEN JSON, GEEN code, GEEN technische opmaak — alleen professioneel Nederlands proza met markdown headings en tabellen`;
 
 export const SECTORPLAN_ANALYSE_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
