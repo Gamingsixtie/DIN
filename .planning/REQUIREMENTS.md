@@ -1,0 +1,111 @@
+# Requirements: DIN — Doelen-Inspanningennetwerk
+
+**Defined:** 2026-03-30
+**Core Value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output is getoetst aan het programmaboek, en het resultaat is een samenhangende keten van doelen → baten → vermogens → inspanningen.
+
+## v1 Requirements
+
+Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap-fases.
+
+### Data-integriteit
+
+- [ ] **DATA-01**: Sectorwerk-analyse resultaten stromen automatisch door als suggesties in de DIN-mapping stap
+- [ ] **DATA-02**: AI responses worden gevalideerd met Zod schema's — geen gebroken JSON of ongestructureerde output
+- [ ] **DATA-03**: Session state management gebruikt functionele updaters — geen race conditions bij gelijktijdige operaties
+- [ ] **DATA-04**: Sectorwerk analyse wordt opgeslagen als getypeerd object (SectorplanAnalyseResult), niet als markdown string
+
+### AI-kwaliteit
+
+- [ ] **AI-01**: Relevante secties uit docs/programmaboek.doc worden als context meegegeven aan alle AI-prompts
+- [ ] **AI-02**: AI genereert maximaal 2-4 baten per doel per sector, met methodiek-conforme titels (vergrotende trap)
+- [ ] **AI-03**: KiB visie en scope worden meegegeven aan alle AI-generatie stappen (DIN-mapping, cross-analyse, sectorintegratie)
+- [ ] **AI-04**: AI-output wordt gevalideerd tegen DIN-methodiek regels voordat het wordt opgeslagen (baten = effecten, vermogens = werkwoorden, inspanningen = concrete activiteiten)
+
+### Cyclisch werken
+
+- [ ] **CYCL-01**: Gebruiker kan één doel selecteren en dat volledig door het DIN-netwerk uitwerken voordat het volgende begint
+- [ ] **CYCL-02**: Context van eerder uitgewerkte doelen wordt meegegeven bij het uitwerken van volgende doelen (voorkom duplicatie)
+- [ ] **CYCL-03**: Voortgangsindicatie per doel — welke doelen zijn volledig uitgewerkt, welke nog niet
+
+### Cross-analyse
+
+- [ ] **CROSS-01**: Cross-analyse herkent gedeelde baten over PO/VO/Zakelijk sectoren (semantisch, niet alleen exacte match)
+- [ ] **CROSS-02**: Cross-analyse herkent gedeelde vermogens die voor meerdere sectoren gelden
+- [ ] **CROSS-03**: Cross-analyse herkent gedeelde inspanningen die meerdere sectoren dienen en consolideert deze
+- [ ] **CROSS-04**: Dutch tokenizer gerepareerd — correcte woordsplitsing voor samengestelde woorden
+
+### Export & visualisatie
+
+- [ ] **EXP-01**: Compleet programmaplan als Word-export met alle DIN-secties, inhoudsopgave en genummerde kopjes
+- [ ] **EXP-02**: DIN-overzicht met visuele weergave van het netwerk (doelen → baten → vermogens → inspanningen) in export
+- [ ] **EXP-03**: Roadmap/tijdlijn met kwartaalplanning van inspanningen en afhankelijkheden
+- [ ] **EXP-04**: Integratieadvies-stap verwijderd uit de wizard flow
+
+## v2 Requirements
+
+Uitgesteld naar toekomstige release. Bijgehouden maar niet in huidige roadmap.
+
+### Visualisatie
+
+- **VIS-01**: Interactieve DIN-netwerk graph met klikbare nodes en detail-panels
+- **VIS-02**: Gantt-chart weergave voor inspanningen met afhankelijkheden
+
+### Samenwerking
+
+- **COLLAB-01**: Export/import van sessies als bestand voor delen met collega's
+- **COLLAB-02**: Approval workflow voor inspanningen (PSC goedkeuring)
+
+### Geavanceerde analyse
+
+- **ADV-01**: Gap-analyse met actionable "fix dit gat" knoppen
+- **ADV-02**: Domeinbalans-analyse met visuele warnings bij scheefgroei
+
+## Out of Scope
+
+Expliciet uitgesloten. Gedocumenteerd om scope creep te voorkomen.
+
+| Feature | Reden |
+|---------|-------|
+| Multi-user samenwerking | App voor één gebruiker — localStorage-first |
+| Database-first (Supabase) | Voegt complexiteit toe zonder meerwaarde voor single-user |
+| Realtime sync | Niet nodig voor single-user |
+| Free-form AI chat | Methodiek vereist gestructureerde output, geen open gesprek |
+| PDF export (primair) | Word is standaard in Nederlands programmamanagement |
+| Role-based access control | Geen rollen nodig voor single-user |
+| Generic PM features (taakborden, tijdregistratie) | Dit is een methodiek-tool, geen PM-tool |
+| Automatische AI zonder review | Methodiek vereist menselijk oordeel bij elke stap |
+
+## Traceability
+
+Welke fases dekken welke requirements. Wordt ingevuld tijdens roadmap-creatie.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DATA-01 | - | Pending |
+| DATA-02 | - | Pending |
+| DATA-03 | - | Pending |
+| DATA-04 | - | Pending |
+| AI-01 | - | Pending |
+| AI-02 | - | Pending |
+| AI-03 | - | Pending |
+| AI-04 | - | Pending |
+| CYCL-01 | - | Pending |
+| CYCL-02 | - | Pending |
+| CYCL-03 | - | Pending |
+| CROSS-01 | - | Pending |
+| CROSS-02 | - | Pending |
+| CROSS-03 | - | Pending |
+| CROSS-04 | - | Pending |
+| EXP-01 | - | Pending |
+| EXP-02 | - | Pending |
+| EXP-03 | - | Pending |
+| EXP-04 | - | Pending |
+
+**Coverage:**
+- v1 requirements: 19 total
+- Mapped to phases: 0
+- Unmapped: 19 ⚠️
+
+---
+*Requirements defined: 2026-03-30*
+*Last updated: 2026-03-30 after initial definition*
