@@ -64,7 +64,7 @@ describe("schema structure", () => {
     expect(result.success).toBe(false);
   });
 
-  test("DINBenefitSchema.safeParse met ontbrekend optioneel title veld -> success: true, title krijgt default ''", () => {
+  test("DINBenefitSchema.safeParse met ontbrekend optioneel title veld -> success: true, title is undefined", () => {
     const result = DINBenefitSchema.safeParse({
       id: "b1",
       goalId: "g1",
@@ -79,7 +79,7 @@ describe("schema structure", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.title).toBe("");
+      expect(result.data.title).toBeUndefined();
     }
   });
 });
@@ -155,7 +155,7 @@ describe("AI response schemas", () => {
 // ============================================================
 
 describe("legacy data defaults", () => {
-  test("DINBenefitSchema.safeParse met ontbrekend profiel.meetmethode -> success: true, krijgt default ''", () => {
+  test("DINBenefitSchema.safeParse met ontbrekend profiel.meetmethode -> success: true, veld is undefined", () => {
     const result = DINBenefitSchema.safeParse({
       id: "b1",
       goalId: "g1",
@@ -170,7 +170,7 @@ describe("legacy data defaults", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.profiel.meetmethode).toBe("");
+      expect(result.data.profiel.meetmethode).toBeUndefined();
     }
   });
 
