@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Alle opgeslagen DIN-data (baten, vermogens, inspanningen) zijn getypeerde objecten, niet ruwe strings
 **Plans:** 3 plans
 Plans:
-- [ ] 01-01-PLAN.md — Zod schemas als single source of truth + types.ts herschrijving
+- [x] 01-01-PLAN.md — Zod schemas als single source of truth + types.ts herschrijving
 - [ ] 01-02-PLAN.md — AI validatie pipeline (parseAIResponse + retry) + API routes refactoring
 - [ ] 01-03-PLAN.md — KiB import validatie + client-side parsing cleanup
 
