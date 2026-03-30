@@ -33,7 +33,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Elke AI response wordt gevalideerd tegen een Zod schema voordat deze wordt opgeslagen
   2. Bij een AI response die niet voldoet aan het schema, krijgt de gebruiker een foutmelding (geen stille corruptie)
   3. Alle opgeslagen DIN-data (baten, vermogens, inspanningen) zijn getypeerde objecten, niet ruwe strings
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Zod schemas als single source of truth + types.ts herschrijving
+- [ ] 01-02-PLAN.md — AI validatie pipeline (parseAIResponse + retry) + API routes refactoring
+- [ ] 01-03-PLAN.md — KiB import validatie + client-side parsing cleanup
 
 ### Phase 2: State Management & Persistence
 **Goal**: Sessiedata wordt betrouwbaar opgeslagen zonder dataverlies bij gelijktijdige operaties
@@ -140,7 +144,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Zod Schema Validatie | 0/0 | Not started | - |
+| 1. Zod Schema Validatie | 0/3 | Planning complete | - |
 | 2. State Management & Persistence | 0/0 | Not started | - |
 | 3. Programmaboek Context Pipeline | 0/0 | Not started | - |
 | 4. AI Output Kwaliteit | 0/0 | Not started | - |
