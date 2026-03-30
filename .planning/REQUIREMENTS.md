@@ -77,35 +77,35 @@ Expliciet uitgesloten. Gedocumenteerd om scope creep te voorkomen.
 
 ## Traceability
 
-Welke fases dekken welke requirements. Wordt ingevuld tijdens roadmap-creatie.
+Welke fases dekken welke requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | - | Pending |
-| DATA-02 | - | Pending |
-| DATA-03 | - | Pending |
-| DATA-04 | - | Pending |
-| AI-01 | - | Pending |
-| AI-02 | - | Pending |
-| AI-03 | - | Pending |
-| AI-04 | - | Pending |
-| CYCL-01 | - | Pending |
-| CYCL-02 | - | Pending |
-| CYCL-03 | - | Pending |
-| CROSS-01 | - | Pending |
-| CROSS-02 | - | Pending |
-| CROSS-03 | - | Pending |
-| CROSS-04 | - | Pending |
-| EXP-01 | - | Pending |
-| EXP-02 | - | Pending |
-| EXP-03 | - | Pending |
-| EXP-04 | - | Pending |
+| DATA-01 | Phase 5 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 2 | Pending |
+| DATA-04 | Phase 5 | Pending |
+| AI-01 | Phase 3 | Pending |
+| AI-02 | Phase 4 | Pending |
+| AI-03 | Phase 4 | Pending |
+| AI-04 | Phase 4 | Pending |
+| CYCL-01 | Phase 6 | Pending |
+| CYCL-02 | Phase 6 | Pending |
+| CYCL-03 | Phase 6 | Pending |
+| CROSS-01 | Phase 8 | Pending |
+| CROSS-02 | Phase 8 | Pending |
+| CROSS-03 | Phase 8 | Pending |
+| CROSS-04 | Phase 7 | Pending |
+| EXP-01 | Phase 10 | Pending |
+| EXP-02 | Phase 10 | Pending |
+| EXP-03 | Phase 10 | Pending |
+| EXP-04 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 after roadmap creation*
