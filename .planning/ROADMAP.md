@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 Plans:
 - [x] 01-01-PLAN.md — Zod schemas als single source of truth + types.ts herschrijving
-- [ ] 01-02-PLAN.md — AI validatie pipeline (parseAIResponse + retry) + API routes refactoring
+- [x] 01-02-PLAN.md — AI validatie pipeline (parseAIResponse + retry) + API routes refactoring
 - [ ] 01-03-PLAN.md — KiB import validatie + client-side parsing cleanup
 
 ### Phase 2: State Management & Persistence
