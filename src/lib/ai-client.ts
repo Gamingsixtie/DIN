@@ -2,6 +2,7 @@
 // Gebruikt Anthropic SDK server-side
 
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 import {
   DIN_MAPPING_PROMPT,
   CROSS_ANALYSE_PROMPT,
@@ -39,6 +40,113 @@ async function callClaude(
 
   const textBlock = response.content.find((b) => b.type === "text");
   return textBlock ? textBlock.text : "";
+}
+
+// ============================================================
+// AI Response parsing & validation (per D-01, D-02, D-03, D-04)
+// ============================================================
+
+export type ParseResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; retryable: boolean };
+
+/**
+ * Extract JSON uit een AI response string.
+ * Verwijdert markdown code blocks en zoekt naar het eerste valide JSON object.
+ */
+export function extractJSON(raw: string): string | null {
+  if (!raw || raw.trim().length === 0) return null;
+
+  const cleaned = raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+
+  // Probeer de hele cleaned string als JSON te parsen
+  try {
+    JSON.parse(cleaned);
+    return cleaned;
+  } catch { /* ga door naar regex fallback */ }
+
+  // Fallback: zoek naar JSON object in de tekst
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      JSON.parse(match[0]);
+      return match[0];
+    } catch { /* geen valide JSON gevonden */ }
+  }
+
+  return null;
+}
+
+/**
+ * Parse en valideer een AI response string tegen een Zod schema.
+ * Retourneert ParseResult met data bij succes, of foutmelding met retryable flag.
+ */
+export function parseAIResponse<T>(raw: string, schema: z.ZodType<T>): ParseResult<T> {
+  const jsonStr = extractJSON(raw);
+  if (!jsonStr) {
+    return {
+      success: false,
+      error: "Geen geldig JSON in AI-antwoord",
+      retryable: true,
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    return {
+      success: false,
+      error: "Ongeldig JSON formaat",
+      retryable: true,
+    };
+  }
+
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => i.message).join(", ");
+    return {
+      success: false,
+      error: `Onverwachte AI-structuur: ${issues}`,
+      retryable: true,
+    };
+  }
+
+  return { success: true, data: result.data };
+}
+
+/**
+ * Roep Claude aan met automatische JSON validatie en retry logica.
+ * Bij ongeldige response: maximaal 2 stille retries (per D-01).
+ * Na alle pogingen gefaald: foutmelding met context (per D-02).
+ */
+export async function callClaudeWithValidation<T>(
+  schema: z.ZodType<T>,
+  systemPrompt: string,
+  userMessage: string,
+  options?: { maxTokens?: number; model?: string }
+): Promise<{ success: true; data: T } | { success: false; error: string }> {
+  const MAX_RETRIES = 2;
+  let lastError = "";
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const raw = await callClaude(
+      systemPrompt,
+      userMessage,
+      options?.maxTokens,
+      (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6") || "claude-sonnet-4-6"
+    );
+    const result = parseAIResponse(raw, schema);
+    if (result.success) {
+      return { success: true, data: result.data };
+    }
+    lastError = result.error;
+  }
+
+  return { success: false, error: lastError };
 }
 
 export async function generateDINMapping(

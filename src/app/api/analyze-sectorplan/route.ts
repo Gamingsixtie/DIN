@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeSectorPlan } from "@/lib/ai-client";
+import { callClaudeWithValidation } from "@/lib/ai-client";
+import { AISectorplanAnalyseSchema } from "@/lib/schemas";
+import { SECTORPLAN_ANALYSE_PROMPT } from "@/lib/prompts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,11 +25,38 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const analysis = await analyzeSectorPlan(sectorName, planText, goals || []);
+    const goalsArr = goals || [];
+    const goalsText = goalsArr.length > 0
+      ? goalsArr.map((g: { name: string; description: string }, i: number) => `${i + 1}. ${g.name}: ${g.description}`).join("\n")
+      : "Nog geen programmadoelen beschikbaar.";
 
+    const userMessage = `Sector: ${sectorName}
+
+Programmadoelen:
+${goalsText}
+
+Sectorplan:
+${planText.slice(0, 5000)}
+
+Analyseer dit sectorplan en geef advies voor het DIN-netwerk.`;
+
+    const result = await callClaudeWithValidation(
+      AISectorplanAnalyseSchema,
+      SECTORPLAN_ANALYSE_PROMPT,
+      userMessage
+    );
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error, retryable: true },
+        { status: 422 }
+      );
+    }
+
+    // Return als JSON-string onder analysis voor backward compat met client-side parsing
     return NextResponse.json({
       success: true,
-      data: { analysis },
+      data: { analysis: JSON.stringify(result.data) },
     });
   } catch (error) {
     return NextResponse.json(
