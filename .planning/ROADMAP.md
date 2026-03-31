@@ -60,7 +60,10 @@ Plans:
   1. Bij het genereren van baten bevat de AI-prompt de relevante programmaboek-sectie over batenprofielen
   2. Bij het genereren van vermogens en inspanningen bevat de AI-prompt de relevante methodiek-definities
   3. De programmaboek-context wordt token-bewust ingekort (geen willekeurige afkapping midden in een zin)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — Build-time extractie + prompt assembly module met use-case mapping
+- [ ] 03-02-PLAN.md — API route integratie + prompt/boek discrepantie review (D-06)
 
 ### Phase 4: AI Output Kwaliteit
 **Goal**: AI genereert methodiek-conforme DIN-elementen die de gebruiker kan presenteren aan stakeholders
@@ -143,13 +146,13 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Zod Schema Validatie | 0/3 | Planning complete | - |
 | 2. State Management & Persistence | 0/2 | Planning complete | - |
-| 3. Programmaboek Context Pipeline | 0/0 | Not started | - |
+| 3. Programmaboek Context Pipeline | 0/2 | Planning complete | - |
 | 4. AI Output Kwaliteit | 0/0 | Not started | - |
 | 5. Sectorwerk Doorstroming | 0/0 | Not started | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 0/0 | Not started | - |
