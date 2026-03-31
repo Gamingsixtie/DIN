@@ -18,11 +18,11 @@ export default function ImportStep() {
   function handleKibImport() {
     try {
       const result = importFromKiB(kibJson);
-      updateSession({
-        vision: result.vision || session!.vision,
-        goals: result.goals.length > 0 ? result.goals : session!.goals,
-        scope: result.scope || session!.scope,
-      });
+      updateSession(prev => ({
+        vision: result.vision || prev.vision,
+        goals: result.goals.length > 0 ? result.goals : prev.goals,
+        scope: result.scope || prev.scope,
+      }));
       setKibStatus("success");
       setKibError("");
     } catch (e) {
@@ -42,11 +42,11 @@ export default function ImportStep() {
         const text = await file.text();
         try {
           const result = importFromKiB(text);
-          updateSession({
-            vision: result.vision || session!.vision,
-            goals: result.goals.length > 0 ? result.goals : session!.goals,
-            scope: result.scope || session!.scope,
-          });
+          updateSession(prev => ({
+            vision: result.vision || prev.vision,
+            goals: result.goals.length > 0 ? result.goals : prev.goals,
+            scope: result.scope || prev.scope,
+          }));
           setKibStatus("success");
           return;
         } catch {
@@ -73,14 +73,14 @@ export default function ImportStep() {
 
         if (data.success && data.data) {
           if (data.data.vision || data.data.goals?.length > 0) {
-            updateSession({
-              vision: data.data.vision || session!.vision,
+            updateSession(prev => ({
+              vision: data.data.vision || prev.vision,
               goals:
                 data.data.goals?.length > 0
                   ? data.data.goals
-                  : session!.goals,
-              scope: data.data.scope || session!.scope,
-            });
+                  : prev.goals,
+              scope: data.data.scope || prev.scope,
+            }));
             setKibStatus("success");
           } else if (data.data.rawText) {
             // Ruwe tekst uit Word, zet in tekstgebied

@@ -83,8 +83,8 @@ export default function PrioriteringStep() {
 
   function confirmApproval() {
     if (!pendingAction) return;
-    updateSession({
-      efforts: session!.efforts.map((e) =>
+    updateSession(prev => ({
+      efforts: prev.efforts.map((e) =>
         e.id === pendingAction.effortId
           ? {
               ...e,
@@ -95,16 +95,16 @@ export default function PrioriteringStep() {
             }
           : e
       ),
-    });
+    }));
     setPendingAction(null);
   }
 
   function updateQuarter(effortId: string, quarter: string) {
-    updateSession({
-      efforts: session!.efforts.map((e) =>
+    updateSession(prev => ({
+      efforts: prev.efforts.map((e) =>
         e.id === effortId ? { ...e, quarter } : e
       ),
-    });
+    }));
   }
 
   const sectorEfforts = allEfforts.filter((e) => e.sectorId === activeSector);

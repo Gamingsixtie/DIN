@@ -486,7 +486,7 @@ export default function CrossAnalyseStep() {
         setAiRetryable(false);
         setUserFeedback("");
         // Opslaan in sessie als string (backward compat)
-        updateSession({ crossAnalyse: JSON.stringify(result) });
+        updateSession(prev => ({ ...prev, crossAnalyse: JSON.stringify(result) }));
       } else if (data.retryable) {
         setAiRetryable(true);
         setError(data.error || "De AI-analyse is mislukt. Probeer het opnieuw met extra instructies.");

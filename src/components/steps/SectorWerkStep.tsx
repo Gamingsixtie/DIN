@@ -33,7 +33,7 @@ export default function SectorWerkStep() {
       Object.entries(next).forEach(([k, v]) => {
         if (v) cleaned[k] = v;
       });
-      updateSession({ sectorAnalyses: cleaned });
+      updateSession(prev => ({ ...prev, sectorAnalyses: cleaned }));
       return next;
     });
   }
@@ -69,10 +69,9 @@ export default function SectorWerkStep() {
       rawText: text,
       uploadedAt: new Date().toISOString(),
     };
-    const existing = session!.sectorPlans.filter(
-      (s) => s.sectorName !== activeSector
-    );
-    updateSession({ sectorPlans: [...existing, plan] });
+    updateSession(prev => ({
+      sectorPlans: [...prev.sectorPlans.filter((s) => s.sectorName !== activeSector), plan],
+    }));
   }
 
   async function handleAnalyzePlan(extraFeedback?: string) {
@@ -420,10 +419,9 @@ export default function SectorWerkStep() {
                   <span className="text-xs text-red-600">Weet je het zeker?</span>
                   <button
                     onClick={() => {
-                      const cleared = session!.sectorPlans.filter(
-                        (s) => s.sectorName !== activeSector
-                      );
-                      updateSession({ sectorPlans: cleared });
+                      updateSession(prev => ({
+                        sectorPlans: prev.sectorPlans.filter((s) => s.sectorName !== activeSector),
+                      }));
                       setUploadFeedback(null);
                       setConfirmDeletePlan(false);
                     }}

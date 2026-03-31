@@ -363,7 +363,7 @@ export default function DINMappingStep() {
   function setIntegratieAdvies(updater: (prev: Record<string, IntegratieAdviesResult | string>) => Record<string, IntegratieAdviesResult | string>) {
     setIntegratieAdviesState((prev) => {
       const next = updater(prev);
-      updateSession({ integratieAdvies: next });
+      updateSession(sessionPrev => ({ ...sessionPrev, integratieAdvies: next }));
       return next;
     });
   }
@@ -372,7 +372,7 @@ export default function DINMappingStep() {
   function setVerrijktSectorplan(updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) {
     setVerrijktSectorplanState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      updateSession({ verrijkteSectorplannen: next });
+      updateSession(sessionPrev => ({ ...sessionPrev, verrijkteSectorplannen: next }));
       return next;
     });
   }
@@ -424,11 +424,11 @@ export default function DINMappingStep() {
 
   // --- CRUD functies ---
   function updateBenefit(updated: DINBenefit) {
-    updateSession({
-      benefits: session!.benefits.map((b) =>
+    updateSession(prev => ({
+      benefits: prev.benefits.map((b) =>
         b.id === updated.id ? updated : b
       ),
-    });
+    }));
   }
   function deleteBenefit(id: string) {
     const item = session!.benefits.find((b) => b.id === id);
@@ -438,12 +438,12 @@ export default function DINMappingStep() {
       setDeletedItem({ type: "baat", item, maps: { goalBenefitMaps: maps } });
       setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
     }
-    updateSession({
-      benefits: session!.benefits.filter((b) => b.id !== id),
-      goalBenefitMaps: session!.goalBenefitMaps.filter(
+    updateSession(prev => ({
+      benefits: prev.benefits.filter((b) => b.id !== id),
+      goalBenefitMaps: prev.goalBenefitMaps.filter(
         (m) => m.benefitId !== id
       ),
-    });
+    }));
   }
   function addBenefit() {
     if (!selectedGoal) return;
@@ -452,22 +452,22 @@ export default function DINMappingStep() {
   function addBenefitManual() {
     if (!selectedGoal) return;
     const newBenefit = createBenefit(selectedGoal, activeSector, "");
-    updateSession({
-      benefits: [...session!.benefits, newBenefit],
+    updateSession(prev => ({
+      benefits: [...prev.benefits, newBenefit],
       goalBenefitMaps: [
-        ...session!.goalBenefitMaps,
+        ...prev.goalBenefitMaps,
         { goalId: selectedGoal, benefitId: newBenefit.id },
       ],
-    });
+    }));
     setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
     setWizardState(null);
   }
   function updateCapability(updated: DINCapability) {
-    updateSession({
-      capabilities: session!.capabilities.map((c) =>
+    updateSession(prev => ({
+      capabilities: prev.capabilities.map((c) =>
         c.id === updated.id ? updated : c
       ),
-    });
+    }));
   }
   function deleteCapability(id: string) {
     const item = session!.capabilities.find((c) => c.id === id);
@@ -477,37 +477,39 @@ export default function DINMappingStep() {
       setDeletedItem({ type: "vermogen", item, maps: { benefitCapabilityMaps: maps } });
       setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
     }
-    updateSession({
-      capabilities: session!.capabilities.filter((c) => c.id !== id),
-      benefitCapabilityMaps: session!.benefitCapabilityMaps.filter(
+    updateSession(prev => ({
+      capabilities: prev.capabilities.filter((c) => c.id !== id),
+      benefitCapabilityMaps: prev.benefitCapabilityMaps.filter(
         (m) => m.capabilityId !== id
       ),
-    });
+    }));
   }
   function addCapability(benefitId?: string) {
     setWizardState({ type: "vermogen", parentBenefitId: benefitId });
   }
   function addCapabilityManual(benefitId?: string) {
     const newCap = createCapability(activeSector, "");
-    const updates: Partial<DINSession> = {
-      capabilities: [...session!.capabilities, newCap],
-    };
-    if (benefitId) {
-      updates.benefitCapabilityMaps = [
-        ...session!.benefitCapabilityMaps,
-        { benefitId, capabilityId: newCap.id },
-      ];
-    }
-    updateSession(updates);
+    updateSession(prev => {
+      const updates: Partial<DINSession> = {
+        capabilities: [...prev.capabilities, newCap],
+      };
+      if (benefitId) {
+        updates.benefitCapabilityMaps = [
+          ...prev.benefitCapabilityMaps,
+          { benefitId, capabilityId: newCap.id },
+        ];
+      }
+      return updates;
+    });
     setExpandedCapability(newCap.id);
     setWizardState(null);
   }
   function updateEffort(updated: DINEffort) {
-    updateSession({
-      efforts: session!.efforts.map((e) =>
+    updateSession(prev => ({
+      efforts: prev.efforts.map((e) =>
         e.id === updated.id ? updated : e
       ),
-    });
+    }));
   }
   function deleteEffort(id: string) {
     const item = session!.efforts.find((e) => e.id === id);
@@ -517,28 +519,30 @@ export default function DINMappingStep() {
       setDeletedItem({ type: "inspanning", item, maps: { capabilityEffortMaps: maps } });
       setUndoTimer(setTimeout(() => setDeletedItem(null), 8000));
     }
-    updateSession({
-      efforts: session!.efforts.filter((e) => e.id !== id),
-      capabilityEffortMaps: session!.capabilityEffortMaps.filter(
+    updateSession(prev => ({
+      efforts: prev.efforts.filter((e) => e.id !== id),
+      capabilityEffortMaps: prev.capabilityEffortMaps.filter(
         (m) => m.effortId !== id
       ),
-    });
+    }));
   }
   function addEffort(domain?: EffortDomain, capabilityId?: string, benefitId?: string, goalId?: string) {
     setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, parentBenefitId: benefitId, parentGoalId: goalId || selectedGoal || undefined, domain });
   }
   function addEffortManual(domain: EffortDomain, capabilityId?: string) {
     const newEffort = createEffort(activeSector, "", domain);
-    const updates: Partial<DINSession> = {
-      efforts: [...session!.efforts, newEffort],
-    };
-    if (capabilityId) {
-      updates.capabilityEffortMaps = [
-        ...session!.capabilityEffortMaps,
-        { capabilityId, effortId: newEffort.id },
-      ];
-    }
-    updateSession(updates);
+    updateSession(prev => {
+      const updates: Partial<DINSession> = {
+        efforts: [...prev.efforts, newEffort],
+      };
+      if (capabilityId) {
+        updates.capabilityEffortMaps = [
+          ...prev.capabilityEffortMaps,
+          { capabilityId, effortId: newEffort.id },
+        ];
+      }
+      return updates;
+    });
     setExpandedEffort(newEffort.id);
     setWizardState(null);
   }
@@ -559,13 +563,13 @@ export default function DINMappingStep() {
       if (result.targetValue) newBenefit.profiel.targetValue = result.targetValue;
       if (result.meetmethode) newBenefit.profiel.meetmethode = result.meetmethode;
       if (result.measurementMoment) newBenefit.profiel.measurementMoment = result.measurementMoment;
-      updateSession({
-        benefits: [...session!.benefits, newBenefit],
+      updateSession(prev => ({
+        benefits: [...prev.benefits, newBenefit],
         goalBenefitMaps: [
-          ...session!.goalBenefitMaps,
+          ...prev.goalBenefitMaps,
           { goalId, benefitId: newBenefit.id },
         ],
-      });
+      }));
       setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
     } else if (wizardState.type === "vermogen") {
       const result = results[0];
@@ -580,16 +584,18 @@ export default function DINMappingStep() {
           gewensteSituatie: result.gewensteSituatie || newCap.profiel?.gewensteSituatie || "",
         };
       }
-      const updates: Partial<DINSession> = {
-        capabilities: [...session!.capabilities, newCap],
-      };
-      if (wizardState.parentBenefitId) {
-        updates.benefitCapabilityMaps = [
-          ...session!.benefitCapabilityMaps,
-          { benefitId: wizardState.parentBenefitId, capabilityId: newCap.id },
-        ];
-      }
-      updateSession(updates);
+      updateSession(prev => {
+        const updates: Partial<DINSession> = {
+          capabilities: [...prev.capabilities, newCap],
+        };
+        if (wizardState.parentBenefitId) {
+          updates.benefitCapabilityMaps = [
+            ...prev.benefitCapabilityMaps,
+            { benefitId: wizardState.parentBenefitId, capabilityId: newCap.id },
+          ];
+        }
+        return updates;
+      });
       setExpandedCapability(newCap.id);
     } else if (wizardState.type === "inspanning") {
       // Meerdere inspanningen aanmaken (multi-domein)
@@ -609,19 +615,21 @@ export default function DINMappingStep() {
         return newEffort;
       });
 
-      const updates: Partial<DINSession> = {
-        efforts: [...session!.efforts, ...newEfforts],
-      };
-      if (wizardState.parentCapabilityId) {
-        updates.capabilityEffortMaps = [
-          ...session!.capabilityEffortMaps,
-          ...newEfforts.map((e) => ({
-            capabilityId: wizardState.parentCapabilityId!,
-            effortId: e.id,
-          })),
-        ];
-      }
-      updateSession(updates);
+      updateSession(prev => {
+        const updates: Partial<DINSession> = {
+          efforts: [...prev.efforts, ...newEfforts],
+        };
+        if (wizardState.parentCapabilityId) {
+          updates.capabilityEffortMaps = [
+            ...prev.capabilityEffortMaps,
+            ...newEfforts.map((e) => ({
+              capabilityId: wizardState.parentCapabilityId!,
+              effortId: e.id,
+            })),
+          ];
+        }
+        return updates;
+      });
       // Expand de laatste inspanning
       setExpandedEffort(newEfforts[newEfforts.length - 1].id);
     }
@@ -634,18 +642,18 @@ export default function DINMappingStep() {
       (m) => m.benefitId === benefitId && m.capabilityId === capId
     );
     if (exists) {
-      updateSession({
-        benefitCapabilityMaps: session!.benefitCapabilityMaps.filter(
+      updateSession(prev => ({
+        benefitCapabilityMaps: prev.benefitCapabilityMaps.filter(
           (m) => !(m.benefitId === benefitId && m.capabilityId === capId)
         ),
-      });
+      }));
     } else {
-      updateSession({
+      updateSession(prev => ({
         benefitCapabilityMaps: [
-          ...session!.benefitCapabilityMaps,
+          ...prev.benefitCapabilityMaps,
           { benefitId, capabilityId: capId },
         ],
-      });
+      }));
     }
   }
 
@@ -654,18 +662,18 @@ export default function DINMappingStep() {
       (m) => m.effortId === effortId && m.capabilityId === capId
     );
     if (exists) {
-      updateSession({
-        capabilityEffortMaps: session!.capabilityEffortMaps.filter(
+      updateSession(prev => ({
+        capabilityEffortMaps: prev.capabilityEffortMaps.filter(
           (m) => !(m.effortId === effortId && m.capabilityId === capId)
         ),
-      });
+      }));
     } else {
-      updateSession({
+      updateSession(prev => ({
         capabilityEffortMaps: [
-          ...session!.capabilityEffortMaps,
+          ...prev.capabilityEffortMaps,
           { capabilityId: capId, effortId },
         ],
-      });
+      }));
     }
   }
 
@@ -892,14 +900,14 @@ export default function DINMappingStep() {
           }))
         );
 
-        updateSession({
-          benefits: [...session!.benefits, ...newBenefits],
-          capabilities: [...session!.capabilities, ...newCaps],
-          efforts: [...session!.efforts, ...newEfforts],
-          goalBenefitMaps: [...session!.goalBenefitMaps, ...newGoalBenefitMaps],
-          benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...newBenCapMaps],
-          capabilityEffortMaps: [...session!.capabilityEffortMaps, ...newCapEffMaps],
-        });
+        updateSession(prev => ({
+          benefits: [...prev.benefits, ...newBenefits],
+          capabilities: [...prev.capabilities, ...newCaps],
+          efforts: [...prev.efforts, ...newEfforts],
+          goalBenefitMaps: [...prev.goalBenefitMaps, ...newGoalBenefitMaps],
+          benefitCapabilityMaps: [...prev.benefitCapabilityMaps, ...newBenCapMaps],
+          capabilityEffortMaps: [...prev.capabilityEffortMaps, ...newCapEffMaps],
+        }));
       }
     } catch (e) {
       console.error("AI generatie mislukt:", e);
@@ -1033,20 +1041,20 @@ export default function DINMappingStep() {
     if (!deletedItem) return;
     const { type, item, maps } = deletedItem;
     if (type === "baat") {
-      updateSession({
-        benefits: [...session!.benefits, item as DINBenefit],
-        goalBenefitMaps: [...session!.goalBenefitMaps, ...(maps.goalBenefitMaps || [])],
-      });
+      updateSession(prev => ({
+        benefits: [...prev.benefits, item as DINBenefit],
+        goalBenefitMaps: [...prev.goalBenefitMaps, ...(maps.goalBenefitMaps || [])],
+      }));
     } else if (type === "vermogen") {
-      updateSession({
-        capabilities: [...session!.capabilities, item as DINCapability],
-        benefitCapabilityMaps: [...session!.benefitCapabilityMaps, ...(maps.benefitCapabilityMaps || [])],
-      });
+      updateSession(prev => ({
+        capabilities: [...prev.capabilities, item as DINCapability],
+        benefitCapabilityMaps: [...prev.benefitCapabilityMaps, ...(maps.benefitCapabilityMaps || [])],
+      }));
     } else if (type === "inspanning") {
-      updateSession({
-        efforts: [...session!.efforts, item as DINEffort],
-        capabilityEffortMaps: [...session!.capabilityEffortMaps, ...(maps.capabilityEffortMaps || [])],
-      });
+      updateSession(prev => ({
+        efforts: [...prev.efforts, item as DINEffort],
+        capabilityEffortMaps: [...prev.capabilityEffortMaps, ...(maps.capabilityEffortMaps || [])],
+      }));
     }
     dismissUndo();
   }
@@ -1733,21 +1741,21 @@ export default function DINMappingStep() {
                     description: "",
                     status: "in_uitvoering",
                   };
-                  updateSession({
-                    externalProjects: [...(session.externalProjects || []), newProject],
-                  });
+                  updateSession(prev => ({
+                    externalProjects: [...(prev.externalProjects || []), newProject],
+                  }));
                 }}
                 onUpdate={(updated) => {
-                  updateSession({
-                    externalProjects: (session.externalProjects || []).map((p) =>
+                  updateSession(prev => ({
+                    externalProjects: (prev.externalProjects || []).map((p) =>
                       p.id === updated.id ? updated : p
                     ),
-                  });
+                  }));
                 }}
                 onDelete={(id) => {
-                  updateSession({
-                    externalProjects: (session.externalProjects || []).filter((p) => p.id !== id),
-                  });
+                  updateSession(prev => ({
+                    externalProjects: (prev.externalProjects || []).filter((p) => p.id !== id),
+                  }));
                 }}
               />
             </div>
