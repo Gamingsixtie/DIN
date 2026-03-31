@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importFromKiB } from "@/lib/kib-import";
+import { KiBExportSchema } from "@/lib/schemas";
 import mammoth from "mammoth";
 
 export async function POST(request: NextRequest) {
@@ -31,8 +32,19 @@ export async function POST(request: NextRequest) {
       jsonText = await request.text();
     }
 
-    // Probeer als JSON te parsen
+    // Probeer als JSON te parsen en valideer met Zod
     try {
+      const parsed = JSON.parse(jsonText);
+      const validation = KiBExportSchema.safeParse(parsed);
+
+      if (!validation.success) {
+        const issues = validation.error.issues.map((i) => i.message).join(", ");
+        return NextResponse.json(
+          { success: false, error: `Ongeldig KiB-formaat: ${issues}`, retryable: false },
+          { status: 422 }
+        );
+      }
+
       const result = importFromKiB(jsonText);
       return NextResponse.json({
         success: true,

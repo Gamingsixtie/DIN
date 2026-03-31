@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { suggestDINItem, createDINItem, recommendDomain } from "@/lib/ai-client";
+import { callClaudeWithValidation } from "@/lib/ai-client";
+import {
+  AISuggestBaatSchema,
+  AISuggestVermogenSchema,
+  AISuggestInspanningSchema,
+  AIDomainRecommendSchema,
+} from "@/lib/schemas";
+import {
+  DIN_SUGGEST_BAAT_PROMPT,
+  DIN_SUGGEST_VERMOGEN_PROMPT,
+  DIN_SUGGEST_INSPANNING_PROMPT,
+  DIN_CREATE_BAAT_PROMPT,
+  DIN_CREATE_VERMOGEN_PROMPT,
+  DIN_CREATE_INSPANNING_PROMPT,
+  DIN_DOMAIN_RECOMMEND_PROMPT,
+} from "@/lib/prompts";
+import type { z } from "zod";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,42 +46,233 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let raw: string;
-
     if (mode === "domain-recommend") {
-      // Domein-aanbeveling: analyseer gap en stel domein voor
-      raw = await recommendDomain(context);
-    } else if (mode === "create") {
-      // Geleide creatie-modus: genereer nieuw item op basis van vragenlijst
-      raw = await createDINItem(type, context);
-    } else {
-      // Default: aanscherp-modus (bestaand item verbeteren)
-      raw = await suggestDINItem(type, context);
+      // Domein-aanbeveling
+      const parts: string[] = [`Sector: ${context.sector}`];
+      if (context.goalName) {
+        parts.push(`Programmadoel: ${context.goalName}`);
+        if (context.goalDescription) parts.push(`Doelbeschrijving: ${context.goalDescription}`);
+      }
+      if (context.benefitTitle || context.benefitDescription) {
+        parts.push(`Baat: ${context.benefitTitle || context.benefitDescription}`);
+        if (context.benefitIndicator) parts.push(`Indicator: ${context.benefitIndicator}`);
+      }
+      if (context.capabilityTitle || context.capabilityDescription) {
+        parts.push(`Vermogen: ${context.capabilityTitle || context.capabilityDescription}`);
+      }
+      if (context.sectorPlanText) {
+        parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+      }
+      if (context.answers) {
+        parts.push("\nANTWOORDEN OP VERKENNINGSVRAGEN:");
+        for (const [key, value] of Object.entries(context.answers)) {
+          if (typeof value === "string" && value.trim()) {
+            parts.push(`${key}: ${value}`);
+          }
+        }
+      }
+
+      const result = await callClaudeWithValidation(
+        AIDomainRecommendSchema,
+        DIN_DOMAIN_RECOMMEND_PROMPT,
+        parts.join("\n\n")
+      );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error, retryable: true },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: { suggestion: result.data },
+      });
     }
 
-    // Parse JSON uit het antwoord
-    let suggestion = null;
-    try {
-      // Probeer direct te parsen
-      suggestion = JSON.parse(raw);
-    } catch {
-      // Probeer JSON uit het antwoord te extracten
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          suggestion = JSON.parse(jsonMatch[0]);
-        } catch {
-          // Fallback: geef raw text terug
-          suggestion = { description: raw, _raw: true };
-        }
-      } else {
-        suggestion = { description: raw, _raw: true };
+    if (mode === "create") {
+      // Geleide creatie-modus
+      const promptMap = {
+        baat: DIN_CREATE_BAAT_PROMPT,
+        vermogen: DIN_CREATE_VERMOGEN_PROMPT,
+        inspanning: DIN_CREATE_INSPANNING_PROMPT,
+      };
+      const schemaMap = {
+        baat: AISuggestBaatSchema,
+        vermogen: AISuggestVermogenSchema,
+        inspanning: AISuggestInspanningSchema,
+      };
+
+      const parts: string[] = [`Sector: ${context.sector}`];
+
+      // Domein BOVENAAN prominent plaatsen voor inspanningen
+      if (context.domain && type === "inspanning") {
+        parts.push(`\u26A0\uFE0F INSPANNINGSDOMEIN: ${context.domain}\nGenereer een inspanning die UITSLUITEND past binnen het domein "${context.domain}". Alle aspecten (titel, beschrijving, verwacht resultaat) moeten specifiek gericht zijn op dit domein.`);
       }
+
+      if (context.goalName) {
+        parts.push(`Programmadoel: ${context.goalName}`);
+        if (context.goalDescription) parts.push(`Doelbeschrijving: ${context.goalDescription}`);
+      }
+      if (context.benefitTitle || context.benefitDescription) {
+        parts.push(`Gerelateerde baat: ${context.benefitTitle || context.benefitDescription}`);
+        if (context.benefitIndicator) parts.push(`Indicator: ${context.benefitIndicator}`);
+      }
+      if (context.capabilityTitle || context.capabilityDescription) {
+        parts.push(`Gerelateerd vermogen: ${context.capabilityTitle || context.capabilityDescription}`);
+      }
+      if (context.domain && type !== "inspanning") {
+        parts.push(`Domein: ${context.domain}`);
+      }
+      if (context.sectorPlanText) {
+        parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+      }
+
+      if (context.answers) {
+        parts.push("\nANTWOORDEN VAN DE GEBRUIKER:");
+        for (const [key, value] of Object.entries(context.answers)) {
+          if (typeof value === "string" && value.trim()) {
+            parts.push(`${key}: ${value}`);
+          }
+        }
+      }
+
+      // Domein ONDERAAN herhalen als afsluiting
+      if (context.domain && type === "inspanning") {
+        parts.push(`\nHERHALING: Genereer ALLEEN voor domein "${context.domain}". De titel, beschrijving en verwacht resultaat moeten uniek zijn voor dit domein en mogen NIET generiek zijn.`);
+      }
+
+      const result = await callClaudeWithValidation(
+        schemaMap[type as keyof typeof schemaMap] as z.ZodType,
+        promptMap[type as keyof typeof promptMap],
+        parts.join("\n\n")
+      );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error, retryable: true },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: { suggestion: result.data },
+      });
+    }
+
+    // Default: aanscherp-modus (bestaand item verbeteren)
+    const promptMap = {
+      baat: DIN_SUGGEST_BAAT_PROMPT,
+      vermogen: DIN_SUGGEST_VERMOGEN_PROMPT,
+      inspanning: DIN_SUGGEST_INSPANNING_PROMPT,
+    };
+    const schemaMap = {
+      baat: AISuggestBaatSchema,
+      vermogen: AISuggestVermogenSchema,
+      inspanning: AISuggestInspanningSchema,
+    };
+
+    const parts: string[] = [`Sector: ${context.sector}`];
+
+    if (context.goalName) {
+      parts.push(`Programmadoel: ${context.goalName}`);
+      if (context.goalDescription) parts.push(`Doelbeschrijving: ${context.goalDescription}`);
+    }
+    if (context.sectorPlanText) {
+      parts.push(`Sectorplan (samenvatting):\n${context.sectorPlanText.slice(0, 2000)}`);
+    }
+    if (context.existingTitle) {
+      parts.push(`Bestaande titel: "${context.existingTitle}"`);
+    }
+    if (context.existingDescription) {
+      parts.push(`Bestaande beschrijving: "${context.existingDescription}"\nVerbeter of vul aan.`);
+    } else {
+      parts.push("Er is nog geen beschrijving. Genereer een nieuwe suggestie.");
+    }
+    if (context.existingIndicator) {
+      parts.push(`Huidige indicator: "${context.existingIndicator}"`);
+    }
+    if (context.existingOwner) {
+      parts.push(`Huidige eigenaar: "${context.existingOwner}"`);
+    }
+    if (context.existingCurrentValue) {
+      parts.push(`Huidige waarde: "${context.existingCurrentValue}"`);
+    }
+    if (context.existingTargetValue) {
+      parts.push(`Gewenste waarde: "${context.existingTargetValue}"`);
+    }
+    if (context.existingMeetmethode) {
+      parts.push(`Huidige meetmethode: "${context.existingMeetmethode}"`);
+    }
+    if (context.existingMeasurementMoment) {
+      parts.push(`Huidig meetmoment: "${context.existingMeasurementMoment}"`);
+    }
+    // Vermogensprofiel context
+    if (context.existingEigenaar) {
+      parts.push(`Huidige eigenaar vermogen: "${context.existingEigenaar}"`);
+    }
+    if (context.existingHuidieSituatie) {
+      parts.push(`Huidige situatie (as-is): "${context.existingHuidieSituatie}"`);
+    }
+    if (context.existingGewensteSituatie) {
+      parts.push(`Gewenste situatie (to-be): "${context.existingGewensteSituatie}"`);
+    }
+    if (context.existingCurrentLevel) {
+      parts.push(`Huidig niveau: ${context.existingCurrentLevel}/5`);
+    }
+    if (context.existingTargetLevel) {
+      parts.push(`Gewenst niveau: ${context.existingTargetLevel}/5`);
+    }
+    // Inspanningsdossier context
+    if (context.existingDossierEigenaar) {
+      parts.push(`Huidige opdrachtgever: "${context.existingDossierEigenaar}"`);
+    }
+    if (context.existingQuarter) {
+      parts.push(`Huidige planning: "${context.existingQuarter}"`);
+    }
+    if (context.existingInspanningsleider) {
+      parts.push(`Huidige inspanningsleider: "${context.existingInspanningsleider}"`);
+    }
+    if (context.existingVerwachtResultaat) {
+      parts.push(`Huidig verwacht resultaat: "${context.existingVerwachtResultaat}"`);
+    }
+    if (context.existingKostenraming) {
+      parts.push(`Huidige kostenraming: "${context.existingKostenraming}"`);
+    }
+    if (context.existingRandvoorwaarden) {
+      parts.push(`Huidige randvoorwaarden: "${context.existingRandvoorwaarden}"`);
+    }
+    if (context.userPrompt) {
+      parts.push(`\nGEBRUIKERSINSTRUCTIE (prioriteit!): ${context.userPrompt}`);
+    }
+    if (context.relatedBenefits?.length) {
+      parts.push(`Gerelateerde baten:\n${context.relatedBenefits.map((b: string, i: number) => `${i + 1}. ${b}`).join("\n")}`);
+    }
+    if (context.relatedCapabilities?.length) {
+      parts.push(`Gerelateerde vermogens:\n${context.relatedCapabilities.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`);
+    }
+    if (context.domain) {
+      parts.push(`Domein: ${context.domain}`);
+    }
+
+    const result = await callClaudeWithValidation(
+      schemaMap[type as keyof typeof schemaMap] as z.ZodType,
+      promptMap[type as keyof typeof promptMap],
+      parts.join("\n\n")
+    );
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error, retryable: true },
+        { status: 422 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      data: { suggestion },
+      data: { suggestion: result.data },
     });
   } catch (error) {
     return NextResponse.json(
