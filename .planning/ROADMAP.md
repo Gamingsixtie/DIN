@@ -62,7 +62,7 @@ Plans:
   3. De programmaboek-context wordt token-bewust ingekort (geen willekeurige afkapping midden in een zin)
 **Plans:** 2 plans
 Plans:
-- [ ] 03-01-PLAN.md — Build-time extractie + prompt assembly module met use-case mapping
+- [x] 03-01-PLAN.md — Build-time extractie + prompt assembly module met use-case mapping
 - [ ] 03-02-PLAN.md — API route integratie + prompt/boek discrepantie review (D-06)
 
 ### Phase 4: AI Output Kwaliteit

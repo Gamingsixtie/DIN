@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-31T20:36:30.336Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-31T21:26:25.155Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 10
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 02 — state-management-persistence
+**Current focus:** Phase 03 — programmaboek-context-pipeline
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 03 (programmaboek-context-pipeline) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 17min | 2 tasks | 10 files |
 | Phase 02 P01 | 5min | 3 tasks | 8 files |
 | Phase 02-state-management-persistence P02 | 15min | 2 tasks | 7 files |
+| Phase 03 P01 | 8min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase 02]: queueMicrotask for side effects: defers toast and setLastSaved outside React state updater
 - [Phase 02-state-management-persistence]: sessionPrev naming in wrapper functions: inner updateSession callback uses 'sessionPrev' to avoid collision with outer 'prev' parameter in React state updaters
 - [Phase 02-state-management-persistence]: Inline updates construction: when addCapabilityManual/addEffortManual conditionally build updates, construction moved inside updateSession(prev => { return updates; }) callback
+- [Phase 03]: word-extractor for .doc parsing (mammoth cannot handle binary OLE format)
+- [Phase 03]: Generated programmaboek-context.ts committed to git for deploy-time availability
+- [Phase 03]: Scripts directory excluded from tsconfig.json for Next.js build compatibility
 
 ### Pending Todos
 
@@ -91,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T20:36:30.330Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-programmaboek-context-pipeline/03-CONTEXT.md
+Last session: 2026-03-31T21:26:25.152Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
