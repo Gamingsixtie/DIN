@@ -5,19 +5,23 @@ import {
   useContext,
   useState,
   useCallback,
+  useRef,
+  useEffect,
   type ReactNode,
 } from "react";
 import type { DINSession, AppStep } from "./types";
 import { APP_STEPS } from "./types";
 import { loadLocal, saveLocal } from "./persistence";
+import { useToast } from "@/components/ui/Toast";
 
 interface SessionContextValue {
   session: DINSession | null;
   currentStep: AppStep;
+  lastSaved: Date | null;
   setCurrentStep: (step: AppStep) => void;
   loadSession: (id: string) => void;
   createSession: (name: string) => DINSession;
-  updateSession: (updates: Partial<DINSession>) => void;
+  updateSession: (updater: (prev: DINSession) => Partial<DINSession>) => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -32,19 +36,32 @@ export function useSession() {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<DINSession | null>(null);
   const [currentStep, setCurrentStepState] = useState<AppStep>("import");
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const setCurrentStep = useCallback(
-    (step: AppStep) => {
-      setCurrentStepState(step);
-      if (session) {
-        const stepIndex = APP_STEPS.findIndex(s => s.key === step);
-        const updated = { ...session, currentStep: stepIndex >= 0 ? stepIndex : 0, updatedAt: new Date().toISOString() };
-        setSession(updated);
-        saveLocal(`session_${session.id}`, updated);
-      }
-    },
-    [session]
-  );
+  // Store addToast in a ref so it can be accessed inside setSession without stale closure
+  const addToastRef = useRef<
+    (msg: string, type?: "success" | "error" | "info") => void
+  >(() => {});
+
+  const { addToast } = useToast();
+  useEffect(() => {
+    addToastRef.current = addToast;
+  }, [addToast]);
+
+  const setCurrentStep = useCallback((step: AppStep) => {
+    setCurrentStepState(step);
+    setSession((prev) => {
+      if (!prev) return prev;
+      const stepIndex = APP_STEPS.findIndex((s) => s.key === step);
+      const updated = {
+        ...prev,
+        currentStep: stepIndex >= 0 ? stepIndex : 0,
+        updatedAt: new Date().toISOString(),
+      };
+      saveLocal(`session_${prev.id}`, updated);
+      return updated;
+    });
+  }, []);
 
   const loadSession = useCallback((id: string) => {
     const loaded = loadLocal<DINSession>(`session_${id}`);
@@ -87,13 +104,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateSession = useCallback(
-    (updates: Partial<DINSession>) => {
-      if (!session) return;
-      const updated = { ...session, ...updates, updatedAt: new Date().toISOString() };
-      setSession(updated);
-      saveLocal(`session_${session.id}`, updated);
+    (updater: (prev: DINSession) => Partial<DINSession>) => {
+      setSession((prev) => {
+        if (!prev) return prev;
+        const updates = updater(prev);
+        const updated = {
+          ...prev,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+        const saved = saveLocal(`session_${prev.id}`, updated);
+        if (!saved) {
+          queueMicrotask(() =>
+            addToastRef.current(
+              "Opslaan mislukt \u2014 ruim browsergegevens op of exporteer je sessie.",
+              "error"
+            )
+          );
+        } else {
+          queueMicrotask(() => setLastSaved(new Date()));
+        }
+        return updated;
+      });
     },
-    [session]
+    []
   );
 
   return (
@@ -101,6 +135,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         session,
         currentStep,
+        lastSaved,
         setCurrentStep,
         loadSession,
         createSession,

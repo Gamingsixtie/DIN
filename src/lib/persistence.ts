@@ -1,8 +1,7 @@
 // Dual Persistence — localStorage (sync-first) + Supabase (async)
 // Geleerde lessen uit KiB:
 // 1. localStorage EERST schrijven (synchronous)
-// 2. Nooit lege state opslaan
-// 3. Deduplicatie van IDs bij AI-hergeneratie
+// 2. Deduplicatie van IDs bij AI-hergeneratie
 
 const STORAGE_PREFIX = "din_";
 
@@ -19,15 +18,15 @@ export function loadLocal<T>(key: string): T | null {
   }
 }
 
-export function saveLocal<T>(key: string, data: T): void {
-  if (typeof window === "undefined") return;
-  // Nooit lege state opslaan
-  if (data === null || data === undefined) return;
-  if (Array.isArray(data) && data.length === 0) return;
+export function saveLocal<T>(key: string, data: T): boolean {
+  if (typeof window === "undefined") return false;
+  if (data === null || data === undefined) return false;
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data));
+    return true;
   } catch (e) {
     console.error(`[persistence] localStorage write failed for ${key}:`, e);
+    return false;
   }
 }
 
@@ -53,9 +52,9 @@ export async function dualSave<T>(
   key: string,
   data: T,
   supabaseSave?: (data: T) => Promise<void>
-): Promise<void> {
+): Promise<boolean> {
   // Stap 1: localStorage EERST (sync)
-  saveLocal(key, data);
+  const localSuccess = saveLocal(key, data);
 
   // Stap 2: Supabase (async, mag falen)
   if (supabaseSave) {
@@ -65,6 +64,8 @@ export async function dualSave<T>(
       console.error(`[persistence] Supabase write failed for ${key}:`, e);
     }
   }
+
+  return localSuccess;
 }
 
 export async function dualLoad<T>(
