@@ -1,32 +1,27 @@
 // KiB (Klant in Beeld) Import — JSON import van visie, doelen, scope
+// Valideert alle externe input met Zod schema (per D-06)
 
+import { KiBExportSchema } from "./schemas";
+import type { KiBExport } from "./schemas";
 import type { ProgrammeGoal, ProgrammeVision, ProgrammeScope } from "./types";
 
-// Verwacht KiB export formaat
-export interface KiBExport {
-  visie?: {
-    uitgebreid: string;
-    beknopt: string;
-  };
-  doelen?: Array<{
-    id?: string;
-    naam: string;
-    beschrijving: string;
-    rang: number;
-  }>;
-  scope?: {
-    binnen: string[];
-    buiten: string[];
-  };
-  sessionId?: string;
-}
+export type { KiBExport };
 
 export function parseKiBExport(json: string): KiBExport {
+  let parsed: unknown;
   try {
-    return JSON.parse(json) as KiBExport;
+    parsed = JSON.parse(json);
   } catch {
     throw new Error("Ongeldig JSON formaat. Controleer de KiB export.");
   }
+  const result = KiBExportSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(
+      "Ongeldig KiB-formaat: " +
+      result.error.issues.map((i) => i.message).join(", ")
+    );
+  }
+  return result.data;
 }
 
 export function extractVision(data: KiBExport): ProgrammeVision | undefined {
