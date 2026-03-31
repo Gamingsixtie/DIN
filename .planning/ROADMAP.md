@@ -47,7 +47,10 @@ Plans:
   1. Twee snelle bewerkingen achter elkaar resulteren in beide wijzigingen behouden (geen overschrijving)
   2. Sessiedata blijft intact na het herladen van de pagina, inclusief alle sectoranalyses en DIN-mappings
   3. State updates gebruiken functionele updaters die altijd de laatste state lezen
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Persistence boolean return + Toast system + session-context functional updater rewrite
+- [ ] 02-02-PLAN.md — Callsite migration (34 updateSession calls) + homepage cleanup + Opgeslagen indicator
 
 ### Phase 3: Programmaboek Context Pipeline
 **Goal**: AI-prompts bevatten relevante methodiek-context uit het programmaboek
@@ -145,7 +148,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Zod Schema Validatie | 0/3 | Planning complete | - |
-| 2. State Management & Persistence | 0/0 | Not started | - |
+| 2. State Management & Persistence | 0/2 | Planning complete | - |
 | 3. Programmaboek Context Pipeline | 0/0 | Not started | - |
 | 4. AI Output Kwaliteit | 0/0 | Not started | - |
 | 5. Sectorwerk Doorstroming | 0/0 | Not started | - |
