@@ -49,7 +49,7 @@ Plans:
   3. State updates gebruiken functionele updaters die altijd de laatste state lezen
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — Persistence boolean return + Toast system + session-context functional updater rewrite
+- [x] 02-01-PLAN.md — Persistence boolean return + Toast system + session-context functional updater rewrite
 - [ ] 02-02-PLAN.md — Callsite migration (34 updateSession calls) + homepage cleanup + Opgeslagen indicator
 
 ### Phase 3: Programmaboek Context Pipeline
