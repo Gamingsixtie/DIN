@@ -19,6 +19,9 @@ Een vervolg-app op "Klant in Beeld" (KiB) waarmee programmamanagers doelstelling
 - ✓ Cross-analyse hefboomwerking over sectoren — existing
 - ✓ Sectorplan parsing en analyse — existing
 - ✓ Session management met localStorage persistence — existing
+- ✓ Race-condition-vrije state updates met functionele updaters — Validated in Phase 2: State Management & Persistence
+- ✓ Opslagfeedback via toast-notificaties bij mislukte saves — Validated in Phase 2: State Management & Persistence
+- ✓ Empty-array persistence zonder __placeholder__ hacks — Validated in Phase 2: State Management & Persistence
 
 ### Active
 
@@ -89,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 after Phase 1 completion — Zod schema validatie*
+*Last updated: 2026-03-31 after Phase 2 completion — State Management & Persistence*
