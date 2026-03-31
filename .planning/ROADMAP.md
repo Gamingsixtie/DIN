@@ -63,7 +63,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 03-01-PLAN.md — Build-time extractie + prompt assembly module met use-case mapping
-- [ ] 03-02-PLAN.md — API route integratie + prompt/boek discrepantie review (D-06)
+- [x] 03-02-PLAN.md — API route integratie + prompt/boek discrepantie review (D-06)
 
 ### Phase 4: AI Output Kwaliteit
 **Goal**: AI genereert methodiek-conforme DIN-elementen die de gebruiker kan presenteren aan stakeholders
