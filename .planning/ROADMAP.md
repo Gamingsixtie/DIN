@@ -50,7 +50,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 02-01-PLAN.md — Persistence boolean return + Toast system + session-context functional updater rewrite
-- [ ] 02-02-PLAN.md — Callsite migration (34 updateSession calls) + homepage cleanup + Opgeslagen indicator
+- [x] 02-02-PLAN.md — Callsite migration (34 updateSession calls) + homepage cleanup + Opgeslagen indicator
 
 ### Phase 3: Programmaboek Context Pipeline
 **Goal**: AI-prompts bevatten relevante methodiek-context uit het programmaboek
