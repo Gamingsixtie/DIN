@@ -181,10 +181,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Return als JSON-string onder analysis voor backward compat met client-side parsing
+      // Return gevalideerd object (client hoeft niet meer te parsen)
       return NextResponse.json({
         success: true,
-        data: { analysis: JSON.stringify(result.data) },
+        data: { analysis: result.data },
       });
     }
 
@@ -205,10 +205,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return als JSON-string onder analysis voor backward compat met client-side parsing
+    // Return gevalideerd object (client hoeft niet meer te parsen)
     return NextResponse.json({
       success: true,
-      data: { analysis: JSON.stringify(result.data) },
+      data: { analysis: result.data },
     });
   } catch (error) {
     return NextResponse.json(

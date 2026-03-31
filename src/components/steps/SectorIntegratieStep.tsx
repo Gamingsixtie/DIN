@@ -11,6 +11,9 @@ export default function SectorIntegratieStep() {
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<Record<string, string>>({});
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
+  const [aiError, setAiError] = useState<string | null>(null);
 
   if (!session) return null;
 
@@ -48,31 +51,47 @@ export default function SectorIntegratieStep() {
       )
   );
 
-  async function handleAIAdvice() {
+  async function handleAIAdvice(extraFeedback?: string) {
     setIsAnalyzing(true);
+    setAiError(null);
+    setAiRetryable(false);
     try {
+      const requestBody: Record<string, unknown> = {
+        type: "sector-integratie",
+        sector: activeSector,
+        sectorPlan: sectorPlan?.rawText || "",
+        goals: session!.goals,
+        benefits: sectorBenefits,
+        capabilities: sectorCapabilities,
+        efforts: sectorEfforts,
+      };
+      if (extraFeedback) {
+        requestBody.userFeedback = extraFeedback;
+      }
       const res = await fetch("/api/cross-analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "sector-integratie",
-          sector: activeSector,
-          sectorPlan: sectorPlan?.rawText || "",
-          goals: session!.goals,
-          benefits: sectorBenefits,
-          capabilities: sectorCapabilities,
-          efforts: sectorEfforts,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
+        // API retourneert nu een object; sla op als string
+        const analysisStr = typeof data.data.analysis === "string"
+          ? data.data.analysis
+          : JSON.stringify(data.data.analysis);
         setAiAdvice((prev) => ({
           ...prev,
-          [activeSector]: data.data.analysis,
+          [activeSector]: analysisStr,
         }));
+        setAiRetryable(false);
+        setUserFeedback("");
+      } else if (data.retryable) {
+        setAiRetryable(true);
+        setAiError(data.error || "Integratie-advies mislukt. Probeer het opnieuw met extra instructies.");
       }
     } catch (e) {
       console.error("AI analyse mislukt:", e);
+      setAiError("Fout bij AI-analyse. Controleer je internetverbinding.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -162,7 +181,7 @@ export default function SectorIntegratieStep() {
             Sectorplan: {activeSector}
           </h4>
           <button
-            onClick={handleAIAdvice}
+            onClick={() => handleAIAdvice()}
             disabled={isAnalyzing}
             className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
           >
@@ -171,6 +190,35 @@ export default function SectorIntegratieStep() {
               : "AI: Advies integratie sectorplan"}
           </button>
         </div>
+
+        {/* AI foutmelding met retryable feedback */}
+        {aiError && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <p className="font-medium">Analyse mislukt</p>
+            <p className="text-red-600 mt-0.5">{aiError}</p>
+            {aiRetryable && (
+              <div className="mt-3 space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Geef extra instructies mee voor een nieuwe poging
+                </label>
+                <textarea
+                  value={userFeedback}
+                  onChange={(e) => setUserFeedback(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                  rows={3}
+                  placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                />
+                <button
+                  onClick={() => handleAIAdvice(userFeedback)}
+                  disabled={isAnalyzing}
+                  className="rounded-md bg-[#003366] px-4 py-2 text-sm text-white hover:bg-[#002244] disabled:opacity-50"
+                >
+                  Opnieuw proberen
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {sectorPlan ? (
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">

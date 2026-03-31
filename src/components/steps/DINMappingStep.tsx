@@ -314,6 +314,9 @@ export default function DINMappingStep() {
   const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
     session?.integratieAdvies || {}
   );
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
+  const [aiError, setAiError] = useState<string | null>(null);
   // DIN-editor UI state
   const [expandedBenefits, setExpandedBenefits] = useState<Set<string>>(new Set());
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null);
@@ -738,7 +741,13 @@ export default function DINMappingStep() {
     });
     const data = await res.json();
     if (data.success && data.data?.suggestion) {
+      setAiRetryable(false);
+      setUserFeedback("");
       return data.data.suggestion;
+    }
+    if (data.retryable) {
+      setAiRetryable(true);
+      setAiError(data.error || "AI-suggestie mislukt. Probeer het opnieuw met extra instructies.");
     }
     return null;
   }
@@ -812,24 +821,33 @@ export default function DINMappingStep() {
   }
 
   // --- AI volledig DIN genereren ---
-  async function handleAIGenerate() {
+  async function handleAIGenerate(extraFeedback?: string) {
     if (!selectedGoal) return;
     setIsGenerating(true);
+    setAiError(null);
+    setAiRetryable(false);
     try {
       const goal = session!.goals.find((g) => g.id === selectedGoal);
+      const requestBody: Record<string, unknown> = {
+        goal,
+        sectorPlan,
+        sector: activeSector,
+        allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+      };
+      if (extraFeedback) {
+        requestBody.userFeedback = extraFeedback;
+      }
       const res = await fetch("/api/din-mapping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          goal,
-          sectorPlan,
-          sector: activeSector,
-          allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
-          sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await res.json();
-      if (data.success && data.data) {
+      if (data.retryable) {
+        setAiRetryable(true);
+        setAiError(data.error || "DIN-generatie mislukt. Probeer het opnieuw met extra instructies.");
+      } else if (data.success && data.data) {
         const newBenefits = (data.data.benefits || []).map(
           (b: Partial<DINBenefit>) => ({
             ...createBenefit(selectedGoal, activeSector, ""),
@@ -891,55 +909,56 @@ export default function DINMappingStep() {
   }
 
   // --- Integratie-advies ---
-  async function handleIntegratieAdvies() {
+  async function handleIntegratieAdvies(extraFeedback?: string) {
     setIsAnalyzingIntegratie(true);
+    setAiError(null);
+    setAiRetryable(false);
     try {
+      const requestBody: Record<string, unknown> = {
+        type: "sector-integratie",
+        sector: activeSector,
+        sectorPlan: sectorPlan?.rawText || "",
+        goals: session!.goals,
+        benefits: session!.benefits.filter((b) => b.sectorId === activeSector),
+        capabilities: sectorCapabilities,
+        efforts: sectorEfforts,
+        externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+      };
+      if (extraFeedback) {
+        requestBody.userFeedback = extraFeedback;
+      }
       const res = await fetch("/api/cross-analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "sector-integratie",
-          sector: activeSector,
-          sectorPlan: sectorPlan?.rawText || "",
-          goals: session!.goals,
-          benefits: session!.benefits.filter((b) => b.sectorId === activeSector),
-          capabilities: sectorCapabilities,
-          efforts: sectorEfforts,
-          externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
-          sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
-        let parsed: IntegratieAdviesResult | string;
-        try {
-          const raw = data.data.analysis as string;
-          // Strip markdown code fences if present
-          const cleaned = raw
-            .replace(/^```(?:json)?\s*/i, "")
-            .replace(/\s*```\s*$/i, "")
-            .trim();
-          const json = JSON.parse(cleaned);
-          parsed = {
-            sectorName: activeSector,
-            aansluiting: json.aansluiting,
-            verrijking: json.verrijking,
-            aanvullingen: json.aanvullingen,
-            quickWins: json.quickWins,
-            aandachtspunten: json.aandachtspunten,
-          } as IntegratieAdviesResult;
-        } catch {
-          // Fallback: platte tekst als JSON parsing faalt
-          parsed = data.data.analysis;
-        }
+        // API retourneert nu een gevalideerd object
+        const analysisObj = data.data.analysis;
+        const parsed: IntegratieAdviesResult = {
+          sectorName: activeSector,
+          aansluiting: analysisObj.aansluiting,
+          verrijking: analysisObj.verrijking,
+          aanvullingen: analysisObj.aanvullingen,
+          quickWins: analysisObj.quickWins,
+          aandachtspunten: analysisObj.aandachtspunten,
+        };
         setIntegratieAdvies((prev) => ({
           ...prev,
           [activeSector]: parsed,
         }));
         setShowAdviesPanel(true);
+        setAiRetryable(false);
+        setUserFeedback("");
+      } else if (data.retryable) {
+        setAiRetryable(true);
+        setAiError(data.error || "Integratie-advies mislukt. Probeer het opnieuw met extra instructies.");
       }
     } catch (e) {
       console.error("Integratie-advies mislukt:", e);
+      setAiError("Fout bij integratie-advies. Controleer je internetverbinding.");
     } finally {
       setIsAnalyzingIntegratie(false);
     }
@@ -1205,7 +1224,7 @@ export default function DINMappingStep() {
               {/* AI knoppen */}
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={handleAIGenerate}
+                  onClick={() => handleAIGenerate()}
                   disabled={isGenerating}
                   className="px-4 py-2 bg-cito-accent text-white rounded-lg text-sm font-medium hover:bg-cito-blue disabled:opacity-50"
                 >
@@ -1214,7 +1233,7 @@ export default function DINMappingStep() {
                     : "AI: Genereer DIN-netwerk"}
                 </button>
                 <button
-                  onClick={handleIntegratieAdvies}
+                  onClick={() => handleIntegratieAdvies()}
                   disabled={isAnalyzingIntegratie}
                   className="px-4 py-2 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 disabled:opacity-50"
                 >
@@ -1230,6 +1249,35 @@ export default function DINMappingStep() {
                   </button>
                 )}
               </div>
+
+              {/* AI foutmelding met retryable feedback */}
+              {aiError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <p className="font-medium">AI-actie mislukt</p>
+                  <p className="text-red-600 mt-0.5">{aiError}</p>
+                  {aiRetryable && (
+                    <div className="mt-3 space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Geef extra instructies mee voor een nieuwe poging
+                      </label>
+                      <textarea
+                        value={userFeedback}
+                        onChange={(e) => setUserFeedback(e.target.value)}
+                        className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                        rows={3}
+                        placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                      />
+                      <button
+                        onClick={() => handleAIGenerate(userFeedback)}
+                        disabled={isGenerating}
+                        className="rounded-md bg-[#003366] px-4 py-2 text-sm text-white hover:bg-[#002244] disabled:opacity-50"
+                      >
+                        Opnieuw proberen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ===== BAAT-CENTRISCH DIN-NETWERK ===== */}
               <div>

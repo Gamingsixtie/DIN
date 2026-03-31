@@ -19,6 +19,9 @@ export default function SectorWerkStep() {
     msg: string;
   } | null>(null);
   const [confirmDeletePlan, setConfirmDeletePlan] = useState(false);
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   if (!session) return null;
 
@@ -72,28 +75,43 @@ export default function SectorWerkStep() {
     updateSession({ sectorPlans: [...existing, plan] });
   }
 
-  async function handleAnalyzePlan() {
+  async function handleAnalyzePlan(extraFeedback?: string) {
     if (!sectorPlan) return;
     setIsAnalyzing(true);
+    setAnalyzeError(null);
+    setAiRetryable(false);
     try {
+      const requestBody: Record<string, unknown> = {
+        sectorName: activeSector,
+        planText: sectorPlan.rawText,
+        goals: session!.goals.map((g) => ({
+          name: g.name,
+          description: g.description,
+        })),
+      };
+      if (extraFeedback) {
+        requestBody.userFeedback = extraFeedback;
+      }
       const res = await fetch("/api/analyze-sectorplan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sectorName: activeSector,
-          planText: sectorPlan.rawText,
-          goals: session!.goals.map((g) => ({
-            name: g.name,
-            description: g.description,
-          })),
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
+        // API retourneert nu een object; sla op als string voor sessie-compat
+        const analysisStr = typeof data.data.analysis === "string"
+          ? data.data.analysis
+          : JSON.stringify(data.data.analysis);
         setPlanAnalysis((prev) => ({
           ...prev,
-          [activeSector]: data.data.analysis,
+          [activeSector]: analysisStr,
         }));
+        setAiRetryable(false);
+        setUserFeedback("");
+      } else if (data.retryable) {
+        setAiRetryable(true);
+        setAnalyzeError(data.error || "Analyse mislukt. Probeer het opnieuw met extra instructies.");
       } else {
         setPlanAnalysis((prev) => ({
           ...prev,
@@ -101,10 +119,7 @@ export default function SectorWerkStep() {
         }));
       }
     } catch {
-      setPlanAnalysis((prev) => ({
-        ...prev,
-        [activeSector]: "Fout bij het analyseren. Probeer opnieuw.",
-      }));
+      setAnalyzeError("Fout bij het analyseren. Controleer je internetverbinding en probeer opnieuw.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -366,7 +381,7 @@ export default function SectorWerkStep() {
             {sectorPlan && (
               <div>
                 <button
-                  onClick={handleAnalyzePlan}
+                  onClick={() => handleAnalyzePlan()}
                   disabled={isAnalyzing}
                   className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
@@ -492,17 +507,43 @@ export default function SectorWerkStep() {
         </div>
       )}
 
+      {/* Analyse foutmelding met retryable feedback */}
+      {analyzeError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <p className="font-medium">Analyse mislukt</p>
+          <p className="text-red-600 mt-0.5">{analyzeError}</p>
+          {aiRetryable && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Geef extra instructies mee voor een nieuwe poging
+              </label>
+              <textarea
+                value={userFeedback}
+                onChange={(e) => setUserFeedback(e.target.value)}
+                className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                rows={3}
+                placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+              />
+              <button
+                onClick={() => handleAnalyzePlan(userFeedback)}
+                disabled={isAnalyzing}
+                className="rounded-md bg-[#003366] px-4 py-2 text-sm text-white hover:bg-[#002244] disabled:opacity-50"
+              >
+                Opnieuw proberen
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Analyse resultaat */}
       {currentAnalysis && (() => {
-        // Probeer gestructureerd JSON te parsen
+        // Parse opgeslagen JSON string naar gestructureerd object
         let parsed: SectorplanAnalyseResult | null = null;
         try {
-          const jsonMatch = currentAnalysis.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const obj = JSON.parse(jsonMatch[0]);
-            if (obj.samenvatting && obj.baten && obj.vermogens) {
-              parsed = obj;
-            }
+          const obj = JSON.parse(currentAnalysis);
+          if (obj.samenvatting && obj.baten && obj.vermogens) {
+            parsed = obj;
           }
         } catch { /* fallback naar platte tekst */ }
 

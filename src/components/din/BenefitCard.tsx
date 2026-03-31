@@ -49,6 +49,8 @@ export default function BenefitCard({
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiError, setAiError] = useState(false);
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<BenefitSuggestion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
@@ -93,21 +95,29 @@ export default function BenefitCard({
     return prefix;
   }
 
-  async function handleAISuggest() {
+  async function handleAISuggest(extraFeedback?: string) {
     if (!onAISuggest || isAILoading) return;
     setIsAILoading(true);
     setAiError(false);
+    setAiRetryable(false);
     try {
       const prefix = buildPromptPrefix();
-      const fullPrompt = prefix + (userPrompt || "");
+      const feedbackSuffix = extraFeedback ? `\n\nExtra instructies: ${extraFeedback}` : "";
+      const fullPrompt = prefix + (userPrompt || "") + feedbackSuffix;
       const result = await onAISuggest(fullPrompt || undefined);
       if (result) {
         setAiSuggestion(result);
         setExpanded(true);
+        setAiRetryable(false);
+        setUserFeedback("");
+      } else {
+        setAiRetryable(true);
+        setAiError(true);
       }
     } catch (e) {
       console.error("AI suggestie mislukt:", e);
       setAiError(true);
+      setAiRetryable(true);
     } finally {
       setIsAILoading(false);
     }
@@ -309,7 +319,7 @@ export default function BenefitCard({
               placeholder="Optioneel: extra instructie (bijv. 'maak meetbaarder')"
             />
             <button
-              onClick={handleAISuggest}
+              onClick={() => handleAISuggest()}
               disabled={isAILoading}
               className="text-xs px-3 py-1.5 bg-cito-accent text-white rounded-md hover:bg-cito-blue transition-colors font-medium shrink-0 disabled:opacity-50"
             >
@@ -317,7 +327,30 @@ export default function BenefitCard({
             </button>
           </div>
           {aiError && (
-            <p className="text-red-500 text-xs mt-1">AI-suggestie mislukt. Probeer het opnieuw.</p>
+            <div className="mt-1">
+              <p className="text-red-500 text-xs">AI-suggestie mislukt. Probeer het opnieuw.</p>
+              {aiRetryable && (
+                <div className="mt-2 space-y-2">
+                  <label className="block text-xs font-medium text-gray-700">
+                    Geef extra instructies mee voor een nieuwe poging
+                  </label>
+                  <textarea
+                    value={userFeedback}
+                    onChange={(e) => setUserFeedback(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 text-xs"
+                    rows={2}
+                    placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                  />
+                  <button
+                    onClick={() => handleAISuggest(userFeedback)}
+                    disabled={isAILoading}
+                    className="rounded-md bg-[#003366] px-3 py-1.5 text-xs text-white hover:bg-[#002244] disabled:opacity-50"
+                  >
+                    Opnieuw proberen
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -387,40 +387,17 @@ function ExterneProjectenSection({ data }: { data: CrossAnalyseResult["externePr
 
 // --- Hoofdcomponent voor AI resultaat ---
 
-function AIAnalysisResult({ analysis }: { analysis: string }) {
-  // Probeer gestructureerde JSON te parsen
-  let parsed: CrossAnalyseResult | null = null;
-  try {
-    const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const obj = JSON.parse(jsonMatch[0]);
-      if (obj.synergie && obj.gaps && obj.hefboomwerking && obj.domeinBalans) {
-        parsed = obj;
-      }
-    }
-  } catch {
-    // Fallback naar MarkdownContent
-  }
-
-  if (parsed) {
-    return (
-      <div className="space-y-4">
-        <SynergieSection data={parsed.synergie} />
-        <GapsSection data={parsed.gaps} />
-        <HefboomSection data={parsed.hefboomwerking} />
-        <DomeinBalansSection data={parsed.domeinBalans} />
-        <SectorOverlapSection data={parsed.sectorOverlap} />
-        {parsed.externeProjecten && parsed.externeProjecten.items && (
-          <ExterneProjectenSection data={parsed.externeProjecten} />
-        )}
-      </div>
-    );
-  }
-
-  // Fallback: render als markdown
+function AIAnalysisResult({ analysis }: { analysis: CrossAnalyseResult }) {
   return (
-    <div className="p-5 bg-blue-50/30 border border-blue-200 rounded-xl">
-      <MarkdownContent content={analysis} />
+    <div className="space-y-4">
+      <SynergieSection data={analysis.synergie} />
+      <GapsSection data={analysis.gaps} />
+      <HefboomSection data={analysis.hefboomwerking} />
+      <DomeinBalansSection data={analysis.domeinBalans} />
+      <SectorOverlapSection data={analysis.sectorOverlap} />
+      {analysis.externeProjecten && analysis.externeProjecten.items && (
+        <ExterneProjectenSection data={analysis.externeProjecten} />
+      )}
     </div>
   );
 }
@@ -429,15 +406,22 @@ function AIAnalysisResult({ analysis }: { analysis: string }) {
 
 export default function CrossAnalyseStep() {
   const { session, updateSession } = useSession();
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<CrossAnalyseResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
 
-  // Laad opgeslagen cross-analyse bij mount
+  // Laad opgeslagen cross-analyse bij mount (sessie slaat string op)
   useEffect(() => {
     if (session?.crossAnalyse && !aiAnalysis) {
-      setAiAnalysis(session.crossAnalyse);
+      try {
+        const parsed = JSON.parse(session.crossAnalyse);
+        if (parsed.synergie && parsed.gaps) {
+          setAiAnalysis(parsed);
+        }
+      } catch { /* opgeslagen data niet parseerbaar */ }
     }
   }, [session?.crossAnalyse]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -460,20 +444,6 @@ export default function CrossAnalyseStep() {
   const totalCapabilities = session.capabilities.length;
   const hasData = totalBenefits > 0 || totalCapabilities > 0 || totalEfforts > 0;
 
-  // Parse AI-analyse voor hergebruik in data-secties
-  let parsedAI: CrossAnalyseResult | null = null;
-  if (aiAnalysis) {
-    try {
-      const jsonMatch = aiAnalysis.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const obj = JSON.parse(jsonMatch[0]);
-        if (obj.synergie && obj.gaps && obj.hefboomwerking && obj.domeinBalans) {
-          parsedAI = obj;
-        }
-      }
-    } catch { /* geen parsed data */ }
-  }
-
   // Details voor gap-analyse
   const goalsWithoutBenefitsDetails = session.goals.filter((g) =>
     gaps.goalsWithoutBenefits.includes(g.id)
@@ -485,32 +455,43 @@ export default function CrossAnalyseStep() {
     gaps.capabilitiesWithoutEfforts.includes(c.id)
   );
 
-  async function handleAIAnalyse() {
+  async function handleAIAnalyse(extraFeedback?: string) {
     setIsAnalyzing(true);
     setError(null);
+    setAiRetryable(false);
     try {
+      const requestBody: Record<string, unknown> = {
+        goals: session!.goals,
+        benefits: session!.benefits,
+        capabilities: session!.capabilities,
+        efforts: session!.efforts,
+        externalProjects: session!.externalProjects || [],
+        // Koppelingen meesturen zodat AI gaps en hefboomwerking correct kan analyseren
+        goalBenefitMaps: session!.goalBenefitMaps,
+        benefitCapabilityMaps: session!.benefitCapabilityMaps,
+        capabilityEffortMaps: session!.capabilityEffortMaps,
+      };
+      if (extraFeedback) {
+        requestBody.userFeedback = extraFeedback;
+      }
       const res = await fetch("/api/cross-analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          goals: session!.goals,
-          benefits: session!.benefits,
-          capabilities: session!.capabilities,
-          efforts: session!.efforts,
-          externalProjects: session!.externalProjects || [],
-          // Koppelingen meesturen zodat AI gaps en hefboomwerking correct kan analyseren
-          goalBenefitMaps: session!.goalBenefitMaps,
-          benefitCapabilityMaps: session!.benefitCapabilityMaps,
-          capabilityEffortMaps: session!.capabilityEffortMaps,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
-        setAiAnalysis(data.data.analysis);
-        // Opslaan in sessie zodat het bewaard blijft bij navigatie
-        updateSession({ crossAnalyse: data.data.analysis });
+        const result = data.data.analysis as CrossAnalyseResult;
+        setAiAnalysis(result);
+        setAiRetryable(false);
+        setUserFeedback("");
+        // Opslaan in sessie als string (backward compat)
+        updateSession({ crossAnalyse: JSON.stringify(result) });
+      } else if (data.retryable) {
+        setAiRetryable(true);
+        setError(data.error || "De AI-analyse is mislukt. Probeer het opnieuw met extra instructies.");
       } else {
-        setError("De AI-analyse heeft geen resultaat opgeleverd. Probeer het opnieuw.");
+        setError(data.error || "De AI-analyse heeft geen resultaat opgeleverd. Probeer het opnieuw.");
       }
     } catch (e) {
       console.error("AI analyse mislukt:", e);
@@ -551,7 +532,7 @@ export default function CrossAnalyseStep() {
             </p>
           </div>
           <button
-            onClick={handleAIAnalyse}
+            onClick={() => handleAIAnalyse()}
             disabled={isAnalyzing}
             className="px-5 py-2.5 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
           >
@@ -589,14 +570,37 @@ export default function CrossAnalyseStep() {
 
       {/* Error state */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-3">
-          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-          <div>
-            <p className="font-medium">Analyse mislukt</p>
-            <p className="text-red-600 mt-0.5">{error}</p>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <div>
+              <p className="font-medium">Analyse mislukt</p>
+              <p className="text-red-600 mt-0.5">{error}</p>
+            </div>
           </div>
+          {aiRetryable && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Geef extra instructies mee voor een nieuwe poging
+              </label>
+              <textarea
+                value={userFeedback}
+                onChange={(e) => setUserFeedback(e.target.value)}
+                className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                rows={3}
+                placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+              />
+              <button
+                onClick={() => handleAIAnalyse(userFeedback)}
+                disabled={isAnalyzing}
+                className="rounded-md bg-[#003366] px-4 py-2 text-sm text-white hover:bg-[#002244] disabled:opacity-50"
+              >
+                Opnieuw proberen
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -723,7 +727,7 @@ export default function CrossAnalyseStep() {
                 data_systemen: ["data & systemen", "data_systemen", "data en systemen"],
                 cultuur: ["cultuur"],
               };
-              const aiDomein = parsedAI?.domeinBalans?.domeinen?.find(
+              const aiDomein = aiAnalysis?.domeinBalans?.domeinen?.find(
                 (d) => domainNameMap[domain]?.some((n) => d.domein.toLowerCase().includes(n))
               );
 
@@ -795,7 +799,7 @@ export default function CrossAnalyseStep() {
           {/* Balans-check */}
           {totalEfforts > 0 && (() => {
             const hasEmptyDomains = Object.values(domainBalance).some((v) => v === 0);
-            const aiTeWeinig = parsedAI?.domeinBalans?.domeinen?.filter(
+            const aiTeWeinig = aiAnalysis?.domeinBalans?.domeinen?.filter(
               (d) => d.beoordeling.toLowerCase().includes("te weinig")
             ) || [];
             const hasAIWarnings = aiTeWeinig.length > 0;
@@ -829,8 +833,8 @@ export default function CrossAnalyseStep() {
                     </>
                   )}
                 </div>
-                {parsedAI?.domeinBalans?.toelichting && (
-                  <p className="text-xs mt-1.5 opacity-80 italic ml-6">{parsedAI.domeinBalans.toelichting}</p>
+                {aiAnalysis?.domeinBalans?.toelichting && (
+                  <p className="text-xs mt-1.5 opacity-80 italic ml-6">{aiAnalysis.domeinBalans.toelichting}</p>
                 )}
               </div>
             );
@@ -1013,7 +1017,7 @@ export default function CrossAnalyseStep() {
               </div>
             </div>
             <button
-              onClick={handleAIAnalyse}
+              onClick={() => handleAIAnalyse()}
               disabled={isAnalyzing}
               className="px-3 py-1.5 text-xs text-cito-blue border border-cito-blue rounded-lg hover:bg-blue-50 disabled:opacity-50"
             >

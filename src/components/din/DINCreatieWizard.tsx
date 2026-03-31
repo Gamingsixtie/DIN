@@ -225,6 +225,8 @@ export default function DINCreatieWizard({
   const [isGenerating, setIsGenerating] = useState(false);
   const [previews, setPreviews] = useState<WizardResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [userFeedback, setUserFeedback] = useState("");
 
   // Domeinverkenning state (alleen voor inspanningen zonder vooraf gekozen domein)
   const needsDomainDiscovery = type === "inspanning" && !domain;
@@ -265,9 +267,10 @@ export default function DINCreatieWizard({
   const canAnalyzeDomain = (domeinAntwoorden["gapReden"] || "").trim().length > 5;
 
   // --- Domein-analyse ---
-  async function handleDomeinAnalyse() {
+  async function handleDomeinAnalyse(extraFeedback?: string) {
     setIsDomeinLoading(true);
     setError(null);
+    setAiRetryable(false);
     try {
       const context: Record<string, unknown> = {
         sector: sectorId,
@@ -289,6 +292,9 @@ export default function DINCreatieWizard({
       if (sectorPlanText) {
         context.sectorPlanText = sectorPlanText;
       }
+      if (extraFeedback) {
+        context.userFeedback = extraFeedback;
+      }
 
       const res = await fetch("/api/din-suggest", {
         method: "POST",
@@ -307,13 +313,17 @@ export default function DINCreatieWizard({
           alternatiefRedenering: s.alternatiefRedenering || null,
         };
         setDomeinRecommendation(rec);
-        // Pre-select: aanbevolen domein altijd, alternatief ook als het er is
         const preSelected: EffortDomain[] = [rec.aanbevolenDomein];
         if (rec.alternatiefDomein) {
           preSelected.push(rec.alternatiefDomein);
         }
         setGekozenDomeinen(preSelected);
         setPhase("domeinkeuze");
+        setAiRetryable(false);
+        setUserFeedback("");
+      } else if (data.retryable) {
+        setAiRetryable(true);
+        setError(data.error || "AI kon geen domein aanbevelen. Probeer het opnieuw met extra instructies.");
       } else {
         setError("AI kon geen domein aanbevelen. Kies handmatig een domein.");
         setPhase("domeinkeuze");
@@ -321,6 +331,7 @@ export default function DINCreatieWizard({
     } catch (e) {
       console.error("Domein-analyse mislukt:", e);
       setError("Fout bij domeinanalyse. Kies handmatig een domein.");
+      setAiRetryable(true);
       setPhase("domeinkeuze");
     } finally {
       setIsDomeinLoading(false);
@@ -380,9 +391,10 @@ export default function DINCreatieWizard({
   }
 
   // --- AI generatie: per domein apart (inspanningen) of single (baat/vermogen) ---
-  async function handleGenerate() {
+  async function handleGenerate(extraFeedback?: string) {
     setIsGenerating(true);
     setError(null);
+    setAiRetryable(false);
     setPreviews([]);
 
     try {
@@ -396,11 +408,15 @@ export default function DINCreatieWizard({
           if (result) {
             setPreviews([result]);
             setPhase("preview");
+            setAiRetryable(false);
+            setUserFeedback("");
           } else {
+            setAiRetryable(true);
             setError(`AI kon geen inspanning genereren voor ${DOMAIN_LABELS[currentDomain]}. Probeer het opnieuw.`);
           }
         } catch {
           setGenerateProgress("");
+          setAiRetryable(true);
           setError(`Fout bij genereren voor ${DOMAIN_LABELS[currentDomain]}. Probeer het opnieuw.`);
         }
       } else {
@@ -428,6 +444,9 @@ export default function DINCreatieWizard({
         }
         if (sectorPlanText) {
           context.sectorPlanText = sectorPlanText;
+        }
+        if (extraFeedback) {
+          context.userFeedback = extraFeedback;
         }
 
         const res = await fetch("/api/din-suggest", {
@@ -460,6 +479,11 @@ export default function DINCreatieWizard({
           }
           setPreviews([result]);
           setPhase("preview");
+          setAiRetryable(false);
+          setUserFeedback("");
+        } else if (data.retryable) {
+          setAiRetryable(true);
+          setError(data.error || "AI kon geen suggestie genereren. Probeer het opnieuw met extra instructies.");
         } else {
           setError("AI kon geen suggestie genereren. Probeer het opnieuw of voer handmatig in.");
         }
@@ -467,6 +491,7 @@ export default function DINCreatieWizard({
     } catch (e) {
       console.error("Creatie mislukt:", e);
       setError("Fout bij genereren. Controleer je internetverbinding.");
+      setAiRetryable(true);
       setGenerateProgress("");
     } finally {
       setIsGenerating(false);
@@ -600,13 +625,34 @@ export default function DINCreatieWizard({
 
         {error && (
           <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-            {error}
+            <p>{error}</p>
+            {aiRetryable && (
+              <div className="mt-2 space-y-2">
+                <label className="block text-xs font-medium text-gray-700">
+                  Geef extra instructies mee voor een nieuwe poging
+                </label>
+                <textarea
+                  value={userFeedback}
+                  onChange={(e) => setUserFeedback(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 p-2 text-xs"
+                  rows={2}
+                  placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                />
+                <button
+                  onClick={() => handleGenerate(userFeedback)}
+                  disabled={isGenerating}
+                  className="rounded-md bg-[#003366] px-3 py-1.5 text-xs text-white hover:bg-[#002244] disabled:opacity-50"
+                >
+                  Opnieuw proberen
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         <div className="flex justify-end pt-2">
           <button
-            onClick={handleDomeinAnalyse}
+            onClick={() => handleDomeinAnalyse()}
             disabled={!canAnalyzeDomain || isDomeinLoading}
             className="text-sm px-4 py-2 bg-cito-accent text-white rounded-lg hover:bg-cito-blue transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
@@ -722,7 +768,28 @@ export default function DINCreatieWizard({
 
         {error && (
           <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-            {error}
+            <p>{error}</p>
+            {aiRetryable && (
+              <div className="mt-2 space-y-2">
+                <label className="block text-xs font-medium text-gray-700">
+                  Geef extra instructies mee voor een nieuwe poging
+                </label>
+                <textarea
+                  value={userFeedback}
+                  onChange={(e) => setUserFeedback(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 p-2 text-xs"
+                  rows={2}
+                  placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                />
+                <button
+                  onClick={() => handleGenerate(userFeedback)}
+                  disabled={isGenerating}
+                  className="rounded-md bg-[#003366] px-3 py-1.5 text-xs text-white hover:bg-[#002244] disabled:opacity-50"
+                >
+                  Opnieuw proberen
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -969,7 +1036,28 @@ export default function DINCreatieWizard({
 
         {error && (
           <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-            {error}
+            <p>{error}</p>
+            {aiRetryable && (
+              <div className="mt-2 space-y-2">
+                <label className="block text-xs font-medium text-gray-700">
+                  Geef extra instructies mee voor een nieuwe poging
+                </label>
+                <textarea
+                  value={userFeedback}
+                  onChange={(e) => setUserFeedback(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 p-2 text-xs"
+                  rows={2}
+                  placeholder="Bijv. 'Focus op meetbare indicatoren' of 'Houd het korter'"
+                />
+                <button
+                  onClick={() => handleGenerate(userFeedback)}
+                  disabled={isGenerating}
+                  className="rounded-md bg-[#003366] px-3 py-1.5 text-xs text-white hover:bg-[#002244] disabled:opacity-50"
+                >
+                  Opnieuw proberen
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -985,7 +1073,7 @@ export default function DINCreatieWizard({
           )}
           <div className="flex-1" />
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate()}
             disabled={!canGenerate || isGenerating}
             className="text-sm px-4 py-2 bg-cito-accent text-white rounded-lg hover:bg-cito-blue transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
