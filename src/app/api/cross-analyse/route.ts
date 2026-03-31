@@ -3,6 +3,7 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { generateVerrijktSectorplan } from "@/lib/ai-client";
 import { AICrossAnalyseSchema, AIIntegratieAdviesSchema } from "@/lib/schemas";
 import { CROSS_ANALYSE_PROMPT, SECTOR_INTEGRATIE_PROMPT } from "@/lib/prompts";
+import { assembleSystemPrompt } from "@/lib/prompt-assembly";
 
 export async function POST(request: NextRequest) {
   try {
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       AICrossAnalyseSchema,
-      CROSS_ANALYSE_PROMPT,
+      assembleSystemPrompt(CROSS_ANALYSE_PROMPT, "cross-analyse"),
       userMessage,
       { maxTokens: 8192, model: "claude-opus-4-6" }
     );

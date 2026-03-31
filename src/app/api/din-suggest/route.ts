@@ -15,6 +15,7 @@ import {
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "@/lib/prompts";
+import { assembleSystemPrompt, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
 import type { z } from "zod";
 
 export async function POST(request: NextRequest) {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
       const result = await callClaudeWithValidation(
         AIDomainRecommendSchema,
-        DIN_DOMAIN_RECOMMEND_PROMPT,
+        assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend"),
         parts.join("\n\n")
       );
 
@@ -102,6 +103,11 @@ export async function POST(request: NextRequest) {
         baat: AISuggestBaatSchema,
         vermogen: AISuggestVermogenSchema,
         inspanning: AISuggestInspanningSchema,
+      };
+      const createUseCaseMap: Record<string, ProgrammaboekUseCase> = {
+        baat: "baat-create",
+        vermogen: "vermogen-create",
+        inspanning: "inspanning-create",
       };
 
       const parts: string[] = [`Sector: ${context.sector}`];
@@ -145,7 +151,7 @@ export async function POST(request: NextRequest) {
 
       const result = await callClaudeWithValidation(
         schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-        promptMap[type as keyof typeof promptMap],
+        assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type]),
         parts.join("\n\n")
       );
 
@@ -172,6 +178,11 @@ export async function POST(request: NextRequest) {
       baat: AISuggestBaatSchema,
       vermogen: AISuggestVermogenSchema,
       inspanning: AISuggestInspanningSchema,
+    };
+    const suggestUseCaseMap: Record<string, ProgrammaboekUseCase> = {
+      baat: "baat-suggest",
+      vermogen: "vermogen-suggest",
+      inspanning: "inspanning-suggest",
     };
 
     const parts: string[] = [`Sector: ${context.sector}`];
@@ -259,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-      promptMap[type as keyof typeof promptMap],
+      assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type]),
       parts.join("\n\n")
     );
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
+import { assembleSystemPrompt } from "@/lib/prompt-assembly";
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       AIDINMappingResponseSchema,
-      DIN_MAPPING_PROMPT,
+      assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping"),
       parts.join("\n"),
       { maxTokens: 8192 }
     );
