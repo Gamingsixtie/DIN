@@ -33,7 +33,7 @@ function StepContent({ step }: { step: AppStep }) {
 function SessionFlow() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { session, currentStep, setCurrentStep, loadSession } = useSession();
+  const { session, currentStep, setCurrentStep, loadSession, lastSaved } = useSession();
 
   useEffect(() => {
     if (id) loadSession(id);
@@ -68,6 +68,11 @@ function SessionFlow() {
             <h1 className="text-xl font-bold">DIN — {session.name}</h1>
           </div>
           <div className="flex items-center gap-4">
+            {lastSaved && (
+              <span className="text-xs text-blue-200/70">
+                Opgeslagen {lastSaved.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
             <span className="text-sm text-blue-200">
               Stap {currentStepIndex + 1} van {APP_STEPS.length}
             </span>

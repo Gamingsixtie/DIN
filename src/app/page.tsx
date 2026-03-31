@@ -58,9 +58,11 @@ export default function Home() {
     const list = (loadLocal<string[]>("session_list") || []).filter(
       (sid) => sid !== id
     );
-    saveLocal("session_list", list.length > 0 ? list : ["__placeholder__"]);
-    if (list.length === 0) removeLocal("session_list");
-    else saveLocal("session_list", list);
+    if (list.length === 0) {
+      removeLocal("session_list");
+    } else {
+      saveLocal("session_list", list);
+    }
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
