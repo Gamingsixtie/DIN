@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DINEffort, EffortDomain, InspanningsDossier } from "@/lib/types";
 import { DOMAIN_LABELS, STATUS_LABELS, generateQuarters } from "@/lib/types";
 
@@ -38,6 +38,7 @@ interface EffortCardProps {
   onChange: (updated: DINEffort) => void;
   onDelete: () => void;
   onAISuggest?: (userPrompt?: string) => Promise<EffortSuggestion | null>;
+  corrections?: { field: string; original: string; corrected: string; rule: string; message: string }[];
 }
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string }> = {
@@ -53,6 +54,7 @@ export default function EffortCard({
   onChange,
   onDelete,
   onAISuggest,
+  corrections,
 }: EffortCardProps) {
   const colors = DOMAIN_COLORS[effort.domain];
   const [isAILoading, setIsAILoading] = useState(false);
@@ -66,6 +68,9 @@ export default function EffortCard({
   const [previousState, setPreviousState] = useState<DINEffort | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showTip, setShowTip] = useState(false);
+  // Correctie-badge: transient state per D-10
+  const [badgeDismissed, setBadgeDismissed] = useState(false);
+  useEffect(() => { setBadgeDismissed(false); }, [corrections]);
 
   const dossier: InspanningsDossier = effort.dossier || {
     eigenaar: "",
@@ -177,6 +182,19 @@ export default function EffortCard({
             className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
             placeholder="Titel: actie met werkwoorden, bijv. 'Training outside-in werken uitvoeren'"
           />
+          {corrections && corrections.length > 0 && !badgeDismissed && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 mt-1 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-700 cursor-pointer"
+              onClick={() => setBadgeDismissed(true)}
+              title="Klik om te verbergen"
+            >
+              <span className="font-medium">Gecorrigeerd:</span>
+              <span>{corrections[0].message}</span>
+              {corrections.length > 1 && (
+                <span className="text-amber-500">(+{corrections.length - 1})</span>
+              )}
+            </div>
+          )}
           <textarea
             value={effort.description}
             onChange={(e) =>

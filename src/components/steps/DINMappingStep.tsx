@@ -26,6 +26,8 @@ import {
 import BenefitCard from "@/components/din/BenefitCard";
 import CapabilityCard from "@/components/din/CapabilityCard";
 import EffortCard from "@/components/din/EffortCard";
+import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
+import type { ValidationCorrection } from "@/lib/din-validation";
 import DINChainIndicator from "@/components/din/DINChainIndicator";
 import MergedDINView from "@/components/din/MergedDINView";
 import DINCreatieWizard from "@/components/din/DINCreatieWizard";
@@ -306,6 +308,10 @@ export default function DINMappingStep() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
+  // Corrections state: keyed by item ID, stores validation corrections
+  const [benefitCorrections, setBenefitCorrections] = useState<Record<string, ValidationCorrection[]>>({});
+  const [capabilityCorrections, setCapabilityCorrections] = useState<Record<string, ValidationCorrection[]>>({});
+  const [effortCorrections, setEffortCorrections] = useState<Record<string, ValidationCorrection[]>>({});
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [verrijktSectorplan, setVerrijktSectorplanState] = useState<Record<string, string>>(
     session?.verrijkteSectorplannen || {}
@@ -424,6 +430,20 @@ export default function DINMappingStep() {
 
   // --- CRUD functies ---
   function updateBenefit(updated: DINBenefit) {
+    // Check if title changed for client-side validation (per D-02)
+    const current = session?.benefits.find(b => b.id === updated.id);
+    if (current && updated.title !== current.title) {
+      const result = validateBaat({ ...updated, title: updated.title || "" });
+      if (result.corrections.length > 0) {
+        setBenefitCorrections(prev => ({ ...prev, [updated.id]: result.corrections }));
+      } else {
+        setBenefitCorrections(prev => {
+          const next = { ...prev };
+          delete next[updated.id];
+          return next;
+        });
+      }
+    }
     updateSession(prev => ({
       benefits: prev.benefits.map((b) =>
         b.id === updated.id ? updated : b
@@ -463,6 +483,20 @@ export default function DINMappingStep() {
     setWizardState(null);
   }
   function updateCapability(updated: DINCapability) {
+    // Check if title changed for client-side validation (per D-02)
+    const current = session?.capabilities.find(c => c.id === updated.id);
+    if (current && updated.title !== current.title) {
+      const result = validateVermogen({ ...updated, title: updated.title || "" });
+      if (result.corrections.length > 0) {
+        setCapabilityCorrections(prev => ({ ...prev, [updated.id]: result.corrections }));
+      } else {
+        setCapabilityCorrections(prev => {
+          const next = { ...prev };
+          delete next[updated.id];
+          return next;
+        });
+      }
+    }
     updateSession(prev => ({
       capabilities: prev.capabilities.map((c) =>
         c.id === updated.id ? updated : c
@@ -505,6 +539,20 @@ export default function DINMappingStep() {
     setWizardState(null);
   }
   function updateEffort(updated: DINEffort) {
+    // Check if title changed for client-side validation (per D-02)
+    const current = session?.efforts.find(e => e.id === updated.id);
+    if (current && updated.title !== current.title) {
+      const result = validateInspanning({ ...updated, title: updated.title || "" });
+      if (result.corrections.length > 0) {
+        setEffortCorrections(prev => ({ ...prev, [updated.id]: result.corrections }));
+      } else {
+        setEffortCorrections(prev => {
+          const next = { ...prev };
+          delete next[updated.id];
+          return next;
+        });
+      }
+    }
     updateSession(prev => ({
       efforts: prev.efforts.map((e) =>
         e.id === updated.id ? updated : e
@@ -908,6 +956,31 @@ export default function DINMappingStep() {
           benefitCapabilityMaps: [...prev.benefitCapabilityMaps, ...newBenCapMaps],
           capabilityEffortMaps: [...prev.capabilityEffortMaps, ...newCapEffMaps],
         }));
+
+        // Store corrections from API post-validation
+        if (data.corrections) {
+          const bCorr: Record<string, ValidationCorrection[]> = {};
+          newBenefits.forEach((b: DINBenefit, i: number) => {
+            if (data.corrections.benefits?.[i]?.length) {
+              bCorr[b.id] = data.corrections.benefits[i];
+            }
+          });
+          const cCorr: Record<string, ValidationCorrection[]> = {};
+          newCaps.forEach((c: DINCapability, i: number) => {
+            if (data.corrections.capabilities?.[i]?.length) {
+              cCorr[c.id] = data.corrections.capabilities[i];
+            }
+          });
+          const eCorr: Record<string, ValidationCorrection[]> = {};
+          newEfforts.forEach((e: DINEffort, i: number) => {
+            if (data.corrections.efforts?.[i]?.length) {
+              eCorr[e.id] = data.corrections.efforts[i];
+            }
+          });
+          setBenefitCorrections(prev => ({ ...prev, ...bCorr }));
+          setCapabilityCorrections(prev => ({ ...prev, ...cCorr }));
+          setEffortCorrections(prev => ({ ...prev, ...eCorr }));
+        }
       }
     } catch (e) {
       console.error("AI generatie mislukt:", e);
@@ -1366,6 +1439,7 @@ export default function DINMappingStep() {
                                 onChange={updateBenefit}
                                 onDelete={() => deleteBenefit(benefit.id)}
                                 onAISuggest={makeBenefitSuggest(benefit)}
+                                corrections={benefitCorrections[benefit.id]}
                               />
                             </div>
 
@@ -1436,6 +1510,7 @@ export default function DINMappingStep() {
                                             onDelete={() => deleteCapability(cap.id)}
                                             onAISuggest={makeCapabilitySuggest(cap)}
                                             sharedWithBenefits={otherBaten.map((b) => b.title || b.description || "(naamloos)")}
+                                            corrections={capabilityCorrections[cap.id]}
                                           />
                                           <div className="border-t border-gray-100 pt-3">
                                             <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan baten:</div>
@@ -1504,6 +1579,7 @@ export default function DINMappingStep() {
                                                       onChange={updateEffort}
                                                       onDelete={() => deleteEffort(effort.id)}
                                                       onAISuggest={makeEffortSuggest(effort)}
+                                                      corrections={effortCorrections[effort.id]}
                                                     />
                                                     <div className="border-t border-gray-100 pt-3">
                                                       <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan vermogens:</div>
@@ -1636,6 +1712,7 @@ export default function DINMappingStep() {
                                         onChange={updateCapability}
                                         onDelete={() => deleteCapability(cap.id)}
                                         onAISuggest={makeCapabilitySuggest(cap)}
+                                        corrections={capabilityCorrections[cap.id]}
                                       />
                                       <div className="border-t border-gray-100 pt-3">
                                         <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan baten:</div>
@@ -1692,6 +1769,7 @@ export default function DINMappingStep() {
                                         onChange={updateEffort}
                                         onDelete={() => deleteEffort(effort.id)}
                                         onAISuggest={makeEffortSuggest(effort)}
+                                        corrections={effortCorrections[effort.id]}
                                       />
                                       <div className="border-t border-gray-100 pt-3">
                                         <div className="text-xs font-semibold text-gray-600 mb-2">Koppel aan vermogens:</div>

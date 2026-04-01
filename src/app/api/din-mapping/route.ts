@@ -3,6 +3,7 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
+import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,9 +115,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Post-validatie: methodiek-checks op AI-output
+    const validated = result.data;
+    const benefitResults = validated.benefits.map(b => validateBaat(b));
+    const capabilityResults = validated.capabilities.map(c => validateVermogen(c));
+    const effortResults = validated.efforts.map(e => validateInspanning(e));
+
     return NextResponse.json({
       success: true,
-      data: result.data,
+      data: {
+        benefits: benefitResults.map(r => r.item),
+        capabilities: capabilityResults.map(r => r.item),
+        efforts: effortResults.map(r => r.item),
+      },
+      corrections: {
+        benefits: benefitResults.map(r => r.corrections),
+        capabilities: capabilityResults.map(r => r.corrections),
+        efforts: effortResults.map(r => r.corrections),
+      },
+      warnings: [
+        ...benefitResults.flatMap(r => r.warnings),
+        ...capabilityResults.flatMap(r => r.warnings),
+        ...effortResults.flatMap(r => r.warnings),
+      ],
     });
   } catch (error) {
     return NextResponse.json(

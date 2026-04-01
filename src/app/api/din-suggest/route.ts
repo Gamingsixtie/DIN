@@ -16,6 +16,7 @@ import {
   DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { z } from "zod";
 
 export async function POST(request: NextRequest) {
@@ -164,9 +165,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Post-validatie op create-resultaat
+      const createValidatorMap = {
+        baat: validateBaat,
+        vermogen: validateVermogen,
+        inspanning: validateInspanning,
+      };
+      const createValidationResult = createValidatorMap[type as keyof typeof createValidatorMap](
+        result.data as { title: string; [key: string]: unknown }
+      );
+
       return NextResponse.json({
         success: true,
-        data: { suggestion: result.data },
+        data: {
+          suggestion: createValidationResult.item,
+          corrections: createValidationResult.corrections,
+          warnings: createValidationResult.warnings,
+        },
       });
     }
 
@@ -283,9 +298,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Post-validatie op suggest-resultaat
+    const suggestValidatorMap = {
+      baat: validateBaat,
+      vermogen: validateVermogen,
+      inspanning: validateInspanning,
+    };
+    const suggestValidationResult = suggestValidatorMap[type as keyof typeof suggestValidatorMap](
+      result.data as { title: string; [key: string]: unknown }
+    );
+
     return NextResponse.json({
       success: true,
-      data: { suggestion: result.data },
+      data: {
+        suggestion: suggestValidationResult.item,
+        corrections: suggestValidationResult.corrections,
+        warnings: suggestValidationResult.warnings,
+      },
     });
   } catch (error) {
     return NextResponse.json(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DINBenefit } from "@/lib/types";
 
 interface BenefitSuggestion {
@@ -38,6 +38,7 @@ interface BenefitCardProps {
   onChange: (updated: DINBenefit) => void;
   onDelete: () => void;
   onAISuggest?: (userPrompt?: string) => Promise<BenefitSuggestion | null>;
+  corrections?: { field: string; original: string; corrected: string; rule: string; message: string }[];
 }
 
 export default function BenefitCard({
@@ -45,6 +46,7 @@ export default function BenefitCard({
   onChange,
   onDelete,
   onAISuggest,
+  corrections,
 }: BenefitCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -60,6 +62,9 @@ export default function BenefitCard({
   // Undo: bewaar vorige staat na toepassen
   const [previousState, setPreviousState] = useState<DINBenefit | null>(null);
   const [showTip, setShowTip] = useState(false);
+  // Correctie-badge: transient state per D-10
+  const [badgeDismissed, setBadgeDismissed] = useState(false);
+  useEffect(() => { setBadgeDismissed(false); }, [corrections]);
 
   function toggleVeld(veld: AanscherpVeld) {
     const next = new Set(selectedVelden);
@@ -186,6 +191,19 @@ export default function BenefitCard({
             className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none pb-0.5"
             placeholder="Titel: vergrotende trap, bijv. 'Hogere klanttevredenheid'"
           />
+          {corrections && corrections.length > 0 && !badgeDismissed && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 mt-1 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-700 cursor-pointer"
+              onClick={() => setBadgeDismissed(true)}
+              title="Klik om te verbergen"
+            >
+              <span className="font-medium">Gecorrigeerd:</span>
+              <span>{corrections[0].message}</span>
+              {corrections.length > 1 && (
+                <span className="text-amber-500">(+{corrections.length - 1})</span>
+              )}
+            </div>
+          )}
           {/* Beschrijving — uitgebreide toelichting */}
           <textarea
             value={benefit.description}

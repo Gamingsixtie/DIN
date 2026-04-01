@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DINCapability, VermogensProfiel } from "@/lib/types";
 
 interface CapabilitySuggestion {
@@ -37,6 +37,7 @@ interface CapabilityCardProps {
   onDelete: () => void;
   onAISuggest?: (userPrompt?: string) => Promise<CapabilitySuggestion | null>;
   sharedWithBenefits?: string[];
+  corrections?: { field: string; original: string; corrected: string; rule: string; message: string }[];
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -97,6 +98,7 @@ export default function CapabilityCard({
   onDelete,
   onAISuggest,
   sharedWithBenefits,
+  corrections,
 }: CapabilityCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -109,6 +111,9 @@ export default function CapabilityCard({
   const [zetvraagAntwoorden, setZetvraagAntwoorden] = useState<Record<string, string>>({});
   const [previousState, setPreviousState] = useState<DINCapability | null>(null);
   const [showTip, setShowTip] = useState(false);
+  // Correctie-badge: transient state per D-10
+  const [badgeDismissed, setBadgeDismissed] = useState(false);
+  useEffect(() => { setBadgeDismissed(false); }, [corrections]);
 
   const profiel: VermogensProfiel = capability.profiel || { eigenaar: "", huidieSituatie: "", gewensteSituatie: "" };
 
@@ -220,6 +225,19 @@ export default function CapabilityCard({
             className="w-full font-semibold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-cito-blue focus:outline-none"
             placeholder="Titel: wat moet de organisatie KUNNEN? (bijv. 'Klantgesprek-methodiek')"
           />
+          {corrections && corrections.length > 0 && !badgeDismissed && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 mt-1 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-700 cursor-pointer"
+              onClick={() => setBadgeDismissed(true)}
+              title="Klik om te verbergen"
+            >
+              <span className="font-medium">Gecorrigeerd:</span>
+              <span>{corrections[0].message}</span>
+              {corrections.length > 1 && (
+                <span className="text-amber-500">(+{corrections.length - 1})</span>
+              )}
+            </div>
+          )}
           <textarea
             value={capability.description}
             onChange={(e) =>
