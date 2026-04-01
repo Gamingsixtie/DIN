@@ -14,7 +14,23 @@
       "Bash(npm install docx)",
       "Bash(npm install mammoth)",
       "Bash(python3 -c \"import docx; print\\(''python-docx available''\\)\")",
-      "Bash(python3 -c \"import olefile; print\\(''olefile available''\\)\")"
+      "Bash(python3 -c \"import olefile; print\\(''olefile available''\\)\")",
+      "Bash(wc -l .planning/codebase/*.md)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: map existing codebase\" --files .planning/codebase/*.md)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: initialize project\" --files .planning/PROJECT.md)",
+      "Bash(test -f \"$HOME/.gsd/defaults.json\")",
+      "Read(//c/Users/pdebu/Projects VS code/DIN/$HOME/.gsd/**)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" config-new-project '{\"\"mode\"\":\"\"interactive\"\",\"\"granularity\"\":\"\"fine\"\",\"\"parallelization\"\":true,\"\"commit_docs\"\":true,\"\"model_profile\"\":\"\"quality\"\",\"\"workflow\"\":{\"\"research\"\":true,\"\"plan_check\"\":true,\"\"verifier\"\":true,\"\"nyquist_validation\"\":true}}')",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"chore: add project config\" --files .planning/config.json)",
+      "Read(//c/Users/pdebu/AppData/Roaming/Claude/get-shit-done/templates/research-project/**)",
+      "Read(//c/Users/pdebu/Projects VS code/DIN/$HOME/.claude/get-shit-done/**)",
+      "Read(//c/Users/pdebu/Projects VS code/DIN/**)",
+      "Read(//c/Users/pdebu/.claude/get-shit-done/templates/research-project/**)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: complete project research\" --files .planning/research/)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: define v1 requirements\" --files .planning/REQUIREMENTS.md)",
+      "Read(//c/Users/pdebu/.claude/get-shit-done/templates/**)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" generate-claude-md)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: create roadmap \\(10 phases\\)\" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md CLAUDE.md)"
     ],
     "additionalDirectories": [
       "\\tmp"
