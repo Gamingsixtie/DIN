@@ -78,7 +78,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — KiB context injectie in alle AI-prompts + hoeveelheidslimieten op Zod schemas
 - [x] 04-02-PLAN.md — DIN-methodiek validatiemodule + post-validatie pipeline + correctie-badges in UI
-- [ ] 04-03-PLAN.md — Gap closure: kibGoals/kibScope doorvoeren in DINMappingStep fetch-aanroepen
+- [x] 04-03-PLAN.md — Gap closure: kibGoals/kibScope doorvoeren in DINMappingStep fetch-aanroepen
 
 ### Phase 5: Sectorwerk Doorstroming
 **Goal**: Sectorwerk-analyse resultaten zijn beschikbaar als gestructureerde input voor DIN-mapping
