@@ -76,7 +76,7 @@ Plans:
   4. Vermogens bevatten werkwoorden, inspanningen zijn concrete activiteiten in de vier domeinen (Mens, Processen, Data & Systemen, Cultuur)
 **Plans:** 2 plans
 Plans:
-- [ ] 04-01-PLAN.md — KiB context injectie in alle AI-prompts + hoeveelheidslimieten op Zod schemas
+- [x] 04-01-PLAN.md — KiB context injectie in alle AI-prompts + hoeveelheidslimieten op Zod schemas
 - [ ] 04-02-PLAN.md — DIN-methodiek validatiemodule + post-validatie pipeline + correctie-badges in UI
 
 ### Phase 5: Sectorwerk Doorstroming

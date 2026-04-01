@@ -17,8 +17,8 @@ Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap
 ### AI-kwaliteit
 
 - [x] **AI-01**: Relevante secties uit docs/programmaboek.doc worden als context meegegeven aan alle AI-prompts
-- [ ] **AI-02**: AI genereert maximaal 2-4 baten per doel per sector, met methodiek-conforme titels (vergrotende trap)
-- [ ] **AI-03**: KiB visie en scope worden meegegeven aan alle AI-generatie stappen (DIN-mapping, cross-analyse, sectorintegratie)
+- [x] **AI-02**: AI genereert maximaal 2-4 baten per doel per sector, met methodiek-conforme titels (vergrotende trap)
+- [x] **AI-03**: KiB visie en scope worden meegegeven aan alle AI-generatie stappen (DIN-mapping, cross-analyse, sectorintegratie)
 - [ ] **AI-04**: AI-output wordt gevalideerd tegen DIN-methodiek regels voordat het wordt opgeslagen (baten = effecten, vermogens = werkwoorden, inspanningen = concrete activiteiten)
 
 ### Cyclisch werken
@@ -86,8 +86,8 @@ Welke fases dekken welke requirements.
 | DATA-03 | Phase 2 | Complete |
 | DATA-04 | Phase 5 | Pending |
 | AI-01 | Phase 3 | Complete |
-| AI-02 | Phase 4 | Pending |
-| AI-03 | Phase 4 | Pending |
+| AI-02 | Phase 4 | Complete |
+| AI-03 | Phase 4 | Complete |
 | AI-04 | Phase 4 | Pending |
 | CYCL-01 | Phase 6 | Pending |
 | CYCL-02 | Phase 6 | Pending |
