@@ -77,7 +77,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 04-01-PLAN.md — KiB context injectie in alle AI-prompts + hoeveelheidslimieten op Zod schemas
-- [ ] 04-02-PLAN.md — DIN-methodiek validatiemodule + post-validatie pipeline + correctie-badges in UI
+- [x] 04-02-PLAN.md — DIN-methodiek validatiemodule + post-validatie pipeline + correctie-badges in UI
 
 ### Phase 5: Sectorwerk Doorstroming
 **Goal**: Sectorwerk-analyse resultaten zijn beschikbaar als gestructureerde input voor DIN-mapping
