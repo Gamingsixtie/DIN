@@ -78,6 +78,53 @@ export function getContextForUseCase(useCase: ProgrammaboekUseCase): string {
   return USE_CASE_CONTEXT_MAP[useCase];
 }
 
+// ============================================================
+// KiB Context — programmadoelen en scope injecteren in prompts
+// ============================================================
+
+/**
+ * KiB context interface — bevat programmadoelen en scope uit Klant in Beeld.
+ * Per D-04, D-05: alleen top-doelen (naam, beschrijving, ranking) en scope.
+ * Geen visietekst — die is te lang en niet direct relevant voor AI-sturing.
+ */
+export interface KiBContext {
+  goals: { name: string; description: string; rank: number }[];
+  scope: { inScope: string[]; outScope: string[] } | null;
+}
+
+/**
+ * Extraheert KiB context uit een sessie-achtig object.
+ *
+ * - Goals worden gesorteerd op rank (ascending)
+ * - Beschrijvingen worden afgekapt op 80 karakters
+ * - Scope-lijsten worden beperkt tot 10 items per lijst (Pitfall 2)
+ * - Retourneert lege context als geen data aanwezig
+ *
+ * @param session - Object met optionele goals en scope velden
+ * @returns KiBContext object
+ */
+export function extractKiBContext(session: {
+  goals?: { name: string; description: string; rank: number }[];
+  scope?: { id?: string; inScope: string[]; outScope: string[] } | null;
+}): KiBContext {
+  const goals = (session.goals ?? [])
+    .map((g) => ({
+      name: g.name,
+      description: g.description.slice(0, 80),
+      rank: g.rank,
+    }))
+    .sort((a, b) => a.rank - b.rank);
+
+  const scope = session.scope
+    ? {
+        inScope: session.scope.inScope.slice(0, 10),
+        outScope: session.scope.outScope.slice(0, 10),
+      }
+    : null;
+
+  return { goals, scope };
+}
+
 /**
  * Trunceer tekst op een zinsgrens, nooit midden in een zin.
  *
@@ -116,6 +163,68 @@ export function truncateAtSentenceBoundary(text: string, maxChars: number): stri
 }
 
 /**
+ * Bouw een KiB context blok voor injectie in system prompts.
+ *
+ * Per D-04: KiB context verschijnt NA de programmaboek-context.
+ * Per Pitfall 2: totale bloklengte wordt beperkt tot ~1000 karakters.
+ *
+ * @param kibContext - De KiB context data
+ * @returns Geformateerd KiB context blok, of lege string als geen data
+ */
+function buildKiBBlock(kibContext: KiBContext): string {
+  if (kibContext.goals.length === 0) return "";
+
+  const parts: string[] = [];
+
+  // Goals genummerd, gesorteerd op rank
+  parts.push("Programmadoelen:");
+  for (const goal of kibContext.goals) {
+    parts.push(`${goal.rank}. ${goal.name}: ${goal.description}`);
+  }
+
+  // Scope (optioneel)
+  if (kibContext.scope) {
+    if (kibContext.scope.inScope.length > 0) {
+      parts.push("");
+      parts.push("Binnen scope:");
+      for (const item of kibContext.scope.inScope) {
+        parts.push(`- ${item}`);
+      }
+    }
+    if (kibContext.scope.outScope.length > 0) {
+      parts.push("");
+      parts.push("Buiten scope:");
+      for (const item of kibContext.scope.outScope) {
+        parts.push(`- ${item}`);
+      }
+    }
+  }
+
+  parts.push("");
+  parts.push("Genereer ALLEEN items die passen binnen bovenstaande doelen en scope. Verwijs waar mogelijk naar specifieke doelen.");
+
+  let block = parts.join("\n");
+
+  // Cap totale bloklengte op ~1000 chars (Pitfall 2)
+  if (block.length > 1000) {
+    block = block.substring(0, 1000);
+    // Zoek de laatste newline om een nette afkapping te doen
+    const lastNewline = block.lastIndexOf("\n");
+    if (lastNewline > 700) {
+      block = block.substring(0, lastNewline);
+    }
+    block += "\n\nGenereer ALLEEN items die passen binnen bovenstaande doelen en scope. Verwijs waar mogelijk naar specifieke doelen.";
+  }
+
+  return `
+---
+KIB PROGRAMMADOELEN EN SCOPE:
+
+${block}
+---`;
+}
+
+/**
  * Stel een complete system prompt samen met programmaboek-context.
  *
  * De structuur (per D-05 en D-06):
@@ -125,22 +234,30 @@ export function truncateAtSentenceBoundary(text: string, maxChars: number): stri
  * 4. Programmaboek-context (de "waarom en wat" laag uit het boek)
  * 5. Horizontale lijn
  * 6. Instructie om de methodiek als referentie te gebruiken
+ * 7. (Optioneel) KiB context blok met programmadoelen en scope (per D-04)
  *
  * @param instructionPrompt - De bestaande prompt uit prompts.ts
  * @param useCase - Het AI use case waarvoor context nodig is
  * @param maxContextChars - Optioneel: maximaal aantal karakters voor de context
+ * @param kibContext - Optioneel: KiB programmadoelen en scope voor scope-bewuste AI generatie
  * @returns De samengestelde system prompt
  */
 export function assembleSystemPrompt(
   instructionPrompt: string,
   useCase: ProgrammaboekUseCase,
-  maxContextChars?: number
+  maxContextChars?: number,
+  kibContext?: KiBContext | null
 ): string {
   let context = getContextForUseCase(useCase);
 
   if (maxContextChars && context.length > maxContextChars) {
     context = truncateAtSentenceBoundary(context, maxContextChars);
   }
+
+  // KiB context blok (per D-04: NA de programmaboek-context)
+  const kibBlock = kibContext && kibContext.goals.length > 0
+    ? buildKiBBlock(kibContext)
+    : "";
 
   return `${instructionPrompt}
 
@@ -150,5 +267,5 @@ ACHTERGRONDKENNIS UIT HET PROGRAMMABOEK (Prevaas & Van Loon, 'Werken aan Program
 ${context}
 ---
 
-Gebruik bovenstaande methodiek-kennis als referentie bij het genereren van je antwoord. De theorie is leidend voor correcte terminologie en definities.`;
+Gebruik bovenstaande methodiek-kennis als referentie bij het genereren van je antwoord. De theorie is leidend voor correcte terminologie en definities.${kibBlock}`;
 }

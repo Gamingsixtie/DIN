@@ -292,3 +292,115 @@ describe("DINEffort schema", () => {
     expect(result.success).toBe(false);
   });
 });
+
+// ============================================================
+// AIDINMappingResponseSchema quantity limits
+// ============================================================
+
+describe("AIDINMappingResponseSchema quantity limits", () => {
+  const makeBenefit = (i: number) => ({
+    title: `Baat ${i}`,
+    description: `Beschrijving ${i}`,
+    profiel: {
+      indicator: "NPS",
+      indicatorOwner: "BI",
+      currentValue: "0",
+      targetValue: "10",
+    },
+  });
+
+  const makeCapability = (i: number) => ({
+    title: `Vermogen ${i}`,
+    description: `Beschrijving ${i}`,
+  });
+
+  const makeEffort = (i: number) => ({
+    title: `Inspanning ${i}`,
+    description: `Beschrijving ${i}`,
+    domain: "mens" as const,
+  });
+
+  test("accepts benefits array with exactly 4 items (max 4)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: Array.from({ length: 4 }, (_, i) => makeBenefit(i)),
+      capabilities: [makeCapability(0)],
+      efforts: [makeEffort(0)],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects benefits array with 5 items (max 4)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: Array.from({ length: 5 }, (_, i) => makeBenefit(i)),
+      capabilities: [makeCapability(0)],
+      efforts: [makeEffort(0)],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects capabilities array with 9 items (max 8)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: [makeBenefit(0)],
+      capabilities: Array.from({ length: 9 }, (_, i) => makeCapability(i)),
+      efforts: [makeEffort(0)],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("accepts capabilities array with exactly 8 items (max 8)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: [makeBenefit(0)],
+      capabilities: Array.from({ length: 8 }, (_, i) => makeCapability(i)),
+      efforts: [makeEffort(0)],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects efforts array with 13 items (max 12)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: [makeBenefit(0)],
+      capabilities: [makeCapability(0)],
+      efforts: Array.from({ length: 13 }, (_, i) => makeEffort(i)),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("accepts efforts array with exactly 12 items (max 12)", () => {
+    const result = AIDINMappingResponseSchema.safeParse({
+      benefits: [makeBenefit(0)],
+      capabilities: [makeCapability(0)],
+      efforts: Array.from({ length: 12 }, (_, i) => makeEffort(i)),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("DINSessionSchema does NOT limit benefits array (storage schema)", () => {
+    // DINSessionSchema should accept any number of benefits (no .max())
+    const manyBenefits = Array.from({ length: 20 }, (_, i) => ({
+      id: `b${i}`,
+      goalId: "g1",
+      sectorId: "PO",
+      description: `Benefit ${i}`,
+      profiel: {
+        indicator: "NPS",
+        indicatorOwner: "BI",
+        currentValue: "0",
+        targetValue: "10",
+      },
+    }));
+    const result = DINSessionSchema.safeParse({
+      id: "s1",
+      name: "Test sessie",
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+      currentStep: 0,
+      goals: [],
+      sectorPlans: [],
+      pmcEntries: [],
+      benefits: manyBenefits,
+      capabilities: [],
+      efforts: [],
+    });
+    expect(result.success).toBe(true);
+  });
+});

@@ -389,9 +389,9 @@ export const AIEffortSchema = z.object({
 });
 
 export const AIDINMappingResponseSchema = z.object({
-  benefits: z.array(AIBenefitSchema),
-  capabilities: z.array(AICapabilitySchema),
-  efforts: z.array(AIEffortSchema),
+  benefits: z.array(AIBenefitSchema).max(4),
+  capabilities: z.array(AICapabilitySchema).max(8),
+  efforts: z.array(AIEffortSchema).max(12),
 });
 
 // --- AI Suggest schemas ---

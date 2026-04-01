@@ -3,8 +3,9 @@ import {
   assembleSystemPrompt,
   getContextForUseCase,
   truncateAtSentenceBoundary,
+  extractKiBContext,
 } from "@/lib/prompt-assembly";
-import type { ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import type { ProgrammaboekUseCase, KiBContext } from "@/lib/prompt-assembly";
 import {
   PROGRAMMABOEK_BATEN,
   PROGRAMMABOEK_VERMOGENS,
@@ -185,5 +186,146 @@ describe("assembleSystemPrompt", () => {
   it("contains separator between instruction and context", () => {
     const result = assembleSystemPrompt(testInstruction, "baat-suggest");
     expect(result).toContain("---");
+  });
+});
+
+// ============================================================
+// extractKiBContext tests
+// ============================================================
+
+describe("extractKiBContext", () => {
+  it("extracts goals sorted by rank with descriptions capped at 80 chars", () => {
+    const longDesc = "A".repeat(120);
+    const result = extractKiBContext({
+      goals: [
+        { id: "g2", name: "Doel B", description: longDesc, rank: 2 },
+        { id: "g1", name: "Doel A", description: "Korte beschrijving", rank: 1 },
+      ],
+      scope: undefined,
+    });
+    expect(result.goals).toHaveLength(2);
+    expect(result.goals[0].rank).toBe(1);
+    expect(result.goals[0].name).toBe("Doel A");
+    expect(result.goals[1].description.length).toBeLessThanOrEqual(80);
+  });
+
+  it("returns empty goals and null scope when no data provided", () => {
+    const result = extractKiBContext({ goals: [], scope: undefined });
+    expect(result.goals).toEqual([]);
+    expect(result.scope).toBeNull();
+  });
+
+  it("returns empty goals and null scope when goals is undefined", () => {
+    const result = extractKiBContext({});
+    expect(result.goals).toEqual([]);
+    expect(result.scope).toBeNull();
+  });
+
+  it("caps scope items at 10 per list", () => {
+    const manyItems = Array.from({ length: 15 }, (_, i) => `Item ${i + 1}`);
+    const result = extractKiBContext({
+      goals: [],
+      scope: { id: "s1", inScope: manyItems, outScope: manyItems },
+    });
+    expect(result.scope).not.toBeNull();
+    expect(result.scope!.inScope.length).toBeLessThanOrEqual(10);
+    expect(result.scope!.outScope.length).toBeLessThanOrEqual(10);
+  });
+
+  it("preserves scope data when within limits", () => {
+    const result = extractKiBContext({
+      goals: [],
+      scope: { id: "s1", inScope: ["A", "B"], outScope: ["C"] },
+    });
+    expect(result.scope).toEqual({ inScope: ["A", "B"], outScope: ["C"] });
+  });
+});
+
+// ============================================================
+// assembleSystemPrompt with KiB context tests
+// ============================================================
+
+describe("assembleSystemPrompt with KiB context", () => {
+  const testInstruction = "Je bent een DIN-expert. Genereer baten.";
+
+  const sampleKiB: KiBContext = {
+    goals: [
+      { name: "Outside-in competentie", description: "Verankeren in de organisatie", rank: 1 },
+      { name: "Digitale transformatie", description: "Volledige digitalisering", rank: 2 },
+    ],
+    scope: {
+      inScope: ["Primair onderwijs", "Voortgezet onderwijs"],
+      outScope: ["Hoger onderwijs"],
+    },
+  };
+
+  it("includes KIB PROGRAMMADOELEN EN SCOPE header when kibContext provided", () => {
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, sampleKiB);
+    expect(result).toContain("KIB PROGRAMMADOELEN EN SCOPE");
+  });
+
+  it("produces same output without KiB block when kibContext is null", () => {
+    const withNull = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, null);
+    const withoutArg = assembleSystemPrompt(testInstruction, "baat-suggest");
+    expect(withNull).toBe(withoutArg);
+  });
+
+  it("produces same output without KiB block when kibContext is undefined", () => {
+    const withUndefined = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, undefined);
+    const withoutArg = assembleSystemPrompt(testInstruction, "baat-suggest");
+    expect(withUndefined).toBe(withoutArg);
+  });
+
+  it("places KiB block AFTER programmaboek context", () => {
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, sampleKiB);
+    const achtergrondPos = result.indexOf("ACHTERGRONDKENNIS UIT HET PROGRAMMABOEK");
+    const kibPos = result.indexOf("KIB PROGRAMMADOELEN EN SCOPE");
+    expect(achtergrondPos).toBeGreaterThan(-1);
+    expect(kibPos).toBeGreaterThan(-1);
+    expect(kibPos).toBeGreaterThan(achtergrondPos);
+  });
+
+  it("includes scope instruction to generate only within scope", () => {
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, sampleKiB);
+    expect(result).toContain("Genereer ALLEEN items die passen binnen");
+  });
+
+  it("omits KiB block when kibContext has 0 goals", () => {
+    const emptyKiB: KiBContext = { goals: [], scope: null };
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, emptyKiB);
+    expect(result).not.toContain("KIB PROGRAMMADOELEN EN SCOPE");
+  });
+
+  it("includes goal names in the KiB block", () => {
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, sampleKiB);
+    expect(result).toContain("Outside-in competentie");
+    expect(result).toContain("Digitale transformatie");
+  });
+
+  it("includes scope items in the KiB block", () => {
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, sampleKiB);
+    expect(result).toContain("Primair onderwijs");
+    expect(result).toContain("Hoger onderwijs");
+  });
+
+  it("caps total KiB block length at approximately 1000 chars", () => {
+    const manyGoals = Array.from({ length: 20 }, (_, i) => ({
+      name: `Zeer lang programmadoel nummer ${i + 1} met uitgebreide naam`,
+      description: "Dit is een uitgebreide beschrijving die veel tekens inneemt en de limiet gaat testen",
+      rank: i + 1,
+    }));
+    const bigKiB: KiBContext = {
+      goals: manyGoals,
+      scope: { inScope: Array(10).fill("Scope item"), outScope: Array(10).fill("Out item") },
+    };
+    const result = assembleSystemPrompt(testInstruction, "baat-suggest", undefined, bigKiB);
+    // Extract the KiB block between its separators
+    const kibStart = result.indexOf("KIB PROGRAMMADOELEN EN SCOPE");
+    if (kibStart > -1) {
+      // Find the closing separator after the KiB block
+      const afterKib = result.substring(kibStart);
+      // The KiB block should be capped
+      expect(afterKib.length).toBeLessThanOrEqual(1200); // some margin for formatting
+    }
   });
 });
