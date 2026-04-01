@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
-import { assembleSystemPrompt } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goal, sectorPlan, sector, allGoals, sectorAnalysis } = body;
+    const { goal, sectorPlan, sector, allGoals, sectorAnalysis, kibGoals, kibScope } = body;
+    const kibContext = extractKiBContext({ goals: kibGoals, scope: kibScope });
 
     if (!goal) {
       return NextResponse.json(
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       AIDINMappingResponseSchema,
-      assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping"),
+      assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping", undefined, kibContext),
       parts.join("\n"),
       { maxTokens: 8192 }
     );

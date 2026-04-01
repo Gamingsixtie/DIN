@@ -15,7 +15,7 @@ import {
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "@/lib/prompts";
-import { assembleSystemPrompt, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
 import type { z } from "zod";
 
 export async function POST(request: NextRequest) {
@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const kibContext = extractKiBContext({ goals: body.kibGoals, scope: body.kibScope });
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
 
       const result = await callClaudeWithValidation(
         AIDomainRecommendSchema,
-        assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend"),
+        assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend", undefined, kibContext),
         parts.join("\n\n")
       );
 
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
 
       const result = await callClaudeWithValidation(
         schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-        assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type]),
+        assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type], undefined, kibContext),
         parts.join("\n\n")
       );
 
@@ -270,7 +272,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-      assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type]),
+      assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type], undefined, kibContext),
       parts.join("\n\n")
     );
 

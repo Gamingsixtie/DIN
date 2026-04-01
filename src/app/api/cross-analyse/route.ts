@@ -3,11 +3,13 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { generateVerrijktSectorplan } from "@/lib/ai-client";
 import { AICrossAnalyseSchema, AIIntegratieAdviesSchema } from "@/lib/schemas";
 import { CROSS_ANALYSE_PROMPT, SECTOR_INTEGRATIE_PROMPT } from "@/lib/prompts";
-import { assembleSystemPrompt } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    const kibContext = extractKiBContext({ goals: body.kibGoals, scope: body.kibScope });
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
@@ -171,7 +173,7 @@ export async function POST(request: NextRequest) {
 
       const result = await callClaudeWithValidation(
         AIIntegratieAdviesSchema,
-        SECTOR_INTEGRATIE_PROMPT,
+        assembleSystemPrompt(SECTOR_INTEGRATIE_PROMPT, "cross-analyse", undefined, kibContext),
         parts.join("\n")
       );
 
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
 
     const result = await callClaudeWithValidation(
       AICrossAnalyseSchema,
-      assembleSystemPrompt(CROSS_ANALYSE_PROMPT, "cross-analyse"),
+      assembleSystemPrompt(CROSS_ANALYSE_PROMPT, "cross-analyse", undefined, kibContext),
       userMessage,
       { maxTokens: 8192, model: "claude-opus-4-6" }
     );
