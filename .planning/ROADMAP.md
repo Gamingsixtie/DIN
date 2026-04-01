@@ -74,7 +74,10 @@ Plans:
   2. KiB visie en scope zijn zichtbaar als context in elke AI-generatie stap
   3. Gegenereerde baten, vermogens en inspanningen worden gevalideerd tegen methodiek-regels voordat ze worden opgeslagen
   4. Vermogens bevatten werkwoorden, inspanningen zijn concrete activiteiten in de vier domeinen (Mens, Processen, Data & Systemen, Cultuur)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — KiB context injectie in alle AI-prompts + hoeveelheidslimieten op Zod schemas
+- [ ] 04-02-PLAN.md — DIN-methodiek validatiemodule + post-validatie pipeline + correctie-badges in UI
 
 ### Phase 5: Sectorwerk Doorstroming
 **Goal**: Sectorwerk-analyse resultaten zijn beschikbaar als gestructureerde input voor DIN-mapping
@@ -153,7 +156,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 1. Zod Schema Validatie | 0/3 | Planning complete | - |
 | 2. State Management & Persistence | 0/2 | Planning complete | - |
 | 3. Programmaboek Context Pipeline | 0/2 | Planning complete | - |
-| 4. AI Output Kwaliteit | 0/0 | Not started | - |
+| 4. AI Output Kwaliteit | 0/2 | Planning complete | - |
 | 5. Sectorwerk Doorstroming | 0/0 | Not started | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 0/0 | Not started | - |
 | 7. Dutch Tokenizer & Similarity | 0/0 | Not started | - |
