@@ -793,7 +793,7 @@ export default function DINMappingStep() {
     const res = await fetch("/api/din-suggest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, context }),
+      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope }),
     });
     const data = await res.json();
     if (data.success && data.data?.suggestion) {
@@ -890,6 +890,8 @@ export default function DINMappingStep() {
         sector: activeSector,
         allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
         sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        kibGoals: session!.goals,
+        kibScope: session!.scope,
       };
       if (extraFeedback) {
         requestBody.userFeedback = extraFeedback;
@@ -1005,6 +1007,8 @@ export default function DINMappingStep() {
         efforts: sectorEfforts,
         externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
         sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        kibGoals: session!.goals,
+        kibScope: session!.scope,
       };
       if (extraFeedback) {
         requestBody.userFeedback = extraFeedback;
@@ -1093,6 +1097,8 @@ export default function DINMappingStep() {
           })),
           integratieAdvies: adviesText,
           externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
+          kibGoals: session!.goals,
+          kibScope: session!.scope,
         }),
       });
       const data = await res.json();
