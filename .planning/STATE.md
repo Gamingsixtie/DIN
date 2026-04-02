@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-04-02T21:10:38.562Z"
-last_activity: 2026-04-02 -- Phase 06 execution started
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-02T21:26:46.672Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 15
   percent: 0
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 06 (cyclisch-doel-voor-doel-werken) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 06
-Last activity: 2026-04-02 -- Phase 06 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-02
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P01 | 8min | 2 tasks | 9 files |
 | Phase 05 P02 | 7min | 2 tasks | 5 files |
 | Phase 07 P01 | 4min | 2 tasks | 5 files |
+| Phase 06 P02 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Sectorwerk context injected as system prompt suffix per D-06 layered context architecture
 - [Phase 07]: Snowball stemmer (snowball-stemmers 0.6.0) chosen over natural for Dutch stemming -- 400x smaller
 - [Phase 07]: SIMILARITY_THRESHOLD raised from 0.20 to 0.35 as named constant; compound splitting min word 10, min part 5
+- [Phase 06]: buildCompletedGoalsContext uses 6000 char cap with newline-boundary truncation per D-07
+- [Phase 06]: Completed goals context is 5th block in layered prompt: programmaboek -> KiB -> sectorwerk -> eerder-uitgewerkte-doelen per D-08
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T20:39:09.252Z
-Stopped at: Phase 6 UI-SPEC approved
-Resume file: .planning/phases/06-cyclisch-doel-voor-doel-werken/06-UI-SPEC.md
+Last session: 2026-04-02T21:26:46.670Z
+Stopped at: Completed 06-02-PLAN.md
+Resume file: None

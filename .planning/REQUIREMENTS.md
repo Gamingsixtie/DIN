@@ -24,7 +24,7 @@ Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap
 ### Cyclisch werken
 
 - [x] **CYCL-01**: Gebruiker kan één doel selecteren en dat volledig door het DIN-netwerk uitwerken voordat het volgende begint
-- [ ] **CYCL-02**: Context van eerder uitgewerkte doelen wordt meegegeven bij het uitwerken van volgende doelen (voorkom duplicatie)
+- [x] **CYCL-02**: Context van eerder uitgewerkte doelen wordt meegegeven bij het uitwerken van volgende doelen (voorkom duplicatie)
 - [x] **CYCL-03**: Voortgangsindicatie per doel — welke doelen zijn volledig uitgewerkt, welke nog niet
 
 ### Cross-analyse
@@ -90,7 +90,7 @@ Welke fases dekken welke requirements.
 | AI-03 | Phase 4 | Complete |
 | AI-04 | Phase 4 | Complete |
 | CYCL-01 | Phase 6 | Complete |
-| CYCL-02 | Phase 6 | Pending |
+| CYCL-02 | Phase 6 | Complete |
 | CYCL-03 | Phase 6 | Complete |
 | CROSS-01 | Phase 8 | Pending |
 | CROSS-02 | Phase 8 | Pending |

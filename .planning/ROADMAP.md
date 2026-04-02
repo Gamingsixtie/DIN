@@ -106,7 +106,7 @@ Plans:
 **Plans:** 1/3 plans executed
 Plans:
 - [x] 06-01-PLAN.md — Schema extensie (completedGoals) + compleetheidslogica (checkSectorChain, getGoalCompletionStatus) + unit tests
-- [ ] 06-02-PLAN.md — AI context injectie (buildCompletedGoalsContext) + API route wiring (din-mapping, din-suggest)
+- [x] 06-02-PLAN.md — AI context injectie (buildCompletedGoalsContext) + API route wiring (din-mapping, din-suggest)
 - [ ] 06-03-PLAN.md — UI: sidebar status-badges, "Doel afronden" knop, auto-advance, completedGoalItems passthrough
 **UI hint**: yes
 
