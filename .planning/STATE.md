@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 5 execution complete — all plans done
-last_updated: "2026-04-02T19:50:41.756Z"
+stopped_at: Phase 6 context gathered
+last_updated: "2026-04-02T20:02:53.123Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 10
@@ -113,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T19:45:09.901Z
-Stopped at: Phase 5 execution complete — all plans done
-Resume file: None
+Last session: 2026-04-02T20:02:53.118Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-cyclisch-doel-voor-doel-werken/06-CONTEXT.md
