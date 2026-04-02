@@ -9,10 +9,47 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { DINSession, AppStep } from "./types";
+import type { DINSession, AppStep, SectorplanAnalyseResult } from "./types";
 import { APP_STEPS } from "./types";
 import { loadLocal, saveLocal } from "./persistence";
 import { useToast } from "@/components/ui/Toast";
+import { AISectorplanAnalyseSchema } from "@/lib/schemas";
+
+export function migrateSectorAnalyses(
+  raw: Record<string, unknown> | undefined
+): { migrated: Record<string, SectorplanAnalyseResult>; needsToast: boolean } {
+  if (!raw) return { migrated: {}, needsToast: false };
+  const migrated: Record<string, SectorplanAnalyseResult> = {};
+  let needsToast = false;
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === "object" && value !== null) {
+      const result = AISectorplanAnalyseSchema.safeParse(value);
+      if (result.success) {
+        migrated[key] = result.data;
+      } else {
+        console.error(`[migration] Ongeldige sectorAnalyse object voor ${key}:`, result.error.issues);
+        needsToast = true;
+      }
+    } else if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        const result = AISectorplanAnalyseSchema.safeParse(parsed);
+        if (result.success) {
+          migrated[key] = result.data;
+        } else {
+          console.error(`[migration] Sectoranalyse string voor ${key} valideert niet:`, result.error.issues);
+          needsToast = true;
+        }
+      } catch {
+        console.error(`[migration] Sectoranalyse voor ${key} is geen geldig JSON, wordt verwijderd`);
+        needsToast = true;
+      }
+    }
+  }
+
+  return { migrated, needsToast };
+}
 
 interface SessionContextValue {
   session: DINSession | null;
@@ -66,6 +103,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const loadSession = useCallback((id: string) => {
     const loaded = loadLocal<DINSession>(`session_${id}`);
     if (loaded) {
+      // Migratie: sectorAnalyses string -> typed object (Phase 05)
+      if (loaded.sectorAnalyses) {
+        const { migrated, needsToast } = migrateSectorAnalyses(
+          loaded.sectorAnalyses as Record<string, unknown>
+        );
+        loaded.sectorAnalyses = migrated;
+        if (needsToast) {
+          queueMicrotask(() =>
+            addToastRef.current(
+              "Eerdere sectorwerk-analyses konden niet worden geladen. Voer de analyse opnieuw uit.",
+              "error"
+            )
+          );
+        }
+        saveLocal(`session_${id}`, loaded);
+      }
       setSession(loaded);
       const step = APP_STEPS[loaded.currentStep]?.key || "import";
       setCurrentStepState(step);

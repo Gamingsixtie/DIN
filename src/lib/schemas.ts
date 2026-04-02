@@ -308,6 +308,42 @@ export const IntegratieAdviesResultSchema = z.object({
   aandachtspunten: IntegratieAdviesItemSchema,
 });
 
+// --- AI Sectorplan analyse (soepelere defaults voor AI output, nodig voor DINSession) ---
+
+const AIAnalyseSectieSchema = z.object({
+  titel: z.string().optional().default(""),
+  toelichting: z.string().optional().default(""),
+  punten: z.array(z.string()).optional().default([]),
+});
+
+const aiAnalyseSectieDefault = () => ({ titel: "", toelichting: "", punten: [] as string[] });
+
+export const AISectorplanAnalyseSchema = z.object({
+  samenvatting: z.string().optional().default(""),
+  aansluiting: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
+  baten: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
+  vermogens: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
+  inspanningen: z
+    .object({
+      titel: z.string().optional().default(""),
+      toelichting: z.string().optional().default(""),
+      mens: z.array(z.string()).optional().default([]),
+      processen: z.array(z.string()).optional().default([]),
+      data_systemen: z.array(z.string()).optional().default([]),
+      cultuur: z.array(z.string()).optional().default([]),
+    })
+    .optional()
+    .default(() => ({
+      titel: "",
+      toelichting: "",
+      mens: [] as string[],
+      processen: [] as string[],
+      data_systemen: [] as string[],
+      cultuur: [] as string[],
+    })),
+  aandachtspunten: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
+});
+
 // ============================================================
 // DINSession schema
 // ============================================================
@@ -334,7 +370,7 @@ export const DINSessionSchema = z.object({
   integratieAdvies: z
     .record(z.string(), z.union([IntegratieAdviesResultSchema, z.string()]))
     .optional(),
-  sectorAnalyses: z.record(z.string(), z.string()).optional(),
+  sectorAnalyses: z.record(z.string(), AISectorplanAnalyseSchema).optional(),
   verrijkteSectorplannen: z.record(z.string(), z.string()).optional(),
   crossAnalyse: z.string().optional(),
   externalProjects: z.array(ExternalProjectSchema).optional(),
@@ -440,42 +476,6 @@ export const AISuggestInspanningSchema = z.object({
       randvoorwaarden: z.string().optional(),
     })
     .optional(),
-});
-
-// --- AI Sectorplan analyse (soepelere defaults voor AI output) ---
-
-const AIAnalyseSectieSchema = z.object({
-  titel: z.string().optional().default(""),
-  toelichting: z.string().optional().default(""),
-  punten: z.array(z.string()).optional().default([]),
-});
-
-const aiAnalyseSectieDefault = () => ({ titel: "", toelichting: "", punten: [] as string[] });
-
-export const AISectorplanAnalyseSchema = z.object({
-  samenvatting: z.string().optional().default(""),
-  aansluiting: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
-  baten: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
-  vermogens: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
-  inspanningen: z
-    .object({
-      titel: z.string().optional().default(""),
-      toelichting: z.string().optional().default(""),
-      mens: z.array(z.string()).optional().default([]),
-      processen: z.array(z.string()).optional().default([]),
-      data_systemen: z.array(z.string()).optional().default([]),
-      cultuur: z.array(z.string()).optional().default([]),
-    })
-    .optional()
-    .default(() => ({
-      titel: "",
-      toelichting: "",
-      mens: [] as string[],
-      processen: [] as string[],
-      data_systemen: [] as string[],
-      cultuur: [] as string[],
-    })),
-  aandachtspunten: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
 });
 
 // --- AI Cross-analyse (soepelere defaults) ---
