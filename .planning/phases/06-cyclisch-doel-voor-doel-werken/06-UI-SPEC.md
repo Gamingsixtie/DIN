@@ -64,7 +64,7 @@ Exceptions:
 - Sidebar section header "Doelen": `text-xs font-semibold text-gray-500 uppercase`
 - Status badge text (per-sector abbreviations): `text-xs` (12px, weight 400)
 - Missing chain text in afrond-knop tooltip: `text-xs` (12px, weight 400)
-- "Doel afronden" button label: `text-sm font-medium` (14px, weight 500)
+- "Doel afronden" button label: `text-sm font-semibold` (14px, weight 600)
 
 **Source:** Established DINMappingStep patterns. No new typography roles introduced.
 
@@ -128,7 +128,7 @@ Replaces the existing green dot (`text-green-400 \u25CF`) per D-12.
 PO+ VO- Za-
 ```
 
-Format: 2-letter sector abbreviation followed by `+` (green-600, chain complete) or `-` (gray-300, chain incomplete). Rendered inline after goal name, `text-[10px]` size, `gap-0.5` between items.
+Format: 2-letter sector abbreviation followed by `+` (green-600, chain complete) or `-` (gray-300, chain incomplete). Rendered inline after goal name, `text-[10px]` size, `gap-1` between items.
 
 Sector abbreviations: `PO`, `VO`, `Za` (short for Zakelijk).
 
@@ -137,7 +137,7 @@ Sector abbreviations: `PO`, `VO`, `Za` (short for Zakelijk).
 Positioned directly below the goals list within the sidebar (`w-56`), per D-02.
 
 **Enabled state (all sectors have complete chains):**
-- Classes: `w-full px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors`
+- Classes: `w-full px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors`
 - Label: "Doel afronden"
 - Icon: Inline SVG checkmark (16x16) before label
 - Behavior: On click, adds goal ID to `completedGoals[]`, shows success toast "Doel afgerond!", auto-advances to next incomplete goal
