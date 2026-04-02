@@ -15,7 +15,8 @@ import {
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "@/lib/prompts";
-import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, buildCompletedGoalsContext, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import type { CompletedGoalContext } from "@/lib/prompt-assembly";
 import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { z } from "zod";
@@ -81,6 +82,11 @@ export async function POST(request: NextRequest) {
       let systemPrompt = assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend", undefined, kibContext);
       if (sectorAnalysis) {
         systemPrompt += buildSectorwerkBlock(sectorAnalysis);
+      }
+      // Eerder uitgewerkte doelen context (per D-08: na sectorwerk-context)
+      const domainRecCompletedGoals = body.completedGoalItems as CompletedGoalContext | undefined;
+      if (domainRecCompletedGoals && domainRecCompletedGoals.length > 0) {
+        systemPrompt += buildCompletedGoalsContext(domainRecCompletedGoals);
       }
 
       const result = await callClaudeWithValidation(
@@ -162,6 +168,11 @@ export async function POST(request: NextRequest) {
       let createSystemPrompt = assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type], undefined, kibContext);
       if (sectorAnalysis) {
         createSystemPrompt += buildSectorwerkBlock(sectorAnalysis);
+      }
+      // Eerder uitgewerkte doelen context (per D-08: na sectorwerk-context)
+      const createCompletedGoals = body.completedGoalItems as CompletedGoalContext | undefined;
+      if (createCompletedGoals && createCompletedGoals.length > 0) {
+        createSystemPrompt += buildCompletedGoalsContext(createCompletedGoals);
       }
 
       const result = await callClaudeWithValidation(
@@ -300,6 +311,11 @@ export async function POST(request: NextRequest) {
     let suggestSystemPrompt = assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type], undefined, kibContext);
     if (sectorAnalysis) {
       suggestSystemPrompt += buildSectorwerkBlock(sectorAnalysis);
+    }
+    // Eerder uitgewerkte doelen context (per D-08: na sectorwerk-context)
+    const suggestCompletedGoals = body.completedGoalItems as CompletedGoalContext | undefined;
+    if (suggestCompletedGoals && suggestCompletedGoals.length > 0) {
+      suggestSystemPrompt += buildCompletedGoalsContext(suggestCompletedGoals);
     }
 
     const result = await callClaudeWithValidation(

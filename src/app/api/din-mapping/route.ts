@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
-import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, buildCompletedGoalsContext } from "@/lib/prompt-assembly";
+import type { CompletedGoalContext } from "@/lib/prompt-assembly";
 import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goal, sectorPlan, sector, allGoals, sectorAnalysis, kibGoals, kibScope } = body;
+    const { goal, sectorPlan, sector, allGoals, sectorAnalysis, kibGoals, kibScope, completedGoalItems } = body;
     const kibContext = extractKiBContext({ goals: kibGoals, scope: kibScope });
 
     if (!goal) {
@@ -72,6 +73,10 @@ export async function POST(request: NextRequest) {
     let systemPrompt = assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping", undefined, kibContext);
     if (sectorAnalysis && typeof sectorAnalysis === "object") {
       systemPrompt += buildSectorwerkBlock(sectorAnalysis as SectorplanAnalyseResult);
+    }
+    // Eerder uitgewerkte doelen context (per D-08: na sectorwerk-context)
+    if (completedGoalItems && Array.isArray(completedGoalItems) && completedGoalItems.length > 0) {
+      systemPrompt += buildCompletedGoalsContext(completedGoalItems as CompletedGoalContext);
     }
 
     const result = await callClaudeWithValidation(
