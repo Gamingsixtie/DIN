@@ -12,7 +12,7 @@ Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap
 - [ ] **DATA-01**: Sectorwerk-analyse resultaten stromen automatisch door als suggesties in de DIN-mapping stap
 - [x] **DATA-02**: AI responses worden gevalideerd met Zod schema's — geen gebroken JSON of ongestructureerde output
 - [x] **DATA-03**: Session state management gebruikt functionele updaters — geen race conditions bij gelijktijdige operaties
-- [ ] **DATA-04**: Sectorwerk analyse wordt opgeslagen als getypeerd object (SectorplanAnalyseResult), niet als markdown string
+- [x] **DATA-04**: Sectorwerk analyse wordt opgeslagen als getypeerd object (SectorplanAnalyseResult), niet als markdown string
 
 ### AI-kwaliteit
 
@@ -84,7 +84,7 @@ Welke fases dekken welke requirements.
 | DATA-01 | Phase 5 | Pending |
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 2 | Complete |
-| DATA-04 | Phase 5 | Pending |
+| DATA-04 | Phase 5 | Complete |
 | AI-01 | Phase 3 | Complete |
 | AI-02 | Phase 4 | Complete |
 | AI-03 | Phase 4 | Complete |

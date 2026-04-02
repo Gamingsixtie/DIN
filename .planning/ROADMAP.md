@@ -90,7 +90,7 @@ Plans:
   3. De sectorwerk-resultaten zijn per sector beschikbaar als context voor de AI bij DIN-generatie
 **Plans:** 2 plans
 Plans:
-- [ ] 05-01-PLAN.md — Schema migratie + migratielogica + SectorWerkStep typed object opslag en weergave
+- [x] 05-01-PLAN.md — Schema migratie + migratielogica + SectorWerkStep typed object opslag en weergave
 - [ ] 05-02-PLAN.md — buildSectorwerkBlock + API route opschoning + SectorwerkSuggestiePanel in DINMappingStep
 **UI hint**: yes
 
