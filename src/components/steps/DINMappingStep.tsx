@@ -10,6 +10,7 @@ import type {
   EffortDomain,
   EffortStatus,
   SectorName,
+  SectorplanAnalyseResult,
   IntegratieAdviesResult,
   IntegratieAdviesItem,
   ExternalProject,
@@ -301,6 +302,130 @@ function ExterneProjectenPanel({
 }
 
 
+// ============================================================
+// SectorwerkSuggestiePanel — baten-suggesties uit sectorwerk-analyse (D-03)
+// ============================================================
+
+function SectorwerkSuggestiePanel({
+  analysis,
+  activeSector,
+  selectedGoal,
+  existingBenefits,
+  onAdopt,
+  onAdoptAll,
+}: {
+  analysis: SectorplanAnalyseResult;
+  activeSector: SectorName;
+  selectedGoal: string;
+  existingBenefits: DINBenefit[];
+  onAdopt: (suggestieText: string, index: number) => void;
+  onAdoptAll: () => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [adoptedIndices, setAdoptedIndices] = useState<Set<number>>(new Set());
+
+  const suggesties = analysis.baten?.punten || [];
+  if (suggesties.length === 0) return null;
+
+  // Detecteer al overgenomen suggesties door vergelijking met bestaande benefits
+  const isAdopted = (index: number, text: string) => {
+    if (adoptedIndices.has(index)) return true;
+    // Check of er al een benefit bestaat met dezelfde tekst
+    return existingBenefits.some(
+      (b) => b.description === text || b.title === text
+    );
+  };
+
+  const unadoptedCount = suggesties.filter((s, i) => !isAdopted(i, s)).length;
+
+  const handleAdopt = (text: string, index: number) => {
+    setAdoptedIndices((prev) => new Set(prev).add(index));
+    onAdopt(text, index);
+  };
+
+  const handleAdoptAll = () => {
+    const newAdopted = new Set(adoptedIndices);
+    suggesties.forEach((s, i) => {
+      if (!isAdopted(i, s)) {
+        newAdopted.add(i);
+      }
+    });
+    setAdoptedIndices(newAdopted);
+    onAdoptAll();
+  };
+
+  return (
+    <div className="border border-blue-200 rounded-lg bg-blue-50/50">
+      {/* Header */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left"
+      >
+        <svg
+          className={`w-4 h-4 text-cito-blue transition-transform ${collapsed ? "" : "rotate-90"}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="text-sm font-semibold text-cito-blue flex-1">
+          Suggesties uit sectorwerk-analyse
+        </span>
+        <span className="text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5">
+          {suggesties.length}
+        </span>
+      </button>
+
+      {/* Content */}
+      {!collapsed && (
+        <div className="px-4 pb-4 space-y-2">
+          {/* Batch button wanneer >= 3 niet-overgenomen suggesties */}
+          {unadoptedCount >= 3 && (
+            <button
+              onClick={handleAdoptAll}
+              className="text-xs font-semibold text-cito-blue hover:underline px-0 py-1"
+            >
+              Alle suggesties overnemen
+            </button>
+          )}
+
+          {suggesties.map((suggestie, index) => {
+            const adopted = isAdopted(index, suggestie);
+            return (
+              <div
+                key={index}
+                className={`flex items-start gap-3 p-3 bg-white rounded-lg border transition-colors ${
+                  adopted
+                    ? "border-gray-200 opacity-50"
+                    : "border-blue-100 hover:border-blue-300"
+                }`}
+              >
+                <span
+                  className={`text-sm flex-1 ${
+                    adopted ? "line-through text-gray-400" : "text-gray-700"
+                  }`}
+                >
+                  {suggestie}
+                </span>
+                {!adopted && (
+                  <button
+                    onClick={() => handleAdopt(suggestie, index)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-cito-blue text-white text-sm font-semibold hover:bg-cito-blue-light transition-colors shrink-0"
+                    aria-label="Baat overnemen"
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DINMappingStep() {
   const { session, updateSession, setCurrentStep } = useSession();
   const [phase, setPhase] = useState<DINPhase>("per-sector");
@@ -481,6 +606,46 @@ export default function DINMappingStep() {
     }));
     setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
     setWizardState(null);
+  }
+  function adoptSuggestie(suggestieText: string) {
+    if (!selectedGoal) return;
+    const newBenefit = createBenefit(selectedGoal, activeSector, suggestieText);
+    updateSession((prev) => ({
+      benefits: [...prev.benefits, newBenefit],
+      goalBenefitMaps: [
+        ...prev.goalBenefitMaps,
+        { goalId: selectedGoal, benefitId: newBenefit.id },
+      ],
+    }));
+    setExpandedBenefits((prev) => new Set(prev).add(newBenefit.id));
+  }
+  function adoptAllSuggesties() {
+    if (!selectedGoal) return;
+    const analysis = session!.sectorAnalyses?.[activeSector];
+    if (!analysis || typeof analysis === "string") return;
+    const suggesties = analysis.baten?.punten || [];
+    const existingDescriptions = new Set(
+      sectorBenefits.map((b) => b.description)
+    );
+    const existingTitles = new Set(
+      sectorBenefits.map((b) => b.title)
+    );
+    const newBenefits: DINBenefit[] = [];
+    const newMaps: { goalId: string; benefitId: string }[] = [];
+    for (const text of suggesties) {
+      if (existingDescriptions.has(text) || existingTitles.has(text)) continue;
+      const b = createBenefit(selectedGoal, activeSector, text);
+      newBenefits.push(b);
+      newMaps.push({ goalId: selectedGoal, benefitId: b.id });
+    }
+    if (newBenefits.length === 0) return;
+    updateSession((prev) => ({
+      benefits: [...prev.benefits, ...newBenefits],
+      goalBenefitMaps: [...prev.goalBenefitMaps, ...newMaps],
+    }));
+    const expanded = new Set(expandedBenefits);
+    newBenefits.forEach((b) => expanded.add(b.id));
+    setExpandedBenefits(expanded);
   }
   function updateCapability(updated: DINCapability) {
     // Check if title changed for client-side validation (per D-02)
@@ -793,7 +958,7 @@ export default function DINMappingStep() {
     const res = await fetch("/api/din-suggest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope }),
+      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope, sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null }),
     });
     const data = await res.json();
     if (data.success && data.data?.suggestion) {
@@ -889,7 +1054,7 @@ export default function DINMappingStep() {
         sectorPlan,
         sector: activeSector,
         allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
-        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
         kibGoals: session!.goals,
         kibScope: session!.scope,
       };
@@ -1006,7 +1171,7 @@ export default function DINMappingStep() {
         capabilities: sectorCapabilities,
         efforts: sectorEfforts,
         externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
-        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
         kibGoals: session!.goals,
         kibScope: session!.scope,
       };
@@ -1365,6 +1530,22 @@ export default function DINMappingStep() {
                   )}
                 </div>
               )}
+
+              {/* Suggestiepaneel uit sectorwerk-analyse (D-03) */}
+              {selectedGoal && (() => {
+                const analysis = session!.sectorAnalyses?.[activeSector];
+                if (!analysis || typeof analysis === "string") return null;
+                return (
+                  <SectorwerkSuggestiePanel
+                    analysis={analysis}
+                    activeSector={activeSector as SectorName}
+                    selectedGoal={selectedGoal}
+                    existingBenefits={sectorBenefits}
+                    onAdopt={(text) => adoptSuggestie(text)}
+                    onAdoptAll={adoptAllSuggesties}
+                  />
+                );
+              })()}
 
               {/* ===== BAAT-CENTRISCH DIN-NETWERK ===== */}
               <div>

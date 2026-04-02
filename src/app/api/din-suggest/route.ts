@@ -15,7 +15,8 @@ import {
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
 } from "@/lib/prompts";
-import { assembleSystemPrompt, extractKiBContext, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
+import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { z } from "zod";
 
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const kibContext = extractKiBContext({ goals: body.kibGoals, scope: body.kibScope });
+    const sectorAnalysis = body.sectorAnalysis as SectorplanAnalyseResult | null;
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
@@ -76,9 +78,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      let systemPrompt = assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend", undefined, kibContext);
+      if (sectorAnalysis) {
+        systemPrompt += buildSectorwerkBlock(sectorAnalysis);
+      }
+
       const result = await callClaudeWithValidation(
         AIDomainRecommendSchema,
-        assembleSystemPrompt(DIN_DOMAIN_RECOMMEND_PROMPT, "domain-recommend", undefined, kibContext),
+        systemPrompt,
         parts.join("\n\n")
       );
 
@@ -152,9 +159,14 @@ export async function POST(request: NextRequest) {
         parts.push(`\nHERHALING: Genereer ALLEEN voor domein "${context.domain}". De titel, beschrijving en verwacht resultaat moeten uniek zijn voor dit domein en mogen NIET generiek zijn.`);
       }
 
+      let createSystemPrompt = assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type], undefined, kibContext);
+      if (sectorAnalysis) {
+        createSystemPrompt += buildSectorwerkBlock(sectorAnalysis);
+      }
+
       const result = await callClaudeWithValidation(
         schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-        assembleSystemPrompt(promptMap[type as keyof typeof promptMap], createUseCaseMap[type], undefined, kibContext),
+        createSystemPrompt,
         parts.join("\n\n")
       );
 
@@ -285,9 +297,14 @@ export async function POST(request: NextRequest) {
       parts.push(`Domein: ${context.domain}`);
     }
 
+    let suggestSystemPrompt = assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type], undefined, kibContext);
+    if (sectorAnalysis) {
+      suggestSystemPrompt += buildSectorwerkBlock(sectorAnalysis);
+    }
+
     const result = await callClaudeWithValidation(
       schemaMap[type as keyof typeof schemaMap] as z.ZodType,
-      assembleSystemPrompt(promptMap[type as keyof typeof promptMap], suggestUseCaseMap[type], undefined, kibContext),
+      suggestSystemPrompt,
       parts.join("\n\n")
     );
 

@@ -4,6 +4,7 @@ import {
   getContextForUseCase,
   truncateAtSentenceBoundary,
   extractKiBContext,
+  buildSectorwerkBlock,
 } from "@/lib/prompt-assembly";
 import type { ProgrammaboekUseCase, KiBContext } from "@/lib/prompt-assembly";
 import {
@@ -327,5 +328,77 @@ describe("assembleSystemPrompt with KiB context", () => {
       // The KiB block should be capped
       expect(afterKib.length).toBeLessThanOrEqual(1200); // some margin for formatting
     }
+  });
+});
+
+// ============================================================
+// buildSectorwerkBlock tests
+// ============================================================
+
+describe("buildSectorwerkBlock", () => {
+  const validAnalysis = {
+    samenvatting: "Test samenvatting van het sectorplan",
+    aansluiting: {
+      titel: "Aansluiting",
+      toelichting: "Toelichting",
+      punten: ["aansluiting punt 1"],
+    },
+    baten: {
+      titel: "Baten",
+      toelichting: "Toelichting baten",
+      punten: ["baat 1", "baat 2"],
+    },
+    vermogens: {
+      titel: "Vermogens",
+      toelichting: "Toelichting vermogens",
+      punten: ["vermogen 1"],
+    },
+    inspanningen: {
+      titel: "Inspanningen",
+      toelichting: "Toelichting inspanningen",
+      mens: ["training"],
+      processen: ["werkwijze"],
+      data_systemen: [],
+      cultuur: [],
+    },
+    aandachtspunten: {
+      titel: "Aandachtspunten",
+      toelichting: "Toelichting aandachtspunten",
+      punten: ["let op X"],
+    },
+  };
+
+  it("formats samenvatting with SECTORWERK-ANALYSE header", () => {
+    const result = buildSectorwerkBlock(validAnalysis);
+    expect(result).toContain("SECTORWERK-ANALYSE");
+    expect(result).toContain("Test samenvatting van het sectorplan");
+    expect(result).toContain("---");
+  });
+
+  it("formats baten punten as bullet list under Voorgestelde baten", () => {
+    const result = buildSectorwerkBlock(validAnalysis);
+    expect(result).toContain("Voorgestelde baten");
+    expect(result).toContain("- baat 1");
+    expect(result).toContain("- baat 2");
+  });
+
+  it("formats inspanningen per domein", () => {
+    const result = buildSectorwerkBlock(validAnalysis);
+    expect(result).toContain("Mens: training");
+    expect(result).toContain("Processen: werkwijze");
+  });
+
+  it("truncates at 1500 chars for very long samenvatting", () => {
+    const longAnalysis = {
+      ...validAnalysis,
+      samenvatting: "A".repeat(2000),
+    };
+    const result = buildSectorwerkBlock(longAnalysis);
+    expect(result.length).toBeLessThan(1600);
+  });
+
+  it("returns empty string for null input", () => {
+    const result = buildSectorwerkBlock(null);
+    expect(result).toBe("");
   });
 });

@@ -224,6 +224,77 @@ ${block}
 ---`;
 }
 
+// ============================================================
+// Sectorwerk-analyse Context — sectorwerk-resultaten in prompts
+// ============================================================
+
+import type { SectorplanAnalyseResult } from "./types";
+
+/**
+ * Bouw een sectorwerk-analyse context blok voor injectie in system prompts.
+ *
+ * Per D-06: Verschijnt als apart blok NA programmaboek en KiB context.
+ * Per D-07: Alleen voor din-mapping en din-suggest endpoints.
+ *
+ * @param analysis - De sectorwerk-analyse data, of null
+ * @returns Geformateerd context blok, of lege string als geen data
+ */
+export function buildSectorwerkBlock(analysis: SectorplanAnalyseResult | null | undefined): string {
+  if (!analysis) return "";
+
+  const parts: string[] = [];
+
+  if (analysis.samenvatting) {
+    parts.push(`Samenvatting sectorplan-analyse: ${analysis.samenvatting}`);
+  }
+
+  if (analysis.aansluiting?.punten?.length) {
+    parts.push(`\nAansluiting op KiB-doelen:\n${analysis.aansluiting.punten.map(p => `- ${p}`).join("\n")}`);
+  }
+
+  if (analysis.baten?.punten?.length) {
+    parts.push(`\nVoorgestelde baten:\n${analysis.baten.punten.map(p => `- ${p}`).join("\n")}`);
+  }
+
+  if (analysis.vermogens?.punten?.length) {
+    parts.push(`\nBenodigde vermogens:\n${analysis.vermogens.punten.map(p => `- ${p}`).join("\n")}`);
+  }
+
+  if (analysis.inspanningen) {
+    const domains: Record<string, string> = {
+      mens: "Mens",
+      processen: "Processen",
+      data_systemen: "Data & Systemen",
+      cultuur: "Cultuur",
+    };
+    const domainParts: string[] = [];
+    for (const [key, label] of Object.entries(domains)) {
+      const items = analysis.inspanningen[key as keyof typeof analysis.inspanningen];
+      if (Array.isArray(items) && items.length) {
+        domainParts.push(`  ${label}: ${(items as string[]).join("; ")}`);
+      }
+    }
+    if (domainParts.length) {
+      parts.push(`\nVoorgestelde inspanningen:\n${domainParts.join("\n")}`);
+    }
+  }
+
+  if (analysis.aandachtspunten?.punten?.length) {
+    parts.push(`\nAandachtspunten:\n${analysis.aandachtspunten.punten.map(p => `- ${p}`).join("\n")}`);
+  }
+
+  let block = parts.join("\n");
+
+  // Cap op 1500 chars om prompt budget te bewaken
+  if (block.length > 1500) {
+    block = block.substring(0, 1500);
+    const lastNewline = block.lastIndexOf("\n");
+    if (lastNewline > 1000) block = block.substring(0, lastNewline);
+  }
+
+  return `\n---\nSECTORWERK-ANALYSE (eerder gegenereerd):\n\n${block}\n---`;
+}
+
 /**
  * Stel een complete system prompt samen met programmaboek-context.
  *

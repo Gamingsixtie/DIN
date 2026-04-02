@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
-import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
+import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock } from "@/lib/prompt-assembly";
+import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 
 export async function POST(request: NextRequest) {
@@ -51,45 +52,11 @@ export async function POST(request: NextRequest) {
       parts.push("\nGeen sectorplan beschikbaar.");
     }
 
-    if (sectorAnalysis) {
-      let analysisSummary = sectorAnalysis;
-      try {
-        const jsonMatch = sectorAnalysis.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.samenvatting) {
-            const summaryParts: string[] = [];
-            summaryParts.push(`Samenvatting: ${parsed.samenvatting}`);
-            if (parsed.aansluiting?.punten?.length) {
-              summaryParts.push(`\nAansluiting op KiB-doelen:\n${parsed.aansluiting.punten.map((p: string) => `- ${p}`).join("\n")}`);
-            }
-            if (parsed.baten?.punten?.length) {
-              summaryParts.push(`\nVoorgestelde baten:\n${parsed.baten.punten.map((p: string) => `- ${p}`).join("\n")}`);
-            }
-            if (parsed.vermogens?.punten?.length) {
-              summaryParts.push(`\nBenodigde vermogens:\n${parsed.vermogens.punten.map((p: string) => `- ${p}`).join("\n")}`);
-            }
-            if (parsed.inspanningen) {
-              const domains = { mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur" };
-              const domainParts: string[] = [];
-              for (const [key, label] of Object.entries(domains)) {
-                const items = parsed.inspanningen[key];
-                if (items?.length) {
-                  domainParts.push(`  ${label}: ${items.map((i: string) => i).join("; ")}`);
-                }
-              }
-              if (domainParts.length) {
-                summaryParts.push(`\nVoorgestelde inspanningen:\n${domainParts.join("\n")}`);
-              }
-            }
-            if (parsed.aandachtspunten?.punten?.length) {
-              summaryParts.push(`\nAandachtspunten:\n${parsed.aandachtspunten.punten.map((p: string) => `- ${p}`).join("\n")}`);
-            }
-            analysisSummary = summaryParts.join("\n");
-          }
-        }
-      } catch { /* gebruik originele string */ }
-      parts.push(`\nEerdere AI-analyse van het sectorplan:\n${analysisSummary.slice(0, 3000)}`);
+    if (sectorAnalysis && typeof sectorAnalysis === "object") {
+      const sectorwerkBlock = buildSectorwerkBlock(sectorAnalysis as SectorplanAnalyseResult);
+      if (sectorwerkBlock) {
+        parts.push(`\nEerdere AI-analyse van het sectorplan:${sectorwerkBlock}`);
+      }
     }
 
     parts.push(`\nGenereer het DIN-netwerk voor dit doel specifiek voor sector ${sector || "Algemeen"}.`);
@@ -101,9 +68,15 @@ export async function POST(request: NextRequest) {
   "efforts": [{"title": "Kort actielabel met werkwoorden", "description": "Uitgebreide toelichting (1-2 zinnen)", "domain": "mens|processen|data_systemen|cultuur", "quarter": "Q1 2026", "dossier": {"eigenaar": "Opdrachtgever", "inspanningsleider": "Projectleider", "verwachtResultaat": "Beoogd resultaat", "kostenraming": "Raming + marge", "randvoorwaarden": "Voorwaarden voor start"}}]
 }`);
 
+    // System prompt: programmaboek + KiB context, dan sectorwerk-analyse (per D-06)
+    let systemPrompt = assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping", undefined, kibContext);
+    if (sectorAnalysis && typeof sectorAnalysis === "object") {
+      systemPrompt += buildSectorwerkBlock(sectorAnalysis as SectorplanAnalyseResult);
+    }
+
     const result = await callClaudeWithValidation(
       AIDINMappingResponseSchema,
-      assembleSystemPrompt(DIN_MAPPING_PROMPT, "din-mapping", undefined, kibContext),
+      systemPrompt,
       parts.join("\n"),
       { maxTokens: 8192 }
     );
