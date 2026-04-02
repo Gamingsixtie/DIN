@@ -88,7 +88,10 @@ Plans:
   1. Sectorwerk analyse wordt opgeslagen als getypeerd SectorplanAnalyseResult object (niet als markdown string)
   2. Bij het starten van DIN-mapping ziet de gebruiker suggesties gebaseerd op de sectorwerk-analyse
   3. De sectorwerk-resultaten zijn per sector beschikbaar als context voor de AI bij DIN-generatie
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — Schema migratie + migratielogica + SectorWerkStep typed object opslag en weergave
+- [ ] 05-02-PLAN.md — buildSectorwerkBlock + API route opschoning + SectorwerkSuggestiePanel in DINMappingStep
 **UI hint**: yes
 
 ### Phase 6: Cyclisch Doel-voor-Doel Werken
@@ -158,7 +161,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. State Management & Persistence | 0/2 | Planning complete | - |
 | 3. Programmaboek Context Pipeline | 0/2 | Planning complete | - |
 | 4. AI Output Kwaliteit | 0/3 | Gap closure planned | - |
-| 5. Sectorwerk Doorstroming | 0/0 | Not started | - |
+| 5. Sectorwerk Doorstroming | 0/2 | Planning complete | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 0/0 | Not started | - |
 | 7. Dutch Tokenizer & Similarity | 0/0 | Not started | - |
 | 8. Cross-Analyse Semantische Matching | 0/0 | Not started | - |
