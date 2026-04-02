@@ -41,7 +41,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks (`py-12`) |
 | 3xl | 64px | Page-level spacing (not used in this phase) |
 
-Exceptions: `py-2.5` (10px) and `px-5` (20px) for tab buttons and primary CTAs -- consistent with existing SectorWerkStep tab pattern. `p-3` (12px) for compact card content and suggestie items.
+Exceptions: `py-3` (12px) for tab buttons and primary CTAs -- consistent with existing SectorWerkStep tab pattern. `px-5` (20px) for horizontal tab/CTA padding. `p-3` (12px) for compact card content and suggestie items.
 
 ---
 
@@ -50,11 +50,11 @@ Exceptions: `py-2.5` (10px) and `px-5` (20px) for tab buttons and primary CTAs -
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 (normal) | 1.5 | `text-sm` |
-| Label | 12px | 500 (medium) | 1.4 | `text-xs font-medium` |
+| Label | 12px | 600 (semibold) | 1.4 | `text-xs font-semibold` |
 | Heading (section) | 16px | 600 (semibold) | 1.3 | `text-base font-semibold` |
-| Heading (card) | 14px | 700 (bold) | 1.3 | `text-sm font-bold` |
+| Heading (card) | 14px | 600 (semibold) | 1.3 | `text-sm font-semibold` |
 
-Source: Established codebase pattern from SectorWerkStep and DINMappingStep. The project uses 3 weights (medium, semibold, bold) -- this is the existing convention; changing it would create inconsistency with other phases.
+Two weights only: 400 (normal) for body text, 600 (semibold) for all headings, labels, and emphasis. This provides sufficient visual hierarchy without weight proliferation.
 
 ---
 
@@ -112,7 +112,7 @@ Source: SectorWerkStep.tsx lines 550-715 (existing structured rendering).
 - Container: `border border-blue-200 rounded-lg bg-blue-50/50`
 - Header bar: clickable, full-width, `px-4 py-3`, flex row with icon + title + count badge + chevron
 - Header text: `text-sm font-semibold text-cito-blue`
-- Count badge: `text-xs font-medium text-blue-600 bg-blue-100 rounded-full px-2 py-0.5`
+- Count badge: `text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5`
 - Collapse animation: use existing `.collapse-wrapper` CSS from globals.css
 - Content area: `px-4 pb-4 space-y-2`
 
@@ -126,12 +126,12 @@ Source: SectorWerkStep.tsx lines 550-715 (existing structured rendering).
 **Suggestie item layout:**
 - Container: `flex items-start gap-3 p-3 bg-white rounded-lg border border-blue-100 hover:border-blue-300 transition-colors`
 - Text: `text-sm text-gray-700 flex-1`
-- Adopt button: `w-7 h-7 flex items-center justify-center rounded-full bg-cito-blue text-white text-sm font-bold hover:bg-cito-blue-light transition-colors shrink-0` showing "+"
+- Adopt button: `w-7 h-7 flex items-center justify-center rounded-full bg-cito-blue text-white text-sm font-semibold hover:bg-cito-blue-light transition-colors shrink-0` showing "+", with `aria-label="Baat overnemen"`
 - Adopted state: container gets `opacity-50`, text gets `line-through text-gray-400`, adopt button hidden
 
 **Batch button (discretion: include when >= 3 unadopted suggestions):**
 - Position: below header, above suggestion list
-- Style: `text-xs font-medium text-cito-blue hover:underline px-4 py-1`
+- Style: `text-xs font-semibold text-cito-blue hover:underline px-4 py-1`
 - Copy: "Alle suggesties overnemen"
 - Hidden when all suggestions are already adopted
 
@@ -155,7 +155,7 @@ interface SectorwerkSuggestiePanelProps {
 
 **Card structure (each category):**
 - Container: `p-4 rounded-lg border-l-4` + category-specific border and background
-- Header: flex row with SVG icon (16x16, `w-4 h-4`) + title (`text-sm font-bold text-gray-800`)
+- Header: flex row with SVG icon (16x16, `w-4 h-4`) + title (`text-sm font-semibold text-gray-800`)
 - Subtitle: `text-xs text-gray-500 italic mb-2`
 - List: `space-y-1.5`, each item with colored bullet + `text-sm text-gray-700`
 - Inspanningen: `grid grid-cols-1 sm:grid-cols-2 gap-2` with domain-colored sub-cards
@@ -193,7 +193,7 @@ interface SectorwerkSuggestiePanelProps {
 ### Suggestie Adoption Flow
 
 1. User sees suggestiepaneel (expanded by default on first view)
-2. User clicks [+] on a suggestion
+2. User clicks [+] on a suggestion (button has `aria-label="Baat overnemen"`)
 3. Immediately: suggestion visual changes to adopted state (line-through, opacity-50)
 4. Immediately: new DINBenefit created in session with description from suggestion
 5. Immediately: goalBenefitMap entry created linking new benefit to active goal
@@ -236,7 +236,7 @@ No interaction changes. Existing behavior preserved:
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (suggestie adopt) | "+" (icon button, no text label -- compact design) |
+| Primary CTA (suggestie adopt) | "+" (icon button with `aria-label="Baat overnemen"`) |
 | Suggestiepaneel header | "Suggesties uit sectorwerk-analyse ({count})" |
 | Batch adopt button | "Alle suggesties overnemen" |
 | Empty state (no analysis available) | Component not rendered -- no empty state needed. Analysis absence is handled by the existing SectorWerkStep which shows the upload/analyze UI. |
@@ -277,7 +277,7 @@ No shadcn initialized. No third-party registries. All components are manual Tail
 
 ### Design rationale
 - The suggestie panel uses `bg-blue-50/50` with `border-blue-200` to visually associate it with the "baten" category color (blue), since it exclusively shows baten suggestions.
-- The [+] button uses `bg-cito-blue` (primary accent) because adopting a suggestion is the primary action in this context. The round shape and small size (28px) distinguish it from full CTAs.
+- The [+] button uses `bg-cito-blue` (primary accent) because adopting a suggestion is the primary action in this context. The round shape and small size (28px) distinguish it from full CTAs. The `aria-label="Baat overnemen"` ensures screen reader accessibility for this icon-only button.
 - Adopted suggestions remain visible (not removed) per D-05, so the user can reference what they already adopted and maintain mental context.
 
 ---
