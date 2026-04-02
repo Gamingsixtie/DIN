@@ -91,7 +91,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 05-01-PLAN.md — Schema migratie + migratielogica + SectorWerkStep typed object opslag en weergave
-- [ ] 05-02-PLAN.md — buildSectorwerkBlock + API route opschoning + SectorwerkSuggestiePanel in DINMappingStep
+- [x] 05-02-PLAN.md — buildSectorwerkBlock + API route opschoning + SectorwerkSuggestiePanel in DINMappingStep
 **UI hint**: yes
 
 ### Phase 6: Cyclisch Doel-voor-Doel Werken
