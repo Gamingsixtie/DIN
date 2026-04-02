@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: AI Output Kwaliteit** - AI genereert methodiek-conforme output met juiste aantallen en formaten
 - [ ] **Phase 5: Sectorwerk Doorstroming** - Sectorwerk-analyse resultaten stromen als getypeerde objecten door naar DIN-mapping
 - [ ] **Phase 6: Cyclisch Doel-voor-Doel Werken** - Gebruiker werkt een doel volledig uit voordat het volgende begint
-- [x] **Phase 7: Dutch Tokenizer & Similarity** - Cross-analyse gebruikt correcte woordsplitsing en verhoogde similarity-drempels (completed 2026-04-02)
+- [x] **Phase 7: Dutch Tokenizer & Similarity** - Cross-analyse gebruikt correcte woordsplitsing en verhoogde similarity-drempels (completed 2026-04-02)
 - [ ] **Phase 8: Cross-Analyse Semantische Matching** - Gedeelde baten, vermogens en inspanningen over sectoren worden herkend en geconsolideerd
 - [ ] **Phase 9: Wizard Cleanup & Export Voorbereiding** - Integratieadvies verwijderd, export-validatie toegevoegd
 - [ ] **Phase 10: Eindproducten** - Compleet programmaplan, DIN-overzicht en roadmap als exporteerbare documenten
@@ -103,7 +103,11 @@ Plans:
   2. Bij het uitwerken van een volgend doel worden eerder uitgewerkte doelen als context meegegeven (voorkomt duplicatie)
   3. Gebruiker ziet per doel de voortgangsstatus: volledig uitgewerkt, deels uitgewerkt, of nog niet begonnen
   4. Pas na het afronden van een doel wordt het volgende doel voorgesteld
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 06-01-PLAN.md — Schema extensie (completedGoals) + compleetheidslogica (checkSectorChain, getGoalCompletionStatus) + unit tests
+- [ ] 06-02-PLAN.md — AI context injectie (buildCompletedGoalsContext) + API route wiring (din-mapping, din-suggest)
+- [ ] 06-03-PLAN.md — UI: sidebar status-badges, "Doel afronden" knop, auto-advance, completedGoalItems passthrough
 **UI hint**: yes
 
 ### Phase 7: Dutch Tokenizer & Similarity
@@ -164,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Programmaboek Context Pipeline | 0/2 | Planning complete | - |
 | 4. AI Output Kwaliteit | 0/3 | Gap closure planned | - |
 | 5. Sectorwerk Doorstroming | 2/2 | Executing | - |
-| 6. Cyclisch Doel-voor-Doel Werken | 0/0 | Not started | - |
+| 6. Cyclisch Doel-voor-Doel Werken | 0/3 | Planning complete | - |
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
 | 8. Cross-Analyse Semantische Matching | 0/0 | Not started | - |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/0 | Not started | - |
