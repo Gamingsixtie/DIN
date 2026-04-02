@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 07 — dutch-tokenizer-similarity
+**Current focus:** Phase 06 — cyclisch-doel-voor-doel-werken
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 06
+Plan: 1 of 3 complete
+Status: Executing phase 06
 Last activity: 2026-04-02
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████░░░░░░░░░░] 50%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P03 | 2min | 1 tasks | 1 files |
 | Phase 05 P01 | 8min | 2 tasks | 9 files |
 | Phase 05 P02 | 7min | 2 tasks | 5 files |
+| Phase 06 P01 | 7min | 1 tasks | 7 files |
 | Phase 07 P01 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
@@ -101,6 +102,9 @@ Recent decisions affecting current work:
 - [Phase 05]: Sectorwerk context injected as system prompt suffix per D-06 layered context architecture
 - [Phase 07]: Snowball stemmer (snowball-stemmers 0.6.0) chosen over natural for Dutch stemming -- 400x smaller
 - [Phase 07]: SIMILARITY_THRESHOLD raised from 0.20 to 0.35 as named constant; compound splitting min word 10, min part 5
+- [Phase 06]: completedGoals uses .optional().default([]) for backward-compatible legacy session loading
+- [Phase 06]: checkSectorChain traverses mapping chain only (not loose items) -- goalBenefitMaps -> benefitCapabilityMaps -> capabilityEffortMaps
+- [Phase 06]: GoalStatus tri-state: afgerond (manual marking), bezig (any items exist), niet-begonnen (no items)
 
 ### Pending Todos
 
@@ -113,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T20:02:53.118Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-cyclisch-doel-voor-doel-werken/06-CONTEXT.md
+Last session: 2026-04-02T21:19:00Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: .planning/phases/06-cyclisch-doel-voor-doel-werken/06-01-SUMMARY.md
