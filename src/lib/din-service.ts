@@ -638,3 +638,131 @@ function computeSectorwerkCompletion(session: DINSession): number {
   }
   return Math.round((sectorsDone / SECTORS.length) * 100);
 }
+
+// --- Doel-voor-Doel Voortgang (Phase 6) ---
+
+export interface SectorChainStatus {
+  hasBenefits: boolean;
+  hasCapabilities: boolean;
+  hasEfforts: boolean;
+  isComplete: boolean;
+  missing: string[]; // e.g., ["mist baten", "mist vermogens"]
+}
+
+export type GoalStatus = "afgerond" | "bezig" | "niet-begonnen";
+
+export interface GoalCompletionStatus {
+  goalId: string;
+  status: GoalStatus;
+  sectorStatuses: Record<string, SectorChainStatus>;
+  isComplete: boolean;
+  isManuallyCompleted: boolean;
+}
+
+/**
+ * Controleer of een doel een volledige DIN-keten heeft in een specifieke sector.
+ * Volgt de mapping-keten: goalBenefitMaps -> benefitCapabilityMaps -> capabilityEffortMaps
+ * Telt ALLEEN items die via mappings gekoppeld zijn (niet losse items).
+ */
+export function checkSectorChain(
+  session: DINSession,
+  goalId: string,
+  sectorId: string
+): SectorChainStatus {
+  // 1. Vind baten voor dit doel+sector via goalBenefitMaps
+  const goalBenefitIds = new Set(
+    session.goalBenefitMaps
+      .filter((m) => m.goalId === goalId)
+      .map((m) => m.benefitId)
+  );
+  const linkedBenefits = session.benefits.filter(
+    (b) => goalBenefitIds.has(b.id) && b.sectorId === sectorId
+  );
+  const hasBenefits = linkedBenefits.length > 0;
+
+  // 2. Vind vermogens gekoppeld aan die baten via benefitCapabilityMaps
+  const linkedBenefitIds = new Set(linkedBenefits.map((b) => b.id));
+  const linkedCapabilityIds = new Set(
+    session.benefitCapabilityMaps
+      .filter((m) => linkedBenefitIds.has(m.benefitId))
+      .map((m) => m.capabilityId)
+  );
+  const linkedCapabilities = session.capabilities.filter(
+    (c) => linkedCapabilityIds.has(c.id) && c.sectorId === sectorId
+  );
+  const hasCapabilities = linkedCapabilities.length > 0;
+
+  // 3. Vind inspanningen gekoppeld aan die vermogens via capabilityEffortMaps
+  const linkedCapIds = new Set(linkedCapabilities.map((c) => c.id));
+  const linkedEffortIds = new Set(
+    session.capabilityEffortMaps
+      .filter((m) => linkedCapIds.has(m.capabilityId))
+      .map((m) => m.effortId)
+  );
+  const linkedEfforts = session.efforts.filter(
+    (e) => linkedEffortIds.has(e.id) && e.sectorId === sectorId
+  );
+  const hasEfforts = linkedEfforts.length > 0;
+
+  // 4. Bouw missing array
+  const missing: string[] = [];
+  if (!hasBenefits) missing.push("mist baten");
+  if (!hasCapabilities) missing.push("mist vermogens");
+  if (!hasEfforts) missing.push("mist inspanningen");
+
+  return {
+    hasBenefits,
+    hasCapabilities,
+    hasEfforts,
+    isComplete: hasBenefits && hasCapabilities && hasEfforts,
+    missing,
+  };
+}
+
+/**
+ * Bepaal de voortgangsstatus van een doel over alle sectoren.
+ * - "afgerond": doel staat in completedGoals (handmatig gemarkeerd)
+ * - "bezig": er zijn DIN-items in minstens één sector
+ * - "niet-begonnen": geen DIN-items in welke sector dan ook
+ */
+export function getGoalCompletionStatus(
+  session: DINSession,
+  goalId: string
+): GoalCompletionStatus {
+  const isManuallyCompleted = (session.completedGoals ?? []).includes(goalId);
+
+  // Check elke sector
+  const sectorStatuses: Record<string, SectorChainStatus> = {};
+  let anyHasItems = false;
+  let allComplete = true;
+
+  for (const sector of SECTORS) {
+    const sectorStatus = checkSectorChain(session, goalId, sector);
+    sectorStatuses[sector] = sectorStatus;
+
+    if (sectorStatus.hasBenefits || sectorStatus.hasCapabilities || sectorStatus.hasEfforts) {
+      anyHasItems = true;
+    }
+    if (!sectorStatus.isComplete) {
+      allComplete = false;
+    }
+  }
+
+  // Bepaal status
+  let status: GoalStatus;
+  if (isManuallyCompleted) {
+    status = "afgerond";
+  } else if (anyHasItems) {
+    status = "bezig";
+  } else {
+    status = "niet-begonnen";
+  }
+
+  return {
+    goalId,
+    status,
+    sectorStatuses,
+    isComplete: allComplete,
+    isManuallyCompleted,
+  };
+}

@@ -238,6 +238,7 @@ export function createDemoSession(): DINSession {
       { capabilityId: capIds[10], effortId: effortIds[7] },  // Agile werkwijze → wendbaarheid VO
       { capabilityId: capIds[11], effortId: effortIds[12] },  // ABM proces → flexibiliteit Zakelijk
     ],
+    completedGoals: [],
   };
 }
 

@@ -374,6 +374,8 @@ export const DINSessionSchema = z.object({
   verrijkteSectorplannen: z.record(z.string(), z.string()).optional(),
   crossAnalyse: z.string().optional(),
   externalProjects: z.array(ExternalProjectSchema).optional(),
+  // Doel-voor-doel voortgang: welke doelen zijn afgerond
+  completedGoals: z.array(z.string()).optional().default([]),
 });
 
 // ============================================================

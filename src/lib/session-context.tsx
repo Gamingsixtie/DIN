@@ -144,6 +144,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       integratieAdvies: {},
       sectorAnalyses: {},
       verrijkteSectorplannen: {},
+      completedGoals: [],
     };
     setSession(newSession);
     saveLocal(`session_${newSession.id}`, newSession);

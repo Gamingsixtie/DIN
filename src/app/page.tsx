@@ -45,6 +45,7 @@ export default function Home() {
       goalBenefitMaps: [],
       benefitCapabilityMaps: [],
       capabilityEffortMaps: [],
+      completedGoals: [],
     };
     saveLocal(`session_${id}`, session);
     const list = loadLocal<string[]>("session_list") || [];
