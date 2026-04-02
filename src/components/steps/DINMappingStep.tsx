@@ -23,6 +23,10 @@ import {
   createEffort,
   generateId,
   getBenefitsByGoalAndSector,
+  getGoalCompletionStatus,
+  type GoalCompletionStatus,
+  type SectorChainStatus,
+  type GoalStatus,
 } from "@/lib/din-service";
 import BenefitCard from "@/components/din/BenefitCard";
 import CapabilityCard from "@/components/din/CapabilityCard";
@@ -553,6 +557,58 @@ export default function DINMappingStep() {
     return "leeg";
   }
 
+  // Bouw completedGoalItems voor AI context (per D-06, D-08)
+  function buildCompletedGoalItemsForAPI() {
+    const completedGoalIds = session!.completedGoals ?? [];
+    if (completedGoalIds.length === 0) return [];
+
+    return completedGoalIds.map(goalId => {
+      const goal = session!.goals.find(g => g.id === goalId);
+
+      // Verzamel alle baten voor dit doel (over alle sectoren)
+      const goalBenefitIds = session!.goalBenefitMaps
+        .filter(m => m.goalId === goalId)
+        .map(m => m.benefitId);
+      const benefits = session!.benefits
+        .filter(b => goalBenefitIds.includes(b.id))
+        .map(b => ({
+          title: b.title,
+          description: b.description,
+          indicator: b.profiel?.indicator || undefined,
+        }));
+
+      // Verzamel vermogens via benefitCapabilityMaps
+      const linkedCapIds = session!.benefitCapabilityMaps
+        .filter(m => goalBenefitIds.includes(m.benefitId))
+        .map(m => m.capabilityId);
+      const capabilities = session!.capabilities
+        .filter(c => linkedCapIds.includes(c.id))
+        .map(c => ({
+          title: c.title,
+          description: c.description,
+        }));
+
+      // Verzamel inspanningen via capabilityEffortMaps
+      const linkedEffortIds = session!.capabilityEffortMaps
+        .filter(m => linkedCapIds.includes(m.capabilityId))
+        .map(m => m.effortId);
+      const efforts = session!.efforts
+        .filter(e => linkedEffortIds.includes(e.id))
+        .map(e => ({
+          title: e.title,
+          description: e.description,
+          domain: e.domain || undefined,
+        }));
+
+      return {
+        goalName: goal?.name || "Onbekend doel",
+        benefits,
+        capabilities,
+        efforts,
+      };
+    }).filter(item => item.benefits.length > 0 || item.capabilities.length > 0 || item.efforts.length > 0);
+  }
+
   // --- CRUD functies ---
   function updateBenefit(updated: DINBenefit) {
     // Check if title changed for client-side validation (per D-02)
@@ -958,7 +1014,7 @@ export default function DINMappingStep() {
     const res = await fetch("/api/din-suggest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope, sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null }),
+      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope, sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null, completedGoalItems: buildCompletedGoalItemsForAPI() }),
     });
     const data = await res.json();
     if (data.success && data.data?.suggestion) {
@@ -1057,6 +1113,7 @@ export default function DINMappingStep() {
         sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
         kibGoals: session!.goals,
         kibScope: session!.scope,
+        completedGoalItems: buildCompletedGoalItemsForAPI(),
       };
       if (extraFeedback) {
         requestBody.userFeedback = extraFeedback;
@@ -1311,6 +1368,33 @@ export default function DINMappingStep() {
       : `Inspanning "${(deletedItem.item as DINEffort).title || (deletedItem.item as DINEffort).description || "(naamloos)"}"`
     : "";
 
+  // Doel status badge (per D-10, D-11, D-12)
+  function GoalStatusBadge({ goalId }: { goalId: string }) {
+    const completion = getGoalCompletionStatus(session!, goalId);
+
+    if (completion.status === "afgerond") {
+      return <span className="ml-1 text-green-500 text-xs" title="Afgerond">&#10003;</span>;
+    }
+
+    if (completion.status === "bezig") {
+      return (
+        <span className="ml-1 text-[10px] inline-flex gap-1">
+          {SECTORS.map(s => (
+            <span
+              key={s}
+              className={completion.sectorStatuses[s]?.isComplete ? "text-green-600" : "text-gray-300"}
+            >
+              {s === "Zakelijk" ? "Za" : s}{completion.sectorStatuses[s]?.isComplete ? "+" : "-"}
+            </span>
+          ))}
+        </span>
+      );
+    }
+
+    // niet-begonnen
+    return <span className="ml-1 text-gray-300 text-xs">&#9675;</span>;
+  }
+
   return (
     <div className="space-y-4">
       {/* Undo toast */}
@@ -1446,29 +1530,95 @@ export default function DINMappingStep() {
               <div className="space-y-1">
                 {session.goals
                   .sort((a, b) => a.rank - b.rank)
-                  .map((goal) => {
-                    const hasBenefits = session.benefits.some(
-                      (b) =>
-                        b.goalId === goal.id && b.sectorId === activeSector
-                    );
-                    return (
-                      <button
-                        key={goal.id}
-                        onClick={() => setActiveGoalId(goal.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                          selectedGoal === goal.id
-                            ? "bg-cito-blue text-white"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        {goal.rank}. {goal.name}
-                        {hasBenefits && (
-                          <span className="ml-1 text-green-400">{"\u25CF"}</span>
-                        )}
-                      </button>
-                    );
-                  })}
+                  .map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => setActiveGoalId(goal.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                        selectedGoal === goal.id
+                          ? "bg-cito-blue text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="truncate">{goal.rank}. {goal.name}</span>
+                      <GoalStatusBadge goalId={goal.id} />
+                    </button>
+                  ))}
               </div>
+
+              {/* Doel afronden knop (per D-02, D-04) */}
+              {selectedGoal && (() => {
+                const completion = getGoalCompletionStatus(session!, selectedGoal);
+                const isCompleted = completion.isManuallyCompleted;
+
+                if (isCompleted) {
+                  // Afgerond: toon status + opheffen link (per UI-SPEC)
+                  return (
+                    <div className="mt-3">
+                      <div className="text-xs text-green-600">Dit doel is afgerond</div>
+                      <button
+                        onClick={() => {
+                          updateSession(prev => ({
+                            completedGoals: (prev.completedGoals ?? []).filter(id => id !== selectedGoal),
+                          }));
+                        }}
+                        className="text-xs text-cito-blue hover:underline cursor-pointer mt-0.5"
+                      >
+                        Markering opheffen
+                      </button>
+                    </div>
+                  );
+                }
+
+                // Check alle sectoren
+                const allMissing: string[] = [];
+                for (const sector of SECTORS) {
+                  const sectorStatus = completion.sectorStatuses[sector];
+                  if (sectorStatus && !sectorStatus.isComplete) {
+                    allMissing.push(`${sector}: ${sectorStatus.missing.join(", ")}`);
+                  }
+                }
+
+                const canComplete = completion.isComplete && !isGenerating;
+
+                return (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => {
+                        // Markeer doel als afgerond (per D-05)
+                        updateSession(prev => ({
+                          completedGoals: [...(prev.completedGoals ?? []), selectedGoal!],
+                        }));
+                        // Auto-advance naar volgend onafgerond doel (per D-01)
+                        setTimeout(() => {
+                          const nextGoal = session!.goals
+                            .sort((a, b) => a.rank - b.rank)
+                            .find(g => !(session!.completedGoals ?? []).includes(g.id) && g.id !== selectedGoal);
+                          if (nextGoal) {
+                            setActiveGoalId(nextGoal.id);
+                          }
+                          // Als alle doelen afgerond: blijf op huidige
+                        }, 300);
+                      }}
+                      disabled={!canComplete}
+                      className={`w-full px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                        canComplete
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      {isGenerating ? "Bezig met genereren..." : "Doel afronden"}
+                    </button>
+                    {allMissing.length > 0 && !isGenerating && (
+                      <div className="mt-1 space-y-0.5">
+                        {allMissing.map((line, i) => (
+                          <div key={i} className="text-xs text-gray-500">{line}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* DIN Editor */}
