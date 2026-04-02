@@ -114,7 +114,9 @@ Plans:
   1. Samengestelde Nederlandse woorden worden correct gesplitst (bijv. "onderwijskwaliteit" herkent "onderwijs" en "kwaliteit")
   2. Similarity-drempel is verhoogd zodat oppervlakkige overeenkomsten niet als verbanden worden getoond
   3. Tokens korter dan 4 karakters worden gefilterd (geen ruis van lidwoorden en voorzetsels)
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 07-01-PLAN.md — Snowball stemmer tokenizer + conservative compound splitting + din-service wiring
 
 ### Phase 8: Cross-Analyse Semantische Matching
 **Goal**: Cross-analyse herkent echte samenhang tussen sectoren en geeft bruikbare consolidatie-adviezen
@@ -163,7 +165,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. AI Output Kwaliteit | 0/3 | Gap closure planned | - |
 | 5. Sectorwerk Doorstroming | 0/2 | Planning complete | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 0/0 | Not started | - |
-| 7. Dutch Tokenizer & Similarity | 0/0 | Not started | - |
+| 7. Dutch Tokenizer & Similarity | 0/1 | Planning complete | - |
 | 8. Cross-Analyse Semantische Matching | 0/0 | Not started | - |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/0 | Not started | - |
 | 10. Eindproducten | 0/0 | Not started | - |
