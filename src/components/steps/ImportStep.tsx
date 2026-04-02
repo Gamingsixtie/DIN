@@ -12,6 +12,7 @@ export default function ImportStep() {
   );
   const [kibError, setKibError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   if (!session) return null;
 
@@ -60,8 +61,11 @@ export default function ImportStep() {
         }
       }
 
-      // Word bestanden via API
+      // Word bestanden via API (met AI-extractie)
       if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+        setKibStatus("idle");
+        setUploadMessage("Word-document wordt geanalyseerd door AI...");
+
         const formData = new FormData();
         formData.append("file", file);
 
@@ -70,6 +74,8 @@ export default function ImportStep() {
           body: formData,
         });
         const data = await res.json();
+
+        setUploadMessage("");
 
         if (data.success && data.data) {
           if (data.data.vision || data.data.goals?.length > 0) {
@@ -82,13 +88,12 @@ export default function ImportStep() {
               scope: data.data.scope || prev.scope,
             }));
             setKibStatus("success");
-          } else if (data.data.rawText) {
-            // Ruwe tekst uit Word, zet in tekstgebied
-            setKibJson(data.data.rawText);
+            if (data.source === "ai") {
+              setKibError("Visie, doelen en scope zijn met AI uit het document geëxtraheerd. Controleer de resultaten.");
+            }
+          } else {
             setKibStatus("error");
-            setKibError(
-              "Word-bestand gelezen, maar bevat geen KiB JSON-structuur. De tekst is in het invoerveld gezet — plak handmatig de juiste JSON of kopieer de visie en doelen."
-            );
+            setKibError("Geen bruikbare visie, doelen of scope gevonden in het document.");
           }
         } else {
           setKibStatus("error");
@@ -126,8 +131,8 @@ export default function ImportStep() {
         {/* Bestand uploaden */}
         <div className="mb-4">
           <p className="text-sm text-gray-500 mb-3">
-            Upload het KiB-exportbestand (.json, .docx, of .txt) of plak de
-            JSON hieronder.
+            Upload een KiB-programmaplan (.docx, .doc) of exportbestand (.json,
+            .txt). Word-documenten worden automatisch geanalyseerd door AI.
           </p>
           <label className="block cursor-pointer">
             <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-cito-blue hover:bg-blue-50/50 transition-colors">
@@ -146,7 +151,7 @@ export default function ImportStep() {
               </svg>
               <span className="text-sm text-gray-600">
                 {isUploading
-                  ? "Bestand verwerken..."
+                  ? uploadMessage || "Bestand verwerken..."
                   : "Upload KiB-export bestand"}
               </span>
               <span className="text-xs text-gray-400">
@@ -189,9 +194,14 @@ export default function ImportStep() {
             Importeer JSON
           </button>
           {kibStatus === "success" && (
-            <span className="text-sm text-green-600">
-              Succesvol geïmporteerd
-            </span>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-green-600">
+                Succesvol geïmporteerd
+              </span>
+              {kibError && (
+                <span className="text-sm text-amber-600">{kibError}</span>
+              )}
+            </div>
           )}
           {kibStatus === "error" && (
             <span className="text-sm text-red-600">{kibError}</span>
