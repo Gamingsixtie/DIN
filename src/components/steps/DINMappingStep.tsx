@@ -793,7 +793,7 @@ export default function DINMappingStep() {
     const res = await fetch("/api/din-suggest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope }),
+      body: JSON.stringify({ type, context, kibGoals: session!.goals, kibScope: session!.scope, sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null }),
     });
     const data = await res.json();
     if (data.success && data.data?.suggestion) {
@@ -889,7 +889,7 @@ export default function DINMappingStep() {
         sectorPlan,
         sector: activeSector,
         allGoals: session!.goals.map((g) => ({ name: g.name, description: g.description })),
-        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
         kibGoals: session!.goals,
         kibScope: session!.scope,
       };
@@ -1006,7 +1006,7 @@ export default function DINMappingStep() {
         capabilities: sectorCapabilities,
         efforts: sectorEfforts,
         externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
-        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || "",
+        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
         kibGoals: session!.goals,
         kibScope: session!.scope,
       };
