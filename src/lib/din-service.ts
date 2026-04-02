@@ -12,6 +12,7 @@ import type {
 } from "./types";
 import { SECTORS } from "./types";
 import { deduplicateById } from "./persistence";
+import { tokenize, tokenSimilarity, SIMILARITY_THRESHOLD } from "./nl-tokenizer";
 
 // --- ID generatie ---
 
@@ -232,74 +233,6 @@ export function findGaps(
 
 // --- Cross-sector hefboomanalyse ---
 
-/** NL stopwoorden die geen thematische waarde hebben */
-const NL_STOPWORDS = new Set([
-  "de", "het", "een", "van", "voor", "met", "door", "aan", "bij",
-  "als", "dat", "die", "dit", "naar", "ook", "nog", "wel", "niet",
-  "wordt", "worden", "zijn", "hebben", "meer", "alle", "over",
-  "kan", "moet", "zal", "hun", "haar", "zijn", "onze", "ons",
-]);
-
-/**
- * Tokenize tekst voor similarity matching.
- * - Behoudt afkortingen (NPS, KPI, ICT) door drempel op >2 chars
- * - Splitst samengestelde woorden (≥8 chars) op mogelijke deelwoorden
- * - Filtert NL-stopwoorden
- */
-function tokenize(text: string): Set<string> {
-  if (!text || !text.trim()) return new Set();
-
-  const tokens = new Set<string>();
-  const words = text
-    .toLowerCase()
-    .replace(/[^a-zA-ZÀ-ÿ0-9\s-]/g, "")
-    .split(/[\s-]+/)
-    .filter(Boolean);
-
-  for (const word of words) {
-    if (NL_STOPWORDS.has(word)) continue;
-    if (word.length <= 2) continue;
-
-    tokens.add(word);
-
-    // Compound word splitting: "klantervaring" → ook "klant" + "ervaring"
-    if (word.length >= 8) {
-      for (let i = 4; i <= word.length - 4; i++) {
-        tokens.add(word.slice(0, i));
-        tokens.add(word.slice(i));
-      }
-    }
-  }
-
-  return tokens;
-}
-
-/**
- * Gecombineerde similarity: Jaccard + substring-bonus.
- * Vangt partial matches op die pure Jaccard mist.
- */
-function tokenSimilarity(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-
-  const intersection = new Set([...a].filter((x) => b.has(x)));
-  const union = new Set([...a, ...b]);
-  const jaccard = union.size > 0 ? intersection.size / union.size : 0;
-
-  // Substring bonus: "klant" matcht met "klanttevredenheid"
-  let substringMatches = 0;
-  for (const tA of a) {
-    for (const tB of b) {
-      if (tA !== tB && tA.length >= 4 && tB.length >= 4) {
-        if (tA.includes(tB) || tB.includes(tA)) {
-          substringMatches++;
-        }
-      }
-    }
-  }
-  const substringBonus = Math.min(substringMatches * 0.08, 0.25);
-
-  return Math.min(jaccard + substringBonus, 1.0);
-}
 
 /**
  * Een cluster van thematisch verwante baten over meerdere sectoren.
@@ -378,7 +311,7 @@ export function findBenefitClusters(
       );
       if (otherTokens.size === 0) continue;
 
-      if (tokenSimilarity(tokens, otherTokens) >= 0.20) {
+      if (tokenSimilarity(tokens, otherTokens) >= SIMILARITY_THRESHOLD) {
         cluster.push(other);
         used.add(other.id);
         sectorsInCluster.add(other.sectorId);
@@ -444,7 +377,7 @@ export function findEffortClusters(efforts: DINEffort[]): EffortCluster[] {
       );
       if (otherTokens.size === 0) continue;
 
-      if (tokenSimilarity(tokens, otherTokens) >= 0.20) {
+      if (tokenSimilarity(tokens, otherTokens) >= SIMILARITY_THRESHOLD) {
         cluster.push(other);
         used.add(other.id);
         sectorsInCluster.add(other.sectorId);
