@@ -295,6 +295,64 @@ export function buildSectorwerkBlock(analysis: SectorplanAnalyseResult | null | 
   return `\n---\nSECTORWERK-ANALYSE (eerder gegenereerd):\n\n${block}\n---`;
 }
 
+// ============================================================
+// Eerder Uitgewerkte Doelen Context — voor AI deduplicatie
+// ============================================================
+
+/**
+ * Context van eerder uitgewerkte doelen, meegegeven aan AI bij volgende doelen.
+ * Per D-06: volledige items (titels, beschrijvingen, indicatoren).
+ * Per D-07: automatische cap bij ~2000 tokens (~6000 chars voor Nederlands).
+ * Per D-08: als apart blok na sectorwerk-context in system prompt.
+ * Per D-09: expliciete deduplicatie-instructie.
+ */
+export interface CompletedGoalItem {
+  goalName: string;
+  benefits: Array<{ title: string; description: string; indicator?: string }>;
+  capabilities: Array<{ title: string; description: string }>;
+  efforts: Array<{ title: string; description: string; domain?: string }>;
+}
+
+export type CompletedGoalContext = CompletedGoalItem[];
+
+const COMPLETED_GOALS_MAX_CHARS = 6000;
+
+export function buildCompletedGoalsContext(
+  completedGoals: CompletedGoalContext
+): string {
+  if (completedGoals.length === 0) return "";
+
+  const parts: string[] = [];
+  parts.push("EERDER UITGEWERKTE DOELEN:");
+  parts.push("Onderstaande items zijn al gegenereerd voor eerdere doelen. Vermijd overlap en duplicatie.");
+  parts.push("Genereer aanvullende, unieke baten/vermogens/inspanningen voor het huidige doel.\n");
+
+  for (const goal of completedGoals) {
+    parts.push(`Doel: ${goal.goalName}`);
+    if (goal.benefits.length) {
+      parts.push(`  Baten: ${goal.benefits.map(b => b.title || b.description.slice(0, 50)).join("; ")}`);
+    }
+    if (goal.capabilities.length) {
+      parts.push(`  Vermogens: ${goal.capabilities.map(c => c.title || c.description.slice(0, 50)).join("; ")}`);
+    }
+    if (goal.efforts.length) {
+      parts.push(`  Inspanningen: ${goal.efforts.map(e => e.title || e.description.slice(0, 50)).join("; ")}`);
+    }
+  }
+
+  let block = parts.join("\n");
+
+  if (block.length > COMPLETED_GOALS_MAX_CHARS) {
+    block = block.substring(0, COMPLETED_GOALS_MAX_CHARS);
+    const lastNewline = block.lastIndexOf("\n");
+    if (lastNewline > COMPLETED_GOALS_MAX_CHARS * 0.7) {
+      block = block.substring(0, lastNewline);
+    }
+  }
+
+  return `\n---\n${block}\n---`;
+}
+
 /**
  * Stel een complete system prompt samen met programmaboek-context.
  *
