@@ -156,6 +156,8 @@ export interface DINCapability {
   currentLevel?: number; // 1-5: huidig vermogensniveau
   targetLevel?: number;  // 1-5: gewenst vermogensniveau
   profiel?: VermogensProfiel;
+  consolidated?: boolean;       // true = item is geconsolideerd in een gedeeld item
+  consolidatedInto?: string;    // id van het gedeelde vervangende item
 }
 
 // Inspanningsdossier conform DIN-methodiek (Wijnen & Van der Tak, Hfst 11.3)
@@ -184,6 +186,8 @@ export interface DINEffort {
   approvalStatus?: ApprovalStatus;
   approvalDate?: string;
   dossier?: InspanningsDossier;
+  consolidated?: boolean;       // true = item is geconsolideerd in een gedeeld item
+  consolidatedInto?: string;    // id van het gedeelde vervangende item
 }
 
 // --- Koppelingen ---

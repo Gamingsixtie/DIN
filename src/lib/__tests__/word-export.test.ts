@@ -281,13 +281,22 @@ describe("volgende-cyclus", () => {
 });
 
 // --- Helper to extract text from docx Paragraph/Table children ---
+// docx library stores text as plain strings inside nested root arrays:
+// Paragraph.root -> [..., TextRun.root -> [..., {rootKey: "w:t", root: [{...}, "actual text"]}]]
 function extractTextFromChildren(children: unknown[]): string {
   const texts: string[] = [];
 
   function walk(obj: unknown) {
+    // Plain string found in root arrays = actual text content
+    if (typeof obj === "string") {
+      // Skip XML element names like "preserve"
+      if (obj !== "preserve" && obj.length > 0) {
+        texts.push(obj);
+      }
+      return;
+    }
     if (!obj || typeof obj !== "object") return;
 
-    // TextRun or similar objects may have root[0].text or options.text
     const o = obj as Record<string, unknown>;
 
     // Check for TextRun-like object with text property
@@ -295,7 +304,7 @@ function extractTextFromChildren(children: unknown[]): string {
       texts.push(o.text);
     }
 
-    // docx library stores text in root array
+    // docx library stores content in root arrays (most important!)
     if ("root" in o && Array.isArray(o.root)) {
       for (const item of o.root) {
         walk(item);
