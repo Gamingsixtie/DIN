@@ -138,13 +138,16 @@ Plans:
 **UI hint**: yes
 
 ### Phase 9: Wizard Cleanup & Export Voorbereiding
-**Goal**: De wizard-flow is opgeschoond en export wordt voorbereid met validatie
+**Goal**: Alle integratieadvies-code volledig verwijderd uit de applicatie, wizard-flow opgeschoond
 **Depends on**: Phase 6
 **Requirements**: EXP-04
 **Success Criteria** (what must be TRUE):
   1. De integratieadvies-stap is verwijderd uit de wizard — gebruiker ziet deze stap niet meer
   2. De wizard-flow loopt logisch door zonder gaten na het verwijderen van de stap
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 09-01-PLAN.md — Data layer cleanup: schemas, types, prompts, AI client, API route, session context
+- [ ] 09-02-PLAN.md — UI cleanup: DINMappingStep, ExportStep, word-export, orphaned file deletions
 **UI hint**: yes
 
 ### Phase 10: Eindproducten
@@ -174,5 +177,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Cyclisch Doel-voor-Doel Werken | 1/3 | In Progress|  |
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
 | 8. Cross-Analyse Semantische Matching | 0/2 | Planning complete | - |
-| 9. Wizard Cleanup & Export Voorbereiding | 0/0 | Not started | - |
+| 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
 | 10. Eindproducten | 0/0 | Not started | - |
