@@ -50,14 +50,21 @@ Exceptions: none
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 (regular) | 1.5 | `text-sm leading-relaxed` |
-| Label | 10-12px | 600 (semibold) | 1.4 | `text-[10px] font-semibold` or `text-xs font-semibold` |
+| Label | 12px | 700 (bold) | 1.4 | `text-xs font-bold` |
 | Heading | 18px | 700 (bold) | 1.2 | `text-lg font-bold` |
 | Display | 24px | 700 (bold) | 1.2 | `text-2xl font-bold` (stats only) |
+
+**Two-weight system:** 400 (regular) and 700 (bold) only. No intermediate weights (no 500, no 600).
+
+**Four-size scale:** 12px (label), 14px (body), 18px (heading), 24px (display). No other sizes permitted.
 
 **Phase-specific typography notes:**
 - Section titles in preview: `text-lg font-bold text-cito-blue` (established in ExportStep Section component)
 - Subsection titles: `text-sm font-bold text-cito-blue/80 uppercase tracking-wide` (established in ExportStep SubSection)
 - Section numbering prefix: same size/weight as section title, prepended inline (e.g., "1. Programmavisie")
+- Category headers in gap modal: `text-xs font-bold uppercase tracking-wide` (replaces former `font-semibold` usage)
+- Badge labels (BAAT, VERMOGEN, INSPANNING): `text-xs font-bold` (replaces former `text-[10px] font-semibold`)
+- Tabel-flow header row: `text-xs font-bold uppercase tracking-wide` (replaces former `text-[10px]`)
 - Word document: Calibri font, body size 22 half-points (11pt), headings via HeadingLevel with Cito blue
 
 ---
@@ -138,6 +145,12 @@ Exceptions: none
 
 ---
 
+## Visuals
+
+**Primary focal point:** The "Downloaden (.docx)" button in the export action bar. This is the single most important interactive element on the ExportStep screen. It uses accent background (`bg-cito-blue`), white text, and is positioned at the top-right of the action bar to draw immediate attention.
+
+---
+
 ## Interaction Contracts
 
 ### IC-01: Gap Detection Modal (D-11)
@@ -157,13 +170,13 @@ Exceptions: none
 **Modal content (two categories):**
 
 Category 1 -- "Volgende cyclus" (informational, not alarming):
-- Header: `text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2`
+- Header: `text-xs font-bold text-gray-500 uppercase tracking-wide mb-2`
 - Copy: "Nog niet uitgewerkt (volgende cyclus)"
 - Icon: clock or calendar (gray)
 - List: Goal names in `text-sm text-gray-600`, each with bullet
 
 Category 2 -- "Aandachtspunten" (real gaps, worth noting):
-- Header: `text-sm font-semibold text-amber-700 uppercase tracking-wide mb-2`
+- Header: `text-xs font-bold text-amber-700 uppercase tracking-wide mb-2`
 - Copy: "Onvolledige ketens"
 - Icon: warning triangle (amber)
 - List: Gap descriptions in `text-sm text-amber-800`, each with bullet
@@ -221,7 +234,7 @@ Category 2 -- "Aandachtspunten" (real gaps, worth noting):
 
 **Table styling (preview -- Tailwind):**
 - Table: `w-full border-collapse text-xs`
-- Header row: `bg-cito-blue/5 text-cito-blue font-bold text-[10px] uppercase tracking-wide`
+- Header row: `bg-cito-blue/5 text-cito-blue font-bold text-xs uppercase tracking-wide`
 - Header cells: Baat (30%), arrow (4%), Vermogen (28%), arrow (4%), Inspanning (34%)
 - Arrow cells: centered `text-gray-400` with `\u2192` character
 - Data cells: `text-sm text-gray-700 p-2 border-b border-gray-100`
