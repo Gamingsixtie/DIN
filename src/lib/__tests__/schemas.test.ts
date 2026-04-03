@@ -374,6 +374,28 @@ describe("AIDINMappingResponseSchema quantity limits", () => {
     expect(result.success).toBe(true);
   });
 
+  test("DINSessionSchema strips unknown integratieAdvies field from legacy data", () => {
+    const legacyData = {
+      id: "legacy-test",
+      name: "Legacy Session",
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+      currentStep: 0,
+      goals: [],
+      sectorPlans: [],
+      pmcEntries: [],
+      benefits: [],
+      capabilities: [],
+      efforts: [],
+      integratieAdvies: { PO: { sectorName: "PO", aansluiting: { titel: "t", toelichting: "t", punten: [] }, verrijking: { titel: "t", toelichting: "t", punten: [] }, aanvullingen: { titel: "t", toelichting: "t", punten: [] }, quickWins: { titel: "t", toelichting: "t", punten: [] }, aandachtspunten: { titel: "t", toelichting: "t", punten: [] } } },
+    };
+    const result = DINSessionSchema.safeParse(legacyData);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("integratieAdvies");
+    }
+  });
+
   test("DINSessionSchema does NOT limit benefits array (storage schema)", () => {
     // DINSessionSchema should accept any number of benefits (no .max())
     const manyBenefits = Array.from({ length: 20 }, (_, i) => ({

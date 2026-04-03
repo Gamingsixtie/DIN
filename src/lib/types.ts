@@ -34,8 +34,6 @@ export type {
   CrossAnalyseSectorOverlapItem,
   CrossAnalyseExternItem,
   CrossAnalyseResult,
-  IntegratieAdviesItem,
-  IntegratieAdviesResult,
   VermogenClusterItem,
   InspanningClusterItem,
   ProjectMatchItem,

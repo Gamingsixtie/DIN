@@ -17,7 +17,7 @@ import {
   TabStopType,
   TabStopPosition,
 } from "docx";
-import type { DINSession, EffortDomain, SectorName, IntegratieAdviesResult } from "./types";
+import type { DINSession, EffortDomain, SectorName } from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
 
@@ -1132,40 +1132,6 @@ function sectorSection(session: DINSession, sector: SectorName) {
       );
       children.push(emptyLine(80));
     });
-  }
-
-  // Integratie-advies
-  const rawAdvies = session.integratieAdvies?.[sector];
-  if (rawAdvies && typeof rawAdvies !== "string") {
-    const advies = rawAdvies as IntegratieAdviesResult;
-    children.push(subHeading("Integratie-advies"));
-
-    const adviesKeys: { key: keyof IntegratieAdviesResult; label: string }[] = [
-      { key: "aansluiting", label: "Aansluiting op KiB-doelen" },
-      { key: "verrijking", label: "Verrijking" },
-      { key: "aanvullingen", label: "Aanvullingen" },
-      { key: "quickWins", label: "Quick wins" },
-      { key: "aandachtspunten", label: "Aandachtspunten" },
-    ];
-
-    adviesKeys.forEach(({ key, label }) => {
-      const item = advies[key];
-      if (!item || typeof item === "string") return;
-      if (!("punten" in item) || item.punten.length === 0) return;
-
-      children.push(
-        new Paragraph({
-          spacing: { before: 120, after: 60 },
-          children: [
-            new TextRun({ text: label, bold: true, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
-          ],
-        })
-      );
-      item.punten.forEach((punt) => {
-        children.push(bullet(punt, 600));
-      });
-    });
-    children.push(emptyLine());
   }
 
   return { properties: {}, children };

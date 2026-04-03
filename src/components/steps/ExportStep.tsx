@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useSession } from "@/lib/session-context";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import { buildChainsForSector, findGaps, analyzeHefbomen, getDomainBalance } from "@/lib/din-service";
-import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
+import type { EffortDomain, DINSession, SectorName } from "@/lib/types";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -648,38 +648,6 @@ function ExterneProjectenBlock({ session }: { session: DINSession }) {
 
 // --- Sectorale uitwerking ---
 
-function IntegratieAdviesSubSection({ advies }: { advies: IntegratieAdviesResult }) {
-  const sections: { key: keyof IntegratieAdviesResult; label: string }[] = [
-    { key: "aansluiting", label: "Aansluiting op KiB-doelen" },
-    { key: "verrijking", label: "Verrijking" },
-    { key: "aanvullingen", label: "Aanvullingen" },
-    { key: "quickWins", label: "Quick wins" },
-    { key: "aandachtspunten", label: "Aandachtspunten" },
-  ];
-
-  return (
-    <SubSection title="Integratie-advies">
-      <div className="space-y-3">
-        {sections.map(({ key, label }) => {
-          const item = advies[key];
-          if (!item || typeof item === "string") return null;
-          if (!("punten" in item) || item.punten.length === 0) return null;
-          return (
-            <div key={key}>
-              <div className="text-xs font-semibold text-gray-600 mb-1">{label}</div>
-              {item.punten.map((punt, i) => (
-                <div key={i} className="text-xs text-gray-600 ml-2 mb-0.5">
-                  &bull; {punt}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </SubSection>
-  );
-}
-
 function SectorBlocks({ session }: { session: DINSession }) {
   const activeSectors = SECTORS.filter(
     (s) =>
@@ -697,11 +665,6 @@ function SectorBlocks({ session }: { session: DINSession }) {
         const sectorCaps = session.capabilities.filter((c) => c.sectorId === sector);
         const sectorEfforts = session.efforts.filter((e) => e.sectorId === sector);
         const accent = SECTOR_ACCENT[sector];
-
-        // Integratie-advies ophalen
-        const rawAdvies = session.integratieAdvies?.[sector];
-        const integratieAdvies: IntegratieAdviesResult | null =
-          rawAdvies && typeof rawAdvies !== "string" ? rawAdvies : null;
 
         return (
           <div key={sector} className={`mb-8 last:mb-0 border-l-4 ${accent} pl-5`}>
@@ -831,8 +794,6 @@ function SectorBlocks({ session }: { session: DINSession }) {
               </SubSection>
             )}
 
-            {/* Integratie-advies */}
-            {integratieAdvies && <IntegratieAdviesSubSection advies={integratieAdvies} />}
           </div>
         );
       })}

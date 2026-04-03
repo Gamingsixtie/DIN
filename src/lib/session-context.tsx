@@ -141,7 +141,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       goalBenefitMaps: [],
       benefitCapabilityMaps: [],
       capabilityEffortMaps: [],
-      integratieAdvies: {},
       sectorAnalyses: {},
       verrijkteSectorplannen: {},
       completedGoals: [],
