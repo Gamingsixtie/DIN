@@ -159,11 +159,11 @@ Plans:
   2. Export bevat een visuele DIN-overzicht weergave (doelen, baten, vermogens, inspanningen als netwerk)
   3. Export bevat een roadmap/tijdlijn met kwartaalplanning van inspanningen en afhankelijkheden
   4. Gebruiker wordt voor export gewaarschuwd als er onvolledige ketens zijn (gap-detectie)
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 - [ ] 10-01-PLAN.md — Word export engine: numbering, consolidation filtering, tabel-flow, smart gaps, roadmap placeholder + tests
 - [ ] 10-02-PLAN.md — ExportStep UI: gap-detection modal, numbered preview, tabel-flow, consolidation filtering
-- [ ] 10-03-PLAN.md — Cleanup: verwijder ongebruikte /api/export route, generateProgrammaPlan(), PROGRAMMAPLAN_PROMPT
+- [x] 10-03-PLAN.md — Cleanup: verwijder ongebruikte /api/export route, generateProgrammaPlan(), PROGRAMMAPLAN_PROMPT
 **UI hint**: yes
 
 ## Progress
@@ -182,4 +182,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
 | 8. Cross-Analyse Semantische Matching | 2/2 | Complete   | 2026-04-03 |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
-| 10. Eindproducten | 0/3 | Planning complete | - |
+| 10. Eindproducten | 1/3 | In Progress|  |
