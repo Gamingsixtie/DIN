@@ -192,13 +192,47 @@ export async function POST(request: NextRequest) {
     }
 
     // Default: cross-analyse over alle sectoren
-    const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(body, null, 2).slice(0, 15000)}`;
+    // Build structured user message with entity IDs for reliable matching
+    const goalsData = (body.goals || []).map((g: { id: string; name: string; description?: string }) => ({
+      id: g.id, name: g.name, description: g.description || "",
+    }));
+    const benefitsData = (body.benefits || []).map((b: { id: string; goalId: string; sectorId: string; title?: string; description: string }) => ({
+      id: b.id, goalId: b.goalId, sectorId: b.sectorId, title: b.title || "", description: b.description,
+    }));
+    const capsData = (body.capabilities || []).map((c: { id: string; sectorId: string; title?: string; description: string }) => ({
+      id: c.id, sectorId: c.sectorId, title: c.title || "", description: c.description,
+    }));
+    const effortsData = (body.efforts || []).map((e: { id: string; sectorId: string; title?: string; description: string; domain: string }) => ({
+      id: e.id, sectorId: e.sectorId, title: e.title || "", description: e.description, domain: e.domain,
+    }));
+    const projectsData = (body.externalProjects || []).map((p: { id: string; name: string; description: string; sectorId: string; status: string }) => ({
+      id: p.id, name: p.name, description: p.description, sectorId: p.sectorId, status: p.status,
+    }));
+
+    const structuredData = {
+      doelen: goalsData,
+      baten: benefitsData,
+      vermogens: capsData,
+      inspanningen: effortsData,
+      lopendeProjecten: projectsData,
+      koppelingen: {
+        goalBenefitMaps: body.goalBenefitMaps || [],
+        benefitCapabilityMaps: body.benefitCapabilityMaps || [],
+        capabilityEffortMaps: body.capabilityEffortMaps || [],
+      },
+    };
+
+    let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(structuredData, null, 2).slice(0, 20000)}`;
+
+    if (body.userFeedback) {
+      userMessage += `\n\nExtra instructies van de gebruiker: ${body.userFeedback}`;
+    }
 
     const result = await callClaudeWithValidation(
       AICrossAnalyseSchema,
       assembleSystemPrompt(CROSS_ANALYSE_PROMPT, "cross-analyse", undefined, kibContext),
       userMessage,
-      { maxTokens: 8192, model: "claude-opus-4-6" }
+      { maxTokens: 16384, model: "claude-opus-4-6" }
     );
 
     if (!result.success) {

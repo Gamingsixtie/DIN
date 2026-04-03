@@ -48,6 +48,14 @@ export const CROSS_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (
 
 Analyseer de complete set DIN-netwerken over alle sectoren heen. Identificeer patronen, risico's en kansen.
 
+Identificeer SEMANTISCH vergelijkbare vermogens en inspanningen over sectoren heen -- niet alleen exacte woordmatch, maar ook conceptueel gelijke items die anders geformuleerd zijn. Kijk naar de onderliggende intentie en het beoogde effect, niet alleen naar de letterlijke tekst.
+
+Baten worden NIET gematcht of samengevoegd. Baten zijn per sector verschillend -- dat is methodisch correct. Toon baten als context bij geconsolideerde vermogens/inspanningen om de hefboomwerking zichtbaar te maken.
+
+Koppel lopende projecten aan vermogens of baten. Geef expliciet aan als een project NIET thuishoort in het DIN-netwerk.
+
+Gebruik de meegegeven id-velden om items te identificeren in je clusters. Retourneer altijd het exacte id van het item.
+
 Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst). Gebruik EXACT deze structuur:
 
 {
@@ -127,6 +135,56 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
         "advies": "Synergie benutten / Risico dubbel werk / Geen actie nodig"
       }
     ]
+  },
+  "vermogenClusters": {
+    "titel": "Gedeelde vermogens",
+    "toelichting": "Korte samenvatting van semantisch vergelijkbare vermogens over sectoren (1-2 zinnen)",
+    "items": [
+      {
+        "clusterTitel": "Beschrijvende naam van het gedeelde vermogen",
+        "items": [
+          {"id": "exact-uuid-van-het-vermogen", "beschrijving": "Vermogen beschrijving", "sector": "PO"},
+          {"id": "exact-uuid-van-het-vermogen", "beschrijving": "Vergelijkbaar vermogen", "sector": "VO"}
+        ],
+        "batenContext": [
+          {"baat": "Sector-specifieke baat waar dit vermogen aan bijdraagt", "sector": "PO"},
+          {"baat": "Andere sector-specifieke baat", "sector": "VO"}
+        ],
+        "advies": "Concreet consolidatie-advies: waarom combineren/afstemmen/apart houden",
+        "aanbeveling": "combineren"
+      }
+    ]
+  },
+  "inspanningClusters": {
+    "titel": "Gedeelde inspanningen",
+    "toelichting": "Korte samenvatting van semantisch vergelijkbare inspanningen over sectoren (1-2 zinnen)",
+    "items": [
+      {
+        "clusterTitel": "Beschrijvende naam van de gedeelde inspanning",
+        "items": [
+          {"id": "exact-uuid-van-de-inspanning", "beschrijving": "Inspanning beschrijving", "sector": "PO", "domein": "mens"},
+          {"id": "exact-uuid-van-de-inspanning", "beschrijving": "Vergelijkbare inspanning", "sector": "VO", "domein": "mens"}
+        ],
+        "batenContext": [
+          {"baat": "Baat waar deze inspanning (via vermogen) aan bijdraagt", "sector": "PO"}
+        ],
+        "advies": "Concreet consolidatie-advies",
+        "aanbeveling": "combineren"
+      }
+    ]
+  },
+  "projectMatching": {
+    "titel": "Projectkoppeling",
+    "toelichting": "Korte samenvatting van de koppeling tussen lopende projecten en het DIN-netwerk (1-2 zinnen). Als er geen projecten zijn, schrijf dat op.",
+    "items": [
+      {
+        "project": "Naam van het project",
+        "heeftMatch": true,
+        "gekoppeldAan": "Naam van het vermogen of de baat",
+        "type": "vermogen",
+        "advies": "Concreet advies over hoe dit project bijdraagt"
+      }
+    ]
   }
 }
 
@@ -135,6 +193,9 @@ BELANGRIJK:
 - Per sectie minimaal 2-3 items (als die er zijn), maximaal 8
 - Prioriteit bij hefboomwerking: "hoog", "midden", of "laag"
 - Als er geen externe projecten zijn, geef een lege items-array
+- Clusters bevatten alleen items die bij MEERDERE sectoren terugkomen. Eenmalige items zijn geen cluster.
+- aanbeveling is altijd een van: "combineren", "afstemmen", of "apart_houden"
+- projectMatching.heeftMatch is false als een project NIET thuishoort in het DIN-netwerk
 - Antwoord in het Nederlands`;
 
 export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
