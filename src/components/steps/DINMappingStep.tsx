@@ -32,12 +32,9 @@ import EffortCard from "@/components/din/EffortCard";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { ValidationCorrection } from "@/lib/din-validation";
 import DINChainIndicator from "@/components/din/DINChainIndicator";
-import MergedDINView from "@/components/din/MergedDINView";
 import DINCreatieWizard from "@/components/din/DINCreatieWizard";
 import type { WizardResult } from "@/components/din/DINCreatieWizard";
 import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
-
-type DINPhase = "per-sector" | "samengevoegd";
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "mens", label: "Mens" },
@@ -371,7 +368,6 @@ function SectorwerkSuggestiePanel({
 
 export default function DINMappingStep() {
   const { session, updateSession, setCurrentStep } = useSession();
-  const [phase, setPhase] = useState<DINPhase>("per-sector");
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1282,50 +1278,7 @@ export default function DINMappingStep() {
         </div>
       )}
 
-      {/* Fase toggle */}
-      <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
-        <button
-          onClick={() => setPhase("per-sector")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            phase === "per-sector"
-              ? "bg-white text-cito-blue shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Per Sector Invullen
-        </button>
-        <button
-          onClick={() => setPhase("samengevoegd")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            phase === "samengevoegd"
-              ? "bg-white text-cito-blue shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Samengevoegd DIN-Netwerk
-        </button>
-      </div>
-
-      {/* Fase B: Samengevoegd */}
-      {phase === "samengevoegd" && (
-        <div className="space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-gray-700">
-            <strong>Samengevoegd overzicht:</strong> Alle sectoren gecombineerd in
-            één DIN-netwerk. Per doel zie je welke baten, vermogens en inspanningen
-            per sector zijn ingevuld. Gedeelde vermogens worden als synergie
-            gemarkeerd.
-          </div>
-          <MergedDINView
-            session={session}
-            onSwitchToEdit={() => setPhase("per-sector")}
-          />
-        </div>
-      )}
-
-      {/* Fase A: Per Sector */}
-      {phase === "per-sector" && (
-        <>
-          <DINChainIndicator />
+      <DINChainIndicator />
 
           {/* Sector tabs met voortgang */}
           <div className="flex gap-1 border-b border-gray-200">
@@ -2008,10 +1961,6 @@ export default function DINMappingStep() {
               />
             </div>
           </div>
-        </>
-      )}
-
-      {/* Integratie-advies slide-out panel */}
       {/* Bijgewerkt sectorplan resultaat */}
       {verrijktSectorplan[activeSector] && (
         <div className="fixed inset-0 z-50 flex justify-end">
