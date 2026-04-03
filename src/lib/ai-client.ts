@@ -6,7 +6,6 @@ import {
   DIN_MAPPING_PROMPT,
   CROSS_ANALYSE_PROMPT,
   SECTOR_INTEGRATIE_PROMPT,
-  PROGRAMMAPLAN_PROMPT,
   BATENPROFIEL_PROMPT,
   SECTORPLAN_ANALYSE_PROMPT,
   VERRIJKT_SECTORPLAN_PROMPT,
@@ -270,13 +269,6 @@ export async function generateSectorIntegratie(data: {
   parts.push("\nGeef concreet integratie-advies voor deze sector. Verwijs naar specifieke items hierboven, inclusief externe projecten waar relevant.");
 
   return callClaude(SECTOR_INTEGRATIE_PROMPT, parts.join("\n"));
-}
-
-export async function generateProgrammaPlan(
-  sessionData: Record<string, unknown>
-): Promise<string> {
-  const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 15000)}`;
-  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384, "claude-opus-4-6");
 }
 
 export async function generateBatenprofiel(
