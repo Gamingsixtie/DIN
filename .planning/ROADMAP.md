@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Sectorwerk Doorstroming** - Sectorwerk-analyse resultaten stromen als getypeerde objecten door naar DIN-mapping
 - [ ] **Phase 6: Cyclisch Doel-voor-Doel Werken** - Gebruiker werkt een doel volledig uit voordat het volgende begint
 - [x] **Phase 7: Dutch Tokenizer & Similarity** - Cross-analyse gebruikt correcte woordsplitsing en verhoogde similarity-drempels (completed 2026-04-02)
-- [ ] **Phase 8: Cross-Analyse Semantische Matching** - Gedeelde baten, vermogens en inspanningen over sectoren worden herkend en geconsolideerd
+- [x] **Phase 8: Cross-Analyse Semantische Matching** - Gedeelde baten, vermogens en inspanningen over sectoren worden herkend en geconsolideerd (completed 2026-04-03)
 - [ ] **Phase 9: Wizard Cleanup & Export Voorbereiding** - Integratieadvies verwijderd, export-validatie toegevoegd
 - [ ] **Phase 10: Eindproducten** - Compleet programmaplan, DIN-overzicht en roadmap als exporteerbare documenten
 
@@ -131,10 +131,10 @@ Plans:
   2. Gedeelde vermogens die voor meerdere sectoren gelden worden geidentificeerd en gegroepeerd
   3. Gedeelde inspanningen die meerdere sectoren dienen worden geconsolideerd met een aanbeveling
   4. De gebruiker ziet per gedeeld element welke sectoren erbij betrokken zijn
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 08-01-PLAN.md — Schema extensie (consolidation flags + cluster schemas) + prompt upgrade + API route update
-- [ ] 08-02-PLAN.md — UI: cluster sections (vermogens, inspanningen, projecten) + consolidation merge/undo + filtered local analysis
+- [x] 08-02-PLAN.md — UI: cluster sections (vermogens, inspanningen, projecten) + consolidation merge/undo + filtered local analysis
 **UI hint**: yes
 
 ### Phase 9: Wizard Cleanup & Export Voorbereiding
@@ -176,6 +176,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. Sectorwerk Doorstroming | 2/2 | Executing | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 1/3 | In Progress|  |
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
-| 8. Cross-Analyse Semantische Matching | 1/2 | In Progress | - |
+| 8. Cross-Analyse Semantische Matching | 2/2 | Complete   | 2026-04-03 |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
 | 10. Eindproducten | 0/0 | Not started | - |

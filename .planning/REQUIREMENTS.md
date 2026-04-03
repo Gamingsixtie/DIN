@@ -29,9 +29,9 @@ Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap
 
 ### Cross-analyse
 
-- [ ] **CROSS-01**: Cross-analyse herkent gedeelde baten over PO/VO/Zakelijk sectoren (semantisch, niet alleen exacte match)
-- [ ] **CROSS-02**: Cross-analyse herkent gedeelde vermogens die voor meerdere sectoren gelden
-- [ ] **CROSS-03**: Cross-analyse herkent gedeelde inspanningen die meerdere sectoren dienen en consolideert deze
+- [x] **CROSS-01**: Cross-analyse herkent gedeelde baten over PO/VO/Zakelijk sectoren (semantisch, niet alleen exacte match)
+- [x] **CROSS-02**: Cross-analyse herkent gedeelde vermogens die voor meerdere sectoren gelden
+- [x] **CROSS-03**: Cross-analyse herkent gedeelde inspanningen die meerdere sectoren dienen en consolideert deze
 - [x] **CROSS-04**: Dutch tokenizer gerepareerd — correcte woordsplitsing voor samengestelde woorden
 
 ### Export & visualisatie
@@ -92,9 +92,9 @@ Welke fases dekken welke requirements.
 | CYCL-01 | Phase 6 | Complete |
 | CYCL-02 | Phase 6 | Complete |
 | CYCL-03 | Phase 6 | Complete |
-| CROSS-01 | Phase 8 | Pending |
-| CROSS-02 | Phase 8 | Pending |
-| CROSS-03 | Phase 8 | Pending |
+| CROSS-01 | Phase 8 | Complete |
+| CROSS-02 | Phase 8 | Complete |
+| CROSS-03 | Phase 8 | Complete |
 | CROSS-04 | Phase 7 | Complete |
 | EXP-01 | Phase 10 | Pending |
 | EXP-02 | Phase 10 | Pending |
