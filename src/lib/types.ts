@@ -1,24 +1,60 @@
 // DIN — Doelen-Inspanningennetwerk Types
+// Types worden afgeleid uit Zod schemas (per D-09)
+// Zie src/lib/schemas.ts voor de single source of truth (per D-10)
 
-// Inspanningen domeinen
-export type EffortDomain = "mens" | "processen" | "data_systemen" | "cultuur";
+// Re-export alle types uit schemas
+export type {
+  EffortDomain,
+  EffortStatus,
+  ApprovalStatus,
+  Priority,
+  SectorName,
+  AppStep,
+  BatenProfiel,
+  VermogensProfiel,
+  InspanningsDossier,
+  ProgrammeGoal,
+  ProgrammeVision,
+  ProgrammeScope,
+  SectorPlan,
+  PMCEntry,
+  DINBenefit,
+  DINCapability,
+  DINEffort,
+  ExternalProject,
+  GoalBenefitMap,
+  BenefitCapabilityMap,
+  CapabilityEffortMap,
+  EffortPMCMap,
+  EffortSectorMap,
+  SectorplanAnalyseResult,
+  CrossAnalyseSynergieItem,
+  CrossAnalyseHefboomItem,
+  CrossAnalyseDomeinItem,
+  CrossAnalyseSectorOverlapItem,
+  CrossAnalyseExternItem,
+  CrossAnalyseResult,
+  VermogenClusterItem,
+  InspanningClusterItem,
+  ProjectMatchItem,
+  AICrossAnalyse,
+  DINSession,
+} from "./schemas";
 
-// Status voor inspanningen
-export type EffortStatus =
-  | "gepland"
-  | "in_uitvoering"
-  | "afgerond"
-  | "on_hold";
+// Import types nodig voor constanten hieronder
+import type {
+  EffortDomain,
+  EffortStatus,
+  SectorName,
+  AppStep,
+} from "./schemas";
 
-// Goedkeuringsstatus (apart van executie-status)
-export type ApprovalStatus = "voorstel" | "goedgekeurd" | "afgewezen" | "aangepast";
-
-// Prioriteit voor PMC
-export type Priority = "hoog" | "midden" | "laag";
+// ============================================================
+// Runtime constanten (behouden in types.ts)
+// ============================================================
 
 // Standaard sectoren (Data & Tech is ondersteunend, geen eigen sector)
 export const SECTORS = ["PO", "VO", "Zakelijk"] as const;
-export type SectorName = (typeof SECTORS)[number];
 
 // Sector kleuren voor tags/badges
 export const SECTOR_COLORS: Record<SectorName, string> = {
@@ -74,233 +110,17 @@ export function generateQuarters(count = 8): string[] {
   return quarters;
 }
 
-// --- KiB Import ---
+// --- App Flow Stappen ---
+// Flow: eerst per sector doorlopen (methodiek), dan gezamenlijke cross-analyse
 
-export interface ProgrammeGoal {
-  id: string;
-  name: string;
-  description: string;
-  rank: number;
-  sourceSessionId?: string;
-}
-
-export interface ProgrammeVision {
-  id: string;
-  uitgebreid: string;
-  beknopt: string;
-  sourceSessionId?: string;
-}
-
-export interface ProgrammeScope {
-  id: string;
-  inScope: string[];
-  outScope: string[];
-}
-
-// --- Sectorplannen ---
-
-export interface SectorPlan {
-  id: string;
-  sectorName: string;
-  rawText: string;
-  parsedContent?: Record<string, unknown>;
-  uploadedAt: string;
-}
-
-// --- Product-Marktcombinaties ---
-
-export interface PMCEntry {
-  id: string;
-  product: string;
-  marketSegment: string;
-  priority: Priority;
-  currentPerformance?: string;
-}
-
-// --- DIN Keten ---
-
-export interface BatenProfiel {
-  bateneigenaar?: string;      // Eindverantwoordelijk voor realisatie (bijv. Sectormanager)
-  indicator: string;           // Meetbare indicator / KPI
-  indicatorOwner: string;      // Meetverantwoordelijke: voert meting uit en rapporteert (bijv. BI-specialist)
-  currentValue: string;        // Startwaarde / nulmeting
-  targetValue: string;         // Doelwaarde
-  meetmethode?: string;        // Hoe wordt gemeten? (enquête, data-analyse, etc.)
-  measurementMoment?: string;  // Wanneer wordt gemeten?
-}
-
-export interface DINBenefit {
-  id: string;
-  goalId: string;
-  sectorId: string;
-  title?: string;        // Kort label (vergrotende trap, bijv. "Hogere klanttevredenheid")
-  description: string;   // Uitgebreide beschrijving / toelichting
-  profiel: BatenProfiel;
-}
-
-// Vermogensprofiel conform DIN-methodiek (Wijnen & Van der Tak, Hfst 10)
-// Een vermogen is een "specifieke combinatie van mensen, processen, data en systemen
-// die er in samenhang en samenspel voor zorgen dat een organisatie waarde kan toevoegen."
-export interface VermogensProfiel {
-  eigenaar: string;           // Wie is verantwoordelijk voor het opbouwen van dit vermogen
-  huidieSituatie: string;     // As-is: beschrijving huidige staat
-  gewensteSituatie: string;   // To-be: beschrijving gewenste staat
-}
-
-export interface DINCapability {
-  id: string;
-  sectorId: string;
-  title?: string;        // Kort label (bijv. "Klantgesprek-methodiek")
-  description: string;
-  relatedSectors: string[];
-  currentLevel?: number; // 1-5: huidig vermogensniveau
-  targetLevel?: number;  // 1-5: gewenst vermogensniveau
-  profiel?: VermogensProfiel;
-  consolidated?: boolean;       // true = item is geconsolideerd in een gedeeld item
-  consolidatedInto?: string;    // id van het gedeelde vervangende item
-}
-
-// Inspanningsdossier conform DIN-methodiek (Wijnen & Van der Tak, Hfst 11.3)
-// "Het inspanningendossier is een levend overzicht, op programmaniveau,
-// dat je periodiek bijwerkt en actueel houdt."
-export interface InspanningsDossier {
-  eigenaar: string;           // Opdrachtgever / beoogde eigenaar
-  inspanningsleider: string;  // Projectleider / inspanningsleider
-  verwachtResultaat: string;  // Beoogd resultaat dat bijdraagt aan het vermogen
-  kostenraming: string;       // Eerste kostenraming + onzekerheidsmarge
-  randvoorwaarden: string;    // Faciliteiten en randvoorwaarden vóór start
-}
-
-export interface DINEffort {
-  id: string;
-  sectorId: string;
-  title?: string;        // Kort label (werkwoorden, bijv. "Training uitvoeren")
-  description: string;
-  domain: EffortDomain;
-  quarter?: string;
-  responsibleSector?: string;
-  status: EffortStatus;
-  dependencies: string[];
-  votes?: number;
-  opmerking?: string;
-  approvalStatus?: ApprovalStatus;
-  approvalDate?: string;
-  dossier?: InspanningsDossier;
-  consolidated?: boolean;       // true = item is geconsolideerd in een gedeeld item
-  consolidatedInto?: string;    // id van het gedeelde vervangende item
-}
-
-// --- Koppelingen ---
-
-export interface GoalBenefitMap {
-  goalId: string;
-  benefitId: string;
-}
-
-export interface BenefitCapabilityMap {
-  benefitId: string;
-  capabilityId: string;
-}
-
-export interface CapabilityEffortMap {
-  capabilityId: string;
-  effortId: string;
-}
-
-export interface EffortPMCMap {
-  effortId: string;
-  pmcId: string;
-}
-
-export interface EffortSectorMap {
-  effortId: string;
-  sectorPlanId: string;
-}
-
-// --- Sectorplan-analyse gestructureerd resultaat (Sectorwerk) ---
-
-export interface SectorplanAnalyseResult {
-  samenvatting: string;
-  aansluiting: { titel: string; toelichting: string; punten: string[] };
-  baten: { titel: string; toelichting: string; punten: string[] };
-  vermogens: { titel: string; toelichting: string; punten: string[] };
-  inspanningen: {
-    titel: string;
-    toelichting: string;
-    mens: string[];
-    processen: string[];
-    data_systemen: string[];
-    cultuur: string[];
-  };
-  aandachtspunten: { titel: string; toelichting: string; punten: string[] };
-}
-
-// --- Cross-analyse gestructureerd resultaat ---
-
-export interface CrossAnalyseSynergieItem {
-  vermogen: string;
-  sectoren: string[];
-  impact: string;
-}
-
-export interface CrossAnalyseHefboomItem {
-  inspanning: string;
-  bijdraagtAan: string[];
-  prioriteit: string;
-}
-
-export interface CrossAnalyseDomeinItem {
-  domein: string;
-  beoordeling: string;
-  advies: string;
-}
-
-export interface CrossAnalyseSectorOverlapItem {
-  beschrijving: string;
-  sectoren: string[];
-  advies: string;
-}
-
-export interface CrossAnalyseExternItem {
-  project: string;
-  overlapMet: string;
-  advies: string;
-}
-
-export interface CrossAnalyseResult {
-  synergie: {
-    titel: string;
-    toelichting: string;
-    items: CrossAnalyseSynergieItem[];
-  };
-  gaps: {
-    titel: string;
-    toelichting: string;
-    doelenZonderBaten: string[];
-    batenZonderVermogens: string[];
-    vermogensZonderInspanningen: string[];
-  };
-  hefboomwerking: {
-    titel: string;
-    toelichting: string;
-    items: CrossAnalyseHefboomItem[];
-  };
-  domeinBalans: {
-    titel: string;
-    toelichting: string;
-    domeinen: CrossAnalyseDomeinItem[];
-  };
-  sectorOverlap: {
-    titel: string;
-    toelichting: string;
-    items: CrossAnalyseSectorOverlapItem[];
-  };
-  externeProjecten: {
-    titel: string;
-    toelichting: string;
-    items: CrossAnalyseExternItem[];
-  };
-}
+export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
+  { key: "import", label: "KiB Import", nummer: 1 },
+  { key: "sectorwerk", label: "Sectorwerk", nummer: 2 },
+  { key: "din-mapping", label: "DIN-Mapping", nummer: 3 },
+  { key: "cross-analyse", label: "Cross-analyse", nummer: 4 },
+  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 5 },
+  { key: "export", label: "Export", nummer: 6 },
+];
 
 // --- Integratie-advies gestructureerd resultaat ---
 
@@ -318,66 +138,3 @@ export interface IntegratieAdviesResult {
   quickWins: IntegratieAdviesItem;
   aandachtspunten: IntegratieAdviesItem;
 }
-
-// --- Sessie ---
-
-export interface DINSession {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  currentStep: number;
-  vision?: ProgrammeVision;
-  goals: ProgrammeGoal[];
-  scope?: ProgrammeScope;
-  sectorPlans: SectorPlan[];
-  pmcEntries: PMCEntry[];
-  benefits: DINBenefit[];
-  capabilities: DINCapability[];
-  efforts: DINEffort[];
-  // Koppelingen
-  goalBenefitMaps: GoalBenefitMap[];
-  benefitCapabilityMaps: BenefitCapabilityMap[];
-  capabilityEffortMaps: CapabilityEffortMap[];
-  // Opgeslagen integratie-adviezen per sector
-  integratieAdvies?: Record<string, IntegratieAdviesResult | string>;
-  // Opgeslagen AI sectorplan-analyses per sector (uit Sectorwerk)
-  sectorAnalyses?: Record<string, string>;
-  // Opgeslagen verrijkte sectorplannen per sector (uit DIN-Mapping)
-  verrijkteSectorplannen?: Record<string, string>;
-  // Opgeslagen AI cross-analyse resultaat
-  crossAnalyse?: string;
-  // Lopende projecten die passen bij het programma KiB, per sector
-  externalProjects?: ExternalProject[];
-}
-
-// --- Lopende projecten (passend bij KiB-programma) ---
-
-export interface ExternalProject {
-  id: string;
-  sectorId: string;
-  name: string;
-  description: string;
-  status: EffortStatus;
-  relevance?: string; // Waarom relevant voor het programma
-}
-
-// --- App Flow Stappen ---
-// Flow: eerst per sector doorlopen (methodiek), dan gezamenlijke cross-analyse
-
-export type AppStep =
-  | "import"
-  | "sectorwerk"
-  | "din-mapping"
-  | "cross-analyse"
-  | "prioritering"
-  | "export";
-
-export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
-  { key: "import", label: "KiB Import", nummer: 1 },
-  { key: "sectorwerk", label: "Sectorwerk", nummer: 2 },
-  { key: "din-mapping", label: "DIN-Mapping", nummer: 3 },
-  { key: "cross-analyse", label: "Cross-analyse", nummer: 4 },
-  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 5 },
-  { key: "export", label: "Export", nummer: 6 },
-];
