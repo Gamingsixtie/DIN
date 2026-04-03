@@ -11,8 +11,6 @@ import type {
   EffortStatus,
   SectorName,
   SectorplanAnalyseResult,
-  IntegratieAdviesResult,
-  IntegratieAdviesItem,
   ExternalProject,
 } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
@@ -76,65 +74,6 @@ const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
   data_systemen: "IT-systemen, data-infrastructuur, tooling, integraties",
   cultuur: "Gedrag, mindset, waarden, leiderschapsontwikkeling",
 };
-
-
-const ADVIES_SECTIONS: {
-  key: keyof Omit<IntegratieAdviesResult, "sectorName">;
-  color: string;
-  borderColor: string;
-  bgColor: string;
-  iconColor: string;
-}[] = [
-  { key: "aansluiting", color: "text-green-700", borderColor: "border-green-200", bgColor: "bg-green-50", iconColor: "bg-green-500" },
-  { key: "verrijking", color: "text-blue-700", borderColor: "border-blue-200", bgColor: "bg-blue-50", iconColor: "bg-blue-500" },
-  { key: "aanvullingen", color: "text-amber-700", borderColor: "border-amber-200", bgColor: "bg-amber-50", iconColor: "bg-amber-500" },
-  { key: "quickWins", color: "text-purple-700", borderColor: "border-purple-200", bgColor: "bg-purple-50", iconColor: "bg-purple-500" },
-  { key: "aandachtspunten", color: "text-red-700", borderColor: "border-red-200", bgColor: "bg-red-50", iconColor: "bg-red-500" },
-];
-
-function AdviesCard({ section, color, borderColor, bgColor, iconColor }: {
-  section: IntegratieAdviesItem;
-  color: string;
-  borderColor: string;
-  bgColor: string;
-  iconColor: string;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <div className={`border ${borderColor} rounded-lg ${bgColor} overflow-hidden`}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${iconColor} shrink-0`} />
-          <span className={`text-sm font-semibold ${color}`}>{section.titel}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">{section.punten.length} punten</span>
-          <span className="text-xs text-gray-400">{open ? "\u25B2" : "\u25BC"}</span>
-        </div>
-      </button>
-      {open && (
-        <div className="px-4 pb-4">
-          <p className="text-xs text-gray-500 italic mb-3">{section.toelichting}</p>
-          {section.punten.length > 0 ? (
-            <ul className="space-y-2">
-              {section.punten.map((punt, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${iconColor} shrink-0`} />
-                  <span>{punt}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-gray-400 italic">Geen items ge\u00EFdentificeerd.</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
@@ -436,7 +375,6 @@ export default function DINMappingStep() {
   const [activeSector, setActiveSector] = useState<SectorName>("PO");
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAnalyzingIntegratie, setIsAnalyzingIntegratie] = useState(false);
   // Corrections state: keyed by item ID, stores validation corrections
   const [benefitCorrections, setBenefitCorrections] = useState<Record<string, ValidationCorrection[]>>({});
   const [capabilityCorrections, setCapabilityCorrections] = useState<Record<string, ValidationCorrection[]>>({});
@@ -444,10 +382,6 @@ export default function DINMappingStep() {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [verrijktSectorplan, setVerrijktSectorplanState] = useState<Record<string, string>>(
     session?.verrijkteSectorplannen || {}
-  );
-  const [showAdviesPanel, setShowAdviesPanel] = useState(false);
-  const [integratieAdvies, setIntegratieAdviesState] = useState<Record<string, IntegratieAdviesResult | string>>(
-    session?.integratieAdvies || {}
   );
   const [aiRetryable, setAiRetryable] = useState(false);
   const [userFeedback, setUserFeedback] = useState("");
@@ -493,15 +427,6 @@ export default function DINMappingStep() {
   useEffect(() => {
     return () => { if (undoTimer) clearTimeout(undoTimer); };
   }, [undoTimer]);
-
-  // Wrapper: sla integratie-advies ook op in sessie (persistentie)
-  function setIntegratieAdvies(updater: (prev: Record<string, IntegratieAdviesResult | string>) => Record<string, IntegratieAdviesResult | string>) {
-    setIntegratieAdviesState((prev) => {
-      const next = updater(prev);
-      updateSession(sessionPrev => ({ ...sessionPrev, integratieAdvies: next }));
-      return next;
-    });
-  }
 
   // Wrapper: sla verrijkt sectorplan ook op in sessie
   function setVerrijktSectorplan(updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) {
@@ -1213,85 +1138,10 @@ export default function DINMappingStep() {
     }
   }
 
-  // --- Integratie-advies ---
-  async function handleIntegratieAdvies(extraFeedback?: string) {
-    setIsAnalyzingIntegratie(true);
-    setAiError(null);
-    setAiRetryable(false);
-    try {
-      const requestBody: Record<string, unknown> = {
-        type: "sector-integratie",
-        sector: activeSector,
-        sectorPlan: sectorPlan?.rawText || "",
-        goals: session!.goals,
-        benefits: session!.benefits.filter((b) => b.sectorId === activeSector),
-        capabilities: sectorCapabilities,
-        efforts: sectorEfforts,
-        externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
-        sectorAnalysis: session!.sectorAnalyses?.[activeSector] || null,
-        kibGoals: session!.goals,
-        kibScope: session!.scope,
-      };
-      if (extraFeedback) {
-        requestBody.userFeedback = extraFeedback;
-      }
-      const res = await fetch("/api/cross-analyse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await res.json();
-      if (data.success && data.data?.analysis) {
-        // API retourneert nu een gevalideerd object
-        const analysisObj = data.data.analysis;
-        const parsed: IntegratieAdviesResult = {
-          sectorName: activeSector,
-          aansluiting: analysisObj.aansluiting,
-          verrijking: analysisObj.verrijking,
-          aanvullingen: analysisObj.aanvullingen,
-          quickWins: analysisObj.quickWins,
-          aandachtspunten: analysisObj.aandachtspunten,
-        };
-        setIntegratieAdvies((prev) => ({
-          ...prev,
-          [activeSector]: parsed,
-        }));
-        setShowAdviesPanel(true);
-        setAiRetryable(false);
-        setUserFeedback("");
-      } else if (data.retryable) {
-        setAiRetryable(true);
-        setAiError(data.error || "Integratie-advies mislukt. Probeer het opnieuw met extra instructies.");
-      }
-    } catch (e) {
-      console.error("Integratie-advies mislukt:", e);
-      setAiError("Fout bij integratie-advies. Controleer je internetverbinding.");
-    } finally {
-      setIsAnalyzingIntegratie(false);
-    }
-  }
-
   // --- Verrijkt sectorplan genereren ---
   async function handleGenerateVerrijktPlan() {
     setIsGeneratingPlan(true);
     try {
-      // Integratie-advies als tekst meegeven
-      let adviesText = "";
-      const advies = integratieAdvies[activeSector];
-      if (advies && typeof advies !== "string") {
-        const sections = ["aansluiting", "verrijking", "aanvullingen", "quickWins", "aandachtspunten"] as const;
-        adviesText = sections
-          .map((key) => {
-            const s = advies[key];
-            if (!s) return "";
-            return `${s.titel}: ${s.toelichting}\n${s.punten.map((p) => `- ${p}`).join("\n")}`;
-          })
-          .filter(Boolean)
-          .join("\n\n");
-      } else if (typeof advies === "string") {
-        adviesText = advies;
-      }
-
       const res = await fetch("/api/cross-analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1317,7 +1167,6 @@ export default function DINMappingStep() {
             quarter: e.quarter,
             status: e.status,
           })),
-          integratieAdvies: adviesText,
           externalProjects: (session!.externalProjects || []).filter((p) => p.sectorId === activeSector),
           kibGoals: session!.goals,
           kibScope: session!.scope,
@@ -1634,22 +1483,6 @@ export default function DINMappingStep() {
                     ? "Genereren..."
                     : "AI: Genereer DIN-netwerk"}
                 </button>
-                <button
-                  onClick={() => handleIntegratieAdvies()}
-                  disabled={isAnalyzingIntegratie}
-                  className="px-4 py-2 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 disabled:opacity-50"
-                >
-                  {isAnalyzingIntegratie ? "Analyseren..." : "Integratie-advies"}
-                </button>
-                {integratieAdvies[activeSector] && (
-                  <button
-                    onClick={() => setShowAdviesPanel(true)}
-                    className="px-3 py-2 bg-cito-blue/10 text-cito-blue rounded-lg text-sm hover:bg-cito-blue/20"
-                    title="Bekijk integratie-advies"
-                  >
-                    {"\uD83D\uDCCB"}
-                  </button>
-                )}
               </div>
 
               {/* AI foutmelding met retryable feedback */}
@@ -2179,148 +2012,64 @@ export default function DINMappingStep() {
       )}
 
       {/* Integratie-advies slide-out panel */}
-      {showAdviesPanel && (
+      {/* Bijgewerkt sectorplan resultaat */}
+      {verrijktSectorplan[activeSector] && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0 bg-black/30"
-            onClick={() => setShowAdviesPanel(false)}
+            onClick={() =>
+              setVerrijktSectorplan((prev) => {
+                const next = { ...prev };
+                delete next[activeSector];
+                return next;
+              })
+            }
           />
           <div className="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto animate-slide-in-right">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between z-10">
-              <div>
-                <h3 className="text-base font-semibold text-cito-blue">
-                  Integratie-advies: {activeSector}
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Hoe past het DIN-netwerk in het sectorplan?
-                </p>
-              </div>
+              <h3 className="text-base font-semibold text-cito-blue">
+                Bijgewerkt sectorplan: {activeSector}
+              </h3>
               <button
-                onClick={() => setShowAdviesPanel(false)}
+                onClick={() =>
+                  setVerrijktSectorplan((prev) => {
+                    const next = { ...prev };
+                    delete next[activeSector];
+                    return next;
+                  })
+                }
                 className="p-1 text-gray-400 hover:text-gray-600 text-lg"
               >
                 {"\u2715"}
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {integratieAdvies[activeSector] ? (
-                typeof integratieAdvies[activeSector] === "string" ? (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {integratieAdvies[activeSector] as string}
-                    </div>
-                  </div>
-                ) : (
-                  ADVIES_SECTIONS.map(({ key, color, borderColor, bgColor, iconColor }) => {
-                    const advice = integratieAdvies[activeSector] as IntegratieAdviesResult;
-                    const section = advice[key];
-                    if (!section) return null;
-                    return (
-                      <AdviesCard
-                        key={key}
-                        section={section}
-                        color={color}
-                        borderColor={borderColor}
-                        bgColor={bgColor}
-                        iconColor={iconColor}
-                      />
-                    );
-                  })
-                )
-              ) : (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  Klik &ldquo;Integratie-advies&rdquo; om AI-analyse te genereren.
-                </div>
-              )}
+              <div className="bg-white p-5 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
+                <MarkdownContent content={verrijktSectorplan[activeSector]} />
+              </div>
 
-              {/* Vervolgactie: Verwerk in sectorplan */}
-              {integratieAdvies[activeSector] && (
-                <div className="border-t border-gray-200 pt-4 mt-4">
-                  <div className="p-4 bg-cito-blue/5 border border-cito-blue/15 rounded-lg">
-                    <div className="flex items-start gap-3 mb-3">
-                      <svg className="w-5 h-5 text-cito-blue shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-semibold text-cito-blue">
-                          Verwerk in sectorplan
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                          Het oorspronkelijke sectorplan blijft volledig behouden. Er wordt een nieuw hoofdstuk &ldquo;Programma Klant in Beeld&rdquo; aan toegevoegd met de programmadoelen, DIN-baten, vermogens en inspanningen.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleGenerateVerrijktPlan}
-                      disabled={isGeneratingPlan}
-                      className="w-full px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-                    >
-                      {isGeneratingPlan ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Sectorplan wordt bijgewerkt...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Genereer bijgewerkt sectorplan
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Bijgewerkt sectorplan resultaat */}
-              {verrijktSectorplan[activeSector] && (
-                <div className="border-t border-gray-200 pt-4 mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-cito-blue">
-                      Bijgewerkt sectorplan: {activeSector}
-                    </h4>
-                    <button
-                      onClick={() =>
-                        setVerrijktSectorplan((prev) => {
-                          const next = { ...prev };
-                          delete next[activeSector];
-                          return next;
-                        })
-                      }
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Sluiten
-                    </button>
-                  </div>
-                  <div className="bg-white p-5 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
-                    <MarkdownContent content={verrijktSectorplan[activeSector]} />
-                  </div>
-
-                  {/* Download als Word */}
-                  <button
-                    onClick={async () => {
-                      const blob = await generateVerrijktSectorplanDocument(
-                        activeSector,
-                        verrijktSectorplan[activeSector],
-                        session.name
-                      );
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `Sectorplan-${activeSector}-KiB-${new Date().toISOString().slice(0, 10)}.docx`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="w-full mt-3 px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download als Word (.docx)
-                  </button>
-                </div>
-              )}
+              {/* Download als Word */}
+              <button
+                onClick={async () => {
+                  const blob = await generateVerrijktSectorplanDocument(
+                    activeSector,
+                    verrijktSectorplan[activeSector],
+                    session.name
+                  );
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Sectorplan-${activeSector}-KiB-${new Date().toISOString().slice(0, 10)}.docx`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="w-full mt-3 px-4 py-3 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light flex items-center justify-center gap-2 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download als Word (.docx)
+              </button>
             </div>
           </div>
         </div>
