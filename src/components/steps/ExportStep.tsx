@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
+import { useToast } from "@/components/ui/Toast";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
-import { buildChainsForSector, findGaps, analyzeHefbomen, getDomainBalance } from "@/lib/din-service";
-import type { EffortDomain, DINSession, SectorName } from "@/lib/types";
+import { buildChainsForSector, analyzeHefbomen, getDomainBalance } from "@/lib/din-service";
+import { categorizeGaps, getActiveCaps, getActiveEfforts } from "@/lib/word-export";
+import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -43,22 +45,22 @@ function DocumentTitlePage({ session }: { session: DINSession }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, number, children }: { title: string; number?: string; children: React.ReactNode }) {
   return (
     <div className="mb-10">
       <h2 className="text-lg font-bold text-cito-blue mb-4 pb-2 border-b border-cito-blue/15">
-        {title}
+        {number ? `${number} ` : ""}{title}
       </h2>
       {children}
     </div>
   );
 }
 
-function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SubSection({ title, number, children }: { title: string; number?: string; children: React.ReactNode }) {
   return (
     <div className="mb-6">
       <h3 className="text-sm font-bold text-cito-blue/80 mb-3 uppercase tracking-wide">
-        {title}
+        {number ? `${number} ` : ""}{title}
       </h3>
       {children}
     </div>
@@ -67,10 +69,10 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
 
 // --- Programmavisie ---
 
-function VisionBlock({ session }: { session: DINSession }) {
+function VisionBlock({ session, number }: { session: DINSession; number?: string }) {
   if (!session.vision) return null;
   return (
-    <Section title="Programmavisie">
+    <Section title="Programmavisie" number={number}>
       {session.vision.beknopt && (
         <p className="text-sm font-medium text-gray-800 leading-relaxed mb-3">
           {session.vision.beknopt}
@@ -85,14 +87,14 @@ function VisionBlock({ session }: { session: DINSession }) {
 
 // --- Scope ---
 
-function ScopeBlock({ session }: { session: DINSession }) {
+function ScopeBlock({ session, number }: { session: DINSession; number?: string }) {
   if (!session.scope) return null;
   return (
-    <Section title="Scope">
+    <Section title="Scope" number={number}>
       <div className="grid grid-cols-2 gap-6">
         {session.scope.inScope.length > 0 && (
           <div>
-            <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">Binnen scope</div>
+            <div className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">Binnen scope</div>
             <ul className="space-y-1">
               {session.scope.inScope.map((item, i) => (
                 <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
@@ -104,7 +106,7 @@ function ScopeBlock({ session }: { session: DINSession }) {
         )}
         {session.scope.outScope.length > 0 && (
           <div>
-            <div className="text-xs font-semibold text-red-700/70 uppercase tracking-wide mb-2">Buiten scope</div>
+            <div className="text-xs font-bold text-red-700/70 uppercase tracking-wide mb-2">Buiten scope</div>
             <ul className="space-y-1">
               {session.scope.outScope.map((item, i) => (
                 <li key={i} className="text-sm text-gray-500 flex items-start gap-2">
@@ -121,9 +123,9 @@ function ScopeBlock({ session }: { session: DINSession }) {
 
 // --- Programmadoelen ---
 
-function GoalsBlock({ session }: { session: DINSession }) {
+function GoalsBlock({ session, number }: { session: DINSession; number?: string }) {
   return (
-    <Section title="Programmadoelen">
+    <Section title="Programmadoelen" number={number}>
       <div className="space-y-3">
         {session.goals.sort((a, b) => a.rank - b.rank).map((goal) => (
           <div key={goal.id} className="flex items-start gap-4">
@@ -131,7 +133,7 @@ function GoalsBlock({ session }: { session: DINSession }) {
               {goal.rank}
             </div>
             <div>
-              <div className="text-sm font-semibold text-gray-800">{goal.name}</div>
+              <div className="text-sm font-bold text-gray-800">{goal.name}</div>
               {goal.description && (
                 <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{goal.description}</div>
               )}
@@ -143,9 +145,18 @@ function GoalsBlock({ session }: { session: DINSession }) {
   );
 }
 
-// --- DIN-Keten per Doel (met expliciete koppelingen) ---
+// --- DIN-Keten per Doel (met expliciete koppelingen, consolidation filtering) ---
 
-function DINKetenBlock({ session }: { session: DINSession }) {
+function DINKetenBlock({ session, number }: { session: DINSession; number?: string }) {
+  const activeCaps = useMemo(() => getActiveCaps(session), [session]);
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+
+  const activeSession = useMemo(() => ({
+    ...session,
+    capabilities: activeCaps,
+    efforts: activeEfforts,
+  }), [session, activeCaps, activeEfforts]);
+
   const goalsWithData = session.goals
     .sort((a, b) => a.rank - b.rank)
     .filter((g) => session.benefits.some((b) => b.goalId === g.id));
@@ -157,7 +168,7 @@ function DINKetenBlock({ session }: { session: DINSession }) {
   if (goalsWithData.length === 0) return null;
 
   return (
-    <Section title="DIN-Netwerk per Doel">
+    <Section title="DIN-Netwerk per Doel" number={number}>
       <p className="text-xs text-gray-500 mb-6 leading-relaxed">
         Per programmadoel wordt de volledige DIN-keten getoond: welke baten worden nagestreefd,
         welke vermogens daarvoor nodig zijn, en welke inspanningen die vermogens opbouwen.
@@ -170,7 +181,7 @@ function DINKetenBlock({ session }: { session: DINSession }) {
           </h3>
 
           {activeSectors.map((sector) => {
-            const chainResult = buildChainsForSector(session, goal.id, sector);
+            const chainResult = buildChainsForSector(activeSession as DINSession, goal.id, sector);
             if (chainResult.chains.length === 0 && chainResult.unlinkedCaps.length === 0) return null;
 
             return (
@@ -184,11 +195,11 @@ function DINKetenBlock({ session }: { session: DINSession }) {
                   <div key={chain.benefit.id} className="mb-4 last:mb-2">
                     {/* Baat */}
                     <div className="flex items-start gap-2 mb-2">
-                      <span className="text-[10px] font-bold text-white bg-cito-blue rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-white bg-cito-blue rounded px-1.5 py-0.5 shrink-0 mt-0.5">
                         BAAT
                       </span>
                       <div className="text-xs">
-                        <span className="font-semibold text-gray-800">
+                        <span className="font-bold text-gray-800">
                           {chain.benefit.title || chain.benefit.description}
                         </span>
                         {chain.benefit.profiel.indicator && (
@@ -211,47 +222,51 @@ function DINKetenBlock({ session }: { session: DINSession }) {
                     </div>
 
                     {/* Vermogens + Inspanningen */}
-                    {chain.links.map((link) => (
-                      <div key={link.capability.id} className="ml-6 mb-2">
-                        <div className="flex items-start gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-cito-blue bg-cito-blue/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
-                            VERM
-                          </span>
-                          <div className="text-xs">
-                            <span className="font-medium text-gray-700">
-                              {link.capability.title || link.capability.description}
+                    {chain.links.map((link) => {
+                      const isSharedCap = link.capability.relatedSectors && link.capability.relatedSectors.length > 1;
+                      return (
+                        <div key={link.capability.id} className="ml-6 mb-2">
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="text-xs font-bold text-cito-blue bg-cito-blue/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                              VERM
                             </span>
-                            {link.capability.currentLevel && link.capability.targetLevel && (
-                              <span className="text-gray-400 ml-1">
-                                (niveau: {link.capability.currentLevel}/5 &rarr; {link.capability.targetLevel}/5)
+                            <div className="text-xs">
+                              <span className={`font-medium text-gray-700${isSharedCap ? " italic" : ""}`}>
+                                {link.capability.title || link.capability.description}
+                                {isSharedCap && <span className="text-cito-blue/60 ml-1">(gedeeld)</span>}
                               </span>
-                            )}
-                            {link.capability.profiel?.eigenaar && (
-                              <span className="text-gray-400 ml-1">
-                                — {link.capability.profiel.eigenaar}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Inspanningen onder dit vermogen */}
-                        {link.efforts.map((effort) => {
-                          const dc = DOMAIN_COLORS[effort.domain];
-                          return (
-                            <div key={effort.id} className="ml-6 flex items-start gap-2 mb-0.5">
-                              <span className={`text-[10px] font-bold ${dc.text} ${dc.bg} rounded px-1.5 py-0.5 shrink-0 mt-0.5 border ${dc.border}`}>
-                                {DOMAIN_LABELS[effort.domain].slice(0, 4).toUpperCase()}
-                              </span>
-                              <div className="text-xs text-gray-600">
-                                {effort.title || effort.description}
-                                {effort.quarter && <span className="text-gray-400 ml-1">({effort.quarter})</span>}
-                                {effort.dossier?.eigenaar && <span className="text-gray-400 ml-1">— {effort.dossier.eigenaar}</span>}
-                              </div>
+                              {link.capability.currentLevel && link.capability.targetLevel && (
+                                <span className="text-gray-400 ml-1">
+                                  (niveau: {link.capability.currentLevel}/5 &rarr; {link.capability.targetLevel}/5)
+                                </span>
+                              )}
+                              {link.capability.profiel?.eigenaar && (
+                                <span className="text-gray-400 ml-1">
+                                  — {link.capability.profiel.eigenaar}
+                                </span>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    ))}
+                          </div>
+
+                          {/* Inspanningen onder dit vermogen */}
+                          {link.efforts.map((effort) => {
+                            const dc = DOMAIN_COLORS[effort.domain];
+                            return (
+                              <div key={effort.id} className="ml-6 flex items-start gap-2 mb-0.5">
+                                <span className={`text-xs font-bold ${dc.text} ${dc.bg} rounded px-1.5 py-0.5 shrink-0 mt-0.5 border ${dc.border}`}>
+                                  {DOMAIN_LABELS[effort.domain].slice(0, 4).toUpperCase()}
+                                </span>
+                                <div className="text-xs text-gray-600">
+                                  {effort.title || effort.description}
+                                  {effort.quarter && <span className="text-gray-400 ml-1">({effort.quarter})</span>}
+                                  {effort.dossier?.eigenaar && <span className="text-gray-400 ml-1">— {effort.dossier.eigenaar}</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
 
                     {/* Baat zonder gekoppelde vermogens */}
                     {chain.links.length === 0 && (
@@ -265,12 +280,15 @@ function DINKetenBlock({ session }: { session: DINSession }) {
                 {/* Ongekoppelde vermogens */}
                 {chainResult.unlinkedCaps.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-100">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">
+                    <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">
                       Overige vermogens (niet gekoppeld aan een baat)
                     </div>
                     {chainResult.unlinkedCaps.map((c) => (
                       <div key={c.id} className="text-xs text-gray-500 ml-2 mb-0.5">
                         &bull; {c.title || c.description}
+                        {c.relatedSectors && c.relatedSectors.length > 1 && (
+                          <span className="text-cito-blue/60 italic ml-1">(gedeeld)</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -284,10 +302,146 @@ function DINKetenBlock({ session }: { session: DINSession }) {
   );
 }
 
+// --- DIN Tabel-Flow Visualisatie ---
+
+function DINFlowTable({ session, number }: { session: DINSession; number?: string }) {
+  const activeCaps = useMemo(() => getActiveCaps(session), [session]);
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+
+  const activeSession = useMemo(() => ({
+    ...session,
+    capabilities: activeCaps,
+    efforts: activeEfforts,
+  }), [session, activeCaps, activeEfforts]);
+
+  const goalsWithData = session.goals
+    .sort((a, b) => a.rank - b.rank)
+    .filter((g) => session.benefits.some((b) => b.goalId === g.id));
+
+  const activeSectors = SECTORS.filter(
+    (s) => session.benefits.some((b) => b.sectorId === s) || activeEfforts.some((e) => e.sectorId === s)
+  );
+
+  if (goalsWithData.length === 0) return null;
+
+  return (
+    <Section title="DIN-Overzicht" number={number}>
+      <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+        Tabelweergave van de volledige DIN-keten per doel per sector: baat, vermogen en inspanning in samenhang.
+      </p>
+
+      {goalsWithData.map((goal) => (
+        <div key={goal.id} className="mb-8 last:mb-0">
+          <h3 className="text-sm font-bold text-cito-blue mb-4 pb-1 border-b border-gray-100">
+            Doel {goal.rank}: {goal.name}
+          </h3>
+
+          {activeSectors.map((sector) => {
+            const chainResult = buildChainsForSector(activeSession as DINSession, goal.id, sector);
+            const hasData = chainResult.chains.length > 0 || chainResult.unlinkedCaps.length > 0;
+
+            return (
+              <div key={sector} className={`mb-6 border-l-4 ${SECTOR_ACCENT[sector]} pl-4`}>
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
+                  Sector {sector}
+                </div>
+
+                {!hasData ? (
+                  <p className="text-sm text-gray-400 italic mb-4">
+                    Dit doel is nog niet uitgewerkt voor sector {sector}.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto mb-4">
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-cito-blue/5">
+                          <th className="text-cito-blue font-bold text-xs uppercase tracking-wide p-2 text-left" style={{ width: "30%" }}>Baat</th>
+                          <th className="text-gray-400 text-center p-2" style={{ width: "4%" }}>{"\u2192"}</th>
+                          <th className="text-cito-blue font-bold text-xs uppercase tracking-wide p-2 text-left" style={{ width: "28%" }}>Vermogen</th>
+                          <th className="text-gray-400 text-center p-2" style={{ width: "4%" }}>{"\u2192"}</th>
+                          <th className="text-cito-blue font-bold text-xs uppercase tracking-wide p-2 text-left" style={{ width: "34%" }}>Inspanning</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chainResult.chains.map((chain) => {
+                          // Build flat rows: benefit spans all, cap spans its efforts
+                          const rows: { benefitLabel: string | null; capLabel: string | null; capShared: boolean; effortLabel: string; effortDomain: EffortDomain }[] = [];
+
+                          chain.links.forEach((link, linkIdx) => {
+                            const isSharedCap = link.capability.relatedSectors && link.capability.relatedSectors.length > 1;
+                            if (link.efforts.length === 0) {
+                              rows.push({
+                                benefitLabel: linkIdx === 0 ? (chain.benefit.title || chain.benefit.description) : null,
+                                capLabel: link.capability.title || link.capability.description,
+                                capShared: !!isSharedCap,
+                                effortLabel: "",
+                                effortDomain: "mens",
+                              });
+                            } else {
+                              link.efforts.forEach((effort, ei) => {
+                                rows.push({
+                                  benefitLabel: linkIdx === 0 && ei === 0 ? (chain.benefit.title || chain.benefit.description) : null,
+                                  capLabel: ei === 0 ? (link.capability.title || link.capability.description) : null,
+                                  capShared: !!isSharedCap,
+                                  effortLabel: `${effort.title || effort.description} [${DOMAIN_LABELS[effort.domain]}]`,
+                                  effortDomain: effort.domain,
+                                });
+                              });
+                            }
+                          });
+
+                          // If no links at all, show benefit with empty cap/effort
+                          if (chain.links.length === 0) {
+                            rows.push({
+                              benefitLabel: chain.benefit.title || chain.benefit.description,
+                              capLabel: null,
+                              capShared: false,
+                              effortLabel: "",
+                              effortDomain: "mens",
+                            });
+                          }
+
+                          return rows.map((row, ri) => (
+                            <tr key={`${chain.benefit.id}-${ri}`} className="border-b border-gray-100">
+                              <td className={`text-sm text-gray-700 p-2${row.benefitLabel ? " bg-blue-50/50" : ""}`}>
+                                {row.benefitLabel || ""}
+                              </td>
+                              <td className="text-gray-400 text-center p-2">{row.benefitLabel || row.capLabel ? "\u2192" : ""}</td>
+                              <td className={`text-sm p-2${row.capShared ? " bg-[#F0F4FF] italic" : " text-gray-700"}`}>
+                                {row.capLabel ? (
+                                  <>
+                                    {row.capLabel}
+                                    {row.capShared && <span className="text-cito-blue/60 ml-1">(gedeeld)</span>}
+                                  </>
+                                ) : ""}
+                              </td>
+                              <td className="text-gray-400 text-center p-2">{row.capLabel || row.effortLabel ? "\u2192" : ""}</td>
+                              <td className={`text-sm text-gray-700 p-2${row.effortLabel ? ` ${DOMAIN_COLORS[row.effortDomain].bg}` : ""}`}>
+                                {row.effortLabel}
+                              </td>
+                            </tr>
+                          ));
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </Section>
+  );
+}
+
 // --- Cross-analyse ---
 
-function CrossAnalyseBlock({ session }: { session: DINSession }) {
-  const balance = getDomainBalance(session.efforts);
+function CrossAnalyseBlock({ session, number }: { session: DINSession; number?: string }) {
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+  const activeCaps = useMemo(() => getActiveCaps(session), [session]);
+
+  const balance = getDomainBalance(activeEfforts);
   const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
 
   const domainCounts = (Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => ({
@@ -297,22 +451,22 @@ function CrossAnalyseBlock({ session }: { session: DINSession }) {
     pct: Math.round((balance[domain] / total) * 100),
   }));
 
-  // Gedeelde vermogens
+  // Gedeelde vermogens (using active caps only)
   const capBySector: Record<string, Set<string>> = {};
-  session.capabilities.forEach((c) => {
+  activeCaps.forEach((c) => {
     const key = (c.title || c.description || "").toLowerCase().trim();
     if (!capBySector[key]) capBySector[key] = new Set();
     capBySector[key].add(c.sectorId);
   });
   const sharedCaps = Object.entries(capBySector).filter(([, s]) => s.size > 1);
 
-  if (session.efforts.length === 0 && sharedCaps.length === 0) return null;
+  if (activeEfforts.length === 0 && sharedCaps.length === 0) return null;
 
   return (
-    <Section title="Cross-analyse">
+    <Section title="Cross-analyse" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
         Analyse over alle sectoren heen: verdeling over inspanningsdomeinen,
-        synergieën tussen sectoren, en mogelijke hefboomwerking.
+        synergieen tussen sectoren, en mogelijke hefboomwerking.
       </p>
 
       {/* Domeinbalans */}
@@ -327,7 +481,7 @@ function CrossAnalyseBlock({ session }: { session: DINSession }) {
                   <div className={`h-full ${dc.bg} border ${dc.border} rounded-full`} style={{ width: `${Math.max(pct, 2)}%` }} />
                 </div>
                 <div className="w-20 text-xs text-gray-500 text-right">{count} ({pct}%)</div>
-                <div className="w-32 text-[10px]">
+                <div className="w-32 text-xs">
                   {pct < 10 ? (
                     <span className="text-amber-600">Aandacht nodig</span>
                   ) : pct > 40 ? (
@@ -342,9 +496,9 @@ function CrossAnalyseBlock({ session }: { session: DINSession }) {
         </div>
       </SubSection>
 
-      {/* Synergieën */}
+      {/* Synergieeen */}
       {sharedCaps.length > 0 && (
-        <SubSection title="Synergieën (gedeelde vermogens)">
+        <SubSection title="Synergieeen (gedeelde vermogens)">
           <div className="space-y-1.5">
             {sharedCaps.map(([cap, sectors], i) => (
               <div key={i} className="flex items-start gap-2 text-xs">
@@ -362,71 +516,80 @@ function CrossAnalyseBlock({ session }: { session: DINSession }) {
   );
 }
 
-// --- Gap-analyse ---
+// --- Gap-analyse (smart categorization) ---
 
-function GapAnalyseBlock({ session }: { session: DINSession }) {
-  const gaps = useMemo(
-    () =>
-      findGaps(
-        session.goals,
-        session.benefits,
-        session.capabilities,
-        session.efforts,
-        session.goalBenefitMaps,
-        session.benefitCapabilityMaps,
-        session.capabilityEffortMaps
-      ),
-    [session]
-  );
+function GapAnalyseBlock({ session, number }: { session: DINSession; number?: string }) {
+  const gapData = useMemo(() => categorizeGaps(session), [session]);
 
-  const goalsWithout = gaps.goalsWithoutBenefits.map((id) => session.goals.find((g) => g.id === id)).filter(Boolean);
-  const benefitsWithout = gaps.benefitsWithoutCapabilities.map((id) => session.benefits.find((b) => b.id === id)).filter(Boolean);
-  const capsWithout = gaps.capabilitiesWithoutEfforts.map((id) => session.capabilities.find((c) => c.id === id)).filter(Boolean);
-
-  const hasGaps = goalsWithout.length > 0 || benefitsWithout.length > 0 || capsWithout.length > 0;
-  if (!hasGaps) return null;
+  const hasVolgendeCyclus = gapData.volgendeCyclus.length > 0;
+  const hasEchteGaps = gapData.echteGapsGoals.length > 0 ||
+                        gapData.benefitsWithoutCaps.length > 0 ||
+                        gapData.capsWithoutEfforts.length > 0;
 
   return (
-    <Section title="Gap-analyse">
+    <Section title="Gap-analyse" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        Onderstaande breuken in de DIN-keten vragen aandacht. Een compleet netwerk
-        verbindt elk doel via baten en vermogens aan concrete inspanningen.
+        Overzicht van de volledigheid van het DIN-netwerk: doelen die nog niet zijn uitgewerkt
+        en onvolledige ketens die aandacht vragen.
       </p>
 
-      {goalsWithout.length > 0 && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-xs font-semibold text-red-800 mb-1">
-            Doelen zonder baten ({goalsWithout.length})
+      {!hasVolgendeCyclus && !hasEchteGaps && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+          <div className="text-xs font-bold text-emerald-800 mb-1">Alle ketens compleet</div>
+          <div className="text-xs text-emerald-700">
+            Elk doel is verbonden via baten en vermogens aan concrete inspanningen.
           </div>
-          {goalsWithout.map((g) => (
-            <div key={g!.id} className="text-xs text-red-700 ml-2">&bull; {g!.name}</div>
-          ))}
         </div>
       )}
 
-      {benefitsWithout.length > 0 && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="text-xs font-semibold text-amber-800 mb-1">
-            Baten zonder vermogens ({benefitsWithout.length})
-          </div>
-          {benefitsWithout.map((b) => (
-            <div key={b!.id} className="text-xs text-amber-700 ml-2">
-              &bull; [{b!.sectorId}] {b!.title || b!.description}
+      {hasVolgendeCyclus && (
+        <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              Nog niet uitgewerkt (volgende cyclus)
             </div>
-          ))}
+          </div>
+          <div className="space-y-1">
+            {gapData.volgendeCyclus.map((goal) => (
+              <div key={goal.id} className="text-sm text-gray-600 ml-6">
+                &bull; {goal.name} — uitwerking volgt in volgende cyclus
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {capsWithout.length > 0 && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="text-xs font-semibold text-amber-800 mb-1">
-            Vermogens zonder inspanningen ({capsWithout.length})
-          </div>
-          {capsWithout.map((c) => (
-            <div key={c!.id} className="text-xs text-amber-700 ml-2">
-              &bull; [{c!.sectorId}] {c!.title || c!.description}
+      {hasEchteGaps && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+              Aandachtspunten
             </div>
-          ))}
+          </div>
+          <div className="text-xs font-bold text-amber-700 mb-2">Onvolledige ketens</div>
+          <div className="space-y-1">
+            {gapData.echteGapsGoals.map((goal) => (
+              <div key={goal.id} className="text-sm text-amber-800 ml-6">
+                &bull; {goal.name} heeft geen baten
+              </div>
+            ))}
+            {gapData.benefitsWithoutCaps.map((baat) => baat && (
+              <div key={baat.id} className="text-sm text-amber-800 ml-6">
+                &bull; &lsquo;{baat.title || baat.description}&rsquo; heeft geen gekoppeld vermogen
+              </div>
+            ))}
+            {gapData.capsWithoutEfforts.map((vermogen) => vermogen && (
+              <div key={vermogen.id} className="text-sm text-amber-800 ml-6">
+                &bull; &lsquo;{vermogen.title || vermogen.description}&rsquo; heeft geen gekoppelde inspanning
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </Section>
@@ -435,7 +598,7 @@ function GapAnalyseBlock({ session }: { session: DINSession }) {
 
 // --- Hefboomwerking ---
 
-function HefboomBlock({ session }: { session: DINSession }) {
+function HefboomBlock({ session, number }: { session: DINSession; number?: string }) {
   const hefbomen = useMemo(() => analyzeHefbomen(session), [session]);
 
   const multiSectorClusters = hefbomen.flatMap((h) => {
@@ -452,7 +615,7 @@ function HefboomBlock({ session }: { session: DINSession }) {
   if (multiSectorClusters.length === 0) return null;
 
   return (
-    <Section title="Hefboomwerking">
+    <Section title="Hefboomwerking" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
         Baten die in meerdere sectoren terugkomen bieden hefboomwerking:
         gedeelde inspanningen met breed effect.
@@ -464,13 +627,13 @@ function HefboomBlock({ session }: { session: DINSession }) {
             <span className="text-xs font-bold text-cito-blue">
               {cluster.theme}
             </span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-400">
               (Doel: {goal?.name}) — {cluster.sectors.length} sectoren
             </span>
           </div>
           <div className="flex flex-wrap gap-1 mb-2">
             {cluster.sectors.map((s) => (
-              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
+              <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
                 {s}
               </span>
             ))}
@@ -496,7 +659,7 @@ function HefboomBlock({ session }: { session: DINSession }) {
 
 // --- Governance & Monitoring ---
 
-function GovernanceBlock({ session }: { session: DINSession }) {
+function GovernanceBlock({ session, number }: { session: DINSession; number?: string }) {
   if (session.benefits.length === 0) return null;
 
   // Bateneigenaren aggregeren
@@ -517,7 +680,7 @@ function GovernanceBlock({ session }: { session: DINSession }) {
   const approvedEfforts = session.efforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel");
 
   return (
-    <Section title="Governance & Monitoring">
+    <Section title="Governance & Monitoring" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
         Overzicht van verantwoordelijkheden voor batenrealisatie, meetmomenten en goedkeuringsstatus
         van inspanningen.
@@ -529,9 +692,9 @@ function GovernanceBlock({ session }: { session: DINSession }) {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50">
-                <th className="px-3 py-2 text-left font-semibold text-gray-600">Eigenaar</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-600">Sectoren</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-600">Verantwoordelijk voor baten</th>
+                <th className="px-3 py-2 text-left font-bold text-gray-600">Eigenaar</th>
+                <th className="px-3 py-2 text-left font-bold text-gray-600">Sectoren</th>
+                <th className="px-3 py-2 text-left font-bold text-gray-600">Verantwoordelijk voor baten</th>
               </tr>
             </thead>
             <tbody>
@@ -554,21 +717,21 @@ function GovernanceBlock({ session }: { session: DINSession }) {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Baat</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Indicator</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Meetmethode</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Meetmoment</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Meetverantw.</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Baat</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Indicator</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmethode</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmoment</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetverantw.</th>
                 </tr>
               </thead>
               <tbody>
                 {meetplanItems.map((b, i) => (
                   <tr key={b.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
                     <td className="px-3 py-2 font-medium text-gray-800">{b.title || b.description}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicator || "—"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.meetmethode || "—"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.measurementMoment || "—"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicatorOwner || "—"}</td>
+                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicator || "\u2014"}</td>
+                    <td className="px-3 py-2 text-gray-600">{b.profiel.meetmethode || "\u2014"}</td>
+                    <td className="px-3 py-2 text-gray-600">{b.profiel.measurementMoment || "\u2014"}</td>
+                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicatorOwner || "\u2014"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -589,7 +752,7 @@ function GovernanceBlock({ session }: { session: DINSession }) {
               };
               return (
                 <div key={e.id} className="flex items-center gap-2 text-xs">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[e.approvalStatus!] || "bg-gray-100 text-gray-600"}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[e.approvalStatus!] || "bg-gray-100 text-gray-600"}`}>
                     {e.approvalStatus}
                   </span>
                   <span className="text-gray-600">[{e.sectorId}] {e.title || e.description}</span>
@@ -606,11 +769,11 @@ function GovernanceBlock({ session }: { session: DINSession }) {
 
 // --- Externe projecten ---
 
-function ExterneProjectenBlock({ session }: { session: DINSession }) {
+function ExterneProjectenBlock({ session, number }: { session: DINSession; number?: string }) {
   if (!session.externalProjects || session.externalProjects.length === 0) return null;
 
   return (
-    <Section title="Lopende projecten">
+    <Section title="Lopende projecten" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
         Bestaande projecten die aansluiten bij het programma en mogelijk bijdragen aan DIN-vermogens.
       </p>
@@ -618,11 +781,11 @@ function ExterneProjectenBlock({ session }: { session: DINSession }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left font-semibold text-gray-600">Project</th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-600">Sector</th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-600">Beschrijving</th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-600">Status</th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-600">Relevantie</th>
+              <th className="px-3 py-2 text-left font-bold text-gray-600">Project</th>
+              <th className="px-3 py-2 text-left font-bold text-gray-600">Sector</th>
+              <th className="px-3 py-2 text-left font-bold text-gray-600">Beschrijving</th>
+              <th className="px-3 py-2 text-left font-bold text-gray-600">Status</th>
+              <th className="px-3 py-2 text-left font-bold text-gray-600">Relevantie</th>
             </tr>
           </thead>
           <tbody>
@@ -632,11 +795,11 @@ function ExterneProjectenBlock({ session }: { session: DINSession }) {
                 <td className="px-3 py-2 text-gray-600">{p.sectorId}</td>
                 <td className="px-3 py-2 text-gray-600">{p.description}</td>
                 <td className="px-3 py-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLES[p.status] || "bg-gray-100 text-gray-600"}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[p.status] || "bg-gray-100 text-gray-600"}`}>
                     {STATUS_LABELS[p.status] || p.status}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-gray-600">{p.relevance || "—"}</td>
+                <td className="px-3 py-2 text-gray-600">{p.relevance || "\u2014"}</td>
               </tr>
             ))}
           </tbody>
@@ -648,209 +811,379 @@ function ExterneProjectenBlock({ session }: { session: DINSession }) {
 
 // --- Sectorale uitwerking ---
 
-function SectorBlocks({ session }: { session: DINSession }) {
+function IntegratieAdviesSubSection({ advies }: { advies: IntegratieAdviesResult }) {
+  const sections: { key: keyof IntegratieAdviesResult; label: string }[] = [
+    { key: "aansluiting", label: "Aansluiting op KiB-doelen" },
+    { key: "verrijking", label: "Verrijking" },
+    { key: "aanvullingen", label: "Aanvullingen" },
+    { key: "quickWins", label: "Quick wins" },
+    { key: "aandachtspunten", label: "Aandachtspunten" },
+  ];
+
+  return (
+    <SubSection title="Integratie-advies">
+      <div className="space-y-3">
+        {sections.map(({ key, label }) => {
+          const item = advies[key];
+          if (!item || typeof item === "string") return null;
+          if (!("punten" in item) || item.punten.length === 0) return null;
+          return (
+            <div key={key}>
+              <div className="text-xs font-bold text-gray-600 mb-1">{label}</div>
+              {item.punten.map((punt, i) => (
+                <div key={i} className="text-xs text-gray-600 ml-2 mb-0.5">
+                  &bull; {punt}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </SubSection>
+  );
+}
+
+function SectorBlocks({ session, sectionNumbers }: { session: DINSession; sectionNumbers: Record<string, string> }) {
+  const activeCaps = useMemo(() => getActiveCaps(session), [session]);
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+
   const activeSectors = SECTORS.filter(
     (s) =>
       session.benefits.some((b) => b.sectorId === s) ||
-      session.capabilities.some((c) => c.sectorId === s) ||
-      session.efforts.some((e) => e.sectorId === s)
+      activeCaps.some((c) => c.sectorId === s) ||
+      activeEfforts.some((e) => e.sectorId === s)
   );
 
   if (activeSectors.length === 0) return null;
 
   return (
-    <Section title="Sectorale Uitwerking">
+    <>
       {activeSectors.map((sector) => {
         const sectorBenefits = session.benefits.filter((b) => b.sectorId === sector);
-        const sectorCaps = session.capabilities.filter((c) => c.sectorId === sector);
-        const sectorEfforts = session.efforts.filter((e) => e.sectorId === sector);
+        const sectorCaps = activeCaps.filter((c) => c.sectorId === sector);
+        const sectorEfforts = activeEfforts.filter((e) => e.sectorId === sector);
         const accent = SECTOR_ACCENT[sector];
 
-        return (
-          <div key={sector} className={`mb-8 last:mb-0 border-l-4 ${accent} pl-5`}>
-            <h3 className="text-sm font-bold text-cito-blue mb-4">Sector {sector}</h3>
+        // Integratie-advies ophalen
+        const rawAdvies = session.integratieAdvies?.[sector];
+        const integratieAdvies: IntegratieAdviesResult | null =
+          rawAdvies && typeof rawAdvies === "object" && "sectorName" in (rawAdvies as Record<string, unknown>)
+            ? (rawAdvies as IntegratieAdviesResult)
+            : null;
 
-            {/* Baten met volledig profiel */}
-            {sectorBenefits.length > 0 && (
-              <SubSection title="Baten">
-                <div className="overflow-x-auto">
+        return (
+          <Section key={sector} title={`Sectorale Uitwerking — ${sector}`} number={sectionNumbers[`sector-${sector}`]}>
+            <div className={`border-l-4 ${accent} pl-5`}>
+              {/* Baten met volledig profiel */}
+              {sectorBenefits.length > 0 && (
+                <SubSection title="Baten">
+                  <div className="overflow-x-auto">
+                    <div className="overflow-hidden border border-gray-200 rounded-lg">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Baat</th>
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Indicator</th>
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Huidig &rarr; Doel</th>
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Eigenaar</th>
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmethode</th>
+                            <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmoment</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sectorBenefits.map((b, i) => (
+                            <tr key={b.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
+                              <td className="px-3 py-2">
+                                <div className="font-medium text-gray-800">{b.title || b.description}</div>
+                                {b.description && b.title && (
+                                  <div className="text-gray-400 mt-0.5">{b.description}</div>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">{b.profiel.indicator || "\u2014"}</td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {b.profiel.currentValue && b.profiel.targetValue
+                                  ? `${b.profiel.currentValue} \u2192 ${b.profiel.targetValue}`
+                                  : "\u2014"}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">{b.profiel.bateneigenaar || "\u2014"}</td>
+                              <td className="px-3 py-2 text-gray-600">{b.profiel.meetmethode || "\u2014"}</td>
+                              <td className="px-3 py-2 text-gray-600">{b.profiel.measurementMoment || "\u2014"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </SubSection>
+              )}
+
+              {/* Vermogens met volledig profiel */}
+              {sectorCaps.length > 0 && (
+                <SubSection title="Vermogens">
                   <div className="overflow-hidden border border-gray-200 rounded-lg">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="bg-gray-50">
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Baat</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Indicator</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Huidig &rarr; Doel</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Eigenaar</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Meetmethode</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Meetmoment</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-600">Vermogen</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-600">Eigenaar</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-600">Niveau</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-600">Huidige situatie</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-600">Gewenste situatie</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {sectorBenefits.map((b, i) => (
-                          <tr key={b.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                            <td className="px-3 py-2">
-                              <div className="font-medium text-gray-800">{b.title || b.description}</div>
-                              {b.description && b.title && (
-                                <div className="text-gray-400 mt-0.5">{b.description}</div>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">{b.profiel.indicator || "—"}</td>
-                            <td className="px-3 py-2 text-gray-600">
-                              {b.profiel.currentValue && b.profiel.targetValue
-                                ? `${b.profiel.currentValue} \u2192 ${b.profiel.targetValue}`
-                                : "—"}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">{b.profiel.bateneigenaar || "—"}</td>
-                            <td className="px-3 py-2 text-gray-600">{b.profiel.meetmethode || "—"}</td>
-                            <td className="px-3 py-2 text-gray-600">{b.profiel.measurementMoment || "—"}</td>
-                          </tr>
-                        ))}
+                        {sectorCaps.map((c, i) => {
+                          const isShared = c.relatedSectors && c.relatedSectors.length > 1;
+                          return (
+                            <tr key={c.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
+                              <td className="px-3 py-2 font-medium text-gray-800">
+                                {c.title || c.description}
+                                {isShared && <span className="text-cito-blue/60 italic ml-1">(gedeeld)</span>}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">{c.profiel?.eigenaar || "\u2014"}</td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {c.currentLevel && c.targetLevel ? `${c.currentLevel}/5 \u2192 ${c.targetLevel}/5` : "\u2014"}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">{c.profiel?.huidieSituatie || "\u2014"}</td>
+                              <td className="px-3 py-2 text-gray-600">{c.profiel?.gewensteSituatie || "\u2014"}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              </SubSection>
-            )}
+                </SubSection>
+              )}
 
-            {/* Vermogens met volledig profiel */}
-            {sectorCaps.length > 0 && (
-              <SubSection title="Vermogens">
-                <div className="overflow-hidden border border-gray-200 rounded-lg">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Vermogen</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Eigenaar</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Niveau</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Huidige situatie</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Gewenste situatie</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sectorCaps.map((c, i) => (
-                        <tr key={c.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                          <td className="px-3 py-2 font-medium text-gray-800">{c.title || c.description}</td>
-                          <td className="px-3 py-2 text-gray-600">{c.profiel?.eigenaar || "—"}</td>
-                          <td className="px-3 py-2 text-gray-600">
-                            {c.currentLevel && c.targetLevel ? `${c.currentLevel}/5 \u2192 ${c.targetLevel}/5` : "—"}
-                          </td>
-                          <td className="px-3 py-2 text-gray-600">{c.profiel?.huidieSituatie || "—"}</td>
-                          <td className="px-3 py-2 text-gray-600">{c.profiel?.gewensteSituatie || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </SubSection>
-            )}
-
-            {/* Inspanningen per domein met volledig dossier */}
-            {sectorEfforts.length > 0 && (
-              <SubSection title="Inspanningen">
-                {(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => {
-                  const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
-                  if (domainEfforts.length === 0) return null;
-                  const dc = DOMAIN_COLORS[domain];
-                  return (
-                    <div key={domain} className="mb-3 last:mb-0">
-                      <div className={`text-xs font-semibold ${dc.text} mb-1.5`}>{DOMAIN_LABELS[domain]}</div>
-                      <div className="overflow-hidden border border-gray-200 rounded-lg">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="bg-gray-50">
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Inspanning</th>
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600 w-16">Planning</th>
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Opdrachtgever</th>
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Leider</th>
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Kosten</th>
-                              <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Resultaat</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {domainEfforts.map((e, i) => (
-                              <tr key={e.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                                <td className="px-3 py-1.5">
-                                  <div className="font-medium text-gray-800">{e.title || e.description}</div>
-                                  {e.dossier?.randvoorwaarden && (
-                                    <div className="text-gray-400 text-[10px] mt-0.5">
-                                      Randvoorwaarden: {e.dossier.randvoorwaarden}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-3 py-1.5 text-gray-600">{e.quarter || "—"}</td>
-                                <td className="px-3 py-1.5 text-gray-600">{e.dossier?.eigenaar || "—"}</td>
-                                <td className="px-3 py-1.5 text-gray-600">{e.dossier?.inspanningsleider || "—"}</td>
-                                <td className="px-3 py-1.5 text-gray-600">{e.dossier?.kostenraming || "—"}</td>
-                                <td className="px-3 py-1.5 text-gray-600">{e.dossier?.verwachtResultaat || "—"}</td>
+              {/* Inspanningen per domein met volledig dossier */}
+              {sectorEfforts.length > 0 && (
+                <SubSection title="Inspanningen">
+                  {(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => {
+                    const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
+                    if (domainEfforts.length === 0) return null;
+                    const dc = DOMAIN_COLORS[domain];
+                    return (
+                      <div key={domain} className="mb-3 last:mb-0">
+                        <div className={`text-xs font-bold ${dc.text} mb-1.5`}>{DOMAIN_LABELS[domain]}</div>
+                        <div className="overflow-hidden border border-gray-200 rounded-lg">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600">Inspanning</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600 w-16">Planning</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600">Opdrachtgever</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600">Leider</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600">Kosten</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-gray-600">Resultaat</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {domainEfforts.map((e, i) => (
+                                <tr key={e.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
+                                  <td className="px-3 py-1.5">
+                                    <div className="font-medium text-gray-800">{e.title || e.description}</div>
+                                    {e.dossier?.randvoorwaarden && (
+                                      <div className="text-gray-400 text-xs mt-0.5">
+                                        Randvoorwaarden: {e.dossier.randvoorwaarden}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-gray-600">{e.quarter || "\u2014"}</td>
+                                  <td className="px-3 py-1.5 text-gray-600">{e.dossier?.eigenaar || "\u2014"}</td>
+                                  <td className="px-3 py-1.5 text-gray-600">{e.dossier?.inspanningsleider || "\u2014"}</td>
+                                  <td className="px-3 py-1.5 text-gray-600">{e.dossier?.kostenraming || "\u2014"}</td>
+                                  <td className="px-3 py-1.5 text-gray-600">{e.dossier?.verwachtResultaat || "\u2014"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </SubSection>
-            )}
+                    );
+                  })}
+                </SubSection>
+              )}
 
-          </div>
+              {/* Integratie-advies */}
+              {integratieAdvies && <IntegratieAdviesSubSection advies={integratieAdvies} />}
+            </div>
+          </Section>
         );
       })}
-    </Section>
+    </>
   );
 }
 
 // --- Roadmap ---
 
-function RoadmapBlock({ session }: { session: DINSession }) {
+function RoadmapBlock({ session, number }: { session: DINSession; number?: string }) {
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+
   const quarters = Array.from(
-    new Set(session.efforts.filter((e) => e.quarter).map((e) => e.quarter!))
+    new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))
   ).sort();
 
-  if (quarters.length === 0) return null;
+  return (
+    <Section title="Roadmap" number={number}>
+      {quarters.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">
+          Kwartaalplanning wordt in een volgende cyclus bepaald.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          {quarters.map((q) => {
+            const qEfforts = activeEfforts.filter((e) => e.quarter === q);
+            return (
+              <div key={q}>
+                <h4 className="text-sm font-bold text-cito-blue/70 mb-2">{q}</h4>
+                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-bold text-gray-600">Sector</th>
+                        <th className="px-3 py-2 text-left font-bold text-gray-600">Domein</th>
+                        <th className="px-3 py-2 text-left font-bold text-gray-600">Inspanning</th>
+                        <th className="px-3 py-2 text-left font-bold text-gray-600">Opdrachtgever</th>
+                        <th className="px-3 py-2 text-left font-bold text-gray-600">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {qEfforts.map((e, i) => (
+                        <tr key={e.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
+                          <td className="px-3 py-2 text-gray-600">{e.sectorId}</td>
+                          <td className="px-3 py-2 text-gray-600">{DOMAIN_LABELS[e.domain]}</td>
+                          <td className="px-3 py-2 font-medium text-gray-800">{e.title || e.description}</td>
+                          <td className="px-3 py-2 text-gray-600">{e.dossier?.eigenaar || "\u2014"}</td>
+                          <td className="px-3 py-2">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[e.status] || "bg-gray-100 text-gray-600"}`}>
+                              {STATUS_LABELS[e.status] || e.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// --- Gap Detection Modal ---
+
+function GapDetectionModal({
+  session,
+  onProceed,
+  onCancel,
+}: {
+  session: DINSession;
+  onProceed: () => void;
+  onCancel: () => void;
+}) {
+  const gapData = useMemo(() => categorizeGaps(session), [session]);
+  const hasVolgendeCyclus = gapData.volgendeCyclus.length > 0;
+  const hasEchteGaps = gapData.echteGapsGoals.length > 0 ||
+                        gapData.benefitsWithoutCaps.length > 0 ||
+                        gapData.capsWithoutEfforts.length > 0;
+
+  const proceedRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    proceedRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onCancel();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   return (
-    <Section title="Roadmap">
-      <div className="space-y-5">
-        {quarters.map((q) => {
-          const qEfforts = session.efforts.filter((e) => e.quarter === q);
-          return (
-            <div key={q}>
-              <h4 className="text-sm font-bold text-cito-blue/70 mb-2">{q}</h4>
-              <div className="overflow-hidden border border-gray-200 rounded-lg">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Sector</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Domein</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Inspanning</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Opdrachtgever</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {qEfforts.map((e, i) => (
-                      <tr key={e.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                        <td className="px-3 py-2 text-gray-600">{e.sectorId}</td>
-                        <td className="px-3 py-2 text-gray-600">{DOMAIN_LABELS[e.domain]}</td>
-                        <td className="px-3 py-2 font-medium text-gray-800">{e.title || e.description}</td>
-                        <td className="px-3 py-2 text-gray-600">{e.dossier?.eigenaar || "—"}</td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_STYLES[e.status] || "bg-gray-100 text-gray-600"}`}>
-                            {STATUS_LABELS[e.status] || e.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+    <div
+      className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg mx-auto mt-[15vh] p-6">
+        <h2 className="text-lg font-bold text-cito-blue mb-4">Exportoverzicht</h2>
+
+        {hasVolgendeCyclus && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Nog niet uitgewerkt (volgende cyclus)
               </div>
             </div>
-          );
-        })}
+            <div className="space-y-1">
+              {gapData.volgendeCyclus.map((goal) => (
+                <div key={goal.id} className="text-sm text-gray-600 ml-6">
+                  &bull; {goal.name} — uitwerking volgt in volgende cyclus
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasEchteGaps && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+                Aandachtspunten
+              </div>
+            </div>
+            <div className="text-xs font-bold text-amber-700 mb-1">Onvolledige ketens</div>
+            <div className="space-y-1">
+              {gapData.echteGapsGoals.map((goal) => (
+                <div key={goal.id} className="text-sm text-amber-800 ml-6">
+                  &bull; {goal.name} heeft geen baten
+                </div>
+              ))}
+              {gapData.benefitsWithoutCaps.map((baat) => baat && (
+                <div key={baat.id} className="text-sm text-amber-800 ml-6">
+                  &bull; &lsquo;{baat.title || baat.description}&rsquo; heeft geen gekoppeld vermogen
+                </div>
+              ))}
+              {gapData.capsWithoutEfforts.map((vermogen) => vermogen && (
+                <div key={vermogen.id} className="text-sm text-amber-800 ml-6">
+                  &bull; &lsquo;{vermogen.title || vermogen.description}&rsquo; heeft geen gekoppelde inspanning
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Eerst aanvullen
+          </button>
+          <button
+            ref={proceedRef}
+            onClick={onProceed}
+            className="px-5 py-2.5 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light"
+          >
+            Toch exporteren
+          </button>
+        </div>
       </div>
-    </Section>
+    </div>
   );
 }
 
@@ -858,12 +1191,81 @@ function RoadmapBlock({ session }: { session: DINSession }) {
 
 export default function ExportStep() {
   const { session } = useSession();
+  const { addToast } = useToast();
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [showGapModal, setShowGapModal] = useState(false);
+
+  // Section numbering computation
+  const sectionNumbers = useMemo(() => {
+    if (!session) return {} as Record<string, string>;
+
+    let h1 = 0;
+    const numbers: Record<string, string> = {};
+
+    // Fixed order sections
+    if (session.vision) { h1++; numbers["vision"] = `${h1}.`; }
+    if (session.scope) { h1++; numbers["scope"] = `${h1}.`; }
+    if (session.goals.length > 0) { h1++; numbers["goals"] = `${h1}.`; }
+
+    // DIN-Keten
+    const goalsWithData = session.goals.filter((g) => session.benefits.some((b) => b.goalId === g.id));
+    if (goalsWithData.length > 0) { h1++; numbers["din"] = `${h1}.`; }
+
+    // DIN-Overzicht (tabel-flow)
+    if (goalsWithData.length > 0) { h1++; numbers["flow"] = `${h1}.`; }
+
+    // Cross-analyse
+    const activeEffortsList = session.efforts.filter((e) => !e.consolidated);
+    const activeCapsForNumbers = session.capabilities.filter((c) => !c.consolidated);
+    if (activeEffortsList.length > 0 || activeCapsForNumbers.length > 0) { h1++; numbers["cross"] = `${h1}.`; }
+
+    // Gap-analyse (always present)
+    h1++; numbers["gap"] = `${h1}.`;
+
+    // Hefboomwerking (conditional)
+    const hefbomen = analyzeHefbomen(session);
+    const hasHefbomen = hefbomen.some((h2) => h2.clusters.some((c) => c.hefboomScore > 1));
+    if (hasHefbomen) { h1++; numbers["hefboom"] = `${h1}.`; }
+
+    // Governance (conditional)
+    if (session.benefits.length > 0) { h1++; numbers["governance"] = `${h1}.`; }
+
+    // Externe projecten (conditional)
+    if (session.externalProjects && session.externalProjects.length > 0) { h1++; numbers["extern"] = `${h1}.`; }
+
+    // Sectorale uitwerking
+    const activeSectors = SECTORS.filter((s) =>
+      session.benefits.some((b) => b.sectorId === s) ||
+      session.capabilities.some((c) => !c.consolidated && c.sectorId === s) ||
+      session.efforts.some((e) => !e.consolidated && e.sectorId === s)
+    );
+    activeSectors.forEach((s) => { h1++; numbers[`sector-${s}`] = `${h1}.`; });
+
+    // Roadmap (always present)
+    h1++; numbers["roadmap"] = `${h1}.`;
+
+    return numbers;
+  }, [session]);
 
   if (!session) return null;
 
-  async function handleExportWord() {
+  function handleExportClick() {
+    const gapData = categorizeGaps(session!);
+    const hasAnyGaps = gapData.volgendeCyclus.length > 0 ||
+                        gapData.echteGapsGoals.length > 0 ||
+                        gapData.benefitsWithoutCaps.length > 0 ||
+                        gapData.capsWithoutEfforts.length > 0;
+
+    if (hasAnyGaps) {
+      setShowGapModal(true);
+    } else {
+      handleProceedExport();
+    }
+  }
+
+  async function handleProceedExport() {
+    setShowGapModal(false);
     setIsExportingWord(true);
     setExportSuccess(false);
     try {
@@ -876,25 +1278,39 @@ export default function ExportStep() {
       a.click();
       URL.revokeObjectURL(url);
       setExportSuccess(true);
+      addToast("Programmaplan geexporteerd", "success");
       setTimeout(() => setExportSuccess(false), 4000);
     } catch (e) {
       console.error("Word export mislukt:", e);
+      addToast("Word export mislukt. Probeer het opnieuw.", "error");
     } finally {
       setIsExportingWord(false);
     }
   }
 
+  const activeCaps = getActiveCaps(session);
+  const activeEfforts = getActiveEfforts(session);
+
   const stats = [
     { label: "Doelen", count: session.goals.length },
     { label: "Baten", count: session.benefits.length },
-    { label: "Vermogens", count: session.capabilities.length },
-    { label: "Inspanningen", count: session.efforts.length },
+    { label: "Vermogens", count: activeCaps.length },
+    { label: "Inspanningen", count: activeEfforts.length },
   ];
 
   const hasContent = session.goals.length > 0;
 
   return (
     <div className="space-y-6">
+      {/* Gap Detection Modal */}
+      {showGapModal && (
+        <GapDetectionModal
+          session={session}
+          onProceed={handleProceedExport}
+          onCancel={() => setShowGapModal(false)}
+        />
+      )}
+
       {/* Export actie-balk */}
       <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-5">
         <div>
@@ -908,7 +1324,7 @@ export default function ExportStep() {
             <span className="text-xs text-emerald-600 font-medium">Document gedownload</span>
           )}
           <button
-            onClick={handleExportWord}
+            onClick={handleExportClick}
             disabled={isExportingWord || !hasContent}
             className="flex items-center gap-2 px-5 py-2.5 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -949,24 +1365,25 @@ export default function ExportStep() {
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               Preview — Programmaplan
             </span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-400">
               Het Word document bevat dezelfde inhoud met professionele opmaak
             </span>
           </div>
           <div className="p-8 max-w-none">
             <DocumentTitlePage session={session} />
             <div className="mt-10">
-              <VisionBlock session={session} />
-              <ScopeBlock session={session} />
-              <GoalsBlock session={session} />
-              <DINKetenBlock session={session} />
-              <CrossAnalyseBlock session={session} />
-              <GapAnalyseBlock session={session} />
-              <HefboomBlock session={session} />
-              <GovernanceBlock session={session} />
-              <ExterneProjectenBlock session={session} />
-              <SectorBlocks session={session} />
-              <RoadmapBlock session={session} />
+              <VisionBlock session={session} number={sectionNumbers["vision"]} />
+              <ScopeBlock session={session} number={sectionNumbers["scope"]} />
+              <GoalsBlock session={session} number={sectionNumbers["goals"]} />
+              <DINKetenBlock session={session} number={sectionNumbers["din"]} />
+              <DINFlowTable session={session} number={sectionNumbers["flow"]} />
+              <CrossAnalyseBlock session={session} number={sectionNumbers["cross"]} />
+              <GapAnalyseBlock session={session} number={sectionNumbers["gap"]} />
+              <HefboomBlock session={session} number={sectionNumbers["hefboom"]} />
+              <GovernanceBlock session={session} number={sectionNumbers["governance"]} />
+              <ExterneProjectenBlock session={session} number={sectionNumbers["extern"]} />
+              <SectorBlocks session={session} sectionNumbers={sectionNumbers} />
+              <RoadmapBlock session={session} number={sectionNumbers["roadmap"]} />
             </div>
           </div>
         </div>
