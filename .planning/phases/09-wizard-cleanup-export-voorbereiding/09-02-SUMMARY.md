@@ -1,11 +1,11 @@
 ---
 phase: 09-wizard-cleanup-export-voorbereiding
 plan: 02
-status: checkpoint
+status: complete
 started: 2026-04-03T20:30:00Z
-completed: null
-duration: ~8min
-tasks_completed: 2
+completed: 2026-04-03T20:55:00Z
+duration: ~25min
+tasks_completed: 3
 tasks_total: 3
 ---
 
@@ -21,7 +21,7 @@ Removed all integratieadvies UI elements from DINMappingStep and deleted three o
 |---|------|--------|--------|
 | 1 | Strip integratieadvies from DINMappingStep | Done | `b199215` |
 | 2 | Delete orphaned component files | Done | `b199215` |
-| 3 | Human verification of wizard flow | Pending checkpoint |
+| 3 | Human verification of wizard flow | Done (approved) |
 
 ## Changes
 
@@ -54,13 +54,9 @@ Removed all integratieadvies UI elements from DINMappingStep and deleted three o
 
 Plan 09-01 (data layer cleanup) already removed integratieAdvies types, prompts, AI client functions, API route handlers, and cleaned ExportStep.tsx and word-export.ts as a deviation. This plan focused on the remaining DINMappingStep UI cleanup and file deletions.
 
-## Checkpoint
-
-Awaiting human verification of wizard flow after cleanup.
-
-## Self-Check: PARTIAL
+## Self-Check: PASSED
 - [x] DINMappingStep has no MergedDINView, DINPhase, samengevoegd, or phase toggle
 - [x] Three orphaned files deleted
 - [x] npm run build passes
 - [x] All vitest tests pass
-- [ ] Human verification of wizard flow pending
+- [x] Human verification of wizard flow approved
