@@ -29,7 +29,7 @@ Een vervolg-app op "Klant in Beeld" (KiB) waarmee programmamanagers doelstelling
 - [ ] Cyclisch werken: één doel tegelijk volledig uitwerken, rest later
 - [x] AI-kwaliteit: beknopte, methodisch correcte output (niet honderden baten) — Validated in Phase 4: AI Output Kwaliteit
 - [x] Programmaboek als validatiebron + prompt-context voor AI — Validated in Phase 3: Programmaboek Context Pipeline
-- [ ] Cross-analyse die écht verbindt: gedeelde baten, vermogens en inspanningen over PO/VO/Zakelijk herkennen
+- [x] Cross-analyse die écht verbindt: gedeelde baten, vermogens en inspanningen over PO/VO/Zakelijk herkennen — Validated in Phase 8: Cross-analyse Semantische Matching
 - [ ] Chronologische doorloop: context van stap 1 meenemen naar stap 2 en verder
 - [ ] Programmaplan + DIN-overzicht + roadmap als eindproducten
 - [ ] Integratieadvies-stap verwijderen (geen meerwaarde)
@@ -72,7 +72,8 @@ Een vervolg-app op "Klant in Beeld" (KiB) waarmee programmamanagers doelstelling
 | Cyclisch per doel werken | Kwaliteit boven kwantiteit — één doel volledig uitwerken voordat het volgende begint | — Pending |
 | Integratieadvies verwijderen | Voegt nu geen meerwaarde toe, maakt de flow eenvoudiger | — Pending |
 | Programmaboek als AI-context | Methodische correctheid waarborgen door relevante secties mee te geven aan prompts | — Pending |
-| Cross-analyse focust op samenhang | Gedeelde baten/vermogens/inspanningen over 3 sectoren — niet alles apart houden | — Pending |
+| Cross-analyse focust op samenhang | Gedeelde baten/vermogens/inspanningen over 3 sectoren — niet alles apart houden | Phase 8: Semantic matching + consolidation UI |
+| Baten niet matchen in cross-analyse (D-03) | Baten zijn per sector methodisch correct verschillend — tonen als context, niet consolideren | Phase 8: batenContext in clusters |
 
 ## Evolution
 
@@ -92,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 4 completion — AI Output Kwaliteit (KiB context injection, hoeveelheidslimieten, DIN-methodiek validatie)*
+*Last updated: 2026-04-03 after Phase 8 completion — Cross-analyse Semantische Matching (AI cluster detection, consolidation UI, project matching)*
