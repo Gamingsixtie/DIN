@@ -10,7 +10,7 @@ import {
 import { SECTORS, SECTOR_COLORS } from "@/lib/types";
 import { DOMAIN_LABELS } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
-import type { EffortDomain, SectorName, CrossAnalyseResult, DINSession, DINCapability, DINEffort } from "@/lib/types";
+import type { EffortDomain, SectorName, CrossAnalyseResult, AICrossAnalyse, DINSession, DINCapability, DINEffort, VermogenClusterItem, InspanningClusterItem, ProjectMatchItem } from "@/lib/types";
 
 // --- Consolidation logic (pure functions for testability) ---
 
@@ -524,19 +524,399 @@ function ExterneProjectenSection({ data }: { data: CrossAnalyseResult["externePr
   );
 }
 
+// --- Consolidation UI Components ---
+
+function ConsolidationActionBar({
+  itemIds,
+  itemCount,
+  sectorList,
+  onMerge,
+  isMerged,
+  onUndo,
+  sharedId,
+  onReview,
+  isReviewed,
+}: {
+  itemIds: string[];
+  itemCount: number;
+  sectorList: string;
+  onMerge: (ids: string[]) => void;
+  isMerged: boolean;
+  onUndo: (sharedId: string) => void;
+  sharedId?: string;
+  onReview: () => void;
+  isReviewed: boolean;
+}) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  if (isMerged && sharedId) {
+    return (
+      <div className="flex items-center gap-2 mt-3">
+        <span className="bg-teal-100 text-teal-700 border border-teal-200 rounded px-1.5 py-0.5 text-[10px] font-semibold">
+          Geconsolideerd
+        </span>
+        <button
+          onClick={() => onUndo(sharedId)}
+          className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors"
+        >
+          Ongedaan maken
+        </button>
+      </div>
+    );
+  }
+
+  if (isReviewed) {
+    return (
+      <div className="mt-3 opacity-60">
+        <span className="text-xs text-gray-500 italic">Bekeken</span>
+      </div>
+    );
+  }
+
+  if (showConfirm) {
+    return (
+      <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <p className="text-xs text-gray-600 mb-2">
+          {itemCount} items worden samengevoegd tot een gedeeld item dat gekoppeld wordt aan {sectorList}. Originele items blijven bewaard.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onMerge(itemIds); setShowConfirm(false); }}
+            className="px-3 min-h-[44px] bg-cito-blue text-white rounded-lg text-xs font-semibold hover:bg-cito-blue-light transition-colors"
+          >
+            Bevestigen
+          </button>
+          <button
+            onClick={() => setShowConfirm(false)}
+            className="px-3 min-h-[44px] text-gray-500 text-xs font-semibold hover:text-gray-700 transition-colors"
+          >
+            Toch niet samenvoegen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 mt-3">
+      <button
+        onClick={() => setShowConfirm(true)}
+        className="px-3 min-h-[44px] bg-cito-blue text-white rounded-lg text-xs font-semibold hover:bg-cito-blue-light transition-colors"
+      >
+        Combineren
+      </button>
+      <button
+        onClick={onReview}
+        className="px-3 min-h-[44px] border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors"
+      >
+        Afstemmen
+      </button>
+      <button
+        onClick={onReview}
+        className="px-3 min-h-[44px] text-gray-500 text-xs font-semibold hover:text-gray-700 transition-colors"
+      >
+        Apart houden
+      </button>
+    </div>
+  );
+}
+
+function ClusterCard({
+  cluster,
+  type,
+  onMerge,
+  isMerged,
+  onUndo,
+  sharedId,
+  onReview,
+  isReviewed,
+}: {
+  cluster: VermogenClusterItem | InspanningClusterItem;
+  type: "vermogen" | "inspanning";
+  onMerge: (ids: string[]) => void;
+  isMerged: boolean;
+  onUndo: (sharedId: string) => void;
+  sharedId?: string;
+  onReview: () => void;
+  isReviewed: boolean;
+}) {
+  const borderColor = type === "vermogen" ? "border-l-teal-400" : "border-l-indigo-400";
+  const itemIds = cluster.items.map(item => item.id);
+  const sectorList = [...new Set(cluster.items.map(item => item.sector))].join(", ");
+
+  return (
+    <div className={`bg-white border border-gray-200 border-l-4 ${borderColor} rounded-lg p-4 ${isReviewed && !isMerged ? "opacity-60" : ""}`}>
+      <div className="text-sm font-semibold text-gray-800">{cluster.clusterTitel}</div>
+      <p className="text-xs text-gray-500 italic mt-1">{cluster.advies}</p>
+
+      <div className="mt-3 space-y-2">
+        {cluster.items.map((item) => (
+          <div key={item.id} className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-700">{item.beschrijving}</span>
+              <div className="flex gap-1 mt-0.5">
+                <SectorBadge sector={item.sector} />
+                {"domein" in item && item.domein && (
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border bg-gray-100 text-gray-600 border-gray-200">
+                    {item.domein}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {cluster.batenContext.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] text-gray-400">Draagt bij aan:</span>
+          {cluster.batenContext.map((bc, i) => (
+            <span key={i} className="text-[10px] bg-din-baten/10 text-din-baten px-1.5 py-0.5 rounded font-medium">
+              {bc.sector}: {bc.baat}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <ConsolidationActionBar
+        itemIds={itemIds}
+        itemCount={cluster.items.length}
+        sectorList={sectorList}
+        onMerge={onMerge}
+        isMerged={isMerged}
+        onUndo={onUndo}
+        sharedId={sharedId}
+        onReview={onReview}
+        isReviewed={isReviewed}
+      />
+    </div>
+  );
+}
+
+function VermogenClusterSection({
+  data,
+  onMerge,
+  mergedClusterIds,
+  onUndo,
+  reviewedClusters,
+  onReview,
+}: {
+  data: AICrossAnalyse["vermogenClusters"];
+  onMerge: (ids: string[]) => void;
+  mergedClusterIds: Map<string, string>;
+  onUndo: (sharedId: string) => void;
+  reviewedClusters: Set<string>;
+  onReview: (key: string) => void;
+}) {
+  return (
+    <div className="border border-teal-200 rounded-xl overflow-hidden">
+      <div className="bg-teal-50 px-5 py-3 border-b border-teal-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-teal-800">Gedeelde vermogens</h4>
+          <p className="text-xs text-teal-600 italic">Vermogens die bij meerdere sectoren terugkomen — kandidaten voor consolidatie.</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data && data.items && data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((cluster, i) => {
+              const key = cluster.items.map(it => it.id).sort().join(",");
+              const isMerged = mergedClusterIds.has(key);
+              const sharedId = mergedClusterIds.get(key);
+              const isReviewed = reviewedClusters.has(key);
+              return (
+                <ClusterCard
+                  key={i}
+                  cluster={cluster}
+                  type="vermogen"
+                  onMerge={onMerge}
+                  isMerged={isMerged}
+                  onUndo={onUndo}
+                  sharedId={sharedId}
+                  onReview={() => onReview(key)}
+                  isReviewed={isReviewed}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen gedeelde vermogens gevonden over sectoren.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InspanningClusterSection({
+  data,
+  onMerge,
+  mergedClusterIds,
+  onUndo,
+  reviewedClusters,
+  onReview,
+}: {
+  data: AICrossAnalyse["inspanningClusters"];
+  onMerge: (ids: string[]) => void;
+  mergedClusterIds: Map<string, string>;
+  onUndo: (sharedId: string) => void;
+  reviewedClusters: Set<string>;
+  onReview: (key: string) => void;
+}) {
+  return (
+    <div className="border border-indigo-200 rounded-xl overflow-hidden">
+      <div className="bg-indigo-50 px-5 py-3 border-b border-indigo-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-indigo-800">Gedeelde inspanningen</h4>
+          <p className="text-xs text-indigo-600 italic">Inspanningen die meerdere sectoren bedienen — samen sterker door consolidatie.</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data && data.items && data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((cluster, i) => {
+              const key = cluster.items.map(it => it.id).sort().join(",");
+              const isMerged = mergedClusterIds.has(key);
+              const sharedId = mergedClusterIds.get(key);
+              const isReviewed = reviewedClusters.has(key);
+              return (
+                <ClusterCard
+                  key={i}
+                  cluster={cluster}
+                  type="inspanning"
+                  onMerge={onMerge}
+                  isMerged={isMerged}
+                  onUndo={onUndo}
+                  sharedId={sharedId}
+                  onReview={() => onReview(key)}
+                  isReviewed={isReviewed}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen gedeelde inspanningen gevonden over sectoren.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProjectMatchingSection({ data }: { data: AICrossAnalyse["projectMatching"] }) {
+  return (
+    <div className="border border-cyan-200 rounded-xl overflow-hidden">
+      <div className="bg-cyan-50 px-5 py-3 border-b border-cyan-200 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+          <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-cyan-800">Projectkoppeling</h4>
+          <p className="text-xs text-cyan-600 italic">Lopende projecten gekoppeld aan het DIN-netwerk — welke passen, welke niet.</p>
+        </div>
+      </div>
+      <div className="bg-white p-5">
+        {data && data.items && data.items.length > 0 ? (
+          <div className="space-y-3">
+            {data.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50/20">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-800">{item.project}</span>
+                    {item.heeftMatch ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border font-medium bg-green-100 text-green-700 border-green-200">
+                        Match
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border font-medium bg-gray-100 text-gray-500 border-gray-200">
+                        Geen DIN-match
+                      </span>
+                    )}
+                  </div>
+                  {item.heeftMatch && item.gekoppeldAan && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Gekoppeld aan <span className="font-medium text-gray-700">{item.gekoppeldAan}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">{item.advies}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">Geen lopende projecten beschikbaar om te koppelen.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Hoofdcomponent voor AI resultaat ---
 
-function AIAnalysisResult({ analysis }: { analysis: CrossAnalyseResult }) {
+function AIAnalysisResult({
+  analysis,
+  onMergeCapabilities,
+  onMergeEfforts,
+  mergedCapClusters,
+  mergedEffClusters,
+  onUndoMergeCap,
+  onUndoMergeEff,
+  reviewedClusters,
+  onReviewCluster,
+}: {
+  analysis: AICrossAnalyse;
+  onMergeCapabilities: (ids: string[]) => void;
+  onMergeEfforts: (ids: string[]) => void;
+  mergedCapClusters: Map<string, string>;
+  mergedEffClusters: Map<string, string>;
+  onUndoMergeCap: (sharedId: string) => void;
+  onUndoMergeEff: (sharedId: string) => void;
+  reviewedClusters: Set<string>;
+  onReviewCluster: (key: string) => void;
+}) {
   return (
     <div className="space-y-4">
       <SynergieSection data={analysis.synergie} />
       <GapsSection data={analysis.gaps} />
       <HefboomSection data={analysis.hefboomwerking} />
+      {analysis.vermogenClusters && analysis.vermogenClusters.items && analysis.vermogenClusters.items.length > 0 && (
+        <VermogenClusterSection
+          data={analysis.vermogenClusters}
+          onMerge={onMergeCapabilities}
+          mergedClusterIds={mergedCapClusters}
+          onUndo={onUndoMergeCap}
+          reviewedClusters={reviewedClusters}
+          onReview={onReviewCluster}
+        />
+      )}
+      {analysis.inspanningClusters && analysis.inspanningClusters.items && analysis.inspanningClusters.items.length > 0 && (
+        <InspanningClusterSection
+          data={analysis.inspanningClusters}
+          onMerge={onMergeEfforts}
+          mergedClusterIds={mergedEffClusters}
+          onUndo={onUndoMergeEff}
+          reviewedClusters={reviewedClusters}
+          onReview={onReviewCluster}
+        />
+      )}
       <DomeinBalansSection data={analysis.domeinBalans} />
       <SectorOverlapSection data={analysis.sectorOverlap} />
-      {analysis.externeProjecten && analysis.externeProjecten.items && (
+      {analysis.projectMatching && analysis.projectMatching.items && analysis.projectMatching.items.length > 0 ? (
+        <ProjectMatchingSection data={analysis.projectMatching} />
+      ) : analysis.externeProjecten && analysis.externeProjecten.items && analysis.externeProjecten.items.length > 0 ? (
         <ExterneProjectenSection data={analysis.externeProjecten} />
-      )}
+      ) : null}
     </div>
   );
 }
@@ -545,12 +925,16 @@ function AIAnalysisResult({ analysis }: { analysis: CrossAnalyseResult }) {
 
 export default function CrossAnalyseStep() {
   const { session, updateSession } = useSession();
-  const [aiAnalysis, setAiAnalysis] = useState<CrossAnalyseResult | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AICrossAnalyse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiRetryable, setAiRetryable] = useState(false);
   const [userFeedback, setUserFeedback] = useState("");
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
+  const [mergedCapClusters, setMergedCapClusters] = useState<Map<string, string>>(new Map());
+  const [mergedEffClusters, setMergedEffClusters] = useState<Map<string, string>>(new Map());
+  const [reviewedClusters, setReviewedClusters] = useState<Set<string>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Laad opgeslagen cross-analyse bij mount (sessie slaat string op)
   useEffect(() => {
@@ -558,21 +942,33 @@ export default function CrossAnalyseStep() {
       try {
         const parsed = JSON.parse(session.crossAnalyse);
         if (parsed.synergie && parsed.gaps) {
-          setAiAnalysis(parsed);
+          setAiAnalysis(parsed as AICrossAnalyse);
         }
       } catch { /* opgeslagen data niet parseerbaar */ }
     }
   }, [session?.crossAnalyse]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Toast auto-clear
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
   if (!session) return null;
 
-  const sharedCaps = findSharedCapabilities(session.capabilities);
-  const domainBalance = getDomainBalance(session.efforts);
+  // Filter consolidated items from local analysis sections
+  const activeCaps = session.capabilities.filter(c => !c.consolidated);
+  const activeEfforts = session.efforts.filter(e => !e.consolidated);
+
+  const sharedCaps = findSharedCapabilities(activeCaps);
+  const domainBalance = getDomainBalance(activeEfforts);
   const gaps = findGaps(
     session.goals,
     session.benefits,
-    session.capabilities,
-    session.efforts,
+    activeCaps,
+    activeEfforts,
     session.goalBenefitMaps,
     session.benefitCapabilityMaps,
     session.capabilityEffortMaps
@@ -580,8 +976,63 @@ export default function CrossAnalyseStep() {
 
   const totalEfforts = Object.values(domainBalance).reduce((a, b) => a + b, 0);
   const totalBenefits = session.benefits.length;
-  const totalCapabilities = session.capabilities.length;
+  const totalCapabilities = activeCaps.length;
   const hasData = totalBenefits > 0 || totalCapabilities > 0 || totalEfforts > 0;
+
+  // --- Consolidation handlers ---
+  function handleMergeCapabilities(clusterItemIds: string[]) {
+    updateSession(prev => {
+      const result = mergeCapabilities(prev, clusterItemIds);
+      const sharedId = result.capabilities[result.capabilities.length - 1]?.id;
+      if (sharedId) {
+        const key = [...clusterItemIds].sort().join(",");
+        setMergedCapClusters(prev => new Map(prev).set(key, sharedId));
+      }
+      return result;
+    });
+    setToastMessage("Items samengevoegd");
+  }
+
+  function handleMergeEfforts(clusterItemIds: string[]) {
+    updateSession(prev => {
+      const result = mergeEfforts(prev, clusterItemIds);
+      const sharedId = result.efforts[result.efforts.length - 1]?.id;
+      if (sharedId) {
+        const key = [...clusterItemIds].sort().join(",");
+        setMergedEffClusters(prev => new Map(prev).set(key, sharedId));
+      }
+      return result;
+    });
+    setToastMessage("Items samengevoegd");
+  }
+
+  function handleUndoMergeCap(sharedId: string) {
+    updateSession(prev => undoMergeCapabilities(prev, sharedId));
+    setMergedCapClusters(prev => {
+      const next = new Map(prev);
+      for (const [key, val] of next.entries()) {
+        if (val === sharedId) next.delete(key);
+      }
+      return next;
+    });
+    setToastMessage("Samenvoeging ongedaan gemaakt");
+  }
+
+  function handleUndoMergeEff(sharedId: string) {
+    updateSession(prev => undoMergeEfforts(prev, sharedId));
+    setMergedEffClusters(prev => {
+      const next = new Map(prev);
+      for (const [key, val] of next.entries()) {
+        if (val === sharedId) next.delete(key);
+      }
+      return next;
+    });
+    setToastMessage("Samenvoeging ongedaan gemaakt");
+  }
+
+  function handleReviewCluster(key: string) {
+    setReviewedClusters(prev => new Set(prev).add(key));
+  }
 
   // Details voor gap-analyse
   const goalsWithoutBenefitsDetails = session.goals.filter((g) =>
@@ -620,7 +1071,7 @@ export default function CrossAnalyseStep() {
       });
       const data = await res.json();
       if (data.success && data.data?.analysis) {
-        const result = data.data.analysis as CrossAnalyseResult;
+        const result = data.data.analysis as AICrossAnalyse;
         setAiAnalysis(result);
         setAiRetryable(false);
         setUserFeedback("");
@@ -660,6 +1111,13 @@ export default function CrossAnalyseStep() {
     <div className="space-y-8">
       {/* Loading overlay */}
       {isAnalyzing && <LoadingOverlay />}
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-cito-blue text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-pulse">
+          {toastMessage}
+        </div>
+      )}
 
       {/* Header met statistieken */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -778,7 +1236,7 @@ export default function CrossAnalyseStep() {
                   </tr>
                 </thead>
                 <tbody>
-                  {session.capabilities
+                  {activeCaps
                     .filter((c) => sharedCaps.has(c.id))
                     .map((cap) => {
                       const sectors = sharedCaps.get(cap.id) || [];
@@ -857,7 +1315,7 @@ export default function CrossAnalyseStep() {
               const colors = DOMAIN_COLORS[domain];
               const isEmpty = count === 0;
 
-              const domainEfforts = session.efforts.filter((e) => e.domain === domain);
+              const domainEfforts = activeEfforts.filter((e) => e.domain === domain);
 
               // AI-beoordeling voor dit domein ophalen
               const domainNameMap: Record<EffortDomain, string[]> = {
@@ -1164,7 +1622,17 @@ export default function CrossAnalyseStep() {
             </button>
           </div>
           <div className="p-5">
-            <AIAnalysisResult analysis={aiAnalysis} />
+            <AIAnalysisResult
+              analysis={aiAnalysis}
+              onMergeCapabilities={handleMergeCapabilities}
+              onMergeEfforts={handleMergeEfforts}
+              mergedCapClusters={mergedCapClusters}
+              mergedEffClusters={mergedEffClusters}
+              onUndoMergeCap={handleUndoMergeCap}
+              onUndoMergeEff={handleUndoMergeEff}
+              reviewedClusters={reviewedClusters}
+              onReviewCluster={handleReviewCluster}
+            />
           </div>
         </section>
       )}
