@@ -37,8 +37,8 @@ Requirements voor de huidige verbeterronde. Elke requirement koppelt aan roadmap
 ### Export & visualisatie
 
 - [x] **EXP-01**: Compleet programmaplan als Word-export met alle DIN-secties, inhoudsopgave en genummerde kopjes
-- [ ] **EXP-02**: DIN-overzicht met visuele weergave van het netwerk (doelen → baten → vermogens → inspanningen) in export
-- [ ] **EXP-03**: Roadmap/tijdlijn met kwartaalplanning van inspanningen en afhankelijkheden
+- [x] **EXP-02**: DIN-overzicht met visuele weergave van het netwerk (doelen → baten → vermogens → inspanningen) in export
+- [x] **EXP-03**: Roadmap/tijdlijn met kwartaalplanning van inspanningen en afhankelijkheden
 - [x] **EXP-04**: Integratieadvies-stap verwijderd uit de wizard flow
 
 ## v2 Requirements
@@ -97,8 +97,8 @@ Welke fases dekken welke requirements.
 | CROSS-03 | Phase 8 | Complete |
 | CROSS-04 | Phase 7 | Complete |
 | EXP-01 | Phase 10 | Complete |
-| EXP-02 | Phase 10 | Pending |
-| EXP-03 | Phase 10 | Pending |
+| EXP-02 | Phase 10 | Complete |
+| EXP-03 | Phase 10 | Complete |
 | EXP-04 | Phase 9 | Complete |
 
 **Coverage:**

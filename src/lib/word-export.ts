@@ -17,9 +17,95 @@ import {
   TabStopType,
   TabStopPosition,
 } from "docx";
-import type { DINSession, EffortDomain, SectorName } from "./types";
+import type { DINSession, DINCapability, DINEffort, EffortDomain, SectorName, IntegratieAdviesResult } from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
+
+// --- Numbering State ---
+
+export interface NumberingState {
+  h1Counter: number;
+  h2Counter: number;
+  tocEntries: { level: "h1" | "h2"; text: string }[];
+}
+
+export function createNumberingState(): NumberingState {
+  return { h1Counter: 0, h2Counter: 0, tocEntries: [] };
+}
+
+export function numberedHeading(
+  text: string,
+  level: "h1" | "h2",
+  state: NumberingState
+): Paragraph {
+  if (level === "h1") {
+    state.h1Counter++;
+    state.h2Counter = 0;
+    const prefix = `${state.h1Counter}. ${text}`;
+    state.tocEntries.push({ level: "h1", text: prefix });
+    return heading(prefix, HeadingLevel.HEADING_1);
+  } else {
+    state.h2Counter++;
+    const prefix = `${state.h1Counter}.${state.h2Counter} ${text}`;
+    state.tocEntries.push({ level: "h2", text: prefix });
+    return heading(prefix, HeadingLevel.HEADING_2);
+  }
+}
+
+// --- Consolidation filtering ---
+
+export function getActiveCaps(session: DINSession): DINCapability[] {
+  return session.capabilities.filter((c) => !c.consolidated);
+}
+
+export function getActiveEfforts(session: DINSession): DINEffort[] {
+  return session.efforts.filter((e) => !e.consolidated);
+}
+
+// --- Smart gap categorization ---
+
+export function categorizeGaps(session: DINSession) {
+  const gaps = findGaps(
+    session.goals,
+    session.benefits,
+    session.capabilities,
+    session.efforts,
+    session.goalBenefitMaps,
+    session.benefitCapabilityMaps,
+    session.capabilityEffortMaps
+  );
+
+  const volgendeCyclus: typeof session.goals = [];
+  const echteGapsGoals: typeof session.goals = [];
+
+  // Determine goal status: a goal with no benefits anywhere is "niet-begonnen"
+  // A goal with some benefits (but in gaps) is "bezig"
+  gaps.goalsWithoutBenefits.forEach((id) => {
+    const goal = session.goals.find((g) => g.id === id);
+    if (!goal) return;
+
+    // Check if this goal has any activity (benefits, capabilities, efforts linked)
+    const hasBenefits = session.goalBenefitMaps.some((m) => m.goalId === id);
+    if (!hasBenefits) {
+      // No benefits at all = niet-begonnen
+      volgendeCyclus.push(goal);
+    } else {
+      // Has some benefits but still in gap = bezig but incomplete
+      echteGapsGoals.push(goal);
+    }
+  });
+
+  return {
+    volgendeCyclus,
+    echteGapsGoals,
+    benefitsWithoutCaps: gaps.benefitsWithoutCapabilities
+      .map((id) => session.benefits.find((b) => b.id === id))
+      .filter(Boolean),
+    capsWithoutEfforts: gaps.capabilitiesWithoutEfforts
+      .map((id) => session.capabilities.find((c) => c.id === id))
+      .filter(Boolean),
+  };
+}
 
 const CITO_BLUE = "003366";
 const CITO_BLUE_LIGHT = "E8EDF3";
@@ -274,48 +360,19 @@ function titlePageSection(session: DINSession) {
   };
 }
 
-function tableOfContentsSection(session: DINSession) {
+function tableOfContentsSection(numState: NumberingState) {
   const children: Paragraph[] = [];
 
   children.push(heading("Inhoudsopgave", HeadingLevel.HEADING_1));
   children.push(emptyLine(60));
 
-  const tocItems: string[] = [
-    "1.  Programmavisie",
-    "2.  Scope",
-    "3.  Programmadoelen",
-    "4.  DIN-Netwerk per Doel",
-    "5.  Cross-analyse",
-    "6.  Gap-analyse",
-    "7.  Hefboomwerking",
-    "8.  Governance & Monitoring",
-  ];
-
-  let nextNum = 9;
-
-  // Externe projecten (optioneel)
-  if (session.externalProjects && session.externalProjects.length > 0) {
-    tocItems.push(`${nextNum}.  Lopende projecten`);
-    nextNum++;
-  }
-
-  // Sectoren toevoegen
-  const activeSectors = SECTORS.filter(
-    (s) =>
-      session.benefits.some((b) => b.sectorId === s) ||
-      session.capabilities.some((c) => c.sectorId === s) ||
-      session.efforts.some((e) => e.sectorId === s) ||
-      session.sectorPlans.some((sp) => sp.sectorName === s)
-  );
-  activeSectors.forEach((s, i) => {
-    tocItems.push(`${nextNum + i}.  Sectorplan: ${s}`);
-  });
-  tocItems.push(`${nextNum + activeSectors.length}.  Roadmap`);
-
-  tocItems.forEach((item) => {
+  // Build TOC from accumulated tocEntries
+  numState.tocEntries.forEach((entry) => {
+    const indent = entry.level === "h2" ? 400 : 0;
     children.push(
       new Paragraph({
-        spacing: { after: 80 },
+        spacing: { after: entry.level === "h1" ? 80 : 50 },
+        indent: indent ? { left: indent } : undefined,
         tabStops: [
           {
             type: TabStopType.RIGHT,
@@ -324,10 +381,11 @@ function tableOfContentsSection(session: DINSession) {
         ],
         children: [
           new TextRun({
-            text: item,
-            size: 22,
-            color: TEXT_PRIMARY,
+            text: entry.text,
+            size: entry.level === "h1" ? 22 : 20,
+            color: entry.level === "h1" ? TEXT_PRIMARY : TEXT_SECONDARY,
             font: "Calibri",
+            bold: entry.level === "h1",
           }),
         ],
       })
@@ -337,10 +395,10 @@ function tableOfContentsSection(session: DINSession) {
   return { properties: {}, children };
 }
 
-function executiveSummarySection(session: DINSession) {
+function executiveSummarySection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Samenvatting", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Samenvatting", "h1", numState));
 
   // Programma-overzicht
   if (session.vision?.beknopt) {
@@ -383,7 +441,7 @@ function executiveSummarySection(session: DINSession) {
     });
 
   // Domeinbalans beknopt
-  const balance = getDomainBalance(session.efforts);
+  const balance = getDomainBalance(activeEfforts);
   const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
   children.push(emptyLine(60));
   children.push(subHeading("Verdeling inspanningen over domeinen"));
@@ -393,55 +451,59 @@ function executiveSummarySection(session: DINSession) {
   });
 
   // Actieve sectoren
-  const activeSectors = SECTORS.filter(
+  const summActiveSectors = SECTORS.filter(
     (s) =>
       session.benefits.some((b) => b.sectorId === s) ||
-      session.efforts.some((e) => e.sectorId === s)
+      activeEfforts.some((e) => e.sectorId === s)
   );
-  if (activeSectors.length > 0) {
+  if (summActiveSectors.length > 0) {
     children.push(emptyLine(60));
     children.push(subHeading("Betrokken sectoren"));
-    activeSectors.forEach((s) => {
+    summActiveSectors.forEach((s) => {
       const sectorBenefits = session.benefits.filter((b) => b.sectorId === s).length;
-      const sectorEfforts = session.efforts.filter((e) => e.sectorId === s).length;
-      children.push(bullet(`${s}: ${sectorBenefits} baten, ${sectorEfforts} inspanningen`));
+      const sectorEffortsCount = activeEfforts.filter((e) => e.sectorId === s).length;
+      children.push(bullet(`${s}: ${sectorBenefits} baten, ${sectorEffortsCount} inspanningen`));
     });
   }
 
   return { properties: {}, children };
 }
 
-function overviewSection(session: DINSession) {
+export function overviewSection(session: DINSession, numState: NumberingState) {
   const children: (Paragraph | Table)[] = [];
 
   // Visie
   if (session.vision) {
-    children.push(heading("Programmavisie", HeadingLevel.HEADING_1));
+    children.push(numberedHeading("Programmavisie", "h1", numState));
     if (session.vision.beknopt) {
+      children.push(numberedHeading("Beknopt", "h2", numState));
       children.push(bodyText(session.vision.beknopt, { bold: true, size: 24 }));
     }
     if (session.vision.uitgebreid) {
-      children.push(emptyLine(60));
+      children.push(numberedHeading("Uitgebreid", "h2", numState));
       children.push(bodyText(session.vision.uitgebreid));
     }
   }
 
   // Scope
   if (session.scope) {
-    children.push(heading("Scope", HeadingLevel.HEADING_1));
+    children.push(numberedHeading("Scope", "h1", numState));
     if (session.scope.inScope.length > 0) {
-      children.push(subHeading("Binnen scope"));
+      children.push(numberedHeading("Binnen scope", "h2", numState));
       session.scope.inScope.forEach((s) => children.push(bullet(s)));
     }
     if (session.scope.outScope.length > 0) {
-      children.push(emptyLine(60));
-      children.push(subHeading("Buiten scope"));
+      children.push(numberedHeading("Buiten scope", "h2", numState));
       session.scope.outScope.forEach((s) => children.push(bullet(s)));
     }
   }
 
   // Doelen
-  children.push(heading("Programmadoelen", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Programmadoelen", "h1", numState));
+
+  // Doelen met data
+  const goalIdsWithBenefits = new Set(session.goalBenefitMaps.map((m) => m.goalId));
+
   session.goals
     .sort((a, b) => a.rank - b.rank)
     .forEach((g) => {
@@ -457,16 +519,20 @@ function overviewSection(session: DINSession) {
       if (g.description) {
         children.push(bodyText(g.description, { italic: true, color: TEXT_SECONDARY, size: 20 }));
       }
+      // Doelen zonder baten markeren als volgende cyclus
+      if (!goalIdsWithBenefits.has(g.id)) {
+        children.push(bodyText("Uitwerking volgt in volgende cyclus", { italic: true, color: TEXT_MUTED }));
+      }
       children.push(emptyLine(40));
     });
 
   return { properties: {}, children };
 }
 
-function goalDINSections(session: DINSession) {
+function goalDINSections(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("DIN-Netwerk per Doel", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("DIN-Netwerk per Doel", "h1", numState));
   children.push(bodyText(
     "Per programmadoel wordt de volledige DIN-keten getoond: welke baten worden nagestreefd, " +
     "welke vermogens daarvoor nodig zijn, en welke inspanningen die vermogens opbouwen.",
@@ -474,7 +540,14 @@ function goalDINSections(session: DINSession) {
   ));
   children.push(emptyLine());
 
-  const activeSectors = SECTORS.filter(
+  // Build an activeSession with only non-consolidated caps/efforts for buildChainsForSector
+  const activeSession: DINSession = {
+    ...session,
+    capabilities: activeCaps,
+    efforts: activeEfforts,
+  };
+
+  const dinActiveSectors = SECTORS.filter(
     (s) => session.benefits.some((b) => b.sectorId === s)
   );
 
@@ -484,11 +557,11 @@ function goalDINSections(session: DINSession) {
       const goalHasData = session.benefits.some((b) => b.goalId === goal.id);
       if (!goalHasData) return;
 
-      children.push(heading(`Doel ${goal.rank}: ${goal.name}`, HeadingLevel.HEADING_2));
+      children.push(numberedHeading(`Doel ${goal.rank}: ${goal.name}`, "h2", numState));
 
       // Per sector: expliciete DIN-keten via buildChainsForSector
-      activeSectors.forEach((sector) => {
-        const chainResult = buildChainsForSector(session, goal.id, sector);
+      dinActiveSectors.forEach((sector) => {
+        const chainResult = buildChainsForSector(activeSession, goal.id, sector);
         if (chainResult.chains.length === 0 && chainResult.unlinkedCaps.length === 0) return;
 
         children.push(
@@ -540,19 +613,28 @@ function goalDINSections(session: DINSession) {
           // Vermogens + Inspanningen
           chain.links.forEach((link) => {
             const capLabel = link.capability.title || link.capability.description || "\u2014";
+            const isSharedCap = (link.capability.relatedSectors?.length || 0) > 1;
+            const sharedCapSuffix = isSharedCap ? " (gedeeld)" : "";
             const levelInfo = link.capability.currentLevel && link.capability.targetLevel
               ? ` (niveau: ${link.capability.currentLevel}/5 \u2192 ${link.capability.targetLevel}/5)`
               : "";
+
+            const capChildren: TextRun[] = [
+              new TextRun({ text: "VERM  ", bold: true, size: 16, color: CITO_BLUE, font: "Calibri" }),
+              new TextRun({ text: capLabel, bold: true, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
+            ];
+            if (isSharedCap) {
+              capChildren.push(new TextRun({ text: sharedCapSuffix, italics: true, size: 18, color: TEXT_MUTED, font: "Calibri" }));
+            }
+            if (levelInfo) {
+              capChildren.push(new TextRun({ text: levelInfo, size: 18, color: TEXT_MUTED, font: "Calibri" }));
+            }
 
             children.push(
               new Paragraph({
                 spacing: { before: 40, after: 30 },
                 indent: { left: 600 },
-                children: [
-                  new TextRun({ text: "VERM  ", bold: true, size: 16, color: CITO_BLUE, font: "Calibri" }),
-                  new TextRun({ text: capLabel, bold: true, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
-                  new TextRun({ text: levelInfo, size: 18, color: TEXT_MUTED, font: "Calibri" }),
-                ],
+                children: capChildren,
               })
             );
 
@@ -613,10 +695,10 @@ function goalDINSections(session: DINSession) {
   return { properties: {}, children };
 }
 
-function crossAnalysisSection(session: DINSession) {
+function crossAnalysisSection(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Cross-analyse", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Cross-analyse", "h1", numState));
   children.push(bodyText(
     "De cross-analyse identificeert synergieën tussen sectoren en beoordeelt de balans " +
     "over de vier inspanningsdomeinen (Mens, Processen, Data & Systemen, Cultuur).",
@@ -624,16 +706,16 @@ function crossAnalysisSection(session: DINSession) {
   ));
   children.push(emptyLine());
 
-  // Gedeelde vermogens
-  const shared = findSharedCapabilities(session.capabilities);
+  // Gedeelde vermogens (use active caps only)
+  const shared = findSharedCapabilities(activeCaps);
   if (shared.size > 0) {
-    children.push(heading("Synergieën \u2014 Gedeelde vermogens", HeadingLevel.HEADING_2));
+    children.push(numberedHeading("Synergieën \u2014 Gedeelde vermogens", "h2", numState));
     children.push(bodyText(
       "Onderstaande vermogens komen in meerdere sectoren terug en bieden kansen voor gedeelde inspanningen.",
       { color: TEXT_SECONDARY, size: 20 }
     ));
     for (const [capId, sectors] of shared) {
-      const cap = session.capabilities.find((c) => c.id === capId);
+      const cap = activeCaps.find((c) => c.id === capId);
       if (cap) {
         children.push(
           bullet(`${cap.title || cap.description} \u2014 Sectoren: ${sectors.join(", ")}`)
@@ -643,11 +725,11 @@ function crossAnalysisSection(session: DINSession) {
     children.push(emptyLine());
   }
 
-  // Domeinbalans
-  const balance = getDomainBalance(session.efforts);
+  // Domeinbalans (use active efforts only)
+  const balance = getDomainBalance(activeEfforts);
   const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
 
-  children.push(heading("Domeinbalans", HeadingLevel.HEADING_2));
+  children.push(numberedHeading("Domeinbalans", "h2", numState));
   children.push(bodyText(
     "Verdeling van inspanningen over de vier DIN-domeinen. Een evenwichtige verdeling " +
     "is essentieel voor duurzame verandering.",
@@ -693,27 +775,20 @@ function crossAnalysisSection(session: DINSession) {
   return { properties: {}, children };
 }
 
-function gapAnalysisSection(session: DINSession) {
-  const gaps = findGaps(
-    session.goals,
-    session.benefits,
-    session.capabilities,
-    session.efforts,
-    session.goalBenefitMaps,
-    session.benefitCapabilityMaps,
-    session.capabilityEffortMaps
-  );
+function gapAnalysisSection(session: DINSession, numState: NumberingState) {
+  const categorized = categorizeGaps(session);
 
-  const goalsWithout = gaps.goalsWithoutBenefits.map((id) => session.goals.find((g) => g.id === id)).filter(Boolean);
-  const benefitsWithout = gaps.benefitsWithoutCapabilities.map((id) => session.benefits.find((b) => b.id === id)).filter(Boolean);
-  const capsWithout = gaps.capabilitiesWithoutEfforts.map((id) => session.capabilities.find((c) => c.id === id)).filter(Boolean);
+  const hasGaps =
+    categorized.volgendeCyclus.length > 0 ||
+    categorized.echteGapsGoals.length > 0 ||
+    categorized.benefitsWithoutCaps.length > 0 ||
+    categorized.capsWithoutEfforts.length > 0;
 
-  const hasGaps = goalsWithout.length > 0 || benefitsWithout.length > 0 || capsWithout.length > 0;
   if (!hasGaps) return null;
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Gap-analyse", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Gap-analyse", "h1", numState));
   children.push(bodyText(
     "Onderstaande breuken in de DIN-keten vragen aandacht. Een compleet netwerk " +
     "verbindt elk doel via baten en vermogens aan concrete inspanningen.",
@@ -721,33 +796,59 @@ function gapAnalysisSection(session: DINSession) {
   ));
   children.push(emptyLine());
 
-  if (goalsWithout.length > 0) {
-    children.push(subHeading(`Doelen zonder baten (${goalsWithout.length})`));
-    goalsWithout.forEach((g) => {
-      children.push(bullet(g!.name));
+  // Volgende cyclus: niet-alarmerend
+  if (categorized.volgendeCyclus.length > 0) {
+    children.push(numberedHeading("Volgende cyclus", "h2", numState));
+    children.push(bodyText(
+      "Deze doelen worden in een volgende cyclus uitgewerkt.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    categorized.volgendeCyclus.forEach((g) => {
+      children.push(bodyText(
+        `${g.name} \u2014 uitwerking volgt in volgende cyclus`,
+        { italic: true, color: TEXT_MUTED }
+      ));
     });
     children.push(emptyLine());
   }
 
-  if (benefitsWithout.length > 0) {
-    children.push(subHeading(`Baten zonder vermogens (${benefitsWithout.length})`));
-    benefitsWithout.forEach((b) => {
-      children.push(bullet(`[${b!.sectorId}] ${b!.title || b!.description}`));
-    });
-    children.push(emptyLine());
-  }
+  // Echte gaps: onvolledige ketens
+  const hasEchteGaps =
+    categorized.echteGapsGoals.length > 0 ||
+    categorized.benefitsWithoutCaps.length > 0 ||
+    categorized.capsWithoutEfforts.length > 0;
 
-  if (capsWithout.length > 0) {
-    children.push(subHeading(`Vermogens zonder inspanningen (${capsWithout.length})`));
-    capsWithout.forEach((c) => {
-      children.push(bullet(`[${c!.sectorId}] ${c!.title || c!.description}`));
-    });
+  if (hasEchteGaps) {
+    children.push(numberedHeading("Onvolledige ketens", "h2", numState));
+
+    if (categorized.echteGapsGoals.length > 0) {
+      children.push(subHeading(`Doelen zonder baten (${categorized.echteGapsGoals.length})`));
+      categorized.echteGapsGoals.forEach((g) => {
+        children.push(bullet(g.name));
+      });
+      children.push(emptyLine());
+    }
+
+    if (categorized.benefitsWithoutCaps.length > 0) {
+      children.push(subHeading(`Baten zonder vermogens (${categorized.benefitsWithoutCaps.length})`));
+      categorized.benefitsWithoutCaps.forEach((b) => {
+        if (b) children.push(bullet(`[${b.sectorId}] ${b.title || b.description}`));
+      });
+      children.push(emptyLine());
+    }
+
+    if (categorized.capsWithoutEfforts.length > 0) {
+      children.push(subHeading(`Vermogens zonder inspanningen (${categorized.capsWithoutEfforts.length})`));
+      categorized.capsWithoutEfforts.forEach((c) => {
+        if (c) children.push(bullet(`[${c.sectorId}] ${c.title || c.description}`));
+      });
+    }
   }
 
   return { properties: {}, children };
 }
 
-function hefboomSection(session: DINSession) {
+function hefboomSection(session: DINSession, numState: NumberingState) {
   const hefbomen = analyzeHefbomen(session);
 
   const multiSectorClusters = hefbomen.flatMap((h) => {
@@ -765,7 +866,7 @@ function hefboomSection(session: DINSession) {
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Hefboomwerking", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Hefboomwerking", "h1", numState));
   children.push(bodyText(
     "Baten die in meerdere sectoren terugkomen bieden hefboomwerking: " +
     "gedeelde inspanningen met breed effect.",
@@ -811,12 +912,12 @@ function hefboomSection(session: DINSession) {
   return { properties: {}, children };
 }
 
-function governanceSection(session: DINSession) {
+function governanceSection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
   if (session.benefits.length === 0) return null;
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Governance & Monitoring", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Governance & Monitoring", "h1", numState));
   children.push(bodyText(
     "Overzicht van verantwoordelijkheden voor batenrealisatie, meetmomenten en goedkeuringsstatus " +
     "van inspanningen.",
@@ -904,8 +1005,8 @@ function governanceSection(session: DINSession) {
     children.push(emptyLine());
   }
 
-  // Goedkeuringsstatus
-  const approvedEfforts = session.efforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel");
+  // Goedkeuringsstatus (use active efforts only)
+  const approvedEfforts = activeEfforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel");
   if (approvedEfforts.length > 0) {
     children.push(subHeading("Goedkeuringsstatus inspanningen"));
     approvedEfforts.forEach((e) => {
@@ -918,12 +1019,12 @@ function governanceSection(session: DINSession) {
   return { properties: {}, children };
 }
 
-function externalProjectsSection(session: DINSession) {
+function externalProjectsSection(session: DINSession, numState: NumberingState) {
   if (!session.externalProjects || session.externalProjects.length === 0) return null;
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Lopende projecten", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Lopende projecten", "h1", numState));
   children.push(bodyText(
     "Bestaande projecten die aansluiten bij het programma en mogelijk bijdragen aan DIN-vermogens.",
     { color: TEXT_SECONDARY, size: 20 }
@@ -964,10 +1065,10 @@ function externalProjectsSection(session: DINSession) {
   return { properties: {}, children };
 }
 
-function sectorSection(session: DINSession, sector: SectorName) {
+function sectorSection(session: DINSession, sector: SectorName, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading(`Sectorplan: ${sector}`, HeadingLevel.HEADING_1));
+  children.push(numberedHeading(`Sectorplan: ${sector}`, "h1", numState));
 
   // Origineel sectorplan (beknopt)
   const plan = session.sectorPlans.find((s) => s.sectorName === sector);
@@ -1029,8 +1130,8 @@ function sectorSection(session: DINSession, sector: SectorName) {
     children.push(emptyLine());
   }
 
-  // Vermogens
-  const sectorCaps = session.capabilities.filter((c) => c.sectorId === sector);
+  // Vermogens (use active caps only)
+  const sectorCaps = activeCaps.filter((c) => c.sectorId === sector);
   if (sectorCaps.length > 0) {
     children.push(subHeading("Vermogens"));
 
@@ -1038,7 +1139,10 @@ function sectorSection(session: DINSession, sector: SectorName) {
       (c) =>
         new TableRow({
           children: [
-            styledCell(c.title || c.description || "\u2014", { bold: true, width: 22 }),
+            styledCell(
+              (c.title || c.description || "\u2014") + ((c.relatedSectors?.length || 0) > 1 ? " (gedeeld)" : ""),
+              { bold: true, width: 22 }
+            ),
             styledCell(c.profiel?.eigenaar || "\u2014", { width: 14 }),
             styledCell(
               c.currentLevel && c.targetLevel
@@ -1072,8 +1176,8 @@ function sectorSection(session: DINSession, sector: SectorName) {
     children.push(emptyLine());
   }
 
-  // Inspanningen per domein — met randvoorwaarden
-  const sectorEfforts = session.efforts.filter((e) => e.sectorId === sector);
+  // Inspanningen per domein — met randvoorwaarden (use active efforts only)
+  const sectorEfforts = activeEfforts.filter((e) => e.sectorId === sector);
   if (sectorEfforts.length > 0) {
     children.push(subHeading("Inspanningen"));
 
@@ -1134,13 +1238,47 @@ function sectorSection(session: DINSession, sector: SectorName) {
     });
   }
 
+  // Integratie-advies
+  const rawAdvies = session.integratieAdvies?.[sector];
+  if (rawAdvies && typeof rawAdvies !== "string") {
+    const advies = rawAdvies as IntegratieAdviesResult;
+    children.push(subHeading("Integratie-advies"));
+
+    const adviesKeys: { key: keyof IntegratieAdviesResult; label: string }[] = [
+      { key: "aansluiting", label: "Aansluiting op KiB-doelen" },
+      { key: "verrijking", label: "Verrijking" },
+      { key: "aanvullingen", label: "Aanvullingen" },
+      { key: "quickWins", label: "Quick wins" },
+      { key: "aandachtspunten", label: "Aandachtspunten" },
+    ];
+
+    adviesKeys.forEach(({ key, label }) => {
+      const item = advies[key];
+      if (!item || typeof item === "string") return;
+      if (!("punten" in item) || item.punten.length === 0) return;
+
+      children.push(
+        new Paragraph({
+          spacing: { before: 120, after: 60 },
+          children: [
+            new TextRun({ text: label, bold: true, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
+          ],
+        })
+      );
+      item.punten.forEach((punt) => {
+        children.push(bullet(punt, 600));
+      });
+    });
+    children.push(emptyLine());
+  }
+
   return { properties: {}, children };
 }
 
-function roadmapSection(session: DINSession) {
+export function roadmapSection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(heading("Roadmap", HeadingLevel.HEADING_1));
+  children.push(numberedHeading("Roadmap", "h1", numState));
   children.push(bodyText(
     "Overzicht van alle inspanningen gepland per kwartaal, georganiseerd per sector en domein.",
     { color: TEXT_SECONDARY, size: 20 }
@@ -1148,17 +1286,17 @@ function roadmapSection(session: DINSession) {
   children.push(emptyLine());
 
   const quarters = Array.from(
-    new Set(session.efforts.filter((e) => e.quarter).map((e) => e.quarter!))
+    new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))
   ).sort();
 
   if (quarters.length === 0) {
-    children.push(bodyText("Nog geen inspanningen ingepland op kwartalen.", { italic: true, color: TEXT_MUTED }));
+    children.push(bodyText("Kwartaalplanning wordt in een volgende cyclus bepaald.", { italic: true, color: TEXT_MUTED }));
     return { properties: {}, children };
   }
 
   quarters.forEach((q) => {
-    children.push(heading(q, HeadingLevel.HEADING_2));
-    const qEfforts = session.efforts.filter((e) => e.quarter === q);
+    children.push(numberedHeading(q, "h2", numState));
+    const qEfforts = activeEfforts.filter((e) => e.quarter === q);
 
     const dataRows = qEfforts.map(
       (e) =>
@@ -1192,6 +1330,170 @@ function roadmapSection(session: DINSession) {
     );
     children.push(emptyLine());
   });
+
+  return { properties: {}, children };
+}
+
+// --- DIN Tabel-flow visualisatie ---
+
+export function dinFlowTableSection(
+  session: DINSession,
+  numState: NumberingState,
+  activeCaps: DINCapability[],
+  activeEfforts: DINEffort[]
+) {
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(numberedHeading("DIN-Overzicht (Tabel-flow)", "h1", numState));
+  children.push(bodyText(
+    "Per doel per sector wordt de DIN-keten weergegeven in tabelvorm: " +
+    "Baat \u2192 Vermogen \u2192 Inspanning.",
+    { color: TEXT_SECONDARY, size: 20 }
+  ));
+  children.push(emptyLine());
+
+  const activeSession: DINSession = {
+    ...session,
+    capabilities: activeCaps,
+    efforts: activeEfforts,
+  };
+
+  const flowActiveSectors = SECTORS.filter(
+    (s) => session.benefits.some((b) => b.sectorId === s)
+  );
+
+  session.goals
+    .sort((a, b) => a.rank - b.rank)
+    .forEach((goal) => {
+      children.push(numberedHeading(`Doel ${goal.rank}: ${goal.name}`, "h2", numState));
+
+      flowActiveSectors.forEach((sector) => {
+        const chainResult = buildChainsForSector(activeSession, goal.id, sector);
+        if (chainResult.chains.length === 0) {
+          // Check if this goal has no benefits for this sector
+          const goalIdsWithBenefits = new Set(session.goalBenefitMaps.map((m) => m.goalId));
+          if (!goalIdsWithBenefits.has(goal.id)) {
+            children.push(bodyText(
+              `Dit doel is nog niet uitgewerkt voor sector ${sector}.`,
+              { italic: true, color: TEXT_MUTED }
+            ));
+          }
+          return;
+        }
+
+        // Sector label
+        children.push(
+          new Paragraph({
+            spacing: { before: 160, after: 80 },
+            children: [
+              new TextRun({ text: `Sector ${sector}`, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
+            ],
+          })
+        );
+
+        // Build table rows
+        const tableRows: TableRow[] = [];
+
+        // Header row
+        tableRows.push(
+          new TableRow({
+            children: [
+              headerCell("Baat", 30),
+              styledCell("\u2192", { width: 4, color: TEXT_MUTED, bold: true }),
+              headerCell("Vermogen", 28),
+              styledCell("\u2192", { width: 4, color: TEXT_MUTED, bold: true }),
+              headerCell("Inspanning", 34),
+            ],
+          })
+        );
+
+        chainResult.chains.forEach((chain) => {
+          const baatLabel = chain.benefit.title || chain.benefit.description || "\u2014";
+          let isFirstRow = true;
+
+          if (chain.links.length === 0) {
+            // Baat without capabilities
+            tableRows.push(
+              new TableRow({
+                children: [
+                  styledCell(baatLabel, { bold: true, width: 30, shading: "E8F0FE" }),
+                  styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                  styledCell("\u2014", { width: 28, color: TEXT_MUTED }),
+                  styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                  styledCell("\u2014", { width: 34, color: TEXT_MUTED }),
+                ],
+              })
+            );
+          } else {
+            chain.links.forEach((link) => {
+              const capLabel = link.capability.title || link.capability.description || "\u2014";
+              const isSharedCap = (link.capability.relatedSectors?.length || 0) > 1;
+              const capText = isSharedCap ? `${capLabel} (gedeeld)` : capLabel;
+              const capShading = isSharedCap ? CITO_BLUE_LIGHT : undefined;
+              let isFirstEffort = true;
+
+              if (link.efforts.length === 0) {
+                tableRows.push(
+                  new TableRow({
+                    children: [
+                      styledCell(isFirstRow ? baatLabel : "", {
+                        bold: isFirstRow,
+                        width: 30,
+                        shading: isFirstRow ? "E8F0FE" : undefined,
+                      }),
+                      styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                      styledCell(capText, { width: 28, shading: capShading }),
+                      styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                      styledCell("\u2014", { width: 34, color: TEXT_MUTED }),
+                    ],
+                  })
+                );
+                isFirstRow = false;
+              } else {
+                link.efforts.forEach((effort) => {
+                  const domLabel = DOMAIN_LABELS[effort.domain];
+                  const efLabel = `${effort.title || effort.description || "\u2014"} [${domLabel}]`;
+                  const efShading = DOMAIN_COLORS[effort.domain];
+
+                  tableRows.push(
+                    new TableRow({
+                      children: [
+                        styledCell(isFirstRow ? baatLabel : "", {
+                          bold: isFirstRow,
+                          width: 30,
+                          shading: isFirstRow ? "E8F0FE" : undefined,
+                        }),
+                        styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                        styledCell(isFirstEffort ? capText : "", {
+                          width: 28,
+                          shading: isFirstEffort ? capShading : undefined,
+                        }),
+                        styledCell("\u2192", { width: 4, color: TEXT_MUTED }),
+                        styledCell(efLabel, { width: 34, shading: efShading }),
+                      ],
+                    })
+                  );
+                  isFirstRow = false;
+                  isFirstEffort = false;
+                });
+              }
+            });
+          }
+        });
+
+        if (tableRows.length > 1) {
+          children.push(
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: tableRows,
+            })
+          );
+          children.push(emptyLine());
+        }
+      });
+
+      children.push(horizontalRule());
+    });
 
   return { properties: {}, children };
 }
@@ -1457,22 +1759,12 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
     },
   };
 
-  const sectorSections = SECTORS.filter((sector) => {
-    return (
-      session.benefits.some((b) => b.sectorId === sector) ||
-      session.capabilities.some((c) => c.sectorId === sector) ||
-      session.efforts.some((e) => e.sectorId === sector) ||
-      session.sectorPlans.some((s) => s.sectorName === sector)
-    );
-  }).map((sector) => {
-    const section = sectorSection(session, sector);
-    return {
-      ...section,
-      properties: { ...pageProps },
-      headers: { default: header },
-      footers: { default: footer },
-    };
-  });
+  // Consolidation-aware active items
+  const activeCaps = getActiveCaps(session);
+  const activeEfforts = getActiveEfforts(session);
+
+  // Numbering state -- all content sections advance this
+  const numState = createNumberingState();
 
   // Voeg headers/footers toe aan alle content-secties (behalve titelpagina)
   const addHeaderFooter = (section: { properties: Record<string, unknown>; children: (Paragraph | Table)[] }) => ({
@@ -1482,16 +1774,58 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
     footers: { default: footer },
   });
 
-  // Optionele secties (retourneren null als data ontbreekt)
-  const optionalSections = [
-    gapAnalysisSection(session),
-    hefboomSection(session),
-    governanceSection(session),
-    externalProjectsSection(session),
-  ]
-    .filter((s): s is { properties: Record<string, unknown>; children: (Paragraph | Table)[] } => s !== null)
-    .map(addHeaderFooter);
+  type SectionType = { properties: Record<string, unknown>; children: (Paragraph | Table)[] };
 
+  // Build all content sections first (advancing numState), then build TOC from tocEntries
+  const contentSections: SectionType[] = [];
+
+  // 1. Samenvatting
+  contentSections.push(executiveSummarySection(session, numState, activeEfforts));
+
+  // 2. Overzicht (Visie, Scope, Doelen)
+  contentSections.push(overviewSection(session, numState));
+
+  // 3. DIN-Netwerk per Doel
+  contentSections.push(goalDINSections(session, numState, activeCaps, activeEfforts));
+
+  // 4. DIN-Overzicht (Tabel-flow)
+  contentSections.push(dinFlowTableSection(session, numState, activeCaps, activeEfforts));
+
+  // 5. Cross-analyse
+  contentSections.push(crossAnalysisSection(session, numState, activeCaps, activeEfforts));
+
+  // 6-9. Optionele secties
+  const gapSection = gapAnalysisSection(session, numState);
+  if (gapSection) contentSections.push(gapSection);
+
+  const hefboom = hefboomSection(session, numState);
+  if (hefboom) contentSections.push(hefboom);
+
+  const governance = governanceSection(session, numState, activeEfforts);
+  if (governance) contentSections.push(governance);
+
+  const external = externalProjectsSection(session, numState);
+  if (external) contentSections.push(external);
+
+  // 10+. Sector sections
+  SECTORS.filter((sector) => {
+    return (
+      session.benefits.some((b) => b.sectorId === sector) ||
+      activeCaps.some((c) => c.sectorId === sector) ||
+      activeEfforts.some((e) => e.sectorId === sector) ||
+      session.sectorPlans.some((s) => s.sectorName === sector)
+    );
+  }).forEach((sector) => {
+    contentSections.push(sectorSection(session, sector, numState, activeCaps, activeEfforts));
+  });
+
+  // Last: Roadmap
+  contentSections.push(roadmapSection(session, numState, activeEfforts));
+
+  // Now build TOC from accumulated tocEntries
+  const tocSection = tableOfContentsSection(numState);
+
+  // Assemble final document: title page + TOC + content sections
   const doc = new Document({
     styles: {
       default: {
@@ -1502,14 +1836,8 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
     },
     sections: [
       titlePageSection(session),
-      addHeaderFooter(tableOfContentsSection(session)),
-      addHeaderFooter(executiveSummarySection(session)),
-      addHeaderFooter(overviewSection(session)),
-      addHeaderFooter(goalDINSections(session)),
-      addHeaderFooter(crossAnalysisSection(session)),
-      ...optionalSections,
-      ...sectorSections,
-      addHeaderFooter(roadmapSection(session)),
+      addHeaderFooter(tocSection),
+      ...contentSections.map(addHeaderFooter),
     ],
   });
 
