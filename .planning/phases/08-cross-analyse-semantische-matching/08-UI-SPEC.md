@@ -41,16 +41,18 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Page-level vertical rhythm |
 | 3xl | 64px | Not used in this phase |
 
-Exceptions: Consolidation action buttons use 44px minimum touch target height for accessibility on merge/undo actions.
+**Component-level minimum constraint (not a spacing token):** Consolidation action buttons ("Combineren", "Afstemmen", "Apart houden", "Ongedaan maken") enforce a 44px minimum touch target height via `min-h-[44px]`. This is an accessibility constraint on interactive elements, not a layout spacing value, and does not appear in the spacing scale.
 
 ---
 
 ## Typography
 
+Declared weights: 400 (regular) and 600 (semibold). Maximum 2 weights enforced.
+
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 (regular) | 1.5 | `text-sm` |
-| Label | 10px | 500 (medium) | 1.4 | `text-[10px] font-medium` |
+| Label | 10px | 600 (semibold) | 1.4 | `text-[10px] font-semibold` |
 | Heading | 14px | 600 (semibold) | 1.3 | `text-sm font-semibold` |
 | Display | 18px | 600 (semibold) | 1.2 | `text-lg font-semibold` |
 
@@ -116,6 +118,20 @@ Each analysis section uses a distinct border/header color. Phase 8 adds two new 
 
 ---
 
+## Visual Focal Points
+
+### Pre-analysis state (before AI has run)
+
+When the user first lands on the Cross-Analyse step and no analysis results are available yet, the primary visual anchor is the **"AI Cross-analyse uitvoeren" CTA button**. This button uses `bg-cito-blue text-white` and is the only accent-colored element on the page in this state. The stats strip above it provides secondary orientation (counts of Doelen, Baten, Vermogens, Inspanningen) but the CTA is the clear action focal point.
+
+| Screen State | Primary Focal Point | Secondary Elements |
+|--------------|--------------------|--------------------|
+| Pre-analysis (no results) | "AI Cross-analyse uitvoeren" CTA button (accent bg, center-positioned) | Stats strip showing DIN item counts |
+| Post-analysis (results visible) | First analysis section (Synergie) | Section headers with colored icons guide scanning |
+| Empty state (no DIN data) | Empty state heading "Nog geen DIN-data beschikbaar" | Guidance text directing user to DIN-Mapping step |
+
+---
+
 ## Copywriting Contract
 
 All copy in Dutch (nl-NL) per CLAUDE.md constraint.
@@ -129,6 +145,8 @@ All copy in Dutch (nl-NL) per CLAUDE.md constraint.
 | Empty state body | "Vul eerst het DIN-netwerk in via de DIN-Mapping stap om een cross-analyse uit te voeren." (existing, unchanged) |
 | Error state | "Analyse mislukt" heading + specific error message + "Geef extra instructies mee voor een nieuwe poging" retry prompt (existing pattern, unchanged) |
 | Consolidation confirmation | "Samenvoegen": "{N} items worden samengevoegd tot een gedeeld item dat gekoppeld wordt aan {sector-list}. Originele items blijven bewaard." (inline explanation, no modal) |
+| Confirmation confirm button | "Bevestigen" |
+| Confirmation cancel button | "Toch niet samenvoegen" |
 | Undo confirmation | No confirmation needed -- undo is non-destructive (removes consolidated flag) |
 
 ### New Copywriting Elements for Phase 8
@@ -181,9 +199,9 @@ All copy in Dutch (nl-NL) per CLAUDE.md constraint.
 | `InspanningClusterSection` | Renders AI-identified effort clusters with consolidation actions | Indigo-bordered section card. Same internal structure as VermogenClusterSection. |
 | `ProjectMatchingSection` | Replaces ExterneProjectenSection with richer match/no-match display | Cyan-bordered section card (reuses existing color). Each project shows: name, match status badge (green/gray), matched vermogen/baat name, AI advice. |
 | `ClusterCard` | Reusable card for a single cluster (vermogen or inspanning) | White card with left border accent (teal for vermogens, indigo for inspanningen). Contains: title, matched items list, sector badges, AI advice, action button row. |
-| `ConsolidatedBadge` | Badge indicating an item has been consolidated | `bg-teal-100 text-teal-700 border border-teal-200 rounded px-1.5 py-0.5 text-[10px] font-medium` with a link icon. |
-| `ConsolidationActionBar` | Row of action buttons for a cluster | Flex row with 3 buttons: "Combineren" (primary, cito-blue bg), "Afstemmen" (secondary, gray border), "Apart houden" (ghost, text only). |
-| `ChainIndicator` | Shows which sector-baten a consolidated item contributes to | Horizontal flex of colored dots + baat names, grouped by sector. Pattern: `[SectorBadge] baat-title` repeated per connected baat. |
+| `ConsolidatedBadge` | Badge indicating an item has been consolidated | `bg-teal-100 text-teal-700 border border-teal-200 rounded px-1.5 py-0.5 text-[10px] font-semibold` with a link icon. |
+| `ConsolidationActionBar` | Row of action buttons for a cluster | Flex row with 3 buttons: "Combineren" (primary, cito-blue bg), "Afstemmen" (secondary, gray border), "Apart houden" (ghost, text only). All buttons enforce `min-h-[44px]` touch target. |
+| `ChainIndicator` | Shows which sector-baten a consolidated item contributes to | Horizontal flex of colored dots + baat names, grouped by sector. Pattern: `[SectorBadge] baat-titel` repeated per connected baat. |
 
 ---
 
@@ -203,7 +221,7 @@ All copy in Dutch (nl-NL) per CLAUDE.md constraint.
 | Step | User Action | System Response |
 |------|-------------|-----------------|
 | 1 | Reviews a cluster in VermogenClusterSection or InspanningClusterSection | Sees matched items, sector badges, AI advice, and recommended action. |
-| 2 | Clicks "Combineren" on a cluster | Inline confirmation text appears below the button: "{N} items worden samengevoegd tot een gedeeld item dat gekoppeld wordt aan {sector-list}. Originele items blijven bewaard." + "Bevestigen" / "Annuleren" buttons. |
+| 2 | Clicks "Combineren" on a cluster | Inline confirmation text appears below the button: "{N} items worden samengevoegd tot een gedeeld item dat gekoppeld wordt aan {sector-list}. Originele items blijven bewaard." + "Bevestigen" / "Toch niet samenvoegen" buttons. |
 | 3 | Clicks "Bevestigen" | Original items get `consolidated: true` flag + `consolidatedInto` link to new shared item. New shared item created with multi-sector mappings. Toast: "Items samengevoegd". ClusterCard collapses to a single-line consolidated summary. |
 | 4 | Clicks "Afstemmen" on a cluster | No data mutation. AI advice badge changes to "Afgestemd" (visual acknowledgement). Cluster card gets a subtle gray overlay to indicate it has been reviewed. |
 | 5 | Clicks "Apart houden" on a cluster | No data mutation. AI advice badge changes to "Apart gehouden". Cluster card gets a subtle gray overlay. |
@@ -276,14 +294,16 @@ The step renders sections in this order (top to bottom):
 
 ### ConsolidationActionBar Button Styles
 
+All consolidation buttons enforce `min-h-[44px]` for accessibility touch targets.
+
 | Button | Style |
 |--------|-------|
-| Combineren (primary) | `px-3 py-1.5 bg-cito-blue text-white rounded-lg text-xs font-medium hover:bg-cito-blue-light transition-colors` |
-| Afstemmen (secondary) | `px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors` |
-| Apart houden (ghost) | `px-3 py-1.5 text-gray-500 text-xs font-medium hover:text-gray-700 transition-colors` |
-| Ongedaan maken | `px-3 py-1.5 text-teal-600 text-xs font-medium hover:text-teal-800 underline transition-colors` |
-| Bevestigen (confirm) | `px-3 py-1.5 bg-cito-blue text-white rounded-lg text-xs font-medium` |
-| Annuleren (cancel) | `px-3 py-1.5 text-gray-500 text-xs font-medium` |
+| Combineren (primary) | `px-3 min-h-[44px] bg-cito-blue text-white rounded-lg text-xs font-semibold hover:bg-cito-blue-light transition-colors` |
+| Afstemmen (secondary) | `px-3 min-h-[44px] border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors` |
+| Apart houden (ghost) | `px-3 min-h-[44px] text-gray-500 text-xs font-semibold hover:text-gray-700 transition-colors` |
+| Ongedaan maken | `px-3 min-h-[44px] text-teal-600 text-xs font-semibold hover:text-teal-800 underline transition-colors` |
+| Bevestigen (confirm) | `px-3 min-h-[44px] bg-cito-blue text-white rounded-lg text-xs font-semibold` |
+| Toch niet samenvoegen (cancel) | `px-3 min-h-[44px] text-gray-500 text-xs font-semibold` |
 
 ---
 
