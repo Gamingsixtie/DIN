@@ -54,11 +54,11 @@ Exceptions: none
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 (regular) | 1.5 | `text-sm` |
-| Label | 10px | 500 (medium) | 1.4 | `text-[10px] font-medium` |
+| Label | 10px | 400 (regular) | 1.4 | `text-[10px]` |
 | Heading | 14px | 600 (semibold) | 1.3 | `text-sm font-semibold` |
 | Display | 18px | 600 (semibold) | 1.2 | `text-lg font-semibold` |
 
-**Source:** Carried forward from Phase 8 UI-SPEC. No typography changes in this phase.
+**Source:** Carried forward from Phase 8 UI-SPEC. Label weight corrected from 500 to 400 to stay within 2-weight maximum (400 regular + 600 semibold).
 
 ---
 
