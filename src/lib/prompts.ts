@@ -48,14 +48,6 @@ export const CROSS_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (
 
 Analyseer de complete set DIN-netwerken over alle sectoren heen. Identificeer patronen, risico's en kansen.
 
-Identificeer SEMANTISCH vergelijkbare vermogens en inspanningen over sectoren heen -- niet alleen exacte woordmatch, maar ook conceptueel gelijke items die anders geformuleerd zijn. Kijk naar de onderliggende intentie en het beoogde effect, niet alleen naar de letterlijke tekst.
-
-Baten worden NIET gematcht of samengevoegd. Baten zijn per sector verschillend -- dat is methodisch correct. Toon baten als context bij geconsolideerde vermogens/inspanningen om de hefboomwerking zichtbaar te maken.
-
-Koppel lopende projecten aan vermogens of baten. Geef expliciet aan als een project NIET thuishoort in het DIN-netwerk.
-
-Gebruik de meegegeven id-velden om items te identificeren in je clusters. Retourneer altijd het exacte id van het item.
-
 Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst). Gebruik EXACT deze structuur:
 
 {
@@ -135,56 +127,6 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
         "advies": "Synergie benutten / Risico dubbel werk / Geen actie nodig"
       }
     ]
-  },
-  "vermogenClusters": {
-    "titel": "Gedeelde vermogens",
-    "toelichting": "Korte samenvatting van semantisch vergelijkbare vermogens over sectoren (1-2 zinnen)",
-    "items": [
-      {
-        "clusterTitel": "Beschrijvende naam van het gedeelde vermogen",
-        "items": [
-          {"id": "exact-uuid-van-het-vermogen", "beschrijving": "Vermogen beschrijving", "sector": "PO"},
-          {"id": "exact-uuid-van-het-vermogen", "beschrijving": "Vergelijkbaar vermogen", "sector": "VO"}
-        ],
-        "batenContext": [
-          {"baat": "Sector-specifieke baat waar dit vermogen aan bijdraagt", "sector": "PO"},
-          {"baat": "Andere sector-specifieke baat", "sector": "VO"}
-        ],
-        "advies": "Concreet consolidatie-advies: waarom combineren/afstemmen/apart houden",
-        "aanbeveling": "combineren"
-      }
-    ]
-  },
-  "inspanningClusters": {
-    "titel": "Gedeelde inspanningen",
-    "toelichting": "Korte samenvatting van semantisch vergelijkbare inspanningen over sectoren (1-2 zinnen)",
-    "items": [
-      {
-        "clusterTitel": "Beschrijvende naam van de gedeelde inspanning",
-        "items": [
-          {"id": "exact-uuid-van-de-inspanning", "beschrijving": "Inspanning beschrijving", "sector": "PO", "domein": "mens"},
-          {"id": "exact-uuid-van-de-inspanning", "beschrijving": "Vergelijkbare inspanning", "sector": "VO", "domein": "mens"}
-        ],
-        "batenContext": [
-          {"baat": "Baat waar deze inspanning (via vermogen) aan bijdraagt", "sector": "PO"}
-        ],
-        "advies": "Concreet consolidatie-advies",
-        "aanbeveling": "combineren"
-      }
-    ]
-  },
-  "projectMatching": {
-    "titel": "Projectkoppeling",
-    "toelichting": "Korte samenvatting van de koppeling tussen lopende projecten en het DIN-netwerk (1-2 zinnen). Als er geen projecten zijn, schrijf dat op.",
-    "items": [
-      {
-        "project": "Naam van het project",
-        "heeftMatch": true,
-        "gekoppeldAan": "Naam van het vermogen of de baat",
-        "type": "vermogen",
-        "advies": "Concreet advies over hoe dit project bijdraagt"
-      }
-    ]
   }
 }
 
@@ -193,57 +135,50 @@ BELANGRIJK:
 - Per sectie minimaal 2-3 items (als die er zijn), maximaal 8
 - Prioriteit bij hefboomwerking: "hoog", "midden", of "laag"
 - Als er geen externe projecten zijn, geef een lege items-array
-- Clusters bevatten alleen items die bij MEERDERE sectoren terugkomen. Eenmalige items zijn geen cluster.
-- aanbeveling is altijd een van: "combineren", "afstemmen", of "apart_houden"
-- projectMatching.heeftMatch is false als een project NIET thuishoort in het DIN-netwerk
 - Antwoord in het Nederlands`;
 
-export const PROGRAMMAPLAN_PROMPT = `Je bent een ervaren programmamanager die een professioneel programmaplan schrijft op basis van DIN-data (Doelen-Inspanningennetwerk).
+export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
-Schrijf een samenhangend, leesbaar programmaplan — GEEN opsomming van ruwe data, maar een doorlopend verhaal dat geschikt is voor directie en stakeholders.
+Je krijgt:
+- De KiB-doelen (gezamenlijke programmadoelen)
+- Het sectorplan van een specifieke sector
+- De huidige DIN-invulling (baten, vermogens, inspanningen) voor deze sector
+- Lopende projecten BUITEN het programma die relevant kunnen zijn
 
-STRUCTUUR (gebruik precies deze kopjes):
+Analyseer de integratie en geef concreet advies in EXACT de volgende JSON-structuur.
+Neem in je advies ook de externe projecten mee: waar overlappen ze met DIN-inspanningen? Waar kunnen ze benut worden? Waar is er risico op dubbel werk?
+Elke sectie heeft een "titel" (korte kop), "toelichting" (1-2 zinnen context), en "punten" (lijst van concrete, specifieke items — minimaal 2, maximaal 6 per sectie).
 
-# Managementsamenvatting
-Beknopte samenvatting van het programma in 3-5 alinea's: visie, belangrijkste doelen, verwachte baten, en de aanpak.
+Verwijs altijd naar specifieke items uit het sectorplan en de DIN-invulling. Wees concreet, niet abstract. Noem specifieke namen, activiteiten, of doelen.
 
-# Programmavisie en Context
-Beschrijf de visie en de aanleiding voor dit programma. Verwijs naar de KiB-uitkomsten.
-
-# Programmadoelen
-Beschrijf elk doel met toelichting waarom het belangrijk is en hoe het bijdraagt aan de visie.
-
-# Baten en Meetbare Resultaten
-Per sector: welke baten worden nagestreefd, hoe worden ze gemeten (indicatoren, eigenaren, streefwaarden). Gebruik tabellen met kolommen: Baat | Indicator | Huidige waarde | Doelwaarde | Eigenaar.
-
-# Benodigde Vermogens
-Welke organisatiecapaciteiten moeten worden ontwikkeld of versterkt? Groepeer per sector, beschrijf de huidige en gewenste situatie.
-
-# Inspanningenplan
-Per inspanningsdomein (Mens, Processen, Data & Systemen, Cultuur):
-- Welke concrete inspanningen worden ondernomen
-- Planning (kwartaal)
-- Wie is verantwoordelijk (opdrachtgever, inspanningsleider)
-- Verwachte resultaten
-Gebruik tabellen per domein.
-
-# Cross-sectorale Synergieën
-Beschrijf welke vermogens en inspanningen gedeeld worden tussen sectoren en welke kansen dat biedt.
-
-# Roadmap
-Tijdlijn per kwartaal: welke inspanningen starten wanneer, in welke volgorde.
-
-# Governance en Monitoring
-Hoe worden baten gemonitord? Welke governance-structuur is nodig?
-
-SCHRIJFREGELS:
-- Schrijf in het Nederlands, professioneel maar toegankelijk
-- Gebruik doorlopende tekst met structuur, NIET alleen bullet points
-- Tabellen voor overzichten (baten, inspanningen) — gebruik markdown tabelnotatie
-- Verbind de onderdelen: leg uit HOE inspanningen leiden tot vermogens, vermogens tot baten, baten tot doelen
-- Noem concrete namen, getallen en data uit de aangeleverde informatie
-- Dit document moet direct bruikbaar zijn als programmaplan voor de organisatie
-- GEEN JSON, GEEN code, GEEN technische opmaak — alleen professioneel Nederlands proza met markdown headings en tabellen`;
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst):
+{
+  "aansluiting": {
+    "titel": "Aansluiting op KiB-doelen",
+    "toelichting": "Welke elementen uit het sectorplan sluiten direct aan op de programmadoelen.",
+    "punten": ["Concreet punt 1 met verwijzing naar sectorplan-item en KiB-doel", "..."]
+  },
+  "verrijking": {
+    "titel": "Verrijking vanuit DIN",
+    "toelichting": "Welke baten, vermogens of inspanningen uit het DIN-netwerk versterken het sectorplan.",
+    "punten": ["Concreet punt met verwijzing naar DIN-item", "..."]
+  },
+  "aanvullingen": {
+    "titel": "Aanvullingen nodig",
+    "toelichting": "Welke onderdelen ontbreken nog in het sectorplan om de KiB-doelen volledig te realiseren.",
+    "punten": ["Ontbrekend punt 1", "..."]
+  },
+  "quickWins": {
+    "titel": "Quick wins",
+    "toelichting": "Bestaande activiteiten uit het sectorplan die direct kunnen bijdragen aan DIN-inspanningen.",
+    "punten": ["Quick win 1 met verwijzing naar sectorplan-activiteit", "..."]
+  },
+  "aandachtspunten": {
+    "titel": "Aandachtspunten",
+    "toelichting": "Conflicten, risico's of spanningen tussen sectorplan en DIN-netwerk.",
+    "punten": ["Aandachtspunt 1", "..."]
+  }
+}`;
 
 export const SECTORPLAN_ANALYSE_PROMPT = `Je bent een expert in programmamanagement volgens de DIN-methodiek (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 

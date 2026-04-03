@@ -2,11 +2,10 @@
 // Gebruikt Anthropic SDK server-side
 
 import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
 import {
   DIN_MAPPING_PROMPT,
   CROSS_ANALYSE_PROMPT,
-  PROGRAMMAPLAN_PROMPT,
+  SECTOR_INTEGRATIE_PROMPT,
   BATENPROFIEL_PROMPT,
   SECTORPLAN_ANALYSE_PROMPT,
   VERRIJKT_SECTORPLAN_PROMPT,
@@ -39,113 +38,6 @@ async function callClaude(
 
   const textBlock = response.content.find((b) => b.type === "text");
   return textBlock ? textBlock.text : "";
-}
-
-// ============================================================
-// AI Response parsing & validation (per D-01, D-02, D-03, D-04)
-// ============================================================
-
-export type ParseResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string; retryable: boolean };
-
-/**
- * Extract JSON uit een AI response string.
- * Verwijdert markdown code blocks en zoekt naar het eerste valide JSON object.
- */
-export function extractJSON(raw: string): string | null {
-  if (!raw || raw.trim().length === 0) return null;
-
-  const cleaned = raw
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```\s*$/i, "")
-    .trim();
-
-  // Probeer de hele cleaned string als JSON te parsen
-  try {
-    JSON.parse(cleaned);
-    return cleaned;
-  } catch { /* ga door naar regex fallback */ }
-
-  // Fallback: zoek naar JSON object in de tekst
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) {
-    try {
-      JSON.parse(match[0]);
-      return match[0];
-    } catch { /* geen valide JSON gevonden */ }
-  }
-
-  return null;
-}
-
-/**
- * Parse en valideer een AI response string tegen een Zod schema.
- * Retourneert ParseResult met data bij succes, of foutmelding met retryable flag.
- */
-export function parseAIResponse<T>(raw: string, schema: z.ZodType<T>): ParseResult<T> {
-  const jsonStr = extractJSON(raw);
-  if (!jsonStr) {
-    return {
-      success: false,
-      error: "Geen geldig JSON in AI-antwoord",
-      retryable: true,
-    };
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    return {
-      success: false,
-      error: "Ongeldig JSON formaat",
-      retryable: true,
-    };
-  }
-
-  const result = schema.safeParse(parsed);
-  if (!result.success) {
-    const issues = result.error.issues.map((i) => i.message).join(", ");
-    return {
-      success: false,
-      error: `Onverwachte AI-structuur: ${issues}`,
-      retryable: true,
-    };
-  }
-
-  return { success: true, data: result.data };
-}
-
-/**
- * Roep Claude aan met automatische JSON validatie en retry logica.
- * Bij ongeldige response: maximaal 2 stille retries (per D-01).
- * Na alle pogingen gefaald: foutmelding met context (per D-02).
- */
-export async function callClaudeWithValidation<T>(
-  schema: z.ZodType<T>,
-  systemPrompt: string,
-  userMessage: string,
-  options?: { maxTokens?: number; model?: string }
-): Promise<{ success: true; data: T } | { success: false; error: string }> {
-  const MAX_RETRIES = 2;
-  let lastError = "";
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const raw = await callClaude(
-      systemPrompt,
-      userMessage,
-      options?.maxTokens,
-      (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6") || "claude-sonnet-4-6"
-    );
-    const result = parseAIResponse(raw, schema);
-    if (result.success) {
-      return { success: true, data: result.data };
-    }
-    lastError = result.error;
-  }
-
-  return { success: false, error: lastError };
 }
 
 export async function generateDINMapping(
@@ -240,11 +132,143 @@ export async function generateCrossAnalyse(
   return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192, "claude-opus-4-6");
 }
 
-export async function generateProgrammaPlan(
-  sessionData: Record<string, unknown>
-): Promise<string> {
-  const userMessage = `Genereer een programmaplan op basis van:\n${JSON.stringify(sessionData, null, 2).slice(0, 15000)}`;
-  return callClaude(PROGRAMMAPLAN_PROMPT, userMessage, 16384, "claude-opus-4-6");
+export async function generateSectorIntegratie(data: {
+  sector: string;
+  sectorPlan: string;
+  goals: { name: string; description: string }[];
+  benefits: { description: string; profiel?: { indicator?: string; targetValue?: string } }[];
+  capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
+  efforts: { description: string; domain: string; quarter?: string; status?: string }[];
+  externalProjects?: { name: string; description: string; status: string; relevance?: string }[];
+  sectorAnalysis?: string;
+}): Promise<string> {
+  const domainLabels: Record<string, string> = {
+    mens: "Mens",
+    processen: "Processen",
+    data_systemen: "Data & Systemen",
+    cultuur: "Cultuur",
+  };
+
+  const parts: string[] = [];
+  parts.push(`=== Sector: ${data.sector} ===`);
+
+  parts.push("\n--- KiB Programmadoelen ---");
+  if (data.goals.length > 0) {
+    data.goals.forEach((g, i) => {
+      parts.push(`${i + 1}. ${g.name}${g.description ? `: ${g.description}` : ""}`);
+    });
+  } else {
+    parts.push("Nog geen doelen beschikbaar.");
+  }
+
+  parts.push("\n--- Sectorplan ---");
+  if (data.sectorPlan && data.sectorPlan.trim().length > 0 && !data.sectorPlan.startsWith("[")) {
+    parts.push(data.sectorPlan.slice(0, 4000));
+  } else {
+    parts.push("Geen sectorplan beschikbaar.");
+  }
+
+  parts.push("\n--- Huidige DIN-baten voor deze sector ---");
+  if (data.benefits.length > 0) {
+    data.benefits.forEach((b, i) => {
+      let line = `${i + 1}. ${b.description}`;
+      if (b.profiel?.indicator) line += ` (indicator: ${b.profiel.indicator}, doel: ${b.profiel.targetValue || "?"})`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Nog geen baten ingevuld.");
+  }
+
+  parts.push("\n--- Huidige DIN-vermogens voor deze sector ---");
+  if (data.capabilities.length > 0) {
+    data.capabilities.forEach((c, i) => {
+      let line = `${i + 1}. ${c.description}`;
+      if (c.currentLevel && c.targetLevel) line += ` (niveau: ${c.currentLevel}/5 \u2192 ${c.targetLevel}/5)`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Nog geen vermogens ingevuld.");
+  }
+
+  parts.push("\n--- Huidige DIN-inspanningen voor deze sector ---");
+  if (data.efforts.length > 0) {
+    const byDomain: Record<string, typeof data.efforts> = {};
+    data.efforts.forEach((e) => {
+      const domain = domainLabels[e.domain] || e.domain;
+      if (!byDomain[domain]) byDomain[domain] = [];
+      byDomain[domain].push(e);
+    });
+    Object.entries(byDomain).forEach(([domain, efforts]) => {
+      parts.push(`  ${domain}:`);
+      efforts.forEach((e) => {
+        let line = `    - ${e.description}`;
+        if (e.quarter) line += ` (${e.quarter})`;
+        if (e.status && e.status !== "gepland") line += ` [${e.status}]`;
+        parts.push(line);
+      });
+    });
+  } else {
+    parts.push("Nog geen inspanningen ingevuld.");
+  }
+
+  if (data.sectorAnalysis) {
+    parts.push("\n--- Eerdere AI-analyse van het sectorplan ---");
+    let analysisSummary = data.sectorAnalysis;
+    try {
+      const jsonMatch = data.sectorAnalysis.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.samenvatting) {
+          const summaryParts: string[] = [];
+          summaryParts.push(`Samenvatting: ${parsed.samenvatting}`);
+          if (parsed.aansluiting?.punten?.length) {
+            summaryParts.push(`Aansluiting op KiB-doelen:\n${parsed.aansluiting.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.baten?.punten?.length) {
+            summaryParts.push(`Voorgestelde baten:\n${parsed.baten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.vermogens?.punten?.length) {
+            summaryParts.push(`Benodigde vermogens:\n${parsed.vermogens.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          if (parsed.inspanningen) {
+            const domains = { mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur" };
+            const domainParts: string[] = [];
+            for (const [key, label] of Object.entries(domains)) {
+              const items = parsed.inspanningen[key];
+              if (items?.length) {
+                domainParts.push(`  ${label}: ${items.map((i: string) => i).join("; ")}`);
+              }
+            }
+            if (domainParts.length) {
+              summaryParts.push(`Voorgestelde inspanningen:\n${domainParts.join("\n")}`);
+            }
+          }
+          if (parsed.aandachtspunten?.punten?.length) {
+            summaryParts.push(`Aandachtspunten:\n${parsed.aandachtspunten.punten.map((p: string) => `- ${p}`).join("\n")}`);
+          }
+          analysisSummary = summaryParts.join("\n\n");
+        }
+      }
+    } catch { /* gebruik originele string */ }
+    parts.push(analysisSummary.slice(0, 3000));
+  }
+
+  parts.push("\n--- Lopende projecten passend bij KiB ---");
+  if (data.externalProjects && data.externalProjects.length > 0) {
+    data.externalProjects.forEach((p, i) => {
+      let line = `${i + 1}. ${p.name}`;
+      if (p.description) line += `: ${p.description}`;
+      line += ` [${p.status}]`;
+      if (p.relevance) line += ` — Relevantie: ${p.relevance}`;
+      parts.push(line);
+    });
+  } else {
+    parts.push("Geen externe projecten geregistreerd.");
+  }
+
+  parts.push("\nGeef concreet integratie-advies voor deze sector. Verwijs naar specifieke items hierboven, inclusief externe projecten waar relevant.");
+
+  return callClaude(SECTOR_INTEGRATIE_PROMPT, parts.join("\n"));
 }
 
 export async function generateBatenprofiel(
@@ -388,6 +412,7 @@ export async function generateVerrijktSectorplan(data: {
   benefits: { description: string; profiel?: { indicator?: string; indicatorOwner?: string; currentValue?: string; targetValue?: string } }[];
   capabilities: { description: string; currentLevel?: number; targetLevel?: number }[];
   efforts: { description: string; domain: string; quarter?: string; status?: string }[];
+  integratieAdvies?: string;
   externalProjects?: { name: string; description: string; status: string; relevance?: string }[];
 }): Promise<string> {
   const domainLabels: Record<string, string> = {
@@ -447,6 +472,11 @@ export async function generateVerrijktSectorplan(data: {
       parts.push(line);
     });
   });
+
+  if (data.integratieAdvies) {
+    parts.push("\n--- Integratie-advies ---");
+    parts.push(data.integratieAdvies.slice(0, 3000));
+  }
 
   if (data.externalProjects && data.externalProjects.length > 0) {
     parts.push("\n--- Externe projecten ---");
