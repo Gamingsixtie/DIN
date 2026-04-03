@@ -146,7 +146,7 @@ Plans:
   2. De wizard-flow loopt logisch door zonder gaten na het verwijderen van de stap
 **Plans:** 2 plans
 Plans:
-- [ ] 09-01-PLAN.md — Data layer cleanup: schemas, types, prompts, AI client, API route, session context
+- [x] 09-01-PLAN.md — Data layer cleanup: schemas, types, prompts, AI client, API route, session context
 - [ ] 09-02-PLAN.md — UI cleanup: DINMappingStep, ExportStep, word-export, orphaned file deletions
 **UI hint**: yes
 
