@@ -36,6 +36,9 @@ export type {
   CrossAnalyseResult,
   IntegratieAdviesItem,
   IntegratieAdviesResult,
+  VermogenClusterItem,
+  InspanningClusterItem,
+  ProjectMatchItem,
   DINSession,
 } from "./schemas";
 

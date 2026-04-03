@@ -129,6 +129,8 @@ export const DINCapabilitySchema = z.object({
   currentLevel: z.number().optional(),
   targetLevel: z.number().optional(),
   profiel: VermogensProfielSchema.optional(),
+  consolidated: z.boolean().optional(),
+  consolidatedInto: z.string().optional(),
 });
 
 export const DINEffortSchema = z.object({
@@ -146,6 +148,8 @@ export const DINEffortSchema = z.object({
   approvalStatus: ApprovalStatusSchema.optional(),
   approvalDate: z.string().optional(),
   dossier: InspanningsDossierSchema.optional(),
+  consolidated: z.boolean().optional(),
+  consolidatedInto: z.string().optional(),
 });
 
 export const ExternalProjectSchema = z.object({
@@ -253,6 +257,47 @@ export const CrossAnalyseSectorOverlapItemSchema = z.object({
 export const CrossAnalyseExternItemSchema = z.object({
   project: z.string(),
   overlapMet: z.string(),
+  advies: z.string(),
+});
+
+// --- Semantische matching cluster schemas (Phase 8 -- D-04, D-06) ---
+
+export const VermogenClusterItemSchema = z.object({
+  clusterTitel: z.string(),
+  items: z.array(z.object({
+    id: z.string(),
+    beschrijving: z.string(),
+    sector: z.string(),
+  })),
+  batenContext: z.array(z.object({
+    baat: z.string(),
+    sector: z.string(),
+  })),
+  advies: z.string(),
+  aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
+});
+
+export const InspanningClusterItemSchema = z.object({
+  clusterTitel: z.string(),
+  items: z.array(z.object({
+    id: z.string(),
+    beschrijving: z.string(),
+    sector: z.string(),
+    domein: z.string(),
+  })),
+  batenContext: z.array(z.object({
+    baat: z.string(),
+    sector: z.string(),
+  })),
+  advies: z.string(),
+  aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
+});
+
+export const ProjectMatchItemSchema = z.object({
+  project: z.string(),
+  heeftMatch: z.boolean(),
+  gekoppeldAan: z.string().optional(),
+  type: z.string().optional(),
   advies: z.string(),
 });
 
@@ -549,6 +594,30 @@ export const AICrossAnalyseSchema = z.object({
     })
     .optional()
     .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof CrossAnalyseExternItemSchema>>()),
+  vermogenClusters: z
+    .object({
+      titel: z.string().optional().default(""),
+      toelichting: z.string().optional().default(""),
+      items: z.array(VermogenClusterItemSchema).optional().default([]),
+    })
+    .optional()
+    .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof VermogenClusterItemSchema>>()),
+  inspanningClusters: z
+    .object({
+      titel: z.string().optional().default(""),
+      toelichting: z.string().optional().default(""),
+      items: z.array(InspanningClusterItemSchema).optional().default([]),
+    })
+    .optional()
+    .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof InspanningClusterItemSchema>>()),
+  projectMatching: z
+    .object({
+      titel: z.string().optional().default(""),
+      toelichting: z.string().optional().default(""),
+      items: z.array(ProjectMatchItemSchema).optional().default([]),
+    })
+    .optional()
+    .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof ProjectMatchItemSchema>>()),
 });
 
 // --- AI Integratie-advies (soepelere defaults) ---
@@ -663,6 +732,9 @@ export type AISuggestVermogen = z.infer<typeof AISuggestVermogenSchema>;
 export type AISuggestInspanning = z.infer<typeof AISuggestInspanningSchema>;
 export type AISectorplanAnalyse = z.infer<typeof AISectorplanAnalyseSchema>;
 export type AICrossAnalyse = z.infer<typeof AICrossAnalyseSchema>;
+export type VermogenClusterItem = z.infer<typeof VermogenClusterItemSchema>;
+export type InspanningClusterItem = z.infer<typeof InspanningClusterItemSchema>;
+export type ProjectMatchItem = z.infer<typeof ProjectMatchItemSchema>;
 export type AIIntegratieAdvies = z.infer<typeof AIIntegratieAdviesSchema>;
 export type AIDomainRecommend = z.infer<typeof AIDomainRecommendSchema>;
 export type KiBExport = z.infer<typeof KiBExportSchema>;
