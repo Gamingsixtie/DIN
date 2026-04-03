@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Sectorwerk Doorstroming** - Sectorwerk-analyse resultaten stromen als getypeerde objecten door naar DIN-mapping
 - [ ] **Phase 6: Cyclisch Doel-voor-Doel Werken** - Gebruiker werkt een doel volledig uit voordat het volgende begint
 - [x] **Phase 7: Dutch Tokenizer & Similarity** - Cross-analyse gebruikt correcte woordsplitsing en verhoogde similarity-drempels (completed 2026-04-02)
-- [x] **Phase 8: Cross-Analyse Semantische Matching** - Gedeelde baten, vermogens en inspanningen over sectoren worden herkend en geconsolideerd (completed 2026-04-03)
+- [x] **Phase 8: Cross-Analyse Semantische Matching** - Gedeelde baten, vermogens en inspanningen over sectoren worden herkend en geconsolideerd (completed 2026-04-03)
 - [ ] **Phase 9: Wizard Cleanup & Export Voorbereiding** - Integratieadvies verwijderd, export-validatie toegevoegd
 - [ ] **Phase 10: Eindproducten** - Compleet programmaplan, DIN-overzicht en roadmap als exporteerbare documenten
 
@@ -159,7 +159,11 @@ Plans:
   2. Export bevat een visuele DIN-overzicht weergave (doelen, baten, vermogens, inspanningen als netwerk)
   3. Export bevat een roadmap/tijdlijn met kwartaalplanning van inspanningen en afhankelijkheden
   4. Gebruiker wordt voor export gewaarschuwd als er onvolledige ketens zijn (gap-detectie)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 10-01-PLAN.md — Word export engine: numbering, consolidation filtering, tabel-flow, smart gaps, roadmap placeholder + tests
+- [ ] 10-02-PLAN.md — ExportStep UI: gap-detection modal, numbered preview, tabel-flow, consolidation filtering
+- [ ] 10-03-PLAN.md — Cleanup: verwijder ongebruikte /api/export route, generateProgrammaPlan(), PROGRAMMAPLAN_PROMPT
 **UI hint**: yes
 
 ## Progress
@@ -178,4 +182,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
 | 8. Cross-Analyse Semantische Matching | 2/2 | Complete   | 2026-04-03 |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
-| 10. Eindproducten | 0/0 | Not started | - |
+| 10. Eindproducten | 0/3 | Planning complete | - |
