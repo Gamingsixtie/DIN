@@ -34,8 +34,6 @@ export type {
   CrossAnalyseSectorOverlapItem,
   CrossAnalyseExternItem,
   CrossAnalyseResult,
-  IntegratieAdviesItem,
-  IntegratieAdviesResult,
   DINSession,
 } from "./schemas";
 

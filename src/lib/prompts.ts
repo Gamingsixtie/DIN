@@ -137,49 +137,6 @@ BELANGRIJK:
 - Als er geen externe projecten zijn, geef een lege items-array
 - Antwoord in het Nederlands`;
 
-export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
-
-Je krijgt:
-- De KiB-doelen (gezamenlijke programmadoelen)
-- Het sectorplan van een specifieke sector
-- De huidige DIN-invulling (baten, vermogens, inspanningen) voor deze sector
-- Lopende projecten BUITEN het programma die relevant kunnen zijn
-
-Analyseer de integratie en geef concreet advies in EXACT de volgende JSON-structuur.
-Neem in je advies ook de externe projecten mee: waar overlappen ze met DIN-inspanningen? Waar kunnen ze benut worden? Waar is er risico op dubbel werk?
-Elke sectie heeft een "titel" (korte kop), "toelichting" (1-2 zinnen context), en "punten" (lijst van concrete, specifieke items — minimaal 2, maximaal 6 per sectie).
-
-Verwijs altijd naar specifieke items uit het sectorplan en de DIN-invulling. Wees concreet, niet abstract. Noem specifieke namen, activiteiten, of doelen.
-
-Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst):
-{
-  "aansluiting": {
-    "titel": "Aansluiting op KiB-doelen",
-    "toelichting": "Welke elementen uit het sectorplan sluiten direct aan op de programmadoelen.",
-    "punten": ["Concreet punt 1 met verwijzing naar sectorplan-item en KiB-doel", "..."]
-  },
-  "verrijking": {
-    "titel": "Verrijking vanuit DIN",
-    "toelichting": "Welke baten, vermogens of inspanningen uit het DIN-netwerk versterken het sectorplan.",
-    "punten": ["Concreet punt met verwijzing naar DIN-item", "..."]
-  },
-  "aanvullingen": {
-    "titel": "Aanvullingen nodig",
-    "toelichting": "Welke onderdelen ontbreken nog in het sectorplan om de KiB-doelen volledig te realiseren.",
-    "punten": ["Ontbrekend punt 1", "..."]
-  },
-  "quickWins": {
-    "titel": "Quick wins",
-    "toelichting": "Bestaande activiteiten uit het sectorplan die direct kunnen bijdragen aan DIN-inspanningen.",
-    "punten": ["Quick win 1 met verwijzing naar sectorplan-activiteit", "..."]
-  },
-  "aandachtspunten": {
-    "titel": "Aandachtspunten",
-    "toelichting": "Conflicten, risico's of spanningen tussen sectorplan en DIN-netwerk.",
-    "punten": ["Aandachtspunt 1", "..."]
-  }
-}`;
-
 export const PROGRAMMAPLAN_PROMPT = `Je bent een ervaren programmamanager die een professioneel programmaplan schrijft op basis van DIN-data (Doelen-Inspanningennetwerk).
 
 Schrijf een samenhangend, leesbaar programmaplan — GEEN opsomming van ruwe data, maar een doorlopend verhaal dat geschikt is voor directie en stakeholders.

@@ -291,23 +291,6 @@ export const CrossAnalyseResultSchema = z.object({
   }),
 });
 
-// --- Integratie-advies ---
-
-export const IntegratieAdviesItemSchema = z.object({
-  titel: z.string(),
-  toelichting: z.string(),
-  punten: z.array(z.string()),
-});
-
-export const IntegratieAdviesResultSchema = z.object({
-  sectorName: z.string(),
-  aansluiting: IntegratieAdviesItemSchema,
-  verrijking: IntegratieAdviesItemSchema,
-  aanvullingen: IntegratieAdviesItemSchema,
-  quickWins: IntegratieAdviesItemSchema,
-  aandachtspunten: IntegratieAdviesItemSchema,
-});
-
 // --- AI Sectorplan analyse (soepelere defaults voor AI output, nodig voor DINSession) ---
 
 const AIAnalyseSectieSchema = z.object({
@@ -367,9 +350,6 @@ export const DINSessionSchema = z.object({
   benefitCapabilityMaps: z.array(BenefitCapabilityMapSchema).optional().default([]),
   capabilityEffortMaps: z.array(CapabilityEffortMapSchema).optional().default([]),
   // Opgeslagen analyses
-  integratieAdvies: z
-    .record(z.string(), z.union([IntegratieAdviesResultSchema, z.string()]))
-    .optional(),
   sectorAnalyses: z.record(z.string(), AISectorplanAnalyseSchema).optional(),
   verrijkteSectorplannen: z.record(z.string(), z.string()).optional(),
   crossAnalyse: z.string().optional(),
@@ -551,29 +531,6 @@ export const AICrossAnalyseSchema = z.object({
     .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof CrossAnalyseExternItemSchema>>()),
 });
 
-// --- AI Integratie-advies (soepelere defaults) ---
-
-const AIIntegratieAdviesItemSchema = z.object({
-  titel: z.string().optional().default(""),
-  toelichting: z.string().optional().default(""),
-  punten: z.array(z.string()).optional().default([]),
-});
-
-const aiIntegratieAdviesItemDefault = () => ({
-  titel: "",
-  toelichting: "",
-  punten: [] as string[],
-});
-
-export const AIIntegratieAdviesSchema = z.object({
-  sectorName: z.string().optional().default(""),
-  aansluiting: AIIntegratieAdviesItemSchema.optional().default(aiIntegratieAdviesItemDefault),
-  verrijking: AIIntegratieAdviesItemSchema.optional().default(aiIntegratieAdviesItemDefault),
-  aanvullingen: AIIntegratieAdviesItemSchema.optional().default(aiIntegratieAdviesItemDefault),
-  quickWins: AIIntegratieAdviesItemSchema.optional().default(aiIntegratieAdviesItemDefault),
-  aandachtspunten: AIIntegratieAdviesItemSchema.optional().default(aiIntegratieAdviesItemDefault),
-});
-
 // --- AI Domain Recommend ---
 
 export const AIDomainRecommendSchema = z.object({
@@ -650,8 +607,6 @@ export type CrossAnalyseDomeinItem = z.infer<typeof CrossAnalyseDomeinItemSchema
 export type CrossAnalyseSectorOverlapItem = z.infer<typeof CrossAnalyseSectorOverlapItemSchema>;
 export type CrossAnalyseExternItem = z.infer<typeof CrossAnalyseExternItemSchema>;
 export type CrossAnalyseResult = z.infer<typeof CrossAnalyseResultSchema>;
-export type IntegratieAdviesItem = z.infer<typeof IntegratieAdviesItemSchema>;
-export type IntegratieAdviesResult = z.infer<typeof IntegratieAdviesResultSchema>;
 export type DINSession = z.infer<typeof DINSessionSchema>;
 
 export type AIBenefit = z.infer<typeof AIBenefitSchema>;
@@ -663,6 +618,5 @@ export type AISuggestVermogen = z.infer<typeof AISuggestVermogenSchema>;
 export type AISuggestInspanning = z.infer<typeof AISuggestInspanningSchema>;
 export type AISectorplanAnalyse = z.infer<typeof AISectorplanAnalyseSchema>;
 export type AICrossAnalyse = z.infer<typeof AICrossAnalyseSchema>;
-export type AIIntegratieAdvies = z.infer<typeof AIIntegratieAdviesSchema>;
 export type AIDomainRecommend = z.infer<typeof AIDomainRecommendSchema>;
 export type KiBExport = z.infer<typeof KiBExportSchema>;

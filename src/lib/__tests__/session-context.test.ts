@@ -33,7 +33,6 @@ function createTestSession(overrides: Partial<DINSession> = {}): DINSession {
     goalBenefitMaps: [],
     benefitCapabilityMaps: [],
     capabilityEffortMaps: [],
-    integratieAdvies: {},
     sectorAnalyses: {},
     verrijkteSectorplannen: {},
     completedGoals: [],
