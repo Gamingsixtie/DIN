@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-04-03T20:12:50.393Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-04-03T20:19:00Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 10
-  completed_phases: 7
-  total_plans: 20
+  completed_phases: 8
+  total_plans: 18
   completed_plans: 18
-  percent: 0
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 09 — wizard-cleanup-export-voorbereiding
+**Current focus:** Phase 08 — cross-analyse-semantische-matching
 
 ## Current Position
 
-Phase: 09 (wizard-cleanup-export-voorbereiding) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
+Phase: 08 (complete)
+Plan: 2 of 2 complete
+Status: Phase 08 complete
 Last activity: 2026-04-03
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -65,7 +65,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P02 | 7min | 2 tasks | 5 files |
 | Phase 07 P01 | 4min | 2 tasks | 5 files |
 | Phase 06 P02 | 3min | 2 tasks | 4 files |
-| Phase 09 P01 | 11min | 2 tasks | 11 files |
+| Phase 08 P01 | 5min | 2 tasks | 5 files |
+| Phase 08 P02 | 7min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -105,7 +106,12 @@ Recent decisions affecting current work:
 - [Phase 07]: SIMILARITY_THRESHOLD raised from 0.20 to 0.35 as named constant; compound splitting min word 10, min part 5
 - [Phase 06]: buildCompletedGoalsContext uses 6000 char cap with newline-boundary truncation per D-07
 - [Phase 06]: Completed goals context is 5th block in layered prompt: programmaboek -> KiB -> sectorwerk -> eerder-uitgewerkte-doelen per D-08
-- [Phase 09]: Consumer UI files cleaned in Plan 01 rather than Plan 02 to prevent TypeScript build errors from removed types
+- [Phase 08]: Cluster schemas use .enum(['combineren', 'afstemmen', 'apart_houden']) for aanbeveling -- enforces valid consolidation values
+- [Phase 08]: Baten NOT matched/clustered per D-03 -- methodically correct per sector; shown as context only
+- [Phase 08]: Entity IDs sent structured to AI for reliable ID-based cluster matching; maxTokens 8192 -> 16384
+- [Phase 08]: Pure function consolidation pattern: mergeCapabilities/undoMergeCapabilities exported for testability and reuse
+- [Phase 08]: ProjectMatchingSection replaces ExterneProjectenSection with fallback for backward compatibility
+- [Phase 08]: Consolidated items filtered from activeCaps/activeEfforts before all local analysis computations
 
 ### Pending Todos
 
@@ -118,6 +124,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T20:12:50.389Z
-Stopped at: Completed 09-01-PLAN.md
-Resume file: None
+Last session: 2026-04-03T20:19:00Z
+Stopped at: Completed 08-02-PLAN.md
+Resume file: .planning/phases/09-wizard-cleanup-export-voorbereiding/09-01-PLAN.md

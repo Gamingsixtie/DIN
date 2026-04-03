@@ -37,6 +37,7 @@ export type {
   VermogenClusterItem,
   InspanningClusterItem,
   ProjectMatchItem,
+  AICrossAnalyse,
   DINSession,
 } from "./schemas";
 
