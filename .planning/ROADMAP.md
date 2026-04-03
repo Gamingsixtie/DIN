@@ -131,7 +131,10 @@ Plans:
   2. Gedeelde vermogens die voor meerdere sectoren gelden worden geidentificeerd en gegroepeerd
   3. Gedeelde inspanningen die meerdere sectoren dienen worden geconsolideerd met een aanbeveling
   4. De gebruiker ziet per gedeeld element welke sectoren erbij betrokken zijn
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — Schema extensie (consolidation flags + cluster schemas) + prompt upgrade + API route update
+- [ ] 08-02-PLAN.md — UI: cluster sections (vermogens, inspanningen, projecten) + consolidation merge/undo + filtered local analysis
 **UI hint**: yes
 
 ### Phase 9: Wizard Cleanup & Export Voorbereiding
@@ -170,6 +173,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. Sectorwerk Doorstroming | 2/2 | Executing | - |
 | 6. Cyclisch Doel-voor-Doel Werken | 1/3 | In Progress|  |
 | 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
-| 8. Cross-Analyse Semantische Matching | 0/0 | Not started | - |
+| 8. Cross-Analyse Semantische Matching | 0/2 | Planning complete | - |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/0 | Not started | - |
 | 10. Eindproducten | 0/0 | Not started | - |
