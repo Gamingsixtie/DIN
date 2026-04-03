@@ -68,13 +68,15 @@ Exceptions: none
 |------|-------|-------|
 | Dominant (60%) | `#f5f7fa` (cito-bg) | Page background |
 | Secondary (30%) | `#ffffff` (cito-surface) | Cards, section containers |
-| Accent (10%) | `#003366` (cito-blue) | Primary CTA button, section headings |
+| Accent (10%) | `#003366` (cito-blue) | Section headings, sector border accents |
 | Destructive | `#dc2626` (red-600) | Error states only |
 
 Accent reserved for:
 - "AI: Genereer DIN-netwerk" primary CTA button background (uses `cito-accent` / `#0066cc`)
 - Section heading text color (`text-cito-blue`)
 - Sector border accents in export preview
+
+**Note:** `cito-blue` (`#003366`) and `cito-accent` (`#0066cc`) are two distinct tokens defined in `globals.css`. The Accent row above refers to `cito-blue` for headings and borders. The CTA button uses `cito-accent` (`#0066cc`), a lighter variant reserved exclusively for interactive button backgrounds. Both tokens exist in the codebase; this phase does not modify either.
 
 **Source:** Existing globals.css tokens. No color changes in this phase.
 
@@ -171,7 +173,7 @@ Button style remains unchanged:
 ### ExportStep Sectorale Uitwerking (AFTER cleanup)
 
 Each sector section renders:
-1. Sector heading: `text-sm font-bold text-cito-blue`
+1. Sector heading: `text-sm font-semibold text-cito-blue`
 2. Baten table (unchanged)
 3. Vermogens table (unchanged)
 4. Inspanningen per domein table (unchanged)
@@ -271,6 +273,7 @@ Per-sector block structure:
 ```
 +------------------------------------------------------------------+
 | Sector {naam}  (border-l-4 accent)                               |
+|   text-sm font-semibold text-cito-blue                           |
 |                                                                    |
 |  Baten (table)                                                    |
 |  Vermogens (table)                                                |
