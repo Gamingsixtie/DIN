@@ -775,35 +775,49 @@ function ExterneProjectenBlock({ session, number }: { session: DINSession; numbe
   return (
     <Section title="Lopende projecten" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        Bestaande projecten die aansluiten bij het programma en mogelijk bijdragen aan DIN-vermogens.
+        Bestaande projecten gekoppeld aan het DIN-netwerk, gepositioneerd als inspanningen bij de relevante vermogens.
       </p>
-      <div className="overflow-hidden border border-gray-200 rounded-lg">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left font-bold text-gray-600">Project</th>
-              <th className="px-3 py-2 text-left font-bold text-gray-600">Sector</th>
-              <th className="px-3 py-2 text-left font-bold text-gray-600">Beschrijving</th>
-              <th className="px-3 py-2 text-left font-bold text-gray-600">Status</th>
-              <th className="px-3 py-2 text-left font-bold text-gray-600">Relevantie</th>
-            </tr>
-          </thead>
-          <tbody>
-            {session.externalProjects.map((p, i) => (
-              <tr key={p.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                <td className="px-3 py-2 font-medium text-gray-800">{p.name}</td>
-                <td className="px-3 py-2 text-gray-600">{p.sectorId}</td>
-                <td className="px-3 py-2 text-gray-600">{p.description}</td>
-                <td className="px-3 py-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[p.status] || "bg-gray-100 text-gray-600"}`}>
-                    {STATUS_LABELS[p.status] || p.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-gray-600">{p.relevance || "\u2014"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-3">
+        {session.externalProjects.map((p) => {
+          const linkedCapIds = (session.projectCapabilityMaps || [])
+            .filter(m => m.projectId === p.id)
+            .map(m => m.capabilityId);
+          const linkedCaps = (session.capabilities || []).filter(c => linkedCapIds.includes(c.id));
+
+          return (
+            <div key={p.id} className="p-3 bg-white border border-gray-200 rounded-lg border-l-[3px] border-l-[#0066cc]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-gray-800">{p.name}</span>
+                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">Lopend project</span>
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[p.status] || "bg-gray-100 text-gray-600"}`}>
+                  {STATUS_LABELS[p.status] || p.status}
+                </span>
+              </div>
+              {p.description && <p className="text-xs text-gray-600 mb-1">{p.description}</p>}
+              {(p.domains || []).length > 0 && (
+                <div className="flex gap-1 mb-1">
+                  {(p.domains || []).map(d => (
+                    <span key={d} className="px-1.5 py-0.5 text-[10px] rounded-full bg-gray-100 text-gray-600">
+                      {DOMAIN_LABELS[d as EffortDomain] || d}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {linkedCaps.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <span className="text-[10px] text-gray-400">Gekoppeld aan:</span>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {linkedCaps.map(cap => (
+                      <span key={cap.id} className="px-1.5 py-0.5 text-[10px] rounded bg-[#0891b2]/10 text-[#0891b2]">
+                        {cap.description.slice(0, 60)}{cap.description.length > 60 ? "..." : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Section>
   );
