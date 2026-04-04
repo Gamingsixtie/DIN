@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 12 context gathered
-last_updated: "2026-04-04T20:37:40.303Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-04-04T21:12:00.000Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 23
-  completed_plans: 23
+  completed_plans: 24
   percent: 100
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 10 — eindproducten
+**Current focus:** Phase 11 — cross-analyse herontwerp stapsgewijs traject
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: Ready to execute
+Phase: 11
+Plan: 1 of 4 complete
+Status: Executing
 Last activity: 2026-04-04
 
 Progress: [██████████] 100%
@@ -69,6 +69,7 @@ Progress: [██████████] 100%
 | Phase 08 P02 | 7min | 2 tasks | 3 files |
 | Phase 10 P03 | 2min | 1 tasks | 3 files |
 | Phase 10 P01 | 9min | 1 tasks | 5 files |
+| Phase 11 P01 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,9 @@ Recent decisions affecting current work:
 - [Phase 10]: Inline goal status determination instead of getGoalCompletionStatus import (function not in codebase)
 - [Phase 10]: activeSession pattern: filtered session copy for buildChainsForSector consolidation awareness
 - [Phase 10]: Post-pass TOC generation: build all content sections first, then TOC from accumulated tocEntries
+- [Phase 11]: Per-step schemas placed before DINSessionSchema for declaration order correctness
+- [Phase 11]: Cumulative context capped at 3000 chars with sentence-boundary truncation
+- [Phase 11]: Backward compat maintained: calls without stap parameter use original CROSS_ANALYSE_PROMPT + AICrossAnalyseSchema
 
 ### Roadmap Evolution
 
@@ -135,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T20:37:40.298Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-lopende-projecten-invullen-in-din-netwerk/12-CONTEXT.md
+Last session: 2026-04-04T21:12:00.000Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None

@@ -193,7 +193,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 **Plans:** 4 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Per-step Zod schemas + per-step AI prompts + API route refactoring met stap parameter en cumulatieve context
+- [x] 11-01-PLAN.md — Per-step Zod schemas + per-step AI prompts + API route refactoring met stap parameter en cumulatieve context
 - [ ] 11-02-PLAN.md — Shared component extractie (SectorBadge, LoadingOverlay, ClusterCard, ConsolidationActionBar) + WizardNavigation + StepAnalyseButton
 - [ ] 11-03-PLAN.md — CrossAnalyseWizard orchestrator + Stap 1-3 (Baten-overloop, Gedeelde Vermogens, Inspanningen-overlap)
 - [ ] 11-04-PLAN.md — Stap 4-5 (Consolidatie, Sectorvertaling) + CrossAnalyseStep.tsx herschrijving als dunne wrapper
