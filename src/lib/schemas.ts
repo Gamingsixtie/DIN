@@ -372,6 +372,80 @@ export const AISectorplanAnalyseSchema = z.object({
   aandachtspunten: AIAnalyseSectieSchema.optional().default(aiAnalyseSectieDefault),
 });
 
+// --- Per-step cross-analyse schemas (Phase 11 — stapsgewijs wizard) ---
+
+export const Stap1ResultSchema = z.object({
+  batenPerSector: z.array(z.object({
+    sector: z.string(),
+    baten: z.array(z.object({
+      titel: z.string(),
+      doelId: z.string().optional(),
+      doelNaam: z.string().optional(),
+    })),
+  })),
+  synergieën: z.array(z.object({
+    beschrijving: z.string(),
+    sectoren: z.array(z.string()),
+    impact: z.string(),
+  })).optional().default([]),
+  gaps: z.object({
+    doelenZonderBaten: z.array(z.string()).optional().default([]),
+    batenZonderVermogens: z.array(z.string()).optional().default([]),
+  }).optional().default(() => ({ doelenZonderBaten: [], batenZonderVermogens: [] })),
+  samenvatting: z.string(),
+});
+
+export const Stap2ResultSchema = z.object({
+  vermogenClusters: z.array(VermogenClusterItemSchema).optional().default([]),
+  hefboomwerking: z.array(CrossAnalyseHefboomItemSchema).optional().default([]),
+  samenvatting: z.string(),
+});
+
+export const Stap3ResultSchema = z.object({
+  inspanningClusters: z.array(InspanningClusterItemSchema).optional().default([]),
+  projectMatching: z.array(ProjectMatchItemSchema).optional().default([]),
+  samenvatting: z.string(),
+});
+
+export const Stap4ResultSchema = z.object({
+  consolidatieAdvies: z.array(z.object({
+    clusterTitel: z.string(),
+    type: z.enum(["vermogen", "inspanning"]),
+    aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
+    reden: z.string(),
+    voorgesteldeNaam: z.string().optional(),
+  })).optional().default([]),
+  samenvatting: z.string(),
+});
+
+export const Stap5ResultSchema = z.object({
+  sectorVertalingen: z.array(z.object({
+    sector: z.string(),
+    dinKeten: z.object({
+      aantalBaten: z.number(),
+      aantalVermogens: z.number(),
+      aantalInspanningen: z.number(),
+      waarvanGedeeld: z.number(),
+    }),
+    domeinBalans: z.array(CrossAnalyseDomeinItemSchema).optional().default([]),
+    gaps: z.array(z.string()).optional().default([]),
+    samenvatting: z.string(),
+  })),
+  totaalSamenvatting: z.string(),
+});
+
+export const CrossAnalyseWizardStateSchema = z.object({
+  currentStep: z.number().min(1).max(5),
+  completedSteps: z.array(z.number()),
+  stepResults: z.object({
+    stap1: Stap1ResultSchema.optional(),
+    stap2: Stap2ResultSchema.optional(),
+    stap3: Stap3ResultSchema.optional(),
+    stap4: Stap4ResultSchema.optional(),
+    stap5: Stap5ResultSchema.optional(),
+  }).optional(),
+});
+
 // ============================================================
 // DINSession schema
 // ============================================================
@@ -398,6 +472,7 @@ export const DINSessionSchema = z.object({
   sectorAnalyses: z.record(z.string(), AISectorplanAnalyseSchema).optional(),
   verrijkteSectorplannen: z.record(z.string(), z.string()).optional(),
   crossAnalyse: z.string().optional(),
+  crossAnalyseWizard: CrossAnalyseWizardStateSchema.optional(),
   externalProjects: z.array(ExternalProjectSchema).optional(),
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies: z.record(z.string(), z.unknown()).optional(),
@@ -694,3 +769,9 @@ export type InspanningClusterItem = z.infer<typeof InspanningClusterItemSchema>;
 export type ProjectMatchItem = z.infer<typeof ProjectMatchItemSchema>;
 export type AIDomainRecommend = z.infer<typeof AIDomainRecommendSchema>;
 export type KiBExport = z.infer<typeof KiBExportSchema>;
+export type Stap1Result = z.infer<typeof Stap1ResultSchema>;
+export type Stap2Result = z.infer<typeof Stap2ResultSchema>;
+export type Stap3Result = z.infer<typeof Stap3ResultSchema>;
+export type Stap4Result = z.infer<typeof Stap4ResultSchema>;
+export type Stap5Result = z.infer<typeof Stap5ResultSchema>;
+export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
