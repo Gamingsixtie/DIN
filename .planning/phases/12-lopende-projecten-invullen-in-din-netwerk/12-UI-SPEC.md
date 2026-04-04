@@ -54,7 +54,7 @@ Exceptions: Touch targets on multi-domein checkboxes minimum 44px (per D-11, che
 | Heading | 16px | 600 (semibold) | 1.2 |
 | Display | 20px | 600 (semibold) | 1.2 |
 
-Source: Existing project uses `text-sm` (14px) for body, `text-xs` (12px) for labels, `text-[10px]` for micro-badges. Contract aligns with established patterns in ExterneProjectenPanel, EffortCard, SectorWerkStep.
+Source: Existing project uses `text-sm` (14px) for body, `text-xs` (12px) for labels and small badges. Contract aligns with established patterns in ExterneProjectenPanel, EffortCard, SectorWerkStep. Only these 4 sizes are permitted in this phase.
 
 ---
 
@@ -91,6 +91,10 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 ---
 
 ## Component Inventory
+
+### Focal Point
+
+Primary focal point: the ProjectImportPanel parse button ("Analyseer met AI") -- first visible call to action when the panel is expanded with no projects. This button is the single most prominent interactive element on the screen, using `bg-cito-blue text-white font-semibold` to draw attention. All other elements are secondary in visual weight.
 
 ### 1. ProjectImportPanel (new, replaces current ExterneProjectenPanel header area)
 
@@ -135,13 +139,13 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
   - Cultuur: `bg-domain-cultuur/10 text-domain-cultuur border-domain-cultuur/30`
 
 **Action buttons:**
-- "Bevestigen": `text-xs text-cito-blue hover:underline` (confirms single project)
+- "Project bevestigen": `text-xs text-cito-blue hover:underline` (confirms single project)
 - "Verwijderen": `text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100`
-- "Alles bevestigen": `px-3 py-1.5 bg-cito-blue text-white text-xs rounded hover:bg-cito-blue-light` (above card list, confirms all)
+- "Alles bevestigen": `px-3 py-2 bg-cito-blue text-white text-xs rounded hover:bg-cito-blue-light` (above card list, confirms all)
 
 **States:**
-- Review mode: editable fields, "Bevestigen" button visible
-- Confirmed: card border becomes `border-green-200`, subtle `bg-green-50/30` tint, checkmark icon replaces "Bevestigen"
+- Review mode: editable fields, "Project bevestigen" button visible
+- Confirmed: card border becomes `border-green-200`, subtle `bg-green-50/30` tint, checkmark icon replaces "Project bevestigen"
 - AI warning (D-13): orange left border (`border-l-amber-500`), warning badge in top-right
 
 ### 3. AIKoppelingPanel (new)
@@ -162,7 +166,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 - Rejected: chip becomes `opacity-40 line-through`
 
 **Action buttons:**
-- "Bevestig koppelingen": `px-3 py-1.5 bg-cito-blue text-white text-xs rounded hover:bg-cito-blue-light`
+- "Bevestig koppelingen": `px-3 py-2 bg-cito-blue text-white text-xs rounded hover:bg-cito-blue-light`
 - "Opnieuw analyseren": `text-xs text-gray-500 hover:text-cito-blue` (re-runs AI)
 
 **States:**
@@ -175,7 +179,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 **Location:** Top-right corner of ReviewProjectCard or inline in project list.
 
 **Visual specs:**
-- Badge: `px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded-full`
+- Badge: `px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full`
 - Icon: small warning triangle SVG (`w-3 h-3`) inline before text
 - Hover/click: expands to show AI-toelichting in a tooltip or popover (`text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 shadow-sm max-w-xs`)
 
@@ -184,7 +188,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 **Location:** Appears next to project name when displayed in the main inspanningen list view.
 
 **Visual specs:**
-- Badge: `px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-800 rounded`
+- Badge: `px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded`
 - Text: "Lopend project"
 - Positioned: inline after the effort/project title, same line
 
@@ -213,7 +217,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 5. AI parses and returns structured projects (loading state: button spinner + "Bezig met analyseren...")
 6. ReviewProjectCards appear with extracted data
 7. User reviews each card: edits name, description, selects domains (D-11), adjusts status
-8. User confirms individually ("Bevestigen") or batch ("Alles bevestigen")
+8. User confirms individually ("Project bevestigen") or batch ("Alles bevestigen")
 9. Confirmed projects are saved to session
 
 ### DIN Koppeling Flow (per D-06, D-07, D-09)
@@ -246,6 +250,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 | Primary CTA | "Analyseer met AI" |
 | Secondary CTA | "Bevestig koppelingen" |
 | Batch CTA | "Alles bevestigen" |
+| Single confirm CTA | "Project bevestigen" |
 | Empty state heading | "Nog geen lopende projecten" |
 | Empty state body | "Voeg lopende projecten toe door tekst te plakken of een document te uploaden. De AI extraheert automatisch projectnamen en beschrijvingen." |
 | Error state (parse fail) | "Het analyseren van de tekst is mislukt. Controleer of de tekst projectbeschrijvingen bevat en probeer het opnieuw." |
@@ -282,7 +287,7 @@ Accent reserved for: primary CTA ("Importeer projecten" button), "Analyseer kopp
 | Import: parsing | Button shows spinner, input disabled (opacity-60, pointer-events-none) |
 | Import: parse error | Error feedback bar (red-100 bg, red-700 text) below button |
 | Import: parse success | Success feedback bar (green-100 bg, green-700 text) + ReviewProjectCards |
-| Review: editable | White card, editable fields, "Bevestigen" button |
+| Review: editable | White card, editable fields, "Project bevestigen" button |
 | Review: confirmed | Card tinted green-50, border-green-200, checkmark icon |
 | Review: AI warning | Amber left border, WarningBadge in top-right |
 | Koppeling: loading | Skeleton pulse in AIKoppelingPanel |
