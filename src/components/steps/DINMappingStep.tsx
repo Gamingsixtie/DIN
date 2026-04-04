@@ -11,9 +11,10 @@ import type {
   EffortStatus,
   SectorName,
   SectorplanAnalyseResult,
+  ProjectCapabilityMap,
 } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
-import { SECTORS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
+import { SECTORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import {
   createBenefit,
   createCapability,
@@ -21,6 +22,7 @@ import {
   generateId,
   getBenefitsByGoalAndSector,
   getGoalCompletionStatus,
+  getLinkedCapabilities,
   type GoalCompletionStatus,
   type SectorChainStatus,
   type GoalStatus,
@@ -77,6 +79,15 @@ const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
   Object.entries(STATUS_LABELS) as [EffortStatus, string][]
 ).map(([key, label]) => ({ key, label, color: STATUS_STYLES[key] }));
 
+function getDomainChipStyle(domain: EffortDomain): string {
+  const styles: Record<EffortDomain, string> = {
+    mens: "bg-blue-500/10 text-blue-600 border border-blue-500/30",
+    processen: "bg-green-600/10 text-green-600 border border-green-600/30",
+    data_systemen: "bg-purple-600/10 text-purple-600 border border-purple-600/30",
+    cultuur: "bg-amber-600/10 text-amber-600 border border-amber-600/30",
+  };
+  return styles[domain] || "bg-gray-100 text-gray-600";
+}
 
 
 // ============================================================
@@ -1767,6 +1778,55 @@ export default function DINMappingStep() {
                 );
               })()}
 
+              {/* Lopende projecten gekoppeld aan vermogens (per D-12) */}
+              {(session.externalProjects || [])
+                .filter(p => p.sectorId === activeSector && !p.buitenScope && (session.projectCapabilityMaps || []).some(m => m.projectId === p.id))
+                .length > 0 && (
+                <div className="space-y-2 mt-3">
+                  <span className="text-xs font-semibold text-gray-500">Lopende projecten in DIN-netwerk</span>
+                  {(session.externalProjects || [])
+                    .filter(p => p.sectorId === activeSector && !p.buitenScope && (session.projectCapabilityMaps || []).some(m => m.projectId === p.id))
+                    .map(project => (
+                      <div key={`proj-${project.id}`} className="group p-3 bg-white border border-gray-200 rounded-lg border-l-[3px] border-l-[#0066cc]">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-700">{project.name}</span>
+                              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">Lopend project</span>
+                            </div>
+                            {project.description && (
+                              <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{project.description}</div>
+                            )}
+                            {project.domains && project.domains.length > 0 && (
+                              <div className="flex gap-1 mt-1.5">
+                                {project.domains.map(d => (
+                                  <span key={d} className={`px-1.5 py-0.5 text-[10px] rounded-full ${getDomainChipStyle(d)}`}>
+                                    {DOMAIN_LABELS[d]}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {(() => {
+                              const linked = getLinkedCapabilities(project.id, session.projectCapabilityMaps || [], session.capabilities || []);
+                              return linked.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className="text-[10px] text-gray-400">Gekoppeld aan:</span>
+                                  {linked.map(cap => (
+                                    <span key={cap.id} className="px-1.5 py-0.5 text-[10px] rounded bg-[#0891b2]/10 text-[#0891b2]">
+                                      {cap.description.slice(0, 50)}{cap.description.length > 50 ? "..." : ""}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+
               {/* Lopende projecten — AI import + review + management */}
               <ExterneProjectenPanel
                 currentSector={activeSector}
@@ -1789,6 +1849,18 @@ export default function DINMappingStep() {
                 onDelete={(id) => {
                   updateSession(prev => ({
                     externalProjects: (prev.externalProjects || []).filter((p) => p.id !== id),
+                  }));
+                }}
+                capabilities={(session.capabilities || []).filter(c => c.sectorId === activeSector && !c.consolidated)}
+                existingMaps={session.projectCapabilityMaps || []}
+                onConfirmMappings={(newMaps) => {
+                  updateSession(prev => ({
+                    projectCapabilityMaps: [
+                      ...(prev.projectCapabilityMaps || []).filter(m =>
+                        !newMaps.some(nm => nm.projectId === m.projectId)
+                      ),
+                      ...newMaps,
+                    ],
                   }));
                 }}
               />

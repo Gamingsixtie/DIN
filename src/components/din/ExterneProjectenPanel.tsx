@@ -3,12 +3,15 @@
 import { useState } from "react";
 import type {
   ExternalProject,
+  DINCapability,
   EffortDomain,
   EffortStatus,
   SectorName,
+  ProjectCapabilityMap,
 } from "@/lib/types";
 import { DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import { generateId } from "@/lib/din-service";
+import AIKoppelingPanel from "@/components/din/AIKoppelingPanel";
 
 // --- Types ---
 
@@ -18,6 +21,9 @@ interface ExterneProjectenPanelProps {
   onAddProjects: (projects: ExternalProject[]) => void;
   onUpdate: (updated: ExternalProject) => void;
   onDelete: (id: string) => void;
+  capabilities: DINCapability[];
+  existingMaps: ProjectCapabilityMap[];
+  onConfirmMappings: (maps: ProjectCapabilityMap[]) => void;
 }
 
 interface ReviewProject {
@@ -65,6 +71,9 @@ export default function ExterneProjectenPanel({
   onAddProjects,
   onUpdate,
   onDelete,
+  capabilities,
+  existingMaps,
+  onConfirmMappings,
 }: ExterneProjectenPanelProps) {
   const [open, setOpen] = useState(projects.length > 0);
   const [activeTab, setActiveTab] = useState<"text" | "upload">("text");
@@ -540,6 +549,17 @@ export default function ExterneProjectenPanel({
                 />
               ))}
             </div>
+          )}
+
+          {/* AI Koppeling Panel — match projects to capabilities */}
+          {inScopeProjects.length > 0 && (
+            <AIKoppelingPanel
+              projects={inScopeProjects}
+              capabilities={capabilities}
+              sectorName={currentSector}
+              existingMaps={existingMaps}
+              onConfirmMappings={onConfirmMappings}
+            />
           )}
 
           {/* Buiten scope projects (dimmed at bottom) */}

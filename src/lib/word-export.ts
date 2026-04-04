@@ -1026,41 +1026,48 @@ function externalProjectsSection(session: DINSession, numState: NumberingState) 
 
   children.push(numberedHeading("Lopende projecten", "h1", numState));
   children.push(bodyText(
-    "Bestaande projecten die aansluiten bij het programma en mogelijk bijdragen aan DIN-vermogens.",
+    "Bestaande projecten gekoppeld aan het DIN-netwerk, gepositioneerd als inspanningen bij de relevante vermogens.",
     { color: TEXT_SECONDARY, size: 20 }
   ));
   children.push(emptyLine());
 
-  const projectRows = session.externalProjects.map(
-    (p) =>
-      new TableRow({
-        children: [
-          styledCell(p.name, { bold: true, width: 20 }),
-          styledCell(p.sectorId, { width: 10 }),
-          styledCell(p.description, { width: 30 }),
-          styledCell(STATUS_LABELS[p.status] || p.status, { width: 15 }),
-          styledCell(p.relevance || "\u2014", { width: 25 }),
-        ],
-      })
-  );
+  const DOMAIN_LABELS_LOCAL: Record<string, string> = {
+    mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur"
+  };
 
-  children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            headerCell("Project", 20),
-            headerCell("Sector", 10),
-            headerCell("Beschrijving", 30),
-            headerCell("Status", 15),
-            headerCell("Relevantie", 25),
-          ],
-        }),
-        ...projectRows,
-      ],
-    })
-  );
+  for (const project of session.externalProjects) {
+    const domainStr = (project.domains || []).map(d => DOMAIN_LABELS_LOCAL[d] || d).join(", ");
+    const statusStr = STATUS_LABELS[project.status] || project.status;
+
+    children.push(bodyText(`${project.name} [Lopend project]`, { bold: true }));
+    children.push(bodyText(
+      `Sector: ${project.sectorId} | Status: ${statusStr}${domainStr ? ` | Domeinen: ${domainStr}` : ""}`,
+      { color: TEXT_SECONDARY, size: 18 }
+    ));
+
+    if (project.description) {
+      children.push(bodyText(project.description));
+    }
+
+    // Linked capabilities via projectCapabilityMaps
+    const linkedCapIds = (session.projectCapabilityMaps || [])
+      .filter(m => m.projectId === project.id)
+      .map(m => m.capabilityId);
+    const linkedCaps = (session.capabilities || []).filter(c => linkedCapIds.includes(c.id));
+
+    if (linkedCaps.length > 0) {
+      children.push(bodyText("Gekoppeld aan vermogens:", { bold: true, size: 18, color: TEXT_SECONDARY }));
+      for (const cap of linkedCaps) {
+        children.push(bullet(cap.description));
+      }
+    }
+
+    if (project.aiWarning) {
+      children.push(bodyText(`Let op: ${project.aiWarning}`, { color: "D97706", size: 18, italic: true }));
+    }
+
+    children.push(emptyLine());
+  }
 
   return { properties: {}, children };
 }
