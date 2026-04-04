@@ -183,3 +183,28 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Cross-Analyse Semantische Matching | 2/2 | Complete   | 2026-04-03 |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
 | 10. Eindproducten | 3/3 | Complete    | 2026-04-04 |
+
+### Phase 11: Cross-analyse herontwerp: stapsgewijs traject met consolidatie
+
+**Goal:** Herstructureer de CrossAnalyseStep van 9 losse secties naar een helder stapsgewijs traject zodat stakeholders in één oogopslag zien hoe de drie sectoren samenhangen. Flow: (1) Sectoroverloop op baten-niveau (hoogover), (2) Gedeelde vermogens cross-sectoraal, (3) Inspanningen-overlap, (4) Consolidatie-actie met samenvoegen-knop die logische cross-sector vermogens genereert, (5) Per-sector vertaling met eigen nuance/saus per sector.
+**Requirements**: R-CROSS-01 (cross-analyse), R-CROSS-02 (synergie-matrix)
+**Depends on:** Phase 10
+**UI hint:** yes
+**Plans:** 4 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Per-step Zod schemas + per-step AI prompts + API route refactoring met stap parameter en cumulatieve context
+- [ ] 11-02-PLAN.md — Shared component extractie (SectorBadge, LoadingOverlay, ClusterCard, ConsolidationActionBar) + WizardNavigation + StepAnalyseButton
+- [ ] 11-03-PLAN.md — CrossAnalyseWizard orchestrator + Stap 1-3 (Baten-overloop, Gedeelde Vermogens, Inspanningen-overlap)
+- [ ] 11-04-PLAN.md — Stap 4-5 (Consolidatie, Sectorvertaling) + CrossAnalyseStep.tsx herschrijving als dunne wrapper
+
+### Phase 12: Lopende Projecten Invullen in DIN-Netwerk
+
+**Goal:** Bestaande lopende projecten (outside-in, online, systemen & data) kunnen specifiek worden ingevuld en gepositioneerd in het DIN-netwerk, gekoppeld aan doelen, baten, vermogens en inspanningen.
+**Requirements**: TBD
+**Depends on:** Phase 11
+**UI hint:** yes
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
