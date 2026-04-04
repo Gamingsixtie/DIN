@@ -11,7 +11,6 @@ import type {
   EffortStatus,
   SectorName,
   SectorplanAnalyseResult,
-  ExternalProject,
 } from "@/lib/types";
 import MarkdownContent from "@/components/ui/MarkdownContent";
 import { SECTORS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
@@ -35,6 +34,7 @@ import DINChainIndicator from "@/components/din/DINChainIndicator";
 import DINCreatieWizard from "@/components/din/DINCreatieWizard";
 import type { WizardResult } from "@/components/din/DINCreatieWizard";
 import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
+import ExterneProjectenPanel from "@/components/din/ExterneProjectenPanel";
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "mens", label: "Mens" },
@@ -77,169 +77,6 @@ const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
   Object.entries(STATUS_LABELS) as [EffortStatus, string][]
 ).map(([key, label]) => ({ key, label, color: STATUS_STYLES[key] }));
 
-function ExterneProjectenPanel({
-  currentSector,
-  projects,
-  onAdd,
-  onUpdate,
-  onDelete,
-}: {
-  currentSector: SectorName;
-  projects: ExternalProject[];
-  onAdd: () => void;
-  onUpdate: (updated: ExternalProject) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(projects.length > 0);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  function cycleStatus(project: ExternalProject) {
-    const order: EffortStatus[] = ["gepland", "in_uitvoering", "afgerond", "on_hold"];
-    const idx = order.indexOf(project.status);
-    const next = order[(idx + 1) % order.length];
-    onUpdate({ ...project, status: next });
-  }
-
-  return (
-    <div className="border border-gray-200 rounded-lg bg-gray-50/50 overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-700">
-            Lopende projecten
-          </span>
-          {projects.length > 0 && (
-            <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
-              {projects.length}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-gray-400">{open ? "\u25B2" : "\u25BC"}</span>
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4 space-y-3">
-          <p className="text-xs text-gray-400">
-            Lopende projecten bij {currentSector} die vanwege hun kenmerken passen bij het programma Klant in Beeld.
-          </p>
-
-          {projects.map((p) => (
-            <div key={p.id} className="group p-3 bg-white border border-gray-200 rounded-lg">
-              {editingId === p.id ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    defaultValue={p.name}
-                    autoFocus
-                    placeholder="Projectnaam"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
-                    onBlur={(ev) => {
-                      if (ev.target.value.trim() !== p.name) {
-                        onUpdate({ ...p, name: ev.target.value.trim() });
-                      }
-                    }}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter") ev.currentTarget.blur();
-                    }}
-                  />
-                  <textarea
-                    defaultValue={p.description}
-                    placeholder="Korte beschrijving van het project..."
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue resize-y h-16"
-                    onBlur={(ev) => {
-                      if (ev.target.value.trim() !== p.description) {
-                        onUpdate({ ...p, description: ev.target.value.trim() });
-                      }
-                    }}
-                  />
-                  <input
-                    type="text"
-                    defaultValue={p.relevance || ""}
-                    placeholder="Waarom relevant voor het programma?"
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-cito-blue"
-                    onBlur={(ev) => {
-                      if (ev.target.value.trim() !== (p.relevance || "")) {
-                        onUpdate({ ...p, relevance: ev.target.value.trim() });
-                      }
-                    }}
-                  />
-                  <div className="flex items-center gap-2">
-                    <select
-                      defaultValue={p.status}
-                      className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none"
-                      onChange={(ev) => {
-                        onUpdate({ ...p, status: ev.target.value as EffortStatus });
-                      }}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-xs text-cito-blue hover:underline ml-auto"
-                    >
-                      Klaar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2">
-                  <button
-                    onClick={() => cycleStatus(p)}
-                    title={`Status: ${STATUS_OPTIONS.find((s) => s.key === p.status)?.label}`}
-                    className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded mt-0.5 ${
-                      STATUS_OPTIONS.find((s) => s.key === p.status)?.color || "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {STATUS_OPTIONS.find((s) => s.key === p.status)?.label}
-                  </button>
-                  <div
-                    className="flex-1 cursor-pointer hover:text-cito-blue min-w-0"
-                    onClick={() => setEditingId(p.id)}
-                    title="Klik om te bewerken"
-                  >
-                    <div className="text-sm font-medium text-gray-700 truncate">
-                      {p.name || "(naamloos project)"}
-                    </div>
-                    {p.description && (
-                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{p.description}</div>
-                    )}
-                    {p.relevance && (
-                      <div className="text-[10px] text-cito-blue mt-1 italic">Relevantie: {p.relevance}</div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => onDelete(p.id)}
-                    className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 shrink-0 text-xs mt-0.5"
-                    title="Verwijderen"
-                  >
-                    {"\u2715"}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {projects.length === 0 && (
-            <p className="text-xs text-gray-400 italic py-2">
-              Nog geen lopende projecten toegevoegd. Voeg projecten toe die passen bij Klant in Beeld.
-            </p>
-          )}
-
-          <button
-            onClick={onAdd}
-            className="text-xs text-cito-blue hover:underline"
-          >
-            + Project toevoegen
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 // ============================================================
@@ -1930,23 +1767,16 @@ export default function DINMappingStep() {
                 );
               })()}
 
-              {/* Externe projecten buiten het programma */}
+              {/* Lopende projecten — AI import + review + management */}
               <ExterneProjectenPanel
                 currentSector={activeSector}
                 projects={(session.externalProjects || []).filter((p) => p.sectorId === activeSector)}
-                onAdd={() => {
-                  const newProject: ExternalProject = {
-                    id: generateId(),
-                    sectorId: activeSector,
-                    name: "",
-                    description: "",
-                    status: "in_uitvoering",
-                    domains: [],
-                    linkedCapabilityIds: [],
-                    buitenScope: false,
-                  };
+                onAddProjects={(newProjects) => {
                   updateSession(prev => ({
-                    externalProjects: [...(prev.externalProjects || []), newProject],
+                    externalProjects: [
+                      ...(prev.externalProjects || []),
+                      ...newProjects,
+                    ],
                   }));
                 }}
                 onUpdate={(updated) => {
