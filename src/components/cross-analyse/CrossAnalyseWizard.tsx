@@ -15,24 +15,10 @@ import WizardNavigation from "./WizardNavigation";
 import StapBatenOverloop from "./StapBatenOverloop";
 import StapGedeeldeVermogens from "./StapGedeeldeVermogens";
 import StapInspanningenOverlap from "./StapInspanningenOverlap";
+import StapConsolidatie from "./StapConsolidatie";
+import StapSectorVertaling from "./StapSectorVertaling";
 import { LoadingOverlay } from "./shared";
 import StepAnalyseButton from "./StepAnalyseButton";
-
-// Temporary placeholders -- replaced by Plan 04
-function StapConsolidatiePlaceholder() {
-  return (
-    <div className="text-center py-8 text-gray-400">
-      Consolidatie-stap wordt geimplementeerd in Plan 04
-    </div>
-  );
-}
-function StapSectorVertalingPlaceholder() {
-  return (
-    <div className="text-center py-8 text-gray-400">
-      Sectorvertaling wordt geimplementeerd in Plan 04
-    </div>
-  );
-}
 
 interface WizardState {
   currentStep: number;
@@ -402,10 +388,20 @@ export default function CrossAnalyseWizard() {
         {wizardState.currentStep === 3 && (
           <StapInspanningenOverlap session={session} result={wizardState.stepResults.stap3} />
         )}
-        {/* TODO: Replace with real StapConsolidatie from Plan 04 */}
-        {wizardState.currentStep === 4 && <StapConsolidatiePlaceholder />}
-        {/* TODO: Replace with real StapSectorVertaling from Plan 04 */}
-        {wizardState.currentStep === 5 && <StapSectorVertalingPlaceholder />}
+        {wizardState.currentStep === 4 && (
+          <StapConsolidatie
+            session={session}
+            stap2Result={wizardState.stepResults.stap2}
+            stap3Result={wizardState.stepResults.stap3}
+            stap4Result={wizardState.stepResults.stap4}
+          />
+        )}
+        {wizardState.currentStep === 5 && (
+          <StapSectorVertaling
+            session={session}
+            result={wizardState.stepResults.stap5}
+          />
+        )}
 
         {/* Error state */}
         {error && (

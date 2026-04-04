@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-04-04T21:31:34.199Z"
+stopped_at: Completed all Phase 11 plans (Wave 3 done)
+last_updated: "2026-04-04T21:40:35.932Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 12
@@ -72,6 +72,7 @@ Progress: [██████████] 100%
 | Phase 11 P01 | 4min | 2 tasks | 4 files |
 | Phase 11 P02 | 3min | 2 tasks | 7 files |
 | Phase 11 P03 | 7min | 2 tasks | 4 files |
+| Phase 11 P04 | 8min | 2 tasks | 4 files |
 | Phase 12 P01 | 11min | 2 tasks | 14 files |
 
 ## Accumulated Context
@@ -127,6 +128,8 @@ Recent decisions affecting current work:
 - [Phase 11]: Backward compat maintained: calls without stap parameter use original CROSS_ANALYSE_PROMPT + AICrossAnalyseSchema
 - [Phase 11]: readOnly prop on ClusterCard to suppress consolidation actions in read-only wizard steps
 - [Phase 11]: ClusterCard readOnly={true} prevents consolidation in analysis steps 2-3 (D-08)
+- [Phase 11]: Consolidation pure functions kept in CrossAnalyseStep.tsx as named exports for test backward compat
+- [Phase 11]: StapSectorVertaling uses session-derived stats with AI override via nullish coalescing
 - [Phase 12]: pdf-parse v1.1.1 chosen over v2 for simple Buffer-in/text-out API
 - [Phase 12]: ProjectCapabilityMap as separate mapping schema following existing pattern (GoalBenefitMap, etc.)
 
@@ -146,6 +149,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T21:31:34.195Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-04-04T21:40:35.929Z
+Stopped at: Phase 11 all plans complete, pending verification
 Resume file: None
