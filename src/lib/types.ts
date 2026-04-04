@@ -39,6 +39,12 @@ export type {
   ProjectMatchItem,
   AICrossAnalyse,
   DINSession,
+  Stap1Result,
+  Stap2Result,
+  Stap3Result,
+  Stap4Result,
+  Stap5Result,
+  CrossAnalyseWizardState,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder
