@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed all Phase 11 plans (Wave 3 done)
-last_updated: "2026-04-04T21:40:35.932Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-04-04T21:42:53.645Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 30
-  completed_plans: 26
+  completed_plans: 28
   percent: 100
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 12
-Plan: 1 of 3 complete
-Status: Executing
+Plan: 2 of 3 complete
+Status: Ready to execute
 Last activity: 2026-04-04
 
 Progress: [██████████] 100%
@@ -74,6 +74,7 @@ Progress: [██████████] 100%
 | Phase 11 P03 | 7min | 2 tasks | 4 files |
 | Phase 11 P04 | 8min | 2 tasks | 4 files |
 | Phase 12 P01 | 11min | 2 tasks | 14 files |
+| Phase 12 P02 | 7min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,8 @@ Recent decisions affecting current work:
 - [Phase 11]: StapSectorVertaling uses session-derived stats with AI override via nullish coalescing
 - [Phase 12]: pdf-parse v1.1.1 chosen over v2 for simple Buffer-in/text-out API
 - [Phase 12]: ProjectCapabilityMap as separate mapping schema following existing pattern (GoalBenefitMap, etc.)
+- [Phase 12]: Auto-save on all-confirmed via setTimeout for batch onAddProjects call
+- [Phase 12]: Separate buiten-scope section at bottom with opacity-50 and Terug in scope action
 
 ### Roadmap Evolution
 
@@ -149,6 +152,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T21:40:35.929Z
-Stopped at: Phase 11 all plans complete, pending verification
+Last session: 2026-04-04T21:42:53.639Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
