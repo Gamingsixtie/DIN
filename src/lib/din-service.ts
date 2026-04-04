@@ -9,6 +9,8 @@ import type {
   DINSession,
   EffortDomain,
   AppStep,
+  ExternalProject,
+  ProjectCapabilityMap,
 } from "./types";
 import { SECTORS } from "./types";
 import { deduplicateById } from "./persistence";
@@ -765,4 +767,30 @@ export function getGoalCompletionStatus(
     isComplete: allComplete,
     isManuallyCompleted,
   };
+}
+
+// --- External Project helpers (Phase 12) ---
+
+/**
+ * Filter projecten op sector, exclusief buiten-scope items.
+ */
+export function getProjectsBySector(
+  projects: ExternalProject[],
+  sectorId: string
+): ExternalProject[] {
+  return projects.filter((p) => p.sectorId === sectorId && !p.buitenScope);
+}
+
+/**
+ * Vind vermogens die gekoppeld zijn aan een specifiek project via ProjectCapabilityMaps.
+ */
+export function getLinkedCapabilities(
+  projectId: string,
+  maps: ProjectCapabilityMap[],
+  capabilities: DINCapability[]
+): DINCapability[] {
+  const capIds = maps
+    .filter((m) => m.projectId === projectId)
+    .map((m) => m.capabilityId);
+  return capabilities.filter((c) => capIds.includes(c.id));
 }

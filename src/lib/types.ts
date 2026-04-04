@@ -27,6 +27,7 @@ export type {
   CapabilityEffortMap,
   EffortPMCMap,
   EffortSectorMap,
+  ProjectCapabilityMap,
   SectorplanAnalyseResult,
   CrossAnalyseSynergieItem,
   CrossAnalyseHefboomItem,
