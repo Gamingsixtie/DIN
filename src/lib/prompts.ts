@@ -137,6 +137,152 @@ BELANGRIJK:
 - Als er geen externe projecten zijn, geef een lege items-array
 - Antwoord in het Nederlands`;
 
+// --- Per-step cross-analyse prompts (Phase 11 — stapsgewijs wizard) ---
+
+export const CROSS_ANALYSE_STAP1_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
+Analyseer de baten per sector en identificeer synergieën en ontbrekende ketens.
+
+Vergelijk de baten van PO, VO en Zakelijk naast elkaar.
+Identificeer waar dezelfde baat in meerdere sectoren terugkomt (synergieën).
+Detecteer ontbrekende koppelingen (doelen zonder baten, baten zonder vermogens).
+
+Antwoord ALLEEN als JSON-object met EXACT deze structuur:
+{
+  "batenPerSector": [
+    { "sector": "PO", "baten": [{ "titel": "...", "doelId": "...", "doelNaam": "..." }] }
+  ],
+  "synergieën": [
+    { "beschrijving": "Welk vermogen/baat gedeeld wordt", "sectoren": ["PO","VO"], "impact": "Effect" }
+  ],
+  "gaps": {
+    "doelenZonderBaten": ["Doel X..."],
+    "batenZonderVermogens": ["Baat Y..."]
+  },
+  "samenvatting": "Korte samenvatting van de baten-overloop analyse (2-3 zinnen)"
+}
+
+BELANGRIJK: Verwijs naar specifieke doelen en baten uit de data. Antwoord in het Nederlands.`;
+
+export const CROSS_ANALYSE_STAP2_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
+Analyseer welke vermogens door meerdere sectoren gedeeld worden en waar hefboomwerking zit.
+
+Cluster vermogens die semantisch op hetzelfde neerkomen over sectoren heen.
+Gebruik de id-velden om items te identificeren in je clusters.
+Identificeer inspanningen die aan meerdere baten bijdragen (hefboomwerking).
+
+Antwoord ALLEEN als JSON-object met EXACT deze structuur:
+{
+  "vermogenClusters": [
+    {
+      "clusterTitel": "Titel van het gedeelde vermogen",
+      "items": [{ "id": "uuid", "beschrijving": "...", "sector": "PO" }],
+      "batenContext": [{ "baat": "naam baat", "sector": "PO" }],
+      "advies": "Waarom deze combineren/afstemmen/apart houden",
+      "aanbeveling": "combineren"
+    }
+  ],
+  "hefboomwerking": [
+    { "inspanning": "Naam", "bijdraagtAan": ["Baat A"], "prioriteit": "hoog" }
+  ],
+  "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"
+}
+
+aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
+BELANGRIJK: Gebruik de werkelijke id-velden uit de data. Antwoord in het Nederlands.`;
+
+export const CROSS_ANALYSE_STAP3_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
+Analyseer overlap in inspanningen over sectoren en koppel lopende projecten aan het DIN-netwerk.
+
+Cluster inspanningen die semantisch overlappen over sectoren.
+Gebruik de id-velden om items te identificeren in je clusters.
+Koppel lopende projecten aan DIN-inspanningen (match/geen match).
+
+Antwoord ALLEEN als JSON-object met EXACT deze structuur:
+{
+  "inspanningClusters": [
+    {
+      "clusterTitel": "Titel van de overlap",
+      "items": [{ "id": "uuid", "beschrijving": "...", "sector": "PO", "domein": "mens" }],
+      "batenContext": [{ "baat": "naam baat", "sector": "PO" }],
+      "advies": "Waarom combineren/afstemmen/apart houden",
+      "aanbeveling": "combineren"
+    }
+  ],
+  "projectMatching": [
+    {
+      "project": "Projectnaam",
+      "heeftMatch": true,
+      "gekoppeldAan": "Inspanning X",
+      "type": "directe match",
+      "advies": "Synergie benutten"
+    }
+  ],
+  "samenvatting": "Korte samenvatting van de inspanningen-analyse (2-3 zinnen)"
+}
+
+aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
+BELANGRIJK: Gebruik de werkelijke id-velden uit de data. Antwoord in het Nederlands.`;
+
+export const CROSS_ANALYSE_STAP4_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
+Geef per cluster een concreet consolidatie-advies: samenvoegen, afstemmen, of apart houden.
+
+Je krijgt de vermogen-clusters en inspanning-clusters uit eerdere analyse-stappen.
+Beoordeel per cluster of samenvoegen zinvol is op basis van:
+- Semantische overlap (hetzelfde vermogen/inspanning in andere woorden)
+- Organisatorische haalbaarheid (kunnen sectoren dit samen?)
+- Methodische correctheid (mag dit volgens DIN-methodiek gedeeld?)
+
+Antwoord ALLEEN als JSON-object met EXACT deze structuur:
+{
+  "consolidatieAdvies": [
+    {
+      "clusterTitel": "Titel van het cluster",
+      "type": "vermogen",
+      "aanbeveling": "combineren",
+      "reden": "Concrete onderbouwing waarom dit advies",
+      "voorgesteldeNaam": "Voorgestelde naam na samenvoeging (alleen bij combineren)"
+    }
+  ],
+  "samenvatting": "Korte samenvatting van het consolidatie-advies (2-3 zinnen)"
+}
+
+type MOET exact "vermogen" of "inspanning" zijn.
+aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
+BELANGRIJK: Antwoord in het Nederlands.`;
+
+export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
+Maak per sector een vertaling: hoe komt hun input terug in het geheel?
+
+Per sector (PO, VO, Zakelijk):
+- Tel baten, vermogens, inspanningen (eigen + gedeeld)
+- Beoordeel de domeinbalans (Mens/Processen/Data & Systemen/Cultuur)
+- Identificeer gaps specifiek voor deze sector
+- Geef een korte samenvatting
+
+Antwoord ALLEEN als JSON-object met EXACT deze structuur:
+{
+  "sectorVertalingen": [
+    {
+      "sector": "PO",
+      "dinKeten": {
+        "aantalBaten": 6,
+        "aantalVermogens": 4,
+        "aantalInspanningen": 8,
+        "waarvanGedeeld": 2
+      },
+      "domeinBalans": [
+        { "domein": "Mens", "beoordeling": "voldoende", "advies": "..." }
+      ],
+      "gaps": ["Vermogen X heeft geen inspanning"],
+      "samenvatting": "Korte samenvatting voor deze sector (2-3 zinnen)"
+    }
+  ],
+  "totaalSamenvatting": "Overkoepelende samenvatting over alle sectoren (2-3 zinnen)"
+}
+
+Beoordeling MOET "voldoende", "te weinig", of "oververtegenwoordigd" zijn.
+BELANGRIJK: Antwoord in het Nederlands.`;
+
 export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
 
 Je krijgt:

@@ -1,9 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { generateVerrijktSectorplan } from "@/lib/ai-client";
-import { AICrossAnalyseSchema } from "@/lib/schemas";
-import { CROSS_ANALYSE_PROMPT } from "@/lib/prompts";
+import {
+  AICrossAnalyseSchema,
+  Stap1ResultSchema,
+  Stap2ResultSchema,
+  Stap3ResultSchema,
+  Stap4ResultSchema,
+  Stap5ResultSchema,
+} from "@/lib/schemas";
+import {
+  CROSS_ANALYSE_PROMPT,
+  CROSS_ANALYSE_STAP1_PROMPT,
+  CROSS_ANALYSE_STAP2_PROMPT,
+  CROSS_ANALYSE_STAP3_PROMPT,
+  CROSS_ANALYSE_STAP4_PROMPT,
+  CROSS_ANALYSE_STAP5_PROMPT,
+} from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
+import type { z } from "zod";
+
+function getStepConfig(stap: number): { prompt: string; schema: z.ZodSchema } | undefined {
+  const configs: Record<number, { prompt: string; schema: z.ZodSchema }> = {
+    1: { prompt: CROSS_ANALYSE_STAP1_PROMPT, schema: Stap1ResultSchema },
+    2: { prompt: CROSS_ANALYSE_STAP2_PROMPT, schema: Stap2ResultSchema },
+    3: { prompt: CROSS_ANALYSE_STAP3_PROMPT, schema: Stap3ResultSchema },
+    4: { prompt: CROSS_ANALYSE_STAP4_PROMPT, schema: Stap4ResultSchema },
+    5: { prompt: CROSS_ANALYSE_STAP5_PROMPT, schema: Stap5ResultSchema },
+  };
+  return configs[stap];
+}
+
+function buildCumulativeContext(body: Record<string, unknown>): string {
+  let context = "";
+  if (body.stap1Result) {
+    const s1 = body.stap1Result as { samenvatting?: string };
+    context += `\nEERDERE ANALYSE - Stap 1 (Baten-overloop):\n${s1.samenvatting || ""}`;
+  }
+  if (body.stap2Result) {
+    const s2 = body.stap2Result as { samenvatting?: string };
+    context += `\nEERDERE ANALYSE - Stap 2 (Vermogen-clusters):\n${s2.samenvatting || ""}`;
+  }
+  if (body.stap3Result) {
+    const s3 = body.stap3Result as { samenvatting?: string };
+    context += `\nEERDERE ANALYSE - Stap 3 (Inspanning-clusters):\n${s3.samenvatting || ""}`;
+  }
+  if (body.stap4Result) {
+    const s4 = body.stap4Result as { samenvatting?: string };
+    context += `\nEERDERE ANALYSE - Stap 4 (Consolidatie-advies):\n${s4.samenvatting || ""}`;
+  }
+  // Cap at ~3000 chars to prevent token budget explosion
+  if (context.length > 3000) {
+    const truncated = context.slice(0, 3000);
+    const lastSentence = truncated.lastIndexOf(".");
+    context = lastSentence > 2500 ? truncated.slice(0, lastSentence + 1) : truncated;
+  }
+  return context;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +89,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Default: cross-analyse over alle sectoren
     // Build structured user message with entity IDs for reliable matching
     const goalsData = (body.goals || []).map((g: { id: string; name: string; description?: string }) => ({
       id: g.id, name: g.name, description: g.description || "",
@@ -67,6 +119,47 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    // Per-step wizard invocation (D-11)
+    const stap = body.stap as number | undefined;
+    if (stap && stap >= 1 && stap <= 5) {
+      const config = getStepConfig(stap);
+      if (!config) {
+        return NextResponse.json(
+          { success: false, error: `Ongeldige stap: ${stap}` },
+          { status: 400 }
+        );
+      }
+
+      const cumulativeContext = buildCumulativeContext(body);
+      let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(structuredData, null, 2).slice(0, 20000)}`;
+      if (cumulativeContext) {
+        userMessage += `\n\n${cumulativeContext}`;
+      }
+      if (body.userFeedback) {
+        userMessage += `\n\nExtra instructies van de gebruiker: ${body.userFeedback}`;
+      }
+
+      const result = await callClaudeWithValidation(
+        config.schema,
+        assembleSystemPrompt(config.prompt, "cross-analyse", undefined, kibContext),
+        userMessage,
+        { maxTokens: 16384, model: "claude-opus-4-6" }
+      );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error, retryable: true },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: { analysis: result.data, stap },
+      });
+    }
+
+    // Default: full cross-analyse over alle sectoren (backward compat)
     let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(structuredData, null, 2).slice(0, 20000)}`;
 
     if (body.userFeedback) {
