@@ -204,9 +204,9 @@ Plans:
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14
 **Depends on:** Phase 11
 **UI hint:** yes
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 12-01-PLAN.md — Schema extensies (ExternalProject + ProjectCapabilityMap + AI response schemas) + API routes (parse/extract/match) + AI client + tests
+- [x] 12-01-PLAN.md — Schema extensies (ExternalProject + ProjectCapabilityMap + AI response schemas) + API routes (parse/extract/match) + AI client + tests
 - [ ] 12-02-PLAN.md — ExterneProjectenPanel extractie + import tabs + AI extractie + review cards + domain checkboxes + DINMappingStep update
 - [ ] 12-03-PLAN.md — AIKoppelingPanel + inline project display in inspanningen + Word export + ExportStep update + human verify

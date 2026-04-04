@@ -159,6 +159,10 @@ export const ExternalProjectSchema = z.object({
   description: z.string(),
   status: EffortStatusSchema,
   relevance: z.string().optional(),
+  domains: z.array(EffortDomainSchema).optional().default([]),
+  linkedCapabilityIds: z.array(z.string()).optional().default([]),
+  aiWarning: z.string().optional(),
+  buitenScope: z.boolean().optional().default(false),
 });
 
 // ============================================================
@@ -188,6 +192,11 @@ export const EffortPMCMapSchema = z.object({
 export const EffortSectorMapSchema = z.object({
   effortId: z.string(),
   sectorPlanId: z.string(),
+});
+
+export const ProjectCapabilityMapSchema = z.object({
+  projectId: z.string(),
+  capabilityId: z.string(),
 });
 
 // ============================================================
@@ -468,6 +477,7 @@ export const DINSessionSchema = z.object({
   goalBenefitMaps: z.array(GoalBenefitMapSchema).optional().default([]),
   benefitCapabilityMaps: z.array(BenefitCapabilityMapSchema).optional().default([]),
   capabilityEffortMaps: z.array(CapabilityEffortMapSchema).optional().default([]),
+  projectCapabilityMaps: z.array(ProjectCapabilityMapSchema).optional().default([]),
   // Opgeslagen analyses
   sectorAnalyses: z.record(z.string(), AISectorplanAnalyseSchema).optional(),
   verrijkteSectorplannen: z.record(z.string(), z.string()).optional(),
@@ -677,6 +687,34 @@ export const AICrossAnalyseSchema = z.object({
     .default(() => aiTitelToelichtingItemsDefault<z.infer<typeof ProjectMatchItemSchema>>()),
 });
 
+// --- AI Project Extraction (Phase 12) ---
+
+export const AIExtractedProjectSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  status: EffortStatusSchema.optional().default("in_uitvoering"),
+  domains: z.array(EffortDomainSchema).optional().default([]),
+  aiWarning: z.string().optional(),
+});
+
+export const AIProjectExtractionResponseSchema = z.object({
+  projects: z.array(AIExtractedProjectSchema).max(20),
+});
+
+// --- AI Project-Capability Matching (Phase 12) ---
+
+export const AIProjectCapabilityMatchSchema = z.object({
+  projectId: z.string(),
+  suggestedCapabilityIds: z.array(z.string()),
+  confidence: z.enum(["hoog", "gemiddeld", "laag"]),
+  toelichting: z.string(),
+  warning: z.string().optional(),
+});
+
+export const AIProjectCapabilityMatchResponseSchema = z.object({
+  matches: z.array(AIProjectCapabilityMatchSchema),
+});
+
 // --- AI Domain Recommend ---
 
 export const AIDomainRecommendSchema = z.object({
@@ -745,6 +783,7 @@ export type BenefitCapabilityMap = z.infer<typeof BenefitCapabilityMapSchema>;
 export type CapabilityEffortMap = z.infer<typeof CapabilityEffortMapSchema>;
 export type EffortPMCMap = z.infer<typeof EffortPMCMapSchema>;
 export type EffortSectorMap = z.infer<typeof EffortSectorMapSchema>;
+export type ProjectCapabilityMap = z.infer<typeof ProjectCapabilityMapSchema>;
 
 export type SectorplanAnalyseResult = z.infer<typeof SectorplanAnalyseResultSchema>;
 export type CrossAnalyseSynergieItem = z.infer<typeof CrossAnalyseSynergieItemSchema>;
@@ -767,6 +806,10 @@ export type AICrossAnalyse = z.infer<typeof AICrossAnalyseSchema>;
 export type VermogenClusterItem = z.infer<typeof VermogenClusterItemSchema>;
 export type InspanningClusterItem = z.infer<typeof InspanningClusterItemSchema>;
 export type ProjectMatchItem = z.infer<typeof ProjectMatchItemSchema>;
+export type AIExtractedProject = z.infer<typeof AIExtractedProjectSchema>;
+export type AIProjectExtractionResponse = z.infer<typeof AIProjectExtractionResponseSchema>;
+export type AIProjectCapabilityMatch = z.infer<typeof AIProjectCapabilityMatchSchema>;
+export type AIProjectCapabilityMatchResponse = z.infer<typeof AIProjectCapabilityMatchResponseSchema>;
 export type AIDomainRecommend = z.infer<typeof AIDomainRecommendSchema>;
 export type KiBExport = z.infer<typeof KiBExportSchema>;
 export type Stap1Result = z.infer<typeof Stap1ResultSchema>;

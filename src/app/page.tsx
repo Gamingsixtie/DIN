@@ -45,6 +45,7 @@ export default function Home() {
       goalBenefitMaps: [],
       benefitCapabilityMaps: [],
       capabilityEffortMaps: [],
+      projectCapabilityMaps: [],
       completedGoals: [],
     };
     saveLocal(`session_${id}`, session);

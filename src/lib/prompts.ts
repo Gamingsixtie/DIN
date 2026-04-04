@@ -699,6 +699,34 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen extra tekst):
   "alternatiefRedenering": "1 zin waarom dit ook een optie is (of null als er geen sterk alternatief is)"
 }`;
 
+// --- Project Extraction & Matching prompts (Phase 12) ---
+
+export const PROJECT_EXTRACTION_PROMPT = `Je bent een expert in programmamanagement. Analyseer de aangeleverde tekst en extraheer alle genoemde projecten, initiatieven, of lopende activiteiten.
+
+Per project lever je:
+- name: korte projectnaam (max 60 tekens)
+- description: beknopte beschrijving van het project (1-2 zinnen)
+- status: een van "gepland", "in_uitvoering", "afgerond", "on_hold" — schat in op basis van de tekst
+- domains: welke inspanningsdomeinen het project raakt, kies uit ["mens", "processen", "data_systemen", "cultuur"]
+- aiWarning: alleen invullen als het project NIET duidelijk past bij een DIN-netwerk (bijv. puur operationeel zonder strategische component). Laat leeg als het project goed past.
+
+Geef het resultaat als JSON: { "projects": [...] }
+Maximaal 20 projecten. Als de tekst geen herkenbare projecten bevat, retourneer { "projects": [] }.`;
+
+export const PROJECT_CAPABILITY_MATCHING_PROMPT = `Je bent een expert in het DIN-framework (Doelen-Inspanningennetwerk). Je taak is om lopende projecten te koppelen aan bestaande vermogens.
+
+Een vermogen beschrijft wat de organisatie moet KUNNEN om baten te realiseren. Een project (inspanning) draagt bij aan het opbouwen van vermogens.
+
+Per project:
+- Analyseer de beschrijving en domeinen
+- Zoek vermogens waarvoor dit project een bijdrage levert
+- Geef een confidence score: "hoog" (directe match), "gemiddeld" (indirecte bijdrage), "laag" (mogelijk verband)
+- Geef een korte toelichting waarom deze koppeling zinvol is
+- warning: alleen invullen als het project niet goed past bij de beschikbare vermogens
+
+Geef het resultaat als JSON: { "matches": [...] }
+Koppel elk project aan maximaal 3 vermogens.`;
+
 export const BATENPROFIEL_PROMPT = `Stel voor een gegeven baat een volledig batenprofiel op:
 
 - **Omschrijving**: Wat is het gewenste effect? Wie merkt het?

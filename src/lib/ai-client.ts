@@ -17,7 +17,13 @@ import {
   DIN_CREATE_VERMOGEN_PROMPT,
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
+  PROJECT_EXTRACTION_PROMPT,
+  PROJECT_CAPABILITY_MATCHING_PROMPT,
 } from "./prompts";
+import {
+  AIProjectExtractionResponseSchema,
+  AIProjectCapabilityMatchResponseSchema,
+} from "./schemas";
 
 function getClient(): Anthropic {
   return new Anthropic();
@@ -729,4 +735,25 @@ export async function createDINItem(
   }
 
   return callClaude(promptMap[type], parts.join("\n\n"));
+}
+
+// --- Phase 12: External Project functions ---
+
+export async function extractProjectsFromText(
+  rawText: string,
+  sectorName: string
+): Promise<{ success: true; data: z.infer<typeof AIProjectExtractionResponseSchema> } | { success: false; error: string }> {
+  const systemPrompt = PROJECT_EXTRACTION_PROMPT;
+  const userMessage = `Sector: ${sectorName}\n\nTekst om te analyseren:\n${rawText.slice(0, 12000)}`;
+  return callClaudeWithValidation(AIProjectExtractionResponseSchema, systemPrompt, userMessage, { maxTokens: 4096 });
+}
+
+export async function matchProjectsToCapabilities(
+  projects: { id: string; name: string; description: string; domains: string[] }[],
+  capabilities: { id: string; description: string; sectorId: string }[],
+  sectorName: string
+): Promise<{ success: true; data: z.infer<typeof AIProjectCapabilityMatchResponseSchema> } | { success: false; error: string }> {
+  const systemPrompt = PROJECT_CAPABILITY_MATCHING_PROMPT;
+  const userMessage = `Sector: ${sectorName}\n\nProjecten:\n${JSON.stringify(projects, null, 2)}\n\nBeschikbare vermogens:\n${JSON.stringify(capabilities, null, 2)}`;
+  return callClaudeWithValidation(AIProjectCapabilityMatchResponseSchema, systemPrompt, userMessage, { maxTokens: 4096 });
 }
