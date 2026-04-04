@@ -1941,6 +1941,9 @@ export default function DINMappingStep() {
                     name: "",
                     description: "",
                     status: "in_uitvoering",
+                    domains: [],
+                    linkedCapabilityIds: [],
+                    buitenScope: false,
                   };
                   updateSession(prev => ({
                     externalProjects: [...(prev.externalProjects || []), newProject],
