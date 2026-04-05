@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-04-05T21:20:53.083Z"
+stopped_at: Completed 13-04-PLAN.md
+last_updated: "2026-04-05T21:31:44.303Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 14
-  completed_phases: 12
-  total_plans: 36
-  completed_plans: 33
+  completed_phases: 13
+  total_plans: 37
+  completed_plans: 34
   percent: 100
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 13 — stap-5-cross-analyse-prioriteitsview-eerste-doel
+**Current focus:** Phase 14 — lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding
 
 ## Current Position
 
-Phase: 13 (stap-5-cross-analyse-prioriteitsview-eerste-doel) — EXECUTING
-Plan: 2 of 4
+Phase: 14 (lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
 Last activity: 2026-04-05
 
@@ -79,6 +79,7 @@ Progress: [██████████] 100%
 | Phase 13 P01 | 4min | 3 tasks | 3 files |
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P02 | 12min | 2 tasks | 3 files |
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P03 | 4min | 2 tasks | 2 files |
+| Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P04 | 6min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,8 @@ Recent decisions affecting current work:
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: API route reuses getFocusGoal from Wave 1 pure module — identical filter semantics server + client
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: StapSectorVertaling volledig herschreven naar 6-block focusview; oude DIN-keten/Domeinbalans/Gap-analyse verwijderd
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: Explicit filter callback types nodig in route.ts stap5 narrowing — TS strict infereert niet door .map().filter() chains
+- [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: Wave 3 wizard integratie: restore guard in CrossAnalyseWizard useEffect (niet session-context) + CTA condition <=5 als minst-invasieve Open Question 2 fix
+- [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: STEP_INFO[5] UI-SPEC copy: Prioriteitsview — eerste doel, Analyseer eerste doel, AI beoordeelt hefboomwerking…
 
 ### Roadmap Evolution
 
@@ -164,6 +167,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T21:20:44.332Z
-Stopped at: Completed 13-03-PLAN.md
+Last session: 2026-04-05T21:31:35.650Z
+Stopped at: Completed 13-04-PLAN.md
 Resume file: None
