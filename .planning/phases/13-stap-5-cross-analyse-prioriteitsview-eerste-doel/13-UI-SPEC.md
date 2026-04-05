@@ -1,10 +1,11 @@
 ---
 phase: 13
 slug: stap-5-cross-analyse-prioriteitsview-eerste-doel
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-05
+reviewed_at: 2026-04-05T00:00:00Z
 ---
 
 # Phase 13 — UI Design Contract
