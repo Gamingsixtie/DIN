@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-04-05T21:42:07.930Z"
+status: verifying
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-04-05T21:52:34.688Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 14
   completed_phases: 13
   total_plans: 37
-  completed_plans: 35
+  completed_plans: 36
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 14 (lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [██████████] 100%
@@ -81,6 +81,7 @@ Progress: [██████████] 100%
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P03 | 4min | 2 tasks | 2 files |
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P04 | 6min | 2 tasks | 1 files |
 | Phase 14 P01 | 7min | 3 tasks | 5 files |
+| Phase 14 P02 | 6min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,10 @@ Recent decisions affecting current work:
 - [Phase 14]: Plan 01: Use .optional() without .default() for promotedToEffortIds to preserve TypeScript inference (Pitfall 1)
 - [Phase 14]: Plan 01: AIPromotedEffortSchema uses inline dossier shape (not InspanningsDossierSchema) because storage schema requires non-optional fields
 - [Phase 14]: Plan 01: Findings-created entities are NOT rolled back by undoProjectPromotion — first-class DIN entities after acceptance
+- [Phase 14]: Plan 02: Combined-shot AI call (Opus 4.6) levert benefitMatches + capabilityMatches + 1-4 splitEfforts + findings in één JSON response
+- [Phase 14]: Plan 02: Pitfall 2 defense in depth — structured JSON IDs in user-message + post-parse Set-based filter met console.warn drop bij unknown benefitId/capabilityId
+- [Phase 14]: Plan 02: /api/promote-project returnt 503 (hard gate) bij ontbrekende ANTHROPIC_API_KEY — promotie werkt niet zonder AI
+- [Phase 14]: Plan 02: vi.mock(@anthropic-ai/sdk) pattern met mockCreate closure voor AI-client unit tests, zelfde pattern als ai-parsing.test.ts
 
 ### Roadmap Evolution
 
@@ -171,6 +176,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T21:42:07.927Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-04-05T21:52:34.684Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None

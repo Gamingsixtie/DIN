@@ -231,9 +231,9 @@ Plans:
 **Requirements**: D-01..D-14 (CONTEXT.md locked decisions — no formal R-ID; added post-v1-roadmap as Phase 12 extension)
 **Depends on:** Phase 13
 **UI hint:** yes
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 14-01-PLAN.md — Schemas (ExternalProject/DINEffort/ProjectPromotieResult) + pure mutation helpers (promoteProjectToEfforts/undoProjectPromotion) + 31 unit tests
-- [ ] 14-02-PLAN.md — AI pipeline: PROJECT_PROMOTIE_PROMPT + promoteExternalProject() + POST /api/promote-project + mocked tests (Pitfall 2 safeguard)
+- [x] 14-02-PLAN.md — AI pipeline: PROJECT_PROMOTIE_PROMPT + promoteExternalProject() + POST /api/promote-project + mocked tests (Pitfall 2 safeguard)
 - [ ] 14-03-PLAN.md — UI: ProjectPromotiePanel review screen + ExterneProjectenPanel integration + DINMappingStep filter fix + human verify
