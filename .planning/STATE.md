@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-04-05T21:31:44.303Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-04-05T21:42:07.930Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 14
   completed_phases: 13
   total_plans: 37
-  completed_plans: 34
+  completed_plans: 35
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 14 (lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-05
 
@@ -80,6 +80,7 @@ Progress: [██████████] 100%
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P02 | 12min | 2 tasks | 3 files |
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P03 | 4min | 2 tasks | 2 files |
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P04 | 6min | 2 tasks | 1 files |
+| Phase 14 P01 | 7min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,9 @@ Recent decisions affecting current work:
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: Explicit filter callback types nodig in route.ts stap5 narrowing — TS strict infereert niet door .map().filter() chains
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: Wave 3 wizard integratie: restore guard in CrossAnalyseWizard useEffect (niet session-context) + CTA condition <=5 als minst-invasieve Open Question 2 fix
 - [Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel]: STEP_INFO[5] UI-SPEC copy: Prioriteitsview — eerste doel, Analyseer eerste doel, AI beoordeelt hefboomwerking…
+- [Phase 14]: Plan 01: Use .optional() without .default() for promotedToEffortIds to preserve TypeScript inference (Pitfall 1)
+- [Phase 14]: Plan 01: AIPromotedEffortSchema uses inline dossier shape (not InspanningsDossierSchema) because storage schema requires non-optional fields
+- [Phase 14]: Plan 01: Findings-created entities are NOT rolled back by undoProjectPromotion — first-class DIN entities after acceptance
 
 ### Roadmap Evolution
 
@@ -167,6 +171,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T21:31:35.650Z
-Stopped at: Completed 13-04-PLAN.md
+Last session: 2026-04-05T21:42:07.927Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
