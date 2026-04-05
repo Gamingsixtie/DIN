@@ -726,6 +726,61 @@ export const AIProjectCapabilityMatchResponseSchema = z.object({
   matches: z.array(AIProjectCapabilityMatchSchema),
 });
 
+// --- AI Project Promotion (Phase 14) ---
+// Combined-shot promotion result: benefit matches + capability matches +
+// 1-4 split efforts + findings. Used by promote-project API route. (D-02, D-05, D-14)
+
+export const FindingSuggestionSchema = z.object({
+  type: z.enum(["baat", "vermogen", "inspanning"]),
+  beschrijving: z.string(),
+  toelichting: z.string(),
+  targetSector: SectorNameSchema,
+  // For inspanning findings, allow AI to hint a domain (optional)
+  domain: EffortDomainSchema.optional(),
+});
+
+export const AIPromotedEffortSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  domain: EffortDomainSchema,
+  // D-07: default to in_uitvoering (lopend project)
+  status: EffortStatusSchema.optional().default("in_uitvoering"),
+  quarter: z.string().optional(),
+  responsibleSector: z.string().optional(),
+  // Reuse InspanningsDossierSchema for consistency; all fields optional on AI side
+  dossier: z
+    .object({
+      eigenaar: z.string().optional().default(""),
+      inspanningsleider: z.string().optional().default(""),
+      verwachtResultaat: z.string().optional().default(""),
+      kostenraming: z.string().optional().default(""),
+      randvoorwaarden: z.string().optional().default(""),
+    })
+    .optional(),
+  // AI's reasoning for why THIS split effort exists (shown in review UI)
+  rationale: z.string().optional(),
+});
+
+export const AIPromotedBenefitMatchSchema = z.object({
+  benefitId: z.string(), // Matches an existing DINBenefit.id from the session
+  toelichting: z.string(),
+});
+
+export const AIPromotedCapabilityMatchSchema = z.object({
+  capabilityId: z.string(), // Matches an existing DINCapability.id
+  toelichting: z.string(),
+});
+
+export const ProjectPromotieResultSchema = z.object({
+  benefitMatches: z.array(AIPromotedBenefitMatchSchema).optional().default([]),
+  // D-02: at least one capability must be suggested (project must land in DIN-keten)
+  capabilityMatches: z.array(AIPromotedCapabilityMatchSchema).min(1),
+  // D-05: hard constraint 1..4
+  splitEfforts: z.array(AIPromotedEffortSchema).min(1).max(4),
+  findings: z.array(FindingSuggestionSchema).optional().default([]),
+  samenvatting: z.string(),
+});
+
 // --- AI Domain Recommend ---
 
 export const AIDomainRecommendSchema = z.object({
@@ -821,6 +876,11 @@ export type AIExtractedProject = z.infer<typeof AIExtractedProjectSchema>;
 export type AIProjectExtractionResponse = z.infer<typeof AIProjectExtractionResponseSchema>;
 export type AIProjectCapabilityMatch = z.infer<typeof AIProjectCapabilityMatchSchema>;
 export type AIProjectCapabilityMatchResponse = z.infer<typeof AIProjectCapabilityMatchResponseSchema>;
+export type FindingSuggestion = z.infer<typeof FindingSuggestionSchema>;
+export type AIPromotedEffort = z.infer<typeof AIPromotedEffortSchema>;
+export type AIPromotedBenefitMatch = z.infer<typeof AIPromotedBenefitMatchSchema>;
+export type AIPromotedCapabilityMatch = z.infer<typeof AIPromotedCapabilityMatchSchema>;
+export type ProjectPromotieResult = z.infer<typeof ProjectPromotieResultSchema>;
 export type AIDomainRecommend = z.infer<typeof AIDomainRecommendSchema>;
 export type KiBExport = z.infer<typeof KiBExportSchema>;
 export type Stap1Result = z.infer<typeof Stap1ResultSchema>;
