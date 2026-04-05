@@ -11,7 +11,13 @@ import type {
   AppStep,
   ExternalProject,
   ProjectCapabilityMap,
+  CapabilityEffortMap,
 } from "./types";
+import type {
+  ProjectPromotieResult,
+  AIPromotedEffort,
+  FindingSuggestion,
+} from "./schemas";
 import { SECTORS } from "./types";
 import { deduplicateById } from "./persistence";
 import { tokenize, tokenSimilarity, SIMILARITY_THRESHOLD } from "./nl-tokenizer";
@@ -793,4 +799,225 @@ export function getLinkedCapabilities(
     .filter((m) => m.projectId === projectId)
     .map((m) => m.capabilityId);
   return capabilities.filter((c) => capIds.includes(c.id));
+}
+
+// --- Project Promotie helpers (Phase 14) ---
+
+/**
+ * User selecties uit het promotie-review scherm.
+ * - acceptedBenefitIds: welke AI-voorgestelde baten de user wil koppelen
+ * - acceptedCapabilityIds: welke AI-voorgestelde vermogens de user wil koppelen
+ * - keptEfforts: welke split efforts de user heeft bevestigd (1..4 per D-05/D-06)
+ * - acceptedFindings: welke bevindingen direct omgezet moeten worden naar DIN-entiteiten
+ */
+export interface PromotionSelections {
+  acceptedBenefitIds: string[];
+  acceptedCapabilityIds: string[];
+  keptEfforts: AIPromotedEffort[];
+  acceptedFindings: FindingSuggestion[];
+}
+
+/**
+ * Pure function: gegeven een sessie + promotie-resultaat + user-selecties,
+ * retourneert de Partial<DINSession> die toegepast moet worden.
+ *
+ * Deze functie is PURE — het moet binnen `updateSession(prev => ...)` worden
+ * aangeroepen zodat React's functional updater atomiciteit garandeert.
+ *
+ * Mutaties (Phase 14 D-08, D-09, D-10):
+ * 1. Origineel project markeren als gepromoveerd (promotedAt, promotedToEffortIds)
+ * 2. Nieuwe DINEffort entries (1..4) aanmaken met originProjectId
+ * 3. Oude projectCapabilityMaps rows voor dit project verwijderen
+ * 4. Nieuwe capabilityEffortMap rows (cartesisch: elke cap x elke effort)
+ * 5. Voor geaccepteerde findings: nieuwe DINBenefit/DINCapability/DINEffort entries
+ *    (findings van type 'inspanning' krijgen originProjectId voor traceback)
+ */
+export function promoteProjectToEfforts(
+  session: DINSession,
+  projectId: string,
+  _result: ProjectPromotieResult,
+  selections: PromotionSelections
+): Partial<DINSession> {
+  const project = (session.externalProjects || []).find(
+    (p) => p.id === projectId
+  );
+  if (!project) return {};
+
+  // 1. Nieuwe DINEffort entries aanmaken
+  const newEffortIds: string[] = [];
+  const newEfforts: DINEffort[] = selections.keptEfforts.map((ae) => {
+    const id = generateId();
+    newEffortIds.push(id);
+    return {
+      id,
+      sectorId: project.sectorId,
+      title: ae.title,
+      description: ae.description,
+      domain: ae.domain,
+      quarter: ae.quarter,
+      responsibleSector: ae.responsibleSector || project.sectorId,
+      status: ae.status || "in_uitvoering",
+      dependencies: [],
+      votes: 0,
+      dossier: ae.dossier
+        ? {
+            eigenaar: ae.dossier.eigenaar || "",
+            inspanningsleider: ae.dossier.inspanningsleider || "",
+            verwachtResultaat: ae.dossier.verwachtResultaat || "",
+            kostenraming: ae.dossier.kostenraming || "",
+            randvoorwaarden: ae.dossier.randvoorwaarden || "",
+          }
+        : undefined,
+      originProjectId: projectId, // D-09
+    };
+  });
+
+  // 2. capabilityEffortMap rows (cartesisch product: elke accepted cap x elke new effort)
+  const newCapEffMaps: CapabilityEffortMap[] = [];
+  for (const capabilityId of selections.acceptedCapabilityIds) {
+    for (const effortId of newEffortIds) {
+      newCapEffMaps.push({ capabilityId, effortId });
+    }
+  }
+
+  // 3. Oude projectCapabilityMaps voor dit project verwijderen (D-10)
+  const filteredProjectCapMaps = (session.projectCapabilityMaps || []).filter(
+    (m) => m.projectId !== projectId
+  );
+
+  // 4. Origineel project markeren als gepromoveerd (D-08)
+  const updatedProjects = (session.externalProjects || []).map((p) =>
+    p.id === projectId
+      ? {
+          ...p,
+          promotedAt: new Date().toISOString(),
+          promotedToEffortIds: newEffortIds,
+        }
+      : p
+  );
+
+  // 5. Geaccepteerde findings -> nieuwe entities
+  const findingBenefits: DINBenefit[] = [];
+  const findingCapabilities: DINCapability[] = [];
+  const findingEfforts: DINEffort[] = [];
+  for (const finding of selections.acceptedFindings) {
+    if (finding.type === "baat") {
+      findingBenefits.push({
+        id: generateId(),
+        // Findings van type 'baat' hebben nog geen goal context — UI Wave 3 beslist
+        // of er een goal-picker stap komt. Voor nu: lege placeholder goalId.
+        goalId: "",
+        sectorId: finding.targetSector,
+        title: finding.beschrijving.slice(0, 60),
+        description: finding.beschrijving,
+        profiel: {
+          bateneigenaar: "",
+          indicator: "",
+          indicatorOwner: "",
+          currentValue: "",
+          targetValue: "",
+        },
+      });
+    } else if (finding.type === "vermogen") {
+      findingCapabilities.push({
+        id: generateId(),
+        sectorId: finding.targetSector,
+        title: finding.beschrijving.slice(0, 60),
+        description: finding.toelichting || finding.beschrijving,
+        relatedSectors: [finding.targetSector],
+        profiel: {
+          eigenaar: "",
+          huidieSituatie: "",
+          gewensteSituatie: "",
+        },
+      });
+    } else if (finding.type === "inspanning") {
+      findingEfforts.push({
+        id: generateId(),
+        sectorId: finding.targetSector,
+        title: finding.beschrijving.slice(0, 60),
+        description: finding.beschrijving,
+        domain: finding.domain || "processen",
+        status: "gepland",
+        dependencies: [],
+        originProjectId: projectId, // Findings die efforts maken, traceerbaar naar bronproject
+      });
+    }
+  }
+
+  return {
+    externalProjects: updatedProjects,
+    efforts: [...(session.efforts || []), ...newEfforts, ...findingEfforts],
+    benefits: [...(session.benefits || []), ...findingBenefits],
+    capabilities: [...(session.capabilities || []), ...findingCapabilities],
+    capabilityEffortMaps: [
+      ...(session.capabilityEffortMaps || []),
+      ...newCapEffMaps,
+    ],
+    projectCapabilityMaps: filteredProjectCapMaps,
+  };
+}
+
+/**
+ * Pure function: inverse van promoteProjectToEfforts.
+ * - Verwijdert efforts met originProjectId === projectId (of die in promotedToEffortIds staan)
+ * - Ruimt bijbehorende capabilityEffortMaps op
+ * - Herstelt projectCapabilityMaps (met dedupe per projectId:capabilityId)
+ * - Wist promotedAt + promotedToEffortIds op het project
+ *
+ * Let op: findings-created benefits/capabilities worden NIET teruggedraaid —
+ * die zijn gepromoveerd tot first-class DIN-entiteiten. Dit is gedocumenteerd
+ * gedrag; de undo-dialog moet dit expliciet aan de user tonen.
+ */
+export function undoProjectPromotion(
+  session: DINSession,
+  projectId: string
+): Partial<DINSession> {
+  const project = (session.externalProjects || []).find(
+    (p) => p.id === projectId
+  );
+  if (!project || !project.promotedAt) return {};
+
+  const promotedEffortIds = new Set(project.promotedToEffortIds || []);
+  // Belt-and-braces: pak ook efforts die via originProjectId terug verwijzen
+  const effortsToRemove = new Set(
+    (session.efforts || [])
+      .filter(
+        (e) => e.originProjectId === projectId || promotedEffortIds.has(e.id)
+      )
+      .map((e) => e.id)
+  );
+
+  // Herstel projectCapabilityMaps uit capabilityEffortMaps waarvan effortId in effortsToRemove zit
+  const restoredProjectCapMaps: ProjectCapabilityMap[] = [];
+  const seen = new Set<string>();
+  for (const cem of session.capabilityEffortMaps || []) {
+    if (effortsToRemove.has(cem.effortId)) {
+      const key = `${projectId}:${cem.capabilityId}`;
+      if (!seen.has(key)) {
+        restoredProjectCapMaps.push({
+          projectId,
+          capabilityId: cem.capabilityId,
+        });
+        seen.add(key);
+      }
+    }
+  }
+
+  return {
+    externalProjects: (session.externalProjects || []).map((p) =>
+      p.id === projectId
+        ? { ...p, promotedAt: undefined, promotedToEffortIds: undefined }
+        : p
+    ),
+    efforts: (session.efforts || []).filter((e) => !effortsToRemove.has(e.id)),
+    capabilityEffortMaps: (session.capabilityEffortMaps || []).filter(
+      (cem) => !effortsToRemove.has(cem.effortId)
+    ),
+    projectCapabilityMaps: [
+      ...(session.projectCapabilityMaps || []),
+      ...restoredProjectCapMaps,
+    ],
+    // findings-created entities (benefits, capabilities) worden NIET teruggedraaid.
+  };
 }
