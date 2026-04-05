@@ -10,14 +10,24 @@ import type {
   ProjectCapabilityMap,
 } from "@/lib/types";
 import { DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
-import { generateId } from "@/lib/din-service";
+import { generateId, undoProjectPromotion } from "@/lib/din-service";
+import { useSession } from "@/lib/session-context";
+import { useToast } from "@/components/ui/Toast";
 import AIKoppelingPanel from "@/components/din/AIKoppelingPanel";
+import ProjectPromotiePanel from "@/components/din/ProjectPromotiePanel";
 
 // --- Types ---
 
 interface ExterneProjectenPanelProps {
   currentSector: SectorName;
   projects: ExternalProject[];
+  /**
+   * Phase 14: projecten die al gepromoveerd zijn (promotedAt gezet).
+   * Apart doorgegeven zodat de `projects` prop uitsluitend actieve projecten
+   * bevat (defense-in-depth Pitfall 5) terwijl de "Toon gepromoveerde"
+   * toggle alsnog de volledige audit-lijst kan tonen.
+   */
+  promotedProjects?: ExternalProject[];
   onAddProjects: (projects: ExternalProject[]) => void;
   onUpdate: (updated: ExternalProject) => void;
   onDelete: (id: string) => void;
@@ -68,6 +78,7 @@ const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
 export default function ExterneProjectenPanel({
   currentSector,
   projects,
+  promotedProjects: promotedProjectsProp,
   onAddProjects,
   onUpdate,
   onDelete,
@@ -84,10 +95,41 @@ export default function ExterneProjectenPanel({
   const [parseSuccess, setParseSuccess] = useState<string | null>(null);
   const [reviewProjects, setReviewProjects] = useState<ReviewProject[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPromoted, setShowPromoted] = useState(false);
+  const [activePromotionProjectId, setActivePromotionProjectId] = useState<
+    string | null
+  >(null);
 
-  // Separate in-scope and buiten-scope projects
-  const inScopeProjects = projects.filter((p) => !p.buitenScope);
+  const { updateSession } = useSession();
+  const { addToast } = useToast();
+
+  // Separate in-scope, buiten-scope, and gepromoveerde projecten (Phase 14 D-08).
+  // Pitfall 5 defense-in-depth: promotedProjects kunnen via aparte prop
+  // doorgegeven worden; als fallback (en als veiligheid) filteren we ook
+  // intern op !p.promotedAt zodat gepromoveerde projecten nooit in de
+  // actieve lijst belanden.
+  const inScopeProjects = projects.filter(
+    (p) => !p.buitenScope && !p.promotedAt
+  );
   const buitenScopeProjects = projects.filter((p) => p.buitenScope);
+  const promotedProjects = (
+    promotedProjectsProp ?? projects.filter((p) => p.promotedAt)
+  )
+    .slice()
+    .sort((a, b) => (b.promotedAt || "").localeCompare(a.promotedAt || ""));
+
+  function handleUndoPromotion(project: ExternalProject) {
+    const n = (project.promotedToEffortIds || []).length;
+    const confirmed = window.confirm(
+      `Promotie terugdraaien?\n\nDit verwijdert de ${n} inspanningen die uit dit project zijn afgeleid en herstelt de project \u2192 vermogen koppelingen. Bevindingen die al zijn toegevoegd aan de DIN-keten blijven bestaan.`
+    );
+    if (!confirmed) return;
+    updateSession((prev) => undoProjectPromotion(prev, project.id));
+    addToast(
+      "Promotie teruggedraaid. Project staat weer in de actieve lijst.",
+      "success"
+    );
+  }
 
   // --- Import flow ---
 
@@ -559,20 +601,45 @@ export default function ExterneProjectenPanel({
           {/* === Existing project list === */}
           {inScopeProjects.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-gray-500">
-                Bevestigde projecten ({inScopeProjects.length})
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500">
+                  Bevestigde projecten ({inScopeProjects.length})
+                </span>
+                {promotedProjects.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPromoted((v) => !v)}
+                    className="text-xs text-gray-600 hover:text-cito-blue underline"
+                  >
+                    {showPromoted
+                      ? "Verberg gepromoveerde projecten"
+                      : `Toon gepromoveerde projecten (${promotedProjects.length})`}
+                  </button>
+                )}
+              </div>
               {inScopeProjects.map((p) => (
-                <ExistingProjectCard
-                  key={p.id}
-                  project={p}
-                  isEditing={editingId === p.id}
-                  onStartEdit={() => setEditingId(p.id)}
-                  onStopEdit={() => setEditingId(null)}
-                  onUpdate={onUpdate}
-                  onDelete={onDelete}
-                  cycleStatus={cycleStatus}
-                />
+                <div key={p.id}>
+                  <ExistingProjectCard
+                    project={p}
+                    isEditing={editingId === p.id}
+                    onStartEdit={() => setEditingId(p.id)}
+                    onStopEdit={() => setEditingId(null)}
+                    onUpdate={onUpdate}
+                    onDelete={onDelete}
+                    cycleStatus={cycleStatus}
+                    onRequestPromotion={() =>
+                      setActivePromotionProjectId(p.id)
+                    }
+                    isPromotionActive={activePromotionProjectId === p.id}
+                  />
+                  {activePromotionProjectId === p.id && (
+                    <ProjectPromotiePanel
+                      project={p}
+                      open={true}
+                      onClose={() => setActivePromotionProjectId(null)}
+                    />
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -586,6 +653,77 @@ export default function ExterneProjectenPanel({
               existingMaps={existingMaps}
               onConfirmMappings={onConfirmMappings}
             />
+          )}
+
+          {/* Edge case: toggle-knop tonen als er alleen gepromoveerde projecten zijn */}
+          {inScopeProjects.length === 0 && promotedProjects.length > 0 && (
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPromoted((v) => !v)}
+                className="text-xs text-gray-600 hover:text-cito-blue underline"
+              >
+                {showPromoted
+                  ? "Verberg gepromoveerde projecten"
+                  : `Toon gepromoveerde projecten (${promotedProjects.length})`}
+              </button>
+            </div>
+          )}
+
+          {/* Gepromoveerde projecten (Phase 14 D-08) — alleen zichtbaar bij toggle */}
+          {showPromoted && (
+            <div className="space-y-2 mt-2">
+              <span className="text-xs font-semibold text-gray-400">
+                Gepromoveerde projecten ({promotedProjects.length})
+              </span>
+              {promotedProjects.length === 0 ? (
+                <div className="text-center py-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-sm font-medium text-gray-500">
+                    Nog geen gepromoveerde projecten
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Zodra je een lopend project promoveert, verschijnt het
+                    hier voor audit en terugdraaien.
+                  </p>
+                </div>
+              ) : (
+                promotedProjects.map((p) => (
+                  <div
+                    key={`promoted-${p.id}`}
+                    className="group p-3 bg-gray-50 border border-gray-200 rounded-lg opacity-60 relative"
+                  >
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded">
+                        Gepromoveerd
+                      </span>
+                    </div>
+                    <div className="pr-24">
+                      <div className="text-sm font-medium text-gray-700">
+                        {p.name || "(naamloos project)"}
+                      </div>
+                      {p.description && (
+                        <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                          {p.description}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        Gepromoveerd naar{" "}
+                        {(p.promotedToEffortIds || []).length} inspanning(en)
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleUndoPromotion(p)}
+                        className="text-sm text-red-600 hover:text-red-700 underline"
+                      >
+                        Promotie terugdraaien
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           )}
 
           {/* Buiten scope projects (dimmed at bottom) */}
@@ -712,6 +850,8 @@ function ExistingProjectCard({
   onUpdate,
   onDelete,
   cycleStatus,
+  onRequestPromotion,
+  isPromotionActive,
 }: {
   project: ExternalProject;
   isEditing: boolean;
@@ -720,6 +860,8 @@ function ExistingProjectCard({
   onUpdate: (updated: ExternalProject) => void;
   onDelete: (id: string) => void;
   cycleStatus: (project: ExternalProject) => void;
+  onRequestPromotion: () => void;
+  isPromotionActive: boolean;
 }) {
   const statusOpt = STATUS_OPTIONS.find((s) => s.key === project.status);
 
@@ -892,6 +1034,25 @@ function ExistingProjectCard({
                 + {d.label}
               </button>
             ))}
+          </div>
+
+          {/* Promotion action row (Phase 14) */}
+          <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
+            <button
+              type="button"
+              disabled={!project.description || isPromotionActive}
+              title={
+                !project.description
+                  ? "Voeg eerst een projectbeschrijving toe."
+                  : isPromotionActive
+                    ? "Promotie-panel is al geopend."
+                    : undefined
+              }
+              onClick={onRequestPromotion}
+              className="px-3 py-2 text-sm font-semibold bg-cito-blue text-white rounded hover:bg-cito-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Promoveer naar inspanningen
+            </button>
           </div>
         </>
       )}

@@ -1830,7 +1830,8 @@ export default function DINMappingStep() {
               {/* Lopende projecten — AI import + review + management */}
               <ExterneProjectenPanel
                 currentSector={activeSector}
-                projects={(session.externalProjects || []).filter((p) => p.sectorId === activeSector)}
+                projects={(session.externalProjects || []).filter((p) => p.sectorId === activeSector && !p.promotedAt)}
+                promotedProjects={(session.externalProjects || []).filter((p) => p.sectorId === activeSector && !!p.promotedAt)}
                 onAddProjects={(newProjects) => {
                   updateSession(prev => ({
                     externalProjects: [
