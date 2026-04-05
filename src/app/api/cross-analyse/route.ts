@@ -18,6 +18,7 @@ import {
   CROSS_ANALYSE_STAP5_PROMPT,
 } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
+import { getFocusGoal } from "@/lib/stap5-focus";
 import type { z } from "zod";
 
 function getStepConfig(stap: number): { prompt: string; schema: z.ZodSchema } | undefined {
@@ -130,8 +131,70 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // D-09 — Stap 5 versmalt payload tot focusdoel + focus-scope items
+      // getFocusGoal gebruikt dezelfde expressie als client (src/lib/stap5-focus.ts)
+      let payloadForPrompt: unknown = structuredData;
+      if (stap === 5) {
+        const rawGoals = (body.goals || []) as Array<{ id: string; name?: string; description?: string; rank?: number }>;
+        const focusGoal = getFocusGoal(rawGoals);
+        if (focusGoal) {
+          const goalBenefitMaps = (body.goalBenefitMaps || []) as Array<{ goalId: string; benefitId: string }>;
+          const benefitCapabilityMaps = (body.benefitCapabilityMaps || []) as Array<{ benefitId: string; capabilityId: string }>;
+          const capabilityEffortMaps = (body.capabilityEffortMaps || []) as Array<{ capabilityId: string; effortId: string }>;
+
+          const focusBenefitIds = new Set(
+            goalBenefitMaps.filter((m) => m.goalId === focusGoal.id).map((m) => m.benefitId)
+          );
+          const focusBenefits = benefitsData.filter((b) => focusBenefitIds.has(b.id));
+
+          const rawCaps = (body.capabilities || []) as Array<{ id: string; relatedSectors?: string[]; consolidated?: boolean }>;
+          const activeCapIds = new Set(rawCaps.filter((c) => !c.consolidated).map((c) => c.id));
+          const sharedCapIds = new Set(
+            rawCaps
+              .filter((c) => !c.consolidated && (c.relatedSectors?.length ?? 0) > 1)
+              .map((c) => c.id)
+          );
+          const focusCapIds = new Set(
+            benefitCapabilityMaps
+              .filter((m) => focusBenefitIds.has(m.benefitId) && sharedCapIds.has(m.capabilityId))
+              .map((m) => m.capabilityId)
+          );
+          const focusCaps = capsData.filter((c) => focusCapIds.has(c.id) && activeCapIds.has(c.id));
+
+          const rawEfforts = (body.efforts || []) as Array<{ id: string; responsibleSector?: string; consolidated?: boolean }>;
+          const activeEffortIds = new Set(rawEfforts.filter((e) => !e.consolidated).map((e) => e.id));
+          const sharedEffortIds = new Set(
+            rawEfforts
+              .filter((e) => !e.consolidated && (e.responsibleSector?.includes(",") ?? false))
+              .map((e) => e.id)
+          );
+          const focusEffortIds = new Set(
+            capabilityEffortMaps
+              .filter((m) => focusCapIds.has(m.capabilityId) && sharedEffortIds.has(m.effortId))
+              .map((m) => m.effortId)
+          );
+          const focusEfforts = effortsData.filter((e) => focusEffortIds.has(e.id) && activeEffortIds.has(e.id));
+
+          payloadForPrompt = {
+            focusDoel: { id: focusGoal.id, naam: focusGoal.name ?? focusGoal.description ?? "" },
+            baten: focusBenefits,
+            gedeeldeVermogens: focusCaps,
+            gedeeldeInspanningen: focusEfforts,
+            koppelingen: {
+              goalBenefitMaps: goalBenefitMaps.filter((m) => m.goalId === focusGoal.id),
+              benefitCapabilityMaps: benefitCapabilityMaps.filter(
+                (m) => focusBenefitIds.has(m.benefitId) && focusCapIds.has(m.capabilityId)
+              ),
+              capabilityEffortMaps: capabilityEffortMaps.filter(
+                (m) => focusCapIds.has(m.capabilityId) && focusEffortIds.has(m.effortId)
+              ),
+            },
+          };
+        }
+      }
+
       const cumulativeContext = buildCumulativeContext(body);
-      let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(structuredData, null, 2).slice(0, 20000)}`;
+      let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(payloadForPrompt, null, 2).slice(0, 20000)}`;
       if (cumulativeContext) {
         userMessage += `\n\n${cumulativeContext}`;
       }
