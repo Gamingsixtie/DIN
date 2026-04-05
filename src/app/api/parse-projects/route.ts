@@ -21,8 +21,13 @@ export async function POST(request: NextRequest) {
       const fileName = file.name.toLowerCase();
 
       if (fileName.endsWith(".pdf")) {
-        // Dynamische import voor pdf-parse (server-side only)
-        const pdfParse = (await import("pdf-parse")).default;
+        // Dynamische import via /lib/pdf-parse.js om de debug-test-file
+        // bug van pdf-parse's index.js bij bundling te vermijden.
+        const pdfParseMod = (await import(
+          // @ts-expect-error - pdf-parse heeft geen types voor submodule path
+          "pdf-parse/lib/pdf-parse.js"
+        )) as { default: (buf: Buffer) => Promise<{ text: string }> };
+        const pdfParse = pdfParseMod.default;
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const pdfData = await pdfParse(buffer);
