@@ -11,6 +11,7 @@ import type {
   Stap5Result,
 } from "@/lib/types";
 import { findSharedCapabilities } from "@/lib/din-service";
+import { restoreStap5Result } from "@/lib/stap5-focus";
 import WizardNavigation from "./WizardNavigation";
 import StapBatenOverloop from "./StapBatenOverloop";
 import StapGedeeldeVermogens from "./StapGedeeldeVermogens";
@@ -73,12 +74,12 @@ const STEP_INFO: Record<number, {
     loadingDescription: "De AI formuleert advies per cluster...",
   },
   5: {
-    title: "Nieuw DIN-netwerk",
-    description: "Het geconsolideerde DIN-netwerk — het resultaat van de cross-analyse dat doorgaat naar prioritering.",
-    placeholder: "",
-    analyseLabel: "",
-    loadingTitle: "",
-    loadingDescription: "",
+    title: "Prioriteitsview — eerste doel",
+    description: "Dit is de scherpste hefboom: de keten doel → baten → vermogens → inspanningen voor uw hoogste prioriteit. We tonen alleen het eerste doel omdat daar het meeste mandaat en de hoogste urgentie zit.",
+    placeholder: "Bijv. specifieke aandachtspunten voor hefboomwerking of baten-dekking...",
+    analyseLabel: "Analyseer eerste doel",
+    loadingTitle: "AI beoordeelt hefboomwerking…",
+    loadingDescription: "De AI loopt vermogens, inspanningen en baten-dekking voor het eerste doel langs...",
   },
 };
 
@@ -100,10 +101,16 @@ export default function CrossAnalyseWizard() {
 
     const wizData = session.crossAnalyseWizard;
     if (wizData) {
+      // D-10 — stap5 schema is breaking changed; valideer bij restore via pure helper
+      const restoredStap5 = restoreStap5Result(wizData.stepResults?.stap5);
+
       setWizardState({
         currentStep: wizData.currentStep || 1,
         completedSteps: new Set(wizData.completedSteps || []),
-        stepResults: wizData.stepResults || {},
+        stepResults: {
+          ...(wizData.stepResults || {}),
+          stap5: restoredStap5,
+        },
       });
     } else if (session.crossAnalyse) {
       // Legacy format exists, no wizard state
@@ -434,7 +441,7 @@ export default function CrossAnalyseWizard() {
         )}
 
         {/* Optional context textarea + Analyseer button (steps 1-4 only) */}
-        {wizardState.currentStep <= 4 && !error && (
+        {wizardState.currentStep <= 5 && !error && (
           <div className="mt-6 space-y-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">
