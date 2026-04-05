@@ -771,3 +771,57 @@ export const BATENPROFIEL_PROMPT = `Stel voor een gegeven baat een volledig bate
 - **Meetmoment**: Wanneer en hoe wordt gemeten?
 
 Antwoord in het Nederlands. Wees specifiek en meetbaar.`;
+
+// ============================================================
+// Phase 14 — Project Promotie (D-02, D-05, D-14)
+// ============================================================
+// Gecombineerde AI-call die een lopend project promoveert tot een volwaardige
+// inspanning in de DIN-keten. In één antwoord levert de AI: baat-matches,
+// vermogen-matches, 1-4 split efforts en bevindingen.
+
+export const PROJECT_PROMOTIE_PROMPT = `Je bent een expert in het DIN-framework (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
+
+Een lopend project moet worden gepromoveerd tot een volwaardige inspanning in de DIN-keten. Je krijgt:
+- De beschrijving, status en domeinen van het project
+- De sector waar het project bij hoort
+- De beschikbare DIN-baten voor die sector (met titel, beschrijving, indicator)
+- De beschikbare DIN-vermogens voor die sector (met titel, beschrijving)
+- Optioneel: welke vermogens het project al los gekoppeld was via Phase 12 flow
+
+Je taak is om in EEN antwoord vier dingen te produceren:
+
+1. **BENEFIT MATCHES** — Welke van de bestaande DIN-baten raakt dit project? Lever 0-N matches met een korte toelichting per match waarom dit project bijdraagt. Referentie naar de baten gaat via exact het benefitId uit de lijst.
+
+2. **CAPABILITY MATCHES** — Welke van de bestaande DIN-vermogens bouwt dit project op? Lever minimaal 1 match (anders is het project methodisch niet aan te sluiten in de DIN-keten). Gebruik capabilityId.
+
+3. **SPLIT EFFORTS (1-4)** — Splits het project in 1 tot 4 concrete inspanningen. Elke split effort krijgt:
+   - title: kort actielabel in werkwoorden
+   - description: 1-2 zinnen toelichting
+   - domain: een van 'mens' | 'processen' | 'data_systemen' | 'cultuur'
+   - status: 'in_uitvoering' (default, want het is een lopend project)
+   - quarter: schatting in formaat 'Q1 2026' of 'Q2-Q3 2026'
+   - responsibleSector: overgenomen van het origineel project
+   - dossier: volledig ingevulde InspanningsDossier (eigenaar, inspanningsleider, verwachtResultaat, kostenraming, randvoorwaarden)
+   - rationale: waarom deze split effort bestaat (wordt in review-UI getoond)
+
+   Splits alleen als het logisch is. Eenvoudige/kleine projecten = 1 effort. Multi-domein projecten = meerdere efforts, elk met eigen domain.
+
+4. **FINDINGS** — Bevindingen zijn DIN-element suggesties die uit het project voortvloeien maar niet expliciet door het project zelf worden uitgevoerd. Voorbeelden:
+   - "Dit project suggereert een nieuw vermogen X dat nog niet in de keten staat"
+   - "Project raakt impliciet baat Y — overweeg deze toe te voegen"
+   - "Voor domein 'cultuur' ontbreekt nog een inspanning die dit project zou versterken"
+
+   Elke bevinding: type ('baat' | 'vermogen' | 'inspanning'), beschrijving (korte voorstel-tekst), toelichting (waarom is dit relevant), targetSector, optioneel domain (alleen voor inspanning).
+
+   BELANGRIJK: bevindingen zijn GEEN risico's, GEEN lessons learned, GEEN aandachtspunten. Alleen concrete DIN-element voorstellen die de keten zouden verrijken.
+
+Antwoord als JSON met exact deze structuur:
+{
+  "benefitMatches": [{"benefitId": "...", "toelichting": "..."}],
+  "capabilityMatches": [{"capabilityId": "...", "toelichting": "..."}],
+  "splitEfforts": [{"title":"...","description":"...","domain":"mens","status":"in_uitvoering","quarter":"Q1 2026","responsibleSector":"PO","dossier":{...},"rationale":"..."}],
+  "findings": [{"type":"vermogen","beschrijving":"...","toelichting":"...","targetSector":"PO"}],
+  "samenvatting": "1-2 zinnen executive summary van de promotie"
+}
+
+Splits: minimaal 1, maximaal 4. Capabilities: minimaal 1. Benefits en findings mogen [] zijn als geen match/bevinding.`;

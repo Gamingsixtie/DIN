@@ -19,11 +19,25 @@ import {
   DIN_DOMAIN_RECOMMEND_PROMPT,
   PROJECT_EXTRACTION_PROMPT,
   PROJECT_CAPABILITY_MATCHING_PROMPT,
+  PROJECT_PROMOTIE_PROMPT,
 } from "./prompts";
 import {
   AIProjectExtractionResponseSchema,
   AIProjectCapabilityMatchResponseSchema,
+  ProjectPromotieResultSchema,
 } from "./schemas";
+import {
+  assembleSystemPrompt,
+  buildSectorwerkBlock,
+  buildCompletedGoalsContext,
+} from "./prompt-assembly";
+import type { KiBContext, CompletedGoalContext } from "./prompt-assembly";
+import type {
+  ExternalProject,
+  DINBenefit,
+  DINCapability,
+  SectorplanAnalyseResult,
+} from "./types";
 
 function getClient(): Anthropic {
   return new Anthropic();
@@ -756,4 +770,140 @@ export async function matchProjectsToCapabilities(
   const systemPrompt = PROJECT_CAPABILITY_MATCHING_PROMPT;
   const userMessage = `Sector: ${sectorName}\n\nProjecten:\n${JSON.stringify(projects, null, 2)}\n\nBeschikbare vermogens:\n${JSON.stringify(capabilities, null, 2)}`;
   return callClaudeWithValidation(AIProjectCapabilityMatchResponseSchema, systemPrompt, userMessage, { maxTokens: 4096 });
+}
+
+// ============================================================
+// Phase 14 — Project Promotie (D-02, D-05, D-14)
+// ============================================================
+// Combined-shot AI call: benefit matches + capability matches + 1-4 split efforts + findings.
+// Uses Opus 4.6 voor multi-concept redenering en layered system prompt (programmaboek +
+// KiB + sectorwerk + eerder-uitgewerkte-doelen) voor methodiek-conformiteit.
+
+export async function promoteExternalProject(
+  project: ExternalProject,
+  sectorBenefits: DINBenefit[],
+  sectorCapabilities: DINCapability[],
+  sectorName: string,
+  options: {
+    kibContext?: KiBContext | null;
+    sectorAnalysis?: SectorplanAnalyseResult | null;
+    completedGoalItems?: CompletedGoalContext;
+    priorProjectCapabilityIds?: string[];
+  }
+): Promise<
+  | { success: true; data: z.infer<typeof ProjectPromotieResultSchema> }
+  | { success: false; error: string }
+> {
+  // Assemble layered system prompt (programmaboek + KiB + sectorwerk + completed goals).
+  // De "inspanning-create" useCase injecteert PROGRAMMABOEK_INSPANNINGEN zodat de AI
+  // de inspanningendossier-structuur correct weet te vullen.
+  let systemPrompt = assembleSystemPrompt(
+    PROJECT_PROMOTIE_PROMPT,
+    "inspanning-create",
+    undefined,
+    options.kibContext
+  );
+  if (options.sectorAnalysis) {
+    systemPrompt += buildSectorwerkBlock(options.sectorAnalysis);
+  }
+  if (options.completedGoalItems && options.completedGoalItems.length > 0) {
+    systemPrompt += buildCompletedGoalsContext(options.completedGoalItems);
+  }
+
+  // Build user message met gestructureerde IDs (Pitfall 2: voorkomt ID-hallucinatie)
+  const parts: string[] = [];
+  parts.push(`Sector: ${sectorName}`);
+  parts.push(`\nTe promoveren project:`);
+  parts.push(`- Naam: ${project.name}`);
+  parts.push(`- Beschrijving: ${project.description}`);
+  parts.push(`- Status: ${project.status}`);
+  if (project.domains?.length) {
+    parts.push(`- Domeinen: ${project.domains.join(", ")}`);
+  }
+  if (project.relevance) {
+    parts.push(`- Relevantie: ${project.relevance}`);
+  }
+  if (options.priorProjectCapabilityIds?.length) {
+    parts.push(
+      `- Eerder (Phase 12) gekoppeld aan vermogens: ${options.priorProjectCapabilityIds.join(", ")}`
+    );
+  }
+
+  parts.push(
+    `\nBeschikbare DIN-baten voor sector ${sectorName} (gebruik benefitId in response):`
+  );
+  parts.push(
+    JSON.stringify(
+      sectorBenefits.map((b) => ({
+        id: b.id,
+        title: b.title || b.description.slice(0, 60),
+        description: b.description,
+        indicator: b.profiel?.indicator,
+      })),
+      null,
+      2
+    )
+  );
+
+  parts.push(
+    `\nBeschikbare DIN-vermogens voor sector ${sectorName} (gebruik capabilityId in response):`
+  );
+  parts.push(
+    JSON.stringify(
+      sectorCapabilities.map((c) => ({
+        id: c.id,
+        title: c.title || c.description.slice(0, 60),
+        description: c.description,
+      })),
+      null,
+      2
+    )
+  );
+
+  parts.push(
+    `\nPromoveer het project volgens de DIN-methodiek. Retourneer JSON volgens het schema in de system-prompt.`
+  );
+
+  const result = await callClaudeWithValidation(
+    ProjectPromotieResultSchema,
+    systemPrompt,
+    parts.join("\n"),
+    { maxTokens: 8192, model: "claude-opus-4-6" }
+  );
+
+  if (!result.success) {
+    return result;
+  }
+
+  // Pitfall 2 safeguard: filter capabilityMatches / benefitMatches op bekende IDs.
+  // De AI kan soms hallucineren of description i.p.v. id teruggeven — drop die rijen
+  // voordat downstream code orphan mappings aanmaakt in de DIN-keten.
+  const knownBenefitIds = new Set(sectorBenefits.map((b) => b.id));
+  const knownCapabilityIds = new Set(sectorCapabilities.map((c) => c.id));
+
+  const filteredBenefitMatches = result.data.benefitMatches.filter((m) => {
+    if (knownBenefitIds.has(m.benefitId)) return true;
+    console.warn(
+      "[promoteExternalProject] Dropped invalid benefitId from AI response:",
+      m.benefitId
+    );
+    return false;
+  });
+  const filteredCapabilityMatches = result.data.capabilityMatches.filter((m) => {
+    if (knownCapabilityIds.has(m.capabilityId)) return true;
+    console.warn(
+      "[promoteExternalProject] Dropped invalid capabilityId from AI response:",
+      m.capabilityId
+    );
+    return false;
+  });
+
+  return {
+    success: true,
+    data: {
+      ...result.data,
+      benefitMatches: filteredBenefitMatches,
+      capabilityMatches: filteredCapabilityMatches,
+    },
+  };
 }
