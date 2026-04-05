@@ -73,8 +73,8 @@ const STEP_INFO: Record<number, {
     loadingDescription: "De AI formuleert advies per cluster...",
   },
   5: {
-    title: "Sectorvertaling",
-    description: "Bekijk per sector hoe hun input terugkomt in het geheel.",
+    title: "Nieuw DIN-netwerk",
+    description: "Het geconsolideerde DIN-netwerk — het resultaat van de cross-analyse dat doorgaat naar prioritering.",
     placeholder: "",
     analyseLabel: "",
     loadingTitle: "",

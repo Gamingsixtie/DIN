@@ -11,7 +11,7 @@ const STEP_LABELS = [
   "Gedeelde vermogens",
   "Inspanningen",
   "Consolidatie",
-  "Sectorvertaling",
+  "DIN-netwerk",
 ];
 
 export default function WizardNavigation({

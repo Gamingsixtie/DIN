@@ -47,7 +47,7 @@ export default function PrioriteringStep() {
 
   if (!session) return null;
 
-  const allEfforts = session.efforts;
+  const allEfforts = session.efforts.filter((e) => !e.consolidated);
   const totalEfforts = allEfforts.length;
 
   if (totalEfforts === 0) {

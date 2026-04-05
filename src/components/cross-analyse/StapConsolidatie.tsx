@@ -134,6 +134,15 @@ export default function StapConsolidatie({
 
   return (
     <div className="space-y-6">
+      {/* Intro */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <p className="text-xs text-gray-600">
+          Dit is de beslissingsstap: beoordeel per cluster of items <strong>samengevoegd</strong>,
+          <strong> afgestemd</strong> of <strong>apart gehouden</strong> moeten worden. Samengevoegde
+          items verschijnen als één gedeelde entiteit in het nieuwe DIN-netwerk (stap 5) en in de prioritering.
+        </p>
+      </div>
+
       {/* Toast message */}
       {toastMessage && (
         <div className="fixed top-4 right-4 z-50 bg-cito-blue text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
@@ -188,8 +197,8 @@ export default function StapConsolidatie({
       {vermogenClusters.length > 0 && (
         <div className="space-y-3">
           <h5 className="text-sm font-semibold text-teal-700">
-            Gedeelde vermogens
-            <span className="ml-2 text-xs font-normal text-gray-400">({vermogenClusters.length} clusters)</span>
+            Gedeelde vermogens <span className="text-xs font-normal text-gray-400">(uit stap 2)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400">· {vermogenClusters.length} clusters</span>
           </h5>
           <div className="space-y-3">
             {vermogenClusters.map((cluster, idx) => {
@@ -221,8 +230,8 @@ export default function StapConsolidatie({
       {inspanningClusters.length > 0 && (
         <div className="space-y-3">
           <h5 className="text-sm font-semibold text-indigo-700">
-            Gedeelde inspanningen
-            <span className="ml-2 text-xs font-normal text-gray-400">({inspanningClusters.length} clusters)</span>
+            Gedeelde inspanningen <span className="text-xs font-normal text-gray-400">(uit stap 3)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400">· {inspanningClusters.length} clusters</span>
           </h5>
           <div className="space-y-3">
             {inspanningClusters.map((cluster, idx) => {
