@@ -100,6 +100,16 @@ export default function ExterneProjectenPanel({
       let rawText = "";
 
       if (activeTab === "upload" && importFile) {
+        // Vercel serverless functions hebben een harde 4.5MB body limit.
+        // Check client-side om een duidelijke melding te geven.
+        const MAX_SIZE = 4 * 1024 * 1024; // 4 MB marge onder Vercel limit
+        if (importFile.size > MAX_SIZE) {
+          throw new Error(
+            `Dit bestand is ${(importFile.size / 1024 / 1024).toFixed(1)} MB en overschrijdt de maximale uploadgrootte van 4 MB. ` +
+              `Exporteer de PDF in lagere resolutie, splits het document, of kopieer de tekst en gebruik het tabblad "Tekst plakken".`
+          );
+        }
+
         // Step 1: Parse document via /api/parse-projects
         const formData = new FormData();
         formData.append("file", importFile);
@@ -107,14 +117,30 @@ export default function ExterneProjectenPanel({
           method: "POST",
           body: formData,
         });
-        const parseData = await parseRes.json();
+        // Robuuste error-handling: response is niet altijd JSON
+        // (bijv. Vercel's plain-text 413 "Request Entity Too Large").
+        const parseText = await parseRes.text();
+        let parseData: { success?: boolean; error?: string; data?: { rawText: string } };
+        try {
+          parseData = JSON.parse(parseText);
+        } catch {
+          if (parseRes.status === 413 || /request entity too large/i.test(parseText)) {
+            throw new Error(
+              "Het bestand is te groot voor upload (limiet 4 MB). " +
+                'Splits het document of gebruik het tabblad "Tekst plakken".'
+            );
+          }
+          throw new Error(
+            `Het bestand kon niet worden verwerkt (status ${parseRes.status}). ${parseText.slice(0, 120)}`
+          );
+        }
         if (!parseRes.ok || !parseData.success) {
           throw new Error(
             parseData.error ||
               "Het bestand kon niet worden verwerkt. Gebruik een .docx, .txt of .pdf bestand."
           );
         }
-        rawText = parseData.data.rawText;
+        rawText = parseData.data!.rawText;
       } else if (activeTab === "text" && importText.trim()) {
         rawText = importText.trim();
       } else {
