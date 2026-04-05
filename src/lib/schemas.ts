@@ -150,6 +150,7 @@ export const DINEffortSchema = z.object({
   dossier: InspanningsDossierSchema.optional(),
   consolidated: z.boolean().optional(),
   consolidatedInto: z.string().optional(),
+  originProjectId: z.string().optional(), // Phase 14 D-09
 });
 
 export const ExternalProjectSchema = z.object({
@@ -163,6 +164,8 @@ export const ExternalProjectSchema = z.object({
   linkedCapabilityIds: z.array(z.string()).optional().default([]),
   aiWarning: z.string().optional(),
   buitenScope: z.boolean().optional().default(false),
+  promotedAt: z.string().optional(), // Phase 14 D-08
+  promotedToEffortIds: z.array(z.string()).optional(), // Phase 14 D-08 — NO .default() per Pitfall 1
 });
 
 // ============================================================
