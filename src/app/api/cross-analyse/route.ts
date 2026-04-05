@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           const focusBenefitIds = new Set(
             goalBenefitMaps.filter((m) => m.goalId === focusGoal.id).map((m) => m.benefitId)
           );
-          const focusBenefits = benefitsData.filter((b) => focusBenefitIds.has(b.id));
+          const focusBenefits = benefitsData.filter((b: { id: string }) => focusBenefitIds.has(b.id));
 
           const rawCaps = (body.capabilities || []) as Array<{ id: string; relatedSectors?: string[]; consolidated?: boolean }>;
           const activeCapIds = new Set(rawCaps.filter((c) => !c.consolidated).map((c) => c.id));
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
               .filter((m) => focusBenefitIds.has(m.benefitId) && sharedCapIds.has(m.capabilityId))
               .map((m) => m.capabilityId)
           );
-          const focusCaps = capsData.filter((c) => focusCapIds.has(c.id) && activeCapIds.has(c.id));
+          const focusCaps = capsData.filter((c: { id: string }) => focusCapIds.has(c.id) && activeCapIds.has(c.id));
 
           const rawEfforts = (body.efforts || []) as Array<{ id: string; responsibleSector?: string; consolidated?: boolean }>;
           const activeEffortIds = new Set(rawEfforts.filter((e) => !e.consolidated).map((e) => e.id));
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
               .filter((m) => focusCapIds.has(m.capabilityId) && sharedEffortIds.has(m.effortId))
               .map((m) => m.effortId)
           );
-          const focusEfforts = effortsData.filter((e) => focusEffortIds.has(e.id) && activeEffortIds.has(e.id));
+          const focusEfforts = effortsData.filter((e: { id: string }) => focusEffortIds.has(e.id) && activeEffortIds.has(e.id));
 
           payloadForPrompt = {
             focusDoel: { id: focusGoal.id, naam: focusGoal.name ?? focusGoal.description ?? "" },

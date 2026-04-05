@@ -1,402 +1,360 @@
 "use client";
 
+import { useState } from "react";
 import { SectorBadge } from "./shared";
-import { findGaps, getDomainBalance } from "@/lib/din-service";
-import { DOMAIN_LABELS } from "@/lib/types";
-import type { DINSession, Stap5Result, EffortDomain } from "@/lib/types";
+import { computeFocusView } from "@/lib/stap5-focus";
+import type { DINSession, Stap5Result, SectorName } from "@/lib/types";
 
 interface StapSectorVertalingProps {
   session: DINSession;
   result?: Stap5Result;
 }
 
-const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; bar: string }> = {
-  mens: { bg: "bg-blue-50", text: "text-blue-700", bar: "#2563eb" },
-  processen: { bg: "bg-green-50", text: "text-green-700", bar: "#059669" },
-  data_systemen: { bg: "bg-purple-50", text: "text-purple-700", bar: "#7c3aed" },
-  cultuur: { bg: "bg-amber-50", text: "text-amber-700", bar: "#d97706" },
-};
+// CHAIN_COLORS — accent (10% rule), border-l-4 only
+const CHAIN_BORDER = {
+  doelen: "border-l-[#003366]",
+  baten: "border-l-[#0066cc]",
+  vermogens: "border-l-[#0891b2]",
+  inspanningen: "border-l-[#059669]",
+} as const;
 
-const CHAIN_COLORS = {
-  doelen: { border: "border-l-[#003366]", text: "text-[#003366]" },
-  baten: { border: "border-l-[#0066cc]", text: "text-[#0066cc]" },
-  vermogens: { border: "border-l-[#0891b2]", text: "text-[#0891b2]" },
-  inspanningen: { border: "border-l-[#059669]", text: "text-[#059669]" },
-};
+const SECTORS_ORDER: readonly SectorName[] = ["PO", "VO", "Zakelijk"] as const;
 
-export default function StapSectorVertaling({ session }: StapSectorVertalingProps) {
-  // --- Active items (post-consolidation) ---
-  const activeCaps = session.capabilities.filter((c) => !c.consolidated);
-  const activeEfforts = session.efforts.filter((e) => !e.consolidated);
+export default function StapSectorVertaling({ session, result }: StapSectorVertalingProps) {
+  const [buitenScopeOpen, setBuitenScopeOpen] = useState(false);
 
-  const totalCaps = session.capabilities.length;
-  const totalEfforts = session.efforts.length;
-  const mergedAwayCaps = totalCaps - activeCaps.length;
-  const mergedAwayEfforts = totalEfforts - activeEfforts.length;
-
-  const sharedCaps = activeCaps.filter(
-    (c) => c.relatedSectors && c.relatedSectors.length > 1
-  );
-  const sharedEfforts = activeEfforts.filter(
-    (e) => e.responsibleSector && e.responsibleSector.includes(",")
-  );
-
-  // --- Active maps (filter to only active cap/effort IDs) ---
-  const activeCapIds = new Set(activeCaps.map((c) => c.id));
-  const activeEffortIds = new Set(activeEfforts.map((e) => e.id));
-
-  const activeBCMaps = session.benefitCapabilityMaps.filter((m) =>
-    activeCapIds.has(m.capabilityId)
-  );
-  const activeCEMaps = session.capabilityEffortMaps.filter(
-    (m) => activeCapIds.has(m.capabilityId) && activeEffortIds.has(m.effortId)
-  );
-
-  // --- Gaps on consolidated network ---
-  const gaps = findGaps(
-    session.goals,
-    session.benefits,
-    activeCaps,
-    activeEfforts,
-    session.goalBenefitMaps,
-    activeBCMaps,
-    activeCEMaps
-  );
-  const totalGaps =
-    gaps.goalsWithoutBenefits.length +
-    gaps.benefitsWithoutCapabilities.length +
-    gaps.capabilitiesWithoutEfforts.length;
-
-  // --- Domain balance ---
-  const domainBalance = getDomainBalance(activeEfforts);
-  const effortSum = Object.values(domainBalance).reduce((a, b) => a + b, 0);
-
-  // --- Empty state ---
-  if (
-    session.goals.length === 0 &&
-    session.benefits.length === 0 &&
-    activeCaps.length === 0 &&
-    activeEfforts.length === 0
-  ) {
+  // Empty state A — geen doelen
+  if (session.goals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-sm text-gray-500 font-medium">Nog geen DIN-data beschikbaar</p>
-        <p className="text-xs text-gray-400 mt-1">
-          Vul eerst het DIN-netwerk in via de DIN-Mapping stap.
+        <p className="text-sm font-semibold text-gray-700">Nog geen doelen beschikbaar</p>
+        <p className="text-[13px] text-gray-500 mt-1">
+          Importeer eerst de KiB-uitkomsten in stap 1.
         </p>
       </div>
     );
   }
 
+  const view = computeFocusView(session);
+  if (!view) {
+    // Should not happen when goals.length > 0, but TypeScript narrowing
+    return null;
+  }
+
+  const { focusGoal, focusBenefits, focusCaps, focusEfforts, outOfScopeCaps, outOfScopeEfforts } = view;
+
+  // Empty state B — focusdoel maar geen cross-sector vermogens
+  const hasCrossSectorData = focusCaps.length > 0;
+
+  // Group baten per sector
+  const batenGroupedBySector = SECTORS_ORDER.map((sectorKey) => ({
+    sector: sectorKey,
+    baten: focusBenefits.filter((b) => b.sectorId === sectorKey),
+  }));
+
   return (
-    <div className="space-y-6">
-      {/* --- Consolidatie-samenvatting --- */}
-      <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-emerald-900">Resultaat van de consolidatie</h4>
-            <p className="text-xs text-emerald-800/80 mt-0.5">
-              Dit is het nieuwe DIN-netwerk dat doorgaat naar prioritering. Geconsolideerde dubbelen vervallen.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-              <div className="bg-white/70 rounded-lg px-3 py-2">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Doelen</div>
-                <div className="text-lg font-bold text-[#003366]">{session.goals.length}</div>
-              </div>
-              <div className="bg-white/70 rounded-lg px-3 py-2">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Baten</div>
-                <div className="text-lg font-bold text-[#0066cc]">{session.benefits.length}</div>
-              </div>
-              <div className="bg-white/70 rounded-lg px-3 py-2">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Vermogens</div>
-                <div className="text-lg font-bold text-[#0891b2]">
-                  {activeCaps.length}
-                  {mergedAwayCaps > 0 && (
-                    <span className="text-xs font-normal text-gray-400 ml-1">
-                      (was {totalCaps})
-                    </span>
-                  )}
-                </div>
-                {sharedCaps.length > 0 && (
-                  <div className="text-[10px] text-emerald-700 mt-0.5">
-                    {sharedCaps.length} gedeeld
-                  </div>
-                )}
-              </div>
-              <div className="bg-white/70 rounded-lg px-3 py-2">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Inspanningen</div>
-                <div className="text-lg font-bold text-[#059669]">
-                  {activeEfforts.length}
-                  {mergedAwayEfforts > 0 && (
-                    <span className="text-xs font-normal text-gray-400 ml-1">
-                      (was {totalEfforts})
-                    </span>
-                  )}
-                </div>
-                {sharedEfforts.length > 0 && (
-                  <div className="text-[10px] text-emerald-700 mt-0.5">
-                    {sharedEfforts.length} gedeeld
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-8">
+      {/* Intro */}
+      <div>
+        <p className="text-[13px] text-gray-700 leading-relaxed">
+          Dit is de scherpste hefboom: de keten doel → baten → vermogens → inspanningen voor uw hoogste prioriteit.
+          We tonen alleen het eerste doel omdat daar het meeste mandaat en de hoogste urgentie zit. Niet-geconsolideerde
+          items zijn niet verdwenen — u vindt ze onderaan in &lsquo;Buiten scope voor nu&rsquo; en pakt ze later op.
+        </p>
       </div>
 
-      {/* --- DIN-keten --- */}
-      <div className="space-y-5">
-        {/* Doelen */}
-        <section>
-          <div className="flex items-baseline justify-between mb-2">
-            <h5 className={`text-sm font-semibold ${CHAIN_COLORS.doelen.text}`}>
-              Doelen
-              <span className="ml-2 text-xs font-normal text-gray-400">({session.goals.length})</span>
-            </h5>
-          </div>
-          <div className="space-y-1.5">
-            {session.goals.length === 0 ? (
-              <p className="text-xs text-gray-400 italic pl-4">Geen doelen</p>
-            ) : (
-              session.goals.map((goal) => {
-                const linkedBenefits = session.benefits.filter((b) =>
-                  session.goalBenefitMaps.some(
-                    (m) => m.goalId === goal.id && m.benefitId === b.id
-                  )
-                );
-                return (
-                  <div
-                    key={goal.id}
-                    className={`${CHAIN_COLORS.doelen.border} border-l-4 bg-gray-50 rounded-r-lg pl-3 pr-3 py-2`}
-                  >
-                    <div className="text-sm font-medium text-gray-800">
-                      {goal.name || goal.description}
-                    </div>
-                    {linkedBenefits.length > 0 && (
-                      <div className="text-[11px] text-gray-500 mt-0.5">
-                        {linkedBenefits.length} {linkedBenefits.length === 1 ? "baat" : "baten"} gekoppeld
+      {/* Block 1: FocusDoelCard */}
+      <section
+        className={`bg-white border border-[#e2e8f0] rounded-lg p-6 border-l-4 ${CHAIN_BORDER.doelen}`}
+        aria-labelledby="focus-doel-title"
+      >
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          Focusdoel — prioriteit 1
+        </p>
+        <h4 id="focus-doel-title" className="text-lg font-semibold text-[#003366] mt-1">
+          {focusGoal.name || focusGoal.description}
+        </h4>
+      </section>
+
+      {/* Block 2: BatenPerSectorGroup */}
+      <section aria-labelledby="baten-heading">
+        <h4 id="baten-heading" className="text-sm font-semibold text-gray-700">
+          Baten onder dit doel — per sector
+        </h4>
+        <p className="text-[13px] text-gray-500 mt-1 mb-4">
+          Groen = deze baat wordt geraakt door de cross-sector aanpak. Rood = risico dat deze baat niet wordt gerealiseerd.
+        </p>
+        <div className="space-y-4">
+          {batenGroupedBySector.map(({ sector, baten }) => (
+            <div key={sector} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <SectorBadge sector={sector} />
+                <span className="text-[11px] font-semibold text-gray-500">
+                  {baten.length} {baten.length === 1 ? "baat" : "baten"}
+                </span>
+              </div>
+              {baten.length === 0 ? (
+                <p className="text-[13px] text-gray-400 pl-3">Geen baten in deze sector onder dit doel.</p>
+              ) : (
+                <div className="space-y-2">
+                  {baten.map((baat) => {
+                    const dekking = result?.batenDekking.find((d) => d.baatId === baat.id);
+                    const wordtGeraakt = dekking?.wordtGeraakt;
+                    return (
+                      <div
+                        key={baat.id}
+                        className={`border-l-4 ${CHAIN_BORDER.baten} bg-white border border-[#e2e8f0] rounded-r-lg pl-3 pr-3 py-2`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[13px] text-gray-700 flex-1">
+                            {baat.title || baat.description}
+                          </span>
+                          {dekking ? (
+                            wordtGeraakt ? (
+                              <span className="text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+                                geraakt
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+                                risico
+                              </span>
+                            )
+                          ) : (
+                            <span
+                              className="w-2 h-2 rounded-full bg-gray-300 shrink-0 mt-1.5"
+                              aria-label="Wachten op AI-analyse"
+                            />
+                          )}
+                        </div>
+                        {dekking && !wordtGeraakt && dekking.risico && (
+                          <p className="text-[13px] text-red-700 mt-1">
+                            <span className="font-semibold">Risico: </span>
+                            {dekking.risico}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        {/* Baten */}
-        <section>
-          <div className="flex items-baseline justify-between mb-2">
-            <h5 className={`text-sm font-semibold ${CHAIN_COLORS.baten.text}`}>
-              Baten
-              <span className="ml-2 text-xs font-normal text-gray-400">({session.benefits.length})</span>
-            </h5>
-          </div>
-          <div className="space-y-1.5">
-            {session.benefits.length === 0 ? (
-              <p className="text-xs text-gray-400 italic pl-4">Geen baten</p>
-            ) : (
-              session.benefits.map((benefit) => (
-                <div
-                  key={benefit.id}
-                  className={`${CHAIN_COLORS.baten.border} border-l-4 pl-3 pr-3 py-1.5 flex items-center gap-2`}
-                >
-                  <span className="text-xs text-gray-700 flex-1">
-                    {benefit.title || benefit.description}
-                  </span>
-                  {benefit.sectorId && <SectorBadge sector={benefit.sectorId} />}
+                    );
+                  })}
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {/* Vermogens */}
-        <section>
-          <div className="flex items-baseline justify-between mb-2">
-            <h5 className={`text-sm font-semibold ${CHAIN_COLORS.vermogens.text}`}>
-              Vermogens
-              <span className="ml-2 text-xs font-normal text-gray-400">
-                ({activeCaps.length}
-                {mergedAwayCaps > 0 && <> — {mergedAwayCaps} samengevoegd</>})
-              </span>
-            </h5>
+      {/* Block 3: CrossSectorVermogensList */}
+      <section aria-labelledby="vermogens-heading">
+        <h4 id="vermogens-heading" className="text-sm font-semibold text-gray-700 mb-3">
+          Cross-sector vermogens die hefboom leveren
+        </h4>
+        {focusCaps.length === 0 ? (
+          <div className="bg-white border border-[#e2e8f0] rounded-lg p-4">
+            <p className="text-[13px] text-gray-600">
+              Dit doel heeft nog geen cross-sector vermogens. Voer stap 4 (Consolidatie) uit of voeg gedeelde vermogens
+              toe in de DIN-mapping, en kom daarna terug naar stap 5.
+            </p>
           </div>
-          <div className="space-y-1.5">
-            {activeCaps.length === 0 ? (
-              <p className="text-xs text-gray-400 italic pl-4">Geen vermogens</p>
-            ) : (
-              activeCaps.map((cap) => {
-                const isShared = cap.relatedSectors && cap.relatedSectors.length > 1;
-                return (
-                  <div
-                    key={cap.id}
-                    className={`${CHAIN_COLORS.vermogens.border} border-l-4 pl-3 pr-3 py-1.5 flex items-center gap-2 ${
-                      isShared ? "bg-emerald-50/40" : ""
-                    }`}
-                  >
-                    <span className="text-xs text-gray-700 flex-1">
+        ) : (
+          <div className="space-y-2">
+            {focusCaps.map((cap) => {
+              const review = result?.vermogenReview.find((r) => r.vermogenId === cap.id);
+              return (
+                <div
+                  key={cap.id}
+                  className={`border-l-4 ${CHAIN_BORDER.vermogens} bg-white border border-[#e2e8f0] rounded-r-lg pl-3 pr-3 py-3`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[13px] text-gray-700 flex-1">
                       {cap.title || cap.description}
                     </span>
-                    {isShared ? (
-                      <div className="flex gap-0.5">
-                        {cap.relatedSectors!.map((s) => (
-                          <SectorBadge key={s} sector={s} />
-                        ))}
-                      </div>
-                    ) : (
-                      cap.sectorId && <SectorBadge sector={cap.sectorId} />
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        {/* Inspanningen (per domein) */}
-        <section>
-          <div className="flex items-baseline justify-between mb-2">
-            <h5 className={`text-sm font-semibold ${CHAIN_COLORS.inspanningen.text}`}>
-              Inspanningen
-              <span className="ml-2 text-xs font-normal text-gray-400">
-                ({activeEfforts.length}
-                {mergedAwayEfforts > 0 && <> — {mergedAwayEfforts} samengevoegd</>})
-              </span>
-            </h5>
-          </div>
-          {activeEfforts.length === 0 ? (
-            <p className="text-xs text-gray-400 italic pl-4">Geen inspanningen</p>
-          ) : (
-            <div className="space-y-3">
-              {(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => {
-                const domainEfforts = activeEfforts.filter((e) => e.domain === domain);
-                if (domainEfforts.length === 0) return null;
-                const colors = DOMAIN_COLORS[domain];
-                return (
-                  <div key={domain}>
-                    <p className={`text-[10px] font-semibold ${colors.text} uppercase tracking-wider mb-1`}>
-                      {DOMAIN_LABELS[domain]} ({domainEfforts.length})
-                    </p>
-                    <div className="space-y-1">
-                      {domainEfforts.map((effort) => {
-                        const isShared =
-                          effort.responsibleSector && effort.responsibleSector.includes(",");
-                        return (
-                          <div
-                            key={effort.id}
-                            className={`${CHAIN_COLORS.inspanningen.border} border-l-4 pl-3 pr-3 py-1.5 flex items-center gap-2 ${
-                              isShared ? "bg-emerald-50/40" : ""
-                            }`}
-                          >
-                            <span className="text-xs text-gray-700 flex-1">
-                              {effort.title || effort.description}
-                            </span>
-                            {isShared ? (
-                              <div className="flex gap-0.5">
-                                {effort.responsibleSector!
-                                  .split(",")
-                                  .map((s) => s.trim())
-                                  .filter(Boolean)
-                                  .map((s) => (
-                                    <SectorBadge key={s} sector={s} />
-                                  ))}
-                              </div>
-                            ) : (
-                              effort.sectorId && <SectorBadge sector={effort.sectorId} />
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="flex gap-0.5 shrink-0">
+                      {(cap.relatedSectors ?? []).map((s) => (
+                        <SectorBadge key={s} sector={s} />
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* --- Domeinbalans --- */}
-      {activeEfforts.length > 0 && (
-        <div>
-          <h5 className="text-sm font-semibold text-gray-700 mb-3">Domeinbalans</h5>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => {
-              const count = domainBalance[domain];
-              const pct = effortSum > 0 ? Math.round((count / effortSum) * 100) : 0;
-              const colors = DOMAIN_COLORS[domain];
-              return (
-                <div key={domain} className={`${colors.bg} rounded-lg p-3`}>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-lg font-bold ${colors.text}`}>{count}</span>
-                    <span className="text-xs text-gray-400">({pct}%)</span>
-                  </div>
-                  <div className="text-xs font-medium text-gray-600 mt-0.5">
-                    {DOMAIN_LABELS[domain]}
-                  </div>
-                  <div className="mt-2 h-1.5 bg-white/60 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, backgroundColor: colors.bar }}
-                    />
-                  </div>
+                  {review ? (
+                    <div className="mt-2 text-[13px] text-gray-600">
+                      <p className="leading-relaxed">{review.hefboomAnalyse}</p>
+                      {review.suggestieAanscherping && (
+                        <p className="mt-1 text-gray-500">
+                          <span className="font-semibold">Aanscherping: </span>
+                          {review.suggestieAanscherping}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span
+                        className="w-2 h-2 rounded-full bg-gray-300"
+                        aria-label="Wachten op AI-analyse"
+                      />
+                      <span className="text-[11px] text-gray-400">AI-analyse nog niet gedraaid</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* --- Gap analyse --- */}
-      <div>
-        <h5 className="text-sm font-semibold text-gray-700 mb-3">Gap-analyse op geconsolideerd netwerk</h5>
-        {totalGaps === 0 ? (
-          <div className="border border-green-200 bg-green-50 rounded-lg p-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-sm text-green-700 font-medium">
-              Geen gaps gevonden — de DIN-keten is compleet
-            </span>
+      {/* Block 4: GedeeldeInspanningenList */}
+      <section aria-labelledby="inspanningen-heading">
+        <h4 id="inspanningen-heading" className="text-sm font-semibold text-gray-700 mb-3">
+          Gedeelde inspanningen onder deze vermogens
+        </h4>
+        {focusEfforts.length === 0 ? (
+          <div className="bg-white border border-[#e2e8f0] rounded-lg p-4">
+            <p className="text-[13px] text-gray-600">
+              Nog geen gedeelde inspanningen. Stap 3 (Inspanningen-overlap) moet zijn doorlopen.
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
-            {gaps.goalsWithoutBenefits.length > 0 && (
-              <div className="border border-red-200 bg-red-50 rounded-lg p-3">
-                <span className="text-xs font-semibold text-red-700">
-                  {gaps.goalsWithoutBenefits.length} doel(en) zonder baten
-                </span>
-                <div className="mt-1 space-y-0.5">
-                  {gaps.goalsWithoutBenefits.map((goalId) => {
-                    const goal = session.goals.find((g) => g.id === goalId);
-                    return (
-                      <p key={goalId} className="text-xs text-red-600">
-                        {goal?.name || goal?.description || goalId}
-                      </p>
-                    );
-                  })}
+            {focusEfforts.map((effort) => {
+              const review = result?.inspanningReview.find((r) => r.inspanningId === effort.id);
+              const badgeClass =
+                review?.breedteOordeel === "dekt_volledig"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : review?.breedteOordeel === "moet_verbreed"
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : review?.breedteOordeel === "mist_aspect"
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "";
+              const badgeLabel =
+                review?.breedteOordeel === "dekt_volledig"
+                  ? "dekt volledig"
+                  : review?.breedteOordeel === "moet_verbreed"
+                  ? "moet verbreed"
+                  : review?.breedteOordeel === "mist_aspect"
+                  ? "mist aspect"
+                  : null;
+              const sectors = (effort.responsibleSector ?? "")
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              return (
+                <div
+                  key={effort.id}
+                  className={`border-l-4 ${CHAIN_BORDER.inspanningen} bg-white border border-[#e2e8f0] rounded-r-lg pl-3 pr-3 py-3`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-[13px] text-gray-700">{effort.title || effort.description}</p>
+                      {sectors.length > 0 && (
+                        <div className="flex gap-0.5 mt-1">
+                          {sectors.map((s) => (
+                            <SectorBadge key={s} sector={s} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {badgeLabel ? (
+                      <span
+                        className={`text-[11px] font-semibold border rounded px-1.5 py-0.5 whitespace-nowrap ${badgeClass}`}
+                      >
+                        {badgeLabel}
+                      </span>
+                    ) : (
+                      <span
+                        className="w-2 h-2 rounded-full bg-gray-300 shrink-0 mt-1.5"
+                        aria-label="Wachten op AI-analyse"
+                      />
+                    )}
+                  </div>
+                  {review?.toelichting && (
+                    <p className="mt-2 text-[13px] text-gray-600 leading-relaxed">{review.toelichting}</p>
+                  )}
+                  {review?.breedteOordeel === "moet_verbreed" && review.suggestieVerbreding && (
+                    <p className="mt-1 text-[13px] text-amber-700">
+                      <span className="font-semibold">Suggestie: </span>
+                      {review.suggestieVerbreding}
+                    </p>
+                  )}
+                  {review?.breedteOordeel === "mist_aspect" && review.suggestieVerbreding && (
+                    <p className="mt-1 text-[13px] text-red-700">
+                      <span className="font-semibold">Mist: </span>
+                      {review.suggestieVerbreding}
+                    </p>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Block 5: AISamenvattingBlock */}
+      <section aria-labelledby="samenvatting-heading">
+        <h4 id="samenvatting-heading" className="text-sm font-semibold text-gray-700 mb-2">
+          AI-samenvatting
+        </h4>
+        {result?.samenvatting ? (
+          <div className="bg-white border border-[#e2e8f0] rounded-lg p-4">
+            <p className="text-[13px] text-gray-700 leading-relaxed">{result.samenvatting}</p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-[#e2e8f0] rounded-lg p-4">
+            <p className="text-[13px] text-gray-500">
+              {hasCrossSectorData
+                ? "De structurele keten staat klaar. Klik op 'Analyseer eerste doel' voor de AI-review van hefboomwerking en baten-dekking."
+                : "Klik op 'Analyseer' om de hefboomanalyse, breedtebeoordeling en baten-dekking voor dit doel te zien."}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Block 6: BuitenScopeFooter */}
+      <div className="mt-12">
+        <button
+          onClick={() => setBuitenScopeOpen((v) => !v)}
+          className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 bg-gray-50 border border-[#e2e8f0] rounded-lg text-left hover:bg-gray-100 transition-colors"
+          aria-expanded={buitenScopeOpen}
+        >
+          <span className="text-[13px] text-gray-700">
+            <span className="font-semibold">Buiten scope voor nu</span>
+            {" — "}
+            {outOfScopeCaps.length} vermogens en {outOfScopeEfforts.length} inspanningen
+          </span>
+          <span className="text-[11px] font-semibold text-gray-500">
+            {buitenScopeOpen ? "Verberg details" : "Toon details"}
+          </span>
+        </button>
+        {buitenScopeOpen && (
+          <div className="mt-3 px-4 py-3 bg-white border border-[#e2e8f0] rounded-lg space-y-3">
+            <p className="text-[13px] text-gray-600">
+              Deze items zijn niet geconsolideerd tot cross-sector hefbomen voor dit doel. Ze blijven beschikbaar voor
+              latere doelen of vervolgstappen.
+            </p>
+            {outOfScopeCaps.length > 0 && (
+              <div>
+                <h5 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Vermogens</h5>
+                <ul className="space-y-1">
+                  {outOfScopeCaps.map((c) => (
+                    <li key={c.id} className="text-[13px] text-gray-700 flex items-center gap-2">
+                      <span className="flex-1">{c.title || c.description}</span>
+                      {c.sectorId && <SectorBadge sector={c.sectorId} />}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-            {gaps.benefitsWithoutCapabilities.length > 0 && (
-              <div className="border border-red-200 bg-red-50 rounded-lg p-3">
-                <span className="text-xs font-semibold text-red-700">
-                  {gaps.benefitsWithoutCapabilities.length} baat/baten zonder vermogens
-                </span>
+            {outOfScopeEfforts.length > 0 && (
+              <div>
+                <h5 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Inspanningen</h5>
+                <ul className="space-y-1">
+                  {outOfScopeEfforts.map((e) => (
+                    <li key={e.id} className="text-[13px] text-gray-700 flex items-center gap-2">
+                      <span className="flex-1">{e.title || e.description}</span>
+                      {e.sectorId && <SectorBadge sector={e.sectorId} />}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-            {gaps.capabilitiesWithoutEfforts.length > 0 && (
-              <div className="border border-red-200 bg-red-50 rounded-lg p-3">
-                <span className="text-xs font-semibold text-red-700">
-                  {gaps.capabilitiesWithoutEfforts.length} vermogen(s) zonder inspanningen
-                </span>
-              </div>
+            {outOfScopeCaps.length === 0 && outOfScopeEfforts.length === 0 && (
+              <p className="text-[13px] text-gray-500">Er zijn geen items buiten scope.</p>
             )}
           </div>
         )}
