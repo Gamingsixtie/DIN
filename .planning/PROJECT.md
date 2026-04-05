@@ -26,7 +26,7 @@ Een vervolg-app op "Klant in Beeld" (KiB) waarmee programmamanagers doelstelling
 ### Active
 
 - [ ] Sectorwerk-analyse doorstromen naar DIN-mapping (resultaten automatisch meenemen)
-- [ ] Cyclisch werken: één doel tegelijk volledig uitwerken, rest later
+- [x] Cyclisch werken: één doel tegelijk volledig uitwerken, rest later — Validated in Phase 13: Stap 5 Cross-analyse Prioriteitsview (focusview op rank-1 doel, narrow AI payload, restore guard)
 - [x] AI-kwaliteit: beknopte, methodisch correcte output (niet honderden baten) — Validated in Phase 4: AI Output Kwaliteit
 - [x] Programmaboek als validatiebron + prompt-context voor AI — Validated in Phase 3: Programmaboek Context Pipeline
 - [x] Cross-analyse die écht verbindt: gedeelde baten, vermogens en inspanningen over PO/VO/Zakelijk herkennen — Validated in Phase 8: Cross-analyse Semantische Matching
@@ -93,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after Phase 12 completion — Lopende Projecten Invullen in DIN-Netwerk (AI project import, capability matching, inline display, Word export integration)*
+*Last updated: 2026-04-05 after Phase 13 completion — Stap 5 Cross-analyse Prioriteitsview Eerste Doel (hefboomwerking-focus op rank-1 doel, narrow AI payload, D-10 restore guard, cyclisch werken ontsloten)*
