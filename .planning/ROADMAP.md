@@ -227,10 +227,13 @@ Plans:
 
 ### Phase 14: Lopende projecten promoveren tot volwaardige inspanningen in DIN-keten met splitsing en bevindingen-afleiding
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Bestaande lopende projecten (Phase 12) kunnen per stuk gepromoveerd worden tot 1-4 volwaardige DIN-inspanningen via één AI-aanroep die de volledige DIN-positionering doet (baat-match, vermogen-match, effort-splitsing, bevindingen-afleiding) in een inline review-scherm. Gepromoveerde projecten verschuiven van de parallelle projectCapabilityMap naar de standaard capabilityEffortMap DIN-keten; originele projecten blijven als audit-trail zichtbaar via een toggle met terugdraai-mogelijkheid.
+**Requirements**: D-01..D-14 (CONTEXT.md locked decisions — no formal R-ID; added post-v1-roadmap as Phase 12 extension)
 **Depends on:** Phase 13
-**Plans:** 0 plans
+**UI hint:** yes
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — Schemas (ExternalProject/DINEffort/ProjectPromotieResult) + pure mutation helpers (promoteProjectToEfforts/undoProjectPromotion) + 31 unit tests
+- [ ] 14-02-PLAN.md — AI pipeline: PROJECT_PROMOTIE_PROMPT + promoteExternalProject() + POST /api/promote-project + mocked tests (Pitfall 2 safeguard)
+- [ ] 14-03-PLAN.md — UI: ProjectPromotiePanel review screen + ExterneProjectenPanel integration + DINMappingStep filter fix + human verify
