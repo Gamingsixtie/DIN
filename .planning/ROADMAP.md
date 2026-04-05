@@ -217,7 +217,7 @@ Plans:
 **Requirements**: R-CROSS-01, R-CROSS-02
 **Depends on:** Phase 12
 **UI hint:** yes
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 13-01-PLAN.md — Wave 0 TDD scaffolding: 3 test files (schemas-stap5, stap5-focus-filter, stap5-restore-guard) — 23 tests verwacht RED
