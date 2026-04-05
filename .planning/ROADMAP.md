@@ -217,12 +217,12 @@ Plans:
 **Requirements**: R-CROSS-01, R-CROSS-02
 **Depends on:** Phase 12
 **UI hint:** yes
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [x] 13-01-PLAN.md — Wave 0 TDD scaffolding: 3 test files (schemas-stap5, stap5-focus-filter, stap5-restore-guard) — 23 tests verwacht RED
 - [x] 13-02-PLAN.md — Wave 1 foundation: vervang Stap5ResultSchema + CROSS_ANALYSE_STAP5_PROMPT, creëer src/lib/stap5-focus.ts pure helpers (getFocusGoal, computeFocusView, restoreStap5Result)
-- [ ] 13-03-PLAN.md — Wave 2 API + component: cross-analyse route payload narrowing voor stap===5, StapSectorVertaling.tsx volledig herschrijven naar focusview per UI-SPEC
+- [x] 13-03-PLAN.md — Wave 2 API + component: cross-analyse route payload narrowing voor stap===5, StapSectorVertaling.tsx volledig herschrijven naar focusview per UI-SPEC
 - [ ] 13-04-PLAN.md — Wave 3 wizard integratie + UAT: CrossAnalyseWizard.tsx restore guard + STEP_INFO[5] copy + CTA condition <= 5, human-verify checkpoint (10 checks)
 
 ### Phase 14: Lopende projecten promoveren tot volwaardige inspanningen in DIN-keten met splitsing en bevindingen-afleiding
