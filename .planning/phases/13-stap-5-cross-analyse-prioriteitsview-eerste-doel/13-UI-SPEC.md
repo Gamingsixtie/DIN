@@ -66,14 +66,15 @@ Four sizes, two weights. Values match what the existing wizard already uses so t
 | Display | 18px (`text-lg`) | 600 (`font-semibold`) | 1.3 | Focus-doel name inside the focus card; step title rendered by parent wizard |
 | Heading | 14px (`text-sm`) | 600 (`font-semibold`) | 1.4 | Section headings: "Baten onder dit doel", "Cross-sector vermogens", "Gedeelde inspanningen", "AI-review samenvatting" |
 | Body | 13px (`text-[13px]`) | 400 (`font-normal`) | 1.5 | Baat descriptions, vermogen descriptions, inspanning descriptions, AI risicoteksten, AI verbredings-toelichtingen |
-| Label | 11px (`text-[11px]`) | 500 (`font-medium`) | 1.4 | Badge labels (geraakt/risico/dekt_volledig/moet_verbreed/mist_aspect), sector group headers ("PO", "VO", "Zakelijk"), count suffixes |
+| Label | 11px (`text-[11px]`) | 600 (`font-semibold`) | 1.4 | Badge labels (geraakt/risico/dekt_volledig/moet_verbreed/mist_aspect), sector group headers ("PO", "VO", "Zakelijk"), count suffixes |
 
-**Weights used: exactly 2 (`font-normal` 400, `font-semibold` 600).** `font-medium` 500 is considered an in-range variant of semibold for label rendering — if the checker flags this, collapse labels to `font-semibold`.
+**Weights used: exactly 2 — `font-normal` (400) and `font-semibold` (600).** No other weights are permitted in this component.
 
 **Rules:**
 - Never use `text-xs` (12px) alongside `text-[11px]` in the same block — pick one.
 - No `text-xl` or larger inside this component — the wizard shell already owns step-level display typography.
 - The AI samenvatting block renders its 3–5 sentences at body size, not heading size, so it reads as prose not as a banner.
+- `font-medium` (500) is NOT allowed anywhere in this component. If a label needs visual weight, use `font-semibold` (600).
 
 ---
 
@@ -145,6 +146,7 @@ All copy is in Dutch (nl-NL), consistent with CLAUDE.md language rule. Copy must
 | Risico-tekst prefix (per baat at risk) | "Risico: " (inline red text, not a separate alert box) |
 | Verbredings-toelichting prefix (per inspanning) | "Suggestie: " (inline amber text) |
 | Missend-aspect prefix (per inspanning) | "Mist: " (inline red text) |
+| Pre-AI placeholder dot aria-label | "Wachten op AI-analyse" (screen-reader only label on the neutral placeholder dot; see Accessibility) |
 
 **Destructive actions in this phase:** none. This component is read-only (per CONTEXT.md `<domain>` — "apply-knoppen voor AI-suggesties (alleen weergave)"). No confirmations required.
 
@@ -173,7 +175,7 @@ Downstream-useful inventory of what the rewritten `StapSectorVertaling.tsx` cont
 
 **State rules:**
 - Structural blocks (1–4) render with OR without AI result. AI callouts (badges + toelichtingen + samenvatting) only appear when `stap5Result` is present (D-12c).
-- When AI result is absent, the badges area per item shows a neutral placeholder dot, not an empty space.
+- When AI result is absent, the badges area per item shows a neutral placeholder dot, not an empty space. This placeholder MUST carry an accessible text via `aria-label="Wachten op AI-analyse"` or a visually hidden `<span class="sr-only">Wachten op AI-analyse</span>` so screen reader users understand the pre-AI state.
 
 ---
 
@@ -202,6 +204,7 @@ Downstream-useful inventory of what the rewritten `StapSectorVertaling.tsx` cont
 - Minimum touch target for the "Toon details" toggle: 44×44px.
 - Section headings use real heading elements (`<h4>`, `<h5>`) in a coherent order under the wizard's step title.
 - Empty states use text, not just icons.
+- **Pre-AI placeholder dot:** the neutral dot shown in the badges area before an AI result is available has no visual text. It MUST carry an `aria-label="Wachten op AI-analyse"` on the dot element, or an accompanying `<span class="sr-only">Wachten op AI-analyse</span>` sibling, so screen reader users understand that AI analysis has not yet run for that item.
 
 ---
 
