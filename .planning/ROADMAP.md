@@ -210,3 +210,27 @@ Plans:
 - [x] 12-01-PLAN.md — Schema extensies (ExternalProject + ProjectCapabilityMap + AI response schemas) + API routes (parse/extract/match) + AI client + tests
 - [x] 12-02-PLAN.md — ExterneProjectenPanel extractie + import tabs + AI extractie + review cards + domain checkboxes + DINMappingStep update
 - [x] 12-03-PLAN.md — AIKoppelingPanel + inline project display in inspanningen + Word export + ExportStep update + human verify
+
+### Phase 13: Stap 5 Cross-Analyse Prioriteitsview eerste doel
+
+**Goal:** Herschrijf stap 5 van de cross-analyse wizard naar een focusview rond het eerste doel (hoogste rank). Toon alleen: (1) het focusdoel, (2) de daaraan gekoppelde baten per sector, (3) de geconsolideerde cross-sector vermogens die hefboom leveren op die baten, (4) de bijbehorende gedeelde inspanningen. Voeg AI-review toe die beoordeelt of inspanningen breed genoeg zijn voor de nu cross-sector vermogens (verbredings-suggesties) en of de baten daadwerkelijk worden geraakt (risico-detectie). Verwijder het huidige totaaloverzicht (volledige DIN-keten, domeinbalans, gap-analyse) uit stap 5. Niet-geconsolideerde items komen in een inklapbare "buiten scope" sectie. Raakt: `Stap5ResultSchema`, `CROSS_ANALYSE_STAP5_PROMPT`, `api/cross-analyse` route (stap 5 tak), `StapSectorVertaling.tsx`, `CrossAnalyseWizard.tsx`. Plan-artefact: `~/.claude/plans/twinkling-puzzling-hennessy.md`.
+**Requirements**: R-CROSS-01, R-CROSS-02
+**Depends on:** Phase 12
+**UI hint:** yes
+**Plans:** 4 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Wave 0 TDD scaffolding: 3 test files (schemas-stap5, stap5-focus-filter, stap5-restore-guard) — 23 tests verwacht RED
+- [ ] 13-02-PLAN.md — Wave 1 foundation: vervang Stap5ResultSchema + CROSS_ANALYSE_STAP5_PROMPT, creëer src/lib/stap5-focus.ts pure helpers (getFocusGoal, computeFocusView, restoreStap5Result)
+- [ ] 13-03-PLAN.md — Wave 2 API + component: cross-analyse route payload narrowing voor stap===5, StapSectorVertaling.tsx volledig herschrijven naar focusview per UI-SPEC
+- [ ] 13-04-PLAN.md — Wave 3 wizard integratie + UAT: CrossAnalyseWizard.tsx restore guard + STEP_INFO[5] copy + CTA condition <= 5, human-verify checkpoint (10 checks)
+
+### Phase 14: Lopende projecten promoveren tot volwaardige inspanningen in DIN-keten met splitsing en bevindingen-afleiding
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 13
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 14 to break down)
