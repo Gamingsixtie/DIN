@@ -428,19 +428,27 @@ export const Stap4ResultSchema = z.object({
 });
 
 export const Stap5ResultSchema = z.object({
-  sectorVertalingen: z.array(z.object({
+  focusDoelId: z.string(),
+  focusDoelNaam: z.string(),
+  vermogenReview: z.array(z.object({
+    vermogenId: z.string(),
+    hefboomAnalyse: z.string(),
+    suggestieAanscherping: z.string().optional(),
+  })).default([]),
+  inspanningReview: z.array(z.object({
+    inspanningId: z.string(),
+    breedteOordeel: z.enum(["dekt_volledig", "moet_verbreed", "mist_aspect"]),
+    toelichting: z.string(),
+    suggestieVerbreding: z.string().optional(),
+  })).default([]),
+  batenDekking: z.array(z.object({
+    baatId: z.string(),
     sector: z.string(),
-    dinKeten: z.object({
-      aantalBaten: z.number(),
-      aantalVermogens: z.number(),
-      aantalInspanningen: z.number(),
-      waarvanGedeeld: z.number(),
-    }),
-    domeinBalans: z.array(CrossAnalyseDomeinItemSchema).optional().default([]),
-    gaps: z.array(z.string()).optional().default([]),
-    samenvatting: z.string(),
-  })),
-  totaalSamenvatting: z.string(),
+    wordtGeraakt: z.boolean(),
+    redenering: z.string(),
+    risico: z.string().optional(),
+  })).default([]),
+  samenvatting: z.string(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({

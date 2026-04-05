@@ -250,37 +250,71 @@ type MOET exact "vermogen" of "inspanning" zijn.
 aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
 BELANGRIJK: Antwoord in het Nederlands.`;
 
-export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
-Maak per sector een vertaling: hoe komt hun input terug in het geheel?
+export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's, Hfst 8 — Hefboomwerking).
 
-Per sector (PO, VO, Zakelijk):
-- Tel baten, vermogens, inspanningen (eigen + gedeeld)
-- Beoordeel de domeinbalans (Mens/Processen/Data & Systemen/Cultuur)
-- Identificeer gaps specifiek voor deze sector
-- Geef een korte samenvatting
+Je krijgt het EERSTE DOEL (focusdoel) met:
+- de baten die eraan gekoppeld zijn, per sector
+- de GECONSOLIDEERDE cross-sector vermogens die hefboom moeten leveren op die baten
+- de GEDEELDE inspanningen die die vermogens opbouwen
+
+Je taak is KWALITATIEF beoordelen — niet tellen, niet rangschikken, niet filteren. De client heeft de items al geselecteerd.
+
+Beoordeel:
+
+1. HEFBOOMWERKING PER VERMOGEN
+   Voor elk vermogen: welke baten (in welke sectoren) raakt dit vermogen en WAAROM levert cross-sector consolidatie hefboom op?
+   Optioneel: een korte aanscherpings-suggestie voor de formulering.
+
+2. BREEDTE VAN INSPANNINGEN
+   Omdat de vermogens nu cross-sector zijn, moeten inspanningen mogelijk BREDER worden geformuleerd.
+   Per inspanning:
+   - "dekt_volledig" -> inspanning past al bij het gedeelde vermogen
+   - "moet_verbreed" -> inspanning dekt maar een deel; geef concrete herformulering
+   - "mist_aspect" -> er ontbreekt een relevant aspect; benoem welk aspect
+   Geef altijd een toelichting; bij "moet_verbreed" en "mist_aspect" een suggestieVerbreding.
+
+3. BATEN-DEKKING (kritisch — stakeholder-mandaat)
+   Loop elke baat onder het focusdoel langs.
+   - wordtGeraakt: true als de huidige cross-sector vermogens en inspanningen deze baat daadwerkelijk realiseren
+   - wordtGeraakt: false als er een MISMATCH is — deze baat dreigt buiten schot te raken
+   Geef altijd een redenering. Bij false: een concrete risico-tekst ("wat missen we als het zo blijft").
+
+4. SAMENVATTING
+   3-5 zinnen die vastleggen: welke hefbomen trekken we, waar zit het risico, waarom gaat dit het focusdoel realiseren.
 
 Antwoord ALLEEN als JSON-object met EXACT deze structuur:
 {
-  "sectorVertalingen": [
+  "focusDoelId": "uuid-van-doel",
+  "focusDoelNaam": "Naam van het focusdoel",
+  "vermogenReview": [
     {
-      "sector": "PO",
-      "dinKeten": {
-        "aantalBaten": 6,
-        "aantalVermogens": 4,
-        "aantalInspanningen": 8,
-        "waarvanGedeeld": 2
-      },
-      "domeinBalans": [
-        { "domein": "Mens", "beoordeling": "voldoende", "advies": "..." }
-      ],
-      "gaps": ["Vermogen X heeft geen inspanning"],
-      "samenvatting": "Korte samenvatting voor deze sector (2-3 zinnen)"
+      "vermogenId": "uuid",
+      "hefboomAnalyse": "Concrete analyse over welke baten dit vermogen raakt en waarom consolidatie hefboom geeft.",
+      "suggestieAanscherping": "Optionele herformulering"
     }
   ],
-  "totaalSamenvatting": "Overkoepelende samenvatting over alle sectoren (2-3 zinnen)"
+  "inspanningReview": [
+    {
+      "inspanningId": "uuid",
+      "breedteOordeel": "dekt_volledig",
+      "toelichting": "Waarom dit oordeel",
+      "suggestieVerbreding": "Concrete bredere herformulering (alleen bij moet_verbreed of mist_aspect)"
+    }
+  ],
+  "batenDekking": [
+    {
+      "baatId": "uuid",
+      "sector": "PO",
+      "wordtGeraakt": true,
+      "redenering": "Waarom wel/niet",
+      "risico": "Alleen bij wordtGeraakt=false: wat verliezen we"
+    }
+  ],
+  "samenvatting": "3-5 zinnen over de kern van de cross-sector hefboomwerking voor dit focusdoel."
 }
 
-Beoordeling MOET "voldoende", "te weinig", of "oververtegenwoordigd" zijn.
+breedteOordeel MOET exact een van: "dekt_volledig", "moet_verbreed", "mist_aspect" zijn.
+Gebruik de werkelijke id-velden uit de data. Verwijs nooit naar doelen, baten, vermogens of inspanningen die niet in de input staan.
 BELANGRIJK: Antwoord in het Nederlands.`;
 
 export const SECTOR_INTEGRATIE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
