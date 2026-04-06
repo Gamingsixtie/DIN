@@ -9,8 +9,6 @@ import {
   Stap4ResultSchema,
   Stap5ResultSchema,
 } from "@/lib/schemas";
-
-export const maxDuration = 120;
 import {
   CROSS_ANALYSE_PROMPT,
   CROSS_ANALYSE_STAP1_PROMPT,
@@ -22,6 +20,8 @@ import {
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 import { getFocusGoal } from "@/lib/stap5-focus";
 import type { z } from "zod";
+
+export const maxDuration = 120;
 
 function getStepConfig(stap: number): { prompt: string; schema: z.ZodSchema } | undefined {
   const configs: Record<number, { prompt: string; schema: z.ZodSchema }> = {

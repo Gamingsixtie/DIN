@@ -6,8 +6,6 @@ import {
   AISuggestInspanningSchema,
   AIDomainRecommendSchema,
 } from "@/lib/schemas";
-
-export const maxDuration = 60;
 import {
   DIN_SUGGEST_BAAT_PROMPT,
   DIN_SUGGEST_VERMOGEN_PROMPT,
@@ -22,6 +20,8 @@ import type { CompletedGoalContext } from "@/lib/prompt-assembly";
 import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { z } from "zod";
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {

@@ -3,11 +3,11 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AIDINMappingResponseSchema } from "@/lib/schemas";
 import { DIN_MAPPING_PROMPT } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, buildCompletedGoalsContext } from "@/lib/prompt-assembly";
-
-export const maxDuration = 60;
 import type { CompletedGoalContext } from "@/lib/prompt-assembly";
 import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
