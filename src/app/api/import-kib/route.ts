@@ -4,7 +4,7 @@ import { KiBExportSchema } from "@/lib/schemas";
 import mammoth from "mammoth";
 import Anthropic from "@anthropic-ai/sdk";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Gebruik AI om visie, doelen en scope uit vrije tekst te extraheren.

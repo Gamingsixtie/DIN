@@ -29,7 +29,7 @@ import type { CompletedGoalContext } from "@/lib/prompt-assembly";
  *   - 500: { success: false, error } bij onverwachte serverfout
  *   - 503: { success: false, error } bij ontbrekende ANTHROPIC_API_KEY
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {

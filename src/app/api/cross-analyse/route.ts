@@ -21,15 +21,15 @@ import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 import { getFocusGoal } from "@/lib/stap5-focus";
 import type { z } from "zod";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
-function getStepConfig(stap: number): { prompt: string; schema: z.ZodSchema; maxTokens: number } | undefined {
-  const configs: Record<number, { prompt: string; schema: z.ZodSchema; maxTokens: number }> = {
-    1: { prompt: CROSS_ANALYSE_STAP1_PROMPT, schema: Stap1ResultSchema, maxTokens: 8192 },
-    2: { prompt: CROSS_ANALYSE_STAP2_PROMPT, schema: Stap2ResultSchema, maxTokens: 8192 },
-    3: { prompt: CROSS_ANALYSE_STAP3_PROMPT, schema: Stap3ResultSchema, maxTokens: 8192 },
-    4: { prompt: CROSS_ANALYSE_STAP4_PROMPT, schema: Stap4ResultSchema, maxTokens: 4096 },
-    5: { prompt: CROSS_ANALYSE_STAP5_PROMPT, schema: Stap5ResultSchema, maxTokens: 8192 },
+function getStepConfig(stap: number): { prompt: string; schema: z.ZodSchema } | undefined {
+  const configs: Record<number, { prompt: string; schema: z.ZodSchema }> = {
+    1: { prompt: CROSS_ANALYSE_STAP1_PROMPT, schema: Stap1ResultSchema },
+    2: { prompt: CROSS_ANALYSE_STAP2_PROMPT, schema: Stap2ResultSchema },
+    3: { prompt: CROSS_ANALYSE_STAP3_PROMPT, schema: Stap3ResultSchema },
+    4: { prompt: CROSS_ANALYSE_STAP4_PROMPT, schema: Stap4ResultSchema },
+    5: { prompt: CROSS_ANALYSE_STAP5_PROMPT, schema: Stap5ResultSchema },
   };
   return configs[stap];
 }
@@ -196,18 +196,7 @@ export async function POST(request: NextRequest) {
       }
 
       const cumulativeContext = buildCumulativeContext(body);
-
-      // Stap 4 (consolidatie) heeft alleen de clusters uit stap 2/3 nodig, niet alle DIN-data
-      const compactPayload = stap === 4 && body.stap2Result && body.stap3Result
-        ? {
-            vermogenClusters: (body.stap2Result as { vermogenClusters?: unknown }).vermogenClusters || [],
-            inspanningClusters: (body.stap3Result as { inspanningClusters?: unknown }).inspanningClusters || [],
-          }
-        : payloadForPrompt;
-
-      // Compact JSON (geen pretty-print) en kleinere slice voor snellere verwerking
-      const maxSlice = stap === 4 ? 8000 : 20000;
-      let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(compactPayload).slice(0, maxSlice)}`;
+      let userMessage = `Analyseer de volgende DIN-data over alle sectoren heen.\nGebruik de id-velden om items te identificeren in je clusters.\n\n${JSON.stringify(payloadForPrompt, null, 2).slice(0, 20000)}`;
       if (cumulativeContext) {
         userMessage += `\n\n${cumulativeContext}`;
       }
@@ -219,7 +208,7 @@ export async function POST(request: NextRequest) {
         config.schema,
         assembleSystemPrompt(config.prompt, "cross-analyse", undefined, kibContext),
         userMessage,
-        { maxTokens: config.maxTokens, model: "claude-opus-4-6", maxRetries: 0 }
+        { maxTokens: 16384, model: "claude-opus-4-6" }
       );
 
       if (!result.success) {

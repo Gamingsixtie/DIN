@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractProjectsFromText } from "@/lib/ai-client";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {

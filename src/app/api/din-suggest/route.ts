@@ -21,7 +21,7 @@ import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
 import type { z } from "zod";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {

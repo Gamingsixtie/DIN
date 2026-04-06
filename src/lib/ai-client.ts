@@ -41,7 +41,7 @@ import type {
 
 function getClient(): Anthropic {
   return new Anthropic({
-    timeout: 55_000, // 55s — ruim onder Vercel Hobby maxDuration
+    timeout: 240_000, // 240s — ruim binnen Vercel Pro maxDuration (300s)
   });
 }
 
