@@ -868,7 +868,7 @@ export async function promoteExternalProject(
     ProjectPromotieResultSchema,
     systemPrompt,
     parts.join("\n"),
-    { maxTokens: 8192, model: "claude-opus-4-6" }
+    { maxTokens: 8192 }
   );
 
   if (!result.success) {
