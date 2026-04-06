@@ -133,6 +133,15 @@ export default function ProjectPromotiePanel({
         }),
       });
 
+      // Guard: Vercel kan plain-text errors sturen (502/504) die res.json() breken
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(
+          `Server fout (${res.status}): ${text.slice(0, 120) || "Geen details beschikbaar"}. Probeer opnieuw.`
+        );
+      }
+
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(
