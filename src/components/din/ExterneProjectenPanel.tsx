@@ -1007,33 +1007,26 @@ function ExistingProjectCard({
           </div>
 
           {/* Domain chips */}
-          {project.domains && project.domains.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {project.domains.map((d) => (
-                <span
-                  key={d}
-                  className={`px-2 py-0.5 text-xs rounded-full border ${DOMAIN_CHIP_CHECKED[d]}`}
+          {/* Domain chips — selected are clickable to remove, unselected to add */}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {DOMAINS.map((d) => {
+              const selected = (project.domains || []).includes(d.key);
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => toggleDomain(d.key)}
+                  className={`px-2 py-0.5 text-xs rounded-full border cursor-pointer transition-opacity ${
+                    selected
+                      ? DOMAIN_CHIP_CHECKED[d.key]
+                      : "border-gray-300 text-gray-400 bg-white hover:border-gray-400 opacity-0 group-hover:opacity-100"
+                  }`}
+                  title={selected ? `${d.label} verwijderen` : `${d.label} toevoegen`}
                 >
-                  {DOMAIN_LABELS[d]}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Editable domain chips on click */}
-          <div className="flex flex-wrap gap-1 mt-1">
-            {DOMAINS.filter(
-              (d) => !(project.domains || []).includes(d.key)
-            ).map((d) => (
-              <button
-                key={d.key}
-                onClick={() => toggleDomain(d.key)}
-                className="px-2 py-0.5 text-xs rounded-full border border-gray-300 text-gray-400 bg-white hover:border-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                title={`${d.label} toevoegen`}
-              >
-                + {d.label}
-              </button>
-            ))}
+                  {selected ? DOMAIN_LABELS[d.key] : `+ ${d.label}`}
+                </button>
+              );
+            })}
           </div>
 
           {/* Promotion action row (Phase 14) */}
