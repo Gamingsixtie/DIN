@@ -201,25 +201,18 @@ export default function CrossAnalyseWizard() {
         body: JSON.stringify(requestBody),
       });
 
-      // Guard against non-JSON responses (Vercel timeout pages, platform errors)
-      const contentType = response.headers.get("content-type") || "";
-      if (!response.ok && !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("[cross-analyse] Niet-JSON foutrespons:", response.status, text.slice(0, 200));
+      // Guard: lees body als text en parse handmatig — voorkomt crash bij non-JSON responses
+      const rawText = await response.text();
+      let data: { success: boolean; error?: string; data?: { analysis?: unknown; stap?: number } };
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        console.error("[cross-analyse] Niet-JSON response:", response.status, rawText.slice(0, 200));
         setError(
-          response.status === 504
+          response.status === 504 || rawText.includes("FUNCTION_INVOCATION_TIMEOUT")
             ? "De analyse duurde te lang (timeout). Probeer het opnieuw — eventueel met minder data of extra instructies."
             : `Serverfout (${response.status}). Probeer het opnieuw.`
         );
-        return;
-      }
-
-      let data: { success: boolean; error?: string; data?: { analysis?: unknown; stap?: number } };
-      try {
-        data = await response.json();
-      } catch {
-        console.error("[cross-analyse] JSON parse mislukt op response");
-        setError("Onverwacht antwoord van de server. Probeer het opnieuw.");
         return;
       }
 
