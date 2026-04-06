@@ -9,6 +9,8 @@ import {
   Stap4ResultSchema,
   Stap5ResultSchema,
 } from "@/lib/schemas";
+
+export const maxDuration = 120;
 import {
   CROSS_ANALYSE_PROMPT,
   CROSS_ANALYSE_STAP1_PROMPT,

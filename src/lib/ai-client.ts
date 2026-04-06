@@ -40,7 +40,9 @@ import type {
 } from "./types";
 
 function getClient(): Anthropic {
-  return new Anthropic();
+  return new Anthropic({
+    timeout: 55_000, // 55s — iets onder Vercel maxDuration van 60s
+  });
 }
 
 async function callClaude(

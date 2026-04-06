@@ -3,6 +3,8 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { AISectorplanAnalyseSchema } from "@/lib/schemas";
 import { SECTORPLAN_ANALYSE_PROMPT } from "@/lib/prompts";
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
