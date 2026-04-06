@@ -41,7 +41,7 @@ import type {
 
 function getClient(): Anthropic {
   return new Anthropic({
-    timeout: 55_000, // 55s — iets onder Vercel maxDuration van 60s
+    timeout: 90_000, // 90s — Vercel maxDuration (60s) beheert de harde grens
   });
 }
 
@@ -148,9 +148,9 @@ export async function callClaudeWithValidation<T>(
   schema: z.ZodType<T>,
   systemPrompt: string,
   userMessage: string,
-  options?: { maxTokens?: number; model?: string }
+  options?: { maxTokens?: number; model?: string; maxRetries?: number }
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
-  const MAX_RETRIES = 2;
+  const MAX_RETRIES = options?.maxRetries ?? 2;
   let lastError = "";
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -870,7 +870,7 @@ export async function promoteExternalProject(
     ProjectPromotieResultSchema,
     systemPrompt,
     parts.join("\n"),
-    { maxTokens: 8192 }
+    { maxTokens: 4096, maxRetries: 1 }
   );
 
   if (!result.success) {
