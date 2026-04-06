@@ -52,15 +52,21 @@ async function callClaude(
   model: "claude-sonnet-4-6" | "claude-opus-4-6" = "claude-sonnet-4-6"
 ): Promise<string> {
   const client = getClient();
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens || 4096,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: maxTokens || 4096,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  return textBlock ? textBlock.text : "";
+    const textBlock = response.content.find((b) => b.type === "text");
+    return textBlock ? textBlock.text : "";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Onbekende AI-fout";
+    console.error("[ai-client] callClaude fout:", message);
+    throw new Error(`Claude API-fout: ${message}`);
+  }
 }
 
 // ============================================================
@@ -154,12 +160,19 @@ export async function callClaudeWithValidation<T>(
   let lastError = "";
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const raw = await callClaude(
-      systemPrompt,
-      userMessage,
-      options?.maxTokens,
-      (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6") || "claude-sonnet-4-6"
-    );
+    let raw: string;
+    try {
+      raw = await callClaude(
+        systemPrompt,
+        userMessage,
+        options?.maxTokens,
+        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6") || "claude-sonnet-4-6"
+      );
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : "Claude API-fout";
+      console.error(`[ai-client] callClaudeWithValidation poging ${attempt + 1}/${MAX_RETRIES + 1} mislukt:`, lastError);
+      continue;
+    }
     const result = parseAIResponse(raw, schema);
     if (result.success) {
       return { success: true, data: result.data };
