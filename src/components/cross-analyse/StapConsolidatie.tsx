@@ -56,9 +56,67 @@ export default function StapConsolidatie({
     }
   }, [toastMessage]);
 
+  const [autoApplied, setAutoApplied] = useState(false);
+
   const vermogenClusters = stap2Result?.vermogenClusters ?? [];
   const inspanningClusters = stap3Result?.inspanningClusters ?? [];
   const hasAnyClusters = vermogenClusters.length > 0 || inspanningClusters.length > 0;
+
+  // --- Auto-apply "combineren" aanbevelingen na stap 4 ---
+  useEffect(() => {
+    if (autoApplied) return;
+    // Auto-apply wanneer stap4Result binnenkomt, of op basis van stap2/3 aanbevelingen
+    const hasCombineren =
+      vermogenClusters.some((c) => c.aanbeveling === "combineren") ||
+      inspanningClusters.some((c) => c.aanbeveling === "combineren");
+    if (!hasCombineren) return;
+
+    setAutoApplied(true);
+    let count = 0;
+
+    updateSession((prev) => {
+      let updated = prev;
+
+      // Auto-merge vermogen clusters met "combineren"
+      for (const cluster of vermogenClusters) {
+        if (cluster.aanbeveling !== "combineren") continue;
+        const ids = cluster.items.map((it) => it.id);
+        if (ids.length < 2) continue;
+        // Skip als al gemerged
+        const key = [...ids].sort().join(",");
+        if (mergedCapClusters.has(key)) continue;
+
+        updated = mergeCapabilities(updated, ids);
+        const sharedId = updated.capabilities[updated.capabilities.length - 1]?.id;
+        if (sharedId) {
+          setMergedCapClusters((p) => new Map(p).set(key, sharedId));
+          count++;
+        }
+      }
+
+      // Auto-merge inspanning clusters met "combineren"
+      for (const cluster of inspanningClusters) {
+        if (cluster.aanbeveling !== "combineren") continue;
+        const ids = cluster.items.map((it) => it.id);
+        if (ids.length < 2) continue;
+        const key = [...ids].sort().join(",");
+        if (mergedEffClusters.has(key)) continue;
+
+        updated = mergeEfforts(updated, ids);
+        const sharedId = updated.efforts[updated.efforts.length - 1]?.id;
+        if (sharedId) {
+          setMergedEffClusters((p) => new Map(p).set(key, sharedId));
+          count++;
+        }
+      }
+
+      return updated;
+    });
+
+    if (count > 0) {
+      setToastMessage(`${count} cluster${count > 1 ? "s" : ""} automatisch samengevoegd`);
+    }
+  }, [stap2Result, stap3Result, stap4Result, autoApplied]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Consolidation handlers (per D-10 -- reuse existing pure functions) ---
 
