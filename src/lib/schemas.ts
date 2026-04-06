@@ -425,7 +425,7 @@ export const Stap4ResultSchema = z.object({
     type: z.enum(["vermogen", "inspanning"]),
     aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
     reden: z.string(),
-    voorgesteldeNaam: z.string().optional(),
+    voorgesteldeNaam: z.string().nullable().optional(),
   })).optional().default([]),
   samenvatting: z.string(),
 });
@@ -436,20 +436,20 @@ export const Stap5ResultSchema = z.object({
   vermogenReview: z.array(z.object({
     vermogenId: z.string(),
     hefboomAnalyse: z.string(),
-    suggestieAanscherping: z.string().optional(),
+    suggestieAanscherping: z.string().nullable().optional(),
   })).default([]),
   inspanningReview: z.array(z.object({
     inspanningId: z.string(),
     breedteOordeel: z.enum(["dekt_volledig", "moet_verbreed", "mist_aspect"]),
     toelichting: z.string(),
-    suggestieVerbreding: z.string().optional(),
+    suggestieVerbreding: z.string().nullable().optional(),
   })).default([]),
   batenDekking: z.array(z.object({
     baatId: z.string(),
     sector: z.string(),
     wordtGeraakt: z.boolean(),
     redenering: z.string(),
-    risico: z.string().optional(),
+    risico: z.string().nullable().optional(),
   })).default([]),
   samenvatting: z.string(),
 });
