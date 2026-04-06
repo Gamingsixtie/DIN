@@ -8,10 +8,12 @@ interface BenefitSuggestion {
   title?: string;
   description: string;
   bateneigenaar?: string;
-  indicator: string;
-  indicatorOwner: string;
-  currentValue: string;
-  targetValue: string;
+  indicator?: string;
+  indicatorOwner?: string;
+  currentValue?: string;
+  targetValue?: string;
+  meetmethode?: string;
+  measurementMoment?: string;
 }
 
 type AanscherpVeld = "alles" | "titel" | "beschrijving" | "bateneigenaar" | "indicator" | "eigenaar" | "waarden";
@@ -156,6 +158,10 @@ export default function BenefitCard({
     if (applyAll || applySet.has("waarden")) {
       if (aiSuggestion.currentValue) updated.profiel.currentValue = aiSuggestion.currentValue;
       if (aiSuggestion.targetValue) updated.profiel.targetValue = aiSuggestion.targetValue;
+    }
+    if (applyAll) {
+      if (aiSuggestion.meetmethode) updated.profiel.meetmethode = aiSuggestion.meetmethode;
+      if (aiSuggestion.measurementMoment) updated.profiel.measurementMoment = aiSuggestion.measurementMoment;
     }
 
     onChange(updated);
@@ -450,6 +456,22 @@ export default function BenefitCard({
                 current={`${benefit.profiel.currentValue || "?"} \u2192 ${benefit.profiel.targetValue || "?"}`}
                 suggested={`${aiSuggestion.currentValue || "?"} \u2192 ${aiSuggestion.targetValue || "?"}`}
                 onApply={() => applySuggestion(["waarden"])}
+              />
+            )}
+            {aiSuggestion.meetmethode && aiSuggestion.meetmethode !== (benefit.profiel.meetmethode || "") && (
+              <SuggestionRow
+                label="Meetmethode"
+                current={benefit.profiel.meetmethode || ""}
+                suggested={aiSuggestion.meetmethode}
+                onApply={() => applySuggestion(["alles"])}
+              />
+            )}
+            {aiSuggestion.measurementMoment && aiSuggestion.measurementMoment !== (benefit.profiel.measurementMoment || "") && (
+              <SuggestionRow
+                label="Meetmoment"
+                current={benefit.profiel.measurementMoment || ""}
+                suggested={aiSuggestion.measurementMoment}
+                onApply={() => applySuggestion(["alles"])}
               />
             )}
           </div>

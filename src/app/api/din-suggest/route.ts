@@ -327,11 +327,14 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
+      console.error(`[din-suggest] AI validation failed for ${type}:`, result.error);
       return NextResponse.json(
         { success: false, error: result.error, retryable: true },
         { status: 422 }
       );
     }
+
+    console.log(`[din-suggest] AI result for ${type}:`, JSON.stringify(result.data, null, 2));
 
     // Post-validatie op suggest-resultaat
     const suggestValidatorMap = {
@@ -342,6 +345,8 @@ export async function POST(request: NextRequest) {
     const suggestValidationResult = suggestValidatorMap[type as keyof typeof suggestValidatorMap](
       result.data as { title: string; [key: string]: unknown }
     );
+
+    console.log(`[din-suggest] Final suggestion for ${type}:`, JSON.stringify(suggestValidationResult.item, null, 2));
 
     return NextResponse.json({
       success: true,

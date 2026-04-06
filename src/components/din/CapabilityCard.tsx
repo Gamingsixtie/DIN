@@ -7,8 +7,8 @@ interface CapabilitySuggestion {
   feedback?: string;
   title?: string;
   description: string;
-  currentLevel: number;
-  targetLevel: number;
+  currentLevel?: number;
+  targetLevel?: number;
   eigenaar?: string;
   huidieSituatie?: string;
   gewensteSituatie?: string;

@@ -15,6 +15,29 @@ export const EffortDomainSchema = z.enum([
   "cultuur",
 ]);
 
+/** Normaliseert AI-varianten van domeinnamen naar de juiste enum waarde */
+function normalizeDomain(val: unknown): string | undefined {
+  if (typeof val !== "string") return undefined;
+  const lower = val.toLowerCase().replace(/[&\s]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+  const map: Record<string, string> = {
+    mens: "mens",
+    mensen: "mens",
+    processen: "processen",
+    proces: "processen",
+    data_systemen: "data_systemen",
+    data_en_systemen: "data_systemen",
+    datasystemen: "data_systemen",
+    cultuur: "cultuur",
+  };
+  return map[lower] ?? undefined;
+}
+
+/** Soepele domain-parser voor AI-output: normaliseert varianten zoals "Data & Systemen" → "data_systemen" */
+export const FlexEffortDomainSchema = z
+  .string()
+  .transform((val) => normalizeDomain(val))
+  .pipe(EffortDomainSchema);
+
 export const EffortStatusSchema = z.enum([
   "gepland",
   "in_uitvoering",
@@ -536,7 +559,7 @@ export const AICapabilitySchema = z.object({
 export const AIEffortSchema = z.object({
   title: z.string(),
   description: z.string(),
-  domain: EffortDomainSchema,
+  domain: FlexEffortDomainSchema,
   quarter: z.string().optional(),
   dossier: z
     .object({
@@ -558,49 +581,40 @@ export const AIDINMappingResponseSchema = z.object({
 // --- AI Suggest schemas ---
 
 export const AISuggestBaatSchema = z.object({
+  feedback: z.string().optional(),
   title: z.string().optional(),
   description: z.string(),
-  profiel: z
-    .object({
-      bateneigenaar: z.string().optional(),
-      indicator: z.string().optional(),
-      indicatorOwner: z.string().optional(),
-      currentValue: z.string().optional(),
-      targetValue: z.string().optional(),
-      meetmethode: z.string().optional(),
-      measurementMoment: z.string().optional(),
-    })
-    .optional(),
+  bateneigenaar: z.string().optional(),
+  indicator: z.string().optional(),
+  indicatorOwner: z.string().optional(),
+  currentValue: z.string().optional(),
+  targetValue: z.string().optional(),
+  meetmethode: z.string().optional(),
+  measurementMoment: z.string().optional(),
 });
 
 export const AISuggestVermogenSchema = z.object({
+  feedback: z.string().optional(),
   title: z.string().optional(),
   description: z.string(),
   currentLevel: z.number().optional(),
   targetLevel: z.number().optional(),
-  profiel: z
-    .object({
-      eigenaar: z.string().optional(),
-      huidieSituatie: z.string().optional(),
-      gewensteSituatie: z.string().optional(),
-    })
-    .optional(),
+  eigenaar: z.string().optional(),
+  huidieSituatie: z.string().optional(),
+  gewensteSituatie: z.string().optional(),
 });
 
 export const AISuggestInspanningSchema = z.object({
+  feedback: z.string().optional(),
   title: z.string().optional(),
   description: z.string(),
-  domain: EffortDomainSchema.optional(),
+  domain: FlexEffortDomainSchema.optional(),
   quarter: z.string().optional(),
-  dossier: z
-    .object({
-      eigenaar: z.string().optional(),
-      inspanningsleider: z.string().optional(),
-      verwachtResultaat: z.string().optional(),
-      kostenraming: z.string().optional(),
-      randvoorwaarden: z.string().optional(),
-    })
-    .optional(),
+  eigenaar: z.string().optional(),
+  inspanningsleider: z.string().optional(),
+  verwachtResultaat: z.string().optional(),
+  kostenraming: z.string().optional(),
+  randvoorwaarden: z.string().optional(),
 });
 
 // --- AI Cross-analyse (soepelere defaults) ---
@@ -704,7 +718,7 @@ export const AIExtractedProjectSchema = z.object({
   name: z.string(),
   description: z.string(),
   status: EffortStatusSchema.optional().default("in_uitvoering"),
-  domains: z.array(EffortDomainSchema).optional().default([]),
+  domains: z.array(FlexEffortDomainSchema).optional().default([]),
   aiWarning: z.string().optional(),
 });
 
@@ -736,13 +750,13 @@ export const FindingSuggestionSchema = z.object({
   toelichting: z.string(),
   targetSector: SectorNameSchema,
   // For inspanning findings, allow AI to hint a domain (optional)
-  domain: EffortDomainSchema.optional(),
+  domain: FlexEffortDomainSchema.optional(),
 });
 
 export const AIPromotedEffortSchema = z.object({
   title: z.string(),
   description: z.string(),
-  domain: EffortDomainSchema,
+  domain: FlexEffortDomainSchema,
   // D-07: default to in_uitvoering (lopend project)
   status: EffortStatusSchema.optional().default("in_uitvoering"),
   quarter: z.string().optional(),
@@ -784,7 +798,7 @@ export const ProjectPromotieResultSchema = z.object({
 // --- AI Domain Recommend ---
 
 export const AIDomainRecommendSchema = z.object({
-  domain: EffortDomainSchema,
+  domain: FlexEffortDomainSchema,
   reasoning: z.string(),
 });
 

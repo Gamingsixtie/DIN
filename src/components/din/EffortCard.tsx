@@ -8,7 +8,7 @@ interface EffortSuggestion {
   feedback?: string;
   title?: string;
   description: string;
-  quarter: string;
+  quarter?: string;
   eigenaar?: string;
   inspanningsleider?: string;
   verwachtResultaat?: string;
