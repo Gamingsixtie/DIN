@@ -3,6 +3,9 @@
 // 1. localStorage EERST schrijven (synchronous)
 // 2. Deduplicatie van IDs bij AI-hergeneratie
 
+import { supabase } from "./supabase";
+import type { DINSession } from "./types";
+
 const STORAGE_PREFIX = "din_";
 
 // --- localStorage (synchrone bron van waarheid) ---
@@ -90,4 +93,81 @@ export async function dualLoad<T>(
   }
 
   return null;
+}
+
+// --- Supabase sessie-opslag ---
+
+export async function saveSessionToSupabase(session: DINSession): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("din_sessions")
+      .upsert({
+        id: session.id,
+        name: session.name,
+        data: session,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "id" });
+
+    if (error) {
+      console.error("[persistence] Supabase sessie-opslag mislukt:", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[persistence] Supabase sessie-opslag exception:", e);
+    return false;
+  }
+}
+
+export async function loadSessionFromSupabase(id: string): Promise<DINSession | null> {
+  try {
+    const { data, error } = await supabase
+      .from("din_sessions")
+      .select("data")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) return null;
+    return data.data as DINSession;
+  } catch (e) {
+    console.error("[persistence] Supabase sessie laden mislukt:", e);
+    return null;
+  }
+}
+
+export async function loadSessionListFromSupabase(): Promise<Array<{ id: string; name: string; updatedAt: string }>> {
+  try {
+    const { data, error } = await supabase
+      .from("din_sessions")
+      .select("id, name, updated_at")
+      .order("updated_at", { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((row) => ({
+      id: row.id,
+      name: row.name,
+      updatedAt: row.updated_at,
+    }));
+  } catch (e) {
+    console.error("[persistence] Supabase sessielijst laden mislukt:", e);
+    return [];
+  }
+}
+
+export async function deleteSessionFromSupabase(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("din_sessions")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("[persistence] Supabase sessie verwijderen mislukt:", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[persistence] Supabase sessie verwijderen exception:", e);
+    return false;
+  }
 }

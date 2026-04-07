@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { loadLocal, saveLocal, removeLocal } from "@/lib/persistence";
+import { loadLocal, saveLocal, removeLocal, saveSessionToSupabase, deleteSessionFromSupabase, loadSessionListFromSupabase } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
 import { createDemoSession } from "@/lib/demo-data";
 
@@ -15,8 +15,9 @@ export default function Home() {
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
+    // localStorage eerst laden
     const list = loadLocal<string[]>("session_list") || [];
-    const loaded = list
+    const localSessions = list
       .map((id) => {
         const s = loadLocal<DINSession>(`session_${id}`);
         return s
@@ -24,7 +25,28 @@ export default function Home() {
           : null;
       })
       .filter(Boolean) as typeof sessions;
-    setSessions(loaded);
+    setSessions(localSessions);
+
+    // Supabase als aanvulling: sessies die niet lokaal staan ophalen
+    loadSessionListFromSupabase().then((remoteSessions) => {
+      if (remoteSessions.length === 0) return;
+      const localIds = new Set(list);
+      const missing = remoteSessions.filter((r) => !localIds.has(r.id));
+      if (missing.length > 0) {
+        setSessions((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const toAdd = missing
+            .filter((m) => !existingIds.has(m.id))
+            .map((m) => ({
+              id: m.id,
+              name: m.name,
+              createdAt: m.updatedAt,
+              currentStep: 0,
+            }));
+          return [...prev, ...toAdd];
+        });
+      }
+    });
   }, []);
 
   function handleCreate() {
@@ -49,6 +71,7 @@ export default function Home() {
       completedGoals: [],
     };
     saveLocal(`session_${id}`, session);
+    saveSessionToSupabase(session);
     const list = loadLocal<string[]>("session_list") || [];
     list.push(id);
     saveLocal("session_list", list);
@@ -57,6 +80,7 @@ export default function Home() {
 
   function handleDelete(id: string) {
     removeLocal(`session_${id}`);
+    deleteSessionFromSupabase(id);
     const list = (loadLocal<string[]>("session_list") || []).filter(
       (sid) => sid !== id
     );
@@ -71,6 +95,7 @@ export default function Home() {
   function handleLoadDemo() {
     const demo = createDemoSession();
     saveLocal(`session_${demo.id}`, demo);
+    saveSessionToSupabase(demo);
     const list = loadLocal<string[]>("session_list") || [];
     list.push(demo.id);
     saveLocal("session_list", list);

@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { DINSession, AppStep, SectorplanAnalyseResult } from "./types";
 import { APP_STEPS } from "./types";
-import { loadLocal, saveLocal } from "./persistence";
+import { loadLocal, saveLocal, saveSessionToSupabase, loadSessionFromSupabase } from "./persistence";
 import { useToast } from "@/components/ui/Toast";
 import { AISectorplanAnalyseSchema } from "@/lib/schemas";
 
@@ -96,13 +96,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date().toISOString(),
       };
       saveLocal(`session_${prev.id}`, updated);
+      saveSessionToSupabase(updated);
       return updated;
     });
   }, []);
 
   const loadSession = useCallback((id: string) => {
-    const loaded = loadLocal<DINSession>(`session_${id}`);
-    if (loaded) {
+    const applySession = (loaded: DINSession) => {
       // Migratie: sectorAnalyses string -> typed object (Phase 05)
       if (loaded.sectorAnalyses) {
         const { migrated, needsToast } = migrateSectorAnalyses(
@@ -122,7 +122,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(loaded);
       const step = APP_STEPS[loaded.currentStep]?.key || "import";
       setCurrentStepState(step);
+      // Sync naar Supabase (async, mag falen)
+      saveSessionToSupabase(loaded);
+    };
+
+    // localStorage eerst (sync)
+    const local = loadLocal<DINSession>(`session_${id}`);
+    if (local) {
+      applySession(local);
+      return;
     }
+
+    // Fallback: Supabase
+    loadSessionFromSupabase(id).then((remote) => {
+      if (remote) {
+        saveLocal(`session_${id}`, remote);
+        applySession(remote);
+        queueMicrotask(() =>
+          addToastRef.current("Sessie hersteld vanuit Supabase", "success")
+        );
+      }
+    });
   }, []);
 
   const createSession = useCallback((name: string): DINSession => {
@@ -148,6 +168,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
     setSession(newSession);
     saveLocal(`session_${newSession.id}`, newSession);
+    saveSessionToSupabase(newSession);
 
     // Sessie-lijst bijwerken
     const list = loadLocal<string[]>("session_list") || [];
@@ -178,6 +199,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } else {
           queueMicrotask(() => setLastSaved(new Date()));
         }
+        // Async naar Supabase (mag falen, localStorage is al opgeslagen)
+        saveSessionToSupabase(updated);
         return updated;
       });
     },
