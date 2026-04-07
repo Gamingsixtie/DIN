@@ -188,7 +188,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 13. Stap 5 prioriteitsview | 4/4 | Complete | - |
 | 14. Projecten promoveren tot inspanningen | 2/3 | In Progress | - |
 | 15. Lopende projecten uit cross-analyse | 0/0 | Not started | - |
-| 16. Supabase dual persistence | 1/3 | In Progress|  |
+| 16. Supabase dual persistence | 2/3 | In Progress|  |
 
 ### Phase 11: Cross-analyse herontwerp: stapsgewijs traject met consolidatie
 
@@ -265,9 +265,9 @@ Plans:
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13
 **Depends on:** Phase 15
 **UI hint:** yes
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 16-01-PLAN.md — Supabase graceful degradation + persistence refactor (retry, version counter, cleanup) + unit tests
-- [ ] 16-02-PLAN.md — SyncStatusContext + SyncStatusFooter + ClientProviders wiring + session-context sync integration
+- [x] 16-02-PLAN.md — SyncStatusContext + SyncStatusFooter + ClientProviders wiring + session-context sync integration
 - [ ] 16-03-PLAN.md — HealthCheck homepage component + end-to-end human verify checkpoint

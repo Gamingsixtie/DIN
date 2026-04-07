@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-04-07T20:47:18.061Z"
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-04-07T20:55:03.529Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 16
   completed_phases: 13
   total_plans: 40
-  completed_plans: 37
+  completed_plans: 38
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 16 (supabase-dual-persistence-stabiliteit-sync-en-verificatie) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-07
 
@@ -83,6 +83,7 @@ Progress: [██████████] 100%
 | Phase 14 P01 | 7min | 3 tasks | 5 files |
 | Phase 14 P02 | 6min | 2 tasks | 4 files |
 | Phase 16 P01 | 7min | 2 tasks | 8 files |
+| Phase 16 P02 | 4min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,8 @@ Recent decisions affecting current work:
 - [Phase 14]: Plan 02: vi.mock(@anthropic-ai/sdk) pattern met mockCreate closure voor AI-client unit tests, zelfde pattern als ai-parsing.test.ts
 - [Phase 16]: version field uses z.number().optional().default(1) — required in output type, all session constructors updated
 - [Phase 16]: const client = supabase pattern for TS narrowing inside closures after null guard
+- [Phase 16]: syncStatusRef pattern avoids stale closures in setSession functional updater
+- [Phase 16]: latestSessionRef captures session for async Supabase save outside setSession callback (Pitfall 6)
 
 ### Roadmap Evolution
 
@@ -180,6 +183,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-07T20:47:18.055Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-04-07T20:55:03.524Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None
