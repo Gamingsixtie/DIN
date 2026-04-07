@@ -212,6 +212,75 @@ export async function deleteSessionFromSupabase(
   }
 }
 
+// --- Persistent pending-saves queue (D-03) ---
+
+const PENDING_SAVES_KEY = "din_pending_saves";
+
+/**
+ * Add a session to the pending-saves queue in localStorage.
+ * Only stores the LATEST version per session ID (per Pitfall 4 from RESEARCH.md).
+ */
+export function addPendingSave(session: DINSession): void {
+  try {
+    const existing: Record<string, DINSession> = JSON.parse(
+      localStorage.getItem(PENDING_SAVES_KEY) || "{}"
+    );
+    existing[session.id] = session;
+    localStorage.setItem(PENDING_SAVES_KEY, JSON.stringify(existing));
+    console.error(`[persistence] Sessie ${session.id} toegevoegd aan pending-saves queue`);
+  } catch (e) {
+    console.error("[persistence] Kon pending save niet opslaan:", e);
+  }
+}
+
+/**
+ * Get the number of pending saves (for badge display).
+ */
+export function getPendingSaveCount(): number {
+  try {
+    const existing: Record<string, DINSession> = JSON.parse(
+      localStorage.getItem(PENDING_SAVES_KEY) || "{}"
+    );
+    return Object.keys(existing).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Drain all pending saves — retry each one via saveSessionToSupabase.
+ * Called on app startup / when Supabase becomes reachable.
+ * Returns number of successfully synced sessions.
+ */
+export async function drainPendingSaves(): Promise<number> {
+  if (!isSupabaseConfigured) return 0;
+  try {
+    const existing: Record<string, DINSession> = JSON.parse(
+      localStorage.getItem(PENDING_SAVES_KEY) || "{}"
+    );
+    const ids = Object.keys(existing);
+    if (ids.length === 0) return 0;
+
+    let synced = 0;
+    for (const id of ids) {
+      const success = await saveSessionToSupabase(existing[id]);
+      if (success) {
+        delete existing[id];
+        synced++;
+      }
+    }
+    // Write back remaining failures (if any)
+    localStorage.setItem(PENDING_SAVES_KEY, JSON.stringify(existing));
+    if (synced > 0) {
+      console.log(`[persistence] ${synced} pending save(s) succesvol gesynct`);
+    }
+    return synced;
+  } catch (e) {
+    console.error("[persistence] Fout bij draining pending saves:", e);
+    return 0;
+  }
+}
+
 // --- Health check (D-10, gebruikt door Plan 03) ---
 
 export async function checkSupabaseHealth(): Promise<{
