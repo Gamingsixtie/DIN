@@ -137,8 +137,13 @@ export async function saveSessionToSupabase(
           throw new Error(error.message);
         }
 
-        // Sync lokale versie zodat volgende writes niet geblokkeerd worden
-        saveLocal(`session_${session.id}`, { ...session, version: nextVersion });
+        // Sync ALLEEN het versienummer in localStorage — nooit de hele sessie
+        // overschrijven, want de gebruiker kan intussen nieuwe edits hebben gemaakt
+        const current = loadLocal<DINSession>(`session_${session.id}`);
+        if (current) {
+          current.version = nextVersion;
+          saveLocal(`session_${session.id}`, current);
+        }
 
         return nextVersion;
       },
