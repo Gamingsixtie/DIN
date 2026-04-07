@@ -151,18 +151,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(loaded);
       const step = APP_STEPS[loaded.currentStep]?.key || "import";
       setCurrentStepState(step);
-      // Sync naar Supabase met status tracking (D-01, D-03)
-      syncStatusRef.current.setSyncing();
-      saveSessionToSupabase(loaded).then((result) => {
-        if (result !== false) syncStatusRef.current.setSynced();
-        else {
-          addPendingSave(loaded);
-          syncStatusRef.current.setError();
-        }
-      }).catch(() => {
-        addPendingSave(loaded);
-        syncStatusRef.current.setError();
-      });
+      // NIET naar Supabase schrijven bij laden — alleen updateSession mag schrijven.
+      // Anders ontstaat een race condition waarbij de geladen (oude) data
+      // de door updateSession opgeslagen (nieuwe) data overschrijft.
     };
 
     // localStorage eerst (sync, snelle UX)
