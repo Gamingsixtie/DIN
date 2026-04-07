@@ -97,26 +97,12 @@ export async function saveSessionToSupabase(
         const remoteVersion = remoteData?.version ?? 0;
         const localVersion = session.version ?? 0;
 
-        // D-08: version counter is primary lock; D-04: updatedAt tiebreaker for equal versions; D-05: single-device single-writer model
+        // D-05: single-device single-writer model — lokaal is altijd de bron van waarheid
+        // Versieconflicten loggen maar NOOIT writes blokkeren
         if (remoteVersion > localVersion) {
-          console.error(
-            "[persistence] Remote versie is nieuwer, skip write"
+          console.warn(
+            `[persistence] Remote versie (${remoteVersion}) > lokaal (${localVersion}) — lokaal wint (single-writer)`
           );
-          return false;
-        }
-
-        if (remoteVersion === localVersion && remoteData) {
-          const remoteUpdatedAt = remoteData.updatedAt;
-          if (
-            remoteUpdatedAt &&
-            session.updatedAt &&
-            remoteUpdatedAt > session.updatedAt
-          ) {
-            console.error(
-              "[persistence] Versies gelijk maar remote updatedAt is nieuwer, skip write"
-            );
-            return false;
-          }
         }
 
         const nextVersion = Math.max(remoteVersion, localVersion) + 1;

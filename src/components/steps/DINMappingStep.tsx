@@ -259,6 +259,7 @@ export default function DINMappingStep() {
     parentBenefitId?: string;
     parentCapabilityId?: string;
     domain?: EffortDomain;
+    _ts?: number; // Force remount bij herhaalde opens
   } | null>(null);
 
   // Auto-dismiss undo toast na 8 seconden
@@ -417,7 +418,7 @@ export default function DINMappingStep() {
   }
   function addBenefit() {
     if (!selectedGoal) return;
-    setWizardState({ type: "baat", parentGoalId: selectedGoal });
+    setWizardState({ type: "baat", parentGoalId: selectedGoal, _ts: Date.now() });
   }
   function addBenefitManual() {
     if (!selectedGoal) return;
@@ -509,7 +510,7 @@ export default function DINMappingStep() {
     }));
   }
   function addCapability(benefitId?: string) {
-    setWizardState({ type: "vermogen", parentBenefitId: benefitId });
+    setWizardState({ type: "vermogen", parentBenefitId: benefitId, _ts: Date.now() });
   }
   function addCapabilityManual(benefitId?: string) {
     const newCap = createCapability(activeSector, "");
@@ -565,7 +566,7 @@ export default function DINMappingStep() {
     }));
   }
   function addEffort(domain?: EffortDomain, capabilityId?: string, benefitId?: string, goalId?: string) {
-    setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, parentBenefitId: benefitId, parentGoalId: goalId || selectedGoal || undefined, domain });
+    setWizardState({ type: "inspanning", parentCapabilityId: capabilityId, parentBenefitId: benefitId, parentGoalId: goalId || selectedGoal || undefined, domain, _ts: Date.now() });
   }
   function addEffortManual(domain: EffortDomain, capabilityId?: string) {
     const newEffort = createEffort(activeSector, "", domain);
@@ -1618,6 +1619,7 @@ export default function DINMappingStep() {
                 {wizardState && (
                   <div className="mt-4">
                     <DINCreatieWizard
+                      key={`${wizardState.type}-${wizardState.parentGoalId}-${wizardState.parentBenefitId}-${wizardState.parentCapabilityId}-${wizardState.domain}-${wizardState._ts}`}
                       type={wizardState.type}
                       sectorId={activeSector}
                       parentGoal={wizardState.parentGoalId ? session.goals.find((g) => g.id === wizardState.parentGoalId) : undefined}
