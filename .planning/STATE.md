@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 16 context gathered
-last_updated: "2026-04-07T19:59:10.015Z"
-last_activity: 2026-04-05
+status: executing
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-04-07T20:47:18.061Z"
+last_activity: 2026-04-07
 progress:
   total_phases: 16
   completed_phases: 13
-  total_plans: 37
-  completed_plans: 36
+  total_plans: 40
+  completed_plans: 37
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 14 — lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding
+**Current focus:** Phase 16 — supabase-dual-persistence-stabiliteit-sync-en-verificatie
 
 ## Current Position
 
-Phase: 14 (lopende-projecten-promoveren-tot-volwaardige-inspanningen-in-din-keten-met-splitsing-en-bevindingen-afleiding) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-04-05
+Phase: 16 (supabase-dual-persistence-stabiliteit-sync-en-verificatie) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-07
 
 Progress: [██████████] 100%
 
@@ -82,6 +82,7 @@ Progress: [██████████] 100%
 | Phase 13-stap-5-cross-analyse-prioriteitsview-eerste-doel P04 | 6min | 2 tasks | 1 files |
 | Phase 14 P01 | 7min | 3 tasks | 5 files |
 | Phase 14 P02 | 6min | 2 tasks | 4 files |
+| Phase 16 P01 | 7min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,8 @@ Recent decisions affecting current work:
 - [Phase 14]: Plan 02: Pitfall 2 defense in depth — structured JSON IDs in user-message + post-parse Set-based filter met console.warn drop bij unknown benefitId/capabilityId
 - [Phase 14]: Plan 02: /api/promote-project returnt 503 (hard gate) bij ontbrekende ANTHROPIC_API_KEY — promotie werkt niet zonder AI
 - [Phase 14]: Plan 02: vi.mock(@anthropic-ai/sdk) pattern met mockCreate closure voor AI-client unit tests, zelfde pattern als ai-parsing.test.ts
+- [Phase 16]: version field uses z.number().optional().default(1) — required in output type, all session constructors updated
+- [Phase 16]: const client = supabase pattern for TS narrowing inside closures after null guard
 
 ### Roadmap Evolution
 
@@ -177,6 +180,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-07T19:59:10.009Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-supabase-dual-persistence-stabiliteit-sync-en-verificatie/16-CONTEXT.md
+Last session: 2026-04-07T20:47:18.055Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None
