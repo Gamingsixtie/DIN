@@ -50,8 +50,10 @@ Exceptions: `pb-12` (48px) added to main content wrappers in `sessies/[id]/page.
 | Body | 14px | 400 (regular) | 1.5 |
 | Footer label | 12px | 500 (medium) | 1.4 |
 | Footer timestamp | 12px | 400 (regular) | 1.4 |
-| Health-check heading | 12px | 600 (semibold) | 1.4 |
+| Health-check heading | 12px | 500 (medium) | 1.4 |
 | Health-check value | 14px | 400 (regular) | 1.5 |
+
+Weights used: 2 — `400` (regular) for body text, timestamps, and values; `500` (medium) for footer labels and health-check headings. This provides a clear binary contrast between normal and emphasized text without introducing a third weight.
 
 Note: This phase uses only `text-xs` (12px) and `text-sm` (14px) from Tailwind defaults. No new font sizes needed.
 
@@ -107,10 +109,10 @@ Accent reserved for: Sync status dots only. The `cito-blue` accent is NOT used f
 - Animation: `animate-pulse` on "synchroniseren" status ONLY
 
 **Label:**
-- Font: `text-xs` (12px), `font-medium`, `text-gray-600`
+- Font: `text-xs` (12px), `font-medium` (500), `text-gray-600`
 
 **Timestamp (right-aligned):**
-- Font: `text-xs` (12px), `font-normal`, `text-gray-400`
+- Font: `text-xs` (12px), `font-normal` (400), `text-gray-400`
 - Format: `HH:mm` in `nl-NL` locale
 - Prefix: "Laatste sync: "
 - Visibility: Only shown when `lastSyncTime` is not null
@@ -128,8 +130,8 @@ Accent reserved for: Sync status dots only. The `cito-blue` accent is NOT used f
 **Each health item:**
 - Layout: `flex items-center gap-2`
 - Dot: `w-2 h-2 rounded-full` (same size as footer dot)
-- Label: `text-xs text-gray-500`
-- Value: `text-sm text-gray-700`
+- Label: `text-xs font-medium text-gray-500` (12px, weight 500)
+- Value: `text-sm text-gray-700` (14px, weight 400)
 
 **Three health items:**
 
