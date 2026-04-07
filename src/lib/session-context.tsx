@@ -126,16 +126,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       saveSessionToSupabase(loaded);
     };
 
-    // localStorage eerst (sync)
+    // localStorage eerst (sync, snelle UX)
     const local = loadLocal<DINSession>(`session_${id}`);
     if (local) {
       applySession(local);
-      return;
     }
 
-    // Fallback: Supabase
+    // Altijd Supabase checken voor nieuwere versie
     loadSessionFromSupabase(id).then((remote) => {
-      if (remote) {
+      if (!remote) return;
+
+      if (local) {
+        // Vergelijk updatedAt — alleen overschrijven als Supabase nieuwer is
+        const localTime = new Date(local.updatedAt).getTime();
+        const remoteTime = new Date(remote.updatedAt).getTime();
+        if (remoteTime > localTime) {
+          saveLocal(`session_${id}`, remote);
+          applySession(remote);
+          queueMicrotask(() =>
+            addToastRef.current("Sessie bijgewerkt vanuit Supabase", "info")
+          );
+        }
+      } else {
+        // Geen lokale data: herstel vanuit Supabase
         saveLocal(`session_${id}`, remote);
         applySession(remote);
         queueMicrotask(() =>
