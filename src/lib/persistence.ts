@@ -76,10 +76,17 @@ export async function withRetry<T>(
 
 // --- Supabase sessie-opslag ---
 
+// Debug log voor sync diagnostiek — zichtbaar in HealthCheck panel
+let _lastSyncDebug: string = "";
+export function getLastSyncDebug(): string { return _lastSyncDebug; }
+
 export async function saveSessionToSupabase(
   session: DINSession
 ): Promise<number | false> {
-  if (!supabase || !isSupabaseConfigured) return false;
+  if (!supabase || !isSupabaseConfigured) {
+    _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] Skip: Supabase niet geconfigureerd`;
+    return false;
+  }
 
   const client = supabase; // TS narrowing: non-null after guard
 
@@ -87,23 +94,22 @@ export async function saveSessionToSupabase(
     return await withRetry(
       async () => {
         // Lees remote versie
-        const { data: remote } = await client
+        const { data: remote, error: readError } = await client
           .from("din_sessions")
           .select("data")
           .eq("id", session.id)
           .single();
 
+        if (readError && readError.code !== "PGRST116") {
+          // PGRST116 = no rows found (OK for first save)
+          _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] Read fout: ${readError.message} (code: ${readError.code})`;
+          throw new Error(readError.message);
+        }
+
         const remoteData = remote?.data as DINSession | null;
         const remoteVersion = remoteData?.version ?? 0;
         const localVersion = session.version ?? 0;
-
-        // D-05: single-device single-writer model — lokaal is altijd de bron van waarheid
-        // Versieconflicten loggen maar NOOIT writes blokkeren
-        if (remoteVersion > localVersion) {
-          console.warn(
-            `[persistence] Remote versie (${remoteVersion}) > lokaal (${localVersion}) — lokaal wint (single-writer)`
-          );
-        }
+        const effortCount = session.efforts?.length ?? 0;
 
         const nextVersion = Math.max(remoteVersion, localVersion) + 1;
 
@@ -120,22 +126,25 @@ export async function saveSessionToSupabase(
           );
 
         if (error) {
+          _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] Write fout: ${error.message} (code: ${error.code})`;
           throw new Error(error.message);
         }
 
-        // Sync ALLEEN het versienummer in localStorage — nooit de hele sessie
-        // overschrijven, want de gebruiker kan intussen nieuwe edits hebben gemaakt
+        // Sync ALLEEN het versienummer in localStorage
         const current = loadLocal<DINSession>(`session_${session.id}`);
         if (current) {
           current.version = nextVersion;
           saveLocal(`session_${session.id}`, current);
         }
 
+        _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] OK v${nextVersion} | ${effortCount} inspanningen | remote was v${remoteVersion}`;
         return nextVersion;
       },
       { maxRetries: 3, label: "saveSession" }
     );
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] MISLUKT: ${msg}`;
     console.error("[persistence] Supabase sessie-opslag mislukt na retries:", e);
     return false;
   }

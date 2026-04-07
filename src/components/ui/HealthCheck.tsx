@@ -1,17 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkSupabaseHealth } from "@/lib/persistence";
+import { checkSupabaseHealth, getLastSyncDebug } from "@/lib/persistence";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useSyncStatus } from "@/lib/sync-status-context";
 
 export function HealthCheck() {
-  const { lastSyncTime } = useSyncStatus();
+  const { lastSyncTime, status } = useSyncStatus();
   const [health, setHealth] = useState<{ reachable: boolean; sessionCount: number } | null>(null);
+  const [debugLog, setDebugLog] = useState("");
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     checkSupabaseHealth().then(setHealth);
+    // Poll debug log elke 2 seconden
+    const interval = setInterval(() => {
+      setDebugLog(getLastSyncDebug());
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Determine dot color for reachability
@@ -53,7 +59,25 @@ export function HealthCheck() {
               : "Nooit"}
           </span>
         </div>
+
+        {/* Sync status */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500">Status</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded ${
+            status === "synced" ? "bg-green-100 text-green-700" :
+            status === "syncing" ? "bg-orange-100 text-orange-700" :
+            status === "error" ? "bg-red-100 text-red-700" :
+            "bg-gray-100 text-gray-500"
+          }`}>{status}</span>
+        </div>
       </div>
+
+      {/* Debug log */}
+      {debugLog && (
+        <div className="mt-2 px-2 py-1 bg-gray-50 border border-gray-100 rounded text-[10px] font-mono text-gray-600">
+          {debugLog}
+        </div>
+      )}
     </div>
   );
 }
