@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { loadLocal, saveLocal, removeLocal, saveSessionToSupabase, deleteSessionFromSupabase, loadSessionListFromSupabase } from "@/lib/persistence";
+import { loadLocal, saveLocal, removeLocal, saveSessionToSupabase, deleteSessionFromSupabase, loadSessionListFromSupabase, addPendingSave } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
 import { createDemoSession } from "@/lib/demo-data";
 
@@ -83,16 +83,26 @@ export default function Home() {
       completedGoals: [],
     };
     saveLocal(`session_${id}`, session);
-    saveSessionToSupabase(session);
+    // D-06: sync new session to Supabase for backup/recovery
+    saveSessionToSupabase(session).then((ok) => {
+      if (!ok) addPendingSave(session);
+    }).catch(() => {
+      addPendingSave(session);
+    });
     const list = loadLocal<string[]>("session_list") || [];
     list.push(id);
     saveLocal("session_list", list);
     router.push(`/sessies/${id}`);
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     removeLocal(`session_${id}`);
-    deleteSessionFromSupabase(id);
+    // D-06: ensure delete is synced to Supabase
+    try {
+      await deleteSessionFromSupabase(id);
+    } catch (e) {
+      console.error("[page] Supabase delete mislukt:", e);
+    }
     const list = (loadLocal<string[]>("session_list") || []).filter(
       (sid) => sid !== id
     );
@@ -107,7 +117,12 @@ export default function Home() {
   function handleLoadDemo() {
     const demo = createDemoSession();
     saveLocal(`session_${demo.id}`, demo);
-    saveSessionToSupabase(demo);
+    // D-06: sync demo session to Supabase
+    saveSessionToSupabase(demo).then((ok) => {
+      if (!ok) addPendingSave(demo);
+    }).catch(() => {
+      addPendingSave(demo);
+    });
     const list = loadLocal<string[]>("session_list") || [];
     list.push(demo.id);
     saveLocal("session_list", list);

@@ -11,7 +11,8 @@ import {
 } from "react";
 import type { DINSession, AppStep, SectorplanAnalyseResult } from "./types";
 import { APP_STEPS } from "./types";
-import { loadLocal, saveLocal, saveSessionToSupabase, loadSessionFromSupabase } from "./persistence";
+import { loadLocal, saveLocal, saveSessionToSupabase, loadSessionFromSupabase, addPendingSave } from "./persistence";
+import { useSyncStatus } from "./sync-status-context";
 import { useToast } from "@/components/ui/Toast";
 import { AISectorplanAnalyseSchema } from "@/lib/schemas";
 
@@ -85,6 +86,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     addToastRef.current = addToast;
   }, [addToast]);
 
+  // Sync status ref to avoid stale closures in setSession (same pattern as addToastRef)
+  const { setSyncing, setSynced, setError } = useSyncStatus();
+  const syncStatusRef = useRef({ setSyncing: () => {}, setSynced: () => {}, setError: () => {} });
+  useEffect(() => {
+    syncStatusRef.current = { setSyncing, setSynced, setError };
+  }, [setSyncing, setSynced, setError]);
+
+  // Ref to capture latest session for async Supabase save outside setSession callback
+  const latestSessionRef = useRef<DINSession | null>(null);
+
   const setCurrentStep = useCallback((step: AppStep) => {
     setCurrentStepState(step);
     setSession((prev) => {
@@ -96,8 +107,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date().toISOString(),
       };
       saveLocal(`session_${prev.id}`, updated);
-      saveSessionToSupabase(updated);
+      latestSessionRef.current = updated;
       return updated;
+    });
+    // Async Supabase save OUTSIDE setSession callback (per Pitfall 6)
+    queueMicrotask(async () => {
+      const toSave = latestSessionRef.current;
+      if (!toSave) return;
+      syncStatusRef.current.setSyncing();
+      try {
+        const success = await saveSessionToSupabase(toSave);
+        if (success) {
+          syncStatusRef.current.setSynced();
+        } else {
+          addPendingSave(toSave);
+          syncStatusRef.current.setError();
+        }
+      } catch {
+        addPendingSave(toSave);
+        syncStatusRef.current.setError();
+      }
     });
   }, []);
 
@@ -122,8 +151,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(loaded);
       const step = APP_STEPS[loaded.currentStep]?.key || "import";
       setCurrentStepState(step);
-      // Sync naar Supabase (async, mag falen)
-      saveSessionToSupabase(loaded);
+      // Sync naar Supabase met status tracking (D-01, D-03)
+      syncStatusRef.current.setSyncing();
+      saveSessionToSupabase(loaded).then((ok) => {
+        if (ok) syncStatusRef.current.setSynced();
+        else {
+          addPendingSave(loaded);
+          syncStatusRef.current.setError();
+        }
+      }).catch(() => {
+        addPendingSave(loaded);
+        syncStatusRef.current.setError();
+      });
     };
 
     // localStorage eerst (sync, snelle UX)
@@ -182,7 +221,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
     setSession(newSession);
     saveLocal(`session_${newSession.id}`, newSession);
-    saveSessionToSupabase(newSession);
+    // Sync naar Supabase met status tracking (D-01, D-03)
+    syncStatusRef.current.setSyncing();
+    saveSessionToSupabase(newSession).then((ok) => {
+      if (ok) syncStatusRef.current.setSynced();
+      else {
+        addPendingSave(newSession);
+        syncStatusRef.current.setError();
+      }
+    }).catch(() => {
+      addPendingSave(newSession);
+      syncStatusRef.current.setError();
+    });
 
     // Sessie-lijst bijwerken
     const list = loadLocal<string[]>("session_list") || [];
@@ -213,9 +263,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } else {
           queueMicrotask(() => setLastSaved(new Date()));
         }
-        // Async naar Supabase (mag falen, localStorage is al opgeslagen)
-        saveSessionToSupabase(updated);
+        latestSessionRef.current = updated;
         return updated;
+      });
+      // Async Supabase save OUTSIDE setSession callback (per Pitfall 6)
+      queueMicrotask(async () => {
+        const toSave = latestSessionRef.current;
+        if (!toSave) return;
+        syncStatusRef.current.setSyncing();
+        try {
+          const success = await saveSessionToSupabase(toSave);
+          if (success) {
+            syncStatusRef.current.setSynced();
+          } else {
+            // Save failed after all retries — add to persistent pending queue (per D-03)
+            addPendingSave(toSave);
+            syncStatusRef.current.setError();
+          }
+        } catch {
+          // Save threw after all retries — add to persistent pending queue (per D-03)
+          addPendingSave(toSave);
+          syncStatusRef.current.setError();
+          addToastRef.current("Synchronisatie mislukt na 3 pogingen. Wijzigingen zijn lokaal opgeslagen.", "error");
+        }
       });
     },
     []
