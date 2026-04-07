@@ -55,7 +55,7 @@ function SessionFlow() {
   const currentStepIndex = APP_STEPS.findIndex((s) => s.key === currentStep);
 
   return (
-    <div className="min-h-screen bg-cito-bg">
+    <div className="min-h-screen bg-cito-bg pb-12">
       <header className="bg-cito-blue text-white px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>

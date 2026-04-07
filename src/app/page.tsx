@@ -124,7 +124,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen bg-cito-bg">
+    <main className="min-h-screen bg-cito-bg pb-12">
       <header className="bg-cito-blue text-white px-6 py-6">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold">Doelen-Inspanningennetwerk</h1>
