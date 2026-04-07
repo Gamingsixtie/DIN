@@ -33,6 +33,17 @@ export default function Home() {
       const localIds = new Set(list);
       const missing = remoteSessions.filter((r) => !localIds.has(r.id));
       if (missing.length > 0) {
+        // Voeg missende sessie-IDs toe aan localStorage session_list
+        const updatedList = loadLocal<string[]>("session_list") || [];
+        const updatedSet = new Set(updatedList);
+        for (const m of missing) {
+          if (!updatedSet.has(m.id)) {
+            updatedList.push(m.id);
+            updatedSet.add(m.id);
+          }
+        }
+        saveLocal("session_list", updatedList);
+
         setSessions((prev) => {
           const existingIds = new Set(prev.map((s) => s.id));
           const toAdd = missing
