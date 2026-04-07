@@ -169,24 +169,30 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Zod Schema Validatie | 0/3 | Planning complete | - |
-| 2. State Management & Persistence | 0/2 | Planning complete | - |
-| 3. Programmaboek Context Pipeline | 0/2 | Planning complete | - |
-| 4. AI Output Kwaliteit | 0/3 | Gap closure planned | - |
-| 5. Sectorwerk Doorstroming | 2/2 | Executing | - |
-| 6. Cyclisch Doel-voor-Doel Werken | 1/3 | In Progress|  |
-| 7. Dutch Tokenizer & Similarity | 1/1 | Complete   | 2026-04-02 |
-| 8. Cross-Analyse Semantische Matching | 2/2 | Complete   | 2026-04-03 |
+| 1. Zod Schema Validatie | 3/3 | Complete | - |
+| 2. State Management & Persistence | 2/2 | Complete | - |
+| 3. Programmaboek Context Pipeline | 2/2 | Complete | - |
+| 4. AI Output Kwaliteit | 3/3 | Complete | - |
+| 5. Sectorwerk Doorstroming | 2/2 | Complete | - |
+| 6. Cyclisch Doel-voor-Doel Werken | 3/3 | Complete | - |
+| 7. Dutch Tokenizer & Similarity | 1/1 | Complete | 2026-04-02 |
+| 8. Cross-Analyse Semantische Matching | 2/2 | Complete | 2026-04-03 |
 | 9. Wizard Cleanup & Export Voorbereiding | 0/2 | Planning complete | - |
-| 10. Eindproducten | 3/3 | Complete    | 2026-04-04 |
+| 10. Eindproducten | 3/3 | Complete | 2026-04-04 |
+| 11. Cross-analyse herontwerp | 4/4 | Complete | - |
+| 12. Lopende projecten in DIN-netwerk | 3/3 | Complete | - |
+| 13. Stap 5 prioriteitsview | 4/4 | Complete | - |
+| 14. Projecten promoveren tot inspanningen | 2/3 | In Progress | - |
+| 15. Lopende projecten uit cross-analyse | 0/0 | Not started | - |
+| 16. Supabase dual persistence | 0/3 | Planning complete | - |
 
 ### Phase 11: Cross-analyse herontwerp: stapsgewijs traject met consolidatie
 
-**Goal:** Herstructureer de CrossAnalyseStep van 9 losse secties naar een helder stapsgewijs traject zodat stakeholders in één oogopslag zien hoe de drie sectoren samenhangen. Flow: (1) Sectoroverloop op baten-niveau (hoogover), (2) Gedeelde vermogens cross-sectoraal, (3) Inspanningen-overlap, (4) Consolidatie-actie met samenvoegen-knop die logische cross-sector vermogens genereert, (5) Per-sector vertaling met eigen nuance/saus per sector.
+**Goal:** Herstructureer de CrossAnalyseStep van 9 losse secties naar een helder stapsgewijs traject zodat stakeholders in een oogopslag zien hoe de drie sectoren samenhangen. Flow: (1) Sectoroverloop op baten-niveau (hoogover), (2) Gedeelde vermogens cross-sectoraal, (3) Inspanningen-overlap, (4) Consolidatie-actie met samenvoegen-knop die logische cross-sector vermogens genereert, (5) Per-sector vertaling met eigen nuance/saus per sector.
 **Requirements**: R-CROSS-01 (cross-analyse), R-CROSS-02 (synergie-matrix)
 **Depends on:** Phase 10
 **UI hint:** yes
@@ -221,13 +227,13 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — Wave 0 TDD scaffolding: 3 test files (schemas-stap5, stap5-focus-filter, stap5-restore-guard) — 23 tests verwacht RED
-- [x] 13-02-PLAN.md — Wave 1 foundation: vervang Stap5ResultSchema + CROSS_ANALYSE_STAP5_PROMPT, creëer src/lib/stap5-focus.ts pure helpers (getFocusGoal, computeFocusView, restoreStap5Result)
+- [x] 13-02-PLAN.md — Wave 1 foundation: vervang Stap5ResultSchema + CROSS_ANALYSE_STAP5_PROMPT, creeer src/lib/stap5-focus.ts pure helpers (getFocusGoal, computeFocusView, restoreStap5Result)
 - [x] 13-03-PLAN.md — Wave 2 API + component: cross-analyse route payload narrowing voor stap===5, StapSectorVertaling.tsx volledig herschrijven naar focusview per UI-SPEC
 - [x] 13-04-PLAN.md — Wave 3 wizard integratie + UAT: CrossAnalyseWizard.tsx restore guard + STEP_INFO[5] copy + CTA condition <= 5, human-verify checkpoint (10 checks)
 
 ### Phase 14: Lopende projecten promoveren tot volwaardige inspanningen in DIN-keten met splitsing en bevindingen-afleiding
 
-**Goal:** Bestaande lopende projecten (Phase 12) kunnen per stuk gepromoveerd worden tot 1-4 volwaardige DIN-inspanningen via één AI-aanroep die de volledige DIN-positionering doet (baat-match, vermogen-match, effort-splitsing, bevindingen-afleiding) in een inline review-scherm. Gepromoveerde projecten verschuiven van de parallelle projectCapabilityMap naar de standaard capabilityEffortMap DIN-keten; originele projecten blijven als audit-trail zichtbaar via een toggle met terugdraai-mogelijkheid.
+**Goal:** Bestaande lopende projecten (Phase 12) kunnen per stuk gepromoveerd worden tot 1-4 volwaardige DIN-inspanningen via een AI-aanroep die de volledige DIN-positionering doet (baat-match, vermogen-match, effort-splitsing, bevindingen-afleiding) in een inline review-scherm. Gepromoveerde projecten verschuiven van de parallelle projectCapabilityMap naar de standaard capabilityEffortMap DIN-keten; originele projecten blijven als audit-trail zichtbaar via een toggle met terugdraai-mogelijkheid.
 **Requirements**: D-01..D-14 (CONTEXT.md locked decisions — no formal R-ID; added post-v1-roadmap as Phase 12 extension)
 **Depends on:** Phase 13
 **UI hint:** yes
@@ -237,3 +243,31 @@ Plans:
 - [x] 14-01-PLAN.md — Schemas (ExternalProject/DINEffort/ProjectPromotieResult) + pure mutation helpers (promoteProjectToEfforts/undoProjectPromotion) + 31 unit tests
 - [x] 14-02-PLAN.md — AI pipeline: PROJECT_PROMOTIE_PROMPT + promoteExternalProject() + POST /api/promote-project + mocked tests (Pitfall 2 safeguard)
 - [ ] 14-03-PLAN.md — UI: ProjectPromotiePanel review screen + ExterneProjectenPanel integration + DINMappingStep filter fix + human verify
+
+### Phase 15: Lopende projecten verwijderen uit cross-analyse
+
+**Goal:** Lopende projecten worden al in stap 3 (DIN-Mapping) opgenomen in het DIN-netwerk via AI-koppeling. In de cross-analyse (stap 4) hoeven ze daarom niet meer apart meegenomen te worden. Verwijder alle referenties naar externe/lopende projecten uit de cross-analyse flow: API-route, AI-prompts, schemas en UI-componenten.
+**Requirements**: Vereenvoudiging cross-analyse flow
+**Depends on:** Phase 14
+**UI hint:** yes
+**Plans:** 0 plans
+
+**Scope:**
+1. **API route** (`src/app/api/cross-analyse/route.ts`): externalProjects niet meer meesturen naar AI
+2. **Prompts** (`src/lib/prompts.ts`): Stap 3 prompt + SECTOR_INTEGRATIE_PROMPT + VERRIJKT_SECTORPLAN_PROMPT — verwijzingen naar lopende/externe projecten verwijderen
+3. **Schemas** (`src/lib/schemas.ts`): CrossAnalyseExternItemSchema, ProjectMatchItemSchema, externeProjecten/projectMatching uit cross-analyse schemas verwijderen
+4. **UI** (`src/components/cross-analyse/`): CrossAnalyseWizard externalProjects payload verwijderen, StapInspanningenOverlap ProjectMatchingDisplay verwijderen
+5. **Tests**: Cross-analyse tests updaten
+
+### Phase 16: Supabase dual persistence — stabiliteit, sync en verificatie
+
+**Goal:** Elke sessiewijziging wordt gegarandeerd naar Supabase geschreven met retry bij fouten, de gebruiker ziet sync-status in een footer-badge, en de integriteit tussen localStorage en Supabase is verifieerbaar via een health-check op de homepage.
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13
+**Depends on:** Phase 15
+**UI hint:** yes
+**Plans:** 3 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Supabase graceful degradation + persistence refactor (retry, version counter, cleanup) + unit tests
+- [ ] 16-02-PLAN.md — SyncStatusContext + SyncStatusFooter + ClientProviders wiring + session-context sync integration
+- [ ] 16-03-PLAN.md — HealthCheck homepage component + end-to-end human verify checkpoint
