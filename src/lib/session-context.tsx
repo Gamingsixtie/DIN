@@ -116,8 +116,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!toSave) return;
       syncStatusRef.current.setSyncing();
       try {
-        const success = await saveSessionToSupabase(toSave);
-        if (success) {
+        const result = await saveSessionToSupabase(toSave);
+        if (result !== false) {
           syncStatusRef.current.setSynced();
         } else {
           addPendingSave(toSave);
@@ -153,8 +153,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setCurrentStepState(step);
       // Sync naar Supabase met status tracking (D-01, D-03)
       syncStatusRef.current.setSyncing();
-      saveSessionToSupabase(loaded).then((ok) => {
-        if (ok) syncStatusRef.current.setSynced();
+      saveSessionToSupabase(loaded).then((result) => {
+        if (result !== false) syncStatusRef.current.setSynced();
         else {
           addPendingSave(loaded);
           syncStatusRef.current.setError();
@@ -223,8 +223,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     saveLocal(`session_${newSession.id}`, newSession);
     // Sync naar Supabase met status tracking (D-01, D-03)
     syncStatusRef.current.setSyncing();
-    saveSessionToSupabase(newSession).then((ok) => {
-      if (ok) syncStatusRef.current.setSynced();
+    saveSessionToSupabase(newSession).then((result) => {
+      if (result !== false) syncStatusRef.current.setSynced();
       else {
         addPendingSave(newSession);
         syncStatusRef.current.setError();
@@ -272,9 +272,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (!toSave) return;
         syncStatusRef.current.setSyncing();
         try {
-          const success = await saveSessionToSupabase(toSave);
-          if (success) {
+          const result = await saveSessionToSupabase(toSave);
+          if (result !== false) {
             syncStatusRef.current.setSynced();
+            // Sync versie in React state zodat volgende writes niet geblokkeerd worden
+            setSession((prev) => prev && prev.version !== result ? { ...prev, version: result } : prev);
           } else {
             // Save failed after all retries — add to persistent pending queue (per D-03)
             addPendingSave(toSave);

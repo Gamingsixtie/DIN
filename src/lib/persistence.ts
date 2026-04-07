@@ -78,7 +78,7 @@ export async function withRetry<T>(
 
 export async function saveSessionToSupabase(
   session: DINSession
-): Promise<boolean> {
+): Promise<number | false> {
   if (!supabase || !isSupabaseConfigured) return false;
 
   const client = supabase; // TS narrowing: non-null after guard
@@ -137,7 +137,10 @@ export async function saveSessionToSupabase(
           throw new Error(error.message);
         }
 
-        return true;
+        // Sync lokale versie zodat volgende writes niet geblokkeerd worden
+        saveLocal(`session_${session.id}`, { ...session, version: nextVersion });
+
+        return nextVersion;
       },
       { maxRetries: 3, label: "saveSession" }
     );
@@ -263,8 +266,8 @@ export async function drainPendingSaves(): Promise<number> {
 
     let synced = 0;
     for (const id of ids) {
-      const success = await saveSessionToSupabase(existing[id]);
-      if (success) {
+      const result = await saveSessionToSupabase(existing[id]);
+      if (result !== false) {
         delete existing[id];
         synced++;
       }

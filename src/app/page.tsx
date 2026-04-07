@@ -85,8 +85,8 @@ export default function Home() {
     };
     saveLocal(`session_${id}`, session);
     // D-06: sync new session to Supabase for backup/recovery
-    saveSessionToSupabase(session).then((ok) => {
-      if (!ok) addPendingSave(session);
+    saveSessionToSupabase(session).then((result) => {
+      if (result === false) addPendingSave(session);
     }).catch(() => {
       addPendingSave(session);
     });
@@ -119,8 +119,8 @@ export default function Home() {
     const demo = createDemoSession();
     saveLocal(`session_${demo.id}`, demo);
     // D-06: sync demo session to Supabase
-    saveSessionToSupabase(demo).then((ok) => {
-      if (!ok) addPendingSave(demo);
+    saveSessionToSupabase(demo).then((result) => {
+      if (result === false) addPendingSave(demo);
     }).catch(() => {
       addPendingSave(demo);
     });
