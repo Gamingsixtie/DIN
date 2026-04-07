@@ -498,6 +498,7 @@ export const DINSessionSchema = z.object({
   name: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  version: z.number().optional().default(1),
   currentStep: z.number(),
   vision: ProgrammeVisionSchema.optional(),
   goals: z.array(ProgrammeGoalSchema),
@@ -529,8 +530,8 @@ export const DINSessionSchema = z.object({
 // ============================================================
 
 export const AIBenefitSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  title: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   profiel: z.object({
     bateneigenaar: z.string().optional().default(""),
     indicator: z.string().optional().default(""),
@@ -543,8 +544,8 @@ export const AIBenefitSchema = z.object({
 });
 
 export const AICapabilitySchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  title: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   currentLevel: z.number().optional(),
   targetLevel: z.number().optional(),
   profiel: z
@@ -557,8 +558,8 @@ export const AICapabilitySchema = z.object({
 });
 
 export const AIEffortSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  title: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   domain: FlexEffortDomainSchema,
   quarter: z.string().optional(),
   dossier: z
@@ -798,8 +799,11 @@ export const ProjectPromotieResultSchema = z.object({
 // --- AI Domain Recommend ---
 
 export const AIDomainRecommendSchema = z.object({
-  domain: FlexEffortDomainSchema,
-  reasoning: z.string(),
+  aanbevolenDomein: FlexEffortDomainSchema,
+  vertrouwen: z.enum(["hoog", "gemiddeld"]).optional().default("gemiddeld"),
+  redenering: z.string().optional().default(""),
+  alternatiefDomein: FlexEffortDomainSchema.nullable().optional().default(null),
+  alternatiefRedenering: z.string().nullable().optional().default(null),
 });
 
 // ============================================================

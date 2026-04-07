@@ -68,6 +68,7 @@ export default function Home() {
       name: newName.trim(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      version: 1,
       currentStep: 0,
       goals: [],
       sectorPlans: [],

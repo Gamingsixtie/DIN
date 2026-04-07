@@ -16,6 +16,7 @@ export function createDemoSession(): DINSession {
     name: "Demo — Cito Programma 2026",
     createdAt: now,
     updatedAt: now,
+    version: 1,
     currentStep: 1,
     vision: {
       id: g(),

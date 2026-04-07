@@ -164,6 +164,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      version: 1,
       currentStep: 0,
       goals: [],
       sectorPlans: [],
