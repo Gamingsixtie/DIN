@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { loadLocal, saveLocal, removeLocal, saveSessionToSupabase, deleteSessionFromSupabase, loadSessionListFromSupabase, addPendingSave } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
 import { createDemoSession } from "@/lib/demo-data";
+import { HealthCheck } from "@/components/ui/HealthCheck";
 
 export default function Home() {
   const router = useRouter();
@@ -289,6 +290,9 @@ export default function Home() {
             ))
           )}
         </div>
+
+        {/* Verbindingsstatus */}
+        <HealthCheck />
       </div>
     </main>
   );
