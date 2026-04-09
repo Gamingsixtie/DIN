@@ -162,18 +162,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       applySession(local);
     }
 
-    // Supabase: alleen gebruiken als BACKUP wanneer er geen lokale data is
-    // Single-writer model: localStorage is ALTIJD de bron van waarheid
-    if (!local) {
-      loadSessionFromSupabase(id).then((remote) => {
-        if (!remote) return;
+    // ALTIJD Supabase checken — als remote nieuwer is, overnemen.
+    // Dit maakt cross-device sync mogelijk: wijzigingen op device A
+    // worden zichtbaar op device B bij het openen van de sessie.
+    loadSessionFromSupabase(id).then((remote) => {
+      if (!remote) return;
+      const remoteVersion = remote.version ?? 0;
+      const localVersion = local?.version ?? 0;
+
+      if (!local) {
+        // Geen lokale data — herstel vanuit Supabase
         saveLocal(`session_${id}`, remote);
         applySession(remote);
         queueMicrotask(() =>
           addToastRef.current("Sessie hersteld vanuit Supabase", "success")
         );
-      });
-    }
+      } else if (remoteVersion > localVersion) {
+        // Remote is nieuwer — overnemen
+        saveLocal(`session_${id}`, remote);
+        applySession(remote);
+        queueMicrotask(() =>
+          addToastRef.current("Nieuwere versie geladen vanuit cloud", "info")
+        );
+      }
+    });
   }, []);
 
   const createSession = useCallback((name: string): DINSession => {
