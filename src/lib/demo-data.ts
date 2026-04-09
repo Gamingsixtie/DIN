@@ -1,249 +1,293 @@
-// Demo data voor DIN-app — gebaseerd op Cito context
+// Demo data voor DIN-app — snapshot van "Klant in Beeld" sessie (2026-04-09)
 import type { DINSession } from "./types";
 
 export function createDemoSession(): DINSession {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  // IDs
-  const goalIds = [g(), g(), g(), g(), g()];
-  const benefitIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
-  const capIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
-  const effortIds = [g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g(), g()];
+  // Vaste IDs zodat koppelingen consistent zijn
+  const goalIds = [
+    "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+    "183a8941-af14-4f6a-820b-5e0783843874",
+    "dcff16cb-cd64-4a90-8bfc-a86f984987c9",
+  ];
+  const benefitIds = [
+    "015ebffc-93b7-4ee5-a8ff-787c075fc948",
+    "3cf24b31-c739-495b-9c85-0d2bc3689c8a",
+    "343f6163-2ae4-43f6-8a04-1d6e54477a45",
+  ];
+  const capIds = [
+    "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
+    "cfdf5175-78ee-4836-a29f-7d53b2afe465",
+  ];
+  const effortIds = [
+    "3981af2f-4549-47d5-87c6-33d0c431aaee",
+    "84fe41e4-c181-4c10-96d7-6f4fff6e3f3b",
+    "88807a3a-98ef-4d57-b608-a1a931e2f56c",
+    "b656f046-edbf-400c-ac29-3af35a9df1c5",
+    "b1107cd6-9fb3-482e-855e-204fe1f896c4",
+    "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
+  ];
 
   return {
     id,
-    name: "Demo — Cito Programma 2026",
+    name: "Demo — Klant in Beeld",
     createdAt: now,
     updatedAt: now,
     version: 1,
-    currentStep: 1,
+    currentStep: 2,
     vision: {
-      id: g(),
-      uitgebreid:
-        "Cito transformeert naar een outside-in organisatie die vanuit klantbehoeften werkt. We combineren onze toetsexpertise met data-gedreven inzichten om scholen, docenten en leerlingen beter te ondersteunen bij leren en ontwikkeling. We bouwen aan een organisatie die wendbaar, klantgericht en innovatief is.",
-      beknopt:
-        "Cito wordt een outside-in organisatie die vanuit klantbehoeften toetsexpertise en data-inzichten combineert om onderwijs beter te maken.",
+      id: crypto.randomUUID(),
+      beknopt: "Met het programma Klant in Beeld maakt Cito BV de beweging van reactief leverancier naar proactieve strategische partner, waarbij een outside-in perspectief \u2013 wat klanten werkelijk nodig hebben \u2013 leidend is voor denken en handelen. Door mens, proces, systeem en cultuur structureel met elkaar te verbinden, bouwt Cito BV samen met klanten aan echte oplossingen en duurzame relaties.",
+      uitgebreid: "Het programma Klant in Beeld stuurt de organisatiebrede transformatie van Cito BV: van productgerichte leverancier naar proactieve strategische partner. Het programma werkt langs vier domeinen \u2013 Mens, Proces, Systeem & Data en Cultuur \u2013 en geldt voor alle klantgroepen: van basisscholen en middelbare scholen tot mbo-instellingen, bedrijven, overheidsorganisaties en internationale opdrachtgevers. Klant in Beeld is geen project, maar een programma dat outside-in werken structureel verankert.\n\nCito BV is strategisch partner die proactief cocre\u00ebert met klanten om hun werkelijke behoeftes te begrijpen en daar gerichte waarde aan toe te voegen, waarbij klanten de regie behouden over hun processen en beslissingen. Door een geharmoniseerde aanpak met data-gedreven prioritering en branded customer journeys cre\u00ebren we een onderscheidende merkervaring die moeilijk te kopi\u00ebren is. We bedienen niet alleen individuele klanten maar begrijpen bredere ecosystemen en ontwikkelen sectoroverstijgende proposities die echte impact maken.\n\nCito BV maakt de beweging van reactief naar proactief handelen door systematisch klantinzichten om te zetten in concrete verbeteracties en samen met klanten te werken aan productontwikkeling via co-creatie. Tegelijkertijd maken we bewuste keuzes over waar we wel en niet de beste partner kunnen zijn, zodat we onze toegevoegde waarde maximaliseren. Deze outside-in benadering verankeren we structureel in onze dagelijkse werkwijze, zodat klantgericht denken en handelen onderdeel wordt van onze cultuur.",
     },
     goals: [
       {
         id: goalIds[0],
-        name: "Outside-in competentie verankeren",
-        description:
-          "Medewerkers denken en handelen vanuit de klant. Outside-in werken is de standaard in alle sectoren.",
+        name: "Integraal klantbeeld en outside-in werken als strategisch fundament",
         rank: 1,
+        description: "Cito BV bouwt \u00e9\u00e9n toegankelijk en betrouwbaar klantbeeld op dat voor alle medewerkers met klantcontact beschikbaar is, ingericht op de specifieke klantcontext per organisatieonderdeel. Door klantdata, interacties en inzichten samen te brengen in een integraal systeem \u2013 inclusief een volledig en consistent beeld van de klantfunnel en eenduidige afspraken over de doorrekening per funnelfase \u2013 wordt proactief handelen mogelijk en worden kansen eerder gesignaleerd. Dit is onlosmakelijk verbonden met outside-in werken: medewerkers stellen de juiste vragen, doorvragen naar de vraag achter de vraag, en begrijpen de praktijk van klanten werkelijk. Samen vormen dit het strategische fundament voor alle andere klantgerichte ambities binnen het programma.",
       },
       {
         id: goalIds[1],
-        name: "Digitale toetservaring verbeteren",
-        description:
-          "Een naadloze, gebruiksvriendelijke digitale toetservaring voor leerlingen en docenten in PO en VO.",
+        name: "Verbeteren \u00e9n innoveren op basis van klantinzichten en gebruiksdata",
         rank: 2,
+        description: "Cito BV betrekt klanten structureel bij zowel de doorlopende verbetering van het huidige aanbod als de ontwikkeling van nieuwe producten en diensten \u2013 via co-creatie, klantpanels, ambassadeursprogramma\u2019s en iteratieve samenwerking. Tegelijkertijd zet Cito beschikbare klant- en gebruiksdata actief in als grondstof voor besluitvorming. Kwalitatieve inzichten uit directe samenwerking met klanten en kwantitatieve inzichten uit gebruiksdata versterken elkaar en vormen samen het vertrekpunt voor productontwikkeling en optimalisatie van bestaand aanbod.",
       },
       {
         id: goalIds[2],
-        name: "Data-gedreven inzichten voor scholen",
-        description:
-          "Scholen krijgen bruikbare, data-gedreven inzichten die direct bijdragen aan onderwijsverbetering.",
+        name: "Structurele klantrelevantie en tevredenheid realiseren",
         rank: 3,
-      },
-      {
-        id: goalIds[3],
-        name: "Zakelijke markt uitbouwen",
-        description:
-          "Groei in de zakelijke markt door assessment- en certificeringsdiensten te professionaliseren.",
-        rank: 4,
-      },
-      {
-        id: goalIds[4],
-        name: "Organisatie wendbaarheid vergroten",
-        description:
-          "Cito wordt een wendbare organisatie die snel kan inspelen op veranderende klantbehoeften en marktdynamiek.",
-        rank: 5,
+        description: "Cito BV streeft ernaar structureel relevant te zijn voor de vraagstukken en uitdagingen van klanten, waarbij klanttevredenheid zichtbaar en meetbaar op een hoog niveau ligt. Dit betekent dat Cito haar belofte waarmaakt: de waarde die ze levert sluit aan bij wat klanten werkelijk nodig hebben. Een hoge waardeperceptie is daarmee een einddoel.",
       },
     ],
     scope: {
-      id: g(),
+      id: crypto.randomUUID(),
       inScope: [
-        "PO toetsportfolio (LOVS, Eindtoets)",
-        "VO toetsproducten en -diensten",
-        "Zakelijke markt (assessments, certificering)",
-        "Digitale platformen en tooling",
-        "Organisatieontwikkeling en cultuurverandering",
+        "Organisatiebrede transformatie langs vier domeinen: Mens, Proces, Systeem & Data en Cultuur",
+        "Alle klantgroepen: basisscholen, middelbare scholen, mbo-instellingen, bedrijven, overheidsorganisaties en internationale opdrachtgevers",
+        "Ideation en prioritering van kansrijke richtingen voor alle markten",
+        "Opbouwen van een integraal 360\u00b0-klantbeeld met betrouwbare klantdata",
+        "Ontwikkeling van medewerkers voor outside-in werken en co-creatie vaardigheden",
+        "Structurele verankering van klantgericht denken in cultuur en dagelijkse werkwijze",
+        "Overkoepelende grote thema\u2019s waarbij bedrijfsprocessen of applicaties aan ten grondslag liggen (mits MT-prioriteit)",
       ],
       outScope: [
-        "Staatsexamens (apart traject)",
-        "Internationale projecten fase 1",
-        "Fysieke kantoorinrichting",
+        "Het daadwerkelijk herontwerpen van de klantreis en het uitvoeren van verbeteridee\u00ebn (ligt binnen de sectoren met productmanagers, propositiemanagers of customer experience managers als lead)",
+        "De way of working tussen toetsdeskundigen en conceptontwikkelaars (is een apart traject)",
+        "De specifieke aanpak voor PO (Primair Onderwijs) en Professionals (elke sector bepaalt zijn eigen invulling binnen de kaders van Klant in Beeld)",
       ],
     },
-    sectorPlans: [
-      {
-        id: g(),
-        sectorName: "PO",
-        rawText:
-          "PO Sectorplan 2026\n\nOnze ambitie is om het primair onderwijs te voorzien van de beste toetsen en leerlingvolgsystemen. We richten ons op:\n\n1. Vernieuwing LOVS: het leerlingvolgsysteem wordt volledig digitaal, adaptief en gebruiksvriendelijk. Docenten krijgen real-time inzichten in leerlingprestaties.\n\n2. Eindtoets doorontwikkeling: verdere digitalisering en personalisatie van de eindtoets, met betere rapportages voor scholen en ouders.\n\n3. Klantrelatie versterken: structureel klantcontact via accountmanagement, klanttevredenheidsmetingen en co-creatie met scholen.\n\n4. Data & Analytics: scholen helpen met data-gedreven besluitvorming via dashboards en benchmarking.\n\n5. Professionalisering docenten: trainingen en workshops over toetsgebruik en data-interpretatie.",
-        uploadedAt: now,
-      },
-      {
-        id: g(),
-        sectorName: "VO",
-        rawText:
-          "VO Sectorplan 2026\n\nDe sector Voortgezet Onderwijs richt zich op het versterken van de positie in de VO-markt:\n\n1. Digitale toetsomgeving: een volledig digitale, schaalbare toetsomgeving die aansluit op de behoeften van VO-scholen.\n\n2. Formatief toetsen: uitbouwen van formatieve toetsmogelijkheden die docenten ondersteunen bij dagelijkse onderwijspraktijk.\n\n3. Samenwerking met scholen: intensivering van de samenwerking met VO-scholen via pilotprogramma's en feedbackloops.\n\n4. Leerlingrapportages: rijkere, meer inzichtelijke rapportages die leerlingen en ouders beter informeren.\n\n5. Innovatie: investeren in AI-gedreven toetsconstructie en automatische scoring.",
-        uploadedAt: now,
-      },
-      {
-        id: g(),
-        sectorName: "Zakelijk",
-        rawText:
-          "Zakelijk Sectorplan 2026\n\nDe zakelijke markt biedt groeikansen voor Cito:\n\n1. Assessment portfolio: professionalisering en uitbreiding van het assessment-aanbod voor bedrijven en overheden.\n\n2. Certificering: opzetten van een robuust certificeringsprogramma met digitale afname en verificatie.\n\n3. Klantacquisitie: actieve marktbewerking via account-based marketing en partnerships.\n\n4. Maatwerk: flexibele, op maat gemaakte toets- en assessmentoplossingen voor grote organisaties.\n\n5. Internationale expansie: verkennen van mogelijkheden in Vlaanderen en Duitsland voor assessment-diensten.",
-        uploadedAt: now,
-      },
-    ],
+    sectorPlans: [],
     pmcEntries: [],
-
-    // --- DIN Netwerk ---
     benefits: [
-      // Doel 1: Outside-in — PO, VO, Zakelijk
-      { id: benefitIds[0], goalId: goalIds[0], sectorId: "PO", description: "Hogere klanttevredenheid bij PO-scholen", profiel: { bateneigenaar: "Sectormanager PO", indicator: "NPS score PO", indicatorOwner: "BI-specialist PO", currentValue: "32", targetValue: "50" } },
-      { id: benefitIds[1], goalId: goalIds[0], sectorId: "VO", description: "Sterkere partnerbeleving bij VO-scholen", profiel: { bateneigenaar: "Sectormanager VO", indicator: "Partnerscore VO-enquête", indicatorOwner: "Marktonderzoeker VO", currentValue: "5.8", targetValue: "7.5" } },
-      { id: benefitIds[2], goalId: goalIds[0], sectorId: "Zakelijk", description: "Grotere klanttevredenheid zakelijke dienstverlening", profiel: { bateneigenaar: "Commercieel directeur", indicator: "Klanttevredenheid zakelijk", indicatorOwner: "Controller Zakelijk", currentValue: "6.5", targetValue: "8.0" } },
-
-      // Doel 2: Digitale toetservaring — PO & VO
-      { id: benefitIds[3], goalId: goalIds[1], sectorId: "PO", description: "Hogere betrouwbaarheid digitale LOVS-afname", profiel: { bateneigenaar: "Productmanager LOVS", indicator: "Succesvolle digitale afnames (%)", indicatorOwner: "Testcoördinator PO", currentValue: "72%", targetValue: "95%" } },
-      { id: benefitIds[4], goalId: goalIds[1], sectorId: "VO", description: "Breder digitaal toetsaanbod voor VO", profiel: { bateneigenaar: "Productmanager VO", indicator: "Digitaal aanbod (%)", indicatorOwner: "BI-specialist VO", currentValue: "40%", targetValue: "85%" } },
-
-      // Doel 3: Data-gedreven inzichten
-      { id: benefitIds[5], goalId: goalIds[2], sectorId: "PO", description: "Meer gebruik van data-inzichten door PO-scholen", profiel: { bateneigenaar: "Sectormanager PO", indicator: "Actieve dashboard-gebruikers", indicatorOwner: "Data-analist PO", currentValue: "120", targetValue: "500" } },
-      { id: benefitIds[6], goalId: goalIds[2], sectorId: "VO", description: "Beter real-time inzicht in leerlingvoortgang voor VO-docenten", profiel: { bateneigenaar: "Sectormanager VO", indicator: "Docenten met dashboard-toegang", indicatorOwner: "Data-analist VO", currentValue: "200", targetValue: "1500" } },
-
-      // Doel 4: Zakelijke markt
-      { id: benefitIds[7], goalId: goalIds[3], sectorId: "Zakelijk", description: "Hogere omzet zakelijke assessments", profiel: { bateneigenaar: "Commercieel directeur", indicator: "Omzet zakelijk (M€)", indicatorOwner: "Controller Zakelijk", currentValue: "4.2", targetValue: "5.5" } },
-      { id: benefitIds[8], goalId: goalIds[3], sectorId: "Zakelijk", description: "Meer certificeringsklanten", profiel: { bateneigenaar: "Sales manager Zakelijk", indicator: "Nieuwe certificeringsklanten", indicatorOwner: "CRM-beheerder", currentValue: "0", targetValue: "10" } },
-
-      // Doel 5: Wendbaarheid
-      { id: benefitIds[9], goalId: goalIds[4], sectorId: "PO", description: "Kortere time-to-market voor PO-producten", profiel: { bateneigenaar: "Productmanager PO", indicator: "Time-to-market (maanden)", indicatorOwner: "Projectcontroller PO", currentValue: "18", targetValue: "9" } },
-      { id: benefitIds[10], goalId: goalIds[4], sectorId: "VO", description: "Snellere doorlooptijd bij curriculumwijzigingen VO", profiel: { bateneigenaar: "Sectormanager VO", indicator: "Doorlooptijd aanpassing (weken)", indicatorOwner: "Projectcontroller VO", currentValue: "12", targetValue: "4" } },
-      { id: benefitIds[11], goalId: goalIds[4], sectorId: "Zakelijk", description: "Kortere levertijd zakelijke maatwerkproducten", profiel: { bateneigenaar: "Projectmanager Zakelijk", indicator: "Doorlooptijd maatwerk (weken)", indicatorOwner: "Controller Zakelijk", currentValue: "16", targetValue: "6" } },
+      {
+        id: benefitIds[0],
+        title: "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
+        goalId: goalIds[0],
+        sectorId: "Zakelijk",
+        description: "Opdrachtgevers en kandidaten ervaren Cito BV als een onderscheidende partner die hun context begrijpt en proactief inspeelt op hun behoeften; dit uit zich in hogere tevredenheid, sterkere relaties en betere commerci\u00eble prestaties zoals snellere conversie en meer omzet.",
+        profiel: {
+          indicator: "NPS bij opdrachtgevers en kandidaten, conversieratio van lead naar opdracht (%), en omzetgroei uit bestaande en nieuwe klanten (\u20ac)",
+          meetmethode: "Kwantitatieve data-analyse vanuit CRM (conversie en omzet), gecombineerd met periodieke NPS-enqu\u00eate onder opdrachtgevers en kandidaten",
+          targetValue: "NPS-stijging met minimaal 10 punten, conversieratio leads naar opdracht +15%, omzetgroei +10% binnen 2 jaar na programmainvoering",
+          currentValue: "Nulmeting vast te stellen bij programmastart (NPS, conversieratio en omzetcijfers op T0)",
+          bateneigenaar: "Commercieel Manager",
+          indicatorOwner: "Productmanager",
+          measurementMoment: "Halfjaarlijks, met kwartaalrapportage op conversie en omzet via dashboarding in CRM",
+        },
+      },
+      {
+        id: benefitIds[1],
+        title: "Intensiever partnership",
+        goalId: goalIds[0],
+        sectorId: "PO",
+        description: "Leerkrachten, schoolbesturen en andere schoolmedewerkers ervaren dat Leerling in Beeld producten en diensten beter aansluiten op hun dagelijkse onderwijspraktijk en behoeften; dit uit zich in diepere samenwerkingsgesprekken, hogere tevredenheid en groeiend gebruik van het LIB-aanbod.",
+        profiel: {
+          indicator: "NPS-score onder leerkrachten en schoolbesturen, gecombineerd met het aandeel klantgesprekken dat als samenwerkings- of beleidsgerichte dialoog wordt gekwalificeerd",
+          meetmethode: "Halfjaarlijkse NPS-enqu\u00eate onder leerkrachten en schoolbesturen; kwalitatieve gespreksregistratie via CRM met labeling op gesprekstype (transactioneel vs. verdiepend); aanvullend: jaarlijkse analyse van gebruikersaantallen, trainingsdeelname en meldingsvolume klantenservice",
+          targetValue: "NPS stijging van minimaal +10 punten t.o.v. nulmeting; \u2265 40% van klantgesprekken gekwalificeerd als samenwerkings- of beleidsgerichte dialoog binnen 2 jaar",
+          currentValue: "Nulmeting NPS: nog te bepalen (Q1 2025); aandeel verdiepende klantgesprekken: 0% formeel geregistreerd",
+          bateneigenaar: "Commercieel Manager",
+          indicatorOwner: "Sectormanager PO",
+          measurementMoment: "Halfjaarlijks (NPS en gespreksanalyse), jaarlijks (gebruikersaantallen en trainingsdata)",
+        },
+      },
+      {
+        id: benefitIds[2],
+        title: "Betere vroegere klantsignalering bij accountmanagers",
+        goalId: goalIds[0],
+        sectorId: "VO",
+        description: "Accountmanagers bij Cito BV signaleren kansen en risico\u2019s in klantrelaties eerder doordat zij beschikken over een integraal en actueel klantbeeld; klanten ervaren proactievere aandacht en meer passende oplossingen in hun specifieke onderwijscontext.",
+        profiel: {
+          indicator: "Percentage kansen dat proactief (v\u00f3\u00f3r klantinitiatief) wordt gesignaleerd als aandeel van het totaal aantal gerealiseerde verkoopkansen",
+          meetmethode: "Data-analyse vanuit CRM-systeem: vergelijking van moment van eerste registratie van een kans ten opzichte van moment van eerste klantinitiatief, aangevuld met kwartaalsteekproef onder accountmanagers (n=20)",
+          targetValue: "55% van de verkoopkansen proactief gesignaleerd (doelwaarde Q4 2026)",
+          currentValue: "15% van de verkoopkansen proactief gesignaleerd (nulmeting Q1 2025)",
+          bateneigenaar: "Directeur Commercie & Klantrelaties",
+          indicatorOwner: "CRM & Data Analist",
+          measurementMoment: "Elk kwartaal",
+        },
+      },
     ],
-
     capabilities: [
-      // PO
-      { id: capIds[0], sectorId: "PO", description: "Klantgericht werken is standaard werkwijze bij alle PO-medewerkers", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Hoofd PO-ontwikkeling", huidieSituatie: "Medewerkers werken voornamelijk product-gedreven; klantcontact is beperkt tot accountmanagers.", gewensteSituatie: "Elke PO-medewerker start vanuit klantbehoefte en heeft minimaal 2x per jaar direct klantcontact." } },
-      { id: capIds[1], sectorId: "PO", description: "PO-team kan adaptieve digitale toetsen ontwikkelen en beheren", relatedSectors: ["PO"], currentLevel: 1, targetLevel: 4, profiel: { eigenaar: "Productmanager LOVS", huidieSituatie: "Adaptief toetsen is in pilotfase; kennis zit bij 2 specialisten.", gewensteSituatie: "Het hele toetsontwikkelteam kan adaptieve items ontwikkelen en het systeem beheren." } },
-      { id: capIds[2], sectorId: "PO", description: "Data-analyse en dashboarding voor onderwijsinzichten", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 5, profiel: { eigenaar: "Hoofd Data & Analytics", huidieSituatie: "Basisdashboards beschikbaar maar weinig gebruikt; data-analyse ad hoc.", gewensteSituatie: "Scholen gebruiken standaard dashboards voor beleidsbeslissingen; real-time inzichten beschikbaar." } },
-
-      // VO
-      { id: capIds[3], sectorId: "VO", description: "VO-team beheerst volledig digitale toetsconstructie", relatedSectors: ["VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Hoofd VO-productontwikkeling", huidieSituatie: "Circa 40% van toetsen digitaal; rest nog papier-gebaseerd.", gewensteSituatie: "Alle VO-toetsen worden digitaal geconstrueerd, afgenomen en gescoord." } },
-      { id: capIds[4], sectorId: "VO", description: "Formatief toetsen is geïntegreerd in het productaanbod", relatedSectors: ["VO"], currentLevel: 1, targetLevel: 3, profiel: { eigenaar: "Productmanager VO", huidieSituatie: "Formatief toetsen is apart initiatief zonder integratie in bestaand aanbod.", gewensteSituatie: "Formatieve toetsmogelijkheden zijn standaard onderdeel van elk VO-product." } },
-      { id: capIds[5], sectorId: "VO", description: "Klantgericht werken is standaard werkwijze bij alle VO-medewerkers", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Sectormanager VO", huidieSituatie: "Klantcontact loopt via accountmanagement; medewerkers hebben weinig direct contact.", gewensteSituatie: "Alle VO-medewerkers begrijpen klantbehoeften en passen outside-in werken dagelijks toe." } },
-
-      // Zakelijk
-      { id: capIds[6], sectorId: "Zakelijk", description: "Assessment-expertise is gebundeld en schaalbaar ingericht", relatedSectors: ["Zakelijk"], currentLevel: 3, targetLevel: 5, profiel: { eigenaar: "Hoofd Assessment & Certificering", huidieSituatie: "Expertise verspreid over individuele consultants; hergebruik van materiaal is beperkt.", gewensteSituatie: "Gestandaardiseerde assessment-methodiek met schaalbare templates en kennisdeling." } },
-      { id: capIds[7], sectorId: "Zakelijk", description: "Digitale certificeringsinfrastructuur is operationeel", relatedSectors: ["Zakelijk"], currentLevel: 1, targetLevel: 4, profiel: { eigenaar: "IT-manager Zakelijk", huidieSituatie: "Certificering verloopt grotendeels handmatig met papieren processen.", gewensteSituatie: "Volledig digitaal certificeringsplatform met online afname, verificatie en rapportage." } },
-      { id: capIds[8], sectorId: "Zakelijk", description: "Commerciële vaardigheden en account-based selling zijn ontwikkeld", relatedSectors: ["Zakelijk"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Commercieel directeur", huidieSituatie: "Sales is reactief; geen structureel accountmanagement voor zakelijke klanten.", gewensteSituatie: "Proactief account-based sales met gestructureerde pijplijn en klantrelatiebeheer." } },
-
-      // Wendbaarheid — cross-sectoraal
-      { id: capIds[9], sectorId: "PO", description: "Agile productontwikkeling is standaard werkwijze in PO", relatedSectors: ["PO", "VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Productmanager PO", huidieSituatie: "Waterval-aanpak met lange doorlooptijden; releases 1-2x per jaar.", gewensteSituatie: "Iteratieve productontwikkeling in sprints met releases elke 6 weken." } },
-      { id: capIds[10], sectorId: "VO", description: "VO-organisatie kan snel reageren op curriculumwijzigingen en marktbehoeften", relatedSectors: ["VO"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Sectormanager VO", huidieSituatie: "Lange doorlooptijden bij aanpassingen; besluitvorming via meerdere lagen.", gewensteSituatie: "Korte beslislijnen en snelle aanpassing van producten bij curriculumwijzigingen." } },
-      { id: capIds[11], sectorId: "Zakelijk", description: "Zakelijke dienstverlening is flexibel en snel schaalbaar", relatedSectors: ["Zakelijk"], currentLevel: 2, targetLevel: 4, profiel: { eigenaar: "Projectmanager Zakelijk", huidieSituatie: "Maatwerkprojecten duren lang door gebrek aan standaardcomponenten.", gewensteSituatie: "Modulaire opzet waarmee maatwerkproducten snel worden samengesteld uit standaardcomponenten." } },
+      {
+        id: capIds[0],
+        title: "Klantgerichte commerci\u00eble slagkracht",
+        sectorId: "Zakelijk",
+        description: "Het vermogen om via eenduidige processen, betrouwbare CRM-data en commercieel vaardige medewerkers structureel klantgericht te werken richting opdrachtgevers en kandidaten; waarbij eigenaarschap, gerichte prioritering en een uniforme werkwijze zorgen voor hogere conversie en duurzame klantrelaties.",
+        currentLevel: 3,
+        targetLevel: 4,
+        relatedSectors: ["Zakelijk"],
+        profiel: {
+          eigenaar: "Sectormanager",
+          huidieSituatie: "Commerci\u00eble werkwijzen zijn deels aanwezig maar niet uniform: medewerkers werken wisselend met het CRM-systeem, prioritering van leads verloopt inconsistent en eigenaarschap voor de klantrelatie is onvoldoende verankerd in gedrag en cultuur.",
+          gewensteSituatie: "Medewerkers werken aantoonbaar eenduidig volgens gedeelde processen, prioriteren actief op de belangrijkste leads, voeren regie op betrouwbare CRM-data en nemen volwaardig eigenaarschap voor opdrachtgevers en kandidaten \u2013 resulterend in hogere NPS, betere conversieratio en aantoonbare omzetgroei.",
+        },
+      },
+      {
+        id: capIds[1],
+        title: "Strategisch klantpartnerschap PO",
+        sectorId: "PO",
+        description: "Het vermogen bestaat uit accountmanagers en sectormanagement (mensen) die op basis van kwalitatieve klantdata en productinformatie (data & systemen) gerichte samenwerkingsgesprekken voeren, ondersteund door een cultuur van lef, standvastigheid en actief ophalen van klantbehoeften (cultuur & processen).",
+        currentLevel: 2,
+        targetLevel: 3,
+        relatedSectors: ["PO"],
+        profiel: {
+          eigenaar: "Sectormanager PO",
+          huidieSituatie: "Medewerkers zijn vooral zendend in klantcontact en hebben onvoldoende grip op klant- en productdata om geloofwaardige, op maat gesneden gesprekken te voeren; bewustwording over het aanbod van het leerlingvolgsysteem is beperkt aanwezig.",
+          gewensteSituatie: "Medewerkers voeren proactief kwalitatieve dialogen met leerkrachten en schoolbesturen over beleid en samenwerking, daarbij ondersteund door betrouwbare klant- en productdata en een cultuur waarin men zichzelf durft neer te zetten en beloftes waarmaakt.",
+        },
+      },
     ],
-
     efforts: [
-      // PO — Mens
-      { id: effortIds[0], sectorId: "PO", description: "Training outside-in werken uitvoeren voor PO-team", domain: "mens", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 8, dossier: { eigenaar: "Sectormanager PO", inspanningsleider: "HR-adviseur PO", verwachtResultaat: "Alle PO-medewerkers beheersen outside-in gespreksmethodiek en passen het toe in dagelijks werk.", kostenraming: "€25.000 (±20%)", randvoorwaarden: "Extern trainingsbudget beschikbaar, management commitment voor deelname" } },
-      { id: effortIds[1], sectorId: "PO", description: "Opleiding adaptief toetsen verzorgen voor toetsontwikkelaars", domain: "mens", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 6, dossier: { eigenaar: "Productmanager LOVS", inspanningsleider: "Toetsexpert PO", verwachtResultaat: "Toetsontwikkelaars kunnen zelfstandig adaptieve items ontwikkelen en valideren.", kostenraming: "€40.000 (±25%)", randvoorwaarden: "Samenwerking met externe adaptief-toets experts, toegang tot testomgeving" } },
-
-      // PO — Processen
-      { id: effortIds[2], sectorId: "PO", description: "Klantfeedbackloop inrichten als kwartaalcyclus", domain: "processen", quarter: "Q1 2026", status: "in_uitvoering", dependencies: [], votes: 7, dossier: { eigenaar: "Sectormanager PO", inspanningsleider: "Accountmanager PO", verwachtResultaat: "Structureel klantfeedbackproces met kwartaalrapportages en actieplannen.", kostenraming: "€10.000 (±15%)", randvoorwaarden: "CRM-systeem beschikbaar, klantenpanel opgezet" } },
-
-      // PO — Data & Systemen
-      { id: effortIds[3], sectorId: "PO", description: "LOVS dashboard v2 ontwikkelen en uitrollen", domain: "data_systemen", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 9, dossier: { eigenaar: "Hoofd Data & Analytics", inspanningsleider: "Lead developer dashboards", verwachtResultaat: "Vernieuwd dashboard met real-time inzichten, bruikbaar voor schoolleiders en docenten.", kostenraming: "€120.000 (±30%)", randvoorwaarden: "API-koppeling met LOVS-backend, UX-onderzoek afgerond" } },
-
-      // PO — Cultuur
-      { id: effortIds[4], sectorId: "PO", description: "Klantdagen organiseren (2x per jaar)", domain: "cultuur", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 5, dossier: { eigenaar: "Sectormanager PO", inspanningsleider: "Communicatieadviseur PO", verwachtResultaat: "PO-medewerkers hebben direct contact met scholen en begrijpen klantbehoeften beter.", kostenraming: "€15.000 per jaar (±10%)", randvoorwaarden: "Locatie en catering geregeld, scholen bereid om deel te nemen" } },
-
-      // VO — Mens
-      { id: effortIds[5], sectorId: "VO", description: "Training digitale toetsconstructie geven aan VO-team", domain: "mens", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 7, dossier: { eigenaar: "Hoofd VO-productontwikkeling", inspanningsleider: "Toetsexpert VO", verwachtResultaat: "VO-team kan volledig digitaal toetsen construeren, afnemen en scoren.", kostenraming: "€35.000 (±20%)", randvoorwaarden: "Digitale toetsomgeving beschikbaar als trainingsplatform" } },
-
-      // VO — Processen
-      { id: effortIds[6], sectorId: "VO", description: "Pilotprogramma formatief toetsen opzetten met 10 scholen", domain: "processen", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 8, dossier: { eigenaar: "Productmanager VO", inspanningsleider: "Pilotcoördinator VO", verwachtResultaat: "Gevalideerd formatief toetsproduct met feedback van 10 pilotscholen.", kostenraming: "€50.000 (±25%)", randvoorwaarden: "Pilotscholen geworven, basisproduct formatief toetsen klaar" } },
-      { id: effortIds[7], sectorId: "VO", description: "Agile werkwijze invoeren voor VO-productontwikkeling", domain: "processen", quarter: "Q3 2026", status: "gepland", dependencies: [], votes: 6, dossier: { eigenaar: "Sectormanager VO", inspanningsleider: "Agile coach", verwachtResultaat: "VO-productontwikkeling werkt in sprints met iteratieve releases.", kostenraming: "€20.000 (±15%)", randvoorwaarden: "Agile coach beschikbaar, teamleden vrij van andere verplichtingen" } },
-
-      // VO — Data & Systemen
-      { id: effortIds[8], sectorId: "VO", description: "Digitaal toetsplatform voor VO bouwen", domain: "data_systemen", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 10, dossier: { eigenaar: "Hoofd VO-productontwikkeling", inspanningsleider: "Lead architect VO-platform", verwachtResultaat: "Schaalbaar digitaal toetsplatform operationeel voor VO met API-integraties.", kostenraming: "€250.000 (±35%)", randvoorwaarden: "Architectuurbesluit genomen, cloud-infrastructuur ingericht" } },
-      { id: effortIds[9], sectorId: "VO", description: "AI-scoring module piloten en evalueren", domain: "data_systemen", quarter: "Q4 2026", status: "gepland", dependencies: [effortIds[8]], votes: 4, dossier: { eigenaar: "Hoofd Data & Analytics", inspanningsleider: "AI-specialist", verwachtResultaat: "Werkende AI-scoring pilot met betrouwbaarheidsmetingen voor open vragen.", kostenraming: "€80.000 (±40%)", randvoorwaarden: "VO-toetsplatform operationeel, gelabelde trainingsdata beschikbaar" } },
-
-      // VO — Cultuur
-      { id: effortIds[10], sectorId: "VO", description: "Maandelijkse innovatiesprints organiseren", domain: "cultuur", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 3, dossier: { eigenaar: "Sectormanager VO", inspanningsleider: "Innovatiemanager VO", verwachtResultaat: "Structurele innovatiecultuur met maandelijkse sprints en minimaal 2 innovaties per kwartaal.", kostenraming: "€5.000 per sprint (±10%)", randvoorwaarden: "Tijd gealloceerd in teamplanningen, innovatiebudget beschikbaar" } },
-
-      // Zakelijk — Mens
-      { id: effortIds[11], sectorId: "Zakelijk", description: "Sales team uitbreiden met 2 account managers werven", domain: "mens", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 7, dossier: { eigenaar: "Commercieel directeur", inspanningsleider: "HR-manager", verwachtResultaat: "2 ervaren account managers operationeel voor zakelijke marktbewerking.", kostenraming: "€160.000 per jaar (±10%)", randvoorwaarden: "Budget goedgekeurd, functieprofiel opgesteld, wervingsbureau ingeschakeld" } },
-
-      // Zakelijk — Processen
-      { id: effortIds[12], sectorId: "Zakelijk", description: "Account-based marketing proces implementeren", domain: "processen", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 6, dossier: { eigenaar: "Commercieel directeur", inspanningsleider: "Marketing manager Zakelijk", verwachtResultaat: "Gestructureerd ABM-proces met target account list, campagne-templates en pijplijnrapportage.", kostenraming: "€30.000 (±20%)", randvoorwaarden: "CRM-systeem geconfigureerd voor ABM, target accounts geïdentificeerd" } },
-
-      // Zakelijk — Data & Systemen
-      { id: effortIds[13], sectorId: "Zakelijk", description: "Certificeringsplatform ontwikkelen en lanceren", domain: "data_systemen", quarter: "Q3 2026", status: "gepland", dependencies: [], votes: 8, dossier: { eigenaar: "IT-manager Zakelijk", inspanningsleider: "Lead developer certificering", verwachtResultaat: "Digitaal certificeringsplatform met online afname, automatische verificatie en rapportage.", kostenraming: "€180.000 (±30%)", randvoorwaarden: "Certificeringseisen gedefinieerd, beveiligingsaudit gepland" } },
-
-      // Zakelijk — Cultuur
-      { id: effortIds[14], sectorId: "Zakelijk", description: "Commerciële mindset workshops uitvoeren", domain: "cultuur", quarter: "Q1 2026", status: "gepland", dependencies: [], votes: 4, dossier: { eigenaar: "Commercieel directeur", inspanningsleider: "Externe coach commercie", verwachtResultaat: "Medewerkers denken commercieel en herkennen kansen in klantgesprekken.", kostenraming: "€18.000 (±15%)", randvoorwaarden: "Externe workshopleider gecontracteerd, agenda's medewerkers geblokt" } },
-      { id: effortIds[15], sectorId: "Zakelijk", description: "Partnerships met HR-adviesbureaus opbouwen en formaliseren", domain: "cultuur", quarter: "Q2 2026", status: "gepland", dependencies: [], votes: 5, dossier: { eigenaar: "Sales manager Zakelijk", inspanningsleider: "Partnermanager", verwachtResultaat: "Minimaal 3 formele partnerschappen met HR-adviesbureaus voor doorverwijzingen.", kostenraming: "€12.000 (±20%)", randvoorwaarden: "Partner-propositie uitgewerkt, juridisch kader voor samenwerkingsovereenkomsten" } },
+      {
+        id: effortIds[0],
+        title: "Verankeren van outside-in leiderschap als rolmodel gedrag",
+        sectorId: "PO",
+        domain: "cultuur",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Leidinggevenden binnen de PO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij cre\u00ebren bewust ruimte \u2014 weg uit de vergadercultuur en de waan van de dag \u2014 om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies (sessies, intervisie, gezamenlijke klantbezoeken) wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
+        dossier: {
+          eigenaar: "Sectormanager PO",
+          inspanningsleider: "Programmamanager / HR Business Partner PO",
+          verwachtResultaat: "Leidinggevenden en medewerkers voelen zich vrij en veilig om klantgericht gedrag te tonen en hierop aan te spreken, zichtbaar in een stijging van de NPS-score en een groter aandeel klantgesprekken dat als samenwerkingsgerichte dialoog wordt gekwalificeerd.",
+          kostenraming: "\u20ac 30.000 \u2013 \u20ac 60.000 (afhankelijk van aantal leiderschapssessies, externe begeleiding en intervisietraject); onzekerheidsmarge \u00b130%",
+          randvoorwaarden: "Commitment van sectormanager als zichtbaar sponsor en deelnemend rolmodel; minimale beschikbaarheid van leidinggevenden; afstemming met lopende inspanningen op systeem- en procesvlak.",
+        },
+      },
+      {
+        id: effortIds[1],
+        title: "Trainen medewerkers in klantgerichte gespreksvaardigheden PO",
+        sectorId: "PO",
+        domain: "mens",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Medewerkers met klantcontact in sector PO worden opgeleid en gecoacht in outside-in gespreksvaardigheden: het stellen van de vraag achter de vraag, het voeren van een sturend waardeverhaal vanuit het brede Cito-portfolio, en het ophalen van diepgaande klantinzichten.",
+        dossier: {
+          eigenaar: "Sectormanager PO",
+          inspanningsleider: "Nader te bepalen (bijv. L&D-lead of commercieel trainer)",
+          verwachtResultaat: "Medewerkers in sector PO voeren zelfverzekerd klantgesprekken vanuit een outside-in houding, waarbij zij proactief de klantbehoefte doorgronden.",
+          kostenraming: "Nader te bepalen; rekening houden met externe trainings- en coachingskosten (\u00b120%)",
+          randvoorwaarden: "Processen en klantfunnel zijn voldoende in kaart gebracht; businessfocus per klantsegment is bepaald.",
+        },
+      },
+      {
+        id: effortIds[2],
+        title: "Implementeren en inrichten van integraal CRM-klantdashboard",
+        sectorId: "Zakelijk",
+        domain: "data_systemen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Het bestaande CRM-systeem wordt volledig heringericht en correct ge\u00efmplementeerd zodat alle relevante klantdata eenduidig en volledig worden vastgelegd en ontsloten. Aanvullend wordt een integraal klantdashboard gebouwd dat voor alle medewerkers met klantcontact real-time inzicht biedt.",
+        dossier: {
+          eigenaar: "Commercieel Manager",
+          inspanningsleider: "CRM Projectleider / Functioneel Beheerder",
+          verwachtResultaat: "Medewerkers beschikken over een betrouwbaar, integraal klantbeeld in het CRM \u2014 inclusief productgebruik, klachtenhistorie, betaalgedrag en klantsegmentatie.",
+          kostenraming: "Nader te bepalen (afhankelijk van CRM-licenties en implementatiepartner); marge 20-30%",
+          randvoorwaarden: "Keuze en beschikbaarheid van CRM-platform is bevestigd; toegang tot bestaande klantdata is geregeld.",
+        },
+      },
+      {
+        id: effortIds[3],
+        title: "Verankeren van outside-in mindset en klantgericht eigenaarschap",
+        sectorId: "Zakelijk",
+        domain: "cultuur",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Via boegbeelden, rolmodellen en gerichte activering wordt een outside-in cultuur gestimuleerd waarbij medewerkers actief eigenaarschap tonen in klantgesprekken en de vraag achter de vraag leren stellen.",
+        dossier: {
+          eigenaar: "Sectormanager",
+          inspanningsleider: "Nader te bepalen (aanbevolen: teamleider commercie of HR-business partner)",
+          verwachtResultaat: "Medewerkers tonen aantoonbaar eigenaarschap in klantinteracties en handelen vanuit oprechte nieuwsgierigheid naar de klantbehoefte.",
+          kostenraming: "Nader te bepalen; indicatief lage tot middelgrote investering (\u00b130%)",
+          randvoorwaarden: "Commitment van sectormanager en teamleiders als actieve boegbeelden.",
+        },
+      },
+      {
+        id: effortIds[4],
+        title: "Werven en ontwikkelen van outside-in competenties bij medewerkers",
+        sectorId: "Zakelijk",
+        domain: "mens",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Medewerkers met klantcontact worden getraind en gecoacht op outside-in denken en werken. Parallel wordt bij nieuwe werving expliciet geselecteerd op outside-in mindset en commercieel eigenaarschap.",
+        dossier: {
+          eigenaar: "Sectormanager",
+          inspanningsleider: "HR Business Partner / L&D-verantwoordelijke",
+          verwachtResultaat: "Medewerkers beschikken aantoonbaar over de competenties om outside-in te opereren en fungeren als inspiratiebron voor collega\u2019s.",
+          kostenraming: "Nader te bepalen (PM) \u2014 inclusief onzekerheidsmarge voor externe trainers/coaches",
+          randvoorwaarden: "Gedragen competentieprofiel \u2018outside-in medewerker\u2019 beschikbaar als basis.",
+        },
+      },
+      {
+        id: effortIds[5],
+        title: "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed",
+        sectorId: "Zakelijk",
+        domain: "processen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Voor alle rollen met klantcontact worden eenduidige werkprocessen ingericht die vastleggen hoe, wanneer en door wie klantinformatie wordt geregistreerd \u2014 van lead tot lopende relatie.",
+        dossier: {
+          eigenaar: "Directeur",
+          inspanningsleider: "Programmamanager / Procesverantwoordelijke",
+          verwachtResultaat: "Alle medewerkers met klantcontact werken volgens een gestandaardiseerd klantinformatieproces; kennisborging is procesmatig geborgd en overdraagbaar.",
+          kostenraming: "\u20ac15.000\u2013\u20ac35.000 (\u00b130%)",
+          randvoorwaarden: "Besluitvorming over CRM-inrichting is afgerond of loopt parallel; directie stelt proceseigenaarschap formeel in.",
+        },
+      },
     ],
-
-    // Koppelingen
     goalBenefitMaps: [
       { goalId: goalIds[0], benefitId: benefitIds[0] },
       { goalId: goalIds[0], benefitId: benefitIds[1] },
       { goalId: goalIds[0], benefitId: benefitIds[2] },
-      { goalId: goalIds[1], benefitId: benefitIds[3] },
-      { goalId: goalIds[1], benefitId: benefitIds[4] },
-      { goalId: goalIds[2], benefitId: benefitIds[5] },
-      { goalId: goalIds[2], benefitId: benefitIds[6] },
-      { goalId: goalIds[3], benefitId: benefitIds[7] },
-      { goalId: goalIds[3], benefitId: benefitIds[8] },
-      { goalId: goalIds[4], benefitId: benefitIds[9] },
-      { goalId: goalIds[4], benefitId: benefitIds[10] },
-      { goalId: goalIds[4], benefitId: benefitIds[11] },
     ],
     benefitCapabilityMaps: [
       { benefitId: benefitIds[0], capabilityId: capIds[0] },
-      { benefitId: benefitIds[1], capabilityId: capIds[5] },
-      { benefitId: benefitIds[3], capabilityId: capIds[1] },
-      { benefitId: benefitIds[4], capabilityId: capIds[3] },
-      { benefitId: benefitIds[5], capabilityId: capIds[2] },
-      { benefitId: benefitIds[6], capabilityId: capIds[2] },
-      { benefitId: benefitIds[7], capabilityId: capIds[6] },
-      { benefitId: benefitIds[8], capabilityId: capIds[7] },
-      { benefitId: benefitIds[2], capabilityId: capIds[8] },
-      // Wendbaarheid — baten gekoppeld aan vermogens
-      { benefitId: benefitIds[9], capabilityId: capIds[9] },
-      { benefitId: benefitIds[10], capabilityId: capIds[10] },
-      { benefitId: benefitIds[11], capabilityId: capIds[11] },
+      { benefitId: benefitIds[1], capabilityId: capIds[1] },
     ],
     capabilityEffortMaps: [
-      { capabilityId: capIds[0], effortId: effortIds[0] },
-      { capabilityId: capIds[0], effortId: effortIds[4] },
+      { capabilityId: capIds[1], effortId: effortIds[0] },
       { capabilityId: capIds[1], effortId: effortIds[1] },
-      { capabilityId: capIds[2], effortId: effortIds[3] },
-      { capabilityId: capIds[3], effortId: effortIds[5] },
-      { capabilityId: capIds[3], effortId: effortIds[8] },
-      { capabilityId: capIds[4], effortId: effortIds[6] },
-      { capabilityId: capIds[5], effortId: effortIds[5] },
-      { capabilityId: capIds[6], effortId: effortIds[11] },
-      { capabilityId: capIds[7], effortId: effortIds[13] },
-      { capabilityId: capIds[8], effortId: effortIds[12] },
-      { capabilityId: capIds[8], effortId: effortIds[14] },
-      // Wendbaarheid — vermogens gekoppeld aan inspanningen
-      { capabilityId: capIds[9], effortId: effortIds[2] },   // Klantfeedbackloop → agile PO
-      { capabilityId: capIds[10], effortId: effortIds[7] },  // Agile werkwijze → wendbaarheid VO
-      { capabilityId: capIds[11], effortId: effortIds[12] },  // ABM proces → flexibiliteit Zakelijk
+      { capabilityId: capIds[0], effortId: effortIds[2] },
+      { capabilityId: capIds[0], effortId: effortIds[3] },
+      { capabilityId: capIds[0], effortId: effortIds[4] },
+      { capabilityId: capIds[0], effortId: effortIds[5] },
     ],
     projectCapabilityMaps: [],
     completedGoals: [],
   };
-}
-
-function g(): string {
-  return crypto.randomUUID();
 }
