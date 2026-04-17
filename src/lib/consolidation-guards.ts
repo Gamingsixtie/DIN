@@ -25,34 +25,74 @@ export interface DrieluikContext {
 
 /**
  * D-01: Valideert dat een voorgestelde titel sectoroverstijgend is
- * (geen PO/VO/Zakelijk substrings) en minstens MIN_TITLE_LENGTH lang.
- * Wave 0: stub. Wave 1: implementeer throw Error('Titel bevat sector-naam "X" …').
+ * (geen PO/VO/Zakelijk substrings op word-boundary) en minstens MIN_TITLE_LENGTH lang.
+ * Wave 1: throws Error bij overtreding.
  */
-export function validateNeutralTitle(_title: string): void {
-  // WAVE 1: implementeer conform D-01
-  return;
+export function validateNeutralTitle(title: string): void {
+  if (!title || title.length < MIN_TITLE_LENGTH) {
+    throw new Error(
+      `Titel te kort (minimum ${MIN_TITLE_LENGTH} tekens): "${title ?? ""}"`
+    );
+  }
+  const match = title.match(SECTOR_NAME_REGEX);
+  if (match) {
+    throw new Error(
+      `Titel bevat sector-naam "${match[0]}" — sectoroverstijgende titel vereist`
+    );
+  }
 }
 
 /**
  * D-02: Valideert dat alle items hetzelfde `domain` hebben.
- * Wave 0: stub. Wave 1: implementeer throw bij cross-domein.
+ * Wave 1: throws Error bij cross-domein merge (bijv. mens + data_systemen).
  */
-export function validateSameDomain(_items: DINEffort[]): void {
-  // WAVE 1: implementeer conform D-02
-  return;
+export function validateSameDomain(items: DINEffort[]): void {
+  if (items.length === 0) return;
+  const domains = new Set(items.map((e) => e.domain));
+  if (domains.size > 1) {
+    const list = Array.from(domains).join(" + ");
+    throw new Error(`Cross-domein merge geblokkeerd: ${list}`);
+  }
 }
 
 /**
  * D-27: Valideert dat alle te mergen efforts via capabilityEffortMaps terug-refereren
- * naar vermogens uit DEZELFDE VermogenGelijkenisGroep (ongeacht sectoren — schema garandeert ≥1 per sector).
- * Wave 0: stub. Wave 1: implementeer drempel-check + throw.
+ * naar vermogens uit DEZELFDE VermogenGelijkenisGroep. Dit is de drieluik-drempel —
+ * AI mag alleen efforts consolideren als ze een gelijkenis-groep delen (minimaal 2 sectoren,
+ * schema-contract garandeert ≥1 vermogen per sector in een groep).
+ *
+ * Wave 1: throws Error wanneer geen enkele groep alle efforts dekt via hun cap-mappings.
+ * Lege effortIds list: early return (niets te valideren).
  */
 export function validateDrieluikThreshold(
-  _effortIds: string[],
-  _ctx: DrieluikContext
+  effortIds: string[],
+  ctx: DrieluikContext
 ): void {
-  // WAVE 1: implementeer conform D-27
-  return;
+  if (effortIds.length === 0) return;
+
+  // Per effort: welke capabilityIds raakt hij via capEffortMaps?
+  const effortCaps = new Map<string, Set<string>>();
+  for (const eId of effortIds) {
+    const caps = ctx.capEffortMaps
+      .filter((m) => m.effortId === eId)
+      .map((m) => m.capabilityId);
+    effortCaps.set(eId, new Set(caps));
+  }
+
+  // Zoek een groep waar ELKE effort minstens één cap raakt (via cap-mapping).
+  for (const groep of ctx.gelijkenisGroepen) {
+    const groepCapIds = new Set(groep.vermogenIds);
+    const allReach = effortIds.every((eId) => {
+      const caps = effortCaps.get(eId) ?? new Set();
+      for (const cId of caps) if (groepCapIds.has(cId)) return true;
+      return false;
+    });
+    if (allReach) return; // geldig drieluik — alle efforts raken deze groep
+  }
+
+  throw new Error(
+    "Cross-analyse drempel niet gehaald: inspanningen raken geen drieluik van gelijkende sector-vermogens"
+  );
 }
 
 // --- Auto-apply pure helper (D-05) — WERKEND in Wave 0 ---

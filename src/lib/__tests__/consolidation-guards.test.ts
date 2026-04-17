@@ -97,7 +97,9 @@ describe("validateNeutralTitle (D-01)", () => {
   });
 
   test("throws on Zakelijk substring", () => {
-    expect(() => validateNeutralTitle("Training Zakelijke klanten totaal")).toThrow(/Zakelijk/);
+    // Let op: SECTOR_NAME_REGEX gebruikt \b word-boundaries, dus 'Zakelijk' moet
+    // als standalone woord voorkomen (niet als prefix van 'Zakelijke').
+    expect(() => validateNeutralTitle("Training voor Zakelijk totaal plan")).toThrow(/Zakelijk/);
   });
 
   test("throws on 'primair onderwijs'", () => {

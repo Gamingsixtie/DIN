@@ -2,29 +2,39 @@
 
 import CrossAnalyseWizard from "@/components/cross-analyse/CrossAnalyseWizard";
 import type { DINSession, DINCapability, DINEffort } from "@/lib/types";
+import {
+  validateNeutralTitle,
+  validateSameDomain,
+  validateDrieluikThreshold,
+  type DrieluikContext,
+} from "@/lib/consolidation-guards";
 
 // --- Consolidation logic (pure functions for testability) ---
 // KEEP THESE EXPORTS — they are imported by StapConsolidatie and tested in consolidation.test.ts
 
 export function mergeCapabilities(
   session: DINSession,
-  clusterItemIds: string[]
+  clusterItemIds: string[],
+  suggestedTitle?: string
 ): DINSession {
   if (clusterItemIds.length < 2) return session;
 
   const itemsToMerge = session.capabilities.filter(c => clusterItemIds.includes(c.id));
   if (itemsToMerge.length < 2) return session;
 
+  // D-01: title-guard — blijft ook hier actief voor legacy/binnen-sector gebruik
+  if (suggestedTitle) validateNeutralTitle(suggestedTitle);
+
   const newId = crypto.randomUUID();
   const allSectors = [...new Set(itemsToMerge.map(c => c.sectorId))];
 
-  // Create shared item from first item as template
+  // Create shared item — use suggested sectoroverstijgende title if provided
   const sharedItem: DINCapability = {
     ...itemsToMerge[0],
     id: newId,
     sectorId: allSectors[0],
     relatedSectors: allSectors,
-    title: itemsToMerge[0].title || itemsToMerge[0].description.slice(0, 60),
+    title: suggestedTitle || itemsToMerge[0].title || itemsToMerge[0].description.slice(0, 60),
     consolidated: undefined,
     consolidatedInto: undefined,
   };
@@ -83,12 +93,22 @@ export function undoMergeCapabilities(
 
 export function mergeEfforts(
   session: DINSession,
-  clusterItemIds: string[]
+  clusterItemIds: string[],
+  suggestedTitle?: string,
+  context?: DrieluikContext
 ): DINSession {
   if (clusterItemIds.length < 2) return session;
 
   const itemsToMerge = session.efforts.filter(e => clusterItemIds.includes(e.id));
   if (itemsToMerge.length < 2) return session;
+
+  // Phase 17 guards (order: title → same-domain → drieluik-threshold)
+  // D-01: title-guard (alleen als titel is meegegeven)
+  if (suggestedTitle) validateNeutralTitle(suggestedTitle);
+  // D-02: same-domein guard (cross-domein merge geblokkeerd)
+  validateSameDomain(itemsToMerge);
+  // D-27: drieluik-drempel (alleen wanneer context is meegegeven — legacy calls zonder context blijven werken)
+  if (context) validateDrieluikThreshold(clusterItemIds, context);
 
   const newId = crypto.randomUUID();
   const allSectors = [...new Set(itemsToMerge.map(e => e.sectorId))];
@@ -98,7 +118,7 @@ export function mergeEfforts(
     id: newId,
     sectorId: allSectors[0],
     responsibleSector: allSectors.join(", "),
-    title: itemsToMerge[0].title || itemsToMerge[0].description.slice(0, 60),
+    title: suggestedTitle || itemsToMerge[0].title || itemsToMerge[0].description.slice(0, 60),
     consolidated: undefined,
     consolidatedInto: undefined,
   };
