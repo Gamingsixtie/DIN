@@ -309,7 +309,31 @@ export const VermogenClusterItemSchema = z.object({
     sector: z.string(),
   })),
   advies: z.string(),
-  aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
+  // D-30 (Phase 17): markeer_gelijkenis toegevoegd voor cross-analyse vermogen-gelijkenis
+  // markering (geen merge) — drieluik-groepen worden apart getoond als sectoroverstijgende duiding.
+  aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden", "markeer_gelijkenis"]),
+});
+
+// --- Phase 17: VermogenGelijkenisGroep (D-26) ---
+// Groep van 2-3 sector-vermogens die methodisch verschillend blijven maar dezelfde
+// onderliggende beweging delen. Wordt apart gerenderd naast clusters.
+export const VermogenGelijkenisGroepSchema = z.object({
+  id: z.string(),
+  vermogenIds: z.array(z.string()).min(1),
+  gezamenlijkeOmschrijving: z.string(),
+  reden: z.string(),
+});
+
+// --- Phase 17: SubEffortAdvies (D-30) ---
+// Tweede-niveau effort-analyse per domein binnen een VermogenGelijkenisGroep.
+// AI stelt per domein voor: combineren (cross-sector training etc.) of apart_houden.
+export const SubEffortAdviesSchema = z.object({
+  groepId: z.string(),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  actie: z.enum(["combineren", "apart_houden"]),
+  items: z.array(z.string()),
+  reden: z.string(),
+  voorgesteldeNaam: z.string().nullable().optional(),
 });
 
 export const InspanningClusterItemSchema = z.object({
@@ -433,6 +457,8 @@ export const Stap1ResultSchema = z.object({
 export const Stap2ResultSchema = z.object({
   vermogenClusters: z.array(VermogenClusterItemSchema).optional().default([]),
   hefboomwerking: z.array(CrossAnalyseHefboomItemSchema).optional().default([]),
+  // D-30 (Phase 17): nieuwe vermogen-gelijkenis groepen (markering, geen merge)
+  vermogenGelijkenisGroepen: z.array(VermogenGelijkenisGroepSchema).optional().default([]),
   samenvatting: z.string(),
 });
 
@@ -449,7 +475,19 @@ export const Stap4ResultSchema = z.object({
     aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
     reden: z.string(),
     voorgesteldeNaam: z.string().nullable().optional(),
+    afstemmingsStappen: z.array(z.string()).optional().default([]),
+    // D-19 (Phase 17): user-context voor herzie-advies (vrij tekstveld bij B-path)
+    context: z.string().optional(),
   })).optional().default([]),
+  citobreedInzicht: z.array(z.object({
+    domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+    titel: z.string(),
+    beschrijving: z.string(),
+    onderbouwing: z.string(),
+    relevanteItems: z.array(z.string()).optional().default([]),
+  })).optional().default([]),
+  // D-30 (Phase 17): sub-effort analyse per VermogenGelijkenisGroep × domein
+  subEffortAnalysis: z.array(SubEffortAdviesSchema).optional().default([]),
   samenvatting: z.string(),
 });
 
@@ -478,8 +516,9 @@ export const Stap5ResultSchema = z.object({
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({
-  currentStep: z.number().min(1).max(5),
+  currentStep: z.number().min(1).max(6),
   completedSteps: z.array(z.number()),
+  wizardVersion: z.number().optional(),
   stepResults: z.object({
     stap1: Stap1ResultSchema.optional(),
     stap2: Stap2ResultSchema.optional(),
@@ -888,6 +927,8 @@ export type AISuggestInspanning = z.infer<typeof AISuggestInspanningSchema>;
 export type AISectorplanAnalyse = z.infer<typeof AISectorplanAnalyseSchema>;
 export type AICrossAnalyse = z.infer<typeof AICrossAnalyseSchema>;
 export type VermogenClusterItem = z.infer<typeof VermogenClusterItemSchema>;
+export type VermogenGelijkenisGroep = z.infer<typeof VermogenGelijkenisGroepSchema>;
+export type SubEffortAdvies = z.infer<typeof SubEffortAdviesSchema>;
 export type InspanningClusterItem = z.infer<typeof InspanningClusterItemSchema>;
 export type ProjectMatchItem = z.infer<typeof ProjectMatchItemSchema>;
 export type AIExtractedProject = z.infer<typeof AIExtractedProjectSchema>;

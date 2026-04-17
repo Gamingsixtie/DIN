@@ -3,6 +3,11 @@ import {
   AICrossAnalyseSchema,
   DINCapabilitySchema,
   DINEffortSchema,
+  Stap2ResultSchema,
+  Stap4ResultSchema,
+  VermogenClusterItemSchema,
+  VermogenGelijkenisGroepSchema,
+  SubEffortAdviesSchema,
 } from "@/lib/schemas";
 
 // ============================================================
@@ -288,5 +293,165 @@ describe("Consolidation flags on entity schemas", () => {
       expect(result.data.consolidated).toBe(true);
       expect(result.data.consolidatedInto).toBe("e-master-456");
     }
+  });
+});
+
+// ============================================================
+// Phase 17 — VermogenGelijkenisGroep (D-26)
+// ============================================================
+
+describe("VermogenGelijkenisGroepSchema (D-26)", () => {
+  test("gelijkenis groep accepteert valide input met drie sectoren", () => {
+    const result = VermogenGelijkenisGroepSchema.safeParse({
+      id: "g1",
+      vermogenIds: ["cap-po-1", "cap-vo-1", "cap-zak-1"],
+      gezamenlijkeOmschrijving: "Medewerker-wendbaarheid",
+      reden: "Alle drie sectoren vereisen adaptief vermogen bij digitalisering",
+    });
+    expect(result.success).toBe(true);
+  });
+  test("gelijkenis groep faalt bij lege vermogenIds", () => {
+    const result = VermogenGelijkenisGroepSchema.safeParse({
+      id: "g1",
+      vermogenIds: [],
+      gezamenlijkeOmschrijving: "x",
+      reden: "y",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("Stap2ResultSchema backward compat (D-30)", () => {
+  test("backward compat — parse zonder vermogenGelijkenisGroepen defaultet naar []", () => {
+    const result = Stap2ResultSchema.safeParse({
+      vermogenClusters: [],
+      hefboomwerking: [],
+      samenvatting: "x",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.vermogenGelijkenisGroepen).toEqual([]);
+  });
+  test("accepteert vermogenGelijkenisGroepen wanneer aanwezig", () => {
+    const result = Stap2ResultSchema.safeParse({
+      vermogenClusters: [],
+      hefboomwerking: [],
+      samenvatting: "x",
+      vermogenGelijkenisGroepen: [
+        { id: "g1", vermogenIds: ["c1"], gezamenlijkeOmschrijving: "a", reden: "b" },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.vermogenGelijkenisGroepen).toHaveLength(1);
+  });
+});
+
+describe("VermogenClusterItemSchema markeer_gelijkenis enum (D-30)", () => {
+  test("markeer_gelijkenis aanbeveling accepteert", () => {
+    const result = VermogenClusterItemSchema.safeParse({
+      clusterTitel: "x",
+      items: [],
+      batenContext: [],
+      advies: "y",
+      aanbeveling: "markeer_gelijkenis",
+    });
+    expect(result.success).toBe(true);
+  });
+  test("bestaande enum-waardes blijven werken", () => {
+    for (const av of ["combineren", "afstemmen", "apart_houden"] as const) {
+      const result = VermogenClusterItemSchema.safeParse({
+        clusterTitel: "x",
+        items: [],
+        batenContext: [],
+        advies: "y",
+        aanbeveling: av,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+});
+
+describe("SubEffortAdviesSchema (D-30)", () => {
+  test("sub effort advies accepteert valide input met voorgesteldeNaam string", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "mens",
+      actie: "combineren",
+      items: ["eff-1", "eff-2"],
+      reden: "gedeelde training",
+      voorgesteldeNaam: "Sector-overstijgende training",
+    });
+    expect(result.success).toBe(true);
+  });
+  test("sub effort advies accepteert voorgesteldeNaam null", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "processen",
+      actie: "apart_houden",
+      items: ["eff-1"],
+      reden: "verschillende contexten",
+      voorgesteldeNaam: null,
+    });
+    expect(result.success).toBe(true);
+  });
+  test("sub effort advies faalt bij ongeldig domein", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "financien",
+      actie: "combineren",
+      items: [],
+      reden: "x",
+      voorgesteldeNaam: null,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("Stap4ResultSchema backward compat (D-19, D-30)", () => {
+  test("backward compat — parse zonder subEffortAnalysis defaultet naar []", () => {
+    const result = Stap4ResultSchema.safeParse({
+      consolidatieAdvies: [],
+      citobreedInzicht: [],
+      samenvatting: "x",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.subEffortAnalysis).toEqual([]);
+  });
+  test("accepteert context op consolidatieAdvies items", () => {
+    const result = Stap4ResultSchema.safeParse({
+      consolidatieAdvies: [
+        {
+          clusterTitel: "x",
+          type: "inspanning",
+          aanbeveling: "combineren",
+          reden: "y",
+          context: "User wil focus op data-domein",
+        },
+      ],
+      citobreedInzicht: [],
+      samenvatting: "z",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consolidatieAdvies[0].context).toBe("User wil focus op data-domein");
+    }
+  });
+  test("accepteert subEffortAnalysis wanneer aanwezig", () => {
+    const result = Stap4ResultSchema.safeParse({
+      consolidatieAdvies: [],
+      citobreedInzicht: [],
+      samenvatting: "x",
+      subEffortAnalysis: [
+        {
+          groepId: "g1",
+          domein: "mens",
+          actie: "apart_houden",
+          items: ["e1"],
+          reden: "verschilt",
+          voorgesteldeNaam: null,
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.subEffortAnalysis).toHaveLength(1);
   });
 });
