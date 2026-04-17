@@ -1,6 +1,7 @@
 // Consolidation logic unit tests (merge/undo for capabilities and efforts)
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { DINSession } from "@/lib/types";
+import type { DrieluikContext } from "@/lib/consolidation-guards";
 
 // Mock crypto.randomUUID to return predictable IDs
 const mockUUID = "shared-uuid-1234";
@@ -220,5 +221,166 @@ describe("undoMergeEfforts", () => {
     expect(
       undone.capabilityEffortMaps.filter((m) => m.effortId === mockUUID)
     ).toHaveLength(0);
+  });
+});
+
+// ============================================================
+// Phase 17: Guards (D-01, D-02, D-27) via mergeEfforts / mergeCapabilities
+// ============================================================
+
+describe("mergeEfforts title guard (D-01)", () => {
+  beforeEach(() => {
+    vi.mocked(crypto.randomUUID).mockReturnValue(mockUUID);
+  });
+
+  it("title guard rejects sector name (Training PO-leerkrachten)", () => {
+    const session = createMockSession();
+    expect(() =>
+      mergeEfforts(session, ["eff-po-1", "eff-vo-1"], "Training PO-leerkrachten")
+    ).toThrow(/PO/);
+  });
+
+  it("title guard min length — <10 chars throws", () => {
+    const session = createMockSession();
+    expect(() =>
+      mergeEfforts(session, ["eff-po-1", "eff-vo-1"], "Kort")
+    ).toThrow(/(te kort|minimum)/i);
+  });
+
+  it("word boundary false positives — Protocol passes title guard", () => {
+    const session = createMockSession();
+    // Protocol bevat 'PO' als substring maar niet op word boundary → moet passeren
+    // (mag wel throwen op andere guards; deze test isoleert via message-check)
+    let err: Error | null = null;
+    try {
+      mergeEfforts(session, ["eff-po-1", "eff-vo-1"], "Protocol datakwaliteit cito-breed");
+    } catch (e) {
+      err = e as Error;
+    }
+    if (err) {
+      expect(err.message).not.toMatch(/sector-naam/i);
+    }
+  });
+});
+
+describe("mergeEfforts domain guard (D-02)", () => {
+  beforeEach(() => {
+    vi.mocked(crypto.randomUUID).mockReturnValue(mockUUID);
+  });
+
+  it("domain guard rejects cross-domein merge (mens + data_systemen)", () => {
+    const session = createMockSession({
+      efforts: [
+        {
+          id: "eff-mens",
+          sectorId: "PO",
+          title: "t1",
+          description: "d1",
+          domain: "mens" as const,
+          status: "gepland" as const,
+          dependencies: [],
+        },
+        {
+          id: "eff-data",
+          sectorId: "VO",
+          title: "t2",
+          description: "d2",
+          domain: "data_systemen" as const,
+          status: "gepland" as const,
+          dependencies: [],
+        },
+      ],
+      capabilityEffortMaps: [],
+    });
+    expect(() =>
+      mergeEfforts(session, ["eff-mens", "eff-data"], "Sectoroverstijgende inspanning")
+    ).toThrow(/mens.*data_systemen|data_systemen.*mens/);
+  });
+
+  it("domain guard accepts same-domein merge (mens + mens)", () => {
+    const session = createMockSession(); // beide eff-po-1 en eff-vo-1 zijn 'mens'
+    const result = mergeEfforts(
+      session,
+      ["eff-po-1", "eff-vo-1"],
+      "Sectoroverstijgende training"
+    );
+    expect(result.efforts.find((e) => e.id === mockUUID)).toBeDefined();
+  });
+});
+
+describe("mergeEfforts drieluik threshold (D-27)", () => {
+  beforeEach(() => {
+    vi.mocked(crypto.randomUUID).mockReturnValue(mockUUID);
+  });
+
+  it("drieluik threshold throws when geen groep dekking", () => {
+    const session = createMockSession();
+    const ctx: DrieluikContext = {
+      gelijkenisGroepen: [
+        {
+          id: "g-empty",
+          vermogenIds: ["cap-nonexistent"],
+          gezamenlijkeOmschrijving: "x",
+          reden: "y",
+        },
+      ],
+      capEffortMaps: session.capabilityEffortMaps,
+    };
+    expect(() =>
+      mergeEfforts(session, ["eff-po-1", "eff-vo-1"], "Sectoroverstijgende training", ctx)
+    ).toThrow(/drieluik|drempel/i);
+  });
+
+  it("drieluik threshold accepts valid coverage", () => {
+    const session = createMockSession();
+    const ctx: DrieluikContext = {
+      gelijkenisGroepen: [
+        {
+          id: "g-valid",
+          vermogenIds: ["cap-po-1", "cap-vo-1", "cap-zak-1"],
+          gezamenlijkeOmschrijving: "Klantgesprek-methodiek",
+          reden: "Alle drie sectoren",
+        },
+      ],
+      // eff-po-1 → cap-po-1 ; eff-vo-1 → cap-vo-1 — beide in g-valid.vermogenIds
+      capEffortMaps: session.capabilityEffortMaps,
+    };
+    const result = mergeEfforts(
+      session,
+      ["eff-po-1", "eff-vo-1"],
+      "Sectoroverstijgende training",
+      ctx
+    );
+    expect(result.efforts.find((e) => e.id === mockUUID)).toBeDefined();
+  });
+
+  it("mergeEfforts backward compat zonder context — werkt nog", () => {
+    const session = createMockSession();
+    // Legacy call zonder context: title + domain guards draaien, drieluik niet
+    const result = mergeEfforts(
+      session,
+      ["eff-po-1", "eff-vo-1"],
+      "Sectoroverstijgende training"
+    );
+    expect(result.efforts.find((e) => e.id === mockUUID)).toBeDefined();
+  });
+});
+
+describe("mergeCapabilities title guard (D-01, D-25)", () => {
+  beforeEach(() => {
+    vi.mocked(crypto.randomUUID).mockReturnValue(mockUUID);
+  });
+
+  it("mergeCapabilities title guard — rejects sector name", () => {
+    const session = createMockSession();
+    expect(() =>
+      mergeCapabilities(session, ["cap-po-1", "cap-vo-1"], "Training PO")
+    ).toThrow(/PO/);
+  });
+
+  it("mergeCapabilities zonder title — geen title-guard = werkt (legacy)", () => {
+    const session = createMockSession();
+    const result = mergeCapabilities(session, ["cap-po-1", "cap-vo-1"]);
+    expect(result.capabilities.find((c) => c.id === mockUUID)).toBeDefined();
   });
 });
