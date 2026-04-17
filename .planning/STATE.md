@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-04-17T14:36:30.874Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-04-17T14:44:27.085Z"
 last_activity: 2026-04-17
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 44
-  completed_plans: 40
+  completed_plans: 41
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 17 (cross-analyse-organigram-helderheid-domein-bewuste-consolidatie) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-04-17
 
@@ -86,6 +86,7 @@ Progress: [██████████] 100%
 | Phase 16 P02 | 4min | 3 tasks | 8 files |
 | Phase 16 P03 | 4min | 2 tasks | 2 files |
 | Phase 17 P01 | 4min | 2 tasks | 4 files |
+| Phase 17 P02 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,7 @@ Recent decisions affecting current work:
 - [Phase 16]: syncStatusRef pattern avoids stale closures in setSession functional updater
 - [Phase 16]: latestSessionRef captures session for async Supabase save outside setSession callback (Pitfall 6)
 - [Phase 17]: [Phase 17]: Wave 0 — zod als expliciete dependency (4.3.6); VermogenGelijkenisGroep + SubEffortAdvies schemas toegevoegd; consolidation-guards module met guard-stubs (Wave 1-ready) + werkende computeAutoApplyResult helper
+- [Phase 17]: [Phase 17]: Wave 1 — D-01/D-02/D-27 guards geïmplementeerd met throw-logic; mergeEfforts kreeg optionele context?: DrieluikContext param voor backward compat; mergeCapabilities kreeg óók title-guard; 27 nieuwe tests (16 unit + 11 integratie) dekken alle guard-paden
 
 ### Roadmap Evolution
 
@@ -187,6 +189,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T14:36:30.870Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-04-17T14:44:27.081Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None
