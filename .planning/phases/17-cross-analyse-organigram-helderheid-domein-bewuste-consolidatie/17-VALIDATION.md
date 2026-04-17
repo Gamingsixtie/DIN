@@ -5,6 +5,7 @@ status: draft
 nyquist_compliant: false
 wave_0_complete: false
 created: 2026-04-17
+revised: 2026-04-17 (revision iter 1 — fix checker B-1, B-2)
 ---
 
 # Phase 17 — Validation Strategy
@@ -19,7 +20,7 @@ created: 2026-04-17
 |----------|-------|
 | **Framework** | vitest 4.1.2 |
 | **Config file** | `vitest.config.ts` (alias `@/` → `./src`, include `src/**/*.test.ts`) |
-| **Quick run command** | `npx vitest run src/lib/__tests__/consolidation.test.ts src/lib/__tests__/cross-analyse-schema.test.ts` |
+| **Quick run command** | `npx vitest run src/lib/__tests__/consolidation.test.ts src/lib/__tests__/cross-analyse-schema.test.ts src/lib/__tests__/consolidation-guards.test.ts` |
 | **Full suite command** | `npx vitest run` |
 | **Build verify** | `npm run build` |
 | **Lint** | `npm run lint` |
@@ -29,7 +30,7 @@ created: 2026-04-17
 
 ## Sampling Rate
 
-- **After every task commit:** Run `npx vitest run src/lib/__tests__/consolidation.test.ts src/lib/__tests__/cross-analyse-schema.test.ts`
+- **After every task commit:** Run `npx vitest run src/lib/__tests__/consolidation.test.ts src/lib/__tests__/cross-analyse-schema.test.ts src/lib/__tests__/consolidation-guards.test.ts`
 - **After every plan wave:** Run `npx vitest run && npm run build && npm run lint`
 - **Before `/gsd:verify-work`:** Full suite + build + lint must be green, plus human-verify UI checkpoint
 - **Max feedback latency:** 5 seconds per task, 60 seconds per wave
@@ -40,10 +41,10 @@ created: 2026-04-17
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 17-01-01 | 01 | 0 | R-CROSS-02 | schema | `npx vitest run src/lib/__tests__/cross-analyse-schema.test.ts -t "gelijkenis groep"` | ❌ W0 (extend) | ⬜ pending |
+| 17-01-01 | 01 | 0 | R-CROSS-01, R-CROSS-02 | schema | `npx vitest run src/lib/__tests__/cross-analyse-schema.test.ts -t "gelijkenis groep"` | ❌ W0 (extend) | ⬜ pending |
 | 17-01-02 | 01 | 0 | R-CROSS-02 | schema | `npx vitest run src/lib/__tests__/cross-analyse-schema.test.ts -t "backward compat"` | ❌ W0 (extend) | ⬜ pending |
 | 17-01-03 | 01 | 0 | R-CROSS-02 | schema | `npx vitest run src/lib/__tests__/cross-analyse-schema.test.ts -t "markeer_gelijkenis"` | ❌ W0 (extend) | ⬜ pending |
-| 17-01-04 | 01 | 0 | R-CROSS-02 | unit | `npx vitest run src/lib/__tests__/consolidation.test.ts -t "auto apply skip failure"` | ❌ W0 (new helper + test) | ⬜ pending |
+| 17-01-04 | 01 | 0 | R-CROSS-02 | unit | `npx vitest run src/lib/__tests__/consolidation-guards.test.ts -t "auto apply skip failure"` | ❌ W0 (new helper + test) | ⬜ pending |
 | 17-02-01 | 02 | 1 | R-CROSS-02 | unit | `npx vitest run src/lib/__tests__/consolidation.test.ts -t "title guard rejects sector name"` | ✅ extend | ⬜ pending |
 | 17-02-02 | 02 | 1 | R-CROSS-02 | unit | `npx vitest run src/lib/__tests__/consolidation.test.ts -t "title guard min length"` | ✅ extend | ⬜ pending |
 | 17-02-03 | 02 | 1 | R-CROSS-02 | unit | `npx vitest run src/lib/__tests__/consolidation.test.ts -t "word boundary false positives"` | ✅ extend | ⬜ pending |
@@ -61,13 +62,16 @@ created: 2026-04-17
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
+**Note (revision iter 1):** Row 17-01-04 now points to `consolidation-guards.test.ts` (not `consolidation.test.ts`) — the `computeAutoApplyResult` helper and its tests live in that new Wave 0 test file per Plan 17-01 Task 2. Row 17-01-01 now references BOTH R-CROSS-01 and R-CROSS-02 because `VermogenGelijkenisGroepSchema` is foundation for both cross-analyse helderheid (R-CROSS-01) and consolidation correctness (R-CROSS-02).
+
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/lib/consolidation-guards.ts` — nieuw bestand met pure helpers: `validateNeutralTitle()`, `validateDomainHomogeneity()`, `validateDrieluikThreshold()`, `extractAutoApplyResult()`
+- [ ] `src/lib/consolidation-guards.ts` — nieuw bestand met pure helpers: `validateNeutralTitle()`, `validateSameDomain()`, `validateDrieluikThreshold()`, `computeAutoApplyResult()`
 - [ ] `src/lib/__tests__/cross-analyse-schema.test.ts` — uitbreiden of nieuw bestand voor schema-tests (`VermogenGelijkenisGroepSchema`, `Stap2ResultSchema` backward compat, `markeer_gelijkenis` enum, `SubEffortAdviesSchema`, `Stap4ResultSchema` backward compat)
-- [ ] `src/lib/__tests__/consolidation.test.ts` — uitbreiden met 7+ nieuwe cases per D-24 (title-guard, domain-guard, drieluik-threshold, word-boundary, min-length, auto-apply helper)
+- [ ] `src/lib/__tests__/consolidation-guards.test.ts` — nieuw bestand met 7+ tests voor module exports + `computeAutoApplyResult` (auto apply skip failure, happy path, dedup, <2 items, captured throw)
+- [ ] `src/lib/__tests__/consolidation.test.ts` — uitbreiden met 10+ nieuwe cases per D-24 (title-guard, domain-guard, drieluik-threshold, word-boundary, min-length)
 - [ ] `npm ls zod vitest` verificatie — expliciet maken van dependencies; als `zod` impliciet → `npm install zod` + commit
 - [ ] **No new framework install** — vitest reeds actief, 20 test-files draaien groen
 
@@ -83,10 +87,12 @@ created: 2026-04-17
 | Hefboom-badge op gebundelde inspanning toont tooltip met 3 vermogens | R-CROSS-01 | Tooltip-interactie | Hover over "Hefboom: raakt 3 sectoren"-badge onder een gebundelde inspanning; verifieer tooltip somt de 3 sector-vermogens op |
 | Guard-error banner bij cross-domein merge | R-CROSS-02 | UI state transition | In stap 4 forceer een cross-domein merge via manual-merge knop; verifieer: rode error-banner boven actieknoppen met tekst `'Cross-domein merge geblokkeerd: mens + data_systemen'`, Combineren-knop disabled |
 | Guard-error banner bij sector-specifieke titel | R-CROSS-02 | UI state transition | In stap 4 hernoem voorgesteldeNaam naar "Training PO-leerkrachten"; probeer merge; verifieer: rode error-banner met tekst over sector-naam, knop disabled |
-| Herzie-advies knop met context-textarea | R-CROSS-01 | End-to-end AI-flow | Klik "Herzie advies" op een cluster; typ context "focus op data-domein"; verifieer: inline spinner op knop, textarea disabled tijdens call; na return overschrijft nieuwe advies het cluster, context is zichtbaar onder cluster |
+| Herzie-advies knop met context-textarea | R-CROSS-01 | End-to-end AI-flow | Klik "Herzie advies" op een cluster; typ context "focus op data-domein"; verifieer: inline spinner op knop, textarea disabled tijdens call; na return overschrijft nieuwe advies het cluster, context is zichtbaar onder cluster; subEffortAnalysis voor getroffen groep is geïnvalideerd |
 | Auto-apply summary toast "N samengevoegd, M vereisen review" | R-CROSS-02 | UI feedback | Load stap 4 met gemengde clusters (valid + guard-fail); verifieer: toast toont correcte counts; guard-failers hebben "Vereist review" badge (rode border-l) op ClusterCard |
 | Domein-balans badge kleur-conventie | R-CROSS-01 | Visueel | Per `VermogenGelijkenisGroep` in organigram: verifieer badge-kleur groen (dekt ≥3 domeinen), amber (2), rood (≤1); tekst `"Dekt N van 4 domeinen — mist X"` |
 | Legacy-sessie warning badge | R-CROSS-02 | Legacy data detection | Load een bestaande sessie met oude `consolidated: true` caps; verifieer: amber `"Legacy: vermogens-merge"` badge op kaart; geen crash |
+
+**Note on UAT grep scope (W-2):** UAT verifications rely on human visual confirmation. The `data-testid` attributes in the UI components (added in Plan 17-04) are used for developer-side grep confirmation of DOM hooks, NOT for automated UAT runs. No Playwright/Cypress automation is introduced in this phase — all UI behavior verification is human-driven per the manual-ui test type.
 
 ---
 
