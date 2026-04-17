@@ -169,7 +169,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -189,6 +189,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 14. Projecten promoveren tot inspanningen | 2/3 | In Progress | - |
 | 15. Lopende projecten uit cross-analyse | 0/0 | Not started | - |
 | 16. Supabase dual persistence | 3/3 | Complete    | 2026-04-07 |
+| 17. Cross-analyse organigram helderheid + domein-bewuste consolidatie | 1/4 | In Progress|  |
 
 ### Phase 11: Cross-analyse herontwerp: stapsgewijs traject met consolidatie
 
@@ -271,3 +272,30 @@ Plans:
 - [x] 16-01-PLAN.md — Supabase graceful degradation + persistence refactor (retry, version counter, cleanup) + unit tests
 - [x] 16-02-PLAN.md — SyncStatusContext + SyncStatusFooter + ClientProviders wiring + session-context sync integration
 - [x] 16-03-PLAN.md — HealthCheck homepage component + end-to-end human verify checkpoint
+
+### Phase 17: Cross-analyse organigram helderheid + domein-bewuste consolidatie
+
+**Goal:** Maak de cross-analyse organigram (StapSectorVertaling) methodisch correct: vermogens blijven **intact per sector** (geen merge), een nieuw `VermogenGelijkenisGroep`-concept markeert trio's van gelijkende sector-vermogens (PO+VO+Zakelijk), en inspanningen worden binnen hun domein gebundeld als gezamenlijke hefboom die alle drie vermogens raakt. Het organigram toont per groep een drieluik (3 parallelle sector-vermogen-kaarten met `SectorBadge`) + hefboomlaag per inspannings-domein + `Hefboom: raakt 3 sectoren` badge op elke gebundelde inspanning. Harde guards (title-guard zonder PO/VO/Zakelijk substrings + min 10 chars, domein-guard, drieluik-drempel) blokkeren methodisch ongeldige merges. Beslismodel: AI stelt per cluster een aanbeveling voor, gebruiker kan via een per-cluster textarea extra context meegeven voor `herzie advies` regeneratie. Stap 2 prompt markeert vermogens UITSLUITEND via `markeer_gelijkenis` (geen `combineren` meer voor vermogens); stap 3/4 prompts scherpen binnen-domein clustering en sectoroverstijgende namen aan. Zie 17-CONTEXT.md D-25..D-32 voor methodische correctie (2026-04-17).
+**Requirements**: R-CROSS-01, R-CROSS-02 (cross-analyse helderheid & consolidatie-kwaliteit)
+**Depends on:** Phase 16
+**UI hint:** yes
+**Plans:** 1/4 plans executed
+
+Plans:
+- [x] 17-01-PLAN.md — Wave 0: zod expliciete dep + schema extensies (VermogenGelijkenisGroepSchema, SubEffortAdviesSchema, markeer_gelijkenis enum, context veld) + consolidation-guards.ts module met stubs + computeAutoApplyResult pure helper + 2 test-files
+- [ ] 17-02-PLAN.md — Wave 1: guard-bodies geimplementeerd (validateNeutralTitle, validateSameDomain, validateDrieluikThreshold) + bedrade in mergeEfforts (met DrieluikContext param) en mergeCapabilities; 22+ nieuwe guard-tests
+- [ ] 17-03-PLAN.md — Wave 2: prompt-herzieningen stap 2/3/4 + nieuwe CONSOLIDATIE_HERZIEN_PROMPT + SUB_EFFORT_ANALYSE_PROMPT + /api/din-suggest consolidatie-herzien tak + /api/cross-analyse stap 4 parallelle sub-effort analyse per VermogenGelijkenisGroep
+- [ ] 17-04-PLAN.md — Wave 3: StapSectorVertaling drieluik-rewrite + ConsolidationActionBar guard-error banner + ClusterCard context-textarea/herzie-knop + StapConsolidatie auto-apply via computeAutoApplyResult + CrossAnalyseWizard payload-upgrade + 7-case human UAT
+
+**Out of scope:** nieuwe AI-modellen, Word-export ondersteuning voor subEffortAnalysis, undo-flow voor tweede-niveau merges, retroactieve migratie van bestaande sessies met sector-specifieke titels (alleen warning badge D-23).
+
+**Success criteria:**
+1. Merge met titel "Training PO-leerkrachten" wordt hard afgewezen (validateNeutralTitle throw)
+2. Effort-merge tussen Mens-item en Data & Systemen-item wordt hard afgewezen (validateSameDomain throw)
+3. Inspanning-merge zonder drieluik-drempel dekking wordt hard afgewezen (validateDrieluikThreshold throw)
+4. Organigram toont per `VermogenGelijkenisGroep` drie parallelle sector-vermogen-kaarten (geen merge), hefboomlaag per domein, en hefboom-badge met tooltip op gebundelde inspanningen
+5. Onder elke groep: per domein welke inspanningen samen kunnen (`combineren`) en welke apart blijven (`apart_houden`), met AI-onderbouwing via `subEffortAnalysis`
+6. Gebruiker kan per cluster extra context geven en `Herzie advies` klikken -> AI gebruikt die context (`/api/din-suggest?type=consolidatie-herzien`)
+7. Rationale `gezamenlijkeOmschrijving` direct zichtbaar als kop boven de drieluik, niet in tooltip
+8. Legacy sessies met Phase 8 `consolidated: true` caps laden zonder crash en tonen amber `Legacy: vermogens-merge` badge
+9. `npm run build` + `npm run lint` + `npx vitest run` slagen; nieuwe + bestaande `consolidation.test.ts` + `cross-analyse-schema.test.ts` + `consolidation-guards.test.ts` groen

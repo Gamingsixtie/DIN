@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 17 context gathered
-last_updated: "2026-04-10T14:30:05.209Z"
-last_activity: 2026-04-07
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-04-17T14:36:30.874Z"
+last_activity: 2026-04-17
 progress:
   total_phases: 17
   completed_phases: 14
-  total_plans: 40
-  completed_plans: 39
+  total_plans: 44
+  completed_plans: 40
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 16 — supabase-dual-persistence-stabiliteit-sync-en-verificatie
+**Current focus:** Phase 17 — cross-analyse-organigram-helderheid-domein-bewuste-consolidatie
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-Status: Complete
-Last activity: 2026-04-07
+Phase: 17 (cross-analyse-organigram-helderheid-domein-bewuste-consolidatie) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-04-17
 
 Progress: [██████████] 100%
 
@@ -85,6 +85,7 @@ Progress: [██████████] 100%
 | Phase 16 P01 | 7min | 2 tasks | 8 files |
 | Phase 16 P02 | 4min | 3 tasks | 8 files |
 | Phase 16 P03 | 4min | 2 tasks | 2 files |
+| Phase 17 P01 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Recent decisions affecting current work:
 - [Phase 16]: const client = supabase pattern for TS narrowing inside closures after null guard
 - [Phase 16]: syncStatusRef pattern avoids stale closures in setSession functional updater
 - [Phase 16]: latestSessionRef captures session for async Supabase save outside setSession callback (Pitfall 6)
+- [Phase 17]: [Phase 17]: Wave 0 — zod als expliciete dependency (4.3.6); VermogenGelijkenisGroep + SubEffortAdvies schemas toegevoegd; consolidation-guards module met guard-stubs (Wave 1-ready) + werkende computeAutoApplyResult helper
 
 ### Roadmap Evolution
 
@@ -185,6 +187,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-10T14:30:05.205Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-cross-analyse-organigram-helderheid-domein-bewuste-consolidatie/17-CONTEXT.md
+Last session: 2026-04-17T14:36:30.870Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: None
