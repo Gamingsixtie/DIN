@@ -1,19 +1,27 @@
 # Phase 17: Cross-analyse organigram helderheid + domein-bewuste consolidatie - Context
 
 **Gathered:** 2026-04-10
+**Revised:** 2026-04-17 (methodische correctie — zie D-25..D-32)
 **Status:** Ready for planning
 
 <domain>
 ## Phase Boundary
 
-Maak cross-analyse consolidatie dwingender en het organigram in stap 5 leesbaarder. Twee kern-mechanismen:
+**Methodische kern (REVISED 2026-04-17):** Cross-analyse laat **vermogens INTACT per sector**. De drie sector-vermogens worden NIET samengevoegd — sector-herkenning ("dit is mijn vermogen") blijft behouden, en juist daardoor ontstaat de hefboomwerking: één gezamenlijke inspanning werkt door op drie gelijkende sector-vermogens en daarmee op drie sector-baten en drie sector-doelen.
 
-1. **Guards** in `mergeCapabilities`/`mergeEfforts` die sector-specifieke titels (geen PO/VO/Zakelijk in voorgesteldeNaam) en cross-domein effort-merges (items moeten identiek `domain` hebben) hard afwijzen.
-2. **Beslismodel + tweede-niveau analyse**: AI stelt per cluster A (combineren) of B (apart houden/afstemmen) voor met onderbouwing, de gebruiker beslist, en per shared capability draait een vervolganalyse die efforts binnen-domein clustert zodat het stap 5 organigram per gedeeld vermogen laat zien welke inspanningen samen kunnen én welke apart blijven, mét domein-dekking.
+Cross-analyse heeft twee kern-mechanismen:
 
-Het organigram rendert per groep één duidelijke keuze (Variant A onder shared cap, of Variant B gedeelde inspanning over sector-specifieke caps — nooit beide) en toont de rationale "waarom gedeeld" direct.
+1. **Vermogens-gelijkenis als drempel** — AI detecteert trio's van sector-vermogens die dezelfde capaciteit beschrijven (bv. "Medewerker-wendbaarheid" in PO, VO en Zakelijk). De drie vermogens blijven aparte records. De groep fungeert uitsluitend als **drempel**: pas wanneer drie sector-vermogens aantoonbaar op elkaar lijken mogen inspanningen die ze raken worden gebundeld.
+2. **Inspanning-bundeling op het drieluik** — De daadwerkelijke cross-analyse-kracht zit op inspannings-niveau. Inspanningen die **alle drie gelijkende vermogens raken**, worden binnen hun domein (Mens/Processen/Data & Systemen/Cultuur) gebundeld als gezamenlijke inspanning. Dat is waar de methodische hefboom zit: 1 inspanning → 3 vermogens → 3 baten → 3 doelen.
 
-**Out of scope:** nieuwe AI-modellen, Word-export aanpassingen, undo-flow voor tweede-niveau merges, retroactieve migratie van bestaande sessies met sector-specifieke titels (alleen waarschuwing-badge).
+**Guards** (ongewijzigd in principe, verfijnd in D-26..D-28):
+- Inspanning-merge: alleen binnen-domein (Mens ≠ Data) en alleen wanneer alle items via capability-map terug-refereren naar vermogens uit dezelfde gelijkende-groep (alle drie sectoren aanwezig).
+- Voorgestelde inspanning-titels: sectoroverstijgend (geen PO/VO/Zakelijk substrings).
+- Vermogens-merge: **niet meer aangeboden** in cross-analyse flow. De bestaande `mergeCapabilities` blijft in de codebase voor legacy / binnen-sector clustering, maar cross-analyse stap 2 stopt met voorstellen hiervoor.
+
+**Organigram (revised)**: Geen "shared cap" meer. Per gelijkende-vermogens-groep: drie parallelle vermogen-blokken (sector-kleur-coded), met daarboven/onder per domein de gezamenlijke inspanningen die ze alle drie raken — expliciet als hefboom getekend.
+
+**Out of scope:** nieuwe AI-modellen, Word-export aanpassingen, undo-flow voor tweede-niveau merges, retroactieve migratie van bestaande sessies (alleen waarschuwing-badge), lopende-projecten-integratie (= Phase 14 scope, Phase 17 faciliteert alleen de inspanning-centered organigram-vorm).
 
 </domain>
 
@@ -71,6 +79,54 @@ Het organigram rendert per groep één duidelijke keuze (Variant A onder shared 
   - Word-boundary regex accepteert "Protocol" en "VOldoende" (geen false positives)
   - Auto-apply loop in `StapConsolidatie` skipt guard-falers (via pure helper extraheren voor test-baarheid)
 
+### Methodische correctie (2026-04-17) — REVISES/SUPERSEDES D-14..D-17
+
+**Aanleiding:** Gebruiker corrigeert methodische koers. De cross-analyse moet sector-onafhankelijkheid borgen én hefboomwerking expliciet maken. Vermogens blijven daarom intact per sector; de cross-analyse-kracht verschuift naar inspanningen die gelijkende sector-vermogens gezamenlijk raken.
+
+- **D-25 (kern-principe — vervangt D-15 variant A/B winnaar):** Cross-analyse voegt **vermogens NIET meer samen**. De drie sector-vermogens blijven aparte records. `mergeCapabilities` blijft in de codebase voor binnen-sector cluster-ondersteuning (legacy use) maar stap 4 `consolidatieAdvies` stelt **nooit** meer een vermogen-merge voor. AI-prompt stap 2 wordt aangepast: vermogens krijgen alleen "gelijkenis-groep"-label, geen `aanbeveling: combineren`.
+
+- **D-26 (gelijkende-vermogens-groep):** Nieuwe domein-entiteit: `VermogenGelijkenisGroep { id, vermogenIds: string[] (minstens 1 per sector uit {PO, VO, Zakelijk}), gezamenlijkeOmschrijving: string, reden: string }`. Wordt gegenereerd door stap 2 AI-analyse op basis van semantische gelijkenis + zelfde doel-keten. Opgeslagen in `session.crossAnalyseWizard.stepResults.stap2.vermogenGelijkenisGroepen`. Dit is een **markering**, geen merge.
+
+- **D-27 (drempel voor inspanning-bundeling):** Een inspanning-bundel (via `mergeEfforts`) is alleen geldig wanneer alle te mergen items via `capabilityEffortMap` terug-refereren naar vermogens uit **dezelfde `VermogenGelijkenisGroep`** EN de groep **alle drie sectoren** (PO, VO, Zakelijk) bevat. Nieuwe guard in `mergeEfforts` (naast de bestaande domein-guard uit D-02): `throw Error('Cross-analyse drempel niet gehaald: inspanningen raken geen drieluik van gelijkende sector-vermogens')`. UI toont reden in de inline error banner (D-04).
+
+- **D-28 (organigram-rendering — vervangt D-14/D-15/D-17):** Per `VermogenGelijkenisGroep` rendert `StapSectorVertaling` één blok:
+  - **Midden:** drie parallelle vermogen-kaarten naast elkaar, elk met de bestaande `SectorBadge` (PO blauw / VO groen / Zakelijk amber) en de sector-specifieke vermogen-omschrijving. **Vermogens worden NIET hernoemd of samengevoegd.**
+  - **Boven:** de gedeelde `gezamenlijkeOmschrijving` (= "waarom deze drie lijken op elkaar") als rationale-kop.
+  - **Onder (hefboomlaag):** per domein (Mens/Processen/Data & Systemen/Cultuur) een color-coded sectie met de gebundelde inspanningen die alle drie vermogens raken. Hergebruikt `DOMAIN_COLORS` map. Lege domeinen getoond als grijze placeholder "Geen gezamenlijke inspanning" om gap zichtbaar te maken.
+  - Hefboom-visualisatie: drie pijlen van de inspannings-sectie omhoog naar elk van de drie vermogens (subtiele lijnen of connection-badges) — maakt "1 inspanning → 3 vermogens" expliciet.
+
+- **D-29 (domein-balans badge — vervangt D-16):** Per `VermogenGelijkenisGroep`: `"Dekt N van 4 domeinen — mist {X}"`. Telt unieke domeinen van gebundelde inspanningen binnen de groep. Kleurconventie ongewijzigd (groen ≥3, amber 2, rood ≤1). Plaatsing: onder de gedeelde rationale-kop, boven de drie vermogen-kaarten.
+
+- **D-30 (schema — vervangt D-18 structuur):**
+  - Stap 2 schema uitbreiden: `vermogenGelijkenisGroepen: VermogenGelijkenisGroep[]` top-level.
+  - `VermogenClusterItemSchema`: nieuwe variant toevoegen waarbij `aanbeveling: 'markeer_gelijkenis'` (naast bestaande `combineren`/`apart_houden`) — want cross-analyse mag geen `combineren` meer voorstellen voor vermogens. Bestaande variant blijft voor binnen-sector clustering.
+  - `Stap4ResultSchema`: `consolidatieAdvies` van type `'vermogen'` wordt eruit gefilterd; alleen `'inspanning'`-type blijft. `subEffortAnalysis` (D-11) verschuift van "per shared cap" naar "per `VermogenGelijkenisGroep`": `subEffortAnalysis: { groepId: string, domein, actie: 'combineren'|'apart_houden', items: string[], reden, voorgesteldeNaam: string|null }[]`. Indexering: `groepId + domein`.
+
+- **D-31 (prompts — vervangt D-20/D-21 deels):**
+  - Stap 2 prompt: nieuwe sectie "Markeer vermogen-gelijkenis". AI krijgt alle sector-vermogens en wijst ze toe aan groepen. Minstens één vermogen per sector in een groep; vermogens zonder cross-sector match blijven ongeclusterd. **AI mag GEEN `combineren`-advies voor vermogens geven in cross-analyse context.**
+  - Stap 3 prompt: inspanning-clustering krijgt extra regel: "Een cluster is ALLEEN geldig wanneer zijn items gekoppeld zijn aan vermogens uit dezelfde `VermogenGelijkenisGroep` én die groep alle drie sectoren bevat."
+  - Stap 4 prompt: consolidatieAdvies werkt uitsluitend op inspanningen-clusters (geen vermogens meer). `voorgesteldeNaam` regel ongewijzigd (sectoroverstijgend).
+  - `SUB_EFFORT_ANALYSE_PROMPT` (D-22) input wordt `VermogenGelijkenisGroep` (met alle drie vermogens + gekoppelde inspanningen) in plaats van één shared cap.
+
+- **D-32 (hefboom-badge op inspanningen):** Elke gebundelde inspanning in het organigram krijgt een `"Hefboom: raakt 3 sectoren via gelijkende vermogens"` badge met tooltip die de drie vermogens opsomt. Rendering: subtiele outline-badge onder de effort-titel. Maakt de methodische waarde direct zichtbaar. Hergebruikt bestaande badge-stijl uit `StapSectorVertaling`.
+
+**SUPERSEDED status:**
+- D-14 ("groep = sector-combinatie"): **REPLACED** door D-26 (groep = vermogen-gelijkenis-cluster, niet sector-combinatie).
+- D-15 ("Variant A wint absoluut"): **OBSOLETE** — er is geen Variant A/B meer. Er is één rendering-vorm: het drieluik uit D-28.
+- D-16 (domein-balans per shared cap): **REPLACED** door D-29 (per `VermogenGelijkenisGroep`).
+- D-17 (sub-effort rendering in shared-cap card): **REPLACED** door D-28 hefboomlaag-rendering.
+- D-18 schema-structuur: **AMENDED** door D-30.
+- D-20/D-21 prompts: **AMENDED** door D-31.
+
+**Behouden (nog steeds geldig):**
+- D-01..D-05 (title-guard, domain-guard, error-UX, auto-apply skip): blijven van toepassing op inspanning-merges.
+- D-06..D-09 (herzie advies regen): blijven van toepassing op inspanning-consolidatieAdvies.
+- D-10..D-13 (sub-effort analyse timing, batching, cache, empty-state): blijven, met als input-eenheid `VermogenGelijkenisGroep` in plaats van shared cap.
+- D-19 (context-veld op ConsolidatieAdviesItem): ongewijzigd.
+- D-22 (nieuwe sub-analyse prompt): input-shape aangepast (D-31), structuur ongewijzigd.
+- D-23 (legacy warning badge): nu ook voor oude sessies met `mergeCapabilities`-geconsolideerde shared-caps → "Legacy: vermogens-merge (niet meer toegepast in cross-analyse)".
+- D-24 (tests): uitbreiden met `mergeEfforts` throws bij ontbreken drieluik-drempel; `VermogenGelijkenisGroep` validatie (alle drie sectoren aanwezig).
+
 ### Claude's Discretion
 
 - Exacte Tailwind-klassen voor error-banner styling (mits rood/herkenbaar)
@@ -108,7 +164,7 @@ Het organigram rendert per groep één duidelijke keuze (Variant A onder shared 
 - `DOMAIN_COLORS` map in `StapSectorVertaling.tsx` regel 29-34 — hergebruikt in sub-effort rendering
 
 ### Methodiek
-- `docs/programmaboek.doc` — DIN-methodiek, 4 inspanningsdomeinen (Mens/Processen/Data & Systemen/Cultuur); baten zijn sector-specifiek, vermogens en inspanningen kunnen gedeeld zijn maar alleen binnen-domein samengevoegd
+- `docs/programmaboek.doc` — DIN-methodiek, 4 inspanningsdomeinen (Mens/Processen/Data & Systemen/Cultuur); **baten EN vermogens blijven sector-specifiek** — hefboomwerking ontstaat door gezamenlijke inspanningen op gelijkende sector-vermogens. Sector-herkenning behouden (elke sector ziet eigen inbreng) = methodische voorwaarde voor draagvlak.
 
 ### Prior context
 - `.planning/phases/08-cross-analyse-semantische-matching/08-CONTEXT.md` — D-09/D-10 (consolidatie met `consolidated` flag + undo), D-03 (baten NIET matchen); D-11 (geconsolideerde items tonen keten)
@@ -124,7 +180,7 @@ Het organigram rendert per groep één duidelijke keuze (Variant A onder shared 
 ## Existing Code Insights
 
 ### Reusable Assets
-- `mergeCapabilities` / `mergeEfforts` (`CrossAnalyseStep.tsx` regel 9-146) — pure functies die al `suggestedTitle` parameter accepteren; guards erbij voegen is additive
+- `mergeEfforts` (`CrossAnalyseStep.tsx` regel 9-146) — pure functie accepteert `suggestedTitle`; krijgt additief de drieluik-drempel-guard (D-27) + bestaande domein-guard (D-02). `mergeCapabilities` blijft in bestand voor legacy/binnen-sector use maar wordt NIET meer aangeroepen vanuit cross-analyse consolidatie-flow (D-25)
 - `ConsolidationActionBar` state-machine (`ConsolidationActionBar.tsx` regel 32-35: `showConfirm`, `showAfstemmingsAdvies`, `generatedAdvice`, `isGenerating`) — perfect voor toevoegen van `showGuardError` en `showHerzieAdvies` sub-states
 - Auto-apply useEffect (`StapConsolidatie.tsx` regel 108-162) — al gestructureerd met try-blocks per cluster, error-catch toevoegen is mechanisch
 - `findSuggestedTitle` helper (`StapConsolidatie.tsx` regel 99-105) — al koppelt cluster aan stap4 `voorgesteldeNaam`

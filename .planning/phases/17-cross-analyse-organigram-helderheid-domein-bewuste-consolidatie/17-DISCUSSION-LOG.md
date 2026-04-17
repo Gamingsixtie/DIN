@@ -217,3 +217,38 @@ User antwoord: **"Ja, 1 call per shared cap"** → bevestigd.
 User bevestigde: **"Schrijf CONTEXT.md"**
 
 Alle 4 gray areas doorgelopen, 16 Q's beantwoord, 24 decisions (D-01..D-24) vastgelegd in `17-CONTEXT.md` (inclusief schema/prompt extensies, legacy handling en test coverage die uit de discussies afgeleid werden).
+
+---
+
+## Addendum — Methodische correctie (2026-04-17)
+
+Voor de planning-fase startte, introduceerde de gebruiker een fundamentele methodische correctie op de cross-analyse-koers. Samengevat (user-woorden):
+
+> "Laat de vermogens intact, zodat elke sector hun eigen inbreng herkent. De drie vermogens op elkaar laten lijken is de **drempel**, maar de cross-analyse-kracht zit in de inspanningen die — op basis van de vier domeinen — alle drie gelijkende vermogens gezamenlijk raken. Dat is de hefboom naar gezamenlijke baten en gezamenlijke doelen. Lopende projecten sluit je op inspanningsniveau aan."
+
+### Kern-verschuivingen
+
+| Onderwerp | Oud (D-14..D-17) | Nieuw (D-25..D-32) |
+|---|---|---|
+| Vermogens bij cross-analyse | Samenvoegen via `mergeCapabilities` met `voorgesteldeNaam` | Intact laten per sector — alleen markeren als `VermogenGelijkenisGroep` |
+| Waar zit de hefboom | Shared capability boven aan organigram | Gezamenlijke inspanning onder drieluik van gelijkende sector-vermogens |
+| Cross-analyse drempel | Impliciet (AI-advies) | Expliciet: drieluik vermogens (PO+VO+Zakelijk) moet aantoonbaar gelijken |
+| Organigram structuur | Variant A (shared cap + efforts) vs Variant B (shared effort) | Eén vorm: drie parallelle sector-vermogens + per-domein gezamenlijke inspanningen-laag |
+| `mergeCapabilities` in cross-analyse flow | Actief gebruikt | Niet meer aangeroepen (blijft in code voor legacy/binnen-sector) |
+| Lopende projecten integratie | Onduidelijk of hier of Phase 14 | Expliciet uit scope — Phase 14 werk; Phase 17 faciliteert alleen de inspanning-centered organigram-vorm |
+
+### Methodische onderbouwing (user-argumentatie)
+
+1. **Sector-herkenning = draagvlak.** Als vermogens worden samengevoegd tot één naam, verliest de sector het gevoel van eigen bijdrage. Door de drie vermogens intact te laten ziet elke sector zijn eigen inbreng → acceptatie & adoptie.
+2. **Hefboomwerking expliciet.** Eén gezamenlijke inspanning die drie gelijkende vermogens raakt levert — via de DIN-keten — effect op drie sector-baten en drie sector-doelen. Dat is de quantitatieve waarde van cross-analyse.
+3. **Drempel is de bescherming.** Inspanningen bundelen mag alleen als de drie vermogens écht op elkaar lijken. Dat voorkomt kunstmatige "cross-analyse" waar geen gemeenschappelijk vermogen bestaat.
+4. **Vier domeinen = rangschikking, niet filter.** Binnen de hefboomlaag onder het drieluik wordt per domein getoond wat gezamenlijk wordt gedaan — zodat zichtbaar is of de aanpak compleet is (Mens én Processen én Data én Cultuur).
+
+### Effect op decisions
+
+- **REPLACED:** D-14, D-15, D-16, D-17 (het hele organigram-concept herzien)
+- **AMENDED:** D-18 (schema), D-20/D-21 (prompts), D-23 (legacy badge uitgebreid), D-24 (tests uitgebreid)
+- **BEHOUDEN:** D-01..D-13, D-19, D-22 (guards, herzie-advies, sub-effort analyse, context-veld — blijven allemaal op inspanning-niveau werken zoals gepland)
+- **NIEUW:** D-25..D-32 toegevoegd (kern-principe, gelijkende-vermogens-groep, drieluik-drempel, nieuwe organigram-rendering, hefboom-badge, etc.)
+
+Geen nieuwe gray areas besproken — de correctie was een directe methodische directive, geen open vraag. Planning kan starten op basis van de gereviseerde CONTEXT.md.
