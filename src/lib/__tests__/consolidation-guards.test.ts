@@ -1,7 +1,7 @@
-// Phase 17 — Wave 0: tests voor consolidation-guards module.
-// Guards zijn in Wave 0 stubs; deze tests bewaken de locked signatures,
-// SECTOR_NAME_REGEX pattern, MIN_TITLE_LENGTH waarde, en volledige
-// gedragscontract van computeAutoApplyResult (D-05 auto-apply skip failure).
+// Phase 17 — Wave 0 + Wave 1: tests voor consolidation-guards module.
+// Wave 0: guards zijn stubs; tests bewaken signatures, SECTOR_NAME_REGEX pattern,
+// MIN_TITLE_LENGTH waarde, en gedragscontract van computeAutoApplyResult.
+// Wave 1: guards hebben throw-logica; tests dekken alle throw-paden per D-24.
 
 import { describe, test, expect, vi } from "vitest";
 import {
@@ -13,6 +13,7 @@ import {
   computeAutoApplyResult,
   type AutoApplyCluster,
 } from "@/lib/consolidation-guards";
+import type { DINEffort } from "@/lib/types";
 
 describe("consolidation-guards module exports (Wave 0 scaffold)", () => {
   test("Test 1: all named exports resolve", () => {
@@ -79,5 +80,129 @@ describe("computeAutoApplyResult (D-05) — auto apply skip failure", () => {
     const result = computeAutoApplyResult(clusters, new Set(["a,b"]), mergeFn);
     expect(result.mergedKeys).toEqual([]);
     expect(mergeFn).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================
+// Wave 1: Guard implementation tests (D-01, D-02, D-27)
+// ============================================================
+
+describe("validateNeutralTitle (D-01)", () => {
+  test("throws on PO substring", () => {
+    expect(() => validateNeutralTitle("Training PO-leerkrachten")).toThrow(/PO/);
+  });
+
+  test("throws on VO substring", () => {
+    expect(() => validateNeutralTitle("Curriculum VO-scholen breed")).toThrow(/VO/);
+  });
+
+  test("throws on Zakelijk substring", () => {
+    expect(() => validateNeutralTitle("Training Zakelijke klanten totaal")).toThrow(/Zakelijk/);
+  });
+
+  test("throws on 'primair onderwijs'", () => {
+    expect(() => validateNeutralTitle("Strategie primair onderwijs breed")).toThrow(/primair onderwijs/i);
+  });
+
+  test("throws on <10 chars", () => {
+    expect(() => validateNeutralTitle("Kort")).toThrow(/(te kort|minimum)/i);
+  });
+
+  test("word boundary false positives — accepteert Protocol", () => {
+    expect(() => validateNeutralTitle("Protocol datakwaliteit cito-breed")).not.toThrow();
+  });
+
+  test("word boundary false positives — accepteert VOldoende", () => {
+    expect(() => validateNeutralTitle("VOldoende inzicht in leervraag")).not.toThrow();
+  });
+
+  test("word boundary false positives — accepteert Automatiseren", () => {
+    expect(() => validateNeutralTitle("Automatiseren van rapportageproces")).not.toThrow();
+  });
+
+  test("accepteert neutrale titel van exact 10 chars", () => {
+    expect(() => validateNeutralTitle("Klantgespr")).not.toThrow();
+  });
+});
+
+describe("validateSameDomain (D-02)", () => {
+  test("throws on cross-domein mens + data_systemen", () => {
+    expect(() =>
+      validateSameDomain([
+        { id: "a", domain: "mens" } as DINEffort,
+        { id: "b", domain: "data_systemen" } as DINEffort,
+      ])
+    ).toThrow(/mens.*data_systemen|data_systemen.*mens/);
+  });
+
+  test("accepts same-domein mens + mens", () => {
+    expect(() =>
+      validateSameDomain([
+        { id: "a", domain: "mens" } as DINEffort,
+        { id: "b", domain: "mens" } as DINEffort,
+      ])
+    ).not.toThrow();
+  });
+
+  test("accepts empty items list", () => {
+    expect(() => validateSameDomain([])).not.toThrow();
+  });
+});
+
+describe("validateDrieluikThreshold (D-27)", () => {
+  test("throws when efforts raken geen groep", () => {
+    expect(() =>
+      validateDrieluikThreshold(["eff-1", "eff-2"], {
+        gelijkenisGroepen: [
+          { id: "g1", vermogenIds: ["cap-x"], gezamenlijkeOmschrijving: "x", reden: "y" },
+        ],
+        capEffortMaps: [
+          { capabilityId: "cap-y", effortId: "eff-1" },
+          { capabilityId: "cap-z", effortId: "eff-2" },
+        ],
+      })
+    ).toThrow(/drieluik|drempel/i);
+  });
+
+  test("accepts when efforts all reach one groep", () => {
+    expect(() =>
+      validateDrieluikThreshold(["eff-1", "eff-2"], {
+        gelijkenisGroepen: [
+          {
+            id: "g1",
+            vermogenIds: ["cap-po", "cap-vo", "cap-zak"],
+            gezamenlijkeOmschrijving: "x",
+            reden: "y",
+          },
+        ],
+        capEffortMaps: [
+          { capabilityId: "cap-po", effortId: "eff-1" },
+          { capabilityId: "cap-vo", effortId: "eff-2" },
+        ],
+      })
+    ).not.toThrow();
+  });
+
+  test("accepts when efforts all reach SAME cap (within one groep)", () => {
+    expect(() =>
+      validateDrieluikThreshold(["eff-1", "eff-2"], {
+        gelijkenisGroepen: [
+          { id: "g1", vermogenIds: ["cap-po", "cap-vo"], gezamenlijkeOmschrijving: "x", reden: "y" },
+        ],
+        capEffortMaps: [
+          { capabilityId: "cap-po", effortId: "eff-1" },
+          { capabilityId: "cap-po", effortId: "eff-2" },
+        ],
+      })
+    ).not.toThrow();
+  });
+
+  test("accepts empty effortIds list (no items to merge)", () => {
+    expect(() =>
+      validateDrieluikThreshold([], {
+        gelijkenisGroepen: [],
+        capEffortMaps: [],
+      })
+    ).not.toThrow();
   });
 });
