@@ -164,11 +164,18 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
 BELANGRIJK: Verwijs naar specifieke doelen en baten uit de data. Antwoord in het Nederlands.`;
 
 export const CROSS_ANALYSE_STAP2_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
-Analyseer welke vermogens door meerdere sectoren gedeeld worden en waar hefboomwerking zit.
 
-Cluster vermogens die semantisch op hetzelfde neerkomen over sectoren heen.
 Gebruik de id-velden om items te identificeren in je clusters.
-Identificeer inspanningen die aan meerdere baten bijdragen (hefboomwerking).
+
+BELANGRIJK — Vermogens worden NIET samengevoegd in cross-analyse (D-25).
+De drie sector-vermogens blijven aparte records. Markeer uitsluitend gelijkenis via \`vermogenGelijkenisGroepen\`.
+
+Voor elke groep van gelijkende sector-vermogens:
+- Minimaal ÉÉN vermogen per sector uit {PO, VO, Zakelijk}. Als je geen drieluik kunt samenstellen (bv. één sector mist), laat die vermogens ongeclusterd.
+- \`gezamenlijkeOmschrijving\`: waarom deze vermogens inhoudelijk op elkaar lijken (zelfde capaciteit, zelfde doel-keten).
+- \`reden\`: korte onderbouwing (1-2 zinnen, methodiek-conform).
+
+Voor \`vermogenClusters[].aanbeveling\`: gebruik UITSLUITEND \`"markeer_gelijkenis"\` wanneer het een cross-sector gelijkenis betreft. \`"combineren"\` is NIET toegestaan voor vermogens in cross-analyse. De enum-waardes \`"afstemmen"\` en \`"apart_houden"\` zijn toegestaan.
 
 Antwoord ALLEEN als JSON-object met EXACT deze structuur:
 {
@@ -177,17 +184,25 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
       "clusterTitel": "Titel van het gedeelde vermogen",
       "items": [{ "id": "uuid", "beschrijving": "...", "sector": "PO" }],
       "batenContext": [{ "baat": "naam baat", "sector": "PO" }],
-      "advies": "Waarom deze combineren/afstemmen/apart houden",
-      "aanbeveling": "combineren"
+      "advies": "Waarom deze markeer_gelijkenis/afstemmen/apart houden",
+      "aanbeveling": "markeer_gelijkenis"
     }
   ],
   "hefboomwerking": [
     { "inspanning": "Naam", "bijdraagtAan": ["Baat A"], "prioriteit": "hoog" }
   ],
+  "vermogenGelijkenisGroepen": [
+    {
+      "id": "g1",
+      "vermogenIds": ["<cap-po-id>", "<cap-vo-id>", "<cap-zak-id>"],
+      "gezamenlijkeOmschrijving": "Medewerker-wendbaarheid bij digitalisering",
+      "reden": "Alle drie sectoren vereisen adaptief vermogen bij snelle digitaliseringstrajecten."
+    }
+  ],
   "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"
 }
 
-aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
+aanbeveling MOET exact een van: "markeer_gelijkenis", "afstemmen", "apart_houden" zijn. "combineren" is NIET toegestaan voor vermogens in cross-analyse (D-25).
 BELANGRIJK: Gebruik de werkelijke id-velden uit de data. Antwoord in het Nederlands.`;
 
 export const CROSS_ANALYSE_STAP3_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek).
@@ -196,6 +211,15 @@ Analyseer overlap in inspanningen over sectoren en koppel lopende projecten aan 
 Cluster inspanningen die semantisch overlappen over sectoren.
 Gebruik de id-velden om items te identificeren in je clusters.
 Koppel lopende projecten aan DIN-inspanningen (match/geen match).
+
+Cluster-regel inspanningen (D-27, D-31):
+Een inspannings-cluster is ALLEEN geldig wanneer:
+1. Alle items hetzelfde \`domain\` hebben (Mens, Processen, Data & Systemen, Cultuur). Cross-domein clusters zijn methodisch fout.
+2. Alle items via \`capabilityEffortMap\` terug-refereren naar vermogens uit dezelfde \`VermogenGelijkenisGroep\` (zie stap 2 output) die alle drie sectoren (PO, VO, Zakelijk) bevat.
+
+Als een inspanning geen drieluik-gekoppelde vermogens raakt, laat die inspanning ongeclusterd (of in een single-item cluster met \`aanbeveling: "apart_houden"\`).
+
+\`clusterTitel\` + eventuele \`voorgesteldeNaam\` zijn ALTIJD sectoroverstijgend (geen \`PO\`/\`VO\`/\`Zakelijk\`/\`primair onderwijs\`/\`voortgezet onderwijs\` substrings, minimum 10 tekens).
 
 Antwoord ALLEEN als JSON-object met EXACT deze structuur:
 {
@@ -232,23 +256,135 @@ Beoordeel per cluster of samenvoegen zinvol is op basis van:
 - Organisatorische haalbaarheid (kunnen sectoren dit samen?)
 - Methodische correctheid (mag dit volgens DIN-methodiek gedeeld?)
 
+Bij aanbeveling "afstemmen": geef 2-4 concrete afstemmingsStappen.
+Dit zijn actiepunten die de programmamanager kan uitvoeren om de items op elkaar af te stemmen ZONDER ze samen te voegen. Denk aan:
+- Harmonisatie van KPI's of definities
+- Afstemming van eigenaarschap of governance
+- Gedeelde meetings, rapportages of reviews
+- Afstemming van tijdlijnen of afhankelijkheden
+- Gezamenlijke kwaliteitscriteria of meetmomenten
+
+CITO-BREED INZICHT PER DOMEIN (verplicht):
+Geef VOOR ELK VAN DE VIER INSPANNINGSDOMEINEN precies één Cito-breed inzicht.
+De vier domeinen (altijd alle vier!):
+- "mens": opleiding, training, bemensing, competentieontwikkeling
+- "processen": werkwijzen, procedures, governance, samenwerking
+- "data_systemen": IT-systemen, data-infrastructuur, tooling, integraties
+- "cultuur": gedrag, mindset, waarden, leiderschapsontwikkeling
+
+Consolidatie-advies regels (D-25, D-30, D-31):
+- \`consolidatieAdvies[].type\` is UITSLUITEND \`"inspanning"\` in cross-analyse. Produceer GEEN \`type: "vermogen"\` advies — vermogens worden niet meer samengevoegd in cross-analyse (zie D-25). Het bestaande \`type: "inspanning"\` voorbeeld hieronder is het enige geldige patroon.
+- \`aanbeveling: "combineren"\` is ALLEEN toegestaan wanneer ALLE cluster-items hetzelfde \`domain\` hebben.
+- \`voorgesteldeNaam\` is verplicht bij \`"combineren"\` en MOET sectoroverstijgend zijn (geen \`PO\`/\`VO\`/\`Zakelijk\`/\`primair onderwijs\`/\`voortgezet onderwijs\` substrings, minimum 10 tekens).
+- Bij \`"afstemmen"\` of \`"apart_houden"\`: \`voorgesteldeNaam\` mag \`null\` of weggelaten worden.
+
+Voor elk domein:
+- Kijk naar alle vermogens en inspanningen die in dat domein vallen (ook als ze NIET geconsolideerd zijn)
+- Formuleer een concrete kans die Cito-breed (organisatie-overstijgend) kan gelden
+- Zelfs als er slechts één sector een item heeft in dit domein, benoem hoe dit principe of aanpak Cito-breed kan worden toegepast
+- Onderbouw met concrete verwijzingen naar items uit de input
+
 Antwoord ALLEEN als JSON-object met EXACT deze structuur:
 {
   "consolidatieAdvies": [
     {
-      "clusterTitel": "Titel van het cluster",
-      "type": "vermogen",
-      "aanbeveling": "combineren",
-      "reden": "Concrete onderbouwing waarom dit advies",
-      "voorgesteldeNaam": "Voorgestelde naam na samenvoeging (alleen bij combineren)"
+      "clusterTitel": "Ander cluster",
+      "type": "inspanning",
+      "aanbeveling": "afstemmen",
+      "reden": "Concrete onderbouwing waarom afstemmen",
+      "voorgesteldeNaam": null,
+      "afstemmingsStappen": ["Harmoniseer KPI-definities tussen PO en VO", "Stel gezamenlijk kwartaaloverleg in", "Definieer gedeelde kwaliteitscriteria"]
+    }
+  ],
+  "citobreedInzicht": [
+    {
+      "domein": "mens",
+      "titel": "Korte titel (max 8 woorden)",
+      "beschrijving": "Concrete kans die Cito-breed toegepast kan worden (1-2 zinnen)",
+      "onderbouwing": "Waarom dit breder dan één sector kan gelden, met verwijzing naar concrete items uit de input",
+      "relevanteItems": ["Naam van item 1 (sector)", "Naam van item 2 (sector)"]
+    },
+    {
+      "domein": "processen",
+      "titel": "...",
+      "beschrijving": "...",
+      "onderbouwing": "...",
+      "relevanteItems": []
+    },
+    {
+      "domein": "data_systemen",
+      "titel": "...",
+      "beschrijving": "...",
+      "onderbouwing": "...",
+      "relevanteItems": []
+    },
+    {
+      "domein": "cultuur",
+      "titel": "...",
+      "beschrijving": "...",
+      "onderbouwing": "...",
+      "relevanteItems": []
     }
   ],
   "samenvatting": "Korte samenvatting van het consolidatie-advies (2-3 zinnen)"
 }
 
-type MOET exact "vermogen" of "inspanning" zijn.
+type MOET exact "inspanning" zijn in cross-analyse-output (D-25). "vermogen" is NIET toegestaan.
 aanbeveling MOET exact een van: "combineren", "afstemmen", "apart_houden" zijn.
+afstemmingsStappen: verplicht bij "afstemmen" (2-4 concrete stappen), leeg bij andere aanbevelingen.
+citobreedInzicht MOET alle vier domeinen bevatten ("mens", "processen", "data_systemen", "cultuur"), precies één per domein.
+Als een domein weinig input heeft: benoem de kans op principieel niveau en leg uit waarom dit voor Cito breed kan gelden.
 BELANGRIJK: Antwoord in het Nederlands.`;
+
+export const CONSOLIDATIE_HERZIEN_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek) en herziet één consolidatie-advies op basis van gebruikerscontext.
+
+Input krijg je:
+- Cluster-titel en cluster-items (met sector en domein)
+- Het originele AI-advies (aanbeveling, reden, voorgesteldeNaam, afstemmingsStappen)
+- Optioneel: gebruikerscontext die verklaart waarom het oorspronkelijke advies niet past
+
+Lever ALTIJD een herzien advies in dit JSON-schema:
+{
+  "aanbeveling": "combineren" | "afstemmen" | "apart_houden",
+  "reden": "<onderbouwing — mag verwijzen naar de gebruikerscontext>",
+  "voorgesteldeNaam": "<sectoroverstijgende titel, verplicht bij combineren>" | null,
+  "afstemmingsStappen": ["<3-5 concrete stappen>"]
+}
+
+Regels (D-25, D-31):
+- Respecteer methodiek-regels: geen cross-domein combineren, geen sector-substrings in voorgesteldeNaam.
+- Voor vermogen-clusters (legacy): NOOIT "combineren" adviseren — kies "afstemmen" of "apart_houden".
+- Als de gebruikerscontext het originele advies bevestigt: herbevestig met dezelfde aanbeveling maar versterk de reden.
+- Produceer ALLEEN geldige JSON, geen prose errom.`;
+
+export const SUB_EFFORT_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek) en analyseert inspanningen per inspannings-domein onder een VermogenGelijkenisGroep.
+
+Een VermogenGelijkenisGroep bevat drie (of meer) sector-vermogens die inhoudelijk op elkaar lijken (PO + VO + Zakelijk). Inspanningen die aan deze vermogens gekoppeld zijn kunnen per domein worden geclusterd of apart blijven.
+
+Input krijg je (JSON):
+{
+  "groep": { "id": "<groepId>", "vermogenIds": [...], "gezamenlijkeOmschrijving": "...", "reden": "..." },
+  "vermogens": [{ "id": "...", "sectorId": "PO|VO|Zakelijk", "title"|"description": "..." }],
+  "efforts":   [{ "id": "...", "sectorId": "...", "domain": "mens|processen|data_systemen|cultuur", "title": "...", "description": "..." }]
+}
+
+Lever een array \`SubEffortAdvies[]\` met één entry per (groep × domein) waar minstens één gekoppelde inspanning staat:
+{
+  "groepId": "<zelfde als input.groep.id>",
+  "domein": "mens" | "processen" | "data_systemen" | "cultuur",
+  "actie": "combineren" | "apart_houden",
+  "items": ["<effort-id>", "..."],
+  "reden": "<methodiek-conforme onderbouwing>",
+  "voorgesteldeNaam": "<sectoroverstijgende titel>" | null
+}
+
+Regels (D-11, D-31):
+- ÉÉN advies per domein binnen een groep. Geen cross-domein combineren.
+- \`voorgesteldeNaam\` is VERPLICHT bij \`actie: "combineren"\` en MOET sectoroverstijgend zijn (geen PO/VO/Zakelijk substrings, min 10 chars).
+- Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` is \`null\`.
+- Gebruik cross-domein context ALLEEN om je reden te versterken ("Mens-training ondersteunt Data-implementatie"), maar nooit als justificatie voor cross-domein merge.
+- Als een domein geen gekoppelde inspanningen heeft, laat dat domein WEG uit de response (geen lege entries — dat doet de client).
+- Produceer ALLEEN geldige JSON, geen prose errom.`;
 
 export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's, Hfst 8 — Hefboomwerking).
 
