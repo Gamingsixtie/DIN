@@ -8,6 +8,7 @@ import {
   Stap3ResultSchema,
   Stap4ResultSchema,
   Stap5ResultSchema,
+  SubEffortAdviesSchema,
 } from "@/lib/schemas";
 import {
   CROSS_ANALYSE_PROMPT,
@@ -16,10 +17,11 @@ import {
   CROSS_ANALYSE_STAP3_PROMPT,
   CROSS_ANALYSE_STAP4_PROMPT,
   CROSS_ANALYSE_STAP5_PROMPT,
+  SUB_EFFORT_ANALYSE_PROMPT,
 } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 import { getFocusGoal } from "@/lib/stap5-focus";
-import type { z } from "zod";
+import { z } from "zod";
 
 export const maxDuration = 300;
 
@@ -218,9 +220,81 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // --- D-10/D-11 (Phase 17): sub-effort analyse per VermogenGelijkenisGroep (alleen stap 4) ---
+      // Voor elke drieluik-groep uit stap 2 roepen we parallel SUB_EFFORT_ANALYSE_PROMPT aan.
+      // Groepen zonder gekoppelde efforts worden geskipt (D-13: geen verspilde tokens).
+      let subEffortAnalysisFlat: Array<z.infer<typeof SubEffortAdviesSchema>> = [];
+
+      if (stap === 4) {
+        const groepen =
+          (body.stap2Result as {
+            vermogenGelijkenisGroepen?: Array<{
+              id: string;
+              vermogenIds: string[];
+              gezamenlijkeOmschrijving: string;
+              reden: string;
+            }>;
+          } | undefined)?.vermogenGelijkenisGroepen ?? [];
+
+        const capEffortMapsLocal = (body.capabilityEffortMaps ?? []) as Array<{
+          capabilityId: string;
+          effortId: string;
+        }>;
+
+        const subAnalyses = await Promise.all(
+          groepen.map(async (groep) => {
+            const capIdSet = new Set(groep.vermogenIds);
+            const groepVermogens = capsData.filter((c: { id: string }) => capIdSet.has(c.id));
+            const groepEffortIdSet = new Set(
+              capEffortMapsLocal
+                .filter((m) => capIdSet.has(m.capabilityId))
+                .map((m) => m.effortId)
+            );
+            const groepEfforts = effortsData.filter((e: { id: string }) =>
+              groepEffortIdSet.has(e.id)
+            );
+
+            if (groepEfforts.length === 0) {
+              // D-13: skip AI-call — geen gekoppelde efforts
+              return [];
+            }
+
+            const subSystemPrompt = assembleSystemPrompt(
+              SUB_EFFORT_ANALYSE_PROMPT,
+              "cross-analyse",
+              undefined,
+              kibContext
+            );
+
+            const subUserMessage = JSON.stringify(
+              { groep, vermogens: groepVermogens, efforts: groepEfforts },
+              null,
+              2
+            );
+
+            const subResult = await callClaudeWithValidation(
+              z.array(SubEffortAdviesSchema),
+              subSystemPrompt,
+              subUserMessage,
+              { maxTokens: 4096 }
+            );
+
+            return subResult.success ? subResult.data : [];
+          })
+        );
+
+        subEffortAnalysisFlat = subAnalyses.flat();
+      }
+
       return NextResponse.json({
         success: true,
-        data: { analysis: result.data, stap },
+        data: {
+          analysis:
+            stap === 4
+              ? { ...(result.data as object), subEffortAnalysis: subEffortAnalysisFlat }
+              : result.data,
+          stap,
+        },
       });
     }
 

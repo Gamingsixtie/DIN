@@ -14,19 +14,116 @@ import {
   DIN_CREATE_VERMOGEN_PROMPT,
   DIN_CREATE_INSPANNING_PROMPT,
   DIN_DOMAIN_RECOMMEND_PROMPT,
+  CONSOLIDATIE_HERZIEN_PROMPT,
 } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext, buildSectorwerkBlock, buildCompletedGoalsContext, type ProgrammaboekUseCase } from "@/lib/prompt-assembly";
 import type { CompletedGoalContext } from "@/lib/prompt-assembly";
 import type { SectorplanAnalyseResult } from "@/lib/types";
 import { validateBaat, validateVermogen, validateInspanning } from "@/lib/din-validation";
-import type { z } from "zod";
+import { z } from "zod";
 
 export const maxDuration = 300;
+
+// Phase 17 (D-19): herziet één consolidatie-advies op basis van user-context.
+const ConsolidatieHerzienResponseSchema = z.object({
+  aanbeveling: z.enum(["combineren", "afstemmen", "apart_houden"]),
+  reden: z.string(),
+  voorgesteldeNaam: z.string().nullable().optional(),
+  afstemmingsStappen: z.array(z.string()).optional().default([]),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { type, context, mode } = body;
+
+    // Consolidatie-advies modus: direct prompt → JSON array
+    if (type === "consolidatie-advies" && body.prompt) {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return NextResponse.json({
+          success: true,
+          data: { suggestions: ["ANTHROPIC_API_KEY niet geconfigureerd."] },
+        });
+      }
+
+      const { default: Anthropic } = await import("@anthropic-ai/sdk");
+      const client = new Anthropic();
+      const msg = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: body.prompt }],
+      });
+
+      const text = msg.content
+        .filter((b) => b.type === "text")
+        .map((b) => ("text" in b ? b.text : ""))
+        .join("");
+
+      try {
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed)) {
+            return NextResponse.json({ success: true, data: { suggestions: parsed } });
+          }
+        }
+      } catch { /* fall through */ }
+
+      return NextResponse.json({
+        success: true,
+        data: { suggestions: [text.trim()] },
+      });
+    }
+
+    // Phase 17 (D-19): herzie één consolidatie-advies o.b.v. user-context.
+    // Request shape: { type: "consolidatie-herzien", clusterTitel, clusterItems[], origineelAdvies, userContext?, kibGoals?, kibScope? }
+    if (type === "consolidatie-herzien" && body.clusterItems && body.origineelAdvies) {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return NextResponse.json(
+          { success: false, error: "ANTHROPIC_API_KEY niet geconfigureerd." },
+          { status: 503 }
+        );
+      }
+
+      const systemPrompt = assembleSystemPrompt(
+        CONSOLIDATIE_HERZIEN_PROMPT,
+        "cross-analyse",
+        undefined,
+        extractKiBContext({ goals: body.kibGoals, scope: body.kibScope })
+      );
+
+      const clusterItems = body.clusterItems as Array<{
+        beschrijving: string;
+        sector: string;
+        domein?: string;
+      }>;
+
+      const userMessage = [
+        `Cluster: "${body.clusterTitel ?? "onbekend"}"`,
+        `Items:\n${clusterItems
+          .map((it) => `- ${it.beschrijving} (${it.sector}${it.domein ? `, ${it.domein}` : ""})`)
+          .join("\n")}`,
+        `Origineel AI-advies:\n${JSON.stringify(body.origineelAdvies, null, 2)}`,
+        body.userContext ? `Gebruikerscontext voor herziening:\n${body.userContext}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const result = await callClaudeWithValidation(
+        ConsolidatieHerzienResponseSchema,
+        systemPrompt,
+        userMessage,
+        { maxTokens: 2048, maxRetries: 1 }
+      );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error, retryable: true },
+          { status: 422 }
+        );
+      }
+      return NextResponse.json({ success: true, data: result.data });
+    }
 
     if (!type || !["baat", "vermogen", "inspanning"].includes(type)) {
       return NextResponse.json(

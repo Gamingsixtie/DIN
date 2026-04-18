@@ -455,3 +455,58 @@ describe("Stap4ResultSchema backward compat (D-19, D-30)", () => {
     if (result.success) expect(result.data.subEffortAnalysis).toHaveLength(1);
   });
 });
+
+// ============================================================
+// Phase 17 — Integratie-casus: volledige stap 4 response shape (D-30)
+// Verifieer dat de AI-gegenereerde response shape (met subEffortAnalysis
+// en consolidatieAdvies[].context) via Stap4ResultSchema parseerbaar is.
+// ============================================================
+
+describe("Stap4ResultSchema sub effort advies integration (D-30)", () => {
+  test("volledig stap 4 response met subEffortAnalysis parseert succesvol", () => {
+    const mockResponse = {
+      consolidatieAdvies: [
+        {
+          clusterTitel: "Medewerkerstraining cluster",
+          type: "inspanning" as const,
+          aanbeveling: "combineren" as const,
+          reden: "Drie trainingen met identiek doel",
+          voorgesteldeNaam: "Sector-overstijgende klantgesprek-training",
+          afstemmingsStappen: ["Stem agenda af", "Plan kwartaalslot"],
+          context: "User wil focus op data-domein erbij betrekken",
+        },
+      ],
+      citobreedInzicht: [],
+      subEffortAnalysis: [
+        {
+          groepId: "g1",
+          domein: "mens" as const,
+          actie: "combineren" as const,
+          items: ["eff-po-1", "eff-vo-1", "eff-zak-1"],
+          reden: "Drie trainingen met identieke inhoud",
+          voorgesteldeNaam: "Sector-overstijgende training",
+        },
+        {
+          groepId: "g1",
+          domein: "processen" as const,
+          actie: "apart_houden" as const,
+          items: ["eff-proc-1"],
+          reden: "Proces-gebonden aan sector-governance",
+          voorgesteldeNaam: null,
+        },
+      ],
+      samenvatting: "Consolidatie mogelijk in Mens-domein",
+    };
+    const result = Stap4ResultSchema.safeParse(mockResponse);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subEffortAnalysis).toHaveLength(2);
+      expect(result.data.subEffortAnalysis[0].groepId).toBe("g1");
+      expect(result.data.subEffortAnalysis[0].domein).toBe("mens");
+      expect(result.data.subEffortAnalysis[1].actie).toBe("apart_houden");
+      expect(result.data.consolidatieAdvies[0].context).toBe(
+        "User wil focus op data-domein erbij betrekken"
+      );
+    }
+  });
+});
