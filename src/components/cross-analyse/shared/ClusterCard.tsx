@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { VermogenClusterItem, InspanningClusterItem } from "@/lib/types";
 import SectorBadge from "./SectorBadge";
 import ConsolidationActionBar from "./ConsolidationActionBar";
@@ -14,6 +15,55 @@ interface ClusterCardProps {
   onReview: () => void;
   isReviewed: boolean;
   readOnly?: boolean;
+  afstemmingsStappen?: string[];
+  onGenerateAdvice?: () => Promise<string[]>;
+  // Phase 17 Wave 3 — Herzie-advies + Vereist review
+  onHerzieAdvies?: (userContext: string) => Promise<void>;
+  isHerzienLoading?: boolean;
+  savedContext?: string;
+  requiresReview?: boolean;
+}
+
+// Phase 17: Inline Herzie-advies input (context textarea + submit button)
+function HerzieAdviesInput({
+  onSubmit,
+  isLoading,
+}: {
+  onSubmit: (context: string) => Promise<void>;
+  isLoading: boolean;
+}) {
+  const [context, setContext] = useState("");
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        value={context}
+        onChange={(e) => setContext(e.target.value)}
+        disabled={isLoading}
+        placeholder="Voeg context toe voor een herzien advies (bv. focus op data-domein)..."
+        className="w-full text-xs border border-gray-300 rounded p-2 disabled:opacity-50"
+        rows={2}
+      />
+      <button
+        onClick={async () => {
+          await onSubmit(context);
+        }}
+        disabled={isLoading}
+        className="self-start text-xs px-3 py-1 rounded bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 flex items-center gap-1"
+      >
+        {isLoading ? (
+          <>
+            <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+              <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" fill="none" />
+            </svg>
+            Bezig...
+          </>
+        ) : (
+          "Herzie advies"
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function ClusterCard({
@@ -26,6 +76,12 @@ export default function ClusterCard({
   onReview,
   isReviewed,
   readOnly = false,
+  afstemmingsStappen,
+  onGenerateAdvice,
+  onHerzieAdvies,
+  isHerzienLoading,
+  savedContext,
+  requiresReview,
 }: ClusterCardProps) {
   const borderColor = type === "vermogen" ? "border-l-teal-400" : "border-l-indigo-400";
   const itemIds = cluster.items.map(item => item.id);
@@ -77,7 +133,41 @@ export default function ClusterCard({
           sharedId={sharedId}
           onReview={onReview}
           isReviewed={isReviewed}
+          afstemmingsStappen={afstemmingsStappen}
+          onGenerateAdvice={onGenerateAdvice}
+          onHerzieAdvies={onHerzieAdvies}
         />
+      )}
+
+      {/* Phase 17 Wave 3 — Vereist review badge (auto-apply failure) */}
+      {requiresReview && (
+        <div
+          className="border-l-4 border-red-500 bg-red-50 px-3 py-2 my-2 rounded"
+          data-testid="requires-review-badge"
+        >
+          <p className="text-xs font-semibold text-red-700">Vereist review</p>
+          <p className="text-[11px] text-red-600">
+            Auto-apply kon dit cluster niet veilig samenvoegen — bekijk het advies en pas handmatig aan.
+          </p>
+        </div>
+      )}
+
+      {/* Phase 17 Wave 3 — Herzie-advies sectie (D-19) */}
+      {onHerzieAdvies && !readOnly && (
+        <div
+          className="mt-3 border-t border-gray-200 pt-3"
+          data-testid="herzie-advies-section"
+        >
+          {savedContext && (
+            <p className="text-[11px] text-gray-600 mb-2 italic">
+              <span className="font-semibold">Herzien met context:</span> {savedContext}
+            </p>
+          )}
+          <HerzieAdviesInput
+            onSubmit={onHerzieAdvies}
+            isLoading={isHerzienLoading ?? false}
+          />
+        </div>
       )}
     </div>
   );

@@ -8,7 +8,12 @@ import {
   mergeEfforts,
   undoMergeEfforts,
 } from "@/components/steps/CrossAnalyseStep";
-import { ClusterCard, SectorBadge } from "./shared";
+import {
+  computeAutoApplyResult,
+  type DrieluikContext,
+  type AutoApplyCluster,
+} from "@/lib/consolidation-guards";
+import { ClusterCard } from "./shared";
 import type {
   DINSession,
   Stap2Result,
@@ -35,6 +40,39 @@ const AANBEVELING_LABEL: Record<string, string> = {
   apart_houden: "Apart houden",
 };
 
+const DOMEIN_META: Record<string, { label: string; bg: string; text: string; border: string; icon: string }> = {
+  mens: {
+    label: "Mens",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  },
+  processen: {
+    label: "Processen",
+    bg: "bg-green-50",
+    text: "text-green-700",
+    border: "border-green-200",
+    icon: "M4 6h16M4 12h16M4 18h16",
+  },
+  data_systemen: {
+    label: "Data & Systemen",
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
+    icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4",
+  },
+  cultuur: {
+    label: "Cultuur",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    border: "border-amber-200",
+    icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
+  },
+};
+
+const DOMEIN_ORDER = ["mens", "processen", "data_systemen", "cultuur"] as const;
+
 export default function StapConsolidatie({
   session,
   stap2Result,
@@ -48,10 +86,16 @@ export default function StapConsolidatie({
   const [reviewedClusters, setReviewedClusters] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Phase 17 Wave 3 — failed auto-apply clusters + review + herzie state
+  const [failedClusterKeys, setFailedClusterKeys] = useState<Set<string>>(new Set());
+  const [clusterReasons, setClusterReasons] = useState<Record<string, string>>({});
+  const [clusterContexts, setClusterContexts] = useState<Record<string, string>>({});
+  const [herzienLoadingKeys, setHerzienLoadingKeys] = useState<Set<string>>(new Set());
+
   // Toast auto-clear
   useEffect(() => {
     if (toastMessage) {
-      const timer = setTimeout(() => setToastMessage(null), 3000);
+      const timer = setTimeout(() => setToastMessage(null), 4000);
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
@@ -62,108 +106,141 @@ export default function StapConsolidatie({
   const inspanningClusters = stap3Result?.inspanningClusters ?? [];
   const hasAnyClusters = vermogenClusters.length > 0 || inspanningClusters.length > 0;
 
-  // --- Auto-apply "combineren" aanbevelingen na stap 4 ---
+  // Zoek voorgesteldeNaam uit stap4 advies voor een cluster
+  function findSuggestedTitle(clusterTitel: string): string | undefined {
+    if (!stap4Result?.consolidatieAdvies) return undefined;
+    const advies = stap4Result.consolidatieAdvies.find(
+      (a) => a.clusterTitel === clusterTitel && a.voorgesteldeNaam
+    );
+    return advies?.voorgesteldeNaam ?? undefined;
+  }
+
+  // --- Phase 17 Wave 3: Auto-apply "combineren" via 3-stappen pattern (W-5 fix) ---
+  //
+  // BELANGRIJK: React 19 Strict Mode dispatcht reducers tweemaal tijdens development.
+  // Een setState binnen een updateSession(prev => ...) reducer is een anti-pattern
+  // dat tot dubbele updates leidt. Het 3-stappen pattern borgt veiligheid:
+  //  A) Pure compute buiten React state — muteer alleen lokale vars.
+  //  B) updateSession met een pure reducer die alleen de voorberekende session returnt.
+  //  C) Aparte setState calls buiten de reducer.
   useEffect(() => {
     if (autoApplied) return;
-    // Auto-apply wanneer stap4Result binnenkomt, of op basis van stap2/3 aanbevelingen
     const hasCombineren =
-      vermogenClusters.some((c) => c.aanbeveling === "combineren") ||
       inspanningClusters.some((c) => c.aanbeveling === "combineren");
     if (!hasCombineren) return;
 
     setAutoApplied(true);
-    let count = 0;
 
-    updateSession((prev) => {
-      let updated = prev;
+    // === STAP A — Pure compute BUITEN React state ===
+    const drieluikCtx: DrieluikContext = {
+      gelijkenisGroepen: stap2Result?.vermogenGelijkenisGroepen ?? [],
+      capEffortMaps: session.capabilityEffortMaps,
+    };
 
-      // Auto-merge vermogen clusters met "combineren"
-      for (const cluster of vermogenClusters) {
-        if (cluster.aanbeveling !== "combineren") continue;
-        const ids = cluster.items.map((it) => it.id);
-        if (ids.length < 2) continue;
-        // Skip als al gemerged
-        const key = [...ids].sort().join(",");
-        if (mergedCapClusters.has(key)) continue;
+    const clusters: AutoApplyCluster[] = inspanningClusters
+      .filter((c) => c.aanbeveling === "combineren")
+      .map((c) => {
+        const ids = c.items.map((it) => it.id);
+        return {
+          key: [...ids].sort().join(","),
+          itemIds: ids,
+          suggestedTitle: findSuggestedTitle(c.clusterTitel),
+        };
+      });
 
-        updated = mergeCapabilities(updated, ids);
-        const sharedId = updated.capabilities[updated.capabilities.length - 1]?.id;
-        if (sharedId) {
-          setMergedCapClusters((p) => new Map(p).set(key, sharedId));
-          count++;
-        }
+    let updatedSession = session;
+    const newMergeKeyMap = new Map(mergedEffClusters);
+    const alreadyMerged = new Set(mergedEffClusters.keys());
+
+    const mergeFn = (ids: string[], title?: string) => {
+      updatedSession = mergeEfforts(updatedSession, ids, title, drieluikCtx);
+      const sharedId = updatedSession.efforts[updatedSession.efforts.length - 1]?.id;
+      if (sharedId) {
+        newMergeKeyMap.set([...ids].sort().join(","), sharedId);
       }
+    };
 
-      // Auto-merge inspanning clusters met "combineren"
-      for (const cluster of inspanningClusters) {
-        if (cluster.aanbeveling !== "combineren") continue;
-        const ids = cluster.items.map((it) => it.id);
-        if (ids.length < 2) continue;
-        const key = [...ids].sort().join(",");
-        if (mergedEffClusters.has(key)) continue;
+    const result = computeAutoApplyResult(clusters, alreadyMerged, mergeFn);
 
-        updated = mergeEfforts(updated, ids);
-        const sharedId = updated.efforts[updated.efforts.length - 1]?.id;
-        if (sharedId) {
-          setMergedEffClusters((p) => new Map(p).set(key, sharedId));
-          count++;
-        }
-      }
+    // === STAP B — updateSession met voorberekende session (reducer is PUUR) ===
+    updateSession(() => updatedSession);
 
-      return updated;
-    });
+    // === STAP C — aparte setState calls BUITEN de reducer ===
+    setMergedEffClusters(() => newMergeKeyMap);
+    setFailedClusterKeys(new Set(result.failedKeys));
+    setClusterReasons(result.reasons);
 
-    if (count > 0) {
-      setToastMessage(`${count} cluster${count > 1 ? "s" : ""} automatisch samengevoegd`);
-    }
+    const mergedN = result.mergedKeys.length;
+    const failedN = result.failedKeys.length;
+    const summary =
+      failedN > 0
+        ? `${mergedN} cluster${mergedN !== 1 ? "s" : ""} samengevoegd, ${failedN} vereisen review`
+        : `${mergedN} cluster${mergedN !== 1 ? "s" : ""} samengevoegd`;
+    if (mergedN > 0 || failedN > 0) setToastMessage(summary);
+
+    // Opmerking D-25: vermogen-clusters met "combineren" worden NIET meer auto-toegepast
+    // in cross-analyse flow. mergeCapabilities blijft geëxporteerd voor legacy handmatige
+    // use, maar Wave 2 prompt stelt "markeer_gelijkenis" voor op vermogens i.p.v. combineren.
   }, [stap2Result, stap3Result, stap4Result, autoApplied]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Consolidation handlers (per D-10 -- reuse existing pure functions) ---
 
-  function handleMergeCapabilities(clusterItemIds: string[]) {
+  function handleMergeCapabilities(clusterItemIds: string[], clusterTitel?: string) {
+    const title = clusterTitel ? findSuggestedTitle(clusterTitel) : undefined;
+    // Phase 17: guard throws worden naar ConsolidationActionBar gepropageerd via try/catch in tryMerge.
+    // Hier gebeurt de throw buiten de reducer — dus de reducer wordt niet gerold.
+    let sharedId: string | undefined;
     updateSession((prev) => {
-      const result = mergeCapabilities(prev, clusterItemIds);
-      const sharedId = result.capabilities[result.capabilities.length - 1]?.id;
-      if (sharedId) {
-        const key = [...clusterItemIds].sort().join(",");
-        setMergedCapClusters((p) => new Map(p).set(key, sharedId));
-      }
+      const result = mergeCapabilities(prev, clusterItemIds, title);
+      sharedId = result.capabilities[result.capabilities.length - 1]?.id;
       return result;
     });
+    if (sharedId) {
+      const key = [...clusterItemIds].sort().join(",");
+      setMergedCapClusters((p) => new Map(p).set(key, sharedId!));
+    }
     setToastMessage("Items samengevoegd");
   }
 
-  function handleMergeEfforts(clusterItemIds: string[]) {
-    updateSession((prev) => {
-      const result = mergeEfforts(prev, clusterItemIds);
-      const sharedId = result.efforts[result.efforts.length - 1]?.id;
-      if (sharedId) {
-        const key = [...clusterItemIds].sort().join(",");
-        setMergedEffClusters((p) => new Map(p).set(key, sharedId));
-      }
-      return result;
-    });
+  function handleMergeEfforts(clusterItemIds: string[], clusterTitel?: string) {
+    const title = clusterTitel ? findSuggestedTitle(clusterTitel) : undefined;
+    // Pass DrieluikContext so D-27 drieluik-threshold wordt afgedwongen bij handmatig merge
+    const drieluikCtx: DrieluikContext = {
+      gelijkenisGroepen: stap2Result?.vermogenGelijkenisGroepen ?? [],
+      capEffortMaps: session.capabilityEffortMaps,
+    };
+    let sharedId: string | undefined;
+    // LET OP: mergeEfforts kan throw bij D-01/D-02/D-27 guards. Die throw wordt
+    // doorgegeven via updateSession (synchroon in huidige implementatie).
+    // ConsolidationActionBar catch't 'm in tryMerge().
+    const merged = mergeEfforts(session, clusterItemIds, title, drieluikCtx);
+    sharedId = merged.efforts[merged.efforts.length - 1]?.id;
+    updateSession(() => merged);
+    if (sharedId) {
+      const key = [...clusterItemIds].sort().join(",");
+      setMergedEffClusters((p) => new Map(p).set(key, sharedId!));
+    }
     setToastMessage("Items samengevoegd");
   }
 
-  function handleUndoMergeCap(sharedId: string) {
-    updateSession((prev) => undoMergeCapabilities(prev, sharedId));
+  function handleUndoMergeCap(sharedIdArg: string) {
+    updateSession((prev) => undoMergeCapabilities(prev, sharedIdArg));
     setMergedCapClusters((prev) => {
       const next = new Map(prev);
       for (const [key, val] of next.entries()) {
-        if (val === sharedId) next.delete(key);
+        if (val === sharedIdArg) next.delete(key);
       }
       return next;
     });
     setToastMessage("Samenvoeging ongedaan gemaakt");
   }
 
-  function handleUndoMergeEff(sharedId: string) {
-    updateSession((prev) => undoMergeEfforts(prev, sharedId));
+  function handleUndoMergeEff(sharedIdArg: string) {
+    updateSession((prev) => undoMergeEfforts(prev, sharedIdArg));
     setMergedEffClusters((prev) => {
       const next = new Map(prev);
       for (const [key, val] of next.entries()) {
-        if (val === sharedId) next.delete(key);
+        if (val === sharedIdArg) next.delete(key);
       }
       return next;
     });
@@ -172,6 +249,147 @@ export default function StapConsolidatie({
 
   function handleReviewCluster(key: string) {
     setReviewedClusters((prev) => new Set(prev).add(key));
+  }
+
+  function getAfstemmingsStappen(clusterTitel: string): string[] {
+    if (!stap4Result?.consolidatieAdvies) return [];
+    const advies = stap4Result.consolidatieAdvies.find(
+      (a) => a.clusterTitel === clusterTitel && a.aanbeveling === "afstemmen"
+    );
+    return advies?.afstemmingsStappen ?? [];
+  }
+
+  async function handleGenerateAdvice(
+    clusterTitel: string,
+    type: "vermogen" | "inspanning",
+    items: { id: string; beschrijving: string; sector: string }[]
+  ): Promise<string[]> {
+    const itemDescriptions = items.map((it) => `- ${it.beschrijving} (${it.sector})`).join("\n");
+
+    const response = await fetch("/api/din-suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "consolidatie-advies",
+        prompt: `Je bent een expert in programmamanagement (DIN-methodiek).
+
+Geef 3-4 concrete, actiegerichte stappen om de volgende ${type === "vermogen" ? "vermogens" : "inspanningen"} op elkaar af te stemmen ZONDER ze samen te voegen tot één item.
+
+Cluster: "${clusterTitel}"
+Items:
+${itemDescriptions}
+
+Geef per stap een korte, concrete actie die de programmamanager kan uitvoeren. Denk aan:
+- Harmonisatie van KPI's of definities
+- Gezamenlijk eigenaarschap of governance
+- Gedeelde meetings of rapportages
+- Afstemming van tijdlijnen
+- Gezamenlijke kwaliteitscriteria
+
+Antwoord als JSON array van strings: ["stap 1", "stap 2", "stap 3"]
+Antwoord in het Nederlands.`,
+      }),
+    });
+
+    if (!response.ok) return ["Kon geen advies genereren. Probeer het opnieuw."];
+
+    const data = await response.json();
+    if (data.data?.suggestions && Array.isArray(data.data.suggestions)) {
+      return data.data.suggestions;
+    }
+    return ["Kon geen advies genereren. Probeer het opnieuw."];
+  }
+
+  // --- Phase 17 Wave 3 (D-19 + B-4 fix): Herzie-advies handler met subEffortAnalysis cache-invalidatie ---
+  async function handleHerzieAdvies(
+    clusterTitel: string,
+    clusterItems: { id: string; beschrijving: string; sector: string }[],
+    userContext: string
+  ): Promise<void> {
+    // Stash context for visual confirmation (cluster context saved)
+    setClusterContexts((p) => ({ ...p, [clusterTitel]: userContext }));
+    setHerzienLoadingKeys((prev) => new Set(prev).add(clusterTitel));
+
+    try {
+      const advies = stap4Result?.consolidatieAdvies?.find(
+        (a) => a.clusterTitel === clusterTitel
+      );
+
+      const res = await fetch("/api/din-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "consolidatie-herzien",
+          clusterTitel,
+          clusterItems,
+          origineelAdvies: advies,
+          userContext,
+          kibGoals: session.goals,
+          kibScope: session.scope,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && stap4Result) {
+        // === D-12 / B-4 fix — invalideer subEffortAnalysis voor getroffen groep(en) ===
+        // Bepaal welke VermogenGelijkenisGroep(en) via capabilityEffortMap gelinkt zijn aan
+        // de inspanningen in dit herziene cluster. subEffortAnalysis-entries met die groepId
+        // worden verwijderd zodat een volgende Analyseer-run ze opnieuw genereert.
+        const vermogenGelijkenisGroepen = stap2Result?.vermogenGelijkenisGroepen ?? [];
+        const clusterEffortIds = clusterItems.map((it) => it.id);
+        const affectedCapIds = clusterEffortIds.flatMap((iid) =>
+          session.capabilityEffortMaps
+            .filter((m) => m.effortId === iid)
+            .map((m) => m.capabilityId)
+        );
+        const affectedGroepIds = new Set(
+          vermogenGelijkenisGroepen
+            .filter((g) => g.vermogenIds.some((vid) => affectedCapIds.includes(vid)))
+            .map((g) => g.id)
+        );
+        const filteredSub =
+          stap4Result.subEffortAnalysis?.filter(
+            (s) => !affectedGroepIds.has(s.groepId)
+          ) ?? [];
+
+        // Overschrijf cluster in consolidatieAdvies + schrijf gefilterde subEffortAnalysis terug
+        updateSession((prev) => {
+          const updated = prev.crossAnalyseWizard?.stepResults?.stap4;
+          if (!updated) return prev;
+          const newConsolidatieAdvies = updated.consolidatieAdvies.map((a) =>
+            a.clusterTitel === clusterTitel
+              ? { ...a, ...data.data, context: userContext }
+              : a
+          );
+          return {
+            ...prev,
+            crossAnalyseWizard: {
+              ...prev.crossAnalyseWizard!,
+              stepResults: {
+                ...prev.crossAnalyseWizard!.stepResults,
+                stap4: {
+                  ...updated,
+                  consolidatieAdvies: newConsolidatieAdvies,
+                  subEffortAnalysis: filteredSub,
+                },
+              },
+            },
+          };
+        });
+        setToastMessage("Advies herzien");
+      } else {
+        setToastMessage(data.error || "Herzien mislukt");
+      }
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : "Herzien mislukt");
+    } finally {
+      setHerzienLoadingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(clusterTitel);
+        return next;
+      });
+    }
   }
 
   // --- No clusters available ---
@@ -251,6 +469,73 @@ export default function StapConsolidatie({
         </div>
       )}
 
+      {/* Cito-breed inzicht per domein */}
+      {stap4Result && stap4Result.citobreedInzicht && stap4Result.citobreedInzicht.length > 0 && (
+        <div className="space-y-3">
+          <div>
+            <h5 className="text-sm font-semibold text-gray-700">Cito-breed inzicht per domein</h5>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Ook als items niet geconsolideerd worden: dit zijn de kansen die Cito-breed (organisatie-overstijgend) kunnen gelden — per inspanningsdomein.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {DOMEIN_ORDER.map((domein) => {
+              const inzicht = stap4Result.citobreedInzicht!.find((i) => i.domein === domein);
+              const meta = DOMEIN_META[domein];
+              if (!inzicht) {
+                return (
+                  <div
+                    key={domein}
+                    className={`${meta.bg} border ${meta.border} border-dashed rounded-lg p-3 opacity-60`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className={`w-4 h-4 ${meta.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={meta.icon} />
+                      </svg>
+                      <span className={`text-xs font-semibold ${meta.text}`}>{meta.label}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 italic">Geen inzicht beschikbaar voor dit domein.</p>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={domein}
+                  className={`${meta.bg} border ${meta.border} rounded-lg p-3`}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <svg className={`w-4 h-4 ${meta.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={meta.icon} />
+                    </svg>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${meta.text}`}>{meta.label}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 leading-snug">{inzicht.titel}</p>
+                  <p className="text-xs text-gray-700 mt-1 leading-relaxed">{inzicht.beschrijving}</p>
+                  {inzicht.onderbouwing && (
+                    <p className="text-[11px] text-gray-600 mt-1.5 italic">
+                      <span className="font-semibold not-italic">Waarom Cito-breed: </span>
+                      {inzicht.onderbouwing}
+                    </p>
+                  )}
+                  {inzicht.relevanteItems && inzicht.relevanteItems.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {inzicht.relevanteItems.map((item, i) => (
+                        <span
+                          key={i}
+                          className={`text-[10px] ${meta.bg} ${meta.text} border ${meta.border} px-1.5 py-0.5 rounded`}
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Vermogen clusters section */}
       {vermogenClusters.length > 0 && (
         <div className="space-y-3">
@@ -270,13 +555,15 @@ export default function StapConsolidatie({
                   key={idx}
                   cluster={cluster}
                   type="vermogen"
-                  onMerge={handleMergeCapabilities}
+                  onMerge={(ids) => handleMergeCapabilities(ids, cluster.clusterTitel)}
                   isMerged={isMerged}
                   onUndo={handleUndoMergeCap}
                   sharedId={sharedId}
                   onReview={() => handleReviewCluster(key)}
                   isReviewed={isReviewed}
                   readOnly={false}
+                  afstemmingsStappen={getAfstemmingsStappen(cluster.clusterTitel)}
+                  onGenerateAdvice={() => handleGenerateAdvice(cluster.clusterTitel, "vermogen", cluster.items)}
                 />
               );
             })}
@@ -297,20 +584,38 @@ export default function StapConsolidatie({
               const isMerged = mergedEffClusters.has(key);
               const sharedId = mergedEffClusters.get(key);
               const isReviewed = reviewedClusters.has(key);
+              const requiresReview = failedClusterKeys.has(key);
+              const reason = clusterReasons[key];
+              const savedContext = clusterContexts[cluster.clusterTitel];
+              const isHerzienLoading = herzienLoadingKeys.has(cluster.clusterTitel);
 
               return (
-                <ClusterCard
-                  key={idx}
-                  cluster={cluster}
-                  type="inspanning"
-                  onMerge={handleMergeEfforts}
-                  isMerged={isMerged}
-                  onUndo={handleUndoMergeEff}
-                  sharedId={sharedId}
-                  onReview={() => handleReviewCluster(key)}
-                  isReviewed={isReviewed}
-                  readOnly={false}
-                />
+                <div key={idx}>
+                  {requiresReview && reason && (
+                    <div className="bg-red-50 border border-red-200 rounded px-2 py-1 mb-1 text-[11px] text-red-700">
+                      <span className="font-semibold">Reden: </span>{reason}
+                    </div>
+                  )}
+                  <ClusterCard
+                    cluster={cluster}
+                    type="inspanning"
+                    onMerge={(ids) => handleMergeEfforts(ids, cluster.clusterTitel)}
+                    isMerged={isMerged}
+                    onUndo={handleUndoMergeEff}
+                    sharedId={sharedId}
+                    onReview={() => handleReviewCluster(key)}
+                    isReviewed={isReviewed}
+                    readOnly={false}
+                    afstemmingsStappen={getAfstemmingsStappen(cluster.clusterTitel)}
+                    onGenerateAdvice={() => handleGenerateAdvice(cluster.clusterTitel, "inspanning", cluster.items)}
+                    requiresReview={requiresReview}
+                    savedContext={savedContext}
+                    isHerzienLoading={isHerzienLoading}
+                    onHerzieAdvies={async (userContext) =>
+                      handleHerzieAdvies(cluster.clusterTitel, cluster.items, userContext)
+                    }
+                  />
+                </div>
               );
             })}
           </div>
