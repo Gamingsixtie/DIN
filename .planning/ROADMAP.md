@@ -189,7 +189,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 14. Projecten promoveren tot inspanningen | 2/3 | In Progress | - |
 | 15. Lopende projecten uit cross-analyse | 0/0 | Not started | - |
 | 16. Supabase dual persistence | 3/3 | Complete    | 2026-04-07 |
-| 17. Cross-analyse organigram helderheid + domein-bewuste consolidatie | 3/4 | In Progress|  |
+| 17. Cross-analyse organigram helderheid + domein-bewuste consolidatie | 4/4 | Complete   | 2026-04-18 |
 
 ### Phase 11: Cross-analyse herontwerp: stapsgewijs traject met consolidatie
 
@@ -279,13 +279,13 @@ Plans:
 **Requirements**: R-CROSS-01, R-CROSS-02 (cross-analyse helderheid & consolidatie-kwaliteit)
 **Depends on:** Phase 16
 **UI hint:** yes
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 17-01-PLAN.md — Wave 0: zod expliciete dep + schema extensies (VermogenGelijkenisGroepSchema, SubEffortAdviesSchema, markeer_gelijkenis enum, context veld) + consolidation-guards.ts module met stubs + computeAutoApplyResult pure helper + 2 test-files
 - [x] 17-02-PLAN.md — Wave 1: guard-bodies geimplementeerd (validateNeutralTitle, validateSameDomain, validateDrieluikThreshold) + bedrade in mergeEfforts (met DrieluikContext param) en mergeCapabilities; 22+ nieuwe guard-tests
 - [x] 17-03-PLAN.md — Wave 2: prompt-herzieningen stap 2/3/4 + nieuwe CONSOLIDATIE_HERZIEN_PROMPT + SUB_EFFORT_ANALYSE_PROMPT + /api/din-suggest consolidatie-herzien tak + /api/cross-analyse stap 4 parallelle sub-effort analyse per VermogenGelijkenisGroep
-- [ ] 17-04-PLAN.md — Wave 3: StapSectorVertaling drieluik-rewrite + ConsolidationActionBar guard-error banner + ClusterCard context-textarea/herzie-knop + StapConsolidatie auto-apply via computeAutoApplyResult + CrossAnalyseWizard payload-upgrade + 7-case human UAT
+- [x] 17-04-PLAN.md — Wave 3: StapSectorVertaling drieluik-rewrite + ConsolidationActionBar guard-error banner + ClusterCard context-textarea/herzie-knop + StapConsolidatie auto-apply via computeAutoApplyResult + CrossAnalyseWizard payload-upgrade + 7-case human UAT
 
 **Out of scope:** nieuwe AI-modellen, Word-export ondersteuning voor subEffortAnalysis, undo-flow voor tweede-niveau merges, retroactieve migratie van bestaande sessies met sector-specifieke titels (alleen warning badge D-23).
 
