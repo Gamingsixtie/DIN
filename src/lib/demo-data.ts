@@ -30,6 +30,8 @@ export function createDemoSession(): DINSession {
     "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
     "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", // VO mens (training) — toegevoegd phase 17
     "f9e8d7c6-b5a4-4938-8271-615f4c3d2e1b", // VO cultuur (leiderschap) — toegevoegd phase 17
+    "1a2b3c4d-5e6f-4078-9182-a3b4c5d6e7f8", // PO data_systemen (CRM-klantbeeld)
+    "2b3c4d5e-6f70-4819-a2b3-c4d5e6f7a8b9", // VO data_systemen (CRM-klantbeeld)
   ];
 
   return {
@@ -322,6 +324,42 @@ export function createDemoSession(): DINSession {
           randvoorwaarden: "Commitment van sectormanager VO als zichtbaar sponsor en deelnemend rolmodel.",
         },
       },
+      {
+        id: effortIds[8],
+        title: "CRM-klantbeeld voor sector PO inrichten",
+        sectorId: "PO",
+        domain: "data_systemen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Richt het centrale CRM zo in dat accountmanagers en sectormanagement PO een integraal klantbeeld hebben van scholen en besturen: contactmomenten, productgebruik, verbetersignalen en escalaties. Het CRM is het systeem voor klantrelatiebeheer — niet te verwarren met het leerlingvolgsysteem (dat registreert leerlingdata, geen klantrelaties).",
+        dossier: {
+          eigenaar: "Sectormanager PO",
+          inspanningsleider: "CRM Projectleider / Functioneel Beheerder PO",
+          verwachtResultaat: "PO-medewerkers hebben in \u00e9\u00e9n dashboard zicht op klantcontactgeschiedenis, productgebruik van scholen en besturen en openstaande signalen \u2014 waardoor proactief handelen en kwalitatieve dialogen mogelijk worden.",
+          kostenraming: "Nader te bepalen (deels gedeelde infra met Zakelijk en VO); marge 20-30%",
+          randvoorwaarden: "Gedeelde CRM-platformkeuze met Zakelijk en VO; klantdata PO ontsloten en opgeschoond.",
+        },
+      },
+      {
+        id: effortIds[9],
+        title: "CRM-klantbeeld voor sector VO inrichten",
+        sectorId: "VO",
+        domain: "data_systemen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Richt het centrale CRM zo in dat accountmanagers en sectormanagement VO een integraal klantbeeld hebben van scholen, besturen en samenwerkingsverbanden. CRM registreert de relatie (contactmomenten, signalen, aanbestedingen); het leerlingvolgsysteem is een apart systeem voor leerlingdata en valt buiten deze scope.",
+        dossier: {
+          eigenaar: "Sectormanager VO",
+          inspanningsleider: "CRM Projectleider / Functioneel Beheerder VO",
+          verwachtResultaat: "VO-medewerkers hebben in \u00e9\u00e9n dashboard zicht op schoolbesturen, aanbestedingstrajecten en gebruiksdata van VO-producten \u2014 basis voor proactief relatiebeheer.",
+          kostenraming: "Nader te bepalen (deels gedeelde infra met PO en Zakelijk); marge 20-30%",
+          randvoorwaarden: "Gedeelde CRM-platformkeuze met PO en Zakelijk; klantdata VO ontsloten en opgeschoond.",
+        },
+      },
     ],
     goalBenefitMaps: [
       { goalId: goalIds[0], benefitId: benefitIds[0] },
@@ -342,6 +380,8 @@ export function createDemoSession(): DINSession {
       { capabilityId: capIds[0], effortId: effortIds[5] }, // Zakelijk cap → Zakelijk processen
       { capabilityId: capIds[2], effortId: effortIds[6] }, // VO cap → VO mens
       { capabilityId: capIds[2], effortId: effortIds[7] }, // VO cap → VO cultuur
+      { capabilityId: capIds[1], effortId: effortIds[8] }, // PO cap → PO CRM
+      { capabilityId: capIds[2], effortId: effortIds[9] }, // VO cap → VO CRM
     ],
     projectCapabilityMaps: [],
     completedGoals: [],
@@ -411,14 +451,16 @@ export function createDemoSession(): DINSession {
             {
               id: "groep-klantpartnerschap",
               vermogenIds: [capIds[0], capIds[1], capIds[2]],
+              // Praktisch: gebruik de kern-term die alle drie vermogens al dragen ("klantpartnerschap" / "commerciële slagkracht"),
+              // zonder een kunstmatig nieuwe label te verzinnen. De drie sector-vermogens blijven intact met hun eigen titel.
               gezamenlijkeOmschrijving:
-                "Klantgerichte commerciële slagkracht — sectoroverstijgende hefboom",
+                "Strategisch klantpartnerschap — gedeelde methodische kern over PO, VO en Zakelijk",
               reden:
-                "Alle drie sectoren vereisen medewerkers die proactief outside-in werken, ondersteund door kwalitatieve klantdata en een cultuur van eigenaarschap. De drie vermogens zijn sector-specifiek qua context (PO/VO/Zakelijk) maar delen dezelfde methodische kern: structureel klantgericht handelen op basis van dialoog en data.",
+                "PO en VO dragen letterlijk de term 'Strategisch klantpartnerschap' in hun vermogenstitel; Zakelijk heeft dezelfde methodische kern onder de benaming 'Klantgerichte commerciële slagkracht'. Alle drie vermogens vragen om: (a) medewerkers die outside-in het klantgesprek voeren, (b) betrouwbare klantdata in één systeem, en (c) een cultuur van eigenaarschap. De vermogens blijven sector-eigen (context, klantgroep, producten verschillen) — de hefboom zit in het gezamenlijk ontwikkelen van de onderliggende inspanningen per domein.",
             },
           ],
           samenvatting:
-            "Cross-analyse identificeert één sectoroverstijgende hefboomgroep rond klantpartnerschap. PO, VO en Zakelijk ontwikkelen vergelijkbare vermogens — een kans om inspanningen per domein (mens/cultuur) te bundelen zonder de sector-eigen vermogens te consolideren.",
+            "Cross-analyse identificeert één sectoroverstijgende hefboomgroep rond strategisch klantpartnerschap. De drie vermogens behouden hun sector-eigen titel — de winst zit in gedeelde inspanningen per domein (mens, cultuur, data/systemen) onder dezelfde methodische noemer.",
         },
         stap3: {
           inspanningClusters: [
@@ -463,7 +505,7 @@ export function createDemoSession(): DINSession {
                 },
               ],
               advies:
-                "Drie sectoren werken aan vergelijkbare gespreksvaardigheden. Combineren onder één trainingsprogramma met sector-specifieke casuïstiek geeft schaalvoordeel en consistentere cultuur.",
+                "Drie sectoren werken aan vergelijkbare gespreksvaardigheden en outside-in competenties. Scope: gezamenlijke curriculumkern (doorvragen, waardeverhaal, klantbehoefte doorgronden) + sector-specifieke casuïstiek modules (PO: leerkracht/bestuur, VO: schoolleider/aanbesteding, Zakelijk: opdrachtgever/RFP). Aanpak: één programma-ontwerp, drie sector-rollouts met gedeelde trainers en intervisie tussen sectoren. Kostenbesparing ~30% t.o.v. drie losse trajecten; cultuurvoordeel: gedeeld vocabulaire over sectoren.",
               aanbeveling: "combineren",
             },
             {
@@ -507,19 +549,48 @@ export function createDemoSession(): DINSession {
                 },
               ],
               advies:
-                "Cultuurinspanningen rond outside-in eigenaarschap raken dezelfde gedragsverandering. Samenbrengen onder één leiderschapsprogramma versterkt de boodschap.",
+                "Leiderschap als multiplier voor outside-in gedrag geldt identiek in alle drie sectoren. Scope: sectoroverstijgend leiderschapsprogramma met drie kernelementen — (1) rolmodel-gedrag (zichtbare klantbezoeken door sectormanagers), (2) intervisie-cyclus tussen sectoren (kruis-bestuiving met klantcases), (3) sturings-KPI's gekoppeld aan klantdialoog-kwaliteit. Drie sector-specifieke tracks binnen één programma; shared faculty. Aanpak: fase 1 kick-off met directie; fase 2 intervisies per kwartaal; fase 3 evaluatie via NPS en medewerker-feedback.",
               aanbeveling: "combineren",
             },
             {
-              clusterTitel: "CRM-dashboard & klantinformatieprocessen (Zakelijk)",
+              clusterTitel:
+                "CRM-klantbeeld inrichten (data & systemen) — PO/VO/Zakelijk",
               items: [
                 {
                   id: effortIds[2],
                   beschrijving:
-                    "Implementeren en inrichten van integraal CRM-klantdashboard",
+                    "Implementeren en inrichten van integraal CRM-klantdashboard (Zakelijk)",
                   sector: "Zakelijk",
                   domein: "data_systemen",
                 },
+                {
+                  id: effortIds[8],
+                  beschrijving: "CRM-klantbeeld voor sector PO inrichten",
+                  sector: "PO",
+                  domein: "data_systemen",
+                },
+                {
+                  id: effortIds[9],
+                  beschrijving: "CRM-klantbeeld voor sector VO inrichten",
+                  sector: "VO",
+                  domein: "data_systemen",
+                },
+              ],
+              batenContext: [
+                { baat: "Hogere klanttevredenheid PO-scholen", sector: "PO" },
+                { baat: "Inhoudelijk partnerschap met VO-besturen", sector: "VO" },
+                {
+                  baat: "Hogere conversie en duurzame klantrelaties Zakelijk",
+                  sector: "Zakelijk",
+                },
+              ],
+              advies:
+                "CRM is het systeem voor klantrelatiebeheer — dit geldt voor alle drie sectoren (scholen, besturen, zakelijke opdrachtgevers). Het leerlingvolgsysteem is een apart systeem voor leerlingdata en valt hier buiten scope. Drie aparte CRM-trajecten levert datasilo's, licentiecontracten en dubbele platform-keuzes op; één gedeelde CRM-implementatie met sector-specifieke views is de hefboom. Scope: gezamenlijke platformkeuze, één datamodel voor klantrelaties, sector-specifieke dashboards. Niet in scope: leerlingvolgsysteem, productie-data, financiële systemen.",
+              aanbeveling: "combineren",
+            },
+            {
+              clusterTitel: "Standaardisatie klantinformatieprocessen (Zakelijk)",
+              items: [
                 {
                   id: effortIds[5],
                   beschrijving:
@@ -535,13 +606,13 @@ export function createDemoSession(): DINSession {
                 },
               ],
               advies:
-                "CRM + standaardisatie zijn sector-eigen voor Zakelijk. PO/VO werken met leerlingvolgsystemen en andere procesflows — niet combineerbaar.",
+                "Procesflows voor lead-to-deal zijn specifiek voor Zakelijk; PO/VO werken met andere inkoop- en samenwerkingscycli (aanbestedingen, schoolbesturen, bestelcycli). Standaardisatie kan per sector lopen — wel borgen dat de proces-output (klantdata) straks in het gedeelde CRM landt.",
               aanbeveling: "apart_houden",
             },
           ],
           projectMatching: [],
           samenvatting:
-            "Drie inspanningsclusters geïdentificeerd: mens (3 sectoren — combineren), cultuur (3 sectoren — combineren), data+processen (alleen Zakelijk — apart). Dit legt de basis voor de sub-effort analyse per domein onder de vermogen-gelijkenisgroep.",
+            "Vier inspanningsclusters geïdentificeerd onder de vermogen-gelijkenisgroep: mens (3 sectoren — combineren), cultuur (3 sectoren — combineren), data & systemen CRM (3 sectoren — combineren), processen (alleen Zakelijk — apart). Drie van de vier inspanningsbundels zijn sectoroverstijgend samen te voegen; alleen proces-standaardisatie blijft sector-eigen.",
         },
         stap4: {
           consolidatieAdvies: [
@@ -551,10 +622,15 @@ export function createDemoSession(): DINSession {
               type: "inspanning",
               aanbeveling: "combineren",
               reden:
-                "Gedeelde trainingsmethodiek en coaching zijn direct schaalbaar over drie sectoren; behoud sector-specifieke casuïstiek in modules.",
+                "Drie sectoren investeren in vergelijkbare gespreksvaardigheden. Eén gezamenlijk programma met gedeelde curriculumkern + sector-specifieke casuïstiek realiseert ~30% kostenbesparing, consistenter vocabulaire over sectoren, en gedeelde trainers/intervisie. Sector-eigenheid blijft behouden via modules (PO: leerkracht/bestuur, VO: schoolleider/aanbesteding, Zakelijk: opdrachtgever/RFP).",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
-              afstemmingsStappen: [],
+              afstemmingsStappen: [
+                "Q2 2026: stel gezamenlijk programmaontwerp op met L&D-verantwoordelijken uit alle drie sectoren; definieer kerncompetenties + sector-specifieke casuïstiek.",
+                "Q3 2026: selecteer externe trainers/coaches die multi-sector casuïstiek aankunnen; richt train-de-trainer-traject in voor sectormanagers.",
+                "Q4 2026 — Q2 2027: rol gefaseerd uit per sector (PO eerst, dan VO, dan Zakelijk); borg intervisie tussen sectoren per kwartaal.",
+                "Q3 2027: meet effect via NPS, gesprekskwaliteit-observaties en medewerker-feedback; itereer curriculum.",
+              ],
             },
             {
               clusterTitel:
@@ -562,19 +638,44 @@ export function createDemoSession(): DINSession {
               type: "inspanning",
               aanbeveling: "combineren",
               reden:
-                "Leiderschapsontwikkeling op outside-in houding is conceptueel identiek — gezamenlijke rolmodel- en intervisietraject werkt sterker dan drie losse initiatieven.",
+                "Leiderschap is de multiplier voor outside-in gedrag — zichtbaar rolmodel-gedrag van sectormanagers bepaalt de mate waarin medewerkers eigenaarschap durven nemen. Drie gefragmenteerde leiderschapstrajecten leveren drie verschillende interpretaties van 'outside-in'; één gezamenlijk programma met sector-tracks borgt consistentie en versterkt de boodschap organisatiebreed.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in leiderschapsontwikkeling",
-              afstemmingsStappen: [],
+              afstemmingsStappen: [
+                "Q2 2026: kick-off met directie en drie sectormanagers — commitment op zichtbaar rolmodel-gedrag (klantbezoeken, ophaalgesprekken, mee-lopen in de sector).",
+                "Q3 2026: start intervisie-cyclus per kwartaal met gemixte groepen sectormanagers + teamleiders (kruis-bestuiving op klantcases).",
+                "Q4 2026: koppel outside-in KPI's aan leidinggevenden-performance (%klantdialogen met inhoudelijke regie, NPS-beweging binnen team).",
+                "Q2 2027: evaluatie via 360° feedback en NPS-beweging; stel jaardoelen voor komende cyclus bij.",
+              ],
             },
             {
-              clusterTitel: "CRM-dashboard & klantinformatieprocessen (Zakelijk)",
+              clusterTitel:
+                "CRM-klantbeeld inrichten (data & systemen) — PO/VO/Zakelijk",
+              type: "inspanning",
+              aanbeveling: "combineren",
+              reden:
+                "CRM is het systeem voor klantrelatiebeheer en is in álle drie sectoren nodig (scholen, besturen, zakelijke opdrachtgevers). Het leerlingvolgsysteem is een ander systeem (leerlingdata, niet klantrelaties) en valt hier buiten. Drie aparte CRM-trajecten leidt tot datasilo's, onverenigbare datamodellen en dubbele licentiecontracten. Scope: één gedeeld CRM-platform, één klantdata-model, sector-specifieke dashboards/views. Niet in scope: leerlingvolgsysteem, productie-data, financiële systemen.",
+              voorgesteldeNaam: "Gedeeld CRM-klantbeeld (PO/VO/Zakelijk)",
+              afstemmingsStappen: [
+                "Q2 2026: gezamenlijke platformkeuze (Salesforce / HubSpot / MS Dynamics) met IT-architect, sectormanagers en data-governance.",
+                "Q3 2026: definieer één klantdata-model (accounts, contacten, interacties, signalen) dat alle drie sectoren ondersteunt; leg rollen, rechten en data-eigenaarschap per sector vast.",
+                "Q4 2026: implementeer basis-CRM + sector-specifieke dashboards; migreer klantdata per sector gefaseerd.",
+                "Q1 2027: borg koppelingen met nevenbronnen (productgebruik, verbetersignalen) per sector; ontsluit via dashboard.",
+                "Q2 2027: meet adoptie (% medewerkers met wekelijks gebruik), datakwaliteit en klantdialoog-effect.",
+              ],
+            },
+            {
+              clusterTitel: "Standaardisatie klantinformatieprocessen (Zakelijk)",
               type: "inspanning",
               aanbeveling: "apart_houden",
               reden:
-                "Data-architectuur en procesflows verschillen wezenlijk tussen Zakelijk (CRM, lead-to-deal) en PO/VO (leerlingvolgsysteem, bestelcycli). Niet combineerbaar zonder sector-eigen waarde te verliezen.",
+                "Procesflows voor lead-to-deal zijn specifiek voor Zakelijk (salescycli, RFP's, commerciële opvolging). PO/VO hebben andere procescycli (aanbestedingen, schoolbestuur-overleg, bestelrondes). Niet combineerbaar zonder sector-eigen waarde te verliezen. Wel borgen dat proces-output (klantdata) in het gedeelde CRM landt — koppeling met CRM-cluster is kritiek.",
               voorgesteldeNaam: null,
-              afstemmingsStappen: [],
+              afstemmingsStappen: [
+                "Q3 2026: proces-design Zakelijk (lead-to-deal-flow) met commerciële manager en procesverantwoordelijke.",
+                "Q4 2026: koppel proces-output aan CRM-klantbeeld (zodra CRM-cluster live is).",
+                "Q1 2027: evalueer of PO/VO hun eigen proces-standaardisatie willen, gebruikmakend van dezelfde proces-methodologie maar sector-eigen flow.",
+              ],
             },
           ],
           citobreedInzicht: [
@@ -582,7 +683,7 @@ export function createDemoSession(): DINSession {
               domein: "mens",
               titel: "Outside-in competentie is organisatiebrede hefboom",
               beschrijving:
-                "Gespreksvaardigheden en commerciële outside-in mindset worden in alle drie sectoren ontwikkeld. Gezamenlijk curriculum reduceert kosten en versterkt consistentie.",
+                "Gespreksvaardigheden en commerciële outside-in mindset worden in alle drie sectoren ontwikkeld. Gezamenlijk curriculum reduceert kosten ~30% en versterkt consistent vocabulaire tussen sectoren. Scope: kern-curriculum + sector-specifieke casuïstiek modules. Aanpak: train-de-trainer via sectormanagers.",
               onderbouwing:
                 "Drie inspanningen (PO/VO/Zakelijk) met overlappende doelstellingen én gedeelde baten-indicatoren (NPS, klanttevredenheid, conversie).",
               relevanteItems: [effortIds[1], effortIds[6], effortIds[4]],
@@ -591,10 +692,19 @@ export function createDemoSession(): DINSession {
               domein: "cultuur",
               titel: "Leiderschap als multiplier voor gedragsverandering",
               beschrijving:
-                "Outside-in gedrag vraagt zichtbare rolmodellen op leiderschapsniveau. Sectoroverstijgend programma versterkt de boodschap en voorkomt gefragmenteerde interventies.",
+                "Outside-in gedrag vraagt zichtbare rolmodellen op leiderschapsniveau. Sectoroverstijgend programma met sector-tracks voorkomt dat drie sectormanagers elk hun eigen interpretatie geven. Scope: gezamenlijke visie + intervisie, sector-specifieke KPI's.",
               onderbouwing:
                 "Drie cultuur-inspanningen met vergelijkbare interventies (sessies, intervisie, rolmodel-gedrag) onder verschillende sectormanagers.",
               relevanteItems: [effortIds[0], effortIds[7], effortIds[3]],
+            },
+            {
+              domein: "data_systemen",
+              titel: "CRM-klantbeeld organisatiebreed — niet te verwarren met leerlingvolgsysteem",
+              beschrijving:
+                "CRM is het systeem voor klantrelatiebeheer (scholen, besturen, opdrachtgevers) en is in alle drie sectoren vereist voor proactief handelen. Het leerlingvolgsysteem is een apart systeem voor leerlingdata en valt buiten scope. Gezamenlijke CRM-keuze voorkomt datasilo's en dubbele platform-investeringen.",
+              onderbouwing:
+                "Drie data & systemen-inspanningen (CRM per sector) met identieke systeembehoefte: klantrelaties, contacthistorie, signalen, aanbestedingen. Eén platform + sector-views is technisch en organisatorisch haalbaar.",
+              relevanteItems: [effortIds[2], effortIds[8], effortIds[9]],
             },
           ],
           subEffortAnalysis: [
@@ -604,7 +714,7 @@ export function createDemoSession(): DINSession {
               actie: "combineren",
               items: [effortIds[1], effortIds[4], effortIds[6]], // PO training + Zakelijk werven + VO training
               reden:
-                "Drie sectoren werken aan vergelijkbare gespreksvaardigheden en outside-in competenties. Combineren levert schaalvoordeel (één gedeeld trainingsprogramma), consistentere cultuur en lagere kosten dan drie aparte trajecten.",
+                "Scope: gezamenlijk curriculum outside-in gespreksvaardigheden + sector-specifieke casuïstiek modules. Stappen: (1) Q2 2026 gezamenlijk programmaontwerp met L&D uit 3 sectoren, (2) Q3 train-de-trainer voor sectormanagers, (3) Q4 → Q2 2027 gefaseerde rollout per sector met kwartaal-intervisies, (4) Q3 2027 effectmeting via NPS + gesprekskwaliteit. Besparing ~30% t.o.v. drie losse trajecten; consistenter vocabulaire over sectoren.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
             },
@@ -614,18 +724,19 @@ export function createDemoSession(): DINSession {
               actie: "combineren",
               items: [effortIds[0], effortIds[3], effortIds[7]], // PO leiderschap + Zakelijk mindset + VO leiderschap
               reden:
-                "Cultuurinspanningen rond outside-in eigenaarschap raken dezelfde gedragsverandering over alle drie sectoren. Samenbrengen onder één leiderschapsprogramma versterkt de boodschap en voorkomt gefragmenteerde interventies.",
+                "Scope: sectoroverstijgend leiderschapsprogramma met sector-tracks. Stappen: (1) Q2 2026 kick-off met directie + 3 sectormanagers (commitment op rolmodel-gedrag), (2) Q3 start kwartaal-intervisies met gemixte groepen sectormanagers + teamleiders, (3) Q4 koppel outside-in KPI's aan leidinggevenden-performance, (4) Q2 2027 evaluatie via 360° feedback + NPS-beweging. Voorkomt dat drie sectormanagers ieder hun eigen interpretatie geven van 'outside-in'.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in leiderschapsontwikkeling",
             },
             {
               groepId: "groep-klantpartnerschap",
               domein: "data_systemen",
-              actie: "apart_houden",
-              items: [effortIds[2]], // alleen Zakelijk CRM
+              actie: "combineren",
+              items: [effortIds[2], effortIds[8], effortIds[9]], // Zakelijk + PO + VO CRM
               reden:
-                "CRM-inrichting is specifiek voor Zakelijk — PO en VO werken met andere systemen (leerlingvolgsysteem, productgebruiksdata). Niet combineerbaar zonder de sector-specifieke data-architectuur aan te tasten.",
-              voorgesteldeNaam: null,
+                "CRM is organisatiebreed van toepassing (klantrelatiebeheer scholen/besturen/opdrachtgevers). Leerlingvolgsysteem is een ander systeem en valt buiten scope. Scope: één gedeeld CRM-platform, één klantdata-model, sector-specifieke dashboards. Stappen: (1) Q2 2026 gezamenlijke platformkeuze (Salesforce/HubSpot/Dynamics) met IT + sectormanagers + data-governance, (2) Q3 klantdata-model + rollen/rechten per sector, (3) Q4 basis-implementatie + sector-dashboards + gefaseerde data-migratie, (4) Q1 2027 koppelingen met productgebruik/signalen, (5) Q2 2027 meet adoptie + datakwaliteit. Voorkomt datasilo's, dubbele licentiecontracten en onverenigbare datamodellen.",
+              voorgesteldeNaam:
+                "Gedeeld CRM-klantbeeld (PO/VO/Zakelijk)",
             },
             {
               groepId: "groep-klantpartnerschap",
@@ -633,12 +744,12 @@ export function createDemoSession(): DINSession {
               actie: "apart_houden",
               items: [effortIds[5]], // alleen Zakelijk processen
               reden:
-                "Procesinrichting is sector-eigen omdat klantprocessen (lead → deal → relatie) wezenlijk verschillen per doelgroep. PO/VO hebben andere procesflows (school-contacten, bestelcycli) dan Zakelijk.",
+                "Lead-to-deal procesflow is specifiek voor Zakelijk (salescycli, RFP's, commerciële opvolging). PO/VO hebben andere procescycli (aanbestedingen, schoolbestuur-overleg, bestelrondes). Scope: proces-standaardisatie Zakelijk, met borging dat proces-output in gedeelde CRM landt. Stappen: (1) Q3 2026 proces-design Zakelijk, (2) Q4 koppel proces-output aan CRM, (3) Q1 2027 evalueer of PO/VO sector-eigen proces-standaardisatie willen via zelfde methodologie.",
               voorgesteldeNaam: null,
             },
           ],
           samenvatting:
-            "Op domein-niveau zijn mens (training) en cultuur (leiderschap) combineerbaar over alle drie sectoren — twee inspanningsbundels in plaats van zes losse trajecten. Data & Systemen en Processen blijven sector-eigen.",
+            "Op domein-niveau zijn mens (training), cultuur (leiderschap) én data & systemen (CRM) combineerbaar over alle drie sectoren — drie gedeelde inspanningsbundels in plaats van negen losse trajecten. Alleen procesinrichting blijft sector-eigen (Zakelijk lead-to-deal ≠ PO/VO aanbestedingscycli), met een kritieke borging dat proces-output in het gedeelde CRM landt.",
         },
       },
     },
