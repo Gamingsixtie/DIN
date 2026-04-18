@@ -11,13 +11,14 @@ import type {
   Stap5Result,
 } from "@/lib/types";
 import { findSharedCapabilities } from "@/lib/din-service";
-import { restoreStap5Result } from "@/lib/stap5-focus";
+import { getFocusGoal, restoreStap5Result } from "@/lib/stap5-focus";
 import WizardNavigation from "./WizardNavigation";
 import StapBatenOverloop from "./StapBatenOverloop";
 import StapGedeeldeVermogens from "./StapGedeeldeVermogens";
 import StapInspanningenOverlap from "./StapInspanningenOverlap";
 import StapConsolidatie from "./StapConsolidatie";
 import StapSectorVertaling from "./StapSectorVertaling";
+import StapLopendeProjecten from "./StapLopendeProjecten";
 import { LoadingOverlay } from "./shared";
 import StepAnalyseButton from "./StepAnalyseButton";
 
@@ -42,6 +43,14 @@ const STEP_INFO: Record<number, {
   loadingDescription: string;
 }> = {
   1: {
+    title: "Lopende projecten",
+    description: "Voeg lopende projecten toe die relevant zijn voor de cross-analyse. Deze projecten worden meegenomen in alle volgende analysestappen.",
+    placeholder: "",
+    analyseLabel: "",
+    loadingTitle: "",
+    loadingDescription: "",
+  },
+  2: {
     title: "Baten-overloop",
     description: "Vergelijk baten per sector en identificeer synergieeen en ontbrekende ketens.",
     placeholder: "Bijv. focus op specifieke baten of sectoren...",
@@ -49,7 +58,7 @@ const STEP_INFO: Record<number, {
     loadingTitle: "Baten-overloop wordt geanalyseerd",
     loadingDescription: "De AI vergelijkt baten over alle sectoren...",
   },
-  2: {
+  3: {
     title: "Gedeelde vermogens",
     description: "Welke vermogens worden door meerdere sectoren gedeeld? Waar zit hefboomwerking?",
     placeholder: "Bijv. welke vermogens zijn het belangrijkst...",
@@ -57,7 +66,7 @@ const STEP_INFO: Record<number, {
     loadingTitle: "Vermogens worden geclusterd",
     loadingDescription: "De AI identificeert gedeelde vermogens...",
   },
-  3: {
+  4: {
     title: "Inspanningen",
     description: "Welke inspanningen overlappen en welke lopende projecten sluiten aan?",
     placeholder: "Bijv. bestaande projecten die relevant zijn...",
@@ -65,7 +74,7 @@ const STEP_INFO: Record<number, {
     loadingTitle: "Inspanningen worden vergeleken",
     loadingDescription: "De AI zoekt overlap in inspanningen en projecten...",
   },
-  4: {
+  5: {
     title: "Consolidatie",
     description: "Beoordeel per cluster: samenvoegen, afstemmen of apart houden.",
     placeholder: "Bijv. voorkeur voor combineren of apart houden van bepaalde clusters...",
@@ -73,7 +82,7 @@ const STEP_INFO: Record<number, {
     loadingTitle: "Consolidatie-advies wordt opgesteld",
     loadingDescription: "De AI formuleert advies per cluster...",
   },
-  5: {
+  6: {
     title: "Prioriteitsview — eerste doel",
     description: "Dit is de scherpste hefboom: de keten doel → baten → vermogens → inspanningen voor uw hoogste prioriteit. We tonen alleen het eerste doel omdat daar het meeste mandaat en de hoogste urgentie zit.",
     placeholder: "Bijv. specifieke aandachtspunten voor hefboomwerking of baten-dekking...",
@@ -104,9 +113,18 @@ export default function CrossAnalyseWizard() {
       // D-10 — stap5 schema is breaking changed; valideer bij restore via pure helper
       const restoredStap5 = restoreStap5Result(wizData.stepResults?.stap5);
 
+      // Migratie: 5-stappen (v1) → 6-stappen (v2) layout
+      let currentStep = wizData.currentStep || 1;
+      let completedSteps = wizData.completedSteps || [];
+      if (!wizData.wizardVersion || wizData.wizardVersion < 2) {
+        // Oude opslag: display-stappen +1 verschuiven
+        currentStep = currentStep + 1;
+        completedSteps = completedSteps.map((s: number) => s + 1);
+      }
+
       setWizardState({
-        currentStep: wizData.currentStep || 1,
-        completedSteps: new Set(wizData.completedSteps || []),
+        currentStep,
+        completedSteps: new Set(completedSteps),
         stepResults: {
           ...(wizData.stepResults || {}),
           stap5: restoredStap5,
@@ -120,12 +138,13 @@ export default function CrossAnalyseWizard() {
   }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Step completion handler
+  // resultKey = API stap (1-5) voor stepResults, displayStep = display stap (1-6) voor completedSteps
   const handleStepComplete = useCallback(
-    (stepNum: number, result: unknown) => {
+    (resultKey: number, result: unknown, displayStep?: number) => {
       setWizardState((prev) => {
         const newCompleted = new Set(prev.completedSteps);
-        newCompleted.add(stepNum);
-        const key = `stap${stepNum}` as keyof typeof prev.stepResults;
+        newCompleted.add(displayStep ?? prev.currentStep);
+        const key = `stap${resultKey}` as keyof typeof prev.stepResults;
         const newStepResults = { ...prev.stepResults, [key]: result };
 
         // Persist to session
@@ -133,6 +152,7 @@ export default function CrossAnalyseWizard() {
           crossAnalyseWizard: {
             currentStep: prev.currentStep,
             completedSteps: Array.from(newCompleted),
+            wizardVersion: 2,
             stepResults: newStepResults,
           },
         }));
@@ -157,6 +177,7 @@ export default function CrossAnalyseWizard() {
         crossAnalyseWizard: {
           currentStep: prev.currentStep,
           completedSteps: Array.from(newCompleted),
+          wizardVersion: 2,
           stepResults: prev.stepResults,
         },
       }));
@@ -167,24 +188,36 @@ export default function CrossAnalyseWizard() {
 
   // AI call handler
   const handleAnalyse = useCallback(async () => {
-    if (!session) return;
+    if (!session || wizardState.currentStep < 2) return;
 
     setIsLoading(true);
     setError(null);
+
+    // Map display step (2-6) naar API step (1-5)
+    const apiStap = wizardState.currentStep - 1;
 
     try {
       const activeCaps = session.capabilities.filter((c) => !c.consolidated);
       const activeEfforts = session.efforts.filter((e) => !e.consolidated);
 
+      // Alleen het eerste (hoogst gerankte) doel meenemen in cross-analyse
+      const focusGoal = getFocusGoal(session.goals);
+      const focusGoals = focusGoal ? [focusGoal] : [];
+      const focusGoalIds = new Set(focusGoals.map((g) => g.id));
+      const focusGBMaps = (session.goalBenefitMaps || []).filter((m) => focusGoalIds.has(m.goalId));
+      const focusBenefitIds = new Set(focusGBMaps.map((m) => m.benefitId));
+      const focusBenefits = session.benefits.filter((b) => focusBenefitIds.has(b.id));
+      const focusBCMaps = (session.benefitCapabilityMaps || []).filter((m) => focusBenefitIds.has(m.benefitId));
+
       const requestBody = {
-        stap: wizardState.currentStep,
-        goals: session.goals,
-        benefits: session.benefits,
+        stap: apiStap,
+        goals: focusGoals,
+        benefits: focusBenefits,
         capabilities: activeCaps,
         efforts: activeEfforts,
         externalProjects: session.externalProjects || [],
-        goalBenefitMaps: session.goalBenefitMaps,
-        benefitCapabilityMaps: session.benefitCapabilityMaps,
+        goalBenefitMaps: focusGBMaps,
+        benefitCapabilityMaps: focusBCMaps,
         capabilityEffortMaps: session.capabilityEffortMaps,
         kibGoals: session.goals,
         kibScope: session.scope,
@@ -221,7 +254,7 @@ export default function CrossAnalyseWizard() {
         return;
       }
 
-      handleStepComplete(wizardState.currentStep, data.data?.analysis);
+      handleStepComplete(apiStap, data.data?.analysis, wizardState.currentStep);
       setUserFeedback("");
     } catch (err) {
       setError(
@@ -242,6 +275,7 @@ export default function CrossAnalyseWizard() {
           crossAnalyseWizard: {
             currentStep: step,
             completedSteps: Array.from(prev.completedSteps),
+            wizardVersion: 2,
             stepResults: prev.stepResults,
           },
         }));
@@ -262,6 +296,7 @@ export default function CrossAnalyseWizard() {
       crossAnalyseWizard: {
         currentStep: 1,
         completedSteps: [],
+        wizardVersion: 2,
         stepResults: {},
       },
     }));
@@ -332,10 +367,16 @@ export default function CrossAnalyseWizard() {
     );
   }
 
-  // Compute stats
+  // Compute stats — alleen focus-doel (eerste doel) meenemen
   const activeCaps = session.capabilities.filter((c) => !c.consolidated);
   const activeEfforts = session.efforts.filter((e) => !e.consolidated);
   const sharedCaps = findSharedCapabilities(activeCaps);
+  const statsFocusGoal = getFocusGoal(session.goals);
+  const statsFocusGoalIds = statsFocusGoal ? new Set([statsFocusGoal.id]) : new Set<string>();
+  const statsFocusBenefitIds = new Set(
+    (session.goalBenefitMaps || []).filter((m) => statsFocusGoalIds.has(m.goalId)).map((m) => m.benefitId)
+  );
+  const statsFocusBenefitCount = session.benefits.filter((b) => statsFocusBenefitIds.has(b.id)).length;
 
   const stepInfo = STEP_INFO[wizardState.currentStep];
 
@@ -359,13 +400,13 @@ export default function CrossAnalyseWizard() {
         </div>
 
         {/* Stats strip */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-6 gap-3">
           <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-din-doelen">{session.goals.length}</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Doelen</div>
+            <div className="text-xl font-bold text-din-doelen">1</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Focusdoel</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-din-baten">{session.benefits.length}</div>
+            <div className="text-xl font-bold text-din-baten">{statsFocusBenefitCount}</div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Baten</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
@@ -375,6 +416,10 @@ export default function CrossAnalyseWizard() {
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-xl font-bold text-din-inspanningen">{activeEfforts.length}</div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Inspanningen</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold text-gray-600">{(session.externalProjects || []).filter(p => !p.promotedAt).length}</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Projecten</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-xl font-bold text-amber-600">{sharedCaps.size}</div>
@@ -400,15 +445,18 @@ export default function CrossAnalyseWizard() {
 
         {/* Active step component */}
         {wizardState.currentStep === 1 && (
-          <StapBatenOverloop session={session} result={wizardState.stepResults.stap1} />
+          <StapLopendeProjecten session={session} onComplete={handleMarkViewed} />
         )}
         {wizardState.currentStep === 2 && (
-          <StapGedeeldeVermogens session={session} result={wizardState.stepResults.stap2} />
+          <StapBatenOverloop session={session} result={wizardState.stepResults.stap1} />
         )}
         {wizardState.currentStep === 3 && (
-          <StapInspanningenOverlap session={session} result={wizardState.stepResults.stap3} />
+          <StapGedeeldeVermogens session={session} result={wizardState.stepResults.stap2} />
         )}
         {wizardState.currentStep === 4 && (
+          <StapInspanningenOverlap session={session} result={wizardState.stepResults.stap3} />
+        )}
+        {wizardState.currentStep === 5 && (
           <StapConsolidatie
             session={session}
             stap2Result={wizardState.stepResults.stap2}
@@ -416,10 +464,12 @@ export default function CrossAnalyseWizard() {
             stap4Result={wizardState.stepResults.stap4}
           />
         )}
-        {wizardState.currentStep === 5 && (
+        {wizardState.currentStep === 6 && (
           <StapSectorVertaling
             session={session}
             result={wizardState.stepResults.stap5}
+            stap2Result={wizardState.stepResults.stap2}
+            stap4Result={wizardState.stepResults.stap4}
           />
         )}
 
@@ -453,8 +503,8 @@ export default function CrossAnalyseWizard() {
           </div>
         )}
 
-        {/* Optional context textarea + Analyseer button (steps 1-4 only) */}
-        {wizardState.currentStep <= 5 && !error && (
+        {/* Optional context textarea + Analyseer button (steps 2-6, niet voor stap 1 = data-invoer) */}
+        {wizardState.currentStep >= 2 && wizardState.currentStep <= 6 && !error && (
           <div className="mt-6 space-y-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">

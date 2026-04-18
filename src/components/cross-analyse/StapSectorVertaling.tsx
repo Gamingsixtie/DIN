@@ -1,39 +1,181 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { SectorBadge } from "./shared";
 import { computeFocusView } from "@/lib/stap5-focus";
+import type { ConsolidationOrigin } from "@/lib/stap5-focus";
 import type {
   DINSession,
+  Stap2Result,
+  Stap4Result,
   Stap5Result,
   SectorName,
-  DINBenefit,
   DINCapability,
-  DINEffort,
+  EffortDomain,
 } from "@/lib/types";
+import type { VermogenGelijkenisGroep, SubEffortAdvies } from "@/lib/schemas";
 
 interface StapSectorVertalingProps {
   session: DINSession;
   result?: Stap5Result;
+  stap2Result?: Stap2Result;
+  stap4Result?: Stap4Result;
 }
 
 const SECTORS_ORDER: readonly SectorName[] = ["PO", "VO", "Zakelijk"] as const;
 
-const DOMAIN_LABELS: Record<string, string> = {
+const DOMAIN_LABELS: Record<EffortDomain, string> = {
   mens: "Mens",
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
 };
 
-const DOMAIN_COLORS: Record<string, string> = {
-  mens: "bg-blue-50 text-blue-700 border-blue-200",
-  processen: "bg-green-50 text-green-700 border-green-200",
-  data_systemen: "bg-purple-50 text-purple-700 border-purple-200",
-  cultuur: "bg-amber-50 text-amber-700 border-amber-200",
+const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string }> = {
+  mens: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+  processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
+  data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  cultuur: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
 };
 
-export default function StapSectorVertaling({ session, result }: StapSectorVertalingProps) {
+const DOMEIN_ORDER: readonly EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"] as const;
+
+// --- Phase 17 D-29: Domain balance badge ---
+function DomainBalanceBadge({
+  groepId,
+  subEffortAnalysis,
+}: {
+  groepId: string;
+  subEffortAnalysis: SubEffortAdvies[];
+}): React.ReactElement {
+  const coveredDomains = new Set(
+    subEffortAnalysis
+      .filter((s) => s.groepId === groepId && s.actie === "combineren")
+      .map((s) => s.domein)
+  );
+  const missing = DOMEIN_ORDER.filter((d) => !coveredDomains.has(d));
+  const count = coveredDomains.size;
+  const style =
+    count >= 3
+      ? "bg-green-50 text-green-700 border-green-200"
+      : count === 2
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-red-50 text-red-700 border-red-200";
+  return (
+    <span
+      className={`inline-block text-[10px] font-semibold border rounded-full px-2 py-0.5 ${style} mt-2`}
+      data-testid={`domain-balance-badge-${groepId}`}
+    >
+      Dekt {count} van 4 domeinen
+      {missing.length > 0
+        ? ` — mist ${missing.map((d) => DOMAIN_LABELS[d]).join(", ")}`
+        : ""}
+    </span>
+  );
+}
+
+// --- Phase 17 D-32: Hefboom badge with tooltip ---
+function HefboomBadge({
+  vermogens,
+}: {
+  vermogens: Array<{ id: string; sectorId: string; title?: string; description: string }>;
+}): React.ReactElement {
+  return (
+    <span className="relative group inline-block mt-1">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700 border border-teal-300 bg-teal-50 rounded-full px-2 py-0.5">
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+        Hefboom: raakt 3 sectoren via gelijkende vermogens
+      </span>
+      <span className="invisible group-hover:visible absolute left-0 top-full mt-1 z-10 bg-gray-900 text-white text-xs rounded p-2 shadow-lg min-w-[200px]">
+        Gelijkende vermogens:
+        <ul className="mt-1 space-y-0.5">
+          {vermogens.map((v) => (
+            <li key={v.id}>
+              {v.sectorId}: {v.title || v.description}
+            </li>
+          ))}
+        </ul>
+      </span>
+    </span>
+  );
+}
+
+// --- Phase 17: Hefboompijlen (desktop only) ---
+function HefboomPijlen(): React.ReactElement {
+  return (
+    <div className="hidden md:grid grid-cols-3 gap-3 my-2">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex justify-center">
+          <svg className="w-6 h-6 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 10l7-7m0 0l7 7m-7-7v18"
+            />
+          </svg>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Expandable merge-herkomst (legacy) ---
+function MergeHerkomst({ origins }: { origins: ConsolidationOrigin[] }) {
+  const [open, setOpen] = useState(false);
+  if (origins.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-[10px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+        Samengevoegd uit {origins.length} sector-items
+        <svg className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="mt-1.5 ml-2 space-y-1">
+          {origins.map((o) => (
+            <div key={o.originalId} className="flex items-center gap-1.5 text-[11px] text-teal-600">
+              <span className="w-1 h-1 rounded-full bg-teal-400 shrink-0" />
+              <span>{o.originalTitle}</span>
+              <SectorBadge sector={o.originalSector} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Connector lijn ---
+function Connector({ className }: { className?: string }) {
+  return (
+    <div className={`flex justify-center ${className ?? ""}`}>
+      <div className="w-0.5 h-5 bg-gray-300" />
+    </div>
+  );
+}
+
+export default function StapSectorVertaling({
+  session,
+  result,
+  stap2Result,
+  stap4Result,
+}: StapSectorVertalingProps) {
   const [buitenScopeOpen, setBuitenScopeOpen] = useState(false);
 
   if (session.goals.length === 0) {
@@ -50,314 +192,354 @@ export default function StapSectorVertaling({ session, result }: StapSectorVerta
   const view = computeFocusView(session);
   if (!view) return null;
 
-  const { focusGoal, focusBenefits, focusCaps, focusEfforts, outOfScopeCaps, outOfScopeEfforts } = view;
+  const { focusGoal, focusBenefits, focusCaps, outOfScopeCaps, outOfScopeEfforts, consolidationMap } = view;
 
-  // Build hierarchical chain: Baat → Vermogens → Inspanningen
-  const benefitCapMaps = session.benefitCapabilityMaps ?? [];
-  const capEffMaps = session.capabilityEffortMaps ?? [];
+  // --- Phase 17 Wave 3 data ---
+  const vermogenGelijkenisGroepen: VermogenGelijkenisGroep[] =
+    stap2Result?.vermogenGelijkenisGroepen ?? [];
+  const subEffortAnalysis: SubEffortAdvies[] = stap4Result?.subEffortAnalysis ?? [];
 
-  const focusCapSet = new Set(focusCaps.map((c) => c.id));
-  const focusEffortSet = new Set(focusEfforts.map((e) => e.id));
-
-  // For each benefit, find linked capabilities (within focus scope)
-  function getCapsForBenefit(benefitId: string): DINCapability[] {
-    const capIds = benefitCapMaps
-      .filter((m) => m.benefitId === benefitId)
-      .map((m) => m.capabilityId)
-      .filter((id) => focusCapSet.has(id));
-    return focusCaps.filter((c) => capIds.includes(c.id));
-  }
-
-  // For each capability, find linked efforts (within focus scope)
-  function getEffortsForCap(capId: string): DINEffort[] {
-    const effIds = capEffMaps
-      .filter((m) => m.capabilityId === capId)
-      .map((m) => m.effortId)
-      .filter((id) => focusEffortSet.has(id));
-    return focusEfforts.filter((e) => effIds.includes(e.id));
-  }
-
-  // Find efforts not linked to any focus cap (orphans)
-  const linkedEffortIds = new Set(
-    focusCaps.flatMap((cap) =>
-      capEffMaps
-        .filter((m) => m.capabilityId === cap.id)
-        .map((m) => m.effortId)
-    )
-  );
-  const orphanEfforts = focusEfforts.filter((e) => !linkedEffortIds.has(e.id));
-
-  // Find caps not linked to any focus benefit (orphans)
-  const linkedCapIds = new Set(
-    focusBenefits.flatMap((b) =>
-      benefitCapMaps
-        .filter((m) => m.benefitId === b.id)
-        .map((m) => m.capabilityId)
-    )
-  );
-  const orphanCaps = focusCaps.filter((c) => !linkedCapIds.has(c.id));
-
-  // Group baten per sector for display
+  // Baten per sector voor de onderste tabel
   const batenBySector = SECTORS_ORDER.map((s) => ({
     sector: s,
     baten: focusBenefits.filter((b) => b.sectorId === s),
   })).filter(({ baten }) => baten.length > 0);
 
-  // Sector origin text for efforts
-  function sectorOriginText(effort: DINEffort): string {
-    const sectors = (effort.responsibleSector ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (sectors.length <= 1) return "";
-    return sectors.join(" + ");
-  }
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Intro */}
       <div>
         <p className="text-[13px] text-gray-700 leading-relaxed">
-          Het geconsolideerde DIN-netwerk voor uw hoogste prioriteit. De keten toont per baat welke
-          vermogens en inspanningen daaraan werken — na consolidatie uit stap 4. Per inspanning ziet u
-          de sectorale herkomst en het domein.
+          Het organigram voor het focusdoel. Per groep van <span className="font-semibold text-teal-700">gelijkende sector-vermogens</span>
+          {" "}tonen we drie parallelle vermogens (PO/VO/Zakelijk) met daaronder de hefboomlaag: welke
+          inspanningen per domein gezamenlijk opgepakt kunnen worden.
         </p>
       </div>
 
-      {/* Focusdoel */}
-      <section className="bg-white border border-[#e2e8f0] rounded-lg p-6 border-l-4 border-l-[#003366]">
-        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+      {/* ===== ORGANIGRAM ===== */}
+
+      {/* NIVEAU 1: Focusdoel */}
+      <div className="bg-[#003366] text-white rounded-lg p-5 text-center shadow-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
           Focusdoel — prioriteit 1
         </p>
-        <h4 className="text-lg font-semibold text-[#003366] mt-1">
+        <h4 className="text-base font-semibold">
           {focusGoal.name || focusGoal.description}
         </h4>
-      </section>
+      </div>
 
-      {/* Hierarchische DIN-keten per sector */}
-      {batenBySector.map(({ sector, baten }) => (
-        <section key={sector} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <SectorBadge sector={sector} />
-            <span className="text-[11px] font-semibold text-gray-500">
-              {baten.length} {baten.length === 1 ? "baat" : "baten"}
-            </span>
-          </div>
+      <Connector />
 
-          {baten.map((baat) => {
-            const dekking = result?.batenDekking.find((d) => d.baatId === baat.id);
-            const caps = getCapsForBenefit(baat.id);
-
-            return (
-              <div key={baat.id} className="space-y-0">
-                {/* Baat */}
-                <div className="border-l-4 border-l-[#0066cc] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-[11px] font-semibold text-[#0066cc] uppercase tracking-wider mb-0.5">Baat</p>
-                      <p className="text-[13px] font-medium text-gray-800">
-                        {baat.title || baat.description}
-                      </p>
-                    </div>
-                    {dekking ? (
-                      dekking.wordtGeraakt ? (
-                        <span className="text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 rounded px-1.5 py-0.5 whitespace-nowrap">
-                          geraakt
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 rounded px-1.5 py-0.5 whitespace-nowrap">
-                          risico
-                        </span>
-                      )
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0 mt-1.5" />
-                    )}
-                  </div>
-                  {dekking && !dekking.wordtGeraakt && dekking.risico && (
-                    <p className="text-[12px] text-red-600 mt-1">
-                      <span className="font-semibold">Risico: </span>{dekking.risico}
-                    </p>
-                  )}
-                  {dekking?.wordtGeraakt && dekking.redenering && (
-                    <p className="text-[12px] text-gray-500 mt-1">{dekking.redenering}</p>
-                  )}
+      {/* NIVEAU 2: Baten per sector (horizontaal) */}
+      {focusBenefits.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center mb-2">
+            Baten per sector
+          </p>
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(batenBySector.length, 3)}, 1fr)` }}>
+            {batenBySector.map(({ sector, baten }) => (
+              <div key={sector} className="space-y-1.5">
+                <div className="flex justify-center">
+                  <SectorBadge sector={sector} />
                 </div>
+                {baten.map((baat) => {
+                  const dekking = result?.batenDekking?.find((d) => d.baatId === baat.id);
+                  return (
+                    <div key={baat.id} className="border-l-3 border-l-[#0066cc] bg-white border border-[#e2e8f0] rounded-r-lg pl-3 pr-3 py-2">
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="text-[12px] font-medium text-gray-800 flex-1">
+                          {baat.title || baat.description}
+                        </p>
+                        {dekking && (
+                          <span className={`text-[9px] font-semibold border rounded px-1 py-0.5 shrink-0 ${
+                            dekking.wordtGeraakt
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : "bg-red-50 text-red-700 border-red-200"
+                          }`}>
+                            {dekking.wordtGeraakt ? "geraakt" : "risico"}
+                          </span>
+                        )}
+                      </div>
+                      {dekking && !dekking.wordtGeraakt && dekking.risico && (
+                        <p className="text-[10px] text-red-600 mt-0.5">{dekking.risico}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-                {/* Vermogens onder deze baat */}
-                {caps.length > 0 && (
-                  <div className="ml-6 space-y-0">
-                    {caps.map((cap) => {
-                      const review = result?.vermogenReview.find((r) => r.vermogenId === cap.id);
-                      const efforts = getEffortsForCap(cap.id);
+      {/* Connector baten → drieluiken */}
+      {vermogenGelijkenisGroepen.length > 0 && <Connector />}
 
+      {/* NIVEAU 3: Drieluik-rendering per VermogenGelijkenisGroep (D-28) */}
+      {vermogenGelijkenisGroepen.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center mb-3">
+            Gelijkende sector-vermogens — hefboomgroepen
+          </p>
+          <div className="space-y-4">
+            {vermogenGelijkenisGroepen.map((groep) => {
+              const groepVermogens = session.capabilities.filter((c) =>
+                groep.vermogenIds.includes(c.id)
+              );
+              if (groepVermogens.length === 0) return null;
+
+              const groepSubAnalyses = subEffortAnalysis.filter(
+                (s) => s.groepId === groep.id
+              );
+
+              return (
+                <section
+                  key={groep.id}
+                  className="bg-teal-50/30 border border-teal-200 rounded-xl p-5"
+                  data-testid={`vermogen-gelijkenis-groep-${groep.id}`}
+                >
+                  {/* BOVEN: rationale-kop + domein-balans */}
+                  <div className="mb-4 text-center">
+                    <p className="text-[10px] font-bold text-teal-700 uppercase tracking-wider mb-1">
+                      Gelijkende vermogens — hefboomgroep
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {groep.gezamenlijkeOmschrijving}
+                    </p>
+                    {groep.reden && (
+                      <p className="text-xs text-gray-500 mt-1 italic">{groep.reden}</p>
+                    )}
+                    <DomainBalanceBadge
+                      groepId={groep.id}
+                      subEffortAnalysis={subEffortAnalysis}
+                    />
+                  </div>
+
+                  {/* MIDDEN: drie parallelle sector-vermogen-kaarten */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    {groepVermogens.map((cap: DINCapability) => {
+                      const review = result?.vermogenReview?.find((r) => r.vermogenId === cap.id);
                       return (
-                        <div key={cap.id} className="space-y-0">
-                          {/* Vermogen */}
-                          <div className="border-l-4 border-l-[#0891b2] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-3 mt-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <p className="text-[11px] font-semibold text-[#0891b2] uppercase tracking-wider mb-0.5">Vermogen</p>
-                                <p className="text-[13px] font-medium text-gray-800">
-                                  {cap.title || cap.description}
-                                </p>
-                              </div>
-                              <div className="flex gap-0.5 shrink-0">
-                                {(cap.relatedSectors ?? []).map((s) => (
-                                  <SectorBadge key={s} sector={s} />
-                                ))}
-                              </div>
-                            </div>
-                            {review && (
-                              <div className="mt-2 text-[12px] text-gray-600">
-                                <p className="leading-relaxed">{review.hefboomAnalyse}</p>
-                                {review.suggestieAanscherping && (
-                                  <p className="mt-1 text-gray-500">
-                                    <span className="font-semibold">Aanscherping: </span>
-                                    {review.suggestieAanscherping}
-                                  </p>
-                                )}
-                              </div>
+                        <div
+                          key={cap.id}
+                          className="bg-white border-2 border-teal-300 rounded-lg p-3"
+                          data-testid={`vermogen-card-${cap.id}`}
+                        >
+                          <div className="flex items-center justify-between mb-1 gap-1">
+                            <SectorBadge sector={cap.sectorId || ""} />
+                            {cap.consolidated && (
+                              <span className="inline-block text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                                Legacy: vermogens-merge
+                              </span>
                             )}
                           </div>
-
-                          {/* Inspanningen onder dit vermogen */}
-                          {efforts.length > 0 && (
-                            <div className="ml-6 space-y-1 mt-1">
-                              {efforts.map((effort) => {
-                                const efReview = result?.inspanningReview.find((r) => r.inspanningId === effort.id);
-                                const sectorText = sectorOriginText(effort);
-                                const domainLabel = DOMAIN_LABELS[effort.domain] || effort.domain;
-                                const domainColor = DOMAIN_COLORS[effort.domain] || "bg-gray-50 text-gray-600 border-gray-200";
-
-                                return (
-                                  <div
-                                    key={effort.id}
-                                    className="border-l-4 border-l-[#059669] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-2.5"
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                          <p className="text-[11px] font-semibold text-[#059669] uppercase tracking-wider">Inspanning</p>
-                                          <span className={`text-[10px] font-semibold border rounded px-1 py-0.5 ${domainColor}`}>
-                                            {domainLabel}
-                                          </span>
-                                        </div>
-                                        <p className="text-[13px] text-gray-800">
-                                          {effort.title || effort.description}
-                                        </p>
-                                        {sectorText && (
-                                          <p className="text-[11px] text-gray-400 mt-0.5">
-                                            Sectoren: {sectorText}
-                                          </p>
-                                        )}
-                                      </div>
-                                      {efReview?.breedteOordeel && (
-                                        <span
-                                          className={`text-[11px] font-semibold border rounded px-1.5 py-0.5 whitespace-nowrap ${
-                                            efReview.breedteOordeel === "dekt_volledig"
-                                              ? "bg-green-50 text-green-700 border-green-200"
-                                              : efReview.breedteOordeel === "moet_verbreed"
-                                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                                              : "bg-red-50 text-red-700 border-red-200"
-                                          }`}
-                                        >
-                                          {efReview.breedteOordeel === "dekt_volledig"
-                                            ? "dekt volledig"
-                                            : efReview.breedteOordeel === "moet_verbreed"
-                                            ? "moet verbreed"
-                                            : "mist aspect"}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {efReview?.toelichting && (
-                                      <p className="mt-1 text-[12px] text-gray-600">{efReview.toelichting}</p>
-                                    )}
-                                    {efReview?.suggestieVerbreding && (
-                                      <p className="mt-1 text-[12px] text-amber-700">
-                                        <span className="font-semibold">Suggestie: </span>{efReview.suggestieVerbreding}
-                                      </p>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {cap.title || cap.description}
+                          </p>
+                          {cap.title && cap.description && cap.description !== cap.title && (
+                            <p className="text-xs text-gray-500 mt-1">{cap.description}</p>
+                          )}
+                          {review && (
+                            <p className="text-[11px] text-gray-600 mt-2 leading-snug">
+                              {review.hefboomAnalyse}
+                            </p>
                           )}
                         </div>
                       );
                     })}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      ))}
 
-      {/* Orphan capabilities (gekoppeld aan focusdoel maar niet aan specifieke baat) */}
-      {orphanCaps.length > 0 && (
-        <section className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-700">
-            Overige cross-sector vermogens
-            <span className="text-xs font-normal text-gray-400 ml-2">
-              (gekoppeld aan dit doel, niet aan een specifieke baat)
-            </span>
-          </h4>
-          {orphanCaps.map((cap) => {
-            const efforts = getEffortsForCap(cap.id);
-            const review = result?.vermogenReview.find((r) => r.vermogenId === cap.id);
-            return (
-              <div key={cap.id}>
-                <div className="border-l-4 border-l-[#0891b2] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-[11px] font-semibold text-[#0891b2] uppercase tracking-wider mb-0.5">Vermogen</p>
-                      <p className="text-[13px] font-medium text-gray-800">{cap.title || cap.description}</p>
-                    </div>
-                    <div className="flex gap-0.5 shrink-0">
-                      {(cap.relatedSectors ?? []).map((s) => (
-                        <SectorBadge key={s} sector={s} />
-                      ))}
-                    </div>
+                  {/* Hefboom-pijlen (desktop only) */}
+                  <HefboomPijlen />
+
+                  {/* ONDER: hefboomlaag per domein */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
+                    {DOMEIN_ORDER.map((domein) => {
+                      const advies = groepSubAnalyses.find((s) => s.domein === domein);
+                      const colors = DOMAIN_COLORS[domein];
+
+                      if (!advies) {
+                        return (
+                          <div
+                            key={domein}
+                            className="border border-dashed border-gray-300 rounded-lg p-3 opacity-60"
+                            data-testid={`hefboomlaag-${groep.id}-${domein}-empty`}
+                          >
+                            <p className={`text-[10px] font-bold uppercase tracking-wider ${colors.text} mb-1`}>
+                              {DOMAIN_LABELS[domein]}
+                            </p>
+                            <p className="text-xs text-gray-400">Geen gezamenlijke inspanning</p>
+                          </div>
+                        );
+                      }
+
+                      const relatedEfforts = session.efforts.filter((e) =>
+                        advies.items.includes(e.id)
+                      );
+
+                      return (
+                        <div
+                          key={domein}
+                          className={`border ${colors.border} ${colors.bg} rounded-lg p-3`}
+                          data-testid={`hefboomlaag-${groep.id}-${domein}`}
+                        >
+                          <div className="flex items-center justify-between mb-1 gap-1">
+                            <p className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
+                              {DOMAIN_LABELS[domein]}
+                            </p>
+                            <span
+                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                advies.actie === "combineren"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {advies.actie === "combineren" ? "Combineren" : "Apart"}
+                            </span>
+                          </div>
+                          {advies.voorgesteldeNaam && (
+                            <p className="text-xs font-semibold text-gray-800 mb-1">
+                              {advies.voorgesteldeNaam}
+                            </p>
+                          )}
+                          {advies.reden && (
+                            <p className="text-[11px] text-gray-600 mb-2 leading-snug">
+                              {advies.reden}
+                            </p>
+                          )}
+                          {relatedEfforts.length > 0 && (
+                            <ul className="text-[11px] text-gray-700 space-y-0.5">
+                              {relatedEfforts.map((eff) => (
+                                <li key={eff.id}>• {eff.title || eff.description}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {advies.actie === "combineren" && (
+                            <HefboomBadge vermogens={groepVermogens} />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {review && (
-                    <p className="mt-2 text-[12px] text-gray-600">{review.hefboomAnalyse}</p>
-                  )}
-                </div>
-                {efforts.length > 0 && (
-                  <div className="ml-6 space-y-1 mt-1">
-                    {efforts.map((effort) => (
-                      <div key={effort.id} className="border-l-4 border-l-[#059669] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-2">
-                        <p className="text-[13px] text-gray-800">{effort.title || effort.description}</p>
-                        {sectorOriginText(effort) && (
-                          <p className="text-[11px] text-gray-400 mt-0.5">Sectoren: {sectorOriginText(effort)}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
+                </section>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {/* Orphan efforts (niet gekoppeld aan een vermogen) */}
-      {orphanEfforts.length > 0 && (
-        <section className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-700">
-            Overige gedeelde inspanningen
-            <span className="text-xs font-normal text-gray-400 ml-2">
-              (niet gekoppeld aan een cross-sector vermogen)
-            </span>
-          </h4>
-          {orphanEfforts.map((effort) => (
-            <div key={effort.id} className="border-l-4 border-l-[#059669] bg-white border border-[#e2e8f0] rounded-tr-lg rounded-br-lg pl-4 pr-4 py-2.5">
-              <p className="text-[13px] text-gray-800">{effort.title || effort.description}</p>
-              {sectorOriginText(effort) && (
-                <p className="text-[11px] text-gray-400 mt-0.5">Sectoren: {sectorOriginText(effort)}</p>
-              )}
+      {/* Legacy: consolidated caps die NIET in een drieluik-groep zitten — toon als individuele kaarten met amber legacy-warning */}
+      {(() => {
+        const groepCapIds = new Set(vermogenGelijkenisGroepen.flatMap((g) => g.vermogenIds));
+        const legacyConsolidatedCaps = focusCaps.filter(
+          (c) => c.consolidated && !groepCapIds.has(c.id)
+        );
+        if (legacyConsolidatedCaps.length === 0) return null;
+        return (
+          <div className="mt-4">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center mb-2">
+              Legacy samengevoegde vermogens
+            </p>
+            <div className="space-y-2">
+              {legacyConsolidatedCaps.map((cap) => {
+                const origins = consolidationMap.get(cap.id) ?? [];
+                return (
+                  <div
+                    key={cap.id}
+                    className="bg-white border-2 border-amber-300 rounded-lg p-3"
+                  >
+                    <div className="flex items-center justify-between mb-1 gap-1">
+                      <SectorBadge sector={cap.sectorId || ""} />
+                      <span className="inline-block text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                        Legacy: vermogens-merge (niet meer toegepast in cross-analyse)
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {cap.title || cap.description}
+                    </p>
+                    {origins.length > 0 && <MergeHerkomst origins={origins} />}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        );
+      })()}
+
+      {/* Fallback: als er GEEN vermogenGelijkenisGroepen zijn, toon empty state */}
+      {vermogenGelijkenisGroepen.length === 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+          <p className="text-sm text-gray-600">
+            Nog geen vermogen-gelijkenis-groepen gedetecteerd. Doorloop stap 3 (Gedeelde vermogens)
+            om gelijkende sector-vermogens te markeren.
+          </p>
+        </div>
+      )}
+
+      {/* ===== SECTOR-IMPACT TABEL ===== */}
+      {batenBySector.length > 0 && (
+        <section className="mt-8">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Per sector: wat gaan we bereiken?</h4>
+          <div className="bg-white border border-[#e2e8f0] rounded-lg overflow-hidden">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-[#e2e8f0]">
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider w-[80px]">Sector</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Baten</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Gelijkende vermogens</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Gezamenlijke inspanningen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batenBySector.map(({ sector, baten }) => {
+                  // Welke gelijkenisgroepen hebben een vermogen uit deze sector?
+                  const sectorGroepen = vermogenGelijkenisGroepen.filter((g) =>
+                    session.capabilities.some(
+                      (c) => g.vermogenIds.includes(c.id) && c.sectorId === sector
+                    )
+                  );
+                  const sectorCapNames = sectorGroepen
+                    .flatMap((g) =>
+                      session.capabilities
+                        .filter((c) => g.vermogenIds.includes(c.id) && c.sectorId === sector)
+                        .map((c) => c.title || c.description)
+                    );
+                  // Welke gezamenlijke inspanningen (combineren) komen voort uit deze groepen?
+                  const sectorGroepIds = new Set(sectorGroepen.map((g) => g.id));
+                  const sharedEffortTitles = subEffortAnalysis
+                    .filter((s) => sectorGroepIds.has(s.groepId) && s.actie === "combineren")
+                    .map((s) => s.voorgesteldeNaam || `(${DOMAIN_LABELS[s.domein]} cluster)`);
+
+                  return (
+                    <tr key={sector} className="border-b border-[#e2e8f0] last:border-b-0 align-top">
+                      <td className="px-3 py-2.5">
+                        <SectorBadge sector={sector} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {baten.map((b) => (
+                          <p key={b.id} className="text-gray-700">{b.title || b.description}</p>
+                        ))}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {sectorCapNames.length > 0
+                          ? sectorCapNames.map((name, i) => (
+                              <p key={i} className="text-gray-700 font-semibold">{name}</p>
+                            ))
+                          : <p className="text-gray-400 italic">-</p>}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {sharedEffortTitles.length > 0
+                          ? sharedEffortTitles.map((t, i) => (
+                              <p key={i} className="text-gray-700 font-semibold">{t}</p>
+                            ))
+                          : <p className="text-gray-400 italic">-</p>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -374,15 +556,17 @@ export default function StapSectorVertaling({ session, result }: StapSectorVerta
       {!result?.samenvatting && (
         <div className="bg-gray-50 border border-[#e2e8f0] rounded-lg p-4">
           <p className="text-[13px] text-gray-500">
-            {focusCaps.length > 0
-              ? "De keten staat klaar. Klik op \u2018Analyseer eerste doel\u2019 voor de AI-review van hefboomwerking en baten-dekking."
-              : "Klik op \u2018Analyseer\u2019 om de hefboomanalyse, breedtebeoordeling en baten-dekking voor dit doel te zien."}
+            {vermogenGelijkenisGroepen.length > 0
+              ? "De drieluik-keten staat klaar. Klik op \u2018Analyseer eerste doel\u2019 voor de AI-review."
+              : focusCaps.length > 0
+              ? "Er zijn nog geen gelijkende sector-vermogens gegroepeerd. Ga terug naar stap 3 om drieluiken te markeren."
+              : "Klik op \u2018Analyseer\u2019 om de hefboomanalyse en baten-dekking voor dit doel te zien."}
           </p>
         </div>
       )}
 
       {/* Buiten scope */}
-      <div className="mt-12">
+      <div className="mt-8">
         <button
           onClick={() => setBuitenScopeOpen((v) => !v)}
           className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 bg-gray-50 border border-[#e2e8f0] rounded-lg text-left hover:bg-gray-100 transition-colors"
@@ -390,7 +574,7 @@ export default function StapSectorVertaling({ session, result }: StapSectorVerta
         >
           <span className="text-[13px] text-gray-700">
             <span className="font-semibold">Buiten scope voor nu</span>
-            {" — "}
+            {" \u2014 "}
             {outOfScopeCaps.length} vermogens en {outOfScopeEfforts.length} inspanningen
           </span>
           <span className="text-[11px] font-semibold text-gray-500">
@@ -400,8 +584,7 @@ export default function StapSectorVertaling({ session, result }: StapSectorVerta
         {buitenScopeOpen && (
           <div className="mt-3 px-4 py-3 bg-white border border-[#e2e8f0] rounded-lg space-y-3">
             <p className="text-[13px] text-gray-600">
-              Deze items zijn niet geconsolideerd tot cross-sector hefbomen voor dit doel. Ze blijven beschikbaar voor
-              latere doelen of vervolgstappen.
+              Deze items zijn niet gegroepeerd in een drieluik voor dit doel.
             </p>
             {outOfScopeCaps.length > 0 && (
               <div>
