@@ -346,10 +346,64 @@ export function createDemoSession(): DINSession {
     projectCapabilityMaps: [],
     completedGoals: [],
     crossAnalyseWizard: {
-      currentStep: 5,
-      completedSteps: [2, 3, 4],
+      currentStep: 6,
+      completedSteps: [1, 2, 3, 4, 5],
       wizardVersion: 2,
       stepResults: {
+        stap1: {
+          batenPerSector: [
+            {
+              sector: "PO",
+              baten: [
+                {
+                  titel: "Hogere klanttevredenheid PO-scholen",
+                  doelId: goalIds[0],
+                  doelNaam: "Integraal klantbeeld en outside-in werken",
+                },
+              ],
+            },
+            {
+              sector: "VO",
+              baten: [
+                {
+                  titel: "Inhoudelijk partnerschap met VO-besturen",
+                  doelId: goalIds[0],
+                  doelNaam: "Integraal klantbeeld en outside-in werken",
+                },
+              ],
+            },
+            {
+              sector: "Zakelijk",
+              baten: [
+                {
+                  titel: "Hogere conversie en duurzame klantrelaties Zakelijk",
+                  doelId: goalIds[0],
+                  doelNaam: "Integraal klantbeeld en outside-in werken",
+                },
+              ],
+            },
+          ],
+          synergieën: [
+            {
+              beschrijving:
+                "Outside-in competentie en klantgerichte gespreksvoering zijn in alle drie sectoren ontbrekend — gezamenlijk ontwikkeltraject geeft schaal.",
+              sectoren: ["PO", "VO", "Zakelijk"],
+              impact: "Hoog — raakt alle primaire klantinteracties en NPS",
+            },
+            {
+              beschrijving:
+                "Betrouwbare klantdata is voorwaarde voor proactief handelen in PO/VO (leerlingvolgsysteem) én Zakelijk (CRM) — systemen verschillen maar de datadiscipline is dezelfde.",
+              sectoren: ["PO", "VO", "Zakelijk"],
+              impact: "Middel — verschillende systemen, wel gedeelde governance-principes",
+            },
+          ],
+          gaps: {
+            doelenZonderBaten: [],
+            batenZonderVermogens: [],
+          },
+          samenvatting:
+            "Alle drie sectoren formuleren klantgerichte baten die aansluiten op doel 1 (outside-in werken). Synergie-potentieel ligt vooral bij Mens (gespreksvoering) en Cultuur (eigenaarschap); Data/Systemen en Processen blijven sector-eigen.",
+        },
         stap2: {
           vermogenClusters: [],
           hefboomwerking: [],
@@ -366,9 +420,183 @@ export function createDemoSession(): DINSession {
           samenvatting:
             "Cross-analyse identificeert één sectoroverstijgende hefboomgroep rond klantpartnerschap. PO, VO en Zakelijk ontwikkelen vergelijkbare vermogens — een kans om inspanningen per domein (mens/cultuur) te bundelen zonder de sector-eigen vermogens te consolideren.",
         },
+        stap3: {
+          inspanningClusters: [
+            {
+              clusterTitel:
+                "Outside-in gespreksvaardigheidstraining (mens) — PO/VO/Zakelijk",
+              items: [
+                {
+                  id: effortIds[1],
+                  beschrijving:
+                    "Trainen medewerkers in klantgerichte gespreksvaardigheden PO",
+                  sector: "PO",
+                  domein: "mens",
+                },
+                {
+                  id: effortIds[6],
+                  beschrijving:
+                    "Trainen medewerkers in klantgerichte gespreksvaardigheden VO",
+                  sector: "VO",
+                  domein: "mens",
+                },
+                {
+                  id: effortIds[4],
+                  beschrijving:
+                    "Werven en ontwikkelen van outside-in competenties bij medewerkers",
+                  sector: "Zakelijk",
+                  domein: "mens",
+                },
+              ],
+              batenContext: [
+                {
+                  baat: "Hogere klanttevredenheid PO-scholen",
+                  sector: "PO",
+                },
+                {
+                  baat: "Inhoudelijk partnerschap met VO-besturen",
+                  sector: "VO",
+                },
+                {
+                  baat: "Hogere conversie en duurzame klantrelaties Zakelijk",
+                  sector: "Zakelijk",
+                },
+              ],
+              advies:
+                "Drie sectoren werken aan vergelijkbare gespreksvaardigheden. Combineren onder één trainingsprogramma met sector-specifieke casuïstiek geeft schaalvoordeel en consistentere cultuur.",
+              aanbeveling: "combineren",
+            },
+            {
+              clusterTitel:
+                "Outside-in leiderschap & eigenaarschap (cultuur) — PO/VO/Zakelijk",
+              items: [
+                {
+                  id: effortIds[0],
+                  beschrijving:
+                    "Verankeren van outside-in leiderschap als rolmodel gedrag (PO)",
+                  sector: "PO",
+                  domein: "cultuur",
+                },
+                {
+                  id: effortIds[7],
+                  beschrijving:
+                    "Verankeren van outside-in leiderschap als rolmodel gedrag VO",
+                  sector: "VO",
+                  domein: "cultuur",
+                },
+                {
+                  id: effortIds[3],
+                  beschrijving:
+                    "Verankeren van outside-in mindset en klantgericht eigenaarschap",
+                  sector: "Zakelijk",
+                  domein: "cultuur",
+                },
+              ],
+              batenContext: [
+                {
+                  baat: "Hogere klanttevredenheid PO-scholen",
+                  sector: "PO",
+                },
+                {
+                  baat: "Inhoudelijk partnerschap met VO-besturen",
+                  sector: "VO",
+                },
+                {
+                  baat: "Hogere conversie en duurzame klantrelaties Zakelijk",
+                  sector: "Zakelijk",
+                },
+              ],
+              advies:
+                "Cultuurinspanningen rond outside-in eigenaarschap raken dezelfde gedragsverandering. Samenbrengen onder één leiderschapsprogramma versterkt de boodschap.",
+              aanbeveling: "combineren",
+            },
+            {
+              clusterTitel: "CRM-dashboard & klantinformatieprocessen (Zakelijk)",
+              items: [
+                {
+                  id: effortIds[2],
+                  beschrijving:
+                    "Implementeren en inrichten van integraal CRM-klantdashboard",
+                  sector: "Zakelijk",
+                  domein: "data_systemen",
+                },
+                {
+                  id: effortIds[5],
+                  beschrijving:
+                    "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed",
+                  sector: "Zakelijk",
+                  domein: "processen",
+                },
+              ],
+              batenContext: [
+                {
+                  baat: "Hogere conversie en duurzame klantrelaties Zakelijk",
+                  sector: "Zakelijk",
+                },
+              ],
+              advies:
+                "CRM + standaardisatie zijn sector-eigen voor Zakelijk. PO/VO werken met leerlingvolgsystemen en andere procesflows — niet combineerbaar.",
+              aanbeveling: "apart_houden",
+            },
+          ],
+          projectMatching: [],
+          samenvatting:
+            "Drie inspanningsclusters geïdentificeerd: mens (3 sectoren — combineren), cultuur (3 sectoren — combineren), data+processen (alleen Zakelijk — apart). Dit legt de basis voor de sub-effort analyse per domein onder de vermogen-gelijkenisgroep.",
+        },
         stap4: {
-          consolidatieAdvies: [],
-          citobreedInzicht: [],
+          consolidatieAdvies: [
+            {
+              clusterTitel:
+                "Outside-in gespreksvaardigheidstraining (mens) — PO/VO/Zakelijk",
+              type: "inspanning",
+              aanbeveling: "combineren",
+              reden:
+                "Gedeelde trainingsmethodiek en coaching zijn direct schaalbaar over drie sectoren; behoud sector-specifieke casuïstiek in modules.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
+              afstemmingsStappen: [],
+            },
+            {
+              clusterTitel:
+                "Outside-in leiderschap & eigenaarschap (cultuur) — PO/VO/Zakelijk",
+              type: "inspanning",
+              aanbeveling: "combineren",
+              reden:
+                "Leiderschapsontwikkeling op outside-in houding is conceptueel identiek — gezamenlijke rolmodel- en intervisietraject werkt sterker dan drie losse initiatieven.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende outside-in leiderschapsontwikkeling",
+              afstemmingsStappen: [],
+            },
+            {
+              clusterTitel: "CRM-dashboard & klantinformatieprocessen (Zakelijk)",
+              type: "inspanning",
+              aanbeveling: "apart_houden",
+              reden:
+                "Data-architectuur en procesflows verschillen wezenlijk tussen Zakelijk (CRM, lead-to-deal) en PO/VO (leerlingvolgsysteem, bestelcycli). Niet combineerbaar zonder sector-eigen waarde te verliezen.",
+              voorgesteldeNaam: null,
+              afstemmingsStappen: [],
+            },
+          ],
+          citobreedInzicht: [
+            {
+              domein: "mens",
+              titel: "Outside-in competentie is organisatiebrede hefboom",
+              beschrijving:
+                "Gespreksvaardigheden en commerciële outside-in mindset worden in alle drie sectoren ontwikkeld. Gezamenlijk curriculum reduceert kosten en versterkt consistentie.",
+              onderbouwing:
+                "Drie inspanningen (PO/VO/Zakelijk) met overlappende doelstellingen én gedeelde baten-indicatoren (NPS, klanttevredenheid, conversie).",
+              relevanteItems: [effortIds[1], effortIds[6], effortIds[4]],
+            },
+            {
+              domein: "cultuur",
+              titel: "Leiderschap als multiplier voor gedragsverandering",
+              beschrijving:
+                "Outside-in gedrag vraagt zichtbare rolmodellen op leiderschapsniveau. Sectoroverstijgend programma versterkt de boodschap en voorkomt gefragmenteerde interventies.",
+              onderbouwing:
+                "Drie cultuur-inspanningen met vergelijkbare interventies (sessies, intervisie, rolmodel-gedrag) onder verschillende sectormanagers.",
+              relevanteItems: [effortIds[0], effortIds[7], effortIds[3]],
+            },
+          ],
           subEffortAnalysis: [
             {
               groepId: "groep-klantpartnerschap",
