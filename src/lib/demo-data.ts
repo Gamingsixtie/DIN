@@ -32,6 +32,8 @@ export function createDemoSession(): DINSession {
     "f9e8d7c6-b5a4-4938-8271-615f4c3d2e1b", // VO cultuur (leiderschap) — toegevoegd phase 17
     "1a2b3c4d-5e6f-4078-9182-a3b4c5d6e7f8", // PO data_systemen (CRM-klantbeeld)
     "2b3c4d5e-6f70-4819-a2b3-c4d5e6f7a8b9", // VO data_systemen (CRM-klantbeeld)
+    "3c4d5e6f-7081-492a-b3c4-d5e6f7a8b9ca", // PO processen (klantinformatieproces)
+    "4d5e6f70-8192-4a3b-c4d5-e6f7a8b9cadb", // VO processen (klantinformatieproces)
   ];
 
   return {
@@ -306,24 +308,10 @@ export function createDemoSession(): DINSession {
           randvoorwaarden: "Processen en klantfunnel zijn voldoende in kaart gebracht; businessfocus per klantsegment is bepaald.",
         },
       },
-      {
-        id: effortIds[7],
-        title: "Verankeren van outside-in leiderschap als rolmodel gedrag VO",
-        sectorId: "VO",
-        domain: "cultuur",
-        status: "gepland",
-        quarter: "Nader te bepalen",
-        votes: 0,
-        dependencies: [],
-        description: "Leidinggevenden binnen de VO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij cre\u00ebren bewust ruimte om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
-        dossier: {
-          eigenaar: "Sectormanager VO",
-          inspanningsleider: "Programmamanager / HR Business Partner VO",
-          verwachtResultaat: "Leidinggevenden en medewerkers voelen zich vrij en veilig om klantgericht gedrag te tonen en hierop aan te spreken, zichtbaar in een stijging van de NPS-score en een groter aandeel klantgesprekken dat als samenwerkingsgerichte dialoog wordt gekwalificeerd.",
-          kostenraming: "\u20ac 30.000 \u2013 \u20ac 60.000 (afhankelijk van aantal leiderschapssessies en intervisietraject); onzekerheidsmarge \u00b130%",
-          randvoorwaarden: "Commitment van sectormanager VO als zichtbaar sponsor en deelnemend rolmodel.",
-        },
-      },
+      // effortIds[7] (VO cultuur) bewust NIET ingediend — demo-scenario voor
+      // predictieve suggestie: systeem suggereert dat VO aansluit bij het
+      // gedeelde leiderschapsprogramma ook al heeft VO geen eigen inspanning
+      // in dit domein ingediend. Zie stap4.subEffortAnalysis (domein cultuur).
       {
         id: effortIds[8],
         title: "CRM-klantbeeld voor sector PO inrichten",
@@ -360,6 +348,42 @@ export function createDemoSession(): DINSession {
           randvoorwaarden: "Gedeelde CRM-platformkeuze met PO en Zakelijk; klantdata VO ontsloten en opgeschoond.",
         },
       },
+      {
+        id: effortIds[10],
+        title: "Standaardiseren klantinformatieprocessen PO",
+        sectorId: "PO",
+        domain: "processen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Richt eenduidige werkprocessen in voor het registreren, delen en opvolgen van klantinformatie in sector PO \u2014 van eerste contact met een school tot bestendige samenwerkingsrelatie. Proces-output landt in het gedeelde CRM-klantbeeld.",
+        dossier: {
+          eigenaar: "Sectormanager PO",
+          inspanningsleider: "Procesverantwoordelijke PO",
+          verwachtResultaat: "PO-medewerkers registreren klantinformatie volgens een gestandaardiseerd proces; signalen en kansen worden structureel opgepakt en zijn zichtbaar in het CRM.",
+          kostenraming: "\u20ac 20.000 \u2013 \u20ac 40.000 (\u00b130%)",
+          randvoorwaarden: "Gedeelde proces-methodologie met VO en Zakelijk; CRM-klantbeeld PO is in voorbereiding.",
+        },
+      },
+      {
+        id: effortIds[11],
+        title: "Standaardiseren klantinformatieprocessen VO",
+        sectorId: "VO",
+        domain: "processen",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Richt eenduidige werkprocessen in voor het registreren, delen en opvolgen van klantinformatie in sector VO \u2014 van aanbesteding tot doorlopende samenwerking met besturen en scholen. Proces-output landt in het gedeelde CRM-klantbeeld.",
+        dossier: {
+          eigenaar: "Sectormanager VO",
+          inspanningsleider: "Procesverantwoordelijke VO",
+          verwachtResultaat: "VO-medewerkers registreren klantinformatie volgens een gestandaardiseerd proces; aanbestedings- en samenwerkingstrajecten zijn gestructureerd vastgelegd in het CRM.",
+          kostenraming: "\u20ac 20.000 \u2013 \u20ac 40.000 (\u00b130%)",
+          randvoorwaarden: "Gedeelde proces-methodologie met PO en Zakelijk; CRM-klantbeeld VO is in voorbereiding.",
+        },
+      },
     ],
     goalBenefitMaps: [
       { goalId: goalIds[0], benefitId: benefitIds[0] },
@@ -379,9 +403,11 @@ export function createDemoSession(): DINSession {
       { capabilityId: capIds[0], effortId: effortIds[4] }, // Zakelijk cap → Zakelijk mens
       { capabilityId: capIds[0], effortId: effortIds[5] }, // Zakelijk cap → Zakelijk processen
       { capabilityId: capIds[2], effortId: effortIds[6] }, // VO cap → VO mens
-      { capabilityId: capIds[2], effortId: effortIds[7] }, // VO cap → VO cultuur
+      // VO cultuur-inspanning bewust niet gekoppeld — zie efforts-array comment
       { capabilityId: capIds[1], effortId: effortIds[8] }, // PO cap → PO CRM
       { capabilityId: capIds[2], effortId: effortIds[9] }, // VO cap → VO CRM
+      { capabilityId: capIds[1], effortId: effortIds[10] }, // PO cap → PO processen
+      { capabilityId: capIds[2], effortId: effortIds[11] }, // VO cap → VO processen
     ],
     projectCapabilityMaps: [],
     completedGoals: [],
@@ -510,7 +536,7 @@ export function createDemoSession(): DINSession {
             },
             {
               clusterTitel:
-                "Outside-in leiderschap & eigenaarschap (cultuur) — PO/VO/Zakelijk",
+                "Outside-in leiderschap & eigenaarschap (cultuur) — PO + Zakelijk (VO gesuggereerd)",
               items: [
                 {
                   id: effortIds[0],
@@ -520,25 +546,15 @@ export function createDemoSession(): DINSession {
                   domein: "cultuur",
                 },
                 {
-                  id: effortIds[7],
-                  beschrijving:
-                    "Verankeren van outside-in leiderschap als rolmodel gedrag VO",
-                  sector: "VO",
-                  domein: "cultuur",
-                },
-                {
                   id: effortIds[3],
                   beschrijving:
-                    "Verankeren van outside-in mindset en klantgericht eigenaarschap",
+                    "Verankeren van outside-in mindset en klantgericht eigenaarschap (Zakelijk)",
                   sector: "Zakelijk",
                   domein: "cultuur",
                 },
               ],
               batenContext: [
-                {
-                  baat: "Hogere klanttevredenheid PO-scholen",
-                  sector: "PO",
-                },
+                { baat: "Hogere klanttevredenheid PO-scholen", sector: "PO" },
                 {
                   baat: "Inhoudelijk partnerschap met VO-besturen",
                   sector: "VO",
@@ -549,7 +565,7 @@ export function createDemoSession(): DINSession {
                 },
               ],
               advies:
-                "Leiderschap als multiplier voor outside-in gedrag geldt identiek in alle drie sectoren. Scope: sectoroverstijgend leiderschapsprogramma met drie kernelementen — (1) rolmodel-gedrag (zichtbare klantbezoeken door sectormanagers), (2) intervisie-cyclus tussen sectoren (kruis-bestuiving met klantcases), (3) sturings-KPI's gekoppeld aan klantdialoog-kwaliteit. Drie sector-specifieke tracks binnen één programma; shared faculty. Aanpak: fase 1 kick-off met directie; fase 2 intervisies per kwartaal; fase 3 evaluatie via NPS en medewerker-feedback.",
+                "Leiderschap als multiplier voor outside-in gedrag geldt identiek in alle drie sectoren. Scope: sectoroverstijgend leiderschapsprogramma met drie kernelementen — (1) rolmodel-gedrag (zichtbare klantbezoeken door sectormanagers), (2) intervisie-cyclus tussen sectoren (kruis-bestuiving met klantcases), (3) sturings-KPI's gekoppeld aan klantdialoog-kwaliteit. VOORSPELLING: VO heeft zelf geen leiderschaps-inspanning in dit domein ingediend, maar het vermogen 'Strategisch klantpartnerschap VO' vraagt dezelfde rolmodel-houding — suggestie is om VO te laten aansluiten bij het gedeelde programma. Aanpak: fase 1 kick-off met directie inclusief sectormanager VO; fase 2 kwartaal-intervisies met alle drie sectoren; fase 3 evaluatie via NPS en medewerker-feedback.",
               aanbeveling: "combineren",
             },
             {
@@ -589,30 +605,47 @@ export function createDemoSession(): DINSession {
               aanbeveling: "combineren",
             },
             {
-              clusterTitel: "Standaardisatie klantinformatieprocessen (Zakelijk)",
+              clusterTitel:
+                "Klantinformatie-proces standaardisatie (processen) — PO/VO/Zakelijk",
               items: [
                 {
                   id: effortIds[5],
                   beschrijving:
-                    "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed",
+                    "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed (Zakelijk)",
                   sector: "Zakelijk",
+                  domein: "processen",
+                },
+                {
+                  id: effortIds[10],
+                  beschrijving:
+                    "Standaardiseren klantinformatieprocessen PO",
+                  sector: "PO",
+                  domein: "processen",
+                },
+                {
+                  id: effortIds[11],
+                  beschrijving:
+                    "Standaardiseren klantinformatieprocessen VO",
+                  sector: "VO",
                   domein: "processen",
                 },
               ],
               batenContext: [
+                { baat: "Hogere klanttevredenheid PO-scholen", sector: "PO" },
+                { baat: "Inhoudelijk partnerschap met VO-besturen", sector: "VO" },
                 {
                   baat: "Hogere conversie en duurzame klantrelaties Zakelijk",
                   sector: "Zakelijk",
                 },
               ],
               advies:
-                "Procesflows voor lead-to-deal zijn specifiek voor Zakelijk; PO/VO werken met andere inkoop- en samenwerkingscycli (aanbestedingen, schoolbesturen, bestelcycli). Standaardisatie kan per sector lopen — wel borgen dat de proces-output (klantdata) straks in het gedeelde CRM landt.",
-              aanbeveling: "apart_houden",
+                "Alle drie sectoren leggen klantinformatie vast; de cycli verschillen (lead-to-deal Zakelijk, aanbestedingen PO/VO), maar de proces-bouwstenen zijn identiek: signaal → registratie → opvolging → borging. Eén gedeelde proces-methodologie met sector-specifieke flows voorkomt dat drie sectoren ieder hun eigen rijvelden, statussen en workflows verzinnen. Scope: gezamenlijke proces-bibliotheek (signalen, contactmomenten, opvolging) + sector-specifieke flow-modellen; uniforme CRM-velden over sectoren heen.",
+              aanbeveling: "combineren",
             },
           ],
           projectMatching: [],
           samenvatting:
-            "Vier inspanningsclusters geïdentificeerd onder de vermogen-gelijkenisgroep: mens (3 sectoren — combineren), cultuur (3 sectoren — combineren), data & systemen CRM (3 sectoren — combineren), processen (alleen Zakelijk — apart). Drie van de vier inspanningsbundels zijn sectoroverstijgend samen te voegen; alleen proces-standaardisatie blijft sector-eigen.",
+            "Vier inspanningsclusters onder de vermogen-gelijkenisgroep, alle vier sectoroverstijgend: mens (training), cultuur (leiderschap), data & systemen (CRM) en processen (klantinformatie-standaardisatie). Dát is de hefboomwerking: één strategisch klantpartnerschap → vier gecombineerde inspanningsbundels over PO/VO/Zakelijk i.p.v. twaalf sector-eigen trajecten.",
         },
         stap4: {
           consolidatieAdvies: [
@@ -634,17 +667,17 @@ export function createDemoSession(): DINSession {
             },
             {
               clusterTitel:
-                "Outside-in leiderschap & eigenaarschap (cultuur) — PO/VO/Zakelijk",
+                "Outside-in leiderschap & eigenaarschap (cultuur) — PO + Zakelijk (VO gesuggereerd)",
               type: "inspanning",
               aanbeveling: "combineren",
               reden:
-                "Leiderschap is de multiplier voor outside-in gedrag — zichtbaar rolmodel-gedrag van sectormanagers bepaalt de mate waarin medewerkers eigenaarschap durven nemen. Drie gefragmenteerde leiderschapstrajecten leveren drie verschillende interpretaties van 'outside-in'; één gezamenlijk programma met sector-tracks borgt consistentie en versterkt de boodschap organisatiebreed.",
+                "Leiderschap is de multiplier voor outside-in gedrag — zichtbaar rolmodel-gedrag van sectormanagers bepaalt de mate waarin medewerkers eigenaarschap durven nemen. PO en Zakelijk hebben expliciete leiderschaps-inspanningen ingediend; VO heeft hier zelf geen inspanning ingevoerd. VOORSPELLING: het vermogen 'Strategisch klantpartnerschap VO' vraagt dezelfde rolmodel-houding als PO/Zakelijk — advies is om VO sectormanager+teamleiders te laten aansluiten bij het gedeelde programma, zodat alle drie sectoren op hetzelfde leiderschapsmodel uitkomen. Zonder deze aansluiting ontstaat een 'gat' in de hefboom: VO-medewerkers krijgen wel gespreksvaardigheden-training en CRM, maar geen leiderschapsmodel dat het borgt.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in leiderschapsontwikkeling",
               afstemmingsStappen: [
-                "Q2 2026: kick-off met directie en drie sectormanagers — commitment op zichtbaar rolmodel-gedrag (klantbezoeken, ophaalgesprekken, mee-lopen in de sector).",
+                "Q2 2026: kick-off met directie en drie sectormanagers (ook VO) — commitment op zichtbaar rolmodel-gedrag (klantbezoeken, ophaalgesprekken, mee-lopen in de sector).",
                 "Q3 2026: start intervisie-cyclus per kwartaal met gemixte groepen sectormanagers + teamleiders (kruis-bestuiving op klantcases).",
-                "Q4 2026: koppel outside-in KPI's aan leidinggevenden-performance (%klantdialogen met inhoudelijke regie, NPS-beweging binnen team).",
+                "Q4 2026: koppel outside-in KPI's aan leidinggevenden-performance in alle 3 sectoren (%klantdialogen met inhoudelijke regie, NPS-beweging binnen team).",
                 "Q2 2027: evaluatie via 360° feedback en NPS-beweging; stel jaardoelen voor komende cyclus bij.",
               ],
             },
@@ -665,16 +698,19 @@ export function createDemoSession(): DINSession {
               ],
             },
             {
-              clusterTitel: "Standaardisatie klantinformatieprocessen (Zakelijk)",
+              clusterTitel:
+                "Klantinformatie-proces standaardisatie (processen) — PO/VO/Zakelijk",
               type: "inspanning",
-              aanbeveling: "apart_houden",
+              aanbeveling: "combineren",
               reden:
-                "Procesflows voor lead-to-deal zijn specifiek voor Zakelijk (salescycli, RFP's, commerciële opvolging). PO/VO hebben andere procescycli (aanbestedingen, schoolbestuur-overleg, bestelrondes). Niet combineerbaar zonder sector-eigen waarde te verliezen. Wel borgen dat proces-output (klantdata) in het gedeelde CRM landt — koppeling met CRM-cluster is kritiek.",
-              voorgesteldeNaam: null,
+                "Alle drie sectoren leggen klantinformatie vast. De cycli verschillen (lead-to-deal Zakelijk, aanbestedingen PO/VO), maar de proces-bouwstenen zijn identiek: signaal → registratie → opvolging → borging. Eén gedeelde proces-methodologie met sector-specifieke flow-varianten voorkomt dat drie sectoren ieder hun eigen rijvelden, statussen en workflows verzinnen in het gedeelde CRM. Scope: gezamenlijke proces-bibliotheek + uniforme CRM-velden + sector-specifieke flow-modellen. Gezamenlijkheid op CRM-dataniveau is voorwaarde voor het slagen van de CRM-hefboom.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende klantinformatie-proces standaardisatie",
               afstemmingsStappen: [
-                "Q3 2026: proces-design Zakelijk (lead-to-deal-flow) met commerciële manager en procesverantwoordelijke.",
-                "Q4 2026: koppel proces-output aan CRM-klantbeeld (zodra CRM-cluster live is).",
-                "Q1 2027: evalueer of PO/VO hun eigen proces-standaardisatie willen, gebruikmakend van dezelfde proces-methodologie maar sector-eigen flow.",
+                "Q3 2026: gezamenlijke proces-methodologie opstellen met procesverantwoordelijken uit 3 sectoren (signalen, contactmomenten, opvolging, borging).",
+                "Q4 2026: sector-specifieke flows bepalen (Zakelijk lead-to-deal, PO school-bestuur-cyclus, VO aanbestedings-cyclus) op basis van gezamenlijke bouwstenen.",
+                "Q1 2027: implementatie in het gedeelde CRM — uniforme velden, sector-specifieke views.",
+                "Q2 2027: evalueer adoptie per sector; meet datakwaliteit en proces-conformiteit.",
               ],
             },
           ],
@@ -706,6 +742,15 @@ export function createDemoSession(): DINSession {
                 "Drie data & systemen-inspanningen (CRM per sector) met identieke systeembehoefte: klantrelaties, contacthistorie, signalen, aanbestedingen. Eén platform + sector-views is technisch en organisatorisch haalbaar.",
               relevanteItems: [effortIds[2], effortIds[8], effortIds[9]],
             },
+            {
+              domein: "processen",
+              titel: "Eén proces-methodologie, drie sector-flows",
+              beschrijving:
+                "Klantinformatie-processen hebben dezelfde bouwstenen (signaal → registratie → opvolging → borging) over alle drie sectoren; de cycli verschillen. Gezamenlijke methodologie + uniforme CRM-velden is voorwaarde voor het slagen van de CRM-hefboom; sector-specifieke flow-modellen borgen eigenheid.",
+              onderbouwing:
+                "Drie processen-inspanningen met identieke procesbouwstenen en gedeelde systeemlanding (CRM). Sector-varianten zijn scope binnen één methodologie, niet drie aparte methodieken.",
+              relevanteItems: [effortIds[5], effortIds[10], effortIds[11]],
+            },
           ],
           subEffortAnalysis: [
             {
@@ -722,11 +767,11 @@ export function createDemoSession(): DINSession {
               groepId: "groep-klantpartnerschap",
               domein: "cultuur",
               actie: "combineren",
-              items: [effortIds[0], effortIds[3], effortIds[7]], // PO leiderschap + Zakelijk mindset + VO leiderschap
+              items: [effortIds[0], effortIds[3]], // PO leiderschap + Zakelijk mindset (VO heeft geen eigen inspanning)
               reden:
-                "Scope: sectoroverstijgend leiderschapsprogramma met sector-tracks. Stappen: (1) Q2 2026 kick-off met directie + 3 sectormanagers (commitment op rolmodel-gedrag), (2) Q3 start kwartaal-intervisies met gemixte groepen sectormanagers + teamleiders, (3) Q4 koppel outside-in KPI's aan leidinggevenden-performance, (4) Q2 2027 evaluatie via 360° feedback + NPS-beweging. Voorkomt dat drie sectormanagers ieder hun eigen interpretatie geven van 'outside-in'.",
+                "VOORSPELLING: VO heeft zelf geen leiderschaps-inspanning in dit domein ingediend, maar het vermogen 'Strategisch klantpartnerschap VO' vraagt dezelfde rolmodel-houding als PO/Zakelijk. Advies is om VO sectormanager + teamleiders te laten aansluiten bij het gedeelde programma — zonder deze aansluiting ontstaat een gat in de hefboom (VO-medewerkers krijgen wel gespreksvaardigheden-training en CRM, maar geen leiderschapsmodel dat het borgt). Scope: sectoroverstijgend leiderschapsprogramma met sector-tracks, inclusief VO. Stappen: (1) Q2 2026 kick-off met directie + 3 sectormanagers (ook VO), (2) Q3 kwartaal-intervisies met gemixte groepen, (3) Q4 koppel outside-in KPI's aan leidinggevenden-performance in alle 3 sectoren, (4) Q2 2027 evaluatie via 360° feedback + NPS-beweging.",
               voorgesteldeNaam:
-                "Sectoroverstijgende outside-in leiderschapsontwikkeling",
+                "Sectoroverstijgende outside-in leiderschapsontwikkeling (incl. VO predictie)",
             },
             {
               groepId: "groep-klantpartnerschap",
@@ -741,15 +786,16 @@ export function createDemoSession(): DINSession {
             {
               groepId: "groep-klantpartnerschap",
               domein: "processen",
-              actie: "apart_houden",
-              items: [effortIds[5]], // alleen Zakelijk processen
+              actie: "combineren",
+              items: [effortIds[5], effortIds[10], effortIds[11]], // Zakelijk + PO + VO processen
               reden:
-                "Lead-to-deal procesflow is specifiek voor Zakelijk (salescycli, RFP's, commerciële opvolging). PO/VO hebben andere procescycli (aanbestedingen, schoolbestuur-overleg, bestelrondes). Scope: proces-standaardisatie Zakelijk, met borging dat proces-output in gedeelde CRM landt. Stappen: (1) Q3 2026 proces-design Zakelijk, (2) Q4 koppel proces-output aan CRM, (3) Q1 2027 evalueer of PO/VO sector-eigen proces-standaardisatie willen via zelfde methodologie.",
-              voorgesteldeNaam: null,
+                "Alle drie sectoren leggen klantinformatie vast. De cycli verschillen (lead-to-deal Zakelijk, schoolbestuur-overleg PO, aanbestedingen VO), maar de proces-bouwstenen zijn identiek: signaal → registratie → opvolging → borging. Scope: gezamenlijke proces-methodologie + uniforme CRM-velden + sector-specifieke flow-modellen. Gezamenlijkheid op CRM-dataniveau is voorwaarde voor het slagen van de CRM-hefboom; drie aparte proces-ontwerpen leiden tot inconsistente rijvelden/statussen/workflows in het gedeelde systeem. Stappen: (1) Q3 2026 gezamenlijke proces-methodologie opstellen (signalen, registratie, opvolging, borging), (2) Q4 sector-specifieke flows bepalen op basis van gedeelde bouwstenen, (3) Q1 2027 implementatie in CRM met uniforme velden + sector-views, (4) Q2 2027 meet adoptie + datakwaliteit + proces-conformiteit.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende klantinformatie-proces standaardisatie",
             },
           ],
           samenvatting:
-            "Op domein-niveau zijn mens (training), cultuur (leiderschap) én data & systemen (CRM) combineerbaar over alle drie sectoren — drie gedeelde inspanningsbundels in plaats van negen losse trajecten. Alleen procesinrichting blijft sector-eigen (Zakelijk lead-to-deal ≠ PO/VO aanbestedingscycli), met een kritieke borging dat proces-output in het gedeelde CRM landt.",
+            "Alle vier domeinen — mens, cultuur, data & systemen, processen — zijn combineerbaar over de drie sectoren. De cross-analyse resulteert in vier gedeelde inspanningsbundels in plaats van twaalf sector-eigen trajecten. Voor cultuur geldt bovendien een predictieve suggestie: VO heeft geen eigen inspanning ingediend, maar het systeem adviseert dat VO aansluit bij het gedeelde leiderschapsprogramma om de hefboom organisatiebreed compleet te houden.",
         },
       },
     },
