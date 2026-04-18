@@ -19,6 +19,7 @@ export function createDemoSession(): DINSession {
   const capIds = [
     "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
     "cfdf5175-78ee-4836-a29f-7d53b2afe465",
+    "d2e8f9a1-4b5c-4d6e-8f7a-9b0c1d2e3f4a", // VO — toegevoegd voor drieluik (phase 17)
   ];
   const effortIds = [
     "3981af2f-4549-47d5-87c6-33d0c431aaee",
@@ -27,15 +28,17 @@ export function createDemoSession(): DINSession {
     "b656f046-edbf-400c-ac29-3af35a9df1c5",
     "b1107cd6-9fb3-482e-855e-204fe1f896c4",
     "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
+    "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", // VO mens (training) — toegevoegd phase 17
+    "f9e8d7c6-b5a4-4938-8271-615f4c3d2e1b", // VO cultuur (leiderschap) — toegevoegd phase 17
   ];
 
   return {
     id,
-    name: "Demo — Klant in Beeld",
+    name: "Demo — Phase 17 Drieluik & Sub-effort (3 sectoren)",
     createdAt: now,
     updatedAt: now,
     version: 1,
-    currentStep: 2,
+    currentStep: 4,
     vision: {
       id: crypto.randomUUID(),
       beknopt: "Met het programma Klant in Beeld maakt Cito BV de beweging van reactief leverancier naar proactieve strategische partner, waarbij een outside-in perspectief \u2013 wat klanten werkelijk nodig hebben \u2013 leidend is voor denken en handelen. Door mens, proces, systeem en cultuur structureel met elkaar te verbinden, bouwt Cito BV samen met klanten aan echte oplossingen en duurzame relaties.",
@@ -159,6 +162,20 @@ export function createDemoSession(): DINSession {
           gewensteSituatie: "Medewerkers voeren proactief kwalitatieve dialogen met leerkrachten en schoolbesturen over beleid en samenwerking, daarbij ondersteund door betrouwbare klant- en productdata en een cultuur waarin men zichzelf durft neer te zetten en beloftes waarmaakt.",
         },
       },
+      {
+        id: capIds[2],
+        title: "Strategisch klantpartnerschap VO",
+        sectorId: "VO",
+        description: "Het vermogen bestaat uit accountmanagers en sectormanagement (mensen) die kwalitatieve klantdata en productinformatie (data & systemen) inzetten voor gerichte samenwerkingsgesprekken met scholen en besturen in het voortgezet onderwijs, ondersteund door een cultuur van lef, nieuwsgierigheid en actief ophalen van klantbehoeften.",
+        currentLevel: 2,
+        targetLevel: 3,
+        relatedSectors: ["VO"],
+        profiel: {
+          eigenaar: "Sectormanager VO",
+          huidieSituatie: "Klantgesprekken zijn vooral reactief; medewerkers VO hebben beperkte grip op productgebruik-data en durven onvoldoende standpunten in te nemen over curriculum- en toetsingsvraagstukken.",
+          gewensteSituatie: "Medewerkers VO voeren proactief dialogen met schoolleiders en docenten over onderwijskundige visie en data-gedreven verbetering, onderbouwd met betrouwbare klant- en gebruiksdata, en durven zichzelf als inhoudelijk partner te positioneren.",
+        },
+      },
     ],
     efforts: [
       {
@@ -269,6 +286,42 @@ export function createDemoSession(): DINSession {
           randvoorwaarden: "Besluitvorming over CRM-inrichting is afgerond of loopt parallel; directie stelt proceseigenaarschap formeel in.",
         },
       },
+      {
+        id: effortIds[6],
+        title: "Trainen medewerkers in klantgerichte gespreksvaardigheden VO",
+        sectorId: "VO",
+        domain: "mens",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Medewerkers met klantcontact in sector VO worden opgeleid en gecoacht in outside-in gespreksvaardigheden: de vraag achter de vraag stellen, een sturend waardeverhaal voeren vanuit het VO-portfolio, en diepgaande klantinzichten ophalen bij scholen en besturen.",
+        dossier: {
+          eigenaar: "Sectormanager VO",
+          inspanningsleider: "L&D-lead / commercieel trainer VO",
+          verwachtResultaat: "Medewerkers in sector VO voeren zelfverzekerd klantgesprekken vanuit een outside-in houding, waarbij zij proactief de klantbehoefte doorgronden en als inhoudelijk partner optreden.",
+          kostenraming: "Nader te bepalen; rekening houden met externe trainings- en coachingskosten (\u00b120%)",
+          randvoorwaarden: "Processen en klantfunnel zijn voldoende in kaart gebracht; businessfocus per klantsegment is bepaald.",
+        },
+      },
+      {
+        id: effortIds[7],
+        title: "Verankeren van outside-in leiderschap als rolmodel gedrag VO",
+        sectorId: "VO",
+        domain: "cultuur",
+        status: "gepland",
+        quarter: "Nader te bepalen",
+        votes: 0,
+        dependencies: [],
+        description: "Leidinggevenden binnen de VO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij cre\u00ebren bewust ruimte om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
+        dossier: {
+          eigenaar: "Sectormanager VO",
+          inspanningsleider: "Programmamanager / HR Business Partner VO",
+          verwachtResultaat: "Leidinggevenden en medewerkers voelen zich vrij en veilig om klantgericht gedrag te tonen en hierop aan te spreken, zichtbaar in een stijging van de NPS-score en een groter aandeel klantgesprekken dat als samenwerkingsgerichte dialoog wordt gekwalificeerd.",
+          kostenraming: "\u20ac 30.000 \u2013 \u20ac 60.000 (afhankelijk van aantal leiderschapssessies en intervisietraject); onzekerheidsmarge \u00b130%",
+          randvoorwaarden: "Commitment van sectormanager VO als zichtbaar sponsor en deelnemend rolmodel.",
+        },
+      },
     ],
     goalBenefitMaps: [
       { goalId: goalIds[0], benefitId: benefitIds[0] },
@@ -278,16 +331,88 @@ export function createDemoSession(): DINSession {
     benefitCapabilityMaps: [
       { benefitId: benefitIds[0], capabilityId: capIds[0] },
       { benefitId: benefitIds[1], capabilityId: capIds[1] },
+      { benefitId: benefitIds[2], capabilityId: capIds[2] },
     ],
     capabilityEffortMaps: [
-      { capabilityId: capIds[1], effortId: effortIds[0] },
-      { capabilityId: capIds[1], effortId: effortIds[1] },
-      { capabilityId: capIds[0], effortId: effortIds[2] },
-      { capabilityId: capIds[0], effortId: effortIds[3] },
-      { capabilityId: capIds[0], effortId: effortIds[4] },
-      { capabilityId: capIds[0], effortId: effortIds[5] },
+      { capabilityId: capIds[1], effortId: effortIds[0] }, // PO cap → PO cultuur
+      { capabilityId: capIds[1], effortId: effortIds[1] }, // PO cap → PO mens
+      { capabilityId: capIds[0], effortId: effortIds[2] }, // Zakelijk cap → Zakelijk data
+      { capabilityId: capIds[0], effortId: effortIds[3] }, // Zakelijk cap → Zakelijk cultuur
+      { capabilityId: capIds[0], effortId: effortIds[4] }, // Zakelijk cap → Zakelijk mens
+      { capabilityId: capIds[0], effortId: effortIds[5] }, // Zakelijk cap → Zakelijk processen
+      { capabilityId: capIds[2], effortId: effortIds[6] }, // VO cap → VO mens
+      { capabilityId: capIds[2], effortId: effortIds[7] }, // VO cap → VO cultuur
     ],
     projectCapabilityMaps: [],
     completedGoals: [],
+    crossAnalyseWizard: {
+      currentStep: 5,
+      completedSteps: [2, 3, 4],
+      wizardVersion: 2,
+      stepResults: {
+        stap2: {
+          vermogenClusters: [],
+          hefboomwerking: [],
+          vermogenGelijkenisGroepen: [
+            {
+              id: "groep-klantpartnerschap",
+              vermogenIds: [capIds[0], capIds[1], capIds[2]],
+              gezamenlijkeOmschrijving:
+                "Klantgerichte commerciële slagkracht — sectoroverstijgende hefboom",
+              reden:
+                "Alle drie sectoren vereisen medewerkers die proactief outside-in werken, ondersteund door kwalitatieve klantdata en een cultuur van eigenaarschap. De drie vermogens zijn sector-specifiek qua context (PO/VO/Zakelijk) maar delen dezelfde methodische kern: structureel klantgericht handelen op basis van dialoog en data.",
+            },
+          ],
+          samenvatting:
+            "Cross-analyse identificeert één sectoroverstijgende hefboomgroep rond klantpartnerschap. PO, VO en Zakelijk ontwikkelen vergelijkbare vermogens — een kans om inspanningen per domein (mens/cultuur) te bundelen zonder de sector-eigen vermogens te consolideren.",
+        },
+        stap4: {
+          consolidatieAdvies: [],
+          citobreedInzicht: [],
+          subEffortAnalysis: [
+            {
+              groepId: "groep-klantpartnerschap",
+              domein: "mens",
+              actie: "combineren",
+              items: [effortIds[1], effortIds[4], effortIds[6]], // PO training + Zakelijk werven + VO training
+              reden:
+                "Drie sectoren werken aan vergelijkbare gespreksvaardigheden en outside-in competenties. Combineren levert schaalvoordeel (één gedeeld trainingsprogramma), consistentere cultuur en lagere kosten dan drie aparte trajecten.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
+            },
+            {
+              groepId: "groep-klantpartnerschap",
+              domein: "cultuur",
+              actie: "combineren",
+              items: [effortIds[0], effortIds[3], effortIds[7]], // PO leiderschap + Zakelijk mindset + VO leiderschap
+              reden:
+                "Cultuurinspanningen rond outside-in eigenaarschap raken dezelfde gedragsverandering over alle drie sectoren. Samenbrengen onder één leiderschapsprogramma versterkt de boodschap en voorkomt gefragmenteerde interventies.",
+              voorgesteldeNaam:
+                "Sectoroverstijgende outside-in leiderschapsontwikkeling",
+            },
+            {
+              groepId: "groep-klantpartnerschap",
+              domein: "data_systemen",
+              actie: "apart_houden",
+              items: [effortIds[2]], // alleen Zakelijk CRM
+              reden:
+                "CRM-inrichting is specifiek voor Zakelijk — PO en VO werken met andere systemen (leerlingvolgsysteem, productgebruiksdata). Niet combineerbaar zonder de sector-specifieke data-architectuur aan te tasten.",
+              voorgesteldeNaam: null,
+            },
+            {
+              groepId: "groep-klantpartnerschap",
+              domein: "processen",
+              actie: "apart_houden",
+              items: [effortIds[5]], // alleen Zakelijk processen
+              reden:
+                "Procesinrichting is sector-eigen omdat klantprocessen (lead → deal → relatie) wezenlijk verschillen per doelgroep. PO/VO hebben andere procesflows (school-contacten, bestelcycli) dan Zakelijk.",
+              voorgesteldeNaam: null,
+            },
+          ],
+          samenvatting:
+            "Op domein-niveau zijn mens (training) en cultuur (leiderschap) combineerbaar over alle drie sectoren — twee inspanningsbundels in plaats van zes losse trajecten. Data & Systemen en Processen blijven sector-eigen.",
+        },
+      },
+    },
   };
 }
