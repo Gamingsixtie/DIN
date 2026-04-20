@@ -241,6 +241,35 @@ export async function POST(request: NextRequest) {
           effortId: string;
         }>;
 
+        // --- Phase 18 (R-CROSS-03): focus-doel als leidraad + profiel-context per vermogen ---
+        const rawGoals = (body.goals || []) as Array<{
+          id: string;
+          name?: string;
+          description?: string;
+          rank?: number;
+        }>;
+        const focusGoal = getFocusGoal(rawGoals);
+        // Fallback op name wanneer description leeg is (R5 decision — zie Plan 18-04 frontmatter).
+        // KiB-imports leveren altijd name, niet altijd description; terugvallen op name houdt inkleuring werkzaam.
+        const focusDoelContext = focusGoal
+          ? {
+              id: focusGoal.id,
+              naam: focusGoal.name ?? "",
+              beschrijving:
+                (focusGoal.description && focusGoal.description.trim().length > 0)
+                  ? focusGoal.description
+                  : (focusGoal.name ?? ""),
+            }
+          : null;
+
+        const rawCaps = (body.capabilities || []) as Array<{
+          id: string;
+          profiel?: {
+            huidieSituatie?: string;
+            gewensteSituatie?: string;
+          };
+        }>;
+
         const subAnalyses = await Promise.all(
           groepen.map(async (groep) => {
             const capIdSet = new Set(groep.vermogenIds);
@@ -266,8 +295,25 @@ export async function POST(request: NextRequest) {
               kibContext
             );
 
+            // Phase 18: verrijk groepVermogens met profielHuidig/Gewenst voor sector-verankering in AI-output
+            const groepVermogensRich = groepVermogens.map(
+              (v: { id: string; sectorId: string; title: string; description: string }) => {
+                const raw = rawCaps.find((r) => r.id === v.id);
+                return {
+                  ...v,
+                  profielHuidig: raw?.profiel?.huidieSituatie ?? "",
+                  profielGewenst: raw?.profiel?.gewensteSituatie ?? "",
+                };
+              }
+            );
+
             const subUserMessage = JSON.stringify(
-              { groep, vermogens: groepVermogens, efforts: groepEfforts },
+              {
+                focusDoel: focusDoelContext,        // Phase 18: leidraad voor inkleuring
+                groep,
+                vermogens: groepVermogensRich,       // Phase 18: verrijkt met profiel-velden
+                efforts: groepEfforts,
+              },
               null,
               2
             );
@@ -276,7 +322,7 @@ export async function POST(request: NextRequest) {
               z.array(SubEffortAdviesSchema),
               subSystemPrompt,
               subUserMessage,
-              { maxTokens: 4096 }
+              { maxTokens: 8192 }  // Phase 18: rijke response met 5 extra velden + dossier
             );
 
             return subResult.success ? subResult.data : [];
