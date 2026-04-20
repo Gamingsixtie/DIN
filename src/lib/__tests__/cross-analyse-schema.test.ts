@@ -510,3 +510,176 @@ describe("Stap4ResultSchema sub effort advies integration (D-30)", () => {
     }
   });
 });
+
+// ============================================================
+// Phase 18 — SubEffortAdviesSchema rijke uitwerking (R-CROSS-03)
+// Uitbreiding met titel, beschrijving, beargumentatie, vermogenImpact[], dossier{}.
+// Alle nieuwe velden zijn .optional() voor backward compat.
+// ============================================================
+
+describe("SubEffortAdviesSchema Phase 18 rijke uitwerking (R-CROSS-03)", () => {
+  test("accepteert volledig rijke input met titel, beschrijving, beargumentatie, vermogenImpact en dossier", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g-klantpartnerschap",
+      domein: "mens",
+      actie: "combineren",
+      items: ["eff-1", "eff-2", "eff-3"],
+      reden: "gedeelde training",
+      voorgesteldeNaam: "Sectoroverstijgende outside-in training",
+      titel: "Sectoroverstijgende outside-in training",
+      beschrijving:
+        "Gezamenlijk curriculum outside-in gespreksvaardigheden met sector-specifieke casuistiek.",
+      beargumentatie:
+        "Een traject levert de hefboom voor drie sectoren tegelijk; circa 30% besparing t.o.v. drie losse trajecten.",
+      vermogenImpact: [
+        { sectorId: "PO", vermogenId: "cap-po-1", impact: "Leerkrachten voeren outside-in gesprekken met ouders." },
+        { sectorId: "VO", vermogenId: "cap-vo-1", impact: "Schoolleiders benoemen inhoudelijke kansen vroeg." },
+        { sectorId: "Zakelijk", vermogenId: "cap-zak-1", impact: "Accountmanagers stellen klantvraag scherp." },
+      ],
+      dossier: {
+        eigenaar: "Directie L&D Cito BV",
+        inspanningsleider: "Programmamanager L&D",
+        verwachtResultaat: "NPS +5 binnen 12 maanden.",
+        kostenraming: "EUR 350K over 18 maanden.",
+        randvoorwaarden: "Commitment van alle drie sectormanagers.",
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.titel).toBe("Sectoroverstijgende outside-in training");
+      expect(result.data.vermogenImpact).toHaveLength(3);
+      expect(result.data.dossier?.eigenaar).toBe("Directie L&D Cito BV");
+    }
+  });
+
+  test("backward compat — Phase 17 shape zonder rijke velden parseert succesvol", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "mens",
+      actie: "combineren",
+      items: ["eff-1"],
+      reden: "gedeelde training",
+      voorgesteldeNaam: "Sector-overstijgende training",
+      // Phase 18 velden expliciet afwezig
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.titel).toBeUndefined();
+      expect(result.data.dossier).toBeUndefined();
+      expect(result.data.vermogenImpact).toBeUndefined();
+    }
+  });
+
+  test("dossier leeg object parseert met default lege strings per veld", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "processen",
+      actie: "combineren",
+      items: ["eff-1"],
+      reden: "gedeelde processen",
+      voorgesteldeNaam: "Gedeelde klantinformatie-proces standaardisatie",
+      dossier: {},
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dossier?.eigenaar).toBe("");
+      expect(result.data.dossier?.inspanningsleider).toBe("");
+      expect(result.data.dossier?.verwachtResultaat).toBe("");
+      expect(result.data.dossier?.kostenraming).toBe("");
+      expect(result.data.dossier?.randvoorwaarden).toBe("");
+    }
+  });
+
+  test("vermogenImpact lege array parseert succesvol", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "cultuur",
+      actie: "apart_houden",
+      items: ["eff-1"],
+      reden: "sector-specifieke cultuur",
+      voorgesteldeNaam: null,
+      vermogenImpact: [],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.vermogenImpact).toEqual([]);
+    }
+  });
+
+  test("vermogenImpact faalt bij ongeldige sectorId", () => {
+    const result = SubEffortAdviesSchema.safeParse({
+      groepId: "g1",
+      domein: "mens",
+      actie: "combineren",
+      items: ["eff-1"],
+      reden: "x",
+      voorgesteldeNaam: "Sector-overstijgende training",
+      vermogenImpact: [
+        { sectorId: "FINANCIEN", vermogenId: "cap-1", impact: "x" }, // ongeldig — moet PO|VO|Zakelijk zijn
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("Stap4ResultSchema Phase 18 integratie (R-CROSS-03)", () => {
+  test("Stap4Result met rijke subEffortAnalysis entry parseert succesvol", () => {
+    const mockResponse = {
+      consolidatieAdvies: [],
+      citobreedInzicht: [],
+      samenvatting: "Phase 18 rijke uitwerking demo",
+      subEffortAnalysis: [
+        {
+          groepId: "g1",
+          domein: "mens" as const,
+          actie: "combineren" as const,
+          items: ["eff-1"],
+          reden: "gedeelde training",
+          voorgesteldeNaam: "Sector-overstijgende training",
+          titel: "Sector-overstijgende training",
+          beschrijving: "Een cross-sectorale training",
+          beargumentatie: "Hefboom over 3 sectoren",
+          vermogenImpact: [
+            { sectorId: "PO" as const, vermogenId: "cap-po-1", impact: "PO-impact" },
+            { sectorId: "VO" as const, vermogenId: "cap-vo-1", impact: "VO-impact" },
+            { sectorId: "Zakelijk" as const, vermogenId: "cap-zak-1", impact: "Zakelijk-impact" },
+          ],
+          dossier: {
+            eigenaar: "Directie L&D",
+            inspanningsleider: "Programmamanager",
+            verwachtResultaat: "NPS +5",
+            kostenraming: "EUR 350K",
+            randvoorwaarden: "Drie sectormanagers commitment",
+          },
+        },
+      ],
+    };
+    const result = Stap4ResultSchema.safeParse(mockResponse);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subEffortAnalysis).toHaveLength(1);
+      expect(result.data.subEffortAnalysis[0].dossier?.eigenaar).toBe("Directie L&D");
+      expect(result.data.subEffortAnalysis[0].vermogenImpact).toHaveLength(3);
+    }
+  });
+
+  test("demo-data stap4Result.subEffortAnalysis parseert onder Stap4ResultSchema", async () => {
+    const { createDemoSession } = await import("@/lib/demo-data");
+    const demo = createDemoSession();
+    const stap4 = demo.crossAnalyseWizard?.stepResults?.stap4;
+    expect(stap4).toBeTruthy();
+    const result = Stap4ResultSchema.safeParse(stap4);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subEffortAnalysis.length).toBeGreaterThanOrEqual(4);
+      // Phase 18: elke entry moet rijke velden hebben (dossier, titel, vermogenImpact)
+      result.data.subEffortAnalysis.forEach((entry) => {
+        expect(entry.titel).toBeDefined();
+        expect(entry.beschrijving).toBeDefined();
+        expect(entry.beargumentatie).toBeDefined();
+        expect(entry.dossier).toBeDefined();
+        expect(entry.vermogenImpact).toBeDefined();
+      });
+    }
+  });
+});
