@@ -377,7 +377,7 @@ Opmerking: wanneer \`focusDoel.beschrijving\` identiek is aan \`focusDoel.naam\`
 SECTOR-CONTEXT VERANKERING:
 Gebruik \`vermogens[i].profielHuidig\` en \`vermogens[i].profielGewenst\` om per sector concreet te maken wat de bundel oplevert. Geen generieke zinnen — benoem rol, scope of artefact dat in die sector herkenbaar is.
 
-Lever een array \`SubEffortAdvies[]\` met ÉÉN entry per (groep × domein) waar minstens één gekoppelde inspanning staat:
+Lever een array \`SubEffortAdvies[]\` met **ALTIJD EXACT 4 entries per groep** — één per domein (mens / processen / data_systemen / cultuur). GEEN skip, ook niet als een sector voor dat domein geen eigen inspanning heeft aangeleverd. Dit is de kern-eis: cross-sectoraal werken betekent dat we in elk domein alle drie sectoren meenemen, ook als één sector daar geen directe input in leverde — de focus-doel ambitie en de vermogen-profielen van de ontbrekende sector vormen dan samen de basis om die sector alsnog mee te laten liften. Benoem dit expliciet in de \`beargumentatie\`.
 
 {
   "groepId":          "<zelfde als input.groep.id>",
@@ -411,7 +411,8 @@ Regels (D-11, D-25, D-30, D-31):
 - Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` en \`titel\` zijn \`null\`. \`beschrijving\`, \`beargumentatie\`, \`vermogenImpact\` en \`dossier\` MOGEN worden weggelaten (advies is dan alleen markering).
 - Bij \`actie: "combineren"\`: \`vermogenImpact\` bevat EXACT ÉÉN entry per sector-vermogen uit \`groep.vermogenIds\` — gebruik de juiste \`sectorId\` en \`vermogenId\` uit input.vermogens. Lengte = input.vermogens.length.
 - Gebruik cross-domein context ALLEEN om je \`reden\`/\`beargumentatie\` te versterken (bijv.: "Mens-training ondersteunt Data-implementatie"), NOOIT als justificatie voor cross-domein merge.
-- Als een domein GEEN gekoppelde inspanningen heeft: LAAT DAT DOMEIN WEG uit de response (geen lege entries — dat handelt de client af).
+- **VERPLICHT 4 entries per groep**: produceer ALTIJD één entry voor ELK van de vier domeinen (mens, processen, data_systemen, cultuur), ongeacht hoeveel sectoren input aanleverden. Een domein waar slechts 1 of 2 sectoren input hebben aangeleverd krijgt alsnog \`actie: "combineren"\` met een cross-sectorale titel; in \`items\` zet je alleen de daadwerkelijk aangeleverde effort-IDs; in \`vermogenImpact\` benoem je ook de sectoren zonder eigen input — je ontwerpt de impact voor die sector op basis van hun \`profielGewenst\` + focusDoel.beschrijving. In \`beargumentatie\` vermeld je helder welke sectoren geen directe input hadden en waarom ze toch worden meegenomen (hefboomwerking).
+- Een domein waar ZERO sectoren input aanleverden krijgt \`actie: "combineren"\` met \`items: []\` en een beargumentatie die de cross-sectorale inspanning puur afleidt uit focusDoel.beschrijving + vermogen-profielen — dit is zeldzaam maar toegestaan.
 - Dossier-rolnamen volgen Nederlandse programmamanagement-praktijk (Directie, Sectormanager, Programmamanager, Business Process Owner, CIO, IT-architect, Opleidingsregisseur) — GEEN Engelse titels zoals "VP of Sales" of "Head of Product".
 - Kostenramingen gebruiken het €-symbool (niet "EUR") consistent met Cito-UX-conventie.
 - Dossier volgt Werken aan Programma's, Hfst 11.3 — Inspanningendossier (vijf velden: opdrachtgever/inspanningsleider/verwacht resultaat/kostenraming/randvoorwaarden).
