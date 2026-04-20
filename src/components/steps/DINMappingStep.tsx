@@ -37,6 +37,7 @@ import DINCreatieWizard from "@/components/din/DINCreatieWizard";
 import type { WizardResult } from "@/components/din/DINCreatieWizard";
 import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
 import ExterneProjectenPanel from "@/components/din/ExterneProjectenPanel";
+import ConsolidatieOverzicht from "@/components/din/ConsolidatieOverzicht";
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "mens", label: "Mens" },
@@ -1128,6 +1129,9 @@ export default function DINMappingStep() {
       )}
 
       <DINChainIndicator />
+
+      {/* Consolidatie-overzicht: voorheen → nu, na cross-analyse */}
+      <ConsolidatieOverzicht session={session} />
 
           {/* Sector tabs met voortgang */}
           <div className="flex gap-1 border-b border-gray-200">
