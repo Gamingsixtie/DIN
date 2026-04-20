@@ -49,7 +49,7 @@ async function callClaude(
   systemPrompt: string,
   userMessage: string,
   maxTokens?: number,
-  model: "claude-sonnet-4-6" | "claude-opus-4-6" = "claude-sonnet-4-6"
+  model: "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7" = "claude-sonnet-4-6"
 ): Promise<string> {
   const client = getClient();
   try {
@@ -166,7 +166,7 @@ export async function callClaudeWithValidation<T>(
         systemPrompt,
         userMessage,
         options?.maxTokens,
-        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6") || "claude-sonnet-4-6"
+        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7") || "claude-sonnet-4-6"
       );
     } catch (err) {
       lastError = err instanceof Error ? err.message : "Claude API-fout";
@@ -272,7 +272,7 @@ export async function generateCrossAnalyse(
   data: Record<string, unknown>
 ): Promise<string> {
   const userMessage = `Analyseer de volgende DIN-data:\n${JSON.stringify(data, null, 2).slice(0, 15000)}`;
-  return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192, "claude-opus-4-6");
+  return callClaude(CROSS_ANALYSE_PROMPT, userMessage, 8192, "claude-opus-4-7");
 }
 
 export async function generateSectorIntegratie(data: {

@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
         config.schema,
         assembleSystemPrompt(config.prompt, "cross-analyse", undefined, kibContext),
         userMessage,
-        { maxTokens: 16384, model: "claude-opus-4-6" }
+        { maxTokens: 16384, model: "claude-opus-4-7" }
       );
 
       if (!result.success) {
@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
       AICrossAnalyseSchema,
       assembleSystemPrompt(CROSS_ANALYSE_PROMPT, "cross-analyse", undefined, kibContext),
       userMessage,
-      { maxTokens: 16384, model: "claude-opus-4-6" }
+      { maxTokens: 16384, model: "claude-opus-4-7" }
     );
 
     if (!result.success) {
