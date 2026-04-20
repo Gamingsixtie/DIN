@@ -181,6 +181,7 @@ Recent decisions affecting current work:
 - Phase 14 added: Lopende projecten promoveren tot volwaardige inspanningen in DIN-keten met splitsing en bevindingen-afleiding
 - Phase 16 added: Supabase dual persistence — stabiliteit, sync en verificatie
 - Phase 17 added: Cross-analyse organigram helderheid + domein-bewuste consolidatie — harde titel-guard (geen sector-namen), harde domein-guard bij effort-merge, A/B beslismodel met AI-voorstel + user decision + extra context, tweede-niveau effort-analyse per domein onder shared caps, rationale "waarom gedeeld" prominent in organigram
+- Phase 18 added: Rijke cross-sectorale domein-uitwerking in sub-effort analyse — per domein (mens/processen/data_systemen/cultuur) complete uitwerking met titel, beschrijving, beargumentatie, vermogen-impact en dossier (opdrachtgever/inspanningsleider/verwacht resultaat/kostenraming/randvoorwaarden); focus-doel beschrijving is leidend
 
 ### Pending Todos
 

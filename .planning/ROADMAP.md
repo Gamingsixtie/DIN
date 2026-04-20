@@ -299,3 +299,22 @@ Plans:
 7. Rationale `gezamenlijkeOmschrijving` direct zichtbaar als kop boven de drieluik, niet in tooltip
 8. Legacy sessies met Phase 8 `consolidated: true` caps laden zonder crash en tonen amber `Legacy: vermogens-merge` badge
 9. `npm run build` + `npm run lint` + `npx vitest run` slagen; nieuwe + bestaande `consolidation.test.ts` + `cross-analyse-schema.test.ts` + `consolidation-guards.test.ts` groen
+
+### Phase 18: Rijke cross-sectorale domein-uitwerking in sub-effort analyse
+
+**Goal:** Verrijk de sub-effort analyse zodat de cross-analyse per domein (mens / processen / data_systemen / cultuur) onder een `VermogenGelijkenisGroep` een volledig uitgewerkte cross-sectorale inspanning oplevert: (1) nieuwe titel, (2) uitgewerkte beschrijving, (3) beargumentatie waarom deze bundel, (4) vermogen-impact per betrokken sector-vermogen, (5) compleet dossier (opdrachtgever, inspanningsleider, verwacht resultaat, kostenraming, randvoorwaarden). De **focus-doel beschrijving** (bijv. doelstelling 1 "Integraal klantbeeld en outside-in werken als strategisch fundament") is leidend voor de inkleding; de sector-input (sector-eigen context per vermogen) wordt meegenomen zodat de uitwerking geaard blijft in de sectoren. Raakt: `SubEffortAdviesSchema` (uitbreiden met rijke velden), `SUB_EFFORT_ANALYSE_PROMPT` (herschrijven met focus-doel-context en dossier-eis), `/api/cross-analyse` (focus-doel beschrijving meesturen in stap 4), `StapSectorVertaling.tsx` (rijk rendering van domein-kaart met dossier), en `demo-data.ts` (alle 4 sub-effort items met dossier).
+**Requirements**: R-CROSS-03 (rijke domein-uitwerking met dossier in cross-analyse)
+**Depends on:** Phase 17
+**UI hint:** yes
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18 to break down)
+
+**Success criteria:**
+1. `SubEffortAdviesSchema` uitgebreid met velden: `titel`, `beschrijving`, `beargumentatie`, `vermogenImpact[]`, `dossier{}` — backward compat via `.optional()`
+2. `SUB_EFFORT_ANALYSE_PROMPT` ontvangt expliciet de focus-doel beschrijving + sector-context per vermogen, en genereert rijke domein-uitwerking conform schema
+3. `/api/cross-analyse` stap 4 stuurt focus-doel beschrijving mee naar prompt
+4. `StapSectorVertaling.tsx` rendert per sub-effort advies een rijke kaart met titel, beschrijving, vermogen-impact lijst, en dossier-veld
+5. Demo-data `stap4Result.subEffortAnalysis` heeft alle 4 domeinen volledig gevuld met dossier
+6. `npm run build` + `npx vitest run` slagen groen
