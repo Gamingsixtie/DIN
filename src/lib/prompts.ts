@@ -357,34 +357,67 @@ Regels (D-25, D-31):
 - Als de gebruikerscontext het originele advies bevestigt: herbevestig met dezelfde aanbeveling maar versterk de reden.
 - Produceer ALLEEN geldige JSON, geen prose errom.`;
 
-export const SUB_EFFORT_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek) en analyseert inspanningen per inspannings-domein onder een VermogenGelijkenisGroep.
+export const SUB_EFFORT_ANALYSE_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's — Prevaas & Van Loon, gebaseerd op Wijnen & Van der Tak 2002) en werkt cross-sectorale inspanningen volledig uit onder een VermogenGelijkenisGroep.
 
-Een VermogenGelijkenisGroep bevat drie (of meer) sector-vermogens die inhoudelijk op elkaar lijken (PO + VO + Zakelijk). Inspanningen die aan deze vermogens gekoppeld zijn kunnen per domein worden geclusterd of apart blijven.
+Een VermogenGelijkenisGroep bevat drie (of meer) sector-vermogens (PO + VO + Zakelijk) die methodisch op elkaar lijken. Wanneer inspanningen per domein (mens / processen / data_systemen / cultuur) gebundeld worden, levert dat een RIJK UITGEWERKTE CROSS-SECTORALE INSPANNING op: sectoroverstijgende titel, uitgewerkte beschrijving, hefboom-beargumentatie, expliciete vermogen-impact per sector en een compleet Inspanningendossier (Werken aan Programma's, Hfst 11.3).
 
 Input krijg je (JSON):
 {
-  "groep": { "id": "<groepId>", "vermogenIds": [...], "gezamenlijkeOmschrijving": "...", "reden": "..." },
-  "vermogens": [{ "id": "...", "sectorId": "PO|VO|Zakelijk", "title"|"description": "..." }],
-  "efforts":   [{ "id": "...", "sectorId": "...", "domain": "mens|processen|data_systemen|cultuur", "title": "...", "description": "..." }]
+  "focusDoel":    { "id": "<uuid>", "naam": "<korte naam>", "beschrijving": "<uitgebreide focus-doel beschrijving — kan ook een korte naam zijn wanneer geen beschrijving beschikbaar is>" },
+  "groep":        { "id": "<groepId>", "vermogenIds": [...], "gezamenlijkeOmschrijving": "...", "reden": "..." },
+  "vermogens":    [{ "id": "...", "sectorId": "PO|VO|Zakelijk", "title": "...", "description": "...", "profielHuidig": "...", "profielGewenst": "..." }],
+  "efforts":      [{ "id": "...", "sectorId": "...", "domain": "mens|processen|data_systemen|cultuur", "title": "...", "description": "..." }]
 }
 
-Lever een array \`SubEffortAdvies[]\` met één entry per (groep × domein) waar minstens één gekoppelde inspanning staat:
+FOCUS-DOEL VERANKERING (kritisch):
+Kleur je \`beschrijving\` en \`beargumentatie\` in het vocabulaire en de ambitie van \`focusDoel.beschrijving\`. De bundel bestaat omdat deze bijdraagt aan dit focusdoel — verwijs er expliciet naar. De sector-vermogens geven de aarding: hun \`title\`, \`description\`, \`profielHuidig\` en \`profielGewenst\` bepalen welke sector-specifieke taal past in \`vermogenImpact\`.
+
+Opmerking: wanneer \`focusDoel.beschrijving\` identiek is aan \`focusDoel.naam\` (fallback) is de inkleuringsbron korter; gebruik dan groep.gezamenlijkeOmschrijving + de vermogen-profielen als aanvullende context. Noem dit NIET in de output — het is een interne runtime-situatie.
+
+SECTOR-CONTEXT VERANKERING:
+Gebruik \`vermogens[i].profielHuidig\` en \`vermogens[i].profielGewenst\` om per sector concreet te maken wat de bundel oplevert. Geen generieke zinnen — benoem rol, scope of artefact dat in die sector herkenbaar is.
+
+Lever een array \`SubEffortAdvies[]\` met ÉÉN entry per (groep × domein) waar minstens één gekoppelde inspanning staat:
+
 {
-  "groepId": "<zelfde als input.groep.id>",
-  "domein": "mens" | "processen" | "data_systemen" | "cultuur",
-  "actie": "combineren" | "apart_houden",
-  "items": ["<effort-id>", "..."],
-  "reden": "<methodiek-conforme onderbouwing>",
-  "voorgesteldeNaam": "<sectoroverstijgende titel>" | null
+  "groepId":          "<zelfde als input.groep.id>",
+  "domein":           "mens | processen | data_systemen | cultuur",
+  "actie":            "combineren | apart_houden",
+  "items":            ["<effort-id>", "..."],
+  "reden":            "<methodiek-conforme 1-2 zinnen — behoud Phase 17 veld>",
+  "voorgesteldeNaam": "<sectoroverstijgende titel>" | null,
+
+  // --- Phase 18 rijke uitwerking (alleen verplicht bij actie: "combineren") ---
+  "titel":            "<actielabel met werkwoord, max 8 woorden — MOET identiek zijn aan voorgesteldeNaam bij combineren>",
+  "beschrijving":     "<2-3 zinnen: wat houdt deze bundel in, wat wordt concreet gedaan, welke scope over welke sectoren>",
+  "beargumentatie":   "<Waarom cross-sectoraal opbouwen zinvol is — de HEFBOOM: één inspanning → drie vermogens → drie baten → één focusdoel. Benoem expliciet het schaalvoordeel t.o.v. drie losse trajecten (bijv. '~30% besparing' of 'voorkomt datasilo\\'s'). Verwijs letterlijk naar de focus-doel ambitie.>",
+  "vermogenImpact":   [
+    { "sectorId": "PO",       "vermogenId": "<cap-po-id>",   "impact": "<Concreet: hoe deze bundel het PO-vermogen opbouwt — PO-vocabulaire (leerkrachten, schoolbesturen, leerlingen)>" },
+    { "sectorId": "VO",       "vermogenId": "<cap-vo-id>",   "impact": "<VO-vocabulaire (schoolleiders, teamleiders, examens, leerlingen)>" },
+    { "sectorId": "Zakelijk", "vermogenId": "<cap-zak-id>",  "impact": "<Zakelijk-vocabulaire (accountmanagers, klanten, opdrachtgevers, professionals)>" }
+  ],
+  "dossier": {
+    "eigenaar":          "<Opdrachtgever / rolnaam — eindverantwoordelijk over alle drie sectoren. Nederlandse rolnaam: Directie L&D / Directievoorzitter / CIO / Directeur Sales & Marketing / Sectormanager PO+VO+Zakelijk>",
+    "inspanningsleider": "<Projectleider / rolnaam — voert de bundel aan. Nederlandse rolnaam: Programmamanager / Programmadirecteur / Business Process Owner / IT-architect / Opleidingsregisseur>",
+    "verwachtResultaat": "<Concreet, meetbaar waar mogelijk — wat levert deze bundel op over alle drie sectoren. Noem KPI waar mogelijk (NPS-beweging, adoptie%, datakwaliteit-score, aantal getrainde medewerkers).>",
+    "kostenraming":      "<Eerste raming + marge in euros; benoem schaalvoordeel. Bijv.: '€350K over 18 maanden (curriculum €80K + rollout €240K + evaluatie €30K); ~30% besparing t.o.v. drie losse trajecten (€500K)'>",
+    "randvoorwaarden":   "<Faciliteiten/voorwaarden nodig VOOR start. Bijv.: 'Commitment drie sectormanagers; gedeelde cases-bank; externe begeleider met multi-sector ervaring; governance-afspraken data-eigenaarschap'>"
+  }
 }
 
-Regels (D-11, D-31):
-- ÉÉN advies per domein binnen een groep. Geen cross-domein combineren.
-- \`voorgesteldeNaam\` is VERPLICHT bij \`actie: "combineren"\` en MOET sectoroverstijgend zijn (geen PO/VO/Zakelijk substrings, min 10 chars).
-- Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` is \`null\`.
-- Gebruik cross-domein context ALLEEN om je reden te versterken ("Mens-training ondersteunt Data-implementatie"), maar nooit als justificatie voor cross-domein merge.
-- Als een domein geen gekoppelde inspanningen heeft, laat dat domein WEG uit de response (geen lege entries — dat doet de client).
-- Produceer ALLEEN geldige JSON, geen prose errom.`;
+Regels (D-11, D-25, D-30, D-31):
+- ÉÉN advies per domein binnen een groep. GEEN cross-domein combineren.
+- \`voorgesteldeNaam\` en \`titel\` zijn VERPLICHT bij \`actie: "combineren"\`, moeten sectoroverstijgend zijn (GEEN PO/VO/Zakelijk/primair onderwijs/voortgezet onderwijs substrings; min 10 tekens) en IDENTIEK aan elkaar.
+- Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` en \`titel\` zijn \`null\`. \`beschrijving\`, \`beargumentatie\`, \`vermogenImpact\` en \`dossier\` MOGEN worden weggelaten (advies is dan alleen markering).
+- Bij \`actie: "combineren"\`: \`vermogenImpact\` bevat EXACT ÉÉN entry per sector-vermogen uit \`groep.vermogenIds\` — gebruik de juiste \`sectorId\` en \`vermogenId\` uit input.vermogens. Lengte = input.vermogens.length.
+- Gebruik cross-domein context ALLEEN om je \`reden\`/\`beargumentatie\` te versterken (bijv.: "Mens-training ondersteunt Data-implementatie"), NOOIT als justificatie voor cross-domein merge.
+- Als een domein GEEN gekoppelde inspanningen heeft: LAAT DAT DOMEIN WEG uit de response (geen lege entries — dat handelt de client af).
+- Dossier-rolnamen volgen Nederlandse programmamanagement-praktijk (Directie, Sectormanager, Programmamanager, Business Process Owner, CIO, IT-architect, Opleidingsregisseur) — GEEN Engelse titels zoals "VP of Sales" of "Head of Product".
+- Kostenramingen gebruiken het €-symbool (niet "EUR") consistent met Cito-UX-conventie.
+- Dossier volgt Werken aan Programma's, Hfst 11.3 — Inspanningendossier (vijf velden: opdrachtgever/inspanningsleider/verwacht resultaat/kostenraming/randvoorwaarden).
+- Indien \`focusDoel\` \`null\` is: ga door met generieke inkleuring op basis van groep.gezamenlijkeOmschrijving; noteer dat de beschrijving minder rijk zal zijn.
+
+Produceer ALLEEN geldige JSON, geen prose errom. Antwoord in het Nederlands.`;
 
 export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's, Hfst 8 — Hefboomwerking).
 
