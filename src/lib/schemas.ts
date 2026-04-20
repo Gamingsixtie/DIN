@@ -324,16 +324,44 @@ export const VermogenGelijkenisGroepSchema = z.object({
   reden: z.string(),
 });
 
-// --- Phase 17: SubEffortAdvies (D-30) ---
+// --- Phase 18: SubEffortVermogenImpact (R-CROSS-03) ---
+// Per sector-vermogen binnen een cross-sectorale bundel: hoe die bundel dat specifieke vermogen opbouwt.
+export const SubEffortVermogenImpactSchema = z.object({
+  sectorId: SectorNameSchema,  // "PO" | "VO" | "Zakelijk"
+  vermogenId: z.string(),       // refereert aan DINCapability.id uit groep.vermogenIds
+  impact: z.string(),           // prose: hoe deze bundel dit sector-vermogen opbouwt
+});
+
+// --- Phase 18: SubEffortDossier (R-CROSS-03) ---
+// Dossier-velden voor cross-sectorale inspanning. Per Decision R3 (plan 02 frontmatter):
+// inline object met .optional().default("") zodat downstream altijd string heeft, nooit undefined.
+// Patroon consistent met AIEffortSchema en AIPromotedEffortSchema.
+export const SubEffortDossierSchema = z.object({
+  eigenaar: z.string().optional().default(""),
+  inspanningsleider: z.string().optional().default(""),
+  verwachtResultaat: z.string().optional().default(""),
+  kostenraming: z.string().optional().default(""),
+  randvoorwaarden: z.string().optional().default(""),
+});
+
+// --- Phase 17: SubEffortAdvies (D-30) + Phase 18: rijke uitwerking (R-CROSS-03) ---
 // Tweede-niveau effort-analyse per domein binnen een VermogenGelijkenisGroep.
 // AI stelt per domein voor: combineren (cross-sector training etc.) of apart_houden.
+// Phase 18 breidt uit met titel/beschrijving/beargumentatie/vermogenImpact[]/dossier{} — alle optional voor backward compat.
 export const SubEffortAdviesSchema = z.object({
+  // Phase 17 — bestaande velden (NIET wijzigen)
   groepId: z.string(),
   domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
   actie: z.enum(["combineren", "apart_houden"]),
   items: z.array(z.string()),
   reden: z.string(),
   voorgesteldeNaam: z.string().nullable().optional(),
+  // Phase 18 — rijke uitwerking (alle optional voor backward compat)
+  titel: z.string().optional(),
+  beschrijving: z.string().optional(),
+  beargumentatie: z.string().optional(),
+  vermogenImpact: z.array(SubEffortVermogenImpactSchema).optional(),
+  dossier: SubEffortDossierSchema.optional(),
 });
 
 export const InspanningClusterItemSchema = z.object({
@@ -929,6 +957,8 @@ export type AICrossAnalyse = z.infer<typeof AICrossAnalyseSchema>;
 export type VermogenClusterItem = z.infer<typeof VermogenClusterItemSchema>;
 export type VermogenGelijkenisGroep = z.infer<typeof VermogenGelijkenisGroepSchema>;
 export type SubEffortAdvies = z.infer<typeof SubEffortAdviesSchema>;
+export type SubEffortVermogenImpact = z.infer<typeof SubEffortVermogenImpactSchema>;
+export type SubEffortDossier = z.infer<typeof SubEffortDossierSchema>;
 export type InspanningClusterItem = z.infer<typeof InspanningClusterItemSchema>;
 export type ProjectMatchItem = z.infer<typeof ProjectMatchItemSchema>;
 export type AIExtractedProject = z.infer<typeof AIExtractedProjectSchema>;
