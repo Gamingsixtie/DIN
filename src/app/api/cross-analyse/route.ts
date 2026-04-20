@@ -325,7 +325,42 @@ export async function POST(request: NextRequest) {
               { maxTokens: 8192 }  // Phase 18: rijke response met 5 extra velden + dossier
             );
 
-            return subResult.success ? subResult.data : [];
+            let entries = subResult.success ? subResult.data : [];
+
+            // Phase 18: garandeer 4 entries per groep (mens/processen/data_systemen/cultuur).
+            // Als AI een of meer domeinen oversloeg: gerichte retry alleen voor die domeinen.
+            const ALL_DOMAINS = ["mens", "processen", "data_systemen", "cultuur"] as const;
+            const present = new Set(entries.map((e) => e.domein));
+            const missing = ALL_DOMAINS.filter((d) => !present.has(d));
+
+            if (missing.length > 0 && subResult.success) {
+              const retryMessage = JSON.stringify(
+                {
+                  focusDoel: focusDoelContext,
+                  groep,
+                  vermogens: groepVermogensRich,
+                  efforts: groepEfforts,
+                  _retry_instructie: `Je vorige response miste de volgende domeinen: ${missing.join(", ")}. Lever ALLEEN voor deze ontbrekende domeinen nieuwe SubEffortAdvies entries (${missing.length} stuk(s)), met actie "combineren", volledige Phase 18-velden en vermogenImpact voor alle 3 sectoren uit groep.vermogenIds. Als voor een domein geen efforts in input staan: zet items: [] en leid de inspanning af uit focusDoel.beschrijving + alle drie vermogen-profielen.`,
+                  _reeds_aanwezig: Array.from(present),
+                },
+                null,
+                2
+              );
+              const retryResult = await callClaudeWithValidation(
+                z.array(SubEffortAdviesSchema),
+                subSystemPrompt,
+                retryMessage,
+                { maxTokens: 8192 }
+              );
+              if (retryResult.success && retryResult.data.length > 0) {
+                entries = [
+                  ...entries,
+                  ...retryResult.data.filter((e) => missing.includes(e.domein as typeof ALL_DOMAINS[number])),
+                ];
+              }
+            }
+
+            return entries;
           })
         );
 

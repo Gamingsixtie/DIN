@@ -418,6 +418,9 @@ Regels (D-11, D-25, D-30, D-31):
 - Dossier volgt Werken aan Programma's, Hfst 11.3 — Inspanningendossier (vijf velden: opdrachtgever/inspanningsleider/verwacht resultaat/kostenraming/randvoorwaarden).
 - Indien \`focusDoel\` \`null\` is: ga door met generieke inkleuring op basis van groep.gezamenlijkeOmschrijving; noteer dat de beschrijving minder rijk zal zijn.
 
+EINDCHECK VOOR JE ANTWOORDT (HARDE EIS):
+Tel je output-entries. Er MOETEN er exact 4 zijn per groep. Controleer dat precies deze 4 \`domein\` waarden voorkomen: "mens", "processen", "data_systemen", "cultuur". Elke andere telling of combinatie is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt via de focus-doel-ambitie en de bestaande vermogen-profielen.
+
 Produceer ALLEEN geldige JSON, geen prose errom. Antwoord in het Nederlands.`;
 
 export const CROSS_ANALYSE_STAP5_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's, Hfst 8 — Hefboomwerking).
