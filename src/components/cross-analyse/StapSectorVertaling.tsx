@@ -13,7 +13,12 @@ import type {
   DINCapability,
   EffortDomain,
 } from "@/lib/types";
-import type { VermogenGelijkenisGroep, SubEffortAdvies } from "@/lib/schemas";
+import type {
+  VermogenGelijkenisGroep,
+  SubEffortAdvies,
+  SubEffortDossier,
+  SubEffortVermogenImpact,
+} from "@/lib/schemas";
 
 interface StapSectorVertalingProps {
   session: DINSession;
@@ -39,6 +44,103 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
 };
 
 const DOMEIN_ORDER: readonly EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"] as const;
+
+// --- Phase 18 (R-CROSS-03): VermogenImpact lijst per sub-effort advies ---
+function VermogenImpactSectie({
+  impacts,
+  testIdBase,
+}: {
+  impacts: SubEffortVermogenImpact[];
+  testIdBase: string;
+}): React.ReactElement | null {
+  if (!impacts || impacts.length === 0) return null;
+  return (
+    <section className="mt-3 pt-3 border-t border-gray-200">
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        Vermogen-impact per sector
+      </p>
+      <ul className="space-y-1.5">
+        {impacts.map((v) => (
+          <li
+            key={`${v.sectorId}-${v.vermogenId}`}
+            className="flex items-start gap-2"
+            data-testid={`${testIdBase}-${v.sectorId}`}
+          >
+            <SectorBadge sector={v.sectorId} />
+            <span className="text-[12px] text-gray-700 flex-1 leading-snug">{v.impact}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// --- Phase 18 (R-CROSS-03): Dossier sectie met expand/collapse ---
+// Default gesloten — progressive disclosure, layout-shift-vrij (UAT-2).
+function DossierSectie({
+  dossier,
+  testId,
+}: {
+  dossier: SubEffortDossier;
+  testId: string;
+}): React.ReactElement | null {
+  const [open, setOpen] = useState<boolean>(false);
+
+  const entries: Array<[string, string]> = [
+    ["Opdrachtgever", dossier.eigenaar ?? ""],
+    ["Inspanningsleider", dossier.inspanningsleider ?? ""],
+    ["Verwacht resultaat", dossier.verwachtResultaat ?? ""],
+    ["Kostenraming", dossier.kostenraming ?? ""],
+    ["Randvoorwaarden", dossier.randvoorwaarden ?? ""],
+  ];
+  const hasAny = entries.some(([, v]) => v && v.length > 0);
+  if (!hasAny) return null;
+
+  return (
+    <section
+      className="mt-3 pt-3 border-t border-gray-200"
+      data-testid={testId}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-controls={`${testId}-body`}
+        className="flex items-center gap-2 w-full text-left text-[10px] font-semibold text-[#003366] uppercase tracking-wider hover:text-[#002244] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003366] rounded"
+        data-testid={`${testId}-toggle`}
+      >
+        <span aria-hidden="true" className="inline-block w-3 text-gray-500">
+          {open ? "▾" : "▸"}
+        </span>
+        <span>Inspanningendossier</span>
+        <span className="ml-auto text-[9px] font-normal text-gray-400 normal-case tracking-normal">
+          {open ? "(sluit)" : "(open)"}
+        </span>
+      </button>
+
+      {open && (
+        <div id={`${testId}-body`} className="mt-2">
+          <p className="text-[9px] text-gray-400 italic mb-2">
+            Rolnamen zijn AI-voorstel; pas aan op jouw Cito-context.
+          </p>
+          <dl className="space-y-1.5">
+            {entries.map(([label, value]) =>
+              value && value.length > 0 ? (
+                <div
+                  key={label}
+                  className="grid grid-cols-[130px_1fr] gap-2 text-[12px]"
+                >
+                  <dt className="font-semibold text-gray-500">{label}</dt>
+                  <dd className="text-gray-700 leading-snug">{value}</dd>
+                </div>
+              ) : null
+            )}
+          </dl>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // --- Phase 17 D-29: Domain balance badge ---
 function DomainBalanceBadge({
@@ -353,7 +455,7 @@ export default function StapSectorVertaling({
                   <HefboomPijlen />
 
                   {/* ONDER: hefboomlaag per domein */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-2">
                     {DOMEIN_ORDER.map((domein) => {
                       const advies = groepSubAnalyses.find((s) => s.domein === domein);
                       const colors = DOMAIN_COLORS[domein];
@@ -380,42 +482,94 @@ export default function StapSectorVertaling({
                       return (
                         <div
                           key={domein}
-                          className={`border ${colors.border} ${colors.bg} rounded-lg p-3`}
-                          data-testid={`hefboomlaag-${groep.id}-${domein}`}
+                          className={`border ${colors.border} ${colors.bg} rounded-lg p-4`}
+                          data-testid={`sub-effort-rich-${groep.id}-${domein}`}
                         >
-                          <div className="flex items-center justify-between mb-1 gap-1">
+                          {/* Header-strip: domein + actie-badge + hefboom-badge */}
+                          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                             <p className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
                               {DOMAIN_LABELS[domein]}
                             </p>
-                            <span
-                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                                advies.actie === "combineren"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {advies.actie === "combineren" ? "Combineren" : "Apart"}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                  advies.actie === "combineren"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {advies.actie === "combineren" ? "Combineren" : "Apart"}
+                              </span>
+                              {advies.actie === "combineren" && (
+                                <HefboomBadge vermogens={groepVermogens} />
+                              )}
+                            </div>
                           </div>
-                          {advies.voorgesteldeNaam && (
-                            <p className="text-xs font-semibold text-gray-800 mb-1">
-                              {advies.voorgesteldeNaam}
+
+                          {/* Titel (Phase 18) — fallback op voorgesteldeNaam (Phase 17) */}
+                          {(advies.titel || advies.voorgesteldeNaam) && (
+                            <h4
+                              className="text-sm font-semibold text-[#003366] mb-2 leading-snug"
+                              data-testid={`sub-effort-titel-${groep.id}-${domein}`}
+                            >
+                              {advies.titel || advies.voorgesteldeNaam}
+                            </h4>
+                          )}
+
+                          {/* Beschrijving (Phase 18) */}
+                          {advies.beschrijving && (
+                            <p className="text-[13px] text-gray-700 leading-relaxed mb-3">
+                              {advies.beschrijving}
                             </p>
                           )}
-                          {advies.reden && (
+
+                          {/* Beargumentatie (Phase 18) */}
+                          {advies.beargumentatie && (
+                            <section className="mb-3 pt-3 border-t border-gray-200">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                Waarom cross-sectoraal opbouwen?
+                              </p>
+                              <p className="text-[12px] text-gray-700 leading-relaxed">
+                                {advies.beargumentatie}
+                              </p>
+                            </section>
+                          )}
+
+                          {/* VermogenImpact per sector (Phase 18) */}
+                          {advies.vermogenImpact && advies.vermogenImpact.length > 0 && (
+                            <VermogenImpactSectie
+                              impacts={advies.vermogenImpact}
+                              testIdBase={`vermogen-impact-${groep.id}-${domein}`}
+                            />
+                          )}
+
+                          {/* Dossier (Phase 18) — expand/collapse, default gesloten */}
+                          {advies.dossier && (
+                            <DossierSectie
+                              dossier={advies.dossier}
+                              testId={`sub-effort-dossier-${groep.id}-${domein}`}
+                            />
+                          )}
+
+                          {/* Legacy reden (Phase 17 backward-compat) — alleen als beargumentatie ontbreekt */}
+                          {!advies.beargumentatie && advies.reden && (
                             <p className="text-[11px] text-gray-600 mb-2 leading-snug">
                               {advies.reden}
                             </p>
                           )}
+
+                          {/* Gebundelde inspanningen (legacy bullet-lijst) */}
                           {relatedEfforts.length > 0 && (
-                            <ul className="text-[11px] text-gray-700 space-y-0.5">
-                              {relatedEfforts.map((eff) => (
-                                <li key={eff.id}>• {eff.title || eff.description}</li>
-                              ))}
-                            </ul>
-                          )}
-                          {advies.actie === "combineren" && (
-                            <HefboomBadge vermogens={groepVermogens} />
+                            <section className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                Gebundelde inspanningen
+                              </p>
+                              <ul className="text-[11px] text-gray-700 space-y-0.5">
+                                {relatedEfforts.map((eff) => (
+                                  <li key={eff.id}>• {eff.title || eff.description}</li>
+                                ))}
+                              </ul>
+                            </section>
                           )}
                         </div>
                       );
