@@ -306,10 +306,15 @@ Plans:
 **Requirements**: R-CROSS-03 (rijke domein-uitwerking met dossier in cross-analyse)
 **Depends on:** Phase 17
 **UI hint:** yes
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 18 to break down)
+- [ ] 18-01-PLAN.md — Wave 0 test scaffold: uitbreiden cross-analyse-schema.test.ts met Phase 18 describe-blok (RED state)
+- [ ] 18-02-PLAN.md — Wave 1 schema-uitbreiding: SubEffortVermogenImpactSchema + SubEffortDossierSchema + 5 optionele velden op SubEffortAdviesSchema
+- [ ] 18-03-PLAN.md — Wave 2 prompt-herziening: SUB_EFFORT_ANALYSE_PROMPT met focus-doel verankering + rijke output-shape + dossier-eis
+- [ ] 18-04-PLAN.md — Wave 2 API-wiring: focusDoel + profielHuidig/Gewenst in stap 4 sub-call + maxTokens 8192
+- [ ] 18-05-PLAN.md — Wave 2 demo-data: alle 4 subEffortAnalysis entries met titel/beschrijving/beargumentatie/vermogenImpact/dossier
+- [ ] 18-06-PLAN.md — Wave 3 rendering: rijke domein-kaart met VermogenImpactSectie + DossierSectie + lg:grid-cols-2 + human verify
 
 **Success criteria:**
 1. `SubEffortAdviesSchema` uitgebreid met velden: `titel`, `beschrijving`, `beargumentatie`, `vermogenImpact[]`, `dossier{}` — backward compat via `.optional()`
