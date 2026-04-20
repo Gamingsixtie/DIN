@@ -1,0 +1,408 @@
+{
+  "name": "Demo — Klant in Beeld (Phase 18, zonder analyse)",
+  "vision": {
+    "id": "7ae7baab-cf70-494d-bb4e-2b5d07bade26",
+    "beknopt": "Met het programma Klant in Beeld maakt Cito BV de beweging van reactief leverancier naar proactieve strategische partner, waarbij een outside-in perspectief – wat klanten werkelijk nodig hebben – leidend is voor denken en handelen. Door mens, proces, systeem en cultuur structureel met elkaar te verbinden, bouwt Cito BV samen met klanten aan echte oplossingen en duurzame relaties.",
+    "uitgebreid": "Het programma Klant in Beeld stuurt de organisatiebrede transformatie van Cito BV: van productgerichte leverancier naar proactieve strategische partner. Het programma werkt langs vier domeinen – Mens, Proces, Systeem & Data en Cultuur – en geldt voor alle klantgroepen: van basisscholen en middelbare scholen tot mbo-instellingen, bedrijven, overheidsorganisaties en internationale opdrachtgevers. Klant in Beeld is geen project, maar een programma dat outside-in werken structureel verankert.\n\nCito BV is strategisch partner die proactief cocreëert met klanten om hun werkelijke behoeftes te begrijpen en daar gerichte waarde aan toe te voegen, waarbij klanten de regie behouden over hun processen en beslissingen. Door een geharmoniseerde aanpak met data-gedreven prioritering en branded customer journeys creëren we een onderscheidende merkervaring die moeilijk te kopiëren is. We bedienen niet alleen individuele klanten maar begrijpen bredere ecosystemen en ontwikkelen sectoroverstijgende proposities die echte impact maken.\n\nCito BV maakt de beweging van reactief naar proactief handelen door systematisch klantinzichten om te zetten in concrete verbeteracties en samen met klanten te werken aan productontwikkeling via co-creatie. Tegelijkertijd maken we bewuste keuzes over waar we wel en niet de beste partner kunnen zijn, zodat we onze toegevoegde waarde maximaliseren. Deze outside-in benadering verankeren we structureel in onze dagelijkse werkwijze, zodat klantgericht denken en handelen onderdeel wordt van onze cultuur."
+  },
+  "scope": {
+    "id": "0c4a98fe-ef6a-40db-9f76-455ce514c52e",
+    "inScope": [
+      "Organisatiebrede transformatie langs vier domeinen: Mens, Proces, Systeem & Data en Cultuur",
+      "Alle klantgroepen: basisscholen, middelbare scholen, mbo-instellingen, bedrijven, overheidsorganisaties en internationale opdrachtgevers",
+      "Ideation en prioritering van kansrijke richtingen voor alle markten",
+      "Opbouwen van een integraal 360°-klantbeeld met betrouwbare klantdata",
+      "Ontwikkeling van medewerkers voor outside-in werken en co-creatie vaardigheden",
+      "Structurele verankering van klantgericht denken in cultuur en dagelijkse werkwijze",
+      "Overkoepelende grote thema's waarbij bedrijfsprocessen of applicaties aan ten grondslag liggen (mits MT-prioriteit)"
+    ],
+    "outScope": [
+      "Het daadwerkelijk herontwerpen van de klantreis en het uitvoeren van verbeterideeën (ligt binnen de sectoren met productmanagers, propositiemanagers of customer experience managers als lead)",
+      "De way of working tussen toetsdeskundigen en conceptontwikkelaars (is een apart traject)",
+      "De specifieke aanpak voor PO (Primair Onderwijs) en Professionals (elke sector bepaalt zijn eigen invulling binnen de kaders van Klant in Beeld)"
+    ]
+  },
+  "goals": [
+    {
+      "id": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "name": "Integraal klantbeeld en outside-in werken als strategisch fundament",
+      "rank": 1,
+      "description": "Cito BV bouwt één toegankelijk en betrouwbaar klantbeeld op dat voor alle medewerkers met klantcontact beschikbaar is, ingericht op de specifieke klantcontext per organisatieonderdeel. Door klantdata, interacties en inzichten samen te brengen in een integraal systeem – inclusief een volledig en consistent beeld van de klantfunnel en eenduidige afspraken over de doorrekening per funnelfase – wordt proactief handelen mogelijk en worden kansen eerder gesignaleerd. Dit is onlosmakelijk verbonden met outside-in werken: medewerkers stellen de juiste vragen, doorvragen naar de vraag achter de vraag, en begrijpen de praktijk van klanten werkelijk. Samen vormen dit het strategische fundament voor alle andere klantgerichte ambities binnen het programma."
+    },
+    {
+      "id": "183a8941-af14-4f6a-820b-5e0783843874",
+      "name": "Verbeteren én innoveren op basis van klantinzichten en gebruiksdata",
+      "rank": 2,
+      "description": "Cito BV betrekt klanten structureel bij zowel de doorlopende verbetering van het huidige aanbod als de ontwikkeling van nieuwe producten en diensten – via co-creatie, klantpanels, ambassadeursprogramma's en iteratieve samenwerking. Tegelijkertijd zet Cito beschikbare klant- en gebruiksdata actief in als grondstof voor besluitvorming. Kwalitatieve inzichten uit directe samenwerking met klanten en kwantitatieve inzichten uit gebruiksdata versterken elkaar en vormen samen het vertrekpunt voor productontwikkeling en optimalisatie van bestaand aanbod."
+    },
+    {
+      "id": "dcff16cb-cd64-4a90-8bfc-a86f984987c9",
+      "name": "Structurele klantrelevantie en tevredenheid realiseren",
+      "rank": 3,
+      "description": "Cito BV streeft ernaar structureel relevant te zijn voor de vraagstukken en uitdagingen van klanten, waarbij klanttevredenheid zichtbaar en meetbaar op een hoog niveau ligt. Dit betekent dat Cito haar belofte waarmaakt: de waarde die ze levert sluit aan bij wat klanten werkelijk nodig hebben. Een hoge waardeperceptie is daarmee een einddoel."
+    }
+  ],
+  "benefits": [
+    {
+      "id": "015ebffc-93b7-4ee5-a8ff-787c075fc948",
+      "title": "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "profiel": {
+        "indicator": "NPS bij opdrachtgevers en kandidaten, conversieratio van lead naar opdracht (%), en omzetgroei uit bestaande en nieuwe klanten (€)",
+        "meetmethode": "Kwantitatieve data-analyse vanuit CRM (conversie en omzet), gecombineerd met periodieke NPS-enquête onder opdrachtgevers en kandidaten",
+        "targetValue": "NPS-stijging met minimaal 10 punten, conversieratio leads naar opdracht +15%, omzetgroei +10% binnen 2 jaar na programmainvoering",
+        "currentValue": "Nulmeting vast te stellen bij programmastart (NPS, conversieratio en omzetcijfers op T0)",
+        "bateneigenaar": "Commercieel Manager",
+        "indicatorOwner": "Productmanager",
+        "measurementMoment": "Halfjaarlijks, met kwartaalrapportage op conversie en omzet via dashboarding in CRM"
+      },
+      "sectorId": "Zakelijk",
+      "description": "Opdrachtgevers en kandidaten ervaren Cito BV als een onderscheidende partner die hun context begrijpt en proactief inspeelt op hun behoeften; dit uit zich in hogere tevredenheid, sterkere relaties en betere commerciële prestaties zoals snellere conversie en meer omzet."
+    },
+    {
+      "id": "3cf24b31-c739-495b-9c85-0d2bc3689c8a",
+      "title": "Intensiever partnership ",
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "profiel": {
+        "indicator": "NPS-score onder leerkrachten en schoolbesturen, gecombineerd met het aandeel klantgesprekken dat als samenwerkings- of beleidsgerichte dialoog wordt gekwalificeerd",
+        "meetmethode": "Halfjaarlijkse NPS-enquête onder leerkrachten en schoolbesturen; kwalitatieve gespreksregistratie via CRM met labeling op gesprekstype (transactioneel vs. verdiepend); aanvullend: jaarlijkse analyse van gebruikersaantallen, trainingsdeelname en meldingsvolume klantenservice",
+        "targetValue": "NPS stijging van minimaal +10 punten t.o.v. nulmeting; ≥ 40% van klantgesprekken gekwalificeerd als samenwerkings- of beleidsgerichte dialoog binnen 2 jaar",
+        "currentValue": "Nulmeting NPS: nog te bepalen (Q1 2025); aandeel verdiepende klantgesprekken: 0% formeel geregistreerd",
+        "bateneigenaar": "Commercieel Manager",
+        "indicatorOwner": "Sectormanager PO",
+        "measurementMoment": "Halfjaarlijks (NPS en gespreksanalyse), jaarlijks (gebruikersaantallen en trainingsdata)"
+      },
+      "sectorId": "PO",
+      "description": "Leerkrachten, schoolbesturen en andere schoolmedewerkers ervaren dat Leerling in Beeld producten en diensten beter aansluiten op hun dagelijkse onderwijspraktijk en behoeften; dit uit zich in diepere samenwerkingsgesprekken, hogere tevredenheid en groeiend gebruik van het LIB-aanbod."
+    },
+    {
+      "id": "38979f9e-8095-43af-a9e3-0b3dc52b0dc5",
+      "title": "Hogere voorspelbaarheid commerciële begroting",
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "profiel": {
+        "indicator": "Afwijking tussen voorspelde en gerealiseerde commerciële begroting Year 1 (in %)",
+        "meetmethode": "Data-analyse op basis van vergelijking goedgekeurde jaarbegroting versus gerealiseerde omzet per sector, aangevuld met kwalitatieve toelichting op afwijkingen vanuit salesrapportage",
+        "targetValue": "Maximaal 5% afwijking tussen voorspelde en gerealiseerde begroting Year 1",
+        "currentValue": "Nulmeting te bepalen op basis van begrotingsrealisatie huidig boekjaar (verwachte afwijking > 5%)",
+        "bateneigenaar": "Commercieel Manager",
+        "indicatorOwner": "Sectormanager",
+        "measurementMoment": "Jaarlijks (afsluiting boekjaar), tussentijdse signalering per kwartaal"
+      },
+      "sectorId": "VO",
+      "description": "Sectormanagers en commerciële teams merken dat de jaarlijkse meerjaarenbegroting structureel nauwkeuriger wordt doordat klantinzichten en funneldata proactief worden vertaald naar propositieontwikkeling; scholen ervaren dat Cito hen eerder en gerichter betrekt bij vernieuwing van producten en diensten."
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
+      "title": "Klantgerichte commerciële slagkracht",
+      "profiel": {
+        "eigenaar": "Sectormanager",
+        "huidieSituatie": "Commerciële werkwijzen zijn deels aanwezig maar niet uniform: medewerkers werken wisselend met het CRM-systeem, prioritering van leads verloopt inconsistent en eigenaarschap voor de klantrelatie is onvoldoende verankerd in gedrag en cultuur.",
+        "gewensteSituatie": "Medewerkers werken aantoonbaar eenduidig volgens gedeelde processen, prioriteren actief op de belangrijkste leads, voeren regie op betrouwbare CRM-data en nemen volwaardig eigenaarschap voor opdrachtgevers en kandidaten – resulterend in hogere NPS, betere conversieratio en aantoonbare omzetgroei."
+      },
+      "sectorId": "Zakelijk",
+      "description": "Het vermogen om via eenduidige processen, betrouwbare CRM-data en commercieel vaardige medewerkers structureel klantgericht te werken richting opdrachtgevers en kandidaten; waarbij eigenaarschap, gerichte prioritering en een uniforme werkwijze zorgen voor hogere conversie en duurzame klantrelaties.",
+      "targetLevel": 4,
+      "currentLevel": 3,
+      "relatedSectors": [
+        "Zakelijk"
+      ]
+    },
+    {
+      "id": "cfdf5175-78ee-4836-a29f-7d53b2afe465",
+      "title": "Strategisch klantpartnerschap PO",
+      "profiel": {
+        "eigenaar": "Sectormanager PO",
+        "huidieSituatie": "Medewerkers zijn vooral zendend in klantcontact en hebben onvoldoende grip op klant- en productdata om geloofwaardige, op maat gesneden gesprekken te voeren; bewustwording over het aanbod van het leerlingvolgsysteem is beperkt aanwezig.",
+        "gewensteSituatie": "Medewerkers voeren proactief kwalitatieve dialogen met leerkrachten en schoolbesturen over beleid en samenwerking, daarbij ondersteund door betrouwbare klant- en productdata en een cultuur waarin men zichzelf durft neer te zetten en beloftes waarmaakt."
+      },
+      "sectorId": "PO",
+      "description": "Het vermogen bestaat uit accountmanagers en sectormanagement (mensen) die op basis van kwalitatieve klantdata en productinformatie (data & systemen) gerichte samenwerkingsgesprekken voeren, ondersteund door een cultuur van lef, standvastigheid en actief ophalen van klantbehoeften (cultuur & processen).",
+      "targetLevel": 3,
+      "currentLevel": 2,
+      "relatedSectors": [
+        "PO"
+      ]
+    },
+    {
+      "id": "f92382f0-8914-4f68-8b9d-69927989e128",
+      "title": "Klantfasegericht commercieel relatievermogen",
+      "profiel": {
+        "eigenaar": "Sectormanager en Commercieel manager",
+        "huidieSituatie": "Het CRM-systeem wordt onvoldoende en inconsistent bijgehouden; segmentatie vindt plaats op omzet en schoolgrootte, waardoor inzicht in de contractuele fase van een school ontbreekt en aflopende overeenkomsten onverwacht binnenkomen.",
+        "gewensteSituatie": "Medewerkers werken actief met een up-to-date CRM op basis van schoolfasering (kwalitatief én kwantitatief), zijn in staat tijdig te anticiperen op verlengings- of uitstroommomenten, en onderhouden gerichte relaties op bestuursniveau — wat leidt tot een voorspelbare commerciële begroting en hogere waardeperceptie."
+      },
+      "sectorId": "VO",
+      "description": "Een combinatie van CRM-systeem (met actuele gespreksverslagen en schoolplannen), relatiemanagers op bestuursniveau, en werkafspraken gebaseerd op kwalitatieve fasering van scholen — waardoor Cito in staat is de commerciële relatie per school proactief en voorspelbaar te sturen.",
+      "targetLevel": 5,
+      "currentLevel": 2,
+      "relatedSectors": [
+        "VO"
+      ]
+    }
+  ],
+  "efforts": [
+    {
+      "id": "3981af2f-4549-47d5-87c6-33d0c431aaee",
+      "title": "Verankeren van outside-in leiderschap als rolmodel gedrag",
+      "votes": 0,
+      "domain": "cultuur",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager PO",
+        "kostenraming": "€ 30.000 – € 60.000 (afhankelijk van aantal leiderschapssessies, externe begeleiding en intervisietraject); onzekerheidsmarge ±30%",
+        "randvoorwaarden": "Commitment van sectormanager als zichtbaar sponsor en deelnemend rolmodel; minimale beschikbaarheid van leidinggevenden (niet volledig opgeslokt door operationele storingen en vergaderagenda's); afstemming met lopende inspanningen op systeem- en procesvlak zodat leiderschapsontwikkeling niet concurreert maar aanvult; heldere afspraken over beschermde tijd voor deelname aan cultuurinterventies",
+        "inspanningsleider": "Programmamanager / HR Business Partner PO",
+        "verwachtResultaat": "Leidinggevenden en medewerkers voelen zich vrij en veilig om klantgericht gedrag te tonen en hierop aan te spreken, zichtbaar in een stijging van de NPS-score en een groter aandeel klantgesprekken dat als samenwerkingsgerichte dialoog wordt gekwalificeerd. De vergader- en brandjes-blus-cultuur maakt geleidelijk plaats voor een werkwijze waarin ruimte voor klantcontact, reflectie en initiatief als normaal wordt ervaren."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "PO",
+      "description": "Leidinggevenden binnen de PO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij creëren bewust ruimte — weg uit de vergadercultuur en de waan van de dag — om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies (sessies, intervisie, gezamenlijke klantbezoeken) wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
+      "dependencies": []
+    },
+    {
+      "id": "84fe41e4-c181-4c10-96d7-6f4fff6e3f3b",
+      "title": "Trainen medewerkers in klantgerichte gespreksvaardigheden PO",
+      "votes": 0,
+      "domain": "mens",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager PO",
+        "kostenraming": "Nader te bepalen; rekening houden met externe trainings- en coachingskosten, vrijmaking van medewerkers voor deelname en mogelijke terugkerende verdiepingssessies (marge: ±20%)",
+        "randvoorwaarden": "Processen en klantfunnel zijn voldoende in kaart gebracht zodat medewerkers weten op welk klantmoment welk gespreksdoel geldt; businessfocus per klantsegment is bepaald en beschikbaar als inhoudelijke input voor de training; commitment van sectormanager en teamleads voor vrijmaking van medewerkers; minimale rust in de operatie om leerruimte te borgen naast de waan van de dag.",
+        "inspanningsleider": "Nader te bepalen (bijv. L&D-lead of commercieel trainer)",
+        "verwachtResultaat": "Medewerkers in sector PO voeren zelfverzekerd klantgesprekken vanuit een outside-in houding, waarbij zij proactief de klantbehoefte doorgronden en Cito positioneren als strategisch gesprekspartner in plaats van louter toetsleverancier. De gedragsverandering is zichtbaar in de kwalificatie van klantgesprekken als samenwerkings- of beleidsgerichte dialoog, en medewerkers zijn onderling uitwisselbaar in hun gespreksrol."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "PO",
+      "description": "Medewerkers met klantcontact in sector PO worden opgeleid en gecoacht in outside-in gespreksvaardigheden: het stellen van de vraag achter de vraag, het voeren van een sturend waardeverhaal vanuit het brede Cito-portfolio, en het ophalen van diepgaande klantinzichten. De training combineert kennisoverdracht over het volledige aanbod met gedragsgerichte coaching op gespreksregie en klantpartnerschap.",
+      "dependencies": []
+    },
+    {
+      "id": "88807a3a-98ef-4d57-b608-a1a931e2f56c",
+      "title": "Implementeren en inrichten van integraal CRM-klantdashboard",
+      "votes": 0,
+      "domain": "data_systemen",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Commercieel Manager",
+        "kostenraming": "Nader te bepalen (afhankelijk van CRM-licenties, implementatiepartner en maatwerkontwikkeling dashboard); aanbevolen marge van 20-30% voor onvoorziene technische complexiteit",
+        "randvoorwaarden": "Keuze en beschikbaarheid van CRM-platform is bevestigd; toegang tot bestaande klantdata en bronsystemen is geregeld; functioneel eigenaar en technisch beheerder zijn aangesteld; datagovernance-afspraken over invoerstandaarden en verantwoordelijkheden zijn vastgelegd vóór livegang",
+        "inspanningsleider": "CRM Projectleider / Functioneel Beheerder",
+        "verwachtResultaat": "Medewerkers beschikken over een betrouwbaar, integraal klantbeeld in het CRM — inclusief productgebruik, klachtenhistorie, betaalgedrag en klantsegmentatie — waardoor onderbuikgevoel wordt vervangen door data-gedreven besluitvorming. Dit maakt proactief klantcontact, gerichte klantsegmentatie en automatisering van repetitieve signalerings- en opvolgtaken mogelijk."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "Zakelijk",
+      "description": "Het bestaande CRM-systeem wordt volledig heringericht en correct geïmplementeerd zodat alle relevante klantdata — waaronder interacties, productgebruik, klachten, betaalgedrag en klantsegmentatie — eenduidig en volledig worden vastgelegd en ontsloten. Aanvullend wordt een integraal klantdashboard gebouwd dat voor alle medewerkers met klantcontact real-time inzicht biedt in de complete klantstatus en funnelpositie per klant.",
+      "dependencies": []
+    },
+    {
+      "id": "b656f046-edbf-400c-ac29-3af35a9df1c5",
+      "title": "Verankeren van outside-in mindset en klantgericht eigenaarschap",
+      "votes": 0,
+      "domain": "cultuur",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager",
+        "kostenraming": "Nader te bepalen; indicatief lage tot middelgrote investering (facilitering boegbeeldtrajecten, meeloopdagen, interne activering) — onzekerheidsmarge ±30%",
+        "randvoorwaarden": "Commitment van sectormanager en teamleiders als actieve boegbeelden; bereidheid van toetsdeskundigen en productmanagers om als rolmodel op te treden; afstemming met de inspanningen op domein Mens (competentieontwikkeling) en Processen (klantreis toolkit) om overlap te vermijden en synergie te benutten",
+        "inspanningsleider": "Nader te bepalen (aanbevolen: teamleider commercie of HR-business partner)",
+        "verwachtResultaat": "Medewerkers in alle klantgerichte rollen — sales, binnendienst en inhoudelijk personeel — tonen aantoonbaar eigenaarschap in klantinteracties en handelen vanuit oprechte nieuwsgierigheid naar de klantbehoefte. De klant voelt zich gezien en begrepen, wat trots en energie geeft bij medewerkers en drempels wegneemt om proactief het gesprek aan te gaan."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "Zakelijk",
+      "description": "Via boegbeelden, rolmodellen en gerichte activering wordt een outside-in cultuur gestimuleerd waarbij medewerkers — van binnendienst tot toetsdeskundigen — actief eigenaarschap tonen in klantgesprekken en de vraag achter de vraag leren stellen. Door enthousiasmerende voorbeelden (zoals productmanagers en binnendienst medewerkers die het gesprek aangaan) en ervaringen zoals meelopen met klantenservice of in de klas zitten, wordt het snappen en voelen van de klantpraktijk een gedeelde norm binnen Cito BV.",
+      "dependencies": []
+    },
+    {
+      "id": "b1107cd6-9fb3-482e-855e-204fe1f896c4",
+      "title": "Werven en ontwikkelen van outside-in competenties bij medewerkers",
+      "votes": 0,
+      "domain": "mens",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager",
+        "kostenraming": "Nader te bepalen (PM) — inclusief onzekerheidsmarge voor externe trainers/coaches en wervingskosten",
+        "randvoorwaarden": "Gedragen competentieprofiel 'outside-in medewerker' beschikbaar als basis voor training én werving; commitment van leidinggevenden om coaching on the job te faciliteren; afstemming met cultuurspoor over gewenste gedragsnormen en eigenaarschap vóór aanvang van de training.",
+        "inspanningsleider": "HR Business Partner / L&D-verantwoordelijke",
+        "verwachtResultaat": "Medewerkers beschikken aantoonbaar over de competenties en vaardigheden om outside-in te opereren, tonen eigenaarschap in klantinteracties en fungeren als inspiratiebron voor collega's. Nieuwe medewerkers worden vanaf instroom geselecteerd op outside-in profiel, waardoor de commerciële slagkracht structureel wordt versterkt."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "Zakelijk",
+      "description": "Medewerkers met klantcontact worden getraind en gecoacht op outside-in denken en werken: het stellen van de juiste vragen, doorvragen naar de vraag achter de vraag, en het werkelijk begrijpen van de klantpraktijk. Parallel wordt bij nieuwe werving expliciet geselecteerd op outside-in mindset en commercieel eigenaarschap, zodat instroom direct bijdraagt aan de gewenste klantgerichte cultuur.",
+      "dependencies": []
+    },
+    {
+      "id": "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
+      "title": "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed",
+      "votes": 0,
+      "domain": "processen",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Directeur",
+        "kostenraming": "Nader te bepalen (indicatief €15.000–€35.000 afhankelijk van procesbegeleiding, documentatie en beheer); onzekerheidsmarge ±30%",
+        "randvoorwaarden": "Besluitvorming over CRM-inrichting is afgerond of loopt parallel; betrokkenheid van vertegenwoordigers uit alle klantcontactrollen is gegarandeerd; directie stelt proceseigenaarschap formeel in; er zijn boegbeelden aangewezen die de processen actief uitdragen",
+        "inspanningsleider": "Programmamanager / Procesverantwoordelijke",
+        "verwachtResultaat": "Alle medewerkers met klantcontact werken volgens een gestandaardiseerd en gedocumenteerd klantinformatieproces, waardoor klantdata betrouwbaar en volledig wordt vastgelegd en de integrale klantreis voor de hele organisatie inzichtelijk en schaalbaar is. Kennisborging over klanten is niet langer persoonsafhankelijk, maar procesmatig geborgd en overdraagbaar."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "Zakelijk",
+      "description": "Voor alle rollen met klantcontact worden eenduidige werkprocessen ingericht die vastleggen hoe, wanneer en door wie klantinformatie wordt geregistreerd — van lead tot lopende relatie. Dit omvat procesbeschrijvingen per roltype, vastleggingsprotocollen per funnelfase en een governancestructuur die borgt dat klantdata structureel en consistent wordt bijgehouden.",
+      "dependencies": []
+    },
+    {
+      "id": "710d4a72-d58b-449a-bcc2-9fe1d8689fa9",
+      "title": "Trainen en verankeren van klantgerichte rollen en samenwerking",
+      "votes": 0,
+      "domain": "mens",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager en Commercieel manager",
+        "kostenraming": "Nader te bepalen (afhankelijk van omvang trainingsprogramma, inzet externe begeleider en aantal sessies); eerste schatting €30.000–€60.000 inclusief onzekerheidsmarge van ±30%",
+        "randvoorwaarden": "Commitment van sectormanagement en commercieel management als rolmodel en sponsor van de cultuurverandering; heldere functiebeschrijvingen en verwachtingskaders per rol beschikbaar vóór start training; meerjarenbegroting en KPI-kaders zijn vastgesteld zodat medewerkers weten waarop zij worden aangesproken; capaciteit van sleutelfiguren (sales, productmanagement, sector) geborgd voor deelname aan sessies.",
+        "inspanningsleider": "HR Business Partner / Leer- en ontwikkelcoördinator (VO)",
+        "verwachtResultaat": "Medewerkers in alle lagen — van sales tot toetsdeskundigen — handelen vanuit een helder rolbewustzijn, spreken elkaar aan op gedrag en verantwoordelijkheid ongeacht hiërarchie, en dragen gezamenlijk bij aan een eenduidig en klantgericht verhaal richting scholen. De verschuiving van eilandjesgedrag naar professionele teamsamenwerking is meetbaar zichtbaar in onderlinge kennisdeling en klantgerichte gedragsverandering."
+      },
+      "quarter": "Nader te bepalen",
+      "sectorId": "VO",
+      "description": "Alle medewerkers met klantcontact binnen de VO-sector — waaronder sales, productmanagement, marketing en toetsdeskundigen — worden getraind op hun specifieke rol in het klantproces, inclusief heldere verwachtingen, verantwoordelijkheden en gedragsnormen voor outside-in werken. Dit wordt aangevuld met gerichte interventies (zoals onderlinge uitwisselingen, rollenspellen en gezamenlijke klantsessies) om eilandjescultuur te doorbreken en teamgericht samenwerken te stimuleren.",
+      "dependencies": []
+    },
+    {
+      "id": "9156fc17-c6b3-4ef5-96d7-3422b78b4c54",
+      "title": "Verankeren van eigenaarschap en teamcultuur binnen commercieel team",
+      "votes": 0,
+      "domain": "cultuur",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager VO / Commercieel Manager",
+        "kostenraming": "€15.000 – €25.000 (inclusief facilitering feedbacksessies, externe procesbegeleider en inrichting fysieke werkomgeving); onzekerheidsmarge ±20%",
+        "randvoorwaarden": "Commitment van sectormanager en commercieel manager als rolmodel; beschikbaarheid van een fysieke werkruimte voor gezamenlijke sessies; meerjarenbegroting als inhoudelijk vertrekpunt voor gedeelde focus; voldoende stabiele bezetting binnen het commerciële team om continuïteit te borgen.",
+        "inspanningsleider": "Teamleider Commercie VO",
+        "verwachtResultaat": "Medewerkers handelen vanuit duidelijke, gedeelde rollen en verantwoordelijkheden en ervaren een aantoonbaar sterker 'wij-gevoel' binnen het commerciële team, meetbaar via werkgelukscores en wederzijdse commitment-indicatoren. De cultuurverandering is zichtbaar in concreet gedrag: mensen spreken elkaar aan, pakken samen op en voelen zich intrinsiek gemotiveerd om klantgericht te werken."
+      },
+      "quarter": "Q2 2026",
+      "sectorId": "VO",
+      "description": "Via gerichte interventies — zoals feedbacksessies, fysieke werkruimtes met zichtbare productroadmaps en gezamenlijke reflectiemomenten — wordt een cultuur van gedeeld eigenaarschap en intrinsieke samenwerking gestimuleerd binnen het commerciële team van de VO-sector. De nadruk ligt op gelijkwaardigheid, wederzijds vertrouwen en het durven aanspreken op rollen en verantwoordelijkheden, zodat samenwerken als vanzelfsprekend wordt ervaren in plaats van als controle.",
+      "dependencies": []
+    },
+    {
+      "id": "bf21ed23-7c0b-4c6a-9170-25cd75a0228b",
+      "title": "Implementeren integraal CRM-systeem als eenduidig klantdatafundament",
+      "votes": 0,
+      "domain": "data_systemen",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Sectormanager VO / Commercieel Manager",
+        "kostenraming": "Nader te bepalen op basis van systeemkeuze en implementatiescope; indicatief €50.000 – €150.000 (licenties, implementatie, datamigatie en inrichting), marge ±30%",
+        "randvoorwaarden": "Meerjarenbegroting is vastgesteld en beschikbaar als inhoudelijk startpunt; besluitvorming over systeemkeuze (CRM-platform) is afgerond; rollen en verantwoordelijkheden rondom databeheer zijn vooraf gedefinieerd; basisinfrastructuur (werkplekken, toegangsrechten) is op orde; mandaat vanuit directie voor verplicht gebruik van het systeem is geformaliseerd.",
+        "inspanningsleider": "Projectleider CRM-implementatie (nader te benoemen)",
+        "verwachtResultaat": "Na afloop beschikt Cito VO over één operationeel CRM-systeem waarin klantfunnel, overeenkomsten, doorlooptijden en commerciële data consistent en toegankelijk zijn vastgelegd voor alle betrokken medewerkers. Dit maakt eenduidige rapportage, tijdige signalering van kansen en betrouwbare commerciële prognoses mogelijk, waardoor de afwijking tussen voorspelde en gerealiseerde commerciële begroting aantoonbaar daalt."
+      },
+      "quarter": "Q3 2025 – Q2 2026",
+      "sectorId": "VO",
+      "description": "Cito VO implementeert een centraal CRM-systeem waarin klantdata, interacties, overeenkomsten, funnelstadia en commerciële voortgang eenduidig worden vastgelegd en ontsloten voor alle medewerkers met klantcontact. Hierdoor wordt handmatige dataverzameling vervangen door één betrouwbare bron die facturatie, mailings, doorlooptijden en commerciële prognoses ondersteunt.",
+      "dependencies": []
+    },
+    {
+      "id": "63f940f3-aa71-4764-b8f6-d51824979dab",
+      "title": "Standaardiseren van commerciële werkafspraken, rollen en KPI-structuur",
+      "votes": 0,
+      "domain": "processen",
+      "status": "gepland",
+      "dossier": {
+        "eigenaar": "Commercieel Manager VO",
+        "kostenraming": "€ 25.000 – € 45.000 (afhankelijk van benodigde procesbegeleiding en documentatiecapaciteit; marge circa 30%)",
+        "randvoorwaarden": "Meerjarenbegroting is vastgesteld en fungeert als startpunt; commitment van commercieel management op prioritering en beslisbevoegdheid over rolafbakening; beschikbaarheid van sleutelfiguren vanuit sales en sectorteams voor werksessies; basisinrichting van het CRM-systeem is stabiel genoeg om procesafspraken op te borgen.",
+        "inspanningsleider": "Sectormanager VO",
+        "verwachtResultaat": "Alle medewerkers met klantcontact werken aantoonbaar volgens gestandaardiseerde commerciële werkafspraken met heldere rolverantwoordelijkheden en gedeelde KPI-definities per funnelfase. De afwijking tussen voorspelde en gerealiseerde commerciële begroting neemt meetbaar af doordat procesmatige inconsistenties en handwerk zijn geëlimineerd."
+      },
+      "quarter": "Q2 2026",
+      "sectorId": "VO",
+      "description": "Herontwerp en formaliseer de commerciële werkprocessen binnen het VO-segment door eenduidige rollen, verantwoordelijkheden en KPI-definities vast te leggen in gedragen werkafspraken. Dit omvat het inrichten van een uniforme funnel-systematiek met heldere doorrekening per funnelfase, zodat alle betrokkenen met dezelfde metrics en proceslogica werken en handwerk structureel wordt gereduceerd.",
+      "dependencies": []
+    }
+  ],
+  "sectorPlans": [],
+  "pmcEntries": [],
+  "goalBenefitMaps": [
+    {
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "benefitId": "015ebffc-93b7-4ee5-a8ff-787c075fc948"
+    },
+    {
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "benefitId": "3cf24b31-c739-495b-9c85-0d2bc3689c8a"
+    },
+    {
+      "goalId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
+      "benefitId": "38979f9e-8095-43af-a9e3-0b3dc52b0dc5"
+    }
+  ],
+  "benefitCapabilityMaps": [
+    {
+      "benefitId": "015ebffc-93b7-4ee5-a8ff-787c075fc948",
+      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
+    },
+    {
+      "benefitId": "3cf24b31-c739-495b-9c85-0d2bc3689c8a",
+      "capabilityId": "cfdf5175-78ee-4836-a29f-7d53b2afe465"
+    },
+    {
+      "benefitId": "38979f9e-8095-43af-a9e3-0b3dc52b0dc5",
+      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
+    }
+  ],
+  "capabilityEffortMaps": [
+    {
+      "effortId": "3981af2f-4549-47d5-87c6-33d0c431aaee",
+      "capabilityId": "cfdf5175-78ee-4836-a29f-7d53b2afe465"
+    },
+    {
+      "effortId": "84fe41e4-c181-4c10-96d7-6f4fff6e3f3b",
+      "capabilityId": "cfdf5175-78ee-4836-a29f-7d53b2afe465"
+    },
+    {
+      "effortId": "88807a3a-98ef-4d57-b608-a1a931e2f56c",
+      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
+    },
+    {
+      "effortId": "b656f046-edbf-400c-ac29-3af35a9df1c5",
+      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
+    },
+    {
+      "effortId": "b1107cd6-9fb3-482e-855e-204fe1f896c4",
+      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
+    },
+    {
+      "effortId": "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
+      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
+    },
+    {
+      "effortId": "710d4a72-d58b-449a-bcc2-9fe1d8689fa9",
+      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
+    },
+    {
+      "effortId": "9156fc17-c6b3-4ef5-96d7-3422b78b4c54",
+      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
+    },
+    {
+      "effortId": "bf21ed23-7c0b-4c6a-9170-25cd75a0228b",
+      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
+    },
+    {
+      "effortId": "63f940f3-aa71-4764-b8f6-d51824979dab",
+      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
+    }
+  ],
+  "projectCapabilityMaps": [],
+  "completedGoals": [],
+  "currentStep": 4,
+  "crossAnalyseWizard": {
+    "currentStep": 1,
+    "completedSteps": [],
+    "wizardVersion": 2,
+    "stepResults": {}
+  }
+}

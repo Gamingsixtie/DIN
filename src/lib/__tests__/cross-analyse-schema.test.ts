@@ -663,23 +663,16 @@ describe("Stap4ResultSchema Phase 18 integratie (R-CROSS-03)", () => {
     }
   });
 
-  test("demo-data stap4Result.subEffortAnalysis parseert onder Stap4ResultSchema", async () => {
+  test("demo-data is een schone d8b97442-kopie (wizard leeg; user draait zelf Phase 18 analyse)", async () => {
     const { createDemoSession } = await import("@/lib/demo-data");
     const demo = createDemoSession();
-    const stap4 = demo.crossAnalyseWizard?.stepResults?.stap4;
-    expect(stap4).toBeTruthy();
-    const result = Stap4ResultSchema.safeParse(stap4);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.subEffortAnalysis.length).toBeGreaterThanOrEqual(4);
-      // Phase 18: elke entry moet rijke velden hebben (dossier, titel, vermogenImpact)
-      result.data.subEffortAnalysis.forEach((entry) => {
-        expect(entry.titel).toBeDefined();
-        expect(entry.beschrijving).toBeDefined();
-        expect(entry.beargumentatie).toBeDefined();
-        expect(entry.dossier).toBeDefined();
-        expect(entry.vermogenImpact).toBeDefined();
-      });
-    }
+    // Demo is verse kopie van d8b97442 — wizard moet leeg zijn zodat user zelf stap 4 kan draaien
+    expect(demo.crossAnalyseWizard?.currentStep).toBe(1);
+    expect(demo.crossAnalyseWizard?.completedSteps).toEqual([]);
+    expect(demo.crossAnalyseWizard?.stepResults).toEqual({});
+    // Input-data is wel aanwezig
+    expect(demo.goals.length).toBeGreaterThan(0);
+    expect(demo.capabilities.length).toBeGreaterThan(0);
+    expect(demo.efforts.length).toBeGreaterThan(0);
   });
 });
