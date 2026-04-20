@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 17-04-PLAN.md (Phase 17 complete)
-last_updated: "2026-04-20T18:52:13.218Z"
-last_activity: 2026-04-18
+status: phase-complete
+stopped_at: Completed 18-06-PLAN.md (Phase 18 complete — rijke cross-sectorale domein-uitwerking)
+last_updated: "2026-04-20T21:15:00.000Z"
+last_activity: 2026-04-20 Phase 18 execution complete (6 plans, verifier PASS)
 progress:
   total_phases: 18
-  completed_phases: 15
-  total_plans: 50
-  completed_plans: 43
-  percent: 86
+  completed_phases: 16
+  total_plans: 56
+  completed_plans: 49
+  percent: 88
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Methodische samenhang — elke stap bouwt voort op de vorige, AI-output getoetst aan het programmaboek, resultaat is een samenhangende keten van doelen, baten, vermogens en inspanningen.
-**Current focus:** Phase 17 — cross-analyse-organigram-helderheid-domein-bewuste-consolidatie
+**Current focus:** Phase 18 complete — rijke cross-sectorale domein-uitwerking in sub-effort analyse
 
 ## Current Position
 
-Phase: 17 (cross-analyse-organigram-helderheid-domein-bewuste-consolidatie) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-04-18
+Phase: 18 (Rijke cross-sectorale domein-uitwerking in sub-effort analyse) — COMPLETE
+Plans: 6 of 6 complete (18-01 through 18-06)
+Status: Phase 18 done; verifier verdict PASS (see 18-VERIFICATION.md)
+Last activity: 2026-04-20 — Phase 18 execution complete, all Phase 18 schema tests GREEN (30/30)
 
 Progress: [██████████] 100%
 
@@ -172,6 +172,9 @@ Recent decisions affecting current work:
 - [Phase 17]: [Phase 17]: Wave 1 — D-01/D-02/D-27 guards geïmplementeerd met throw-logic; mergeEfforts kreeg optionele context?: DrieluikContext param voor backward compat; mergeCapabilities kreeg óók title-guard; 27 nieuwe tests (16 unit + 11 integratie) dekken alle guard-paden
 - [Phase 17]: Wave 2 — AI-pipeline: stap 2/3/4 prompts herzien (D-25/D-30/D-31), CONSOLIDATIE_HERZIEN_PROMPT + SUB_EFFORT_ANALYSE_PROMPT toegevoegd, /api/din-suggest consolidatie-herzien tak met Zod-validatie + 503/422 status codes, /api/cross-analyse stap 4 draait Promise.all per VermogenGelijkenisGroep met empty-group skip-gate (D-13)
 - [Phase 17]: Wave 3 — UI drieluik-rendering per VermogenGelijkenisGroep; guard-error banner + context-textarea + Herzie advies; 3-stappen auto-apply pattern (React 19 Strict Mode safe); subEffortAnalysis cache-invalidatie scoped op affectedGroepIds (B-4 fix)
+- [Phase 18]: Wave 1 — SubEffortAdviesSchema uitgebreid met 5 optionele velden (titel, beschrijving, beargumentatie, vermogenImpact[], dossier{}); 2 nieuwe sub-schemas SubEffortVermogenImpactSchema + SubEffortDossierSchema (R3 decision: inline .optional().default("") per Phase 14 precedent, niet InspanningsDossierSchema.partial); 7 nieuwe tests (6 RED tot Plan 05, 1 GREEN backward-compat)
+- [Phase 18]: Wave 2 — SUB_EFFORT_ANALYSE_PROMPT herzien met FOCUS-DOEL VERANKERING + SECTOR-CONTEXT VERANKERING + Nederlandse rolnamen + €-symbool + Werken aan Programma's Hfst 11.3; route stap 4 ontvangt focusDoel (R5 name-fallback) + groepVermogensRich (profielHuidig/Gewenst), maxTokens 4096→8192; demo-data 4 entries verrijkt met vermogenImpact (PO→capIds[1], VO→capIds[2], Zakelijk→capIds[0])
+- [Phase 18]: Wave 3 — StapSectorVertaling.tsx rendert rijke kaarten met VermogenImpactSectie + DossierSectie (expand/collapse useState(false), aria-expanded, ▸/▾ glyphs, Cito-blauwe focus-ring); grid gewijzigd van lg:grid-cols-4 naar lg:grid-cols-2; backward-compat guards per veld; verifier PASS (alle 6 must-haves)
 
 ### Roadmap Evolution
 
