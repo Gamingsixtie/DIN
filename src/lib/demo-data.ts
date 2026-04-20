@@ -38,7 +38,7 @@ export function createDemoSession(): DINSession {
 
   return {
     id,
-    name: "Demo — Phase 17 Drieluik & Sub-effort (3 sectoren)",
+    name: "Demo — Phase 18 Rijke cross-sectorale inspanningen (3 sectoren)",
     createdAt: now,
     updatedAt: now,
     version: 1,
@@ -412,8 +412,8 @@ export function createDemoSession(): DINSession {
     projectCapabilityMaps: [],
     completedGoals: [],
     crossAnalyseWizard: {
-      currentStep: 6,
-      completedSteps: [1, 2, 3, 4, 5],
+      currentStep: 5,
+      completedSteps: [1, 2, 3, 4],
       wizardVersion: 2,
       stepResults: {
         stap1: {
