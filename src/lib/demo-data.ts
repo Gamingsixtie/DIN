@@ -753,6 +753,7 @@ export function createDemoSession(): DINSession {
             },
           ],
           subEffortAnalysis: [
+            // --- MENS: sectoroverstijgende outside-in training ---
             {
               groepId: "groep-klantpartnerschap",
               domein: "mens",
@@ -762,7 +763,45 @@ export function createDemoSession(): DINSession {
                 "Scope: gezamenlijk curriculum outside-in gespreksvaardigheden + sector-specifieke casuïstiek modules. Stappen: (1) Q2 2026 gezamenlijk programmaontwerp met L&D uit 3 sectoren, (2) Q3 train-de-trainer voor sectormanagers, (3) Q4 → Q2 2027 gefaseerde rollout per sector met kwartaal-intervisies, (4) Q3 2027 effectmeting via NPS + gesprekskwaliteit. Besparing ~30% t.o.v. drie losse trajecten; consistenter vocabulaire over sectoren.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
+              titel:
+                "Sectoroverstijgende outside-in gespreksvaardigheidstraining",
+              beschrijving:
+                "Een gezamenlijk trainingsprogramma waarin alle medewerkers met klantcontact (PO, VO en Zakelijk) outside-in gespreksvaardigheden leren via een gedeeld curriculum met sector-specifieke casuïstiek-modules. Uitvoering in 2 jaar met gefaseerde sector-rollouts en kwartaal-intervisies.",
+              beargumentatie:
+                "Deze bundel draagt rechtstreeks bij aan het focusdoel 'Integraal klantbeeld en outside-in werken als strategisch fundament' door alle klantcontact-medewerkers een identiek gespreks-fundament te geven. De hefboom: één curriculum → drie sector-vermogens → drie baten (klant-NPS per sector) → één focusdoel. Drie losse trainings-trajecten zouden ~€500K kosten; één gedeeld curriculum met sector-rollouts kost ~€350K (schaalvoordeel ~30%). Belangrijker nog: medewerkers spreken organisatiebreed dezelfde klanttaal.",
+              vermogenImpact: [
+                {
+                  sectorId: "PO",
+                  vermogenId: capIds[1],
+                  impact:
+                    "PO-leerkrachten en schoolbestuur-contactpersonen voeren outside-in gesprekken met scholen en besturen; zij herkennen klantsignalen in reguliere gesprekscycli en escaleren ze in de PO-lijn.",
+                },
+                {
+                  sectorId: "VO",
+                  vermogenId: capIds[2],
+                  impact:
+                    "VO-schoolleiders en teamleiders herkennen inhoudelijke kansen in klantvragen eerder; gesprekken met schoolbesturen leiden tot scherpere toetsingsbehoefte-beelden.",
+                },
+                {
+                  sectorId: "Zakelijk",
+                  vermogenId: capIds[0],
+                  impact:
+                    "Accountmanagers en professionals-adviseurs stellen klantvragen scherp in kwalificatie- en deal-fases; opdrachtgevers ervaren diepgaandere intake.",
+                },
+              ],
+              dossier: {
+                eigenaar: "Directie L&D Cito BV",
+                inspanningsleider:
+                  "Programmamanager L&D / opleidingsregisseur Klant in Beeld",
+                verwachtResultaat:
+                  "Alle medewerkers met klantcontact (~400 PO, ~250 VO, ~150 Zakelijk) hebben outside-in gespreksvaardigheid op niveau 4/5; NPS stijgt +5 binnen 12 maanden post-rollout.",
+                kostenraming:
+                  "€350K over 18 maanden (curriculumontwikkeling €80K + uitvoering 3 sector-rollouts €240K + evaluatie €30K). Schaalvoordeel ~30% t.o.v. drie losse trajecten (€500K).",
+                randvoorwaarden:
+                  "Commitment van alle drie sectormanagers; gedeelde cases-bank van klantscenario's; beschikbare externe trainers met multi-sector ervaring.",
+              },
             },
+            // --- CULTUUR: sectoroverstijgende outside-in leiderschapsontwikkeling ---
             {
               groepId: "groep-klantpartnerschap",
               domein: "cultuur",
@@ -772,7 +811,46 @@ export function createDemoSession(): DINSession {
                 "VOORSPELLING: VO heeft zelf geen leiderschaps-inspanning in dit domein ingediend, maar het vermogen 'Strategisch klantpartnerschap VO' vraagt dezelfde rolmodel-houding als PO/Zakelijk. Advies is om VO sectormanager + teamleiders te laten aansluiten bij het gedeelde programma — zonder deze aansluiting ontstaat een gat in de hefboom (VO-medewerkers krijgen wel gespreksvaardigheden-training en CRM, maar geen leiderschapsmodel dat het borgt). Scope: sectoroverstijgend leiderschapsprogramma met sector-tracks, inclusief VO. Stappen: (1) Q2 2026 kick-off met directie + 3 sectormanagers (ook VO), (2) Q3 kwartaal-intervisies met gemixte groepen, (3) Q4 koppel outside-in KPI's aan leidinggevenden-performance in alle 3 sectoren, (4) Q2 2027 evaluatie via 360° feedback + NPS-beweging.",
               voorgesteldeNaam:
                 "Sectoroverstijgende outside-in leiderschapsontwikkeling (incl. VO predictie)",
+              titel:
+                "Sectoroverstijgende outside-in leiderschapsontwikkeling (incl. VO predictie)",
+              beschrijving:
+                "Een organisatiebreed leiderschapsprogramma dat directie en alle drie sectormanagers (PO, VO en Zakelijk) als zichtbaar rolmodel voor outside-in werken positioneert. Bevat kick-off, kwartaal-intervisies en 360° feedback. VO wordt er actief in betrokken ondanks dat geen eigen VO-inspanning is ingediend — zonder VO-leiderschap ontstaat een gat in de hefboom.",
+              beargumentatie:
+                "Het focusdoel 'Integraal klantbeeld en outside-in werken als strategisch fundament' kan niet worden gehaald zonder leidinggevenden die outside-in gedrag zichtbaar voorleven. Deze bundel borgt dat alle drie sectoren hun leiderschap verankeren aan één gedeelde gedragsstandaard; VO aansluiten voorkomt dat het VO-deel van de keten cultureel losgesneden raakt van PO en Zakelijk. Hefboom: één programma → drie sectormanagers-KPI's → drie cultuur-baten → één focusdoel. Kosten €120K t.o.v. ~€220K voor drie aparte leiderschapsprogramma's (~45% besparing).",
+              vermogenImpact: [
+                {
+                  sectorId: "PO",
+                  vermogenId: capIds[1],
+                  impact:
+                    "PO-sectormanager en teamleiders tonen outside-in gedrag tijdens schoolbezoeken en bestuurlijk overleg; outside-in KPI's wegen mee in leidinggevenden-beoordeling.",
+                },
+                {
+                  sectorId: "VO",
+                  vermogenId: capIds[2],
+                  impact:
+                    "VO-sectormanager sluit voorspellend aan bij het gedeelde programma; zichtbaar rolmodelgedrag richting VO-schoolbesturen ontsluit de cultureel ontbrekende schakel in de keten.",
+                },
+                {
+                  sectorId: "Zakelijk",
+                  vermogenId: capIds[0],
+                  impact:
+                    "Zakelijk-sectormanager en commerciële leidinggevenden koppelen klant-NPS expliciet aan hun performance-cyclus en voeren zichtbaar klantgesprekken.",
+                },
+              ],
+              dossier: {
+                eigenaar:
+                  "Directievoorzitter Cito BV (organisatiebreed mandaat)",
+                inspanningsleider:
+                  "Programmadirecteur Klant in Beeld i.s.m. HR-directeur",
+                verwachtResultaat:
+                  "Zichtbaar rolmodelgedrag door alle drie sectormanagers (incl. VO predictie); outside-in KPI's gekoppeld aan leidinggevenden-performance in Q4 2026.",
+                kostenraming:
+                  "€120K over 15 maanden (kick-off + 4 kwartaal-intervisies + 360° evaluatie). Exclusief tijdsbeslag van leidinggevenden zelf (~5% FTE × 15 maanden).",
+                randvoorwaarden:
+                  "Directie-commitment op zichtbare klantbezoeken per sectormanager; bereidheid tot 360° feedback; beschikbaarheid externe intervisie-begeleider.",
+              },
             },
+            // --- DATA & SYSTEMEN: gedeeld CRM-klantbeeld ---
             {
               groepId: "groep-klantpartnerschap",
               domein: "data_systemen",
@@ -780,9 +858,45 @@ export function createDemoSession(): DINSession {
               items: [effortIds[2], effortIds[8], effortIds[9]], // Zakelijk + PO + VO CRM
               reden:
                 "CRM is organisatiebreed van toepassing (klantrelatiebeheer scholen/besturen/opdrachtgevers). Leerlingvolgsysteem is een ander systeem en valt buiten scope. Scope: één gedeeld CRM-platform, één klantdata-model, sector-specifieke dashboards. Stappen: (1) Q2 2026 gezamenlijke platformkeuze (Salesforce/HubSpot/Dynamics) met IT + sectormanagers + data-governance, (2) Q3 klantdata-model + rollen/rechten per sector, (3) Q4 basis-implementatie + sector-dashboards + gefaseerde data-migratie, (4) Q1 2027 koppelingen met productgebruik/signalen, (5) Q2 2027 meet adoptie + datakwaliteit. Voorkomt datasilo's, dubbele licentiecontracten en onverenigbare datamodellen.",
-              voorgesteldeNaam:
-                "Gedeeld CRM-klantbeeld (PO/VO/Zakelijk)",
+              voorgesteldeNaam: "Gedeeld CRM-klantbeeld (organisatiebreed)",
+              titel: "Gedeeld CRM-klantbeeld (organisatiebreed)",
+              beschrijving:
+                "Een gedeeld CRM-platform met organisatiebreed klantdata-model, sector-specifieke dashboards, rollen/rechten per sector en gefaseerde data-migratie over alle drie sectoren in 12-15 maanden. Leerlingvolgsysteem valt expliciet buiten scope.",
+              beargumentatie:
+                "Dit is de technische ruggengraat van het focusdoel 'Integraal klantbeeld en outside-in werken als strategisch fundament'. Zonder gedeeld CRM blijft klantbeeld verkaveld per sector en is integraal werken onmogelijk. Hefboom: één platform → drie sector-vermogens → drie data-baten → één focusdoel. Schaalvoordeel: €850K eenmalig voorkomt ~€400K dubbele platform-investeringen t.o.v. drie aparte CRM-contracten; daarnaast uniforme datamodellen waardoor cross-sectorale klantinzichten mogelijk worden.",
+              vermogenImpact: [
+                {
+                  sectorId: "PO",
+                  vermogenId: capIds[1],
+                  impact:
+                    "PO-accountmanagers en sectormanagement registreren schoolcontacten in gedeeld platform; dashboard toont besturings-overleg-cyclus en toetsafname-patronen per school.",
+                },
+                {
+                  sectorId: "VO",
+                  vermogenId: capIds[2],
+                  impact:
+                    "VO-accountmanagers registreren aanbestedingspipelines en schoolbestuur-gesprekken; dashboard koppelt examen-afname aan klantcontact-momenten.",
+                },
+                {
+                  sectorId: "Zakelijk",
+                  vermogenId: capIds[0],
+                  impact:
+                    "Zakelijk-accountmanagers volgen lead-to-deal flows in gedeeld CRM; dashboard integreert productgebruik-signalen met klantcontact-historie.",
+                },
+              ],
+              dossier: {
+                eigenaar: "CIO / IT-directeur Cito BV",
+                inspanningsleider:
+                  "Programmamanager CRM-klantbeeld (IT-architect met sector-ervaring)",
+                verwachtResultaat:
+                  "Eén gedeeld CRM-platform live in alle drie sectoren; 80% van medewerkers met klantcontact gebruikt het wekelijks; datakwaliteit-score >= 85% binnen 6 maanden na go-live.",
+                kostenraming:
+                  "€850K eenmalig + €180K/jaar licentie/onderhoud (Salesforce/HubSpot/Dynamics TBD in Q2 2026). Voorkomt ~€400K dubbele platform-investeringen t.o.v. drie aparte trajecten.",
+                randvoorwaarden:
+                  "Gezamenlijke platformkeuze vastgesteld Q2 2026; gedefinieerd klantdata-model inclusief rollen/rechten; migratieplan per sector; governance-afspraken over data-eigenaarschap.",
+              },
             },
+            // --- PROCESSEN: klantinformatie-proces standaardisatie ---
             {
               groepId: "groep-klantpartnerschap",
               domein: "processen",
@@ -792,6 +906,44 @@ export function createDemoSession(): DINSession {
                 "Alle drie sectoren leggen klantinformatie vast. De cycli verschillen (lead-to-deal Zakelijk, schoolbestuur-overleg PO, aanbestedingen VO), maar de proces-bouwstenen zijn identiek: signaal → registratie → opvolging → borging. Scope: gezamenlijke proces-methodologie + uniforme CRM-velden + sector-specifieke flow-modellen. Gezamenlijkheid op CRM-dataniveau is voorwaarde voor het slagen van de CRM-hefboom; drie aparte proces-ontwerpen leiden tot inconsistente rijvelden/statussen/workflows in het gedeelde systeem. Stappen: (1) Q3 2026 gezamenlijke proces-methodologie opstellen (signalen, registratie, opvolging, borging), (2) Q4 sector-specifieke flows bepalen op basis van gedeelde bouwstenen, (3) Q1 2027 implementatie in CRM met uniforme velden + sector-views, (4) Q2 2027 meet adoptie + datakwaliteit + proces-conformiteit.",
               voorgesteldeNaam:
                 "Sectoroverstijgende klantinformatie-proces standaardisatie",
+              titel:
+                "Sectoroverstijgende klantinformatie-proces standaardisatie",
+              beschrijving:
+                "Een gezamenlijke proces-methodologie voor klantinformatie-management (signaal → registratie → opvolging → borging) met uniforme CRM-velden en sector-specifieke flow-modellen. Uitvoering parallel met CRM-traject (data & systemen) in 10 maanden.",
+              beargumentatie:
+                "Zonder uniforme processen faalt de CRM-hefboom uit het focusdoel 'Integraal klantbeeld en outside-in werken': drie aparte procesontwerpen produceren inconsistente rijvelden en workflows in het gedeelde systeem, waardoor het klantbeeld opnieuw verkaveld raakt. Hefboom: één methodologie → drie sector-vermogens → drie proces-baten → één focusdoel. €180K voorkomt dubbel procesdesign-werk in drie sectoren (~€280K) en is kritische voorwaarde voor CRM-succes.",
+              vermogenImpact: [
+                {
+                  sectorId: "PO",
+                  vermogenId: capIds[1],
+                  impact:
+                    "PO-proces voor schoolbestuur-overleg-cyclus wordt vastgelegd in uniforme bouwstenen; signalen vanuit bestuurlijk overleg stromen door in gedeelde CRM-velden.",
+                },
+                {
+                  sectorId: "VO",
+                  vermogenId: capIds[2],
+                  impact:
+                    "VO-proces voor aanbestedingspipelines en schoolbestuur-accounts volgt dezelfde signaal → registratie → opvolging structuur; proces-conformiteit per flow meetbaar.",
+                },
+                {
+                  sectorId: "Zakelijk",
+                  vermogenId: capIds[0],
+                  impact:
+                    "Zakelijk-lead-to-deal flow gebruikt gedeelde proces-bouwstenen; uniforme velden maken cross-sectoraal klantinzicht in gedeeld CRM mogelijk.",
+                },
+              ],
+              dossier: {
+                eigenaar:
+                  "Directeur Sales & Marketing Cito BV (commerciële klantprocessen) i.s.m. sectormanagers PO/VO voor bestuurscyclus",
+                inspanningsleider:
+                  "Business Process Owner Klantinformatie (gedeelde rol) i.s.m. procesverantwoordelijken per sector",
+                verwachtResultaat:
+                  "Uniforme CRM-velden over drie sectoren; sector-specifieke flow-modellen vastgelegd; proces-conformiteit >= 90% binnen 4 maanden na go-live.",
+                kostenraming:
+                  "€180K over 10 maanden (proces-methodologie €60K + sector-flows €80K + CRM-implementatie-ondersteuning €40K). Voorwaarde voor slagen CRM-hefboom.",
+                randvoorwaarden:
+                  "Parallel met CRM-traject (data & systemen); procesverantwoordelijken beschikbaar 20% FTE voor ontwerp-fase Q3 2026; gezamenlijke governance-structuur vastgesteld.",
+              },
             },
           ],
           samenvatting:
