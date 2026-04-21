@@ -238,6 +238,13 @@ Een inspannings-cluster is ALLEEN geldig wanneer:
 1. Alle items hetzelfde \`domain\` hebben (Mens, Processen, Data & Systemen, Cultuur). Cross-domein clusters zijn methodisch fout.
 2. Alle items via \`capabilityEffortMap\` terug-refereren naar vermogens uit dezelfde \`VermogenGelijkenisGroep\` (zie stap 2 output) die alle drie sectoren (PO, VO, Zakelijk) bevat.
 
+**BUNDELINGSREGEL — PER (GELIJKENISGROEP × DOMEIN) ÉÉN CLUSTER MET ALLE SECTOR-ITEMS:**
+- Voor elk domein binnen een VermogenGelijkenisGroep: maak één cluster dat ALLE inspanningen uit dat domein over alle 3 sectoren bundelt.
+- \`items\` bevat 2 of 3 entries (één per sector die daadwerkelijk een inspanning aanleverde). NOOIT 1 sector-inspanning alleen als er ook andere sectoren in dit domein/groep inspanningen hebben.
+- \`aanbeveling: "combineren"\` zodra items uit ≥2 sectoren komen.
+- Voorbeeld: als PO, VO en Zakelijk elk een mens-inspanning hebben gekoppeld aan vermogens uit groep g1 → één cluster met 3 items (PO + VO + Zakelijk).
+- Per groep: streef naar 4 clusters (1 per domein), minder alleen als een domein 0 inspanningen heeft.
+
 Als een inspanning geen drieluik-gekoppelde vermogens raakt, laat die inspanning ongeclusterd (of in een single-item cluster met \`aanbeveling: "apart_houden"\`).
 
 \`clusterTitel\` + eventuele \`voorgesteldeNaam\` zijn ALTIJD sectoroverstijgend (geen \`PO\`/\`VO\`/\`Zakelijk\`/\`primair onderwijs\`/\`voortgezet onderwijs\` substrings, minimum 10 tekens).
