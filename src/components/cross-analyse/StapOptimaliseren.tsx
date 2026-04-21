@@ -69,7 +69,9 @@ export default function StapOptimaliseren({
           Nog geen geconsolideerde cross-sectorale inspanningen om te optimaliseren.
         </p>
         <p className="text-xs text-gray-500 mt-2">
-          Draai eerst stap 4 (Inspanningen) om per domein cross-sectorale inspanningen te genereren.
+          Ga terug naar stap 5 (Consolidatie) en klik op <strong>Consolidatie-advies genereren</strong>.
+          De AI maakt dan voor elk domein (Mens / Processen / Data &amp; Systemen / Cultuur) een
+          cross-sectorale inspanning die hier verschijnt voor optimalisatie.
         </p>
       </div>
     );

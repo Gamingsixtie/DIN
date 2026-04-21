@@ -426,37 +426,113 @@ Antwoord in het Nederlands.`,
         </div>
       )}
 
-      {/* Stap 5 actie-banner: de consolidatie IS de cross-sectorale inspanningen uit stap 4 */}
+      {/* Stap 5 consolidatie — volledige uitwerking van de 4 cross-sectorale inspanningen per domein */}
       {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (
-        <div className="bg-[#003366] text-white rounded-lg p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
-            Geconsolideerde cross-sectorale inspanningen
-          </p>
-          <h4 className="text-base font-semibold mb-2">
-            {stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length} inspanningen klaar voor optimalisatie
-          </h4>
-          <p className="text-sm text-blue-100 leading-relaxed">
-            De consolidatie is afgerond: in stap 4 zijn de sector-inspanningen per domein (Mens / Processen / Data &amp; Systemen / Cultuur)
-            samengevoegd tot cross-sectorale inspanningen. Klik <strong>Volgende</strong> hieronder om naar stap 6 te gaan en ze te verfijnen.
-          </p>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(["mens", "processen", "data_systemen", "cultuur"] as const).map((dom) => {
-              const count = stap4Result.subEffortAnalysis.filter(
-                (e) => e.domein === dom && e.actie === "combineren"
-              ).length;
-              const meta = DOMEIN_META[dom];
+        <>
+          <div className="bg-[#003366] text-white rounded-lg p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
+              Geconsolideerde cross-sectorale inspanningen
+            </p>
+            <h4 className="text-base font-semibold mb-2">
+              {stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length} inspanningen klaar voor optimalisatie (stap 6)
+            </h4>
+            <p className="text-sm text-blue-100 leading-relaxed">
+              Volledige uitwerking per domein hieronder. Klik <strong>Volgende</strong> om ze te verfijnen in stap 6.
+            </p>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(["mens", "processen", "data_systemen", "cultuur"] as const).map((dom) => {
+                const count = stap4Result.subEffortAnalysis.filter(
+                  (e) => e.domein === dom && e.actie === "combineren"
+                ).length;
+                const meta = DOMEIN_META[dom];
+                return (
+                  <div key={dom} className="bg-white/10 border border-white/20 rounded px-2 py-1.5 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">{meta.label}</p>
+                    <p className="text-lg font-semibold">{count}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Rijke uitwerking per domein — read-only view, gedetailleerd zoals stap 6 maar zonder edits */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {stap4Result.subEffortAnalysis.map((entry, i) => {
+              const meta = DOMEIN_META[entry.domein];
               return (
-                <div
-                  key={dom}
-                  className="bg-white/10 border border-white/20 rounded px-2 py-1.5 text-center"
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">{meta.label}</p>
-                  <p className="text-lg font-semibold">{count}</p>
+                <div key={i} className={`border ${meta.border} ${meta.bg} rounded-lg p-4`}>
+                  <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${meta.text}`}>
+                      {meta.label}
+                    </p>
+                    <span
+                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                        entry.actie === "combineren"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {entry.actie === "combineren" ? "Combineren" : "Apart"}
+                    </span>
+                  </div>
+                  {(entry.titel || entry.voorgesteldeNaam) && (
+                    <h4 className="text-sm font-semibold text-[#003366] mb-2 leading-snug">
+                      {entry.titel || entry.voorgesteldeNaam}
+                    </h4>
+                  )}
+                  {entry.beschrijving && (
+                    <p className="text-[13px] text-gray-700 leading-relaxed mb-3">{entry.beschrijving}</p>
+                  )}
+                  {entry.beargumentatie && (
+                    <section className="mb-3 pt-3 border-t border-gray-200">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Waarom cross-sectoraal opbouwen?
+                      </p>
+                      <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beargumentatie}</p>
+                    </section>
+                  )}
+                  {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
+                    <section className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Vermogen-impact per sector
+                      </p>
+                      <ul className="space-y-1.5">
+                        {entry.vermogenImpact.map((v, j) => (
+                          <li key={j} className="text-[12px] text-gray-700 leading-snug">
+                            <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {entry.dossier && (
+                    <section className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Inspanningendossier
+                      </p>
+                      <dl className="space-y-1.5">
+                        {([
+                          ["Opdrachtgever", entry.dossier.eigenaar],
+                          ["Inspanningsleider", entry.dossier.inspanningsleider],
+                          ["Huidige situatie → verwacht resultaat", entry.dossier.verwachtResultaat],
+                          ["Kostenraming", entry.dossier.kostenraming],
+                          ["Randvoorwaarden / hoe we meten", entry.dossier.randvoorwaarden],
+                        ] as const).map(([label, value]) =>
+                          value && value.length > 0 ? (
+                            <div key={label} className="grid grid-cols-[150px_1fr] gap-2 text-[12px]">
+                              <dt className="font-semibold text-gray-500">{label}</dt>
+                              <dd className="text-gray-700 leading-snug">{value}</dd>
+                            </div>
+                          ) : null
+                        )}
+                      </dl>
+                    </section>
+                  )}
                 </div>
               );
             })}
           </div>
-        </div>
+        </>
       )}
 
       {/* AI consolidatie-advies (verborgen onder details — referentie-only) */}
