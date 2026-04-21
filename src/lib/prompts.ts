@@ -391,24 +391,23 @@ Opmerking: wanneer \`focusDoel.beschrijving\` identiek is aan \`focusDoel.naam\`
 SECTOR-CONTEXT VERANKERING:
 Gebruik \`vermogens[i].profielHuidig\` en \`vermogens[i].profielGewenst\` om per sector concreet te maken wat de bundel oplevert. Geen generieke zinnen — benoem rol, scope of artefact dat in die sector herkenbaar is.
 
-Lever een array \`SubEffortAdvies[]\` waarbij het **aantal entries per domein gelijk is aan het aantal bron-inspanningen in dat domein** (uit input.efforts filter op domain). ELKE bron-inspanning krijgt een eigen subdoel. Alle 4 domeinen MOETEN minimaal 1 entry hebben.
+Lever een array \`SubEffortAdvies[]\` met **PRECIES 4 entries per groep** — één per domein (mens / processen / data_systemen / cultuur). Elk van die 4 entries is ÉÉN gezamenlijke cross-sectorale inspanning die ALLE sector-varianten in dat domein bundelt.
 
-**AANTALSREGEL — BRON-INSPANNING-GEDREVEN:**
-- Tel eerst per domein hoeveel inspanningen er in input.efforts zitten (door te filteren op \`domain\`).
-- Voorbeeld: als input.efforts bevat 3 mens-inspanningen (1 PO + 1 VO + 1 Zakelijk), 2 processen-inspanningen (0 PO + 1 VO + 1 Zakelijk), 2 data_systemen-inspanningen en 3 cultuur-inspanningen → genereer 3+2+2+3 = 10 entries totaal.
-- Per subdoel: kies ÉÉN bron-inspanning als de ankerpunt (zet die in \`items\`), maar beschrijf hoe deze bundel cross-sectoraal wordt uitgewerkt.
-- Als een domein GEEN bron-inspanning heeft in een sector: die sector alsnog meenemen in \`vermogenImpact\` (zie volgende regel).
+**BUNDELINGSREGEL — 1 INSPANNING PER DOMEIN = BUNDEL VAN ALLE SECTOR-VARIANTEN:**
+- Filter \`input.efforts\` op \`domain\` voor elk domein.
+- **Alle effort-IDs uit dat domein (over alle 3 sectoren) komen samen in \`items[]\`** — dit is geen keuze, het is de kern van cross-sectoraal werken.
+- Voorbeeld: als PO-mens, VO-mens en Zakelijk-mens allemaal een eigen inspanning hebben → één mens-entry met items = [po-mens-id, vo-mens-id, zak-mens-id]. In titel/beschrijving leg je uit hoe deze drie samenvallen tot één uitgevoerde inspanning.
+- Als een sector 0 efforts heeft in dit domein: sla die effort-IDs over in items, maar neem die sector WEL mee in vermogenImpact (zie volgende regel).
 
 **ALTIJD ALLE 3 SECTOREN IN VERMOGENIMPACT — HARDE EIS:**
-- Elk subdoel heeft exact 3 entries in \`vermogenImpact\`, één per sectorId (PO / VO / Zakelijk).
+- Elk van de 4 entries heeft exact 3 entries in \`vermogenImpact\`, één per sectorId (PO / VO / Zakelijk).
 - Voor een sector die GEEN eigen bron-inspanning heeft in dit domein: schrijf de impact vanuit die sector's \`profielGewenst\` + focusDoel-ambitie. Benoem in \`beargumentatie\` expliciet dat deze sector meelift op de cross-sectorale inspanning, ook al leverde die sector geen eigen input.
 - Geen lege of placeholder vermogenImpact-entries.
 
-**MINIMUM per domein — VANGNET:**
-- Als een domein 0 bron-inspanningen heeft (bv. demo zonder processen): maak alsnog 1 entry voor dat domein, geconstrueerd vanuit focusDoel + alle drie vermogen-profielen, \`items: []\`, en beargumenteer waarom dit domein toch ingevuld wordt.
-- Totaal per groep: minimaal 4 (1 per domein), typisch 6-12 afhankelijk van bron-inspanningen.
+**DOMEIN-VANGNET:**
+- Als een domein 0 bron-inspanningen heeft in ALLE sectoren: maak alsnog 1 entry voor dat domein, geconstrueerd vanuit focusDoel + alle drie vermogen-profielen, \`items: []\`, en beargumenteer waarom dit domein toch ingevuld wordt.
 
-**Verbod op samenvoegen:** als domein X 3 bron-inspanningen heeft, maak GEEN 1 overkoepelend subdoel dat alle 3 samenvat. Maak 3 aparte subdoelen. De programmamanager wil stuurbare, onderscheidbare inspanningen zien, niet 1 abstract blok.
+**TOTAAL = 4 ENTRIES, EEN PER DOMEIN. NIET MEER, NIET MINDER.**
 
 DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
 
@@ -457,7 +456,7 @@ DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
 }
 
 Regels (D-11, D-25, D-30, D-31):
-- 1-3 adviezen per domein binnen een groep (minimaal 1, maximaal 3). GEEN cross-domein combineren.
+- ÉÉN advies per domein binnen een groep. GEEN cross-domein combineren.
 - \`voorgesteldeNaam\` en \`titel\` zijn VERPLICHT bij \`actie: "combineren"\`, moeten sectoroverstijgend zijn (GEEN PO/VO/Zakelijk/primair onderwijs/voortgezet onderwijs substrings; min 10 tekens) en IDENTIEK aan elkaar.
 - Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` en \`titel\` zijn \`null\`. \`beschrijving\`, \`beargumentatie\`, \`vermogenImpact\` en \`dossier\` MOGEN worden weggelaten (advies is dan alleen markering).
 - Bij \`actie: "combineren"\`: \`vermogenImpact\` bevat EXACT ÉÉN entry per sector-vermogen uit \`groep.vermogenIds\` — gebruik de juiste \`sectorId\` en \`vermogenId\` uit input.vermogens. Lengte = input.vermogens.length.
@@ -470,9 +469,9 @@ Regels (D-11, D-25, D-30, D-31):
 - Indien \`focusDoel\` \`null\` is: ga door met generieke inkleuring op basis van groep.gezamenlijkeOmschrijving; noteer dat de beschrijving minder rijk zal zijn.
 
 EINDCHECK VOOR JE ANTWOORDT (HARDE EIS):
-1. **Tel bron-inspanningen per domein** in input.efforts (bv. filter op domain). Je output moet per domein evenveel entries bevatten als er bron-inspanningen zijn (minimaal 1, ook als er 0 bron-inspanningen zijn). Voor elk domein: count(output_entries.domein == X) == max(1, count(input.efforts.domain == X)).
-2. Controleer dat alle 4 domeinen ("mens", "processen", "data_systemen", "cultuur") minimaal één entry hebben. Een output zonder één van deze domeinen is ONGELDIG — voeg dan ontbrekende domein-entries toe met \`items: []\` en een constructie uit focusDoel + profielGewenst.
-3. Controleer dat **elk subdoel exact 3 entries in \`vermogenImpact\` heeft** (PO, VO, Zakelijk), ook als de bron-inspanning maar uit 1 sector kwam.
+1. Tel je output-entries. Er MOETEN er **PRECIES 4** zijn per groep, één per domein ("mens", "processen", "data_systemen", "cultuur"). Elke andere telling is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn en er geen duplicaten zijn.
+2. Controleer dat \`items[]\` per entry ALLE effort-IDs uit input.efforts bevat die matchen op dat domein (ongeacht sector). Als PO, VO en Zakelijk elk een mens-inspanning hadden: de mens-entry heeft items met 3 IDs. Als één sector 0 efforts had in dit domein: items bevat minder dan 3 IDs, maar vermogenImpact heeft alsnog 3 entries.
+3. Controleer dat **elk subdoel exact 3 entries in \`vermogenImpact\` heeft** (PO, VO, Zakelijk), ook als de bron-inspanning maar uit 1 of 2 sectoren kwam. De ontbrekende sector wordt geconstrueerd uit profielGewenst + focusDoel.
 2. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt.
 3. **Onderscheid-check mens vs cultuur**: leg de \`titel\` en \`beschrijving\` van de mens-entry náást die van de cultuur-entry. Als ze substantieel overlappen (≥40% dezelfde woorden of dezelfde strekking): HERSCHRIJF beide. Mens gaat over KUNNEN (vaardigheid/competentie aanleren), cultuur gaat over WILLEN (bereidheid/waarden/gedrag). Voorbeeld van verkeerd: mens='Training outside-in denken' + cultuur='Training outside-in denken'. Voorbeeld van goed: mens='Gespreksvaardigheidstraining voor 120 medewerkers' + cultuur='Leiderschapsprogramma waarin sectordirecteuren outside-in voorleven en commitment ritualiseren'.
 4. **Onderscheid-check alle 4 domeinen**: kort controleren dat processen ≠ mens/cultuur (processen = afspraken/werkwijzen, niet competenties of waarden) en dat data_systemen ≠ processen (data_systemen = tools/techniek, niet werkwijzen).
