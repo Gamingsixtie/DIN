@@ -5,42 +5,46 @@ import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
 
 export const maxDuration = 300;
 
-// Phase 18 (stap 6): verfijnt één user-bewerkte SubEffortAdvies entry met AI.
-// Behoudt user-intent (items, groepId, domein, actie) en verbetert titel/
-// beschrijving/beargumentatie/vermogenImpact/dossier waar nodig.
+// Phase 18 (stap 6): gerichte verfijning van een user-bewerkte SubEffortAdvies.
+// User kan aangeven WELKE velden geoptimaliseerd moeten worden + specifieke wensen.
+
 const OPTIMALISEER_PROMPT = `Je bent een expert in programmamanagement (DIN-methodiek, Werken aan Programma's — Prevaas & Van Loon, Hfst 11.3 Inspanningendossier).
 
-Je krijgt één cross-sectorale inspanning die een gebruiker aan het verfijnen is, samen met context (focusDoel, groep, sector-vermogens). Taak: herschrijf de velden zo dat ze methodisch scherper en consistenter zijn, terwijl je de intentie van de gebruiker respecteert.
+Je krijgt één cross-sectorale inspanning die een gebruiker aan het verfijnen is, een lijst velden om te optimaliseren, en eventuele specifieke instructies van de gebruiker.
 
 Input JSON:
 {
   "entry": { huidige SubEffortAdvies met user-edits },
+  "optimizeFields": ["titel" | "beschrijving" | "beargumentatie" | "vermogenImpact" | "dossier"],
+  "userInstructie": "<optionele tekst van user: scherpingsrichting, focus, toon>",
   "focusDoel": { id, naam, beschrijving },
   "groep": { id, vermogenIds, gezamenlijkeOmschrijving, reden },
   "vermogens": [{ id, sectorId, title, description, profielHuidig, profielGewenst }]
 }
 
-Regels voor optimalisatie:
-- Behoud \`groepId\`, \`domein\`, \`actie\`, \`items\` EXACT zoals in input (user heeft die bewust gekozen).
-- Verfijn \`titel\` naar sectoroverstijgende actielabel met werkwoord, max 10 woorden, GEEN PO/VO/Zakelijk substrings. Houdt dicht bij user-draft maar maakt helder en scherp.
-- Verfijn \`beschrijving\` naar 2-3 scherpe zinnen: wat houdt de bundel in, concreet over welke sectoren, welke scope. Gebruik focusDoel.beschrijving voor inkleuring.
-- Verfijn \`beargumentatie\` naar HEFBOOM-redenering: één inspanning → drie vermogens → drie baten → focus-doel. Benoem schaalvoordeel expliciet. Bij actie "combineren": benoem alle drie sectoren. Bij een domein waar sector-input ontbrak: leg uit waarom die sector toch meegaat via profielGewenst.
-- \`voorgesteldeNaam\` moet IDENTIEK zijn aan \`titel\` bij actie "combineren"; bij "apart_houden" is \`null\`.
-- Verfijn \`vermogenImpact\` — EXACT één entry per sector uit groep.vermogenIds. SectorId en vermogenId komen uit input.vermogens. Impact in sector-specifieke taal (leerkrachten/schoolleiders/accountmanagers), op basis van profielGewenst.
-- Verfijn \`dossier\` (5 velden): Nederlandse rolnamen (Directie, Programmamanager, Business Process Owner, CIO, IT-architect, Opleidingsregisseur); €-symbool in kostenraming (niet "EUR"); randvoorwaarden concreet genoeg om gate te zijn voor start.
-- Leeg user-veld? Vul het zinvol in op basis van context. Ingevuld door user? Verfijn maar behoud kern.
-- \`reden\` veld (Phase 17 legacy): behoud user-input, herformulier alleen bij onleesbaarheid.
+Regels voor gerichte optimalisatie:
+- Behoud \`groepId\`, \`domein\`, \`actie\`, \`items\` EXACT zoals in input.
+- **Behoud ALLE velden die NIET in \`optimizeFields\` staan exact zoals ze nu zijn — tekst voor tekst.** Raak ze niet aan, ook niet stilistisch.
+- Verbeter ALLEEN de velden die in \`optimizeFields\` staan, rekening houdend met \`userInstructie\` als die gegeven is.
+- Bij "titel": sectoroverstijgende actielabel, max 10 woorden, GEEN PO/VO/Zakelijk substrings. Houd dicht bij user-draft. voorgesteldeNaam wordt automatisch IDENTIEK.
+- Bij "beschrijving": 2-3 scherpe zinnen over wat de bundel inhoudt, welke scope over welke sectoren. Focus-doel voor inkleuring.
+- Bij "beargumentatie": HEFBOOM-redenering (één inspanning → drie vermogens → drie baten → focus-doel). Schaalvoordeel expliciet. Bij sector zonder directe input: leg uit waarom die toch meegaat.
+- Bij "vermogenImpact": EXACT één entry per sector uit groep.vermogenIds. Sector-specifieke taal (leerkrachten/schoolleiders/accountmanagers) obv profielGewenst.
+- Bij "dossier": 5 velden (eigenaar / inspanningsleider / verwachtResultaat / kostenraming / randvoorwaarden). Nederlandse rolnamen, €-symbool in kostenraming, meetbare resultaten.
+- \`userInstructie\` is LEIDEND binnen de toegestane velden — als user zegt "maak de kostenraming concreter", werk dat uit binnen dossier.
 
-EINDCHECK: je output MOET precies één SubEffortAdvies-object zijn (geen array). Alle Phase 17 + Phase 18 velden aanwezig. Valid JSON, geen prose. Antwoord in het Nederlands.`;
+EINDCHECK: je output MOET precies één SubEffortAdvies-object zijn (geen array). Niet-gevraagde velden EXACT behouden. Valid JSON, geen prose. Antwoord in het Nederlands.`;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { entry, focusDoel, groep, vermogens } = body as {
+    const { entry, focusDoel, groep, vermogens, optimizeFields, userInstructie } = body as {
       entry: unknown;
       focusDoel: unknown;
       groep: unknown;
       vermogens: unknown;
+      optimizeFields?: string[];
+      userInstructie?: string;
     };
 
     if (!entry || !groep) {
@@ -58,8 +62,20 @@ export async function POST(request: NextRequest) {
       kibContext
     );
 
+    // Default: alle velden als niet gespecificeerd
+    const fields = optimizeFields && optimizeFields.length > 0
+      ? optimizeFields
+      : ["titel", "beschrijving", "beargumentatie", "vermogenImpact", "dossier"];
+
     const userMessage = JSON.stringify(
-      { entry, focusDoel: focusDoel ?? null, groep, vermogens: vermogens ?? [] },
+      {
+        entry,
+        optimizeFields: fields,
+        userInstructie: userInstructie ?? "",
+        focusDoel: focusDoel ?? null,
+        groep,
+        vermogens: vermogens ?? [],
+      },
       null,
       2
     );

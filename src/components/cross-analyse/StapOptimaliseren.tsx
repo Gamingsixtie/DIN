@@ -35,6 +35,43 @@ export default function StapOptimaliseren({
   const [optimizingIndex, setOptimizingIndex] = useState<number | null>(null);
   const [optimizeError, setOptimizeError] = useState<string | null>(null);
 
+  // Per-kaart gerichte optimalisatie state
+  type OptField = "titel" | "beschrijving" | "beargumentatie" | "vermogenImpact" | "dossier";
+  const [optimizeFieldsByIdx, setOptimizeFieldsByIdx] = useState<Record<number, Set<OptField>>>({});
+  const [userInstructieByIdx, setUserInstructieByIdx] = useState<Record<number, string>>({});
+
+  // Business-case (per kaart) state
+  const [bcModeByIdx, setBcModeByIdx] = useState<Record<number, "idle" | "loading-questions" | "answering" | "loading-estimate">>({});
+  const [bcQuestionsByIdx, setBcQuestionsByIdx] = useState<Record<number, Array<{
+    key: string;
+    vraag: string;
+    toelichting?: string;
+    inputType: "text" | "number" | "select";
+    opties?: string[];
+    eenheid?: string;
+  }>>>({});
+  const [bcAnswersByIdx, setBcAnswersByIdx] = useState<Record<number, Record<string, string>>>({});
+  const [bcResultByIdx, setBcResultByIdx] = useState<Record<number, {
+    kostenraming: string;
+    aannames: string[];
+    risicos?: string[];
+  }>>({});
+
+  function getOptFields(idx: number): Set<OptField> {
+    return (
+      optimizeFieldsByIdx[idx] ??
+      new Set<OptField>(["titel", "beschrijving", "beargumentatie", "vermogenImpact", "dossier"])
+    );
+  }
+  function toggleOptField(idx: number, field: OptField) {
+    setOptimizeFieldsByIdx((prev) => {
+      const set = new Set(prev[idx] ?? getOptFields(idx));
+      if (set.has(field)) set.delete(field);
+      else set.add(field);
+      return { ...prev, [idx]: set };
+    });
+  }
+
   // Begrotingsadvies state
   const [budgetEuro, setBudgetEuro] = useState<number>(250000);
   const [cyclusMaanden, setCyclusMaanden] = useState<number>(9);
@@ -60,6 +97,15 @@ export default function StapOptimaliseren({
     if (stap4Result?.subEffortAnalysis) {
       setEntries(JSON.parse(JSON.stringify(stap4Result.subEffortAnalysis)));
     }
+    // Restore begrotingsadvies uit session indien eerder opgeslagen
+    const persisted = (stap4Result as unknown as { begrotingAdvies?: typeof begrotingAdvies })
+      ?.begrotingAdvies;
+    if (persisted) {
+      setBegrotingAdvies(persisted);
+      setBudgetEuro(persisted.totaalBudgetEuro);
+      setCyclusMaanden(persisted.cyclusMaanden);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stap4Result]);
 
   if (!stap4Result?.subEffortAnalysis || stap4Result.subEffortAnalysis.length === 0) {
@@ -120,16 +166,20 @@ export default function StapOptimaliseren({
         profielGewenst: c.profiel?.gewensteSituatie ?? "",
       }));
 
+    const fields = Array.from(getOptFields(idx));
+    const instructie = userInstructieByIdx[idx] ?? "";
+
     try {
       const res = await fetch("/api/optimaliseer-subeffort", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           entry,
+          optimizeFields: fields,
+          userInstructie: instructie,
           focusDoel,
           groep,
           vermogens: groepCaps,
-          // KiB-context extract
           scope: session.scope,
           vision: session.vision,
         }),
@@ -140,13 +190,119 @@ export default function StapOptimaliseren({
         setOptimizingIndex(null);
         return;
       }
-      // Vervang de entry met de verfijnde versie
-      setEntries((prev) => prev.map((e, i) => (i === idx ? data.data : e)));
+      // Client-side guard: merge alleen geselecteerde velden terug (veiligheidsnet
+      // voor als AI toch iets anders zou overschrijven)
+      const ai = data.data as SubEffortAdvies;
+      setEntries((prev) =>
+        prev.map((e, i) => {
+          if (i !== idx) return e;
+          const merged: SubEffortAdvies = { ...e };
+          if (fields.includes("titel")) {
+            merged.titel = ai.titel;
+            merged.voorgesteldeNaam = ai.voorgesteldeNaam ?? ai.titel;
+          }
+          if (fields.includes("beschrijving")) merged.beschrijving = ai.beschrijving;
+          if (fields.includes("beargumentatie")) merged.beargumentatie = ai.beargumentatie;
+          if (fields.includes("vermogenImpact")) merged.vermogenImpact = ai.vermogenImpact;
+          if (fields.includes("dossier")) merged.dossier = ai.dossier;
+          return merged;
+        })
+      );
       setOptimizingIndex(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Netwerkfout";
       setOptimizeError(msg);
       setOptimizingIndex(null);
+    }
+  }
+
+  async function runBusinessCaseQuestions(idx: number) {
+    setBcModeByIdx((p) => ({ ...p, [idx]: "loading-questions" }));
+    const entry = entries[idx];
+    const focusGoal = [...(session.goals ?? [])]
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] ?? null;
+    const focusDoel = focusGoal
+      ? {
+          naam: focusGoal.name ?? "",
+          beschrijving:
+            focusGoal.description && focusGoal.description.trim().length > 0
+              ? focusGoal.description
+              : focusGoal.name ?? "",
+        }
+      : null;
+
+    try {
+      const res = await fetch("/api/business-case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "questions",
+          entry,
+          focusDoel,
+          scope: session.scope,
+          vision: session.vision,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.data?.questions) {
+        setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
+        setOptimizeError(data.error ?? "Vragen-genereren mislukt");
+        return;
+      }
+      setBcQuestionsByIdx((p) => ({ ...p, [idx]: data.data.questions }));
+      setBcAnswersByIdx((p) => ({ ...p, [idx]: p[idx] ?? {} }));
+      setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
+    } catch (err) {
+      setOptimizeError(err instanceof Error ? err.message : "Netwerkfout");
+      setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
+    }
+  }
+
+  async function runBusinessCaseEstimate(idx: number) {
+    setBcModeByIdx((p) => ({ ...p, [idx]: "loading-estimate" }));
+    const entry = entries[idx];
+    const questions = bcQuestionsByIdx[idx] ?? [];
+    const answers = bcAnswersByIdx[idx] ?? {};
+    try {
+      const res = await fetch("/api/business-case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "estimate",
+          entry,
+          questions,
+          answers,
+          scope: session.scope,
+          vision: session.vision,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.data?.kostenraming) {
+        setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
+        setOptimizeError(data.error ?? "Raming-genereren mislukt");
+        return;
+      }
+      setBcResultByIdx((p) => ({ ...p, [idx]: data.data }));
+      setEntries((prev) =>
+        prev.map((e, i) =>
+          i === idx
+            ? {
+                ...e,
+                dossier: {
+                  eigenaar: e.dossier?.eigenaar ?? "",
+                  inspanningsleider: e.dossier?.inspanningsleider ?? "",
+                  verwachtResultaat: e.dossier?.verwachtResultaat ?? "",
+                  randvoorwaarden: e.dossier?.randvoorwaarden ?? "",
+                  kostenraming: data.data.kostenraming,
+                },
+              }
+            : e
+        )
+      );
+      setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
+    } catch (err) {
+      setOptimizeError(err instanceof Error ? err.message : "Netwerkfout");
+      setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
     }
   }
 
@@ -203,6 +359,23 @@ export default function StapOptimaliseren({
         return;
       }
       setBegrotingAdvies(data.data);
+      // Persisteer in session onder stap4Result (zodat navigatie + reload behouden blijft)
+      updateSession((prev) => {
+        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
+        return {
+          ...prev,
+          crossAnalyseWizard: {
+            ...prev.crossAnalyseWizard,
+            stepResults: {
+              ...prev.crossAnalyseWizard.stepResults,
+              stap4: {
+                ...prev.crossAnalyseWizard.stepResults.stap4,
+                begrotingAdvies: data.data,
+              } as typeof prev.crossAnalyseWizard.stepResults.stap4,
+            },
+          },
+        };
+      });
       setBegrotingLoading(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Netwerkfout";
@@ -368,25 +541,162 @@ export default function StapOptimaliseren({
                     </div>
                   </details>
 
-                  <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
-                    {isSaved && (
-                      <span className="text-[11px] text-green-700 font-medium">Opgeslagen ✓</span>
+                  {/* Gerichte optimalisatie config */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 bg-white rounded p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                      Optimaliseer met AI — gericht
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-[11px]">
+                      {([
+                        ["titel", "Titel"],
+                        ["beschrijving", "Beschrijving"],
+                        ["beargumentatie", "Beargumentatie"],
+                        ["vermogenImpact", "Vermogen-impact"],
+                        ["dossier", "Dossier"],
+                      ] as const).map(([key, label]) => {
+                        const active = getOptFields(idx).has(key);
+                        return (
+                          <label key={key} className="inline-flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={active}
+                              onChange={() => toggleOptField(idx, key)}
+                              className="accent-[#003366]"
+                            />
+                            <span className="text-gray-700">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <textarea
+                      value={userInstructieByIdx[idx] ?? ""}
+                      onChange={(e) =>
+                        setUserInstructieByIdx((p) => ({ ...p, [idx]: e.target.value }))
+                      }
+                      rows={2}
+                      placeholder="Specifieke wensen? Bijv: 'Maak de beargumentatie scherper op hefboom richting VO', of 'Concretere kostenraming met fasering'"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                    />
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <button
+                        onClick={() => runBusinessCaseQuestions(idx)}
+                        disabled={bcModeByIdx[idx] === "loading-questions" || bcModeByIdx[idx] === "loading-estimate"}
+                        className="text-[11px] px-2.5 py-1 rounded border border-amber-400 text-amber-800 bg-amber-50 hover:bg-amber-100 disabled:opacity-50"
+                        title="AI stelt vragen voor een onderbouwde kostenraming"
+                      >
+                        {bcModeByIdx[idx] === "loading-questions" ? "Vragen laden..." : "Business-case vragen (kostenraming)"}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        {isSaved && (
+                          <span className="text-[11px] text-green-700 font-medium">Opgeslagen ✓</span>
+                        )}
+                        <button
+                          onClick={() => optimizeEntry(idx)}
+                          disabled={optimizingIndex !== null || getOptFields(idx).size === 0}
+                          className="text-xs px-3 py-1.5 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8] disabled:opacity-50"
+                        >
+                          {optimizingIndex === idx ? "AI optimaliseert..." : "Optimaliseer geselecteerd"}
+                        </button>
+                        <button
+                          onClick={() => saveEntry(idx)}
+                          disabled={isSaving}
+                          className="text-xs px-3 py-1.5 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
+                        >
+                          {isSaving ? "Opslaan..." : "Opslaan"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Business-case Q&A sectie */}
+                    {bcModeByIdx[idx] === "answering" && bcQuestionsByIdx[idx] && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded p-3 space-y-2">
+                        <p className="text-[11px] font-semibold text-amber-900 uppercase tracking-wider">
+                          Business-case vragen — beantwoord voor eerste raming
+                        </p>
+                        {bcQuestionsByIdx[idx].map((q) => (
+                          <div key={q.key}>
+                            <label className="text-[11px] font-semibold text-gray-700">
+                              {q.vraag}
+                              {q.eenheid && <span className="text-gray-500 ml-1">({q.eenheid})</span>}
+                            </label>
+                            {q.toelichting && (
+                              <p className="text-[10px] text-gray-500 mb-1">{q.toelichting}</p>
+                            )}
+                            {q.inputType === "select" && q.opties ? (
+                              <select
+                                value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
+                                onChange={(e) =>
+                                  setBcAnswersByIdx((p) => ({
+                                    ...p,
+                                    [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              >
+                                <option value="">—</option>
+                                {q.opties.map((o) => (
+                                  <option key={o} value={o}>{o}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={q.inputType === "number" ? "number" : "text"}
+                                value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
+                                onChange={(e) =>
+                                  setBcAnswersByIdx((p) => ({
+                                    ...p,
+                                    [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              />
+                            )}
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            onClick={() => setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }))}
+                            className="text-[11px] px-2.5 py-1 rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50"
+                          >
+                            Annuleer
+                          </button>
+                          <button
+                            onClick={() => runBusinessCaseEstimate(idx)}
+                            disabled={bcModeByIdx[idx] !== "answering"}
+                            className="text-[11px] px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                          >
+                            Genereer raming uit antwoorden
+                          </button>
+                        </div>
+                      </div>
                     )}
-                    <button
-                      onClick={() => optimizeEntry(idx)}
-                      disabled={optimizingIndex !== null}
-                      className="text-xs px-3 py-1.5 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8] disabled:opacity-50"
-                      title="AI verfijnt titel, beschrijving, beargumentatie, vermogenImpact en dossier op basis van focus-doel en vermogens"
-                    >
-                      {optimizingIndex === idx ? "AI optimaliseert..." : "Optimaliseer met AI"}
-                    </button>
-                    <button
-                      onClick={() => saveEntry(idx)}
-                      disabled={isSaving}
-                      className="text-xs px-3 py-1.5 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
-                    >
-                      {isSaving ? "Opslaan..." : "Opslaan"}
-                    </button>
+                    {bcModeByIdx[idx] === "loading-estimate" && (
+                      <p className="text-[11px] text-amber-700 italic">AI berekent raming uit antwoorden...</p>
+                    )}
+                    {bcResultByIdx[idx] && (
+                      <div className="mt-3 bg-green-50 border border-green-200 rounded p-3 space-y-1">
+                        <p className="text-[11px] font-semibold text-green-900 uppercase tracking-wider">
+                          Business-case raming — toegepast op kostenraming
+                        </p>
+                        <p className="text-[12px] text-gray-800">{bcResultByIdx[idx].kostenraming}</p>
+                        {bcResultByIdx[idx].aannames.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-gray-600 mt-1">Aannames:</p>
+                            <ul className="list-disc list-inside text-[11px] text-gray-700">
+                              {bcResultByIdx[idx].aannames.map((a, i) => <li key={i}>{a}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                        {bcResultByIdx[idx].risicos && bcResultByIdx[idx].risicos!.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-gray-600 mt-1">Risico&apos;s:</p>
+                            <ul className="list-disc list-inside text-[11px] text-gray-700">
+                              {bcResultByIdx[idx].risicos!.map((r, i) => <li key={i}>{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
