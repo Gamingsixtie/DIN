@@ -29,6 +29,6 @@ export function createDemoSession(): DINSession {
     capabilityEffortMaps: snapshot.capabilityEffortMaps,
     projectCapabilityMaps: snapshot.projectCapabilityMaps,
     completedGoals: snapshot.completedGoals,
-    crossAnalyseWizard: snapshot.crossAnalyseWizard,
+    crossAnalyseWizard: (snapshot as { crossAnalyseWizard?: unknown }).crossAnalyseWizard,
   } as DINSession;
 }

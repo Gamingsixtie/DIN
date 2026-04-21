@@ -64,17 +64,25 @@ async function main() {
 async function writeSnapshot(session: Record<string, unknown>) {
 
 // Strip resultaten ná stap 2 zodat de demo-user deze zelf genereert. Stap 1 en 2
-// zijn duur (vermogen-gelijkenis detectie) en blijven behouden.
+// zijn duur (vermogen-gelijkenis detectie) en blijven behouden als ze er zijn.
 const wizard = session.crossAnalyseWizard as
   | { currentStep?: number; completedSteps?: number[]; wizardVersion?: number; stepResults?: Record<string, unknown> }
   | undefined;
-const strippedStepResults = wizard?.stepResults
-  ? { stap1: wizard.stepResults.stap1, stap2: wizard.stepResults.stap2 }
-  : undefined;
+
+const hasStap1 = Boolean(wizard?.stepResults?.stap1);
+const hasStap2 = Boolean(wizard?.stepResults?.stap2);
+
+// session.currentStep is een number 1-6 (app-stap volgens APP_STEPS):
+// 1=import, 2=sectorwerk, 3=din-mapping, 4=cross-analyse, 5=prioritering, 6=export.
+// De AppStep-string wordt in context apart gehanteerd.
+let appCurrentStep = typeof session.currentStep === "number" && session.currentStep >= 1 && session.currentStep <= 6
+  ? session.currentStep
+  : 4; // fallback cross-analyse
+if (!hasStap2) appCurrentStep = 3; // Geen stap2 = nog niet klaar voor cross-analyse → din-mapping
 
 const snapshot = {
   name: session.name,
-  currentStep: session.currentStep,
+  currentStep: appCurrentStep,
   vision: session.vision ?? null,
   scope: session.scope ?? null,
   goals: session.goals ?? [],
@@ -88,14 +96,25 @@ const snapshot = {
   capabilityEffortMaps: session.capabilityEffortMaps ?? [],
   projectCapabilityMaps: session.projectCapabilityMaps ?? [],
   completedGoals: session.completedGoals ?? [],
-  crossAnalyseWizard: strippedStepResults
-    ? {
-        currentStep: 3, // start demo-user op stap 3 (net ná gedeelde vermogens)
-        completedSteps: [1, 2],
-        wizardVersion: 2,
-        stepResults: strippedStepResults,
-      }
-    : undefined,
+  crossAnalyseWizard:
+    hasStap1 && hasStap2
+      ? {
+          currentStep: 3, // wizard-display-stap 3 = net ná gedeelde vermogens
+          completedSteps: [1, 2],
+          wizardVersion: 2,
+          stepResults: {
+            stap1: wizard!.stepResults!.stap1,
+            stap2: wizard!.stepResults!.stap2,
+          },
+        }
+      : hasStap1
+        ? {
+            currentStep: 2,
+            completedSteps: [1],
+            wizardVersion: 2,
+            stepResults: { stap1: wizard!.stepResults!.stap1 },
+          }
+        : undefined,
 };
 
 const outPath = join(process.cwd(), "src", "lib", "demo-snapshot.json");
@@ -107,8 +126,9 @@ const counts = {
   benefits: (session.benefits as unknown[] | undefined)?.length ?? 0,
   capabilities: (session.capabilities as unknown[] | undefined)?.length ?? 0,
   efforts: (session.efforts as unknown[] | undefined)?.length ?? 0,
-  hasStap1: Boolean(strippedStepResults?.stap1),
-  hasStap2: Boolean(strippedStepResults?.stap2),
+  hasStap1,
+  hasStap2,
+  currentStep: appCurrentStep,
 };
 console.log(`Demo snapshot opgeslagen. Tellers:`, counts);
 }

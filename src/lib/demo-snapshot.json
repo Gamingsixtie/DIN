@@ -1,5 +1,5 @@
 {
-  "name": "Demo — Klant in Beeld (Phase 18, zonder analyse)",
+  "name": "Klant in Beeld",
   "currentStep": 3,
   "vision": {
     "id": "7ae7baab-cf70-494d-bb4e-2b5d07bade26",
@@ -112,7 +112,7 @@
     },
     {
       "id": "cfdf5175-78ee-4836-a29f-7d53b2afe465",
-      "title": "Strategisch klantpartnerschap PO",
+      "title": "Strategisch klantpartnerschap ",
       "profiel": {
         "eigenaar": "Sectormanager PO",
         "huidieSituatie": "Medewerkers zijn vooral zendend in klantcontact en hebben onvoldoende grip op klant- en productdata om geloofwaardige, op maat gesneden gesprekken te voeren; bewustwording over het aanbod van het leerlingvolgsysteem is beperkt aanwezig.",
@@ -160,13 +160,11 @@
       "quarter": "Nader te bepalen",
       "sectorId": "PO",
       "description": "Leidinggevenden binnen de PO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij creëren bewust ruimte — weg uit de vergadercultuur en de waan van de dag — om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies (sessies, intervisie, gezamenlijke klantbezoeken) wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "c15f5653-63e7-4b5b-9c8f-c0ec74925316"
+      "dependencies": []
     },
     {
       "id": "84fe41e4-c181-4c10-96d7-6f4fff6e3f3b",
-      "title": "Trainen medewerkers in klantgerichte gespreksvaardigheden PO",
+      "title": "Trainen medewerkers in klantgerichte gespreksvaardigheden ",
       "votes": 0,
       "domain": "mens",
       "status": "gepland",
@@ -180,9 +178,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "PO",
       "description": "Medewerkers met klantcontact in sector PO worden opgeleid en gecoacht in outside-in gespreksvaardigheden: het stellen van de vraag achter de vraag, het voeren van een sturend waardeverhaal vanuit het brede Cito-portfolio, en het ophalen van diepgaande klantinzichten. De training combineert kennisoverdracht over het volledige aanbod met gedragsgerichte coaching op gespreksregie en klantpartnerschap.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "be951027-71d6-4515-9f65-53e254af1306"
+      "dependencies": []
     },
     {
       "id": "88807a3a-98ef-4d57-b608-a1a931e2f56c",
@@ -200,9 +196,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "Zakelijk",
       "description": "Het bestaande CRM-systeem wordt volledig heringericht en correct geïmplementeerd zodat alle relevante klantdata — waaronder interacties, productgebruik, klachten, betaalgedrag en klantsegmentatie — eenduidig en volledig worden vastgelegd en ontsloten. Aanvullend wordt een integraal klantdashboard gebouwd dat voor alle medewerkers met klantcontact real-time inzicht biedt in de complete klantstatus en funnelpositie per klant.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "f9cfd775-0641-493b-b6cf-12d02ab8de08"
+      "dependencies": []
     },
     {
       "id": "b656f046-edbf-400c-ac29-3af35a9df1c5",
@@ -220,9 +214,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "Zakelijk",
       "description": "Via boegbeelden, rolmodellen en gerichte activering wordt een outside-in cultuur gestimuleerd waarbij medewerkers — van binnendienst tot toetsdeskundigen — actief eigenaarschap tonen in klantgesprekken en de vraag achter de vraag leren stellen. Door enthousiasmerende voorbeelden (zoals productmanagers en binnendienst medewerkers die het gesprek aangaan) en ervaringen zoals meelopen met klantenservice of in de klas zitten, wordt het snappen en voelen van de klantpraktijk een gedeelde norm binnen Cito BV.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "c15f5653-63e7-4b5b-9c8f-c0ec74925316"
+      "dependencies": []
     },
     {
       "id": "b1107cd6-9fb3-482e-855e-204fe1f896c4",
@@ -240,9 +232,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "Zakelijk",
       "description": "Medewerkers met klantcontact worden getraind en gecoacht op outside-in denken en werken: het stellen van de juiste vragen, doorvragen naar de vraag achter de vraag, en het werkelijk begrijpen van de klantpraktijk. Parallel wordt bij nieuwe werving expliciet geselecteerd op outside-in mindset en commercieel eigenaarschap, zodat instroom direct bijdraagt aan de gewenste klantgerichte cultuur.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "be951027-71d6-4515-9f65-53e254af1306"
+      "dependencies": []
     },
     {
       "id": "714e04bc-f22a-45d3-85bf-2c07c22b2d06",
@@ -260,9 +250,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "Zakelijk",
       "description": "Voor alle rollen met klantcontact worden eenduidige werkprocessen ingericht die vastleggen hoe, wanneer en door wie klantinformatie wordt geregistreerd — van lead tot lopende relatie. Dit omvat procesbeschrijvingen per roltype, vastleggingsprotocollen per funnelfase en een governancestructuur die borgt dat klantdata structureel en consistent wordt bijgehouden.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "7a717ed7-3d0e-463e-a86a-aeafaee3ef7c"
+      "dependencies": []
     },
     {
       "id": "710d4a72-d58b-449a-bcc2-9fe1d8689fa9",
@@ -280,9 +268,7 @@
       "quarter": "Nader te bepalen",
       "sectorId": "VO",
       "description": "Alle medewerkers met klantcontact binnen de VO-sector — waaronder sales, productmanagement, marketing en toetsdeskundigen — worden getraind op hun specifieke rol in het klantproces, inclusief heldere verwachtingen, verantwoordelijkheden en gedragsnormen voor outside-in werken. Dit wordt aangevuld met gerichte interventies (zoals onderlinge uitwisselingen, rollenspellen en gezamenlijke klantsessies) om eilandjescultuur te doorbreken en teamgericht samenwerken te stimuleren.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "be951027-71d6-4515-9f65-53e254af1306"
+      "dependencies": []
     },
     {
       "id": "9156fc17-c6b3-4ef5-96d7-3422b78b4c54",
@@ -300,9 +286,7 @@
       "quarter": "Q2 2026",
       "sectorId": "VO",
       "description": "Via gerichte interventies — zoals feedbacksessies, fysieke werkruimtes met zichtbare productroadmaps en gezamenlijke reflectiemomenten — wordt een cultuur van gedeeld eigenaarschap en intrinsieke samenwerking gestimuleerd binnen het commerciële team van de VO-sector. De nadruk ligt op gelijkwaardigheid, wederzijds vertrouwen en het durven aanspreken op rollen en verantwoordelijkheden, zodat samenwerken als vanzelfsprekend wordt ervaren in plaats van als controle.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "c15f5653-63e7-4b5b-9c8f-c0ec74925316"
+      "dependencies": []
     },
     {
       "id": "bf21ed23-7c0b-4c6a-9170-25cd75a0228b",
@@ -320,9 +304,7 @@
       "quarter": "Q3 2025 – Q2 2026",
       "sectorId": "VO",
       "description": "Cito VO implementeert een centraal CRM-systeem waarin klantdata, interacties, overeenkomsten, funnelstadia en commerciële voortgang eenduidig worden vastgelegd en ontsloten voor alle medewerkers met klantcontact. Hierdoor wordt handmatige dataverzameling vervangen door één betrouwbare bron die facturatie, mailings, doorlooptijden en commerciële prognoses ondersteunt.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "f9cfd775-0641-493b-b6cf-12d02ab8de08"
+      "dependencies": []
     },
     {
       "id": "63f940f3-aa71-4764-b8f6-d51824979dab",
@@ -340,85 +322,7 @@
       "quarter": "Q2 2026",
       "sectorId": "VO",
       "description": "Herontwerp en formaliseer de commerciële werkprocessen binnen het VO-segment door eenduidige rollen, verantwoordelijkheden en KPI-definities vast te leggen in gedragen werkafspraken. Dit omvat het inrichten van een uniforme funnel-systematiek met heldere doorrekening per funnelfase, zodat alle betrokkenen met dezelfde metrics en proceslogica werken en handwerk structureel wordt gereduceerd.",
-      "consolidated": true,
-      "dependencies": [],
-      "consolidatedInto": "7a717ed7-3d0e-463e-a86a-aeafaee3ef7c"
-    },
-    {
-      "id": "c15f5653-63e7-4b5b-9c8f-c0ec74925316",
-      "title": "Verankeren van outside-in leiderschap als rolmodel gedrag",
-      "votes": 0,
-      "domain": "cultuur",
-      "status": "gepland",
-      "dossier": {
-        "eigenaar": "Sectormanager PO",
-        "kostenraming": "€ 30.000 – € 60.000 (afhankelijk van aantal leiderschapssessies, externe begeleiding en intervisietraject); onzekerheidsmarge ±30%",
-        "randvoorwaarden": "Commitment van sectormanager als zichtbaar sponsor en deelnemend rolmodel; minimale beschikbaarheid van leidinggevenden (niet volledig opgeslokt door operationele storingen en vergaderagenda's); afstemming met lopende inspanningen op systeem- en procesvlak zodat leiderschapsontwikkeling niet concurreert maar aanvult; heldere afspraken over beschermde tijd voor deelname aan cultuurinterventies",
-        "inspanningsleider": "Programmamanager / HR Business Partner PO",
-        "verwachtResultaat": "Leidinggevenden en medewerkers voelen zich vrij en veilig om klantgericht gedrag te tonen en hierop aan te spreken, zichtbaar in een stijging van de NPS-score en een groter aandeel klantgesprekken dat als samenwerkingsgerichte dialoog wordt gekwalificeerd. De vergader- en brandjes-blus-cultuur maakt geleidelijk plaats voor een werkwijze waarin ruimte voor klantcontact, reflectie en initiatief als normaal wordt ervaren."
-      },
-      "quarter": "Nader te bepalen",
-      "sectorId": "PO",
-      "description": "Leidinggevenden binnen de PO-sector ontwikkelen en tonen zichtbaar buiten-naar-binnen-denken als norm: zij creëren bewust ruimte — weg uit de vergadercultuur en de waan van de dag — om medewerkers uit te nodigen klantgericht te handelen, door te vragen naar de vraag achter de vraag, en lef en creativiteit te stimuleren. Via gerichte leiderschapsinterventies (sessies, intervisie, gezamenlijke klantbezoeken) wordt het goede voorbeeld gesteld zodat outside-in denken een gedeeld cultureel vertrekpunt wordt.",
-      "dependencies": [],
-      "responsibleSector": "PO, Zakelijk, VO"
-    },
-    {
-      "id": "be951027-71d6-4515-9f65-53e254af1306",
-      "title": "Trainen medewerkers in klantgerichte gespreksvaardigheden PO",
-      "votes": 0,
-      "domain": "mens",
-      "status": "gepland",
-      "dossier": {
-        "eigenaar": "Sectormanager PO",
-        "kostenraming": "Nader te bepalen; rekening houden met externe trainings- en coachingskosten, vrijmaking van medewerkers voor deelname en mogelijke terugkerende verdiepingssessies (marge: ±20%)",
-        "randvoorwaarden": "Processen en klantfunnel zijn voldoende in kaart gebracht zodat medewerkers weten op welk klantmoment welk gespreksdoel geldt; businessfocus per klantsegment is bepaald en beschikbaar als inhoudelijke input voor de training; commitment van sectormanager en teamleads voor vrijmaking van medewerkers; minimale rust in de operatie om leerruimte te borgen naast de waan van de dag.",
-        "inspanningsleider": "Nader te bepalen (bijv. L&D-lead of commercieel trainer)",
-        "verwachtResultaat": "Medewerkers in sector PO voeren zelfverzekerd klantgesprekken vanuit een outside-in houding, waarbij zij proactief de klantbehoefte doorgronden en Cito positioneren als strategisch gesprekspartner in plaats van louter toetsleverancier. De gedragsverandering is zichtbaar in de kwalificatie van klantgesprekken als samenwerkings- of beleidsgerichte dialoog, en medewerkers zijn onderling uitwisselbaar in hun gespreksrol."
-      },
-      "quarter": "Nader te bepalen",
-      "sectorId": "PO",
-      "description": "Medewerkers met klantcontact in sector PO worden opgeleid en gecoacht in outside-in gespreksvaardigheden: het stellen van de vraag achter de vraag, het voeren van een sturend waardeverhaal vanuit het brede Cito-portfolio, en het ophalen van diepgaande klantinzichten. De training combineert kennisoverdracht over het volledige aanbod met gedragsgerichte coaching op gespreksregie en klantpartnerschap.",
-      "dependencies": [],
-      "responsibleSector": "PO, Zakelijk, VO"
-    },
-    {
-      "id": "f9cfd775-0641-493b-b6cf-12d02ab8de08",
-      "title": "Implementeren en inrichten van integraal CRM-klantdashboard",
-      "votes": 0,
-      "domain": "data_systemen",
-      "status": "gepland",
-      "dossier": {
-        "eigenaar": "Commercieel Manager",
-        "kostenraming": "Nader te bepalen (afhankelijk van CRM-licenties, implementatiepartner en maatwerkontwikkeling dashboard); aanbevolen marge van 20-30% voor onvoorziene technische complexiteit",
-        "randvoorwaarden": "Keuze en beschikbaarheid van CRM-platform is bevestigd; toegang tot bestaande klantdata en bronsystemen is geregeld; functioneel eigenaar en technisch beheerder zijn aangesteld; datagovernance-afspraken over invoerstandaarden en verantwoordelijkheden zijn vastgelegd vóór livegang",
-        "inspanningsleider": "CRM Projectleider / Functioneel Beheerder",
-        "verwachtResultaat": "Medewerkers beschikken over een betrouwbaar, integraal klantbeeld in het CRM — inclusief productgebruik, klachtenhistorie, betaalgedrag en klantsegmentatie — waardoor onderbuikgevoel wordt vervangen door data-gedreven besluitvorming. Dit maakt proactief klantcontact, gerichte klantsegmentatie en automatisering van repetitieve signalerings- en opvolgtaken mogelijk."
-      },
-      "quarter": "Nader te bepalen",
-      "sectorId": "Zakelijk",
-      "description": "Het bestaande CRM-systeem wordt volledig heringericht en correct geïmplementeerd zodat alle relevante klantdata — waaronder interacties, productgebruik, klachten, betaalgedrag en klantsegmentatie — eenduidig en volledig worden vastgelegd en ontsloten. Aanvullend wordt een integraal klantdashboard gebouwd dat voor alle medewerkers met klantcontact real-time inzicht biedt in de complete klantstatus en funnelpositie per klant.",
-      "dependencies": [],
-      "responsibleSector": "Zakelijk, VO"
-    },
-    {
-      "id": "7a717ed7-3d0e-463e-a86a-aeafaee3ef7c",
-      "title": "Standaardiseren en borgen van klantinformatieprocessen organisatiebreed",
-      "votes": 0,
-      "domain": "processen",
-      "status": "gepland",
-      "dossier": {
-        "eigenaar": "Directeur",
-        "kostenraming": "Nader te bepalen (indicatief €15.000–€35.000 afhankelijk van procesbegeleiding, documentatie en beheer); onzekerheidsmarge ±30%",
-        "randvoorwaarden": "Besluitvorming over CRM-inrichting is afgerond of loopt parallel; betrokkenheid van vertegenwoordigers uit alle klantcontactrollen is gegarandeerd; directie stelt proceseigenaarschap formeel in; er zijn boegbeelden aangewezen die de processen actief uitdragen",
-        "inspanningsleider": "Programmamanager / Procesverantwoordelijke",
-        "verwachtResultaat": "Alle medewerkers met klantcontact werken volgens een gestandaardiseerd en gedocumenteerd klantinformatieproces, waardoor klantdata betrouwbaar en volledig wordt vastgelegd en de integrale klantreis voor de hele organisatie inzichtelijk en schaalbaar is. Kennisborging over klanten is niet langer persoonsafhankelijk, maar procesmatig geborgd en overdraagbaar."
-      },
-      "quarter": "Nader te bepalen",
-      "sectorId": "Zakelijk",
-      "description": "Voor alle rollen met klantcontact worden eenduidige werkprocessen ingericht die vastleggen hoe, wanneer en door wie klantinformatie wordt geregistreerd — van lead tot lopende relatie. Dit omvat procesbeschrijvingen per roltype, vastleggingsprotocollen per funnelfase en een governancestructuur die borgt dat klantdata structureel en consistent wordt bijgehouden.",
-      "dependencies": [],
-      "responsibleSector": "Zakelijk, VO"
+      "dependencies": []
     }
   ],
   "sectorPlans": [],
@@ -491,218 +395,8 @@
     {
       "effortId": "63f940f3-aa71-4764-b8f6-d51824979dab",
       "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
-    },
-    {
-      "effortId": "c15f5653-63e7-4b5b-9c8f-c0ec74925316",
-      "capabilityId": "cfdf5175-78ee-4836-a29f-7d53b2afe465"
-    },
-    {
-      "effortId": "c15f5653-63e7-4b5b-9c8f-c0ec74925316",
-      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
-    },
-    {
-      "effortId": "c15f5653-63e7-4b5b-9c8f-c0ec74925316",
-      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
-    },
-    {
-      "effortId": "be951027-71d6-4515-9f65-53e254af1306",
-      "capabilityId": "cfdf5175-78ee-4836-a29f-7d53b2afe465"
-    },
-    {
-      "effortId": "be951027-71d6-4515-9f65-53e254af1306",
-      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
-    },
-    {
-      "effortId": "be951027-71d6-4515-9f65-53e254af1306",
-      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
-    },
-    {
-      "effortId": "f9cfd775-0641-493b-b6cf-12d02ab8de08",
-      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
-    },
-    {
-      "effortId": "f9cfd775-0641-493b-b6cf-12d02ab8de08",
-      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
-    },
-    {
-      "effortId": "7a717ed7-3d0e-463e-a86a-aeafaee3ef7c",
-      "capabilityId": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587"
-    },
-    {
-      "effortId": "7a717ed7-3d0e-463e-a86a-aeafaee3ef7c",
-      "capabilityId": "f92382f0-8914-4f68-8b9d-69927989e128"
     }
   ],
   "projectCapabilityMaps": [],
-  "completedGoals": [],
-  "crossAnalyseWizard": {
-    "currentStep": 3,
-    "completedSteps": [
-      1,
-      2
-    ],
-    "wizardVersion": 2,
-    "stepResults": {
-      "stap1": {
-        "gaps": {
-          "doelenZonderBaten": [
-            "Programmadoel 2 'Verbeteren én innoveren op basis van klantinzichten en gebruiksdata' heeft geen baten in deze DIN.",
-            "Programmadoel 3 'Structurele klantrelevantie en tevredenheid realiseren' heeft geen baten in deze DIN."
-          ],
-          "batenZonderVermogens": [
-            "Alle drie de baten zijn gekoppeld aan een vermogen; er zijn geen baten zonder vermogen. Wel ontbreekt voor de PO-baat 'Intensiever partnership' een data/systeem-inspanning (geen CRM- of dashboardinspanning onder vermogen 'Strategisch klantpartnerschap PO'), en ontbreekt voor PO een procesinspanning analoog aan Zakelijk/VO."
-          ]
-        },
-        "synergieën": [
-          {
-            "impact": "Schaalvoordeel in opleidingsontwikkeling, consistente gedragsnormen Cito-breed en lagere kosten door gedeelde interventies — past bij kostenefficiëntiekader 2027-2028.",
-            "sectoren": [
-              "PO",
-              "VO",
-              "Zakelijk"
-            ],
-            "beschrijving": "Outside-in cultuur en klantgerichte gespreksvaardigheden worden in alle drie de sectoren via vergelijkbare inspanningen verankerd (leiderschap PO, mindset Zakelijk, rol- en teamcultuur VO). Eén organisatiebreed trainings- en leiderschapsprogramma kan deze inspanningen bundelen."
-          },
-          {
-            "impact": "Gezamenlijke CRM-architectuur voorkomt dubbele investeringen, verkleint de IT-afstand en levert één integraal klantbeeld op — direct raakvlak met het programmadoel.",
-            "sectoren": [
-              "Zakelijk",
-              "VO"
-            ],
-            "beschrijving": "CRM-implementatie en integraal klantdashboard zijn parallel belegd in Zakelijk (integraal CRM-klantdashboard) en VO (centraal CRM als klantdatafundament). Beide vermogens vragen om dezelfde datastandaarden, funnel-definities en doorrekensystematiek."
-          },
-          {
-            "impact": "Eén gedeeld procesframework versnelt adoptie en maakt funneldata Cito-breed vergelijkbaar; voorwaarde voor voorspelbare commerciële begroting (VO-baat) en commerciële slagkracht (Zakelijk-baat).",
-            "sectoren": [
-              "Zakelijk",
-              "VO"
-            ],
-            "beschrijving": "Standaardiseren van klantinformatieprocessen (Zakelijk) en commerciële werkafspraken/KPI-structuur (VO) delen dezelfde logica: eenduidige funnel, rollen en vastleggingsprotocollen. PO mist deze procesinspanning."
-          }
-        ],
-        "samenvatting": "De DIN is volledig geconcentreerd op doel 1 (integraal klantbeeld en outside-in werken); doelen 2 en 3 zijn nog niet uitgewerkt in baten. Tussen sectoren zijn sterke synergieën zichtbaar rond outside-in cultuur/training en CRM/procesinrichting, waardoor organisatiebrede bundeling kosten bespaart en consistentie vergroot. PO loopt achter op data/systeem- en procesinspanningen ten opzichte van VO en Zakelijk — een gap die het 'Strategisch klantpartnerschap PO' onder druk kan zetten.",
-        "batenPerSector": [
-          {
-            "baten": [
-              {
-                "titel": "Intensiever partnership",
-                "doelId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
-                "doelNaam": "Integraal klantbeeld en outside-in werken als strategisch fundament"
-              }
-            ],
-            "sector": "PO"
-          },
-          {
-            "baten": [
-              {
-                "titel": "Hogere voorspelbaarheid commerciële begroting",
-                "doelId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
-                "doelNaam": "Integraal klantbeeld en outside-in werken als strategisch fundament"
-              }
-            ],
-            "sector": "VO"
-          },
-          {
-            "baten": [
-              {
-                "titel": "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
-                "doelId": "461a23af-1e14-4de4-9d1e-1a25e4542b46",
-                "doelNaam": "Integraal klantbeeld en outside-in werken als strategisch fundament"
-              }
-            ],
-            "sector": "Zakelijk"
-          }
-        ]
-      },
-      "stap2": {
-        "samenvatting": "De drie sector-vermogens vormen inhoudelijk één drieluik rond klantgericht relatie- en partnerschapsvermogen, opgebouwd uit dezelfde vier domeinen. Markeren als gelijkenis levert een grote hefboom op: organisatiebrede bundeling van outside-in training, CRM-fundament en funnel-/procesafspraken bespaart kosten, versterkt consistentie en dicht tegelijk de PO-achterstand op data/systemen en processen. De sector-specifieke klantcontext (kandidaten, schoolbesturen, leerkrachten) blijft gerespecteerd door de vermogens apart te houden.",
-        "hefboomwerking": [
-          {
-            "inspanning": "Organisatiebrede outside-in trainings- en coachingsaanpak (bundeling van PO-, VO- en Zakelijk-trainingstrajecten)",
-            "prioriteit": "hoog",
-            "bijdraagtAan": [
-              "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
-              "Intensiever partnership",
-              "Hogere voorspelbaarheid commerciële begroting"
-            ]
-          },
-          {
-            "inspanning": "Eén integraal CRM-/klantdashboard-fundament met sector-specifieke views (bundeling Zakelijk + VO, uitbreiden naar PO)",
-            "prioriteit": "hoog",
-            "bijdraagtAan": [
-              "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
-              "Hogere voorspelbaarheid commerciële begroting",
-              "Intensiever partnership"
-            ]
-          },
-          {
-            "inspanning": "Uniforme funnel-systematiek en klantinformatieprocessen organisatiebreed",
-            "prioriteit": "hoog",
-            "bijdraagtAan": [
-              "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
-              "Hogere voorspelbaarheid commerciële begroting"
-            ]
-          },
-          {
-            "inspanning": "Outside-in leiderschap en rolmodelgedrag (PO + Zakelijk, uitbreiden naar VO)",
-            "prioriteit": "midden",
-            "bijdraagtAan": [
-              "Intensiever partnership",
-              "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten"
-            ]
-          }
-        ],
-        "vermogenClusters": [
-          {
-            "items": [
-              {
-                "id": "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
-                "sector": "Zakelijk",
-                "beschrijving": "Klantgerichte commerciële slagkracht"
-              },
-              {
-                "id": "cfdf5175-78ee-4836-a29f-7d53b2afe465",
-                "sector": "PO",
-                "beschrijving": "Strategisch klantpartnerschap PO"
-              },
-              {
-                "id": "f92382f0-8914-4f68-8b9d-69927989e128",
-                "sector": "VO",
-                "beschrijving": "Klantfasegericht commercieel relatievermogen"
-              }
-            ],
-            "advies": "Alle drie de sector-vermogens draaien om dezelfde kern: structureel klantgericht werken via de combinatie van commercieel vaardige medewerkers (mens), eenduidige werkafspraken/funnel-systematiek (processen), betrouwbare CRM-/klantdata (data & systemen) en een outside-in mindset (cultuur). De sector-specifieke inkleuring (kandidaten/opdrachtgevers bij Zakelijk, schoolbesturen bij VO, leerkrachten/LIB bij PO) blijft herkenbaar, maar de onderliggende capaciteit is identiek. Markeer daarom als gelijkenis zodat de vier domeinen cross-sectoraal kunnen worden uitgewerkt; houd de sector-vermogens inhoudelijk apart om klantcontext te respecteren.",
-            "aanbeveling": "markeer_gelijkenis",
-            "batenContext": [
-              {
-                "baat": "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten",
-                "sector": "Zakelijk"
-              },
-              {
-                "baat": "Intensiever partnership",
-                "sector": "PO"
-              },
-              {
-                "baat": "Hogere voorspelbaarheid commerciële begroting",
-                "sector": "VO"
-              }
-            ],
-            "clusterTitel": "Klantgericht relatie- en partnerschapsvermogen"
-          }
-        ],
-        "vermogenGelijkenisGroepen": [
-          {
-            "id": "g1",
-            "reden": "Volwaardig drieluik: alle drie sectoren beschrijven expliciet dezelfde vier-domein-opbouw (mens + processen + data/systemen + cultuur) rond klantgericht werken. Dit is de grootste hefboom in de DIN omdat álle inspanningen hier op aansluiten en alle drie de baten er rechtstreeks uit voortkomen; bundeling voorkomt dubbele investeringen in CRM, training en proces-standaardisatie en adresseert tegelijk de PO-gap op data/systemen en processen.",
-            "vermogenIds": [
-              "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
-              "cfdf5175-78ee-4836-a29f-7d53b2afe465",
-              "f92382f0-8914-4f68-8b9d-69927989e128"
-            ],
-            "gezamenlijkeOmschrijving": "Het sectoroverstijgende vermogen om klantrelaties proactief, voorspelbaar en outside-in te sturen via de combinatie van commercieel vaardige medewerkers, eenduidige funnel- en werkprocessen, betrouwbare CRM-/klantdata en een cultuur van eigenaarschap en klantgerichtheid."
-          }
-        ]
-      }
-    }
-  }
+  "completedGoals": []
 }
