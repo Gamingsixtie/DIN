@@ -35,6 +35,27 @@ export default function StapOptimaliseren({
   const [optimizingIndex, setOptimizingIndex] = useState<number | null>(null);
   const [optimizeError, setOptimizeError] = useState<string | null>(null);
 
+  // Begrotingsadvies state
+  const [budgetEuro, setBudgetEuro] = useState<number>(250000);
+  const [cyclusMaanden, setCyclusMaanden] = useState<number>(9);
+  const [begrotingLoading, setBegrotingLoading] = useState(false);
+  const [begrotingError, setBegrotingError] = useState<string | null>(null);
+  const [begrotingAdvies, setBegrotingAdvies] = useState<{
+    totaalBudgetEuro: number;
+    cyclusMaanden: number;
+    percentageVerdeling: Array<{
+      inspanningTitel: string;
+      groepId?: string;
+      domein: "mens" | "processen" | "data_systemen" | "cultuur";
+      percentage: number;
+      bedragEuro: number;
+      motivatie: string;
+    }>;
+    prioriteitAdvies: string;
+    prognose2026: string;
+    samenvatting: string;
+  } | null>(null);
+
   useEffect(() => {
     if (stap4Result?.subEffortAnalysis) {
       setEntries(JSON.parse(JSON.stringify(stap4Result.subEffortAnalysis)));
@@ -124,6 +145,67 @@ export default function StapOptimaliseren({
       const msg = err instanceof Error ? err.message : "Netwerkfout";
       setOptimizeError(msg);
       setOptimizingIndex(null);
+    }
+  }
+
+  async function generateBegrotingsAdvies() {
+    setBegrotingLoading(true);
+    setBegrotingError(null);
+
+    const focusGoal = [...(session.goals ?? [])]
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] ?? null;
+    const focusDoel = focusGoal
+      ? {
+          naam: focusGoal.name ?? "",
+          beschrijving:
+            focusGoal.description && focusGoal.description.trim().length > 0
+              ? focusGoal.description
+              : focusGoal.name ?? "",
+        }
+      : null;
+
+    const inspanningen = entries
+      .filter((e) => e.actie === "combineren")
+      .map((e) => ({
+        titel: e.titel ?? e.voorgesteldeNaam ?? `${e.domein} inspanning`,
+        groepId: e.groepId,
+        domein: e.domein,
+        beschrijving: e.beschrijving ?? "",
+        beargumentatie: e.beargumentatie ?? "",
+        dossierKostenraming: e.dossier?.kostenraming ?? "",
+      }));
+
+    if (inspanningen.length === 0) {
+      setBegrotingError("Geen geconsolideerde inspanningen om te begroten.");
+      setBegrotingLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/begroting-advies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totaalBudgetEuro: budgetEuro,
+          cyclusMaanden,
+          focusDoel,
+          inspanningen,
+          scope: session.scope,
+          vision: session.vision,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setBegrotingError(data.error ?? "Onbekende fout");
+        setBegrotingLoading(false);
+        return;
+      }
+      setBegrotingAdvies(data.data);
+      setBegrotingLoading(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Netwerkfout";
+      setBegrotingError(msg);
+      setBegrotingLoading(false);
     }
   }
 
@@ -310,6 +392,123 @@ export default function StapOptimaliseren({
           })}
         </div>
       ))}
+
+      {/* ===== BEGROTINGSADVIES (holistisch) ===== */}
+      <div className="mt-10 pt-6 border-t-2 border-gray-200">
+        <h3 className="text-lg font-semibold text-[#003366] mb-1">Begrotingsadvies — realistische verdeling</h3>
+        <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+          Voer het out-of-pocket budget voor de huidige cyclus in. AI verdeelt het in percentages per cross-sectorale inspanning,
+          geeft prioriteits-advies voor deze cyclus, en een grove prognose voor 2026 om door te kunnen.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+              Totaalbudget huidige cyclus (€)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={1000}
+              value={budgetEuro}
+              onChange={(e) => setBudgetEuro(Number(e.target.value) || 0)}
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+              Cyclus-duur (maanden)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={cyclusMaanden}
+              onChange={(e) => setCyclusMaanden(Number(e.target.value) || 1)}
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={generateBegrotingsAdvies}
+          disabled={begrotingLoading}
+          className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
+        >
+          {begrotingLoading ? "AI stelt begroting op..." : "Genereer begrotingsadvies"}
+        </button>
+
+        {begrotingError && (
+          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-sm text-red-700">Begrotingsadvies faalde: {begrotingError}</p>
+          </div>
+        )}
+
+        {begrotingAdvies && (
+          <div className="mt-6 space-y-4">
+            {/* Samenvatting banner */}
+            <div className="bg-[#003366] text-white rounded-lg p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-200 mb-1">Samenvatting</p>
+              <p className="text-sm">{begrotingAdvies.samenvatting}</p>
+              <p className="text-xs text-blue-200 mt-2">
+                Totaal: € {begrotingAdvies.totaalBudgetEuro.toLocaleString("nl-NL")} over {begrotingAdvies.cyclusMaanden} maanden
+              </p>
+            </div>
+
+            {/* Verdeling per inspanning */}
+            <div className="bg-white border border-[#e2e8f0] rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Verdeling per inspanning</h4>
+              <ul className="space-y-3">
+                {begrotingAdvies.percentageVerdeling.map((v, i) => {
+                  const domColor = DOMAIN_COLORS[v.domein];
+                  return (
+                    <li key={i} className={`border ${domColor.border} ${domColor.bg} rounded-lg p-3`}>
+                      <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[10px] font-bold uppercase tracking-wider ${domColor.text}`}>
+                            {DOMAIN_LABELS[v.domein]}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">{v.inspanningTitel}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-semibold text-[#003366]">{v.percentage}%</p>
+                          <p className="text-xs text-gray-600">€ {v.bedragEuro.toLocaleString("nl-NL")}</p>
+                        </div>
+                      </div>
+                      {/* Progress bar visueel */}
+                      <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+                        <div
+                          className="h-1.5 rounded-full bg-[#003366]"
+                          style={{ width: `${Math.min(v.percentage, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-700 mt-2 leading-snug">{v.motivatie}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            {/* Prioriteit + Prognose 2026 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-amber-900 mb-2">
+                  Prioriteit binnen {begrotingAdvies.cyclusMaanden} maanden
+                </h4>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {begrotingAdvies.prioriteitAdvies}
+                </p>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-green-900 mb-2">Prognose 2026 — continuïteit</h4>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {begrotingAdvies.prognose2026}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
