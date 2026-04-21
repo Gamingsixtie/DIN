@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
       let subEffortAnalysisFlat: Array<z.infer<typeof SubEffortAdviesSchema>> = [];
 
       if (stap === 4) {
-        const groepen =
+        let groepen =
           (body.stap2Result as {
             vermogenGelijkenisGroepen?: Array<{
               id: string;
@@ -240,6 +240,60 @@ export async function POST(request: NextRequest) {
           capabilityId: string;
           effortId: string;
         }>;
+
+        // --- Phase 18 fallback: als stap 2 geen VermogenGelijkenisGroepen opleverde,
+        // synthetiseer er één uit alle actieve vermogens gekoppeld aan focus-baten.
+        // Hiermee garanderen we dat stap 5/6 altijd 4 cross-sectorale inspanningen krijgen.
+        if (groepen.length === 0) {
+          const rawGoalsFallback = (body.goals || []) as Array<{
+            id: string;
+            name?: string;
+            description?: string;
+            rank?: number;
+          }>;
+          const focusGoalFallback = getFocusGoal(rawGoalsFallback);
+          const goalBenefitMapsLocal = (body.goalBenefitMaps || []) as Array<{
+            goalId: string;
+            benefitId: string;
+          }>;
+          const benefitCapabilityMapsLocal = (body.benefitCapabilityMaps || []) as Array<{
+            benefitId: string;
+            capabilityId: string;
+          }>;
+
+          if (focusGoalFallback) {
+            const focusBenefitIds = new Set(
+              goalBenefitMapsLocal.filter((m) => m.goalId === focusGoalFallback.id).map((m) => m.benefitId)
+            );
+            const fallbackCapIds = new Set(
+              benefitCapabilityMapsLocal
+                .filter((m) => focusBenefitIds.has(m.benefitId))
+                .map((m) => m.capabilityId)
+            );
+            // Filter op actieve (niet-geconsolideerde) vermogens
+            const rawCapsFallback = (body.capabilities || []) as Array<{
+              id: string;
+              consolidated?: boolean;
+              title?: string;
+            }>;
+            const fallbackVermogenIds = rawCapsFallback
+              .filter((c) => fallbackCapIds.has(c.id) && !c.consolidated)
+              .map((c) => c.id);
+
+            if (fallbackVermogenIds.length > 0) {
+              groepen = [
+                {
+                  id: "auto-groep-focus",
+                  vermogenIds: fallbackVermogenIds,
+                  gezamenlijkeOmschrijving:
+                    "Auto-gesynthetiseerde groep van vermogens gekoppeld aan het focus-doel (fallback omdat stap 3 geen gelijkenis-groepen opleverde).",
+                  reden:
+                    "Alle actieve vermogens onder de focus-baten vormen samen een werkbare basis voor cross-sectorale inspanningen, ook zonder expliciete gelijkenis-detectie.",
+                },
+              ];
+            }
+          }
+        }
 
         // --- Phase 18 (R-CROSS-03): focus-doel als leidraad + profiel-context per vermogen ---
         const rawGoals = (body.goals || []) as Array<{
@@ -283,7 +337,10 @@ export async function POST(request: NextRequest) {
               groepEffortIdSet.has(e.id)
             );
 
-            if (groepEfforts.length === 0) {
+            // Phase 18: skip-gate versoepeld — auto-groep (fallback uit stap 2 leegte)
+            // mag WEL door zonder efforts, AI leidt inspanningen af uit vermogen-profielen
+            // + focusDoel. Alleen skippen als geen efforts EN niet een auto-groep.
+            if (groepEfforts.length === 0 && groep.id !== "auto-groep-focus") {
               // D-13: skip AI-call — geen gekoppelde efforts
               return [];
             }
