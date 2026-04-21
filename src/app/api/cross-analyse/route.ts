@@ -419,6 +419,22 @@ export async function POST(request: NextRequest) {
 
             let entries = subResult.success ? subResult.data : [];
 
+            // Server-side vangnet: forceer dat items[] per domein ALLE bron-effort-IDs
+            // uit dat domein bevat (over alle sectoren). AI is onbetrouwbaar in het
+            // bundelen; wij berekenen het deterministisch.
+            // Bouw een map per domein -> lijst van bron-effort-IDs (uit groepEfforts):
+            const domainToEffortIds: Record<string, string[]> = {};
+            for (const ef of groepEfforts as Array<{ id: string; domain?: string }>) {
+              if (!ef.domain) continue;
+              (domainToEffortIds[ef.domain] ??= []).push(ef.id);
+            }
+            entries = entries.map((e) => {
+              const allIds = domainToEffortIds[e.domein] ?? [];
+              // Dedupliceer (merge AI-choice + all domain efforts, keep unique)
+              const merged = Array.from(new Set([...(e.items ?? []), ...allIds]));
+              return { ...e, items: merged };
+            });
+
             // Phase 19 substap 5.1b: garandeer dat alle 4 domeinen minimaal 1 entry hebben.
             // AI mag meerdere subdoelen per domein produceren (1-3 per domein, totaal 4-12 per groep),
             // dus we checken op aanwezigheid van elk domein — niet op exact aantal.
