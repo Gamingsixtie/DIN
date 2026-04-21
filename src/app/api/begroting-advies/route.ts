@@ -56,7 +56,10 @@ const ScenarioSchema = z.object({
 
 type Scenario = z.infer<typeof ScenarioSchema>;
 
-function scenarioPrompt(label: "optimaal" | "plus20" | "min20", factor: number): string {
+function scenarioPrompt(
+  label: "optimaal" | "plus20" | "min20",
+  jaarlijksBudget: number
+): string {
   const intro =
     label === "optimaal"
       ? "SCENARIO OPTIMAAL — het jaarlijks budget van de gebruiker ongewijzigd. Geef een realistisch plan."
@@ -70,22 +73,21 @@ function scenarioPrompt(label: "optimaal" | "plus20" | "min20", factor: number):
 
 ${intro}
 
+**Voor dit scenario gebruik je het jaarlijks budget: € ${jaarlijksBudget.toLocaleString("nl-NL")}.**
+
 Input JSON:
 {
-  "basisJaarlijksBudget": <number — basis van de user>,
-  "scenarioBudgetFactor": ${factor},
+  "jaarlijksBudgetEuro": ${jaarlijksBudget},
   "cyclusMaanden": <number>,
   "startJaar": <number>,
   "focusDoel": { naam, beschrijving },
   "inspanningen": [{ titel, groepId, domein, beschrijving, beargumentatie, dossierKostenraming }]
 }
 
-Bereken zelf \`jaarlijksBudgetEuro = basisJaarlijksBudget × scenarioBudgetFactor\` (afgerond op duizend).
-
 Taak — lever EXACT dit JSON-object (één Scenario):
 {
   "label": "${label}",
-  "jaarlijksBudgetEuro": <integer, afgerond op duizend>,
+  "jaarlijksBudgetEuro": ${jaarlijksBudget},
   "aantalJaren": <integer 1-15, MINIMAAL noodzakelijk gegeven jaarlijksBudgetEuro>,
   "totaalGeraamdEuro": <som van alle inspanning.totaalEuro>,
   "inspanningen": [
@@ -191,8 +193,12 @@ export async function POST(request: NextRequest) {
 
     const kibContext = extractKiBContext(body);
 
+    // Pre-compute jaarlijks budgets per scenario (rond op duizend)
+    const budgetOptimaal = Math.round(jaarlijksBudgetEuro / 1000) * 1000;
+    const budgetPlus20 = Math.round((jaarlijksBudgetEuro * 1.2) / 1000) * 1000;
+    const budgetMin20 = Math.round((jaarlijksBudgetEuro * 0.8) / 1000) * 1000;
+
     const scenarioInput = {
-      basisJaarlijksBudget: jaarlijksBudgetEuro,
       cyclusMaanden,
       startJaar: effectiefStartJaar,
       focusDoel: focusDoel ?? null,
@@ -201,33 +207,42 @@ export async function POST(request: NextRequest) {
 
     async function genereer(
       label: "optimaal" | "plus20" | "min20",
-      factor: number
+      jaarlijksBudget: number,
+      pogingen = 2
     ): Promise<Scenario | null> {
       const systemPrompt = assembleSystemPrompt(
-        scenarioPrompt(label, factor),
+        scenarioPrompt(label, jaarlijksBudget),
         "cross-analyse",
         undefined,
         kibContext
       );
       const userMessage = JSON.stringify(
-        { ...scenarioInput, scenarioBudgetFactor: factor },
+        { ...scenarioInput, jaarlijksBudgetEuro: jaarlijksBudget },
         null,
         2
       );
-      const res = await callClaudeWithValidation(
-        ScenarioSchema,
-        systemPrompt,
-        userMessage,
-        { maxTokens: 6144 }
-      );
-      return res.success ? res.data : null;
+      for (let i = 0; i < pogingen; i++) {
+        try {
+          const res = await callClaudeWithValidation(
+            ScenarioSchema,
+            systemPrompt,
+            userMessage,
+            { maxTokens: 6144 }
+          );
+          if (res.success) return res.data;
+        } catch {
+          // zwaluwen — retry
+        }
+        // korte backoff voor eventuele rate-limit
+        if (i < pogingen - 1) await new Promise((r) => setTimeout(r, 1500));
+      }
+      return null;
     }
 
-    const [optimaal, plus20, min20] = await Promise.all([
-      genereer("optimaal", 1.0),
-      genereer("plus20", 1.2),
-      genereer("min20", 0.8),
-    ]);
+    // Sequentieel — voorkomt rate-limit burst bij parallelle Claude-calls
+    const optimaal = await genereer("optimaal", budgetOptimaal);
+    const plus20 = await genereer("plus20", budgetPlus20);
+    const min20 = await genereer("min20", budgetMin20);
 
     if (!optimaal || !plus20 || !min20) {
       const falend = [
