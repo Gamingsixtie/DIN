@@ -87,15 +87,38 @@ export default function ClusterCard({
   const itemIds = cluster.items.map(item => item.id);
   const sectorList = [...new Set(cluster.items.map(item => item.sector))].join(", ");
 
+  // Phase 18 — sterker visueel schil-effect wanneer vermogens zijn gecombineerd
+  const shellClasses = isMerged
+    ? (type === "vermogen"
+        ? "bg-teal-50 border-2 border-teal-400 ring-2 ring-teal-100"
+        : "bg-indigo-50 border-2 border-indigo-400 ring-2 ring-indigo-100")
+    : `bg-white border border-gray-200 border-l-4 ${borderColor}`;
+
   return (
-    <div className={`bg-white border border-gray-200 border-l-4 ${borderColor} rounded-lg p-4 ${isReviewed && !isMerged ? "opacity-60" : ""}`}>
+    <div className={`${shellClasses} rounded-lg p-4 ${isReviewed && !isMerged ? "opacity-60" : ""}`}>
+      {isMerged && (
+        <div className="flex items-center gap-2 mb-2 -mt-1 -mx-1 px-2 py-1 rounded bg-teal-600 text-white">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h10M7 16h6" />
+          </svg>
+          <span className="text-[11px] font-semibold uppercase tracking-wider">
+            Gecombineerd — {cluster.items.length} {type === "vermogen" ? "vermogens" : "inspanningen"} in één schil
+          </span>
+        </div>
+      )}
       <div className="text-sm font-semibold text-gray-800">{cluster.clusterTitel}</div>
       <p className="text-xs text-gray-500 italic mt-1">{cluster.advies}</p>
 
-      <div className="mt-3 space-y-2">
+      {isMerged && (
+        <p className="text-[10px] font-semibold text-teal-700 uppercase tracking-wider mt-3 mb-1">
+          Onderliggende {type === "vermogen" ? "sector-vermogens" : "sector-inspanningen"}
+        </p>
+      )}
+
+      <div className={`mt-2 space-y-2 ${isMerged ? "bg-white border border-teal-200 rounded p-3" : ""}`}>
         {cluster.items.map((item) => (
           <div key={item.id} className="flex items-start gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0" />
+            <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${isMerged ? "bg-teal-500" : "bg-gray-400"}`} />
             <div className="flex-1 min-w-0">
               <span className="text-xs text-gray-700">{item.beschrijving}</span>
               <div className="flex gap-1 mt-0.5">
