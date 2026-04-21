@@ -478,6 +478,7 @@ export default function CrossAnalyseWizard() {
           <StapOptimaliseren
             session={session}
             stap4Result={wizardState.stepResults.stap4}
+            stap2Result={wizardState.stepResults.stap2}
           />
         )}
         {wizardState.currentStep === 7 && (

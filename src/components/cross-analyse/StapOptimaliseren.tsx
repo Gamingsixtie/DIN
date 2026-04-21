@@ -22,14 +22,18 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
 export default function StapOptimaliseren({
   session,
   stap4Result,
+  stap2Result,
 }: {
   session: DINSession;
   stap4Result?: Stap4Result;
+  stap2Result?: import("@/lib/types").Stap2Result;
 }): React.ReactElement {
   const { updateSession } = useSession();
   const [entries, setEntries] = useState<SubEffortAdvies[]>([]);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [savedIndex, setSavedIndex] = useState<number | null>(null);
+  const [optimizingIndex, setOptimizingIndex] = useState<number | null>(null);
+  const [optimizeError, setOptimizeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (stap4Result?.subEffortAnalysis) {
@@ -53,6 +57,74 @@ export default function StapOptimaliseren({
   function updateEntry(idx: number, updater: (e: SubEffortAdvies) => SubEffortAdvies) {
     setEntries((prev) => prev.map((e, i) => (i === idx ? updater(e) : e)));
     setSavedIndex(null);
+  }
+
+  async function optimizeEntry(idx: number) {
+    setOptimizingIndex(idx);
+    setOptimizeError(null);
+    const entry = entries[idx];
+
+    // Focus-doel uit session (rank === 0 of eerste goal)
+    const focusGoal = [...(session.goals ?? [])]
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] ?? null;
+    const focusDoel = focusGoal
+      ? {
+          id: focusGoal.id,
+          naam: focusGoal.name ?? "",
+          beschrijving:
+            focusGoal.description && focusGoal.description.trim().length > 0
+              ? focusGoal.description
+              : focusGoal.name ?? "",
+        }
+      : null;
+
+    // Groep uit stap2Result obv entry.groepId
+    const groep = stap2Result?.vermogenGelijkenisGroepen?.find((g) => g.id === entry.groepId) ?? null;
+    if (!groep) {
+      setOptimizeError("Groep niet gevonden in stap 2.");
+      setOptimizingIndex(null);
+      return;
+    }
+
+    const groepCaps = (session.capabilities ?? [])
+      .filter((c) => groep.vermogenIds.includes(c.id))
+      .map((c) => ({
+        id: c.id,
+        sectorId: c.sectorId,
+        title: c.title ?? "",
+        description: c.description ?? "",
+        profielHuidig: c.profiel?.huidieSituatie ?? "",
+        profielGewenst: c.profiel?.gewensteSituatie ?? "",
+      }));
+
+    try {
+      const res = await fetch("/api/optimaliseer-subeffort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entry,
+          focusDoel,
+          groep,
+          vermogens: groepCaps,
+          // KiB-context extract
+          scope: session.scope,
+          vision: session.vision,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.data) {
+        setOptimizeError(data.error ?? "AI-optimalisatie mislukt.");
+        setOptimizingIndex(null);
+        return;
+      }
+      // Vervang de entry met de verfijnde versie
+      setEntries((prev) => prev.map((e, i) => (i === idx ? data.data : e)));
+      setOptimizingIndex(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Netwerkfout";
+      setOptimizeError(msg);
+      setOptimizingIndex(null);
+    }
   }
 
   async function saveEntry(idx: number) {
@@ -95,9 +167,15 @@ export default function StapOptimaliseren({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-900">
           Hier kun je de cross-sectorale inspanningen uit stap 4 verfijnen voordat ze in de eindview belanden.
-          Per domein staan de geconsolideerde inspanningen — pas titel, beschrijving, beargumentatie en dossier-velden aan.
+          Per domein staan de geconsolideerde inspanningen. Pas velden zelf aan, of klik <strong>Optimaliseer met AI</strong> om je draft door Claude te laten verfijnen op basis van focus-doel en vermogen-profielen.
         </p>
       </div>
+
+      {optimizeError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-sm text-red-700">AI-optimalisatie faalde: {optimizeError}</p>
+        </div>
+      )}
 
       {Array.from(grouped.entries()).map(([groepId, groepEntries]) => (
         <div key={groepId} className="space-y-4">
@@ -206,10 +284,18 @@ export default function StapOptimaliseren({
                     </div>
                   </details>
 
-                  <div className="flex items-center justify-end gap-2 pt-1">
+                  <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
                     {isSaved && (
                       <span className="text-[11px] text-green-700 font-medium">Opgeslagen ✓</span>
                     )}
+                    <button
+                      onClick={() => optimizeEntry(idx)}
+                      disabled={optimizingIndex !== null}
+                      className="text-xs px-3 py-1.5 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8] disabled:opacity-50"
+                      title="AI verfijnt titel, beschrijving, beargumentatie, vermogenImpact en dossier op basis van focus-doel en vermogens"
+                    >
+                      {optimizingIndex === idx ? "AI optimaliseert..." : "Optimaliseer met AI"}
+                    </button>
                     <button
                       onClick={() => saveEntry(idx)}
                       disabled={isSaving}
