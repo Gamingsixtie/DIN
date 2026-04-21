@@ -616,6 +616,11 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       details: session.benefits.length > 0 ? "Data beschikbaar" : "Vul eerst DIN in",
     },
     {
+      step: "governance",
+      percentage: computeGovernanceCompletion(session),
+      details: governanceDetails(session),
+    },
+    {
       step: "prioritering",
       percentage: session.efforts.filter((e) => e.quarter).length > 0
         ? Math.round((session.efforts.filter((e) => e.quarter).length / Math.max(session.efforts.length, 1)) * 100)
@@ -645,6 +650,58 @@ function computeSectorwerkCompletion(session: DINSession): number {
     if (hasPlan && hasDIN) sectorsDone++;
   }
   return Math.round((sectorsDone / SECTORS.length) * 100);
+}
+
+function computeGovernanceCompletion(session: DINSession): number {
+  const po = session.programmaorganisatie;
+  if (!po) return 0;
+
+  let organisatieScore = 0;
+  if (po.opdrachtgever?.rol) organisatieScore += 20;
+  if (po.programmamanager?.rol) organisatieScore += 20;
+  if ((po.kerngroep ?? []).length >= 2) organisatieScore += 20;
+  if ((po.stuurgroep ?? []).length >= 2) organisatieScore += 10;
+  if ((po.domeineigenaren ?? []).length >= 2) organisatieScore += 10;
+  if (po.besluitvormingsritme && po.escalatiepad) organisatieScore += 20;
+
+  // RASCI: gedeelte van clusters met 1 A + minstens 1 R
+  const wizard = session.crossAnalyseWizard;
+  const vermogen = wizard?.stepResults?.stap2?.vermogenClusters ?? [];
+  const inspanning = wizard?.stepResults?.stap3?.inspanningClusters ?? [];
+  const totalClusters = vermogen.length + inspanning.length;
+
+  if (totalClusters === 0) {
+    return Math.round(organisatieScore * 0.6);
+  }
+
+  const rasci = session.clusterRasci ?? [];
+  const validCount = rasci.filter((r) => {
+    const nA = r.rijen.filter((x) => x.letter === "A").length;
+    const nR = r.rijen.filter((x) => x.letter === "R").length;
+    return nA === 1 && nR >= 1;
+  }).length;
+
+  const rasciScore = Math.round((validCount / totalClusters) * 100);
+  return Math.round(organisatieScore * 0.5 + rasciScore * 0.5);
+}
+
+function governanceDetails(session: DINSession): string {
+  const po = session.programmaorganisatie;
+  if (!po) return "Nog niet ingevuld";
+  const rasci = session.clusterRasci ?? [];
+  const validCount = rasci.filter((r) => {
+    const nA = r.rijen.filter((x) => x.letter === "A").length;
+    const nR = r.rijen.filter((x) => x.letter === "R").length;
+    return nA === 1 && nR >= 1;
+  }).length;
+  const rolCount =
+    (po.opdrachtgever ? 1 : 0) +
+    (po.programmamanager ? 1 : 0) +
+    (po.kerngroep?.length ?? 0) +
+    (po.stuurgroep?.length ?? 0) +
+    (po.domeineigenaren?.length ?? 0) +
+    (po.klankbordgroep?.length ?? 0);
+  return `${rolCount} rollen, ${validCount}/${rasci.length} clusters met geldige RASCI`;
 }
 
 // --- Doel-voor-Doel Voortgang (Phase 6) ---

@@ -45,6 +45,9 @@ export const EffortStatusSchema = z.enum([
   "on_hold",
 ]);
 
+// Backward-compat graveyard: approval-velden blijven optioneel op DINEffort
+// zodat bestaande sessies hun data niet kwijtraken. Worden niet meer gebruikt
+// in UI of export sinds Phase 20 (roadmap-planning).
 export const ApprovalStatusSchema = z.enum([
   "voorstel",
   "goedgekeurd",
@@ -61,6 +64,7 @@ export const AppStepSchema = z.enum([
   "sectorwerk",
   "din-mapping",
   "cross-analyse",
+  "governance",
   "prioritering",
   "export",
 ]);
@@ -167,13 +171,13 @@ export const DINEffortSchema = z.object({
   status: EffortStatusSchema,
   dependencies: z.array(z.string()),
   votes: z.number().optional(),
-  opmerking: z.string().optional(),
-  approvalStatus: ApprovalStatusSchema.optional(),
-  approvalDate: z.string().optional(),
   dossier: InspanningsDossierSchema.optional(),
   consolidated: z.boolean().optional(),
   consolidatedInto: z.string().optional(),
   originProjectId: z.string().optional(), // Phase 14 D-09
+  approvalStatus: ApprovalStatusSchema.optional(),
+  approvalDate: z.string().optional(),
+  opmerking: z.string().optional(),
 });
 
 export const ExternalProjectSchema = z.object({
@@ -543,6 +547,29 @@ export const Stap5ResultSchema = z.object({
   samenvatting: z.string(),
 });
 
+// --- Planning & Roadmap (Phase 20: roadmap-planning obv cross-analyse) ---
+// AI-voorstel voor kwartaaltoewijzing en cluster-fasering; gevoed door Stap4Result
+// (subEffortAnalysis — geconsolideerde bundels per domein) en Stap5Result (prioriteitsview).
+export const PlanningVoorstelSchema = z.object({
+  inspanningPlanning: z.array(z.object({
+    inspanningId: z.string(),
+    voorgesteldKwartaal: z.string(),
+    beargumentatie: z.string(),
+    afhankelijkVan: z.array(z.string()).optional().default([]),
+  })).optional().default([]),
+  clusterFasering: z.array(z.object({
+    clusterTitel: z.string(),
+    domein: EffortDomainSchema,
+    fases: z.array(z.object({
+      periode: z.string(),   // bv "Q1-Q2 2026"
+      mijlpaal: z.string(),
+    })).optional().default([]),
+    risico: z.string().optional(),
+  })).optional().default([]),
+  samenvatting: z.string(),
+  gegenereerdOp: z.string().optional(),  // ISO date
+});
+
 export const CrossAnalyseWizardStateSchema = z.object({
   currentStep: z.number().min(1).max(6),
   completedSteps: z.array(z.number()),
@@ -554,6 +581,95 @@ export const CrossAnalyseWizardStateSchema = z.object({
     stap4: Stap4ResultSchema.optional(),
     stap5: Stap5ResultSchema.optional(),
   }).optional(),
+});
+
+// ============================================================
+// Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)
+// ============================================================
+
+export const ProgrammaRolSchema = z.object({
+  id: z.string(),
+  rol: z.string(),
+  naam: z.string().optional().default(""),
+  functie: z.string().optional().default(""),
+  sector: z.string().optional().default(""),
+  mandaat: z.string().optional().default(""),
+  toelichting: z.string().optional().default(""),
+});
+
+export const ProgrammaorganisatieSchema = z.object({
+  opdrachtgever: ProgrammaRolSchema.optional(),
+  programmamanager: ProgrammaRolSchema.optional(),
+  kerngroep: z.array(ProgrammaRolSchema).optional().default([]),
+  stuurgroep: z.array(ProgrammaRolSchema).optional().default([]),
+  klankbordgroep: z.array(ProgrammaRolSchema).optional().default([]),
+  domeineigenaren: z.array(ProgrammaRolSchema).optional().default([]),
+  besluitvormingsritme: z.string().optional().default(""),
+  escalatiepad: z.string().optional().default(""),
+  aiToelichting: z.string().optional().default(""),
+});
+
+export const RasciLetterSchema = z.enum(["R", "A", "S", "C", "I"]);
+
+export const RasciRijSchema = z.object({
+  rolId: z.string(),
+  letter: RasciLetterSchema,
+});
+
+export const RasciOnderdeelTypeSchema = z.enum(["benefit", "capability", "effort"]);
+export const RasciClusterTypeSchema = z.enum(["vermogen", "inspanning", "doel", "baat"]);
+
+export const RasciOverrideSchema = z.object({
+  onderdeelId: z.string(),
+  onderdeelType: RasciOnderdeelTypeSchema,
+  rijen: z.array(RasciRijSchema).optional().default([]),
+  reden: z.string().optional().default(""),
+});
+
+export const ClusterRasciSchema = z.object({
+  clusterTitel: z.string(),
+  clusterType: RasciClusterTypeSchema,
+  toelichting: z.string().optional().default(""),
+  rijen: z.array(RasciRijSchema).optional().default([]),
+  overrides: z.array(RasciOverrideSchema).optional().default([]),
+});
+
+// AI response schemas voor governance-mapping route
+export const AIProgrammaRolSchema = z.object({
+  rol: z.string().optional().default(""),
+  naam: z.string().optional().default(""),
+  functie: z.string().optional().default(""),
+  sector: z.string().optional().default(""),
+  mandaat: z.string().optional().default(""),
+  toelichting: z.string().optional().default(""),
+});
+
+export const AIProgrammaorganisatieSchema = z.object({
+  opdrachtgever: AIProgrammaRolSchema.optional(),
+  programmamanager: AIProgrammaRolSchema.optional(),
+  kerngroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  stuurgroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  klankbordgroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  domeineigenaren: z.array(AIProgrammaRolSchema).optional().default([]),
+  besluitvormingsritme: z.string().optional().default(""),
+  escalatiepad: z.string().optional().default(""),
+  aiToelichting: z.string().optional().default(""),
+});
+
+export const AIRasciRijSchema = z.object({
+  rolLabel: z.string(),
+  letter: RasciLetterSchema,
+});
+
+export const AIClusterRasciSchema = z.object({
+  clusterTitel: z.string(),
+  clusterType: RasciClusterTypeSchema,
+  toelichting: z.string().optional().default(""),
+  rijen: z.array(AIRasciRijSchema).optional().default([]),
+});
+
+export const AIGovernanceRasciResponseSchema = z.object({
+  clusters: z.array(AIClusterRasciSchema),
 });
 
 // ============================================================
@@ -590,6 +706,11 @@ export const DINSessionSchema = z.object({
   integratieAdvies: z.record(z.string(), z.unknown()).optional(),
   // Doel-voor-doel voortgang: welke doelen zijn afgerond
   completedGoals: z.array(z.string()).optional().default([]),
+  // Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)
+  programmaorganisatie: ProgrammaorganisatieSchema.optional(),
+  clusterRasci: z.array(ClusterRasciSchema).optional().default([]),
+  // Phase 20: AI-planning-voorstel (roadmap obv cross-analyse stap 6+7)
+  planningVoorstel: PlanningVoorstelSchema.optional(),
 });
 
 // ============================================================
@@ -978,3 +1099,15 @@ export type Stap3Result = z.infer<typeof Stap3ResultSchema>;
 export type Stap4Result = z.infer<typeof Stap4ResultSchema>;
 export type Stap5Result = z.infer<typeof Stap5ResultSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
+export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
+
+export type ProgrammaRol = z.infer<typeof ProgrammaRolSchema>;
+export type Programmaorganisatie = z.infer<typeof ProgrammaorganisatieSchema>;
+export type RasciLetter = z.infer<typeof RasciLetterSchema>;
+export type RasciRij = z.infer<typeof RasciRijSchema>;
+export type RasciOnderdeelType = z.infer<typeof RasciOnderdeelTypeSchema>;
+export type RasciClusterType = z.infer<typeof RasciClusterTypeSchema>;
+export type RasciOverride = z.infer<typeof RasciOverrideSchema>;
+export type ClusterRasci = z.infer<typeof ClusterRasciSchema>;
+export type AIProgrammaorganisatie = z.infer<typeof AIProgrammaorganisatieSchema>;
+export type AIGovernanceRasciResponse = z.infer<typeof AIGovernanceRasciResponseSchema>;

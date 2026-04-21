@@ -677,14 +677,147 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
   );
 
   // Goedkeuringsstatus inspanningen
-  const approvedEfforts = session.efforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel");
+  const approvedEfforts = session.efforts.filter((e) => {
+    const a = (e as unknown as { approvalStatus?: string }).approvalStatus;
+    return a && a !== "voorstel";
+  });
+
+  const po = session.programmaorganisatie;
+  const clusterRasci = session.clusterRasci ?? [];
+  const allRollen: Array<{
+    id: string;
+    rol: string;
+    naam?: string;
+    sector?: string;
+    mandaat?: string;
+    groep: string;
+  }> = [];
+  if (po) {
+    if (po.opdrachtgever) allRollen.push({ ...po.opdrachtgever, groep: "Opdrachtgever" });
+    if (po.programmamanager) allRollen.push({ ...po.programmamanager, groep: "Programmamanager" });
+    for (const r of po.kerngroep ?? []) allRollen.push({ ...r, groep: "Kerngroep" });
+    for (const r of po.stuurgroep ?? []) allRollen.push({ ...r, groep: "Stuurgroep" });
+    for (const r of po.domeineigenaren ?? []) allRollen.push({ ...r, groep: "Domeineigenaar" });
+    for (const r of po.klankbordgroep ?? []) allRollen.push({ ...r, groep: "Klankbordgroep" });
+  }
+  const rolMap = new Map(allRollen.map((r) => [r.id, r]));
 
   return (
     <Section title="Governance & Monitoring" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        Overzicht van verantwoordelijkheden voor batenrealisatie, meetmomenten en goedkeuringsstatus
-        van inspanningen.
+        Programmaorganisatie, RASCI-verantwoordelijkheden per hoofdthema, bateneigenaarschap en
+        monitoring. Conform &quot;Werken aan Programma&apos;s&quot;, Hfst 6.
       </p>
+
+      {/* Programmaorganisatie */}
+      {po && allRollen.length > 0 && (
+        <SubSection title="Programmaorganisatie">
+          {po.aiToelichting && (
+            <p className="text-xs text-gray-600 italic mb-3">{po.aiToelichting}</p>
+          )}
+          <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-2 text-left font-bold text-gray-600 w-36">Gremium</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Rol</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600 w-24">Sector</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">Mandaat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allRollen.map((r, i) => (
+                  <tr key={r.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
+                    <td className="px-3 py-2 font-medium text-gray-700">{r.groep}</td>
+                    <td className="px-3 py-2 text-gray-800">
+                      <div className="font-medium">{r.rol}</div>
+                      {r.naam && <div className="text-[10px] text-gray-500">{r.naam}</div>}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{r.sector || "\u2014"}</td>
+                    <td className="px-3 py-2 text-gray-600">{r.mandaat || "\u2014"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {(po.besluitvormingsritme || po.escalatiepad) && (
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {po.besluitvormingsritme && (
+                <div className="p-3 rounded border border-gray-200 bg-gray-50">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-500 font-bold mb-1">
+                    Besluitvormingsritme
+                  </div>
+                  <div className="text-xs text-gray-700">{po.besluitvormingsritme}</div>
+                </div>
+              )}
+              {po.escalatiepad && (
+                <div className="p-3 rounded border border-gray-200 bg-gray-50">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-500 font-bold mb-1">
+                    Escalatiepad
+                  </div>
+                  <div className="text-xs text-gray-700">{po.escalatiepad}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </SubSection>
+      )}
+
+      {/* RASCI per hoofdthema */}
+      {clusterRasci.length > 0 && (
+        <SubSection title="RASCI per hoofdthema">
+          <p className="text-xs text-gray-500 mb-2">
+            Verantwoordelijkheidsverdeling per cross-sectoraal cluster — wet die geldt voor alle
+            onderliggende baten, vermogens en inspanningen binnen dat cluster.
+          </p>
+          <div className="space-y-3">
+            {clusterRasci.map((c) => {
+              const nA = c.rijen.filter((x) => x.letter === "A").length;
+              const nR = c.rijen.filter((x) => x.letter === "R").length;
+              const valid = nA === 1 && nR >= 1;
+              const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [] };
+              for (const rij of c.rijen) {
+                const rol = rolMap.get(rij.rolId);
+                if (rol) perLetter[rij.letter].push(rol.rol);
+              }
+              return (
+                <div key={c.clusterTitel} className="border border-gray-200 rounded overflow-hidden">
+                  <div className={`px-3 py-2 border-b flex items-center justify-between ${c.clusterType === "vermogen" ? "bg-indigo-50" : "bg-teal-50"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] uppercase tracking-wide font-bold px-1.5 py-0.5 rounded ${c.clusterType === "vermogen" ? "bg-indigo-200 text-indigo-900" : "bg-teal-200 text-teal-900"}`}>
+                        {c.clusterType}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-800">{c.clusterTitel}</span>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border ${valid ? "bg-green-50 text-green-800 border-green-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
+                      {valid ? "✓ Geldig" : `${nA} A, ${nR} R`}
+                    </span>
+                  </div>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      {(["A", "R", "S", "C", "I"] as const).map((letter) => (
+                        <tr key={letter} className="border-b border-gray-100 last:border-b-0">
+                          <td className="px-3 py-1.5 w-10 font-bold text-center text-gray-700 bg-gray-50 border-r border-gray-100">
+                            {letter}
+                          </td>
+                          <td className="px-3 py-1.5 text-gray-700">
+                            {perLetter[letter].length > 0 ? perLetter[letter].join("; ") : <span className="text-gray-400 italic">{"\u2014"}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {c.toelichting && (
+                    <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 text-[11px] text-gray-600 italic">
+                      {c.toelichting}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </SubSection>
+      )}
 
       {/* Bateneigenaren */}
       <SubSection title="Bateneigenaren">
@@ -745,6 +878,7 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
         <SubSection title="Goedkeuringsstatus inspanningen">
           <div className="space-y-1">
             {approvedEfforts.map((e) => {
+              const extra = e as unknown as { approvalStatus?: string; approvalDate?: string };
               const statusColors: Record<string, string> = {
                 goedgekeurd: "bg-emerald-100 text-emerald-700",
                 afgewezen: "bg-red-100 text-red-700",
@@ -752,11 +886,11 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
               };
               return (
                 <div key={e.id} className="flex items-center gap-2 text-xs">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[e.approvalStatus!] || "bg-gray-100 text-gray-600"}`}>
-                    {e.approvalStatus}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[extra.approvalStatus ?? ""] || "bg-gray-100 text-gray-600"}`}>
+                    {extra.approvalStatus}
                   </span>
                   <span className="text-gray-600">[{e.sectorId}] {e.title || e.description}</span>
-                  {e.approvalDate && <span className="text-gray-400">({e.approvalDate})</span>}
+                  {extra.approvalDate && <span className="text-gray-400">({extra.approvalDate})</span>}
                 </div>
               );
             })}

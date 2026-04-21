@@ -46,6 +46,17 @@ export type {
   Stap4Result,
   Stap5Result,
   CrossAnalyseWizardState,
+  PlanningVoorstel,
+  ProgrammaRol,
+  Programmaorganisatie,
+  RasciLetter,
+  RasciRij,
+  RasciOverride,
+  ClusterRasci,
+  RasciOnderdeelType,
+  RasciClusterType,
+  AIProgrammaorganisatie,
+  AIGovernanceRasciResponse,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder
@@ -125,9 +136,45 @@ export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "sectorwerk", label: "Sectorwerk", nummer: 2 },
   { key: "din-mapping", label: "DIN-Mapping", nummer: 3 },
   { key: "cross-analyse", label: "Cross-analyse", nummer: 4 },
-  { key: "prioritering", label: "Planning & Goedkeuring", nummer: 5 },
-  { key: "export", label: "Export", nummer: 6 },
+  { key: "governance", label: "Programmaorganisatie", nummer: 5 },
+  { key: "prioritering", label: "Roadmap & Planning", nummer: 6 },
+  { key: "export", label: "Export", nummer: 7 },
 ];
+
+// --- Domein-kleuren voor roadmap-visualisatie ---
+
+export const DOMAIN_COLORS: Record<EffortDomain, { bar: string; bg: string; text: string; border: string }> = {
+  mens: { bar: "#2563eb", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  processen: { bar: "#059669", bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  data_systemen: { bar: "#7c3aed", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  cultuur: { bar: "#d97706", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+};
+
+// --- RASCI labels (single source of truth) ---
+
+export const RASCI_LABELS: Record<"R" | "A" | "S" | "C" | "I", string> = {
+  R: "Responsible",
+  A: "Accountable",
+  S: "Supportive",
+  C: "Consulted",
+  I: "Informed",
+};
+
+export const RASCI_TOELICHTING: Record<"R" | "A" | "S" | "C" | "I", string> = {
+  R: "Voert het werk uit",
+  A: "Eindverantwoordelijk (exact 1 per regel)",
+  S: "Ondersteunt actief de uitvoering",
+  C: "Wordt vooraf geraadpleegd",
+  I: "Wordt geïnformeerd over voortgang",
+};
+
+export const RASCI_KLEUREN: Record<"R" | "A" | "S" | "C" | "I", string> = {
+  R: "bg-blue-100 text-blue-800 border-blue-300",
+  A: "bg-amber-100 text-amber-900 border-amber-400 font-bold",
+  S: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  C: "bg-purple-50 text-purple-700 border-purple-200",
+  I: "bg-gray-100 text-gray-600 border-gray-300",
+};
 
 // --- Integratie-advies gestructureerd resultaat ---
 

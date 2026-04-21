@@ -913,17 +913,126 @@ function hefboomSection(session: DINSession, numState: NumberingState) {
 }
 
 function governanceSection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
-  if (session.benefits.length === 0) return null;
+  const hasGovernanceData =
+    session.benefits.length > 0 ||
+    session.programmaorganisatie ||
+    (session.clusterRasci ?? []).length > 0;
+  if (!hasGovernanceData) return null;
 
   const children: (Paragraph | Table)[] = [];
 
   children.push(numberedHeading("Governance & Monitoring", "h1", numState));
   children.push(bodyText(
-    "Overzicht van verantwoordelijkheden voor batenrealisatie, meetmomenten en goedkeuringsstatus " +
-    "van inspanningen.",
+    "Programmaorganisatie, RASCI-verantwoordelijkheden per hoofdthema, bateneigenaarschap en " +
+    "monitoring. Conform \"Werken aan Programma's\", Hoofdstuk 6.",
     { color: TEXT_SECONDARY, size: 20 }
   ));
   children.push(emptyLine());
+
+  // Programmaorganisatie
+  const po = session.programmaorganisatie;
+  const allRollen: Array<{ id: string; groep: string; rol: string; naam?: string; sector?: string; mandaat?: string }> = [];
+  if (po) {
+    if (po.opdrachtgever) allRollen.push({ ...po.opdrachtgever, groep: "Opdrachtgever" });
+    if (po.programmamanager) allRollen.push({ ...po.programmamanager, groep: "Programmamanager" });
+    for (const r of po.kerngroep ?? []) allRollen.push({ ...r, groep: "Kerngroep" });
+    for (const r of po.stuurgroep ?? []) allRollen.push({ ...r, groep: "Stuurgroep" });
+    for (const r of po.domeineigenaren ?? []) allRollen.push({ ...r, groep: "Domeineigenaar" });
+    for (const r of po.klankbordgroep ?? []) allRollen.push({ ...r, groep: "Klankbordgroep" });
+  }
+
+  if (po && allRollen.length > 0) {
+    children.push(subHeading("Programmaorganisatie"));
+    if (po.aiToelichting) {
+      children.push(bodyText(po.aiToelichting, { italic: true, color: TEXT_SECONDARY, size: 20 }));
+      children.push(emptyLine());
+    }
+
+    const rolRows = allRollen.map(
+      (r) =>
+        new TableRow({
+          children: [
+            styledCell(r.groep, { bold: true, width: 18 }),
+            styledCell(`${r.rol}${r.naam ? ` \u2014 ${r.naam}` : ""}`, { width: 32 }),
+            styledCell(r.sector || "\u2014", { width: 15 }),
+            styledCell(r.mandaat || "\u2014", { width: 35 }),
+          ],
+        })
+    );
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Gremium", 18),
+              headerCell("Rol", 32),
+              headerCell("Sector", 15),
+              headerCell("Mandaat", 35),
+            ],
+          }),
+          ...rolRows,
+        ],
+      })
+    );
+    children.push(emptyLine());
+
+    if (po.besluitvormingsritme) {
+      children.push(bodyText(`Besluitvormingsritme: ${po.besluitvormingsritme}`, { size: 20 }));
+    }
+    if (po.escalatiepad) {
+      children.push(bodyText(`Escalatiepad: ${po.escalatiepad}`, { size: 20 }));
+    }
+    children.push(emptyLine());
+  }
+
+  // RASCI per hoofdthema
+  const clusterRasci = session.clusterRasci ?? [];
+  const rolMap = new Map(allRollen.map((r) => [r.id, r]));
+  if (clusterRasci.length > 0) {
+    children.push(subHeading("RASCI per hoofdthema"));
+    children.push(
+      bodyText(
+        "Verantwoordelijkheidsverdeling per cross-sectoraal cluster \u2014 geldt voor alle onderliggende baten, vermogens en inspanningen binnen dat cluster.",
+        { color: TEXT_SECONDARY, size: 20 }
+      )
+    );
+    children.push(emptyLine());
+
+    for (const c of clusterRasci) {
+      const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [] };
+      for (const rij of c.rijen) {
+        const rol = rolMap.get(rij.rolId);
+        if (rol) perLetter[rij.letter].push(rol.rol);
+      }
+      children.push(
+        bodyText(`${c.clusterType === "vermogen" ? "Vermogen-cluster" : "Inspanning-cluster"}: ${c.clusterTitel}`, { bold: true, size: 22 })
+      );
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [headerCell("Rol", 12), headerCell("Invullers", 88)],
+            }),
+            ...(["A", "R", "S", "C", "I"] as const).map(
+              (letter) =>
+                new TableRow({
+                  children: [
+                    styledCell(letter, { bold: true, width: 12, shading: CITO_BLUE_LIGHT, color: CITO_BLUE }),
+                    styledCell(perLetter[letter].length > 0 ? perLetter[letter].join("; ") : "\u2014", { width: 88 }),
+                  ],
+                })
+            ),
+          ],
+        })
+      );
+      if (c.toelichting) {
+        children.push(bodyText(`Toelichting: ${c.toelichting}`, { italic: true, color: TEXT_SECONDARY, size: 20 }));
+      }
+      children.push(emptyLine());
+    }
+  }
 
   // Bateneigenaren aggregeren
   const eigenaarMap: Record<string, { baten: string[]; sectors: Set<string> }> = {};

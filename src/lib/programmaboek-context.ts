@@ -245,3 +245,71 @@ Van der Molen (2013) reikt een mooie visualisatie aan die batenmanagement positi
 FIGUUR 8.1 Batenmanagement binnen de context van een visie (Van der Molen, 2013)
 Synoniemen voor baten
 Niet overal valt het begrip 'baten' even lekker, bijvoorbeeld omdat het vooral wordt geassocieerd met kosten-batenanalyses (en dus wordt gezien als iets financieels) of omdat het wordt ervaren als bedrijfsjargon. 'Gewenste effecten', 'operationele doelen' of 'voordelen' zijn alternatieven, net als 'prestatie-indicatoren' of 'indicatoren van succes'.`;
+
+/** Sectie 6: Programmaorganisatie, rollen, mandaten en RASCI-verantwoordelijkheden */
+export const PROGRAMMABOEK_PROGRAMMAORGANISATIE = `Hoofdstuk 6 — Programmaorganisatie (Wijnen & Van der Tak; Prevaas & Van Loon)
+
+Een programma is per definitie tijdelijk en sectoroverstijgend. De staande organisatie is ingericht op de operatie, dus voor het programma wordt een aparte, tijdelijke organisatiestructuur opgezet die eindigt zodra de baten zijn gerealiseerd. Deze programmaorganisatie zorgt ervoor dat beslissingen snel én op het juiste niveau kunnen worden genomen, zonder dat de lijnorganisatie belemmerd raakt.
+
+Kernrollen en hun mandaten:
+
+1. Opdrachtgever (enkelvoud)
+   - Eindverantwoordelijk voor het gehele programma: draagt het business belang, geeft opdracht, keurt de programmadefinitie en belangrijke wijzigingen goed, en accepteert de baten na afloop.
+   - Bezit voldoende mandaat, budget en gezag om besluiten over sectoren en afdelingen heen af te dwingen.
+   - Rapporteert aan bestuur of directie; heeft de opdracht aan de programmamanager gegeven.
+   - Eén persoon — collectief opdrachtgeverschap leidt tot onduidelijkheid en vertraging.
+
+2. Programmamanager
+   - Dagelijkse leiding van het programma: stuurt op samenhang tussen inspanningen, bewaakt batenrealisatie, beheert risico's, budget en planning.
+   - Rapporteert aan de opdrachtgever; aangesteld door de opdrachtgever.
+   - Leidt de kerngroep; agendeert de stuurgroep.
+
+3. Kerngroep (programmateam)
+   - Het operationele hart van het programma: bestaat uit de programmamanager plus een beperkt aantal (4–7) trekkers van de belangrijkste inspanningsclusters of vermogens.
+   - Komt frequent bijeen (wekelijks of tweewekelijks) — operationele besluitvorming, voortgang, escalaties.
+   - Leden zijn inspanningsleiders of domeineigenaren; zij hebben uitvoerend mandaat binnen hun scope.
+   - De kerngroep is géén stuurgroep — het is de plek waar het werk wordt gecoördineerd.
+
+4. Stuurgroep
+   - Strategische sturing: bewaakt samenhang met de organisatiestrategie, weegt scope-wijzigingen, escalaties, en batenrealisatie op programmaniveau.
+   - Bestaat uit de opdrachtgever (voorzitter), de programmamanager (secretaris), en 3–6 senior stakeholders (bijv. sectordirecteuren, CFO, CIO) die mandaat hebben over de sectoren waarin het programma ingrijpt.
+   - Komt periodiek bijeen (maandelijks of per kwartaal).
+   - Keurt go/no-go momenten, grote budgetmutaties en majeure wijzigingen goed.
+
+5. Klankbordgroep (optioneel)
+   - Informele adviesfunctie: denkt mee, geeft reflectie, toetst draagvlak — zonder besluitvormingsmandaat.
+   - Bestaat uit ervaringsdeskundigen, externen, of belanghebbenden die niet in de uitvoering zitten.
+
+6. Domeineigenaren
+   - Verantwoordelijk voor de uitbouw van één vermogen- of inspanningsdomein (bijv. Mens & Vaardigheden, Processen, Data & Systemen, Cultuur).
+   - Rapporteren aan de programmamanager; zitten meestal in de kerngroep.
+   - Coördineren alle inspanningen binnen hun domein en waarborgen de samenhang.
+
+7. Bateneigenaren (volgen uit Hfst 8.5)
+   - Eén persoon per baat die eindverantwoordelijk is voor de realisatie daarvan.
+   - Vaak een lijnmanager uit de staande organisatie — zit niet per se in de programmaorganisatie, maar is wel onmisbaar bij de overdracht naar de operatie.
+
+8. Inspanningsleiders (volgen uit Hfst 11.3 — inspanningendossier)
+   - Trekker van één specifieke inspanning of cluster — de "projectmanager" binnen het programma.
+   - Rapporteert aan een domeineigenaar of direct aan de programmamanager.
+   - Valt onder aansturing van de opdrachtgever van díé inspanning (vaak een domeineigenaar of bateneigenaar).
+
+Besluitvormingsritme en escalatiepad:
+- Elke programmaorganisatie kent een expliciet ritme: hoe vaak komt kerngroep, stuurgroep en klankbordgroep bijeen, en welk besluittype hoort bij welk gremium.
+- Escalatiepad: inspanningsleider → domeineigenaar → programmamanager → stuurgroep → opdrachtgever → bestuur. Expliciet maken voorkomt dat beslissingen blijven hangen.
+
+RASCI — het toewijzen van verantwoordelijkheden:
+RASCI is een methodiek om per taak, product of cluster helder vast te leggen wie welke rol heeft. De vijf letters:
+- R (Responsible) — voert het werk uit; kan meerdere personen zijn.
+- A (Accountable) — eindverantwoordelijk voor het resultaat; exact één persoon per regel (essentiële regel: nooit twee A's, anders is niemand verantwoordelijk).
+- S (Supportive) — ondersteunt de uitvoering actief met middelen, capaciteit of kennis.
+- C (Consulted) — wordt vóór het besluit of de uitvoering geraadpleegd (tweezijdige communicatie).
+- I (Informed) — wordt over de uitkomst geïnformeerd (eenzijdige communicatie).
+
+Toepassingsregels:
+- Per regel (= per cluster, baat of inspanning): exact 1 A, minstens 1 R, S/C/I naar behoefte.
+- RASCI wordt bij voorkeur op clusterniveau gedefinieerd — hetzelfde cluster baten/vermogens/inspanningen kent dezelfde verantwoordelijkheidsverdeling. Alleen bij uitzondering wordt per individueel onderdeel afgeweken.
+- De RASCI-matrix hoort bij het programmaplan en wordt samen met de programmaorganisatie geagendeerd bij de eerste stuurgroep.
+- In cross-sectorale programma's is RASCI cruciaal omdat meerdere sectoren aanspraak kunnen maken op hetzelfde resultaat.
+
+Cito-specifiek: in een programma dat drie sectoren overstijgt (PO, VO, Zakelijk) geldt altijd één programma-opdrachtgever boven de sectordirecteuren; de kerngroep is paritair samengesteld zodat geen sector dominant wordt; per domein (Mens / Processen / Data & Systemen / Cultuur) wordt één domeineigenaar aangewezen die de samenhang over de drie sectoren bewaakt.`;

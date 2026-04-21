@@ -82,6 +82,7 @@ export default function Home() {
       capabilityEffortMaps: [],
       projectCapabilityMaps: [],
       completedGoals: [],
+      clusterRasci: [],
     };
     saveLocal(`session_${id}`, session);
     // D-06: sync new session to Supabase for backup/recovery

@@ -18,6 +18,7 @@ import {
   PROGRAMMABOEK_BATENPROFIEL,
   PROGRAMMABOEK_VERMOGENS_ASPECTEN,
   PROGRAMMABOEK_CROSS_ANALYSE,
+  PROGRAMMABOEK_PROGRAMMAORGANISATIE,
 } from "./programmaboek-context";
 import { CITO_STRATEGISCH_FUNDAMENT, CITO_STRATEGISCH_FUNDAMENT_KORT } from "./cito-context";
 
@@ -37,7 +38,9 @@ export type ProgrammaboekUseCase =
   | "inspanning-create"
   | "domain-recommend"
   | "batenprofiel"
-  | "cross-analyse";
+  | "cross-analyse"
+  | "governance-organisatie"
+  | "governance-rasci";
 
 /**
  * Vaste mapping van AI use case naar programmaboek-secties (D-03).
@@ -70,6 +73,10 @@ const USE_CASE_CONTEXT_MAP: Record<ProgrammaboekUseCase, string> = {
 
   // Cross-analyse: DIN samenhang + baten definitie
   "cross-analyse": PROGRAMMABOEK_CROSS_ANALYSE,
+
+  // Governance: Hfst 6 programmaorganisatie + RASCI
+  "governance-organisatie": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
+  "governance-rasci": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
 };
 
 /**
@@ -393,7 +400,7 @@ export function assembleSystemPrompt(
   // Niet leidend (programmaboek-methodiek blijft primair), maar AI moet toetsen
   // of het voorstel past binnen de Cito-brede strategie, positionering en kaders.
   const citoBlock =
-    useCase === "cross-analyse"
+    useCase === "cross-analyse" || useCase === "governance-organisatie" || useCase === "governance-rasci"
       ? `
 
 ---

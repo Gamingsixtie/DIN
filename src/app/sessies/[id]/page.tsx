@@ -10,6 +10,7 @@ import ImportStep from "@/components/steps/ImportStep";
 import SectorWerkStep from "@/components/steps/SectorWerkStep";
 import CrossAnalyseStep from "@/components/steps/CrossAnalyseStep";
 import DINMappingStep from "@/components/steps/DINMappingStep";
+import GovernanceStep from "@/components/steps/GovernanceStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
 
@@ -23,6 +24,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <DINMappingStep />;
     case "cross-analyse":
       return <CrossAnalyseStep />;
+    case "governance":
+      return <GovernanceStep />;
     case "prioritering":
       return <PrioriteringStep />;
     case "export":
