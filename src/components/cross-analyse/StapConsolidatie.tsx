@@ -73,6 +73,17 @@ const DOMEIN_META: Record<string, { label: string; bg: string; text: string; bor
 
 const DOMEIN_ORDER = ["mens", "processen", "data_systemen", "cultuur"] as const;
 
+// Outside-in-volgorde (5.1/6.4): cultuur eerst (bereidheid) → mens (competenties) →
+// processen (volgen uit vragen) → data/systemen (CRM ingeregeld op vragen).
+const OUTSIDE_IN_DOMEIN_ORDER = ["cultuur", "mens", "processen", "data_systemen"] as const;
+
+const OUTSIDE_IN_UITLEG: Record<string, string> = {
+  cultuur: "Waar het begint — zijn medewerkers bereid outside-in te werken?",
+  mens: "Competenties + gespreksvaardigheid — kan starten los van systemen.",
+  processen: "Volgen uit de vragen die medewerkers leren stellen.",
+  data_systemen: "CRM wordt ingeregeld op wat er genoteerd moet worden.",
+};
+
 export default function StapConsolidatie({
   session,
   stap2Result,
@@ -426,114 +437,243 @@ Antwoord in het Nederlands.`,
         </div>
       )}
 
-      {/* Stap 5 consolidatie — volledige uitwerking van de 4 cross-sectorale inspanningen per domein */}
-      {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (
-        <>
-          <div className="bg-[#003366] text-white rounded-lg p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
-              Geconsolideerde cross-sectorale inspanningen
-            </p>
-            <h4 className="text-base font-semibold mb-2">
-              {stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length} inspanningen klaar voor optimalisatie (stap 6)
-            </h4>
-            <p className="text-sm text-blue-100 leading-relaxed">
-              Volledige uitwerking per domein hieronder. Klik <strong>Volgende</strong> om ze te verfijnen in stap 6.
-            </p>
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(["mens", "processen", "data_systemen", "cultuur"] as const).map((dom) => {
-                const count = stap4Result.subEffortAnalysis.filter(
-                  (e) => e.domein === dom && e.actie === "combineren"
-                ).length;
-                const meta = DOMEIN_META[dom];
-                return (
-                  <div key={dom} className="bg-white/10 border border-white/20 rounded px-2 py-1.5 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">{meta.label}</p>
-                    <p className="text-lg font-semibold">{count}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* Stap 5 Consolidatierapport — één doorlopend overzicht per VermogenGelijkenisGroep */}
+      {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (() => {
+        // Groepeer sub-effort entries per groepId (niet per domein) zodat we per
+        // VermogenGelijkenisGroep één sectie krijgen met daarbinnen de 4 domein-bundels.
+        const entriesByGroep = new Map<string, typeof stap4Result.subEffortAnalysis>();
+        for (const e of stap4Result.subEffortAnalysis) {
+          const list = entriesByGroep.get(e.groepId) ?? [];
+          list.push(e);
+          entriesByGroep.set(e.groepId, list);
+        }
+        const gelijkenisGroepen = stap2Result?.vermogenGelijkenisGroepen ?? [];
 
-          {/* Rijke uitwerking per domein — read-only view, gedetailleerd zoals stap 6 maar zonder edits */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {stap4Result.subEffortAnalysis.map((entry, i) => {
-              const meta = DOMEIN_META[entry.domein];
+        // Totalen voor de banner
+        const combinerenCount = stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length;
+
+        return (
+          <>
+            {/* Banner — consolidatierapport intro */}
+            <div className="bg-[#003366] text-white rounded-lg p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
+                Consolidatierapport
+              </p>
+              <h4 className="text-base font-semibold mb-2">
+                {combinerenCount} cross-sectorale inspanningen gebundeld over {entriesByGroep.size} gedeeld{entriesByGroep.size === 1 ? "" : "e"} vermogen{entriesByGroep.size === 1 ? "" : "s"}
+              </h4>
+              <p className="text-sm text-blue-100 leading-relaxed">
+                Per gedeeld vermogen zie je welke originele inspanningen samengaan, waarom ze gebundeld worden en welk vermogen ze per sector opbouwen. Onderaan staan losse inspanningen en de programma-brede rode draad per domein.
+              </p>
+            </div>
+
+            {/* Per VermogenGelijkenisGroep: titel + 4 domein-kaarten */}
+            {Array.from(entriesByGroep.entries()).map(([groepId, groepEntries]) => {
+              const groep = gelijkenisGroepen.find((g) => g.id === groepId);
+              // Sorteer entries binnen de groep outside-in
+              const sortedEntries = [...groepEntries].sort(
+                (a, b) =>
+                  OUTSIDE_IN_DOMEIN_ORDER.indexOf(a.domein as (typeof OUTSIDE_IN_DOMEIN_ORDER)[number]) -
+                  OUTSIDE_IN_DOMEIN_ORDER.indexOf(b.domein as (typeof OUTSIDE_IN_DOMEIN_ORDER)[number])
+              );
+
               return (
-                <div key={i} className={`border ${meta.border} ${meta.bg} rounded-lg p-4`}>
-                  <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                    <p className={`text-[10px] font-bold uppercase tracking-wider ${meta.text}`}>
-                      {meta.label}
+                <div key={groepId} className="space-y-3">
+                  {/* Kop van de gelijkenisgroep */}
+                  <div className="bg-white border border-[#003366]/20 rounded-lg p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#003366] mb-1">
+                      Gedeeld vermogen
                     </p>
-                    <span
-                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                        entry.actie === "combineren"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {entry.actie === "combineren" ? "Combineren" : "Apart"}
-                    </span>
+                    <h5 className="text-sm font-semibold text-gray-900 leading-snug">
+                      {groep?.gezamenlijkeOmschrijving ?? "Gedeeld vermogen zonder omschrijving"}
+                    </h5>
+                    {groep?.reden && (
+                      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
+                        <span className="font-semibold">Waarom deze drieluik: </span>
+                        {groep.reden}
+                      </p>
+                    )}
                   </div>
-                  {(entry.titel || entry.voorgesteldeNaam) && (
-                    <h4 className="text-sm font-semibold text-[#003366] mb-2 leading-snug">
-                      {entry.titel || entry.voorgesteldeNaam}
-                    </h4>
-                  )}
-                  {entry.beschrijving && (
-                    <p className="text-[13px] text-gray-700 leading-relaxed mb-3">{entry.beschrijving}</p>
-                  )}
-                  {entry.beargumentatie && (
-                    <section className="mb-3 pt-3 border-t border-gray-200">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                        Waarom cross-sectoraal opbouwen?
-                      </p>
-                      <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beargumentatie}</p>
-                    </section>
-                  )}
-                  {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
-                    <section className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        Vermogen-impact per sector
-                      </p>
-                      <ul className="space-y-1.5">
-                        {entry.vermogenImpact.map((v, j) => (
-                          <li key={j} className="text-[12px] text-gray-700 leading-snug">
-                            <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                  {entry.dossier && (
-                    <section className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        Inspanningendossier
-                      </p>
-                      <dl className="space-y-1.5">
-                        {([
-                          ["Opdrachtgever", entry.dossier.eigenaar],
-                          ["Inspanningsleider", entry.dossier.inspanningsleider],
-                          ["Huidige situatie → verwacht resultaat", entry.dossier.verwachtResultaat],
-                          ["Kostenraming", entry.dossier.kostenraming],
-                          ["Randvoorwaarden / hoe we meten", entry.dossier.randvoorwaarden],
-                        ] as const).map(([label, value]) =>
-                          value && value.length > 0 ? (
-                            <div key={label} className="grid grid-cols-[150px_1fr] gap-2 text-[12px]">
-                              <dt className="font-semibold text-gray-500">{label}</dt>
-                              <dd className="text-gray-700 leading-snug">{value}</dd>
-                            </div>
-                          ) : null
-                        )}
-                      </dl>
-                    </section>
-                  )}
+
+                  {/* 4 domein-kaarten in outside-in volgorde */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {sortedEntries.map((entry, i) => {
+                      const meta = DOMEIN_META[entry.domein];
+                      // Zoek originele efforts die in deze bundel zitten — dit is de combinatie-uitleg
+                      const bronEfforts = entry.items
+                        .map((effortId) => session.efforts.find((e) => e.id === effortId))
+                        .filter((e): e is NonNullable<typeof e> => Boolean(e));
+
+                      return (
+                        <div key={i} className={`border ${meta.border} ${meta.bg} rounded-lg p-4`}>
+                          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                            <p className={`text-[10px] font-bold uppercase tracking-wider ${meta.text}`}>
+                              {meta.label}
+                            </p>
+                            <span
+                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                entry.actie === "combineren"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {entry.actie === "combineren" ? "Combineren" : "Apart houden"}
+                            </span>
+                          </div>
+                          {/* Outside-in mini-uitleg per domein */}
+                          <p className="text-[10px] text-gray-500 italic mb-2 leading-snug">
+                            {OUTSIDE_IN_UITLEG[entry.domein]}
+                          </p>
+
+                          {(entry.titel || entry.voorgesteldeNaam) && (
+                            <h4 className="text-sm font-semibold text-[#003366] mb-2 leading-snug">
+                              {entry.titel || entry.voorgesteldeNaam}
+                            </h4>
+                          )}
+
+                          {/* Combinatie-uitleg: welke originele inspanningen worden gebundeld */}
+                          {bronEfforts.length > 0 && (
+                            <section className="mb-3 bg-white/70 border border-gray-200 rounded p-2.5">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                                Dit cluster bundelt {bronEfforts.length} inspanning{bronEfforts.length === 1 ? "" : "en"}
+                              </p>
+                              <ul className="space-y-1">
+                                {bronEfforts.map((eff) => (
+                                  <li key={eff.id} className="text-[11px] text-gray-700 leading-snug">
+                                    <span className="inline-block text-[9px] font-semibold px-1 py-0.5 rounded bg-gray-100 text-gray-600 mr-1">
+                                      {eff.sectorId}
+                                    </span>
+                                    {eff.title || eff.description}
+                                  </li>
+                                ))}
+                              </ul>
+                            </section>
+                          )}
+
+                          {/* Wat wordt er gedaan */}
+                          {entry.beschrijving && (
+                            <section className="mb-3">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                Wat wordt er gedaan
+                              </p>
+                              <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beschrijving}</p>
+                            </section>
+                          )}
+
+                          {/* Onderbouwing — waarom dit cluster (voorheen "Beargumentatie") */}
+                          {entry.beargumentatie && (
+                            <section className="mb-3 pt-3 border-t border-gray-200">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                Onderbouwing — waarom dit cluster
+                              </p>
+                              <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beargumentatie}</p>
+                            </section>
+                          )}
+
+                          {/* Welk vermogen bouwt dit op (per sector) */}
+                          {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
+                            <section className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                Welk vermogen bouwt dit op (per sector)
+                              </p>
+                              <ul className="space-y-1.5">
+                                {entry.vermogenImpact.map((v, j) => (
+                                  <li key={j} className="text-[12px] text-gray-700 leading-snug">
+                                    <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
+                                  </li>
+                                ))}
+                              </ul>
+                            </section>
+                          )}
+
+                          {/* Inspanningsdossier — uitklapbaar */}
+                          {entry.dossier && (
+                            <details className="mt-3 pt-3 border-t border-gray-200">
+                              <summary className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 cursor-pointer">
+                                Eigenaar, leider, kosten, randvoorwaarden
+                              </summary>
+                              <dl className="mt-2 space-y-1.5">
+                                {([
+                                  ["Eigenaar", entry.dossier.eigenaar],
+                                  ["Inspanningsleider", entry.dossier.inspanningsleider],
+                                  ["Verwacht resultaat", entry.dossier.verwachtResultaat],
+                                  ["Kostenraming", entry.dossier.kostenraming],
+                                  ["Randvoorwaarden", entry.dossier.randvoorwaarden],
+                                ] as const).map(([label, value]) =>
+                                  value && value.length > 0 ? (
+                                    <div key={label} className="grid grid-cols-[140px_1fr] gap-2 text-[12px]">
+                                      <dt className="font-semibold text-gray-500">{label}</dt>
+                                      <dd className="text-gray-700 leading-snug">{value}</dd>
+                                    </div>
+                                  ) : null
+                                )}
+                              </dl>
+                            </details>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
-          </div>
-        </>
-      )}
+
+            {/* Losse inspanningen — niet in een gelijkenisgroep maar wél meegenomen */}
+            {(() => {
+              const bundeledEffortIds = new Set<string>();
+              for (const e of stap4Result.subEffortAnalysis) {
+                for (const id of e.items) bundeledEffortIds.add(id);
+              }
+              const losseEfforts = session.efforts.filter(
+                (ef) => !ef.consolidated && !bundeledEffortIds.has(ef.id)
+              );
+              if (losseEfforts.length === 0) return null;
+
+              return (
+                <div className="space-y-3">
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700">
+                      Losse inspanningen
+                      <span className="ml-2 text-xs font-normal text-gray-400">
+                        · {losseEfforts.length} staan op zichzelf
+                      </span>
+                    </h5>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Geen sectorgelijkenis gevonden — deze inspanningen blijven sectoraal maar worden wel meegenomen in de prioritering.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {losseEfforts.map((eff) => {
+                      const meta = DOMEIN_META[eff.domain];
+                      return (
+                        <div
+                          key={eff.id}
+                          className="bg-white border border-gray-200 rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${meta.bg} ${meta.text} border ${meta.border}`}>
+                              {meta.label}
+                            </span>
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                              {eff.sectorId}
+                            </span>
+                          </div>
+                          <p className="text-[13px] font-medium text-gray-800 leading-snug">
+                            {eff.title || eff.description}
+                          </p>
+                          {eff.title && eff.description && (
+                            <p className="text-[11px] text-gray-600 mt-1 leading-snug">{eff.description}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        );
+      })()}
 
       {/* AI consolidatie-advies (verborgen onder details — referentie-only) */}
       {stap4Result && stap4Result.consolidatieAdvies.length > 0 && (
@@ -583,17 +723,17 @@ Antwoord in het Nederlands.`,
         </details>
       )}
 
-      {/* Cito-breed inzicht per domein */}
+      {/* Programma-brede rode draad per domein (voorheen "Cito-breed inzicht"), in outside-in volgorde */}
       {stap4Result && stap4Result.citobreedInzicht && stap4Result.citobreedInzicht.length > 0 && (
         <div className="space-y-3">
           <div>
-            <h5 className="text-sm font-semibold text-gray-700">Cito-breed inzicht per domein</h5>
+            <h5 className="text-sm font-semibold text-gray-700">Programma-brede rode draad per domein</h5>
             <p className="text-xs text-gray-500 mt-0.5">
-              Ook als items niet geconsolideerd worden: dit zijn de kansen die Cito-breed (organisatie-overstijgend) kunnen gelden — per inspanningsdomein.
+              In outside-in-volgorde: cultuur (bereidheid) → mens (competenties) → processen (volgen uit vragen) → data &amp; systemen (ingeregeld op wat genoteerd wordt).
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {DOMEIN_ORDER.map((domein) => {
+            {OUTSIDE_IN_DOMEIN_ORDER.map((domein) => {
               const inzicht = stap4Result.citobreedInzicht!.find((i) => i.domein === domein);
               const meta = DOMEIN_META[domein];
               if (!inzicht) {

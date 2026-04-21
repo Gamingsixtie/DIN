@@ -23,6 +23,12 @@ export function getFocusGoal<T extends { rank?: number }>(goals: T[]): T | undef
 // Filter semantiek conform D-09: focusdoel → baten → cross-sector vermogens → gedeelde inspanningen
 // ============================================================
 
+export interface ConsolidationOrigin {
+  originalId: string;
+  originalTitle: string;
+  originalSector: string;
+}
+
 export interface FocusView {
   focusGoal: ProgrammeGoal;
   focusBenefits: DINBenefit[];
@@ -30,6 +36,22 @@ export interface FocusView {
   focusEfforts: DINEffort[];
   outOfScopeCaps: DINCapability[];
   outOfScopeEfforts: DINEffort[];
+  consolidationMap: Map<string, ConsolidationOrigin[]>;
+}
+
+export function getConsolidationOrigins(
+  session: DINSession,
+  itemId: string,
+  type: "capability" | "effort"
+): ConsolidationOrigin[] {
+  const items = type === "capability" ? session.capabilities : session.efforts;
+  return items
+    .filter((item) => item.consolidatedInto === itemId)
+    .map((item) => ({
+      originalId: item.id,
+      originalTitle: item.title || item.description || "",
+      originalSector: item.sectorId || "",
+    }));
 }
 
 export function computeFocusView(session: DINSession): FocusView | null {
@@ -47,44 +69,45 @@ export function computeFocusView(session: DINSession): FocusView | null {
   // Step 2: active capabilities (niet geconsolideerd)
   const activeCaps = session.capabilities.filter((c) => !c.consolidated);
 
-  // Step 3: cross-sector capabilities (relatedSectors.length > 1)
-  const sharedCaps = activeCaps.filter(
-    (c) => (c.relatedSectors?.length ?? 0) > 1
-  );
-
-  // Step 4: focusCaps = shared caps gekoppeld aan focus benefits via benefitCapabilityMaps
-  const sharedCapIdSet = new Set(sharedCaps.map((c) => c.id));
+  // Step 3: focusCaps = ALLE active caps gekoppeld aan focus benefits via benefitCapabilityMaps
+  const activeCapIdSet = new Set(activeCaps.map((c) => c.id));
   const focusCapIds = new Set(
     (session.benefitCapabilityMaps ?? [])
       .filter(
-        (m) => focusBenefitIds.has(m.benefitId) && sharedCapIdSet.has(m.capabilityId)
+        (m) => focusBenefitIds.has(m.benefitId) && activeCapIdSet.has(m.capabilityId)
       )
       .map((m) => m.capabilityId)
   );
-  const focusCaps = sharedCaps.filter((c) => focusCapIds.has(c.id));
+  const focusCaps = activeCaps.filter((c) => focusCapIds.has(c.id));
 
-  // Step 5: active efforts (niet geconsolideerd)
+  // Step 4: active efforts (niet geconsolideerd)
   const activeEfforts = session.efforts.filter((e) => !e.consolidated);
 
-  // Step 6: shared efforts (multi-sector responsibleSector via comma)
-  const sharedEfforts = activeEfforts.filter(
-    (e) => e.responsibleSector?.includes(",") ?? false
-  );
-
-  // Step 7: focusEfforts = shared efforts gekoppeld aan focus caps via capabilityEffortMaps
-  const sharedEffortIdSet = new Set(sharedEfforts.map((e) => e.id));
+  // Step 5: focusEfforts = ALLE active efforts gekoppeld aan focus caps via capabilityEffortMaps
+  const activeEffortIdSet = new Set(activeEfforts.map((e) => e.id));
   const focusEffortIds = new Set(
     (session.capabilityEffortMaps ?? [])
       .filter(
-        (m) => focusCapIds.has(m.capabilityId) && sharedEffortIdSet.has(m.effortId)
+        (m) => focusCapIds.has(m.capabilityId) && activeEffortIdSet.has(m.effortId)
       )
       .map((m) => m.effortId)
   );
-  const focusEfforts = sharedEfforts.filter((e) => focusEffortIds.has(e.id));
+  const focusEfforts = activeEfforts.filter((e) => focusEffortIds.has(e.id));
 
   // Step 8: out-of-scope = active items niet in focus
   const outOfScopeCaps = activeCaps.filter((c) => !focusCapIds.has(c.id));
   const outOfScopeEfforts = activeEfforts.filter((e) => !focusEffortIds.has(e.id));
+
+  // Step 9: consolidation origins — voor elk actief item, welke originelen erin zitten
+  const consolidationMap = new Map<string, ConsolidationOrigin[]>();
+  for (const cap of focusCaps) {
+    const origins = getConsolidationOrigins(session, cap.id, "capability");
+    if (origins.length > 0) consolidationMap.set(cap.id, origins);
+  }
+  for (const eff of focusEfforts) {
+    const origins = getConsolidationOrigins(session, eff.id, "effort");
+    if (origins.length > 0) consolidationMap.set(eff.id, origins);
+  }
 
   return {
     focusGoal,
@@ -93,6 +116,7 @@ export function computeFocusView(session: DINSession): FocusView | null {
     focusEfforts,
     outOfScopeCaps,
     outOfScopeEfforts,
+    consolidationMap,
   };
 }
 

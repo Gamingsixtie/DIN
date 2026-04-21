@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npx mammoth:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(npx vitest:*)",
+      "Bash(for d:*)",
+      "Bash(do git:*)",
+      "Bash(done)",
+      "Bash(rm -rf .claude/worktrees/)",
+      "Read(//c/Users/pdebu/Downloads/**)",
+      "Bash(node -e \":*)",
+      "Bash(npx vercel:*)",
+      "Bash(echo $ANTHROPIC_API_KEY)",
+      "Bash(printenv ANTHROPIC_API_KEY)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs init plan-phase 05)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs frontmatter validate .planning/phases/05-sectorwerk-doorstroming/05-01-PLAN.md --schema plan)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs frontmatter validate .planning/phases/05-sectorwerk-doorstroming/05-02-PLAN.md --schema plan)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs init plan-phase 9)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap get-phase 9)",
+      "Skill(gsd:plan-phase)",
+      "Skill(gsd:plan-phase:*)",
+      "Bash(npm install:*)",
+      "Skill(gsd:add-phase)",
+      "Skill(gsd:add-phase:*)",
+      "Skill(gsd:debug)",
+      "Skill(gsd:debug:*)"
+    ]
+  }
+}
