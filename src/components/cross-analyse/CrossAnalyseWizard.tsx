@@ -17,6 +17,7 @@ import StapBatenOverloop from "./StapBatenOverloop";
 import StapGedeeldeVermogens from "./StapGedeeldeVermogens";
 import StapInspanningenOverlap from "./StapInspanningenOverlap";
 import StapConsolidatie from "./StapConsolidatie";
+import StapOptimaliseren from "./StapOptimaliseren";
 import StapSectorVertaling from "./StapSectorVertaling";
 import StapLopendeProjecten from "./StapLopendeProjecten";
 import { LoadingOverlay } from "./shared";
@@ -83,6 +84,14 @@ const STEP_INFO: Record<number, {
     loadingDescription: "De AI formuleert advies per cluster...",
   },
   6: {
+    title: "Optimaliseren geconsolideerde inspanningen",
+    description: "De cross-sectorale inspanningen uit stap 4 staan per domein (Mens / Processen / Data & Systemen / Cultuur). Hier verfijn je titel, beschrijving, beargumentatie en dossier voordat ze in de prioriteitsview verschijnen.",
+    placeholder: "",
+    analyseLabel: "",
+    loadingTitle: "",
+    loadingDescription: "",
+  },
+  7: {
     title: "Prioriteitsview — eerste doel",
     description: "Dit is de scherpste hefboom: de keten doel → baten → vermogens → inspanningen voor uw hoogste prioriteit. We tonen alleen het eerste doel omdat daar het meeste mandaat en de hoogste urgentie zit.",
     placeholder: "Bijv. specifieke aandachtspunten voor hefboomwerking of baten-dekking...",
@@ -194,7 +203,8 @@ export default function CrossAnalyseWizard() {
     setError(null);
 
     // Map display step (2-6) naar API step (1-5)
-    const apiStap = wizardState.currentStep - 1;
+    // Wizard step 6 (Optimaliseren) heeft geen AI-call. Wizard step 7 (Prioriteitsview) mapt naar apiStap 5.
+    const apiStap = wizardState.currentStep === 7 ? 5 : wizardState.currentStep - 1;
 
     try {
       const activeCaps = session.capabilities.filter((c) => !c.consolidated);
@@ -465,6 +475,12 @@ export default function CrossAnalyseWizard() {
           />
         )}
         {wizardState.currentStep === 6 && (
+          <StapOptimaliseren
+            session={session}
+            stap4Result={wizardState.stepResults.stap4}
+          />
+        )}
+        {wizardState.currentStep === 7 && (
           <StapSectorVertaling
             session={session}
             result={wizardState.stepResults.stap5}
@@ -504,7 +520,7 @@ export default function CrossAnalyseWizard() {
         )}
 
         {/* Optional context textarea + Analyseer button (steps 2-6, niet voor stap 1 = data-invoer) */}
-        {wizardState.currentStep >= 2 && wizardState.currentStep <= 6 && !error && (
+        {wizardState.currentStep >= 2 && wizardState.currentStep <= 7 && wizardState.currentStep !== 6 && !error && (
           <div className="mt-6 space-y-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">

@@ -429,7 +429,15 @@ Antwoord in het Nederlands.`,
       {/* AI consolidatie-advies (if stap4Result exists) */}
       {stap4Result && stap4Result.consolidatieAdvies.length > 0 && (
         <div className="space-y-3">
-          <h5 className="text-sm font-semibold text-gray-700">AI consolidatie-advies</h5>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-amber-900 leading-relaxed">
+              <strong>Let op:</strong> geconsolideerde inspanningen vallen altijd onder één van de vier
+              domeinen (Mens / Processen / Data &amp; Systemen / Cultuur). Dit advies is referentie —
+              de daadwerkelijke cross-sectorale inspanningen verschijnen in stap 6 (Optimaliseren) en
+              stap 7 (DIN-netwerk) per domein. Hier geen parallel spoor maken.
+            </p>
+          </div>
+          <h5 className="text-sm font-semibold text-gray-700">AI consolidatie-advies (referentie)</h5>
           <div className="grid gap-3 sm:grid-cols-2">
             {stap4Result.consolidatieAdvies.map((advies, i) => {
               const style = AANBEVELING_STYLE[advies.aanbeveling] || AANBEVELING_STYLE.apart_houden;

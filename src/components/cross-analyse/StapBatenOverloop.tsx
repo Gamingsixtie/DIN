@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { DINSession, Stap1Result } from "@/lib/types";
 import { SECTORS } from "@/lib/types";
 import { findGaps } from "@/lib/din-service";
+import { getFocusGoal } from "@/lib/stap5-focus";
 import { SectorBadge } from "./shared";
 
 interface StapBatenOverloopProps {
@@ -20,6 +21,29 @@ export default function StapBatenOverloop({ session, result }: StapBatenOverloop
     }));
   }, [session.benefits]);
 
+  // Alleen focusdoel (eerste doel) meenemen in gaps-analyse
+  const focusGoal = useMemo(() => getFocusGoal(session.goals), [session.goals]);
+  const focusGoals = useMemo(() => (focusGoal ? [focusGoal] : []), [focusGoal]);
+  const focusGBMaps = useMemo(
+    () => {
+      const ids = new Set(focusGoals.map((g) => g.id));
+      return (session.goalBenefitMaps || []).filter((m) => ids.has(m.goalId));
+    },
+    [focusGoals, session.goalBenefitMaps]
+  );
+  const focusBenefitIds = useMemo(
+    () => new Set(focusGBMaps.map((m) => m.benefitId)),
+    [focusGBMaps]
+  );
+  const focusBenefits = useMemo(
+    () => session.benefits.filter((b) => focusBenefitIds.has(b.id)),
+    [session.benefits, focusBenefitIds]
+  );
+  const focusBCMaps = useMemo(
+    () => (session.benefitCapabilityMaps || []).filter((m) => focusBenefitIds.has(m.benefitId)),
+    [session.benefitCapabilityMaps, focusBenefitIds]
+  );
+
   // Compute local gaps
   const activeCaps = useMemo(
     () => session.capabilities.filter((c) => !c.consolidated),
@@ -32,21 +56,21 @@ export default function StapBatenOverloop({ session, result }: StapBatenOverloop
   const gaps = useMemo(
     () =>
       findGaps(
-        session.goals,
-        session.benefits,
+        focusGoals,
+        focusBenefits,
         activeCaps,
         activeEfforts,
-        session.goalBenefitMaps,
-        session.benefitCapabilityMaps,
+        focusGBMaps,
+        focusBCMaps,
         session.capabilityEffortMaps
       ),
     [
-      session.goals,
-      session.benefits,
+      focusGoals,
+      focusBenefits,
       activeCaps,
       activeEfforts,
-      session.goalBenefitMaps,
-      session.benefitCapabilityMaps,
+      focusGBMaps,
+      focusBCMaps,
       session.capabilityEffortMaps,
     ]
   );

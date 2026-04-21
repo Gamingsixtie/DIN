@@ -1,16 +1,18 @@
 "use client";
 
 interface WizardNavigationProps {
-  currentStep: number;          // 1-5
+  currentStep: number;          // 1-7
   completedSteps: Set<number>;
   onStepChange: (step: number) => void;
 }
 
 const STEP_LABELS = [
+  "Lopende projecten",
   "Baten-overloop",
   "Gedeelde vermogens",
   "Inspanningen",
   "Consolidatie",
+  "Optimaliseren",
   "DIN-netwerk",
 ];
 
@@ -164,7 +166,7 @@ function NavigationButtons({
         <div />
       )}
 
-      {currentStep < 5 && (
+      {currentStep < 7 && (
         <button
           type="button"
           onClick={() => onStepChange(currentStep + 1)}
