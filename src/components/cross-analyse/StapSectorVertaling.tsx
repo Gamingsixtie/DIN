@@ -10,6 +10,7 @@ import type {
   Stap4Result,
   Stap5Result,
   SectorName,
+  DINBenefit,
   DINCapability,
   EffortDomain,
 } from "@/lib/types";
@@ -772,6 +773,128 @@ export default function StapSectorVertaling({
           </div>
         )}
       </div>
+
+      {/* ===== OVEREENKOMSTEN-ANALYSE — baten + vermogens per sector ===== */}
+      <OvereenkomstenAnalyse
+        focusBenefits={focusBenefits}
+        focusCaps={focusCaps}
+        vermogenGelijkenisGroepen={vermogenGelijkenisGroepen}
+      />
+    </div>
+  );
+}
+
+// --- Phase 18 (R-CROSS-03): Overeenkomsten-analyse baten + vermogens ---
+// Tekstuele samenvatting onderaan stap 6: waar liggen baten-thema's parallel per sector,
+// en welke vermogens zijn gelijkenis-groepen (basis voor de cross-sectorale inspanningen hierboven).
+function OvereenkomstenAnalyse({
+  focusBenefits,
+  focusCaps,
+  vermogenGelijkenisGroepen,
+}: {
+  focusBenefits: DINBenefit[];
+  focusCaps: DINCapability[];
+  vermogenGelijkenisGroepen: VermogenGelijkenisGroep[];
+}): React.ReactElement | null {
+  if (focusBenefits.length === 0 && focusCaps.length === 0) return null;
+
+  const batenBySector = SECTORS_ORDER.map((s) => ({
+    sector: s,
+    items: focusBenefits.filter((b) => b.sectorId === s),
+  })).filter(({ items }) => items.length > 0);
+
+  const capsBySector = SECTORS_ORDER.map((s) => ({
+    sector: s,
+    items: focusCaps.filter((c) => c.sectorId === s),
+  })).filter(({ items }) => items.length > 0);
+
+  return (
+    <div className="mt-8 border-t-2 border-gray-200 pt-6">
+      <h3 className="text-lg font-semibold text-[#003366] mb-1">Overeenkomsten-analyse</h3>
+      <p className="text-[13px] text-gray-600 mb-5 leading-relaxed">
+        Baten en vermogens blijven per sector — hier benoemen we expliciet waar sectoren inhoudelijk parallel
+        lopen, zodat de cross-sectorale inspanningen hierboven hun basis helder hebben.
+      </p>
+
+      {/* Baten-thema's per sector, zij-aan-zij */}
+      {batenBySector.length > 0 && (
+        <section className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Baten per sector — parallelle uitwerkingen van dezelfde doelstelling</h4>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${batenBySector.length}, 1fr)` }}>
+            {batenBySector.map(({ sector, items }) => (
+              <div key={sector} className="bg-white border border-[#e2e8f0] rounded-lg p-3">
+                <div className="mb-2"><SectorBadge sector={sector} /></div>
+                <ul className="space-y-1">
+                  {items.map((b) => (
+                    <li key={b.id} className="text-[12px] text-gray-700 leading-snug">
+                      • {b.title || b.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-500 italic mt-2">
+            Elke sector vertaalt de focus-doelstelling naar de eigen klantcontext (leerkrachten / schoolleiders / opdrachtgevers).
+            De thema&apos;s lopen parallel — dezelfde onderliggende ambitie, sector-eigen formulering.
+          </p>
+        </section>
+      )}
+
+      {/* Vermogen-gelijkenis-groepen */}
+      {vermogenGelijkenisGroepen.length > 0 && (
+        <section className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Vermogen-overeenkomsten — methodisch verwant per sector</h4>
+          <ul className="space-y-3">
+            {vermogenGelijkenisGroepen.map((groep) => {
+              const groepCaps = focusCaps.filter((c) => groep.vermogenIds.includes(c.id));
+              return (
+                <li key={groep.id} className="bg-white border border-[#e2e8f0] rounded-lg p-3">
+                  <p className="text-[13px] font-semibold text-gray-800">{groep.gezamenlijkeOmschrijving}</p>
+                  {groep.reden && (
+                    <p className="text-[12px] text-gray-600 italic mt-1 mb-2">{groep.reden}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {groepCaps.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-[11px]"
+                      >
+                        {c.sectorId && <SectorBadge sector={c.sectorId} />}
+                        <span className="text-gray-700">{c.title || c.description}</span>
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-[11px] text-gray-500 italic mt-2">
+            Deze gelijkenis rechtvaardigt dat we de onderliggende inspanningen wél cross-sectoraal doen — zie de vier domein-kaarten hierboven.
+          </p>
+        </section>
+      )}
+
+      {/* Per sector vermogens-overzicht (referentie) */}
+      {capsBySector.length > 0 && (
+        <section>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Vermogens per sector — eigen identiteit</h4>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${capsBySector.length}, 1fr)` }}>
+            {capsBySector.map(({ sector, items }) => (
+              <div key={sector} className="bg-white border border-[#e2e8f0] rounded-lg p-3">
+                <div className="mb-2"><SectorBadge sector={sector} /></div>
+                <ul className="space-y-1">
+                  {items.map((c) => (
+                    <li key={c.id} className="text-[12px] text-gray-700 leading-snug">
+                      • {c.title || c.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
