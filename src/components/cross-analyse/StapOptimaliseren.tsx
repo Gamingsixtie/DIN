@@ -72,38 +72,60 @@ export default function StapOptimaliseren({
     });
   }
 
-  // Begrotingsadvies state
+  // Begrotingsadvies state (Phase 19 substap 6.3 — meerjarig)
   const [budgetEuro, setBudgetEuro] = useState<number>(250000);
   const [cyclusMaanden, setCyclusMaanden] = useState<number>(9);
+  const [startJaar, setStartJaar] = useState<number>(new Date().getFullYear());
+  const [aantalJaren, setAantalJaren] = useState<number>(3);
   const [begrotingLoading, setBegrotingLoading] = useState(false);
   const [begrotingError, setBegrotingError] = useState<string | null>(null);
-  const [begrotingAdvies, setBegrotingAdvies] = useState<{
+
+  type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
+  type MeerjarigBegrotingAdvies = {
     totaalBudgetEuro: number;
     cyclusMaanden: number;
-    percentageVerdeling: Array<{
+    startJaar: number;
+    aantalJaren: number;
+    inspanningen: Array<{
       inspanningTitel: string;
       groepId?: string;
-      domein: "mens" | "processen" | "data_systemen" | "cultuur";
-      percentage: number;
-      bedragEuro: number;
+      domein: Domein;
+      totaalEuro: number;
+      percentageTotaal: number;
       motivatie: string;
+      verdelingPerJaar: Array<{
+        jaar: number;
+        percentage: number;
+        euro: number;
+        fase: string;
+      }>;
+      volgorde: { rank: number; reden: string };
     }>;
+    totalenPerJaar: Array<{ jaar: number; euro: number; percentage: number }>;
+    budgetDekking: {
+      binnenBudget: boolean;
+      totaalGeraamd: number;
+      tekortOfOverschot: number;
+      toelichting: string;
+    };
     prioriteitAdvies: string;
-    prognose2026: string;
     samenvatting: string;
-  } | null>(null);
+  };
+  const [begrotingAdvies, setBegrotingAdvies] = useState<MeerjarigBegrotingAdvies | null>(null);
 
   useEffect(() => {
     if (stap4Result?.subEffortAnalysis) {
       setEntries(JSON.parse(JSON.stringify(stap4Result.subEffortAnalysis)));
     }
-    // Restore begrotingsadvies uit session indien eerder opgeslagen
-    const persisted = (stap4Result as unknown as { begrotingAdvies?: typeof begrotingAdvies })
+    // Restore begrotingsadvies uit session (alleen nieuwe meerjarige structuur)
+    const persisted = (stap4Result as unknown as { begrotingAdvies?: MeerjarigBegrotingAdvies })
       ?.begrotingAdvies;
-    if (persisted) {
+    if (persisted && persisted.inspanningen && persisted.totalenPerJaar) {
       setBegrotingAdvies(persisted);
       setBudgetEuro(persisted.totaalBudgetEuro);
       setCyclusMaanden(persisted.cyclusMaanden);
+      if (persisted.startJaar) setStartJaar(persisted.startJaar);
+      if (persisted.aantalJaren) setAantalJaren(persisted.aantalJaren);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stap4Result]);
@@ -383,6 +405,8 @@ export default function StapOptimaliseren({
         body: JSON.stringify({
           totaalBudgetEuro: budgetEuro,
           cyclusMaanden,
+          startJaar,
+          aantalJaren,
           focusDoel,
           inspanningen,
           scope: session.scope,
@@ -768,16 +792,17 @@ export default function StapOptimaliseren({
 
       {/* ===== BEGROTINGSADVIES (holistisch) ===== */}
       <div className="mt-10 pt-6 border-t-2 border-gray-200">
-        <h3 className="text-lg font-semibold text-[#003366] mb-1">Begrotingsadvies — realistische verdeling</h3>
+        <h3 className="text-lg font-semibold text-[#003366] mb-1">Begrotingsadvies — meerjarige verdeling</h3>
         <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-          Voer het out-of-pocket budget voor de huidige cyclus in. AI verdeelt het in percentages per cross-sectorale inspanning,
-          geeft prioriteits-advies voor deze cyclus, en een grove prognose voor 2026 om door te kunnen.
+          Voer het totale out-of-pocket budget voor het programma in. AI spreidt het outside-in over meerdere jaren
+          (cultuur → mens → processen → data/systemen) en geeft een prioritaire volgorde. Als kosten hoger uitvallen
+          dan budget wordt er doorgeschoven, niet overschreden.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           <div>
             <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-              Totaalbudget huidige cyclus (€)
+              Totaalbudget (€)
             </label>
             <input
               type="number"
@@ -790,7 +815,7 @@ export default function StapOptimaliseren({
           </div>
           <div>
             <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-              Cyclus-duur (maanden)
+              Cyclus (maanden)
             </label>
             <input
               type="number"
@@ -801,6 +826,32 @@ export default function StapOptimaliseren({
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
             />
           </div>
+          <div>
+            <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+              Startjaar
+            </label>
+            <input
+              type="number"
+              min={2020}
+              max={2100}
+              value={startJaar}
+              onChange={(e) => setStartJaar(Number(e.target.value) || new Date().getFullYear())}
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+              Aantal jaren
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={aantalJaren}
+              onChange={(e) => setAantalJaren(Number(e.target.value) || 3)}
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
         </div>
 
         <button
@@ -808,7 +859,7 @@ export default function StapOptimaliseren({
           disabled={begrotingLoading}
           className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
         >
-          {begrotingLoading ? "AI stelt begroting op..." : "Genereer begrotingsadvies"}
+          {begrotingLoading ? "AI stelt meerjarige begroting op..." : "Genereer meerjarig begrotingsadvies"}
         </button>
 
         {begrotingError && (
@@ -819,65 +870,133 @@ export default function StapOptimaliseren({
 
         {begrotingAdvies && (
           <div className="mt-6 space-y-4">
-            {/* Samenvatting banner */}
+            {/* Samenvatting banner met budget-dekking-indicator */}
             <div className="bg-[#003366] text-white rounded-lg p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-200 mb-1">Samenvatting</p>
-              <p className="text-sm">{begrotingAdvies.samenvatting}</p>
-              <p className="text-xs text-blue-200 mt-2">
-                Totaal: € {begrotingAdvies.totaalBudgetEuro.toLocaleString("nl-NL")} over {begrotingAdvies.cyclusMaanden} maanden
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-200 mb-1">Samenvatting</p>
+                  <p className="text-sm">{begrotingAdvies.samenvatting}</p>
+                  <p className="text-xs text-blue-200 mt-2">
+                    € {begrotingAdvies.totaalBudgetEuro.toLocaleString("nl-NL")} budget — {begrotingAdvies.aantalJaren} jaar ({begrotingAdvies.startJaar}–{begrotingAdvies.startJaar + begrotingAdvies.aantalJaren - 1})
+                  </p>
+                </div>
+                <div
+                  className={`shrink-0 px-3 py-2 rounded text-center ${
+                    begrotingAdvies.budgetDekking.binnenBudget
+                      ? "bg-green-500/30 border border-green-400"
+                      : "bg-red-500/30 border border-red-400"
+                  }`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white">
+                    {begrotingAdvies.budgetDekking.binnenBudget ? "Binnen budget" : "Buiten budget"}
+                  </p>
+                  <p className="text-sm font-semibold text-white mt-0.5">
+                    € {begrotingAdvies.budgetDekking.totaalGeraamd.toLocaleString("nl-NL")}
+                  </p>
+                  <p className="text-[10px] text-blue-100">
+                    {begrotingAdvies.budgetDekking.tekortOfOverschot >= 0 ? "+" : ""}
+                    € {begrotingAdvies.budgetDekking.tekortOfOverschot.toLocaleString("nl-NL")}
+                  </p>
+                </div>
+              </div>
+              {begrotingAdvies.budgetDekking.toelichting && (
+                <p className="text-xs text-blue-100 mt-2 leading-relaxed italic">
+                  {begrotingAdvies.budgetDekking.toelichting}
+                </p>
+              )}
+            </div>
+
+            {/* Meerjarige tabel */}
+            <div className="bg-white border border-[#e2e8f0] rounded-lg p-4 overflow-x-auto">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Meerjarige verdeling (outside-in gerangschikt)</h4>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider w-12">#</th>
+                    <th className="text-left py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Inspanning</th>
+                    {Array.from({ length: begrotingAdvies.aantalJaren }, (_, i) => begrotingAdvies.startJaar + i).map((jr) => (
+                      <th key={jr} className="text-right py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                        {jr}
+                      </th>
+                    ))}
+                    <th className="text-right py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Totaal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...begrotingAdvies.inspanningen]
+                    .sort((a, b) => a.volgorde.rank - b.volgorde.rank)
+                    .map((insp, i) => {
+                      const domColor = DOMAIN_COLORS[insp.domein];
+                      return (
+                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                          <td className="py-3 px-2">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#003366] text-white text-xs font-bold">
+                              {insp.volgorde.rank}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <p className={`text-[10px] font-bold uppercase tracking-wider ${domColor.text}`}>
+                              {DOMAIN_LABELS[insp.domein]}
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">{insp.inspanningTitel}</p>
+                            <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">
+                              Positie: {insp.volgorde.reden}
+                            </p>
+                            <p className="text-[11px] text-gray-600 mt-1 leading-snug">{insp.motivatie}</p>
+                          </td>
+                          {Array.from({ length: begrotingAdvies.aantalJaren }, (_, k) => begrotingAdvies.startJaar + k).map((jr) => {
+                            const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
+                            if (!cell || cell.euro === 0) {
+                              return (
+                                <td key={jr} className="text-right py-3 px-2 text-[11px] text-gray-300">—</td>
+                              );
+                            }
+                            return (
+                              <td key={jr} className="text-right py-3 px-2">
+                                <p className="text-sm font-semibold text-gray-800">€ {cell.euro.toLocaleString("nl-NL")}</p>
+                                <p className="text-[10px] text-gray-500">{cell.percentage}%</p>
+                                <p className="text-[10px] text-gray-500 italic mt-0.5">{cell.fase}</p>
+                              </td>
+                            );
+                          })}
+                          <td className="text-right py-3 px-2">
+                            <p className="text-sm font-bold text-[#003366]">€ {insp.totaalEuro.toLocaleString("nl-NL")}</p>
+                            <p className="text-[10px] text-gray-500">{insp.percentageTotaal}%</p>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300 bg-gray-50">
+                    <td className="py-2 px-2"></td>
+                    <td className="py-2 px-2 text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                      Totaal per jaar
+                    </td>
+                    {begrotingAdvies.totalenPerJaar
+                      .sort((a, b) => a.jaar - b.jaar)
+                      .map((t) => (
+                        <td key={t.jaar} className="text-right py-2 px-2">
+                          <p className="text-sm font-bold text-[#003366]">€ {t.euro.toLocaleString("nl-NL")}</p>
+                          <p className="text-[10px] text-gray-500">{t.percentage}%</p>
+                        </td>
+                      ))}
+                    <td className="text-right py-2 px-2">
+                      <p className="text-sm font-bold text-[#003366]">€ {begrotingAdvies.budgetDekking.totaalGeraamd.toLocaleString("nl-NL")}</p>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Prioriteitadvies */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-amber-900 mb-2">
+                Prioriteitadvies — outside-in volgorde
+              </h4>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {begrotingAdvies.prioriteitAdvies}
               </p>
-            </div>
-
-            {/* Verdeling per inspanning */}
-            <div className="bg-white border border-[#e2e8f0] rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Verdeling per inspanning</h4>
-              <ul className="space-y-3">
-                {begrotingAdvies.percentageVerdeling.map((v, i) => {
-                  const domColor = DOMAIN_COLORS[v.domein];
-                  return (
-                    <li key={i} className={`border ${domColor.border} ${domColor.bg} rounded-lg p-3`}>
-                      <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[10px] font-bold uppercase tracking-wider ${domColor.text}`}>
-                            {DOMAIN_LABELS[v.domein]}
-                          </p>
-                          <p className="text-sm font-semibold text-gray-800 mt-0.5">{v.inspanningTitel}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-lg font-semibold text-[#003366]">{v.percentage}%</p>
-                          <p className="text-xs text-gray-600">€ {v.bedragEuro.toLocaleString("nl-NL")}</p>
-                        </div>
-                      </div>
-                      {/* Progress bar visueel */}
-                      <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full bg-[#003366]"
-                          style={{ width: `${Math.min(v.percentage, 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-700 mt-2 leading-snug">{v.motivatie}</p>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            {/* Prioriteit + Prognose 2026 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-amber-900 mb-2">
-                  Prioriteit binnen {begrotingAdvies.cyclusMaanden} maanden
-                </h4>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {begrotingAdvies.prioriteitAdvies}
-                </p>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-green-900 mb-2">Prognose 2026 — continuïteit</h4>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {begrotingAdvies.prognose2026}
-                </p>
-              </div>
             </div>
           </div>
         )}

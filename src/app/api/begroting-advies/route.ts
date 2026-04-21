@@ -5,33 +5,68 @@ import { z } from "zod";
 
 export const maxDuration = 300;
 
-// Phase 18 — stap 6: holistisch begrotingsadvies over alle cross-sectorale inspanningen.
-// Verdeelt totaalbudget in % per inspanning + prioriteits-advies + 2026 prognose.
+// Phase 19 (substap 6.3/6.4) — meerjarig begrotingsadvies.
+// Vervangt eenjarige verdeling door:
+//  - verdelingPerJaar: per inspanning × jaar percentage/euro/fase
+//  - totalenPerJaar: globaal per jaar
+//  - volgorde: outside-in ranking per inspanning (rank + reden)
+//  - budgetDekking: indicator of geraamde kosten binnen beschikbaar budget passen
+//
+// Oude velden (percentageVerdeling, prognose2026) blijven optioneel voor backward compat
+// maar de UI gebruikt de nieuwe velden.
+
+const VerdelingPerJaarItemSchema = z.object({
+  jaar: z.number(),
+  percentage: z.number().min(0).max(100),
+  euro: z.number(),
+  fase: z.string(), // bv. "Voorbereiding", "Uitrol", "Borging"
+});
+
+const InspanningBegrotingSchema = z.object({
+  inspanningTitel: z.string(),
+  groepId: z.string().optional(),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  totaalEuro: z.number(),
+  percentageTotaal: z.number().min(0).max(100),
+  motivatie: z.string(),
+  verdelingPerJaar: z.array(VerdelingPerJaarItemSchema),
+  volgorde: z.object({
+    rank: z.number().int().min(1),
+    reden: z.string(),
+  }),
+});
+
+const TotaalPerJaarSchema = z.object({
+  jaar: z.number(),
+  euro: z.number(),
+  percentage: z.number().min(0).max(100),
+});
 
 const BegrotingsAdviesSchema = z.object({
   totaalBudgetEuro: z.number(),
   cyclusMaanden: z.number(),
-  percentageVerdeling: z.array(
-    z.object({
-      inspanningTitel: z.string(),
-      groepId: z.string().optional(),
-      domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
-      percentage: z.number().min(0).max(100),
-      bedragEuro: z.number(),
-      motivatie: z.string(),
-    })
-  ),
+  startJaar: z.number(),
+  aantalJaren: z.number(),
+  inspanningen: z.array(InspanningBegrotingSchema),
+  totalenPerJaar: z.array(TotaalPerJaarSchema),
+  budgetDekking: z.object({
+    binnenBudget: z.boolean(),
+    totaalGeraamd: z.number(),
+    tekortOfOverschot: z.number(), // positief = overschot, negatief = tekort
+    toelichting: z.string(),
+  }),
   prioriteitAdvies: z.string(),
-  prognose2026: z.string(),
   samenvatting: z.string(),
 });
 
-const PROMPT = `Je bent een programma-controller / begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je maakt een realistisch begrotingsadvies voor cross-sectorale inspanningen.
+const PROMPT = `Je bent een programma-controller / begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je maakt een REALISTISCH MEERJARIG begrotingsadvies voor cross-sectorale inspanningen.
 
 Input JSON:
 {
-  "totaalBudgetEuro": <number — out-of-pocket budget in euros voor deze cyclus>,
-  "cyclusMaanden": <number — hoe lang de huidige cyclus duurt>,
+  "totaalBudgetEuro": <number — totaal beschikbaar out-of-pocket budget over de hele programmaperiode>,
+  "cyclusMaanden": <number — duur huidige cyclus in maanden>,
+  "startJaar": <number — eerste jaar, bv. 2026>,
+  "aantalJaren": <number — hoeveel jaren te plannen, bv. 3>,
   "focusDoel": { naam, beschrijving },
   "inspanningen": [
     { titel, groepId, domein, beschrijving, beargumentatie, dossierKostenraming }
@@ -40,32 +75,67 @@ Input JSON:
 
 Taak — lever EXACT dit JSON-object:
 {
-  "totaalBudgetEuro": <kopieer uit input>,
-  "cyclusMaanden": <kopieer uit input>,
-  "percentageVerdeling": [
-    { "inspanningTitel": "...", "groepId": "...", "domein": "mens|processen|data_systemen|cultuur", "percentage": <0-100>, "bedragEuro": <euros, afgerond op duizend>, "motivatie": "<1-2 zinnen waarom dit percentage>" }
+  "totaalBudgetEuro": <kopieer>,
+  "cyclusMaanden": <kopieer>,
+  "startJaar": <kopieer>,
+  "aantalJaren": <kopieer>,
+  "inspanningen": [
+    {
+      "inspanningTitel": "...",
+      "groepId": "...",
+      "domein": "mens|processen|data_systemen|cultuur",
+      "totaalEuro": <euros over alle jaren samen, afgerond op duizend>,
+      "percentageTotaal": <percentage van totaalBudgetEuro>,
+      "motivatie": "<1-2 zinnen>",
+      "verdelingPerJaar": [
+        { "jaar": <startJaar>, "percentage": <0-100 van totaalEuro>, "euro": <afgerond op duizend>, "fase": "<bv. Voorbereiding | Uitrol | Opschaling | Borging>" },
+        ... één item per jaar tot en met startJaar+aantalJaren-1
+      ],
+      "volgorde": { "rank": <1..N, unieke ranking>, "reden": "<waarom deze positie>" }
+    }
   ],
-  "prioriteitAdvies": "<2-4 zinnen: welke inspanning(en) eerst aanpakken in de cyclus van X maanden, waarom — redeneer vanuit hefboomwerking en afhankelijkheden>",
-  "prognose2026": "<2-4 zinnen: wat hebben we in 2026 nodig om door te kunnen gaan? Denk aan vervolgbudget, afbouw-kosten, kritische afhankelijkheden die in jaar 2 geborgd moeten zijn — benoem grove orde van grootte in euros voor 2026>",
-  "samenvatting": "<1 zin executive samenvatting>"
+  "totalenPerJaar": [
+    { "jaar": <startJaar>, "euro": <som over alle inspanningen dit jaar>, "percentage": <van totaalBudgetEuro> },
+    ...
+  ],
+  "budgetDekking": {
+    "binnenBudget": <boolean — past geraamd totaal binnen totaalBudgetEuro?>,
+    "totaalGeraamd": <euros>,
+    "tekortOfOverschot": <euros, positief = overschot, negatief = tekort>,
+    "toelichting": "<1-2 zinnen: als tekort, welke inspanningen doorgeschoven/afgeschaald>"
+  },
+  "prioriteitAdvies": "<3-5 zinnen: welke inspanning eerst, welke later, waarom — benoem expliciet outside-in: cultuur/bereidheid eerst, dan mens/competenties, dan processen, dan data/systemen>",
+  "samenvatting": "<1-2 zinnen executive samenvatting>"
 }
 
-Regels:
-- Som van percentages MOET precies 100 zijn. bedragEuro per inspanning = percentage/100 * totaalBudgetEuro, afgerond op €1.000.
-- Gebruik \`bedragEuro\` met alleen cijfers (bv. 75000, niet "75.000" of "€75K").
-- Redeneer methodisch: data-systemen is meestal kapitaalintensief (CRM/platforms), mens/cultuur vaak minder maar langere doorlooptijd, processen matig.
-- Benoem in motivatie per regel 1 concrete reden (schaalvoordeel / kritieke afhankelijkheid / laagste regret / snelste hefboom).
-- prioriteitAdvies denkt aan cyclus-lengte: 9 maanden is kort — welke kun je AF krijgen, welke kun je STARTEN en afbouwen in 2026.
-- prognose2026: expliciet benoemen welk deel van de €X in 2026 nodig is om door te kunnen, en welk deel eenmalig was. Geef grove totaal 2026-raming in euros.
-- Antwoord in het Nederlands, gebruik €-symbool (geen "EUR").
-- ALLEEN JSON, geen prose errom.`;
+HARDE REGELS:
+1. **Budget mag NIET overschreden worden.** Als inspanningen samen meer kosten dan \`totaalBudgetEuro\`, dan MOET je prioriteren: schuif lagere prioriteit door naar latere jaren, schaal af, of haal uit scope. Zet \`binnenBudget: false\` en licht toe.
+2. **Meerjarig spreiden — REALISTISCH:**
+   - Cultuur/bereidheid: zwaar jaar 1 (bewustwording, commitment), afnemend jaar 2-3 (borging).
+   - Mens/competenties: jaar 1 start, piek jaar 2 (training aan volle breedte), jaar 3 borging/verfijning.
+   - Processen: jaar 1-2 ontwerp, jaar 2-3 uitrol.
+   - Data/Systemen: jaar 2-3 (CRM kan pas worden ingeregeld als bekend is welke vragen gesteld moeten worden — volgt uit mens/processen).
+3. **Som van \`verdelingPerJaar[*].percentage\` per inspanning MOET precies 100 zijn.**
+4. **Outside-in volgorde:** rank 1 = cultuur (bereidheid — zijn ze bereid te doen wat ze beloven?), rank 2-3 = mens (competenties, gesprekvaardigheid — kan starten los van systemen), rank 4-5 = processen (volgen uit de vragen), rank 6+ = data/systemen (CRM wordt ingeregeld op wat genoteerd moet worden). Motiveer afwijkingen.
+5. Alle \`euro\`-velden als integers (bv. \`75000\`, niet \`"€75K"\`).
+6. Antwoord in het Nederlands, gebruik €-symbool waar nodig in toelichting.
+7. ALLEEN JSON, geen prose errom.`;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { totaalBudgetEuro, cyclusMaanden, focusDoel, inspanningen } = body as {
+    const {
+      totaalBudgetEuro,
+      cyclusMaanden,
+      startJaar,
+      aantalJaren,
+      focusDoel,
+      inspanningen,
+    } = body as {
       totaalBudgetEuro?: number;
       cyclusMaanden?: number;
+      startJaar?: number;
+      aantalJaren?: number;
       focusDoel?: unknown;
       inspanningen?: unknown;
     };
@@ -89,6 +159,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const effectiefStartJaar =
+      typeof startJaar === "number" && startJaar > 2000 ? startJaar : new Date().getFullYear();
+    const effectiefAantalJaren =
+      typeof aantalJaren === "number" && aantalJaren >= 1 && aantalJaren <= 10 ? aantalJaren : 3;
+
     const kibContext = extractKiBContext(body);
     const systemPrompt = assembleSystemPrompt(PROMPT, "cross-analyse", undefined, kibContext);
 
@@ -96,6 +171,8 @@ export async function POST(request: NextRequest) {
       {
         totaalBudgetEuro,
         cyclusMaanden,
+        startJaar: effectiefStartJaar,
+        aantalJaren: effectiefAantalJaren,
         focusDoel: focusDoel ?? null,
         inspanningen,
       },
@@ -107,7 +184,7 @@ export async function POST(request: NextRequest) {
       BegrotingsAdviesSchema,
       systemPrompt,
       userMessage,
-      { maxTokens: 4096 }
+      { maxTokens: 6144 }
     );
 
     if (!result.success) {
