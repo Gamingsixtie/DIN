@@ -9,6 +9,9 @@ export const maxDuration = 300;
 // Eerst genereert AI concrete business-case vragen op basis van een inspanning;
 // daarna verwerkt AI de antwoorden naar een scherpe eerste raming.
 
+// inputType is altijd "text" zodat gebruiker ook beschrijvende antwoorden kan
+// geven (bv. "ongeveer 40 man, verschillend per sector", "weten we nog niet
+// precies"). De AI verwerkt vrije tekst in de estimate-stap.
 const QuestionsSchema = z.object({
   questions: z
     .array(
@@ -16,7 +19,7 @@ const QuestionsSchema = z.object({
         key: z.string(),
         vraag: z.string(),
         toelichting: z.string().optional().default(""),
-        inputType: z.enum(["text", "number", "select"]).default("text"),
+        inputType: z.literal("text").optional().default("text"),
         opties: z.array(z.string()).optional().default([]),
         eenheid: z.string().optional().default(""),
       })
@@ -42,11 +45,12 @@ Input JSON:
 Output: { "questions": [{ key, vraag, toelichting, inputType, opties?, eenheid? }, ...] }
 
 Regels:
-- Vragen moeten concreet rekenmateriaal opleveren voor kostenraming.
+- Vragen moeten concreet rekenmateriaal opleveren voor kostenraming, MAAR ook ruimte laten voor omschrijvingen. Gebruiker is niet altijd zeker van getallen.
 - Denk aan: aantal medewerkers per sector, looptijd, externe inhuur, platform-licenties, implementatie-uren, trainingsdagen, locaties.
 - Stem vragen af op het domein: Mens → training/uren/FTE; Data & Systemen → licentie/integratie/hardware; Processen → procesdesign-uren/workshops; Cultuur → leiderschapsprogramma/coaching-dagen.
-- inputType meestal "number" voor aantallen/FTE/euro's; "select" voor kort/middel/lang; "text" alleen wanneer echt vrije invoer nodig is.
-- Eenheid duidelijk (FTE, uren, €, weken, licenties).
+- **inputType is ALTIJD "text"** — geen number, geen select. Zo kan gebruiker ook antwoorden geven zoals "circa 40, meer voor VO" of "weten we nog niet precies, schatting 60". De estimate-AI verwerkt vrije tekst.
+- Formuleer vragen zo dat zowel een getal als een omschrijving werkt. Stel niet "Hoeveel FTE?" maar "Hoeveel FTE of medewerkers — een schatting of range mag ook".
+- Eenheid duidelijk benoemen in het veld \`eenheid\` (FTE, uren, €, weken, licenties) zodat gebruiker context heeft.
 - Keys kort en snake_case.
 - Geef tenminste 4, max 8 vragen.
 - Alles in Nederlands, JSON only.`;
@@ -68,6 +72,9 @@ Output JSON:
 }
 
 Regels:
+- **Antwoorden kunnen vrije tekst zijn.** Verwerk zowel concrete getallen ("40 FTE") als omschrijvingen ("ongeveer 30-50, meer in VO dan PO", "weten we nog niet", "in de orde van €100K").
+  Als een antwoord een range of schatting geeft: gebruik het middenpunt en vermeld de onzekerheid in aannames.
+  Als een antwoord "onbekend" of leeg is: gebruik redelijke Cito-benchmarks (trainingsdag €800, FTE/jaar €100K, consultantuur €120) en zet dat in aannames.
 - Gebruik de antwoorden verschillend per domein:
   Mens: FTE × trainings-dagtarief; content-ontwikkeling eenmalig
   Data & Systemen: licentie/jaar × jaren + implementatie-uren × rate; hardware eenmalig

@@ -922,35 +922,21 @@ export default function StapOptimaliseren({
                             {q.toelichting && (
                               <p className="text-[10px] text-gray-500 mb-1">{q.toelichting}</p>
                             )}
-                            {q.inputType === "select" && q.opties ? (
-                              <select
-                                value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
-                                onChange={(e) =>
-                                  setBcAnswersByIdx((p) => ({
-                                    ...p,
-                                    [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              >
-                                <option value="">—</option>
-                                {q.opties.map((o) => (
-                                  <option key={o} value={o}>{o}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type={q.inputType === "number" ? "number" : "text"}
-                                value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
-                                onChange={(e) =>
-                                  setBcAnswersByIdx((p) => ({
-                                    ...p,
-                                    [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              />
-                            )}
+                            {/* Altijd textarea — gebruiker mag een getal geven
+                                of een omschrijving ("circa 40", "weten we nog niet", etc).
+                                De AI estimate-stap verwerkt vrije tekst. */}
+                            <textarea
+                              value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
+                              onChange={(e) =>
+                                setBcAnswersByIdx((p) => ({
+                                  ...p,
+                                  [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
+                                }))
+                              }
+                              rows={2}
+                              placeholder="Vul een getal, range, omschrijving of 'weet ik niet' in…"
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded resize-y leading-relaxed"
+                            />
                           </div>
                         ))}
                         <div className="flex items-center justify-end gap-2 pt-1">
