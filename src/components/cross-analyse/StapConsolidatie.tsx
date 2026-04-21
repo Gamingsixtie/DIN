@@ -426,17 +426,46 @@ Antwoord in het Nederlands.`,
         </div>
       )}
 
-      {/* AI consolidatie-advies (if stap4Result exists) */}
-      {stap4Result && stap4Result.consolidatieAdvies.length > 0 && (
-        <div className="space-y-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-xs text-amber-900 leading-relaxed">
-              <strong>Let op:</strong> geconsolideerde inspanningen vallen altijd onder één van de vier
-              domeinen (Mens / Processen / Data &amp; Systemen / Cultuur). Dit advies is referentie —
-              de daadwerkelijke cross-sectorale inspanningen verschijnen in stap 6 (Optimaliseren) en
-              stap 7 (DIN-netwerk) per domein. Hier geen parallel spoor maken.
-            </p>
+      {/* Stap 5 actie-banner: de consolidatie IS de cross-sectorale inspanningen uit stap 4 */}
+      {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (
+        <div className="bg-[#003366] text-white rounded-lg p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 mb-1">
+            Geconsolideerde cross-sectorale inspanningen
+          </p>
+          <h4 className="text-base font-semibold mb-2">
+            {stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length} inspanningen klaar voor optimalisatie
+          </h4>
+          <p className="text-sm text-blue-100 leading-relaxed">
+            De consolidatie is afgerond: in stap 4 zijn de sector-inspanningen per domein (Mens / Processen / Data &amp; Systemen / Cultuur)
+            samengevoegd tot cross-sectorale inspanningen. Klik <strong>Volgende</strong> hieronder om naar stap 6 te gaan en ze te verfijnen.
+          </p>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {(["mens", "processen", "data_systemen", "cultuur"] as const).map((dom) => {
+              const count = stap4Result.subEffortAnalysis.filter(
+                (e) => e.domein === dom && e.actie === "combineren"
+              ).length;
+              const meta = DOMEIN_META[dom];
+              return (
+                <div
+                  key={dom}
+                  className="bg-white/10 border border-white/20 rounded px-2 py-1.5 text-center"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">{meta.label}</p>
+                  <p className="text-lg font-semibold">{count}</p>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* AI consolidatie-advies (verborgen onder details — referentie-only) */}
+      {stap4Result && stap4Result.consolidatieAdvies.length > 0 && (
+        <details className="space-y-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <summary className="text-xs text-gray-600 cursor-pointer font-semibold">
+            Referentie: AI consolidatie-advies per cluster (los van de 4 domein-inspanningen hierboven) — klik om te openen
+          </summary>
+          <div className="mt-3 space-y-3">
           <h5 className="text-sm font-semibold text-gray-700">AI consolidatie-advies (referentie)</h5>
           <div className="grid gap-3 sm:grid-cols-2">
             {stap4Result.consolidatieAdvies.map((advies, i) => {
@@ -474,7 +503,8 @@ Antwoord in het Nederlands.`,
               <p className="text-xs text-gray-600">{stap4Result.samenvatting}</p>
             </div>
           )}
-        </div>
+          </div>
+        </details>
       )}
 
       {/* Cito-breed inzicht per domein */}
