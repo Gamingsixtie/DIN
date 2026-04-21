@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "@/lib/session-context";
 import type { DINSession, Stap4Result, EffortDomain } from "@/lib/types";
 import type { SubEffortAdvies } from "@/lib/schemas";
+import { computeFieldDiff, type FieldDiff } from "@/lib/diff";
 
 const DOMAIN_LABELS: Record<EffortDomain, string> = {
   mens: "Mens",
@@ -39,6 +40,16 @@ export default function StapOptimaliseren({
   type OptField = "titel" | "beschrijving" | "beargumentatie" | "vermogenImpact" | "dossier";
   const [optimizeFieldsByIdx, setOptimizeFieldsByIdx] = useState<Record<number, Set<OptField>>>({});
   const [userInstructieByIdx, setUserInstructieByIdx] = useState<Record<number, string>>({});
+
+  // Pending AI-diff per kaart (Phase 19 substap 6.2) — geoptimaliseerde versie wordt eerst
+  // getoond als before/after voordat de gebruiker deze toepast of verwerpt.
+  type PendingDiff = {
+    proposed: SubEffortAdvies;
+    textDiffs: FieldDiff[]; // tekst-velden met word-level diff
+    vermogenImpactChanged: boolean;
+    dossierChanged: boolean;
+  };
+  const [pendingDiffByIdx, setPendingDiffByIdx] = useState<Record<number, PendingDiff>>({});
 
   // Business-case (per kaart) state
   const [bcModeByIdx, setBcModeByIdx] = useState<Record<number, "idle" | "loading-questions" | "answering" | "loading-estimate">>({});
@@ -150,6 +161,26 @@ export default function StapOptimaliseren({
     setSavedIndex(null);
   }
 
+  function applyPendingDiff(idx: number) {
+    const pending = pendingDiffByIdx[idx];
+    if (!pending) return;
+    setEntries((prev) => prev.map((e, i) => (i === idx ? pending.proposed : e)));
+    setPendingDiffByIdx((p) => {
+      const next = { ...p };
+      delete next[idx];
+      return next;
+    });
+    setSavedIndex(null);
+  }
+
+  function rejectPendingDiff(idx: number) {
+    setPendingDiffByIdx((p) => {
+      const next = { ...p };
+      delete next[idx];
+      return next;
+    });
+  }
+
   async function optimizeEntry(idx: number) {
     setOptimizingIndex(idx);
     setOptimizeError(null);
@@ -212,33 +243,43 @@ export default function StapOptimaliseren({
         setOptimizingIndex(null);
         return;
       }
-      // Client-side guard: merge alleen geselecteerde velden terug (veiligheidsnet
-      // voor als AI toch iets anders zou overschrijven)
+      // Client-side guard: stage alleen geselecteerde velden — gebruiker moet toepassen
+      // of verwerpen via diff-panel (Phase 19 substap 6.2).
       const ai = data.data as SubEffortAdvies;
-      setEntries((prev) =>
-        prev.map((e, i) => {
-          if (i !== idx) return e;
-          const merged: SubEffortAdvies = { ...e };
-          // Guard: alleen overschrijven als AI een waarde teruggaf (niet undefined / leeg)
-          if (fields.includes("titel") && ai.titel) {
-            merged.titel = ai.titel;
-            merged.voorgesteldeNaam = ai.voorgesteldeNaam ?? ai.titel;
-          }
-          if (fields.includes("beschrijving") && ai.beschrijving) {
-            merged.beschrijving = ai.beschrijving;
-          }
-          if (fields.includes("beargumentatie") && ai.beargumentatie) {
-            merged.beargumentatie = ai.beargumentatie;
-          }
-          if (fields.includes("vermogenImpact") && ai.vermogenImpact && ai.vermogenImpact.length > 0) {
-            merged.vermogenImpact = ai.vermogenImpact;
-          }
-          if (fields.includes("dossier") && ai.dossier) {
-            merged.dossier = ai.dossier;
-          }
-          return merged;
-        })
-      );
+      const original = entry;
+      const proposed: SubEffortAdvies = { ...original };
+      if (fields.includes("titel") && ai.titel) {
+        proposed.titel = ai.titel;
+        proposed.voorgesteldeNaam = ai.voorgesteldeNaam ?? ai.titel;
+      }
+      if (fields.includes("beschrijving") && ai.beschrijving) {
+        proposed.beschrijving = ai.beschrijving;
+      }
+      if (fields.includes("beargumentatie") && ai.beargumentatie) {
+        proposed.beargumentatie = ai.beargumentatie;
+      }
+      if (fields.includes("vermogenImpact") && ai.vermogenImpact && ai.vermogenImpact.length > 0) {
+        proposed.vermogenImpact = ai.vermogenImpact;
+      }
+      if (fields.includes("dossier") && ai.dossier) {
+        proposed.dossier = ai.dossier;
+      }
+
+      const textDiffs: FieldDiff[] = [
+        computeFieldDiff("titel", "Titel", original.titel, proposed.titel),
+        computeFieldDiff("beschrijving", "Beschrijving — wat wordt er gedaan", original.beschrijving, proposed.beschrijving),
+        computeFieldDiff("beargumentatie", "Onderbouwing — waarom dit cluster", original.beargumentatie, proposed.beargumentatie),
+      ].filter((d) => d.gewijzigd);
+
+      const vermogenImpactChanged =
+        JSON.stringify(original.vermogenImpact ?? []) !== JSON.stringify(proposed.vermogenImpact ?? []);
+      const dossierChanged =
+        JSON.stringify(original.dossier ?? {}) !== JSON.stringify(proposed.dossier ?? {});
+
+      setPendingDiffByIdx((p) => ({
+        ...p,
+        [idx]: { proposed, textDiffs, vermogenImpactChanged, dossierChanged },
+      }));
       setOptimizingIndex(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Netwerkfout";
@@ -625,6 +666,150 @@ export default function StapOptimaliseren({
                       </div>
                     </div>
                   </div>
+
+                  {/* AI-optimalisatie diff-panel (Phase 19 substap 6.2) —
+                      verschijnt na AI-call, gebruiker kan toepassen of verwerpen */}
+                  {pendingDiffByIdx[idx] && (() => {
+                    const pending = pendingDiffByIdx[idx];
+                    const hasChanges =
+                      pending.textDiffs.length > 0 ||
+                      pending.vermogenImpactChanged ||
+                      pending.dossierChanged;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-gray-200 bg-white border-2 border-blue-300 rounded p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <p className="text-[11px] font-semibold text-blue-800 uppercase tracking-wider">
+                            AI-optimalisatie — wijzigingen voorgesteld
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => rejectPendingDiff(idx)}
+                              className="text-[11px] px-2.5 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              Verwerpen
+                            </button>
+                            <button
+                              onClick={() => applyPendingDiff(idx)}
+                              disabled={!hasChanges}
+                              className="text-[11px] px-2.5 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              Toepassen
+                            </button>
+                          </div>
+                        </div>
+
+                        {!hasChanges && (
+                          <p className="text-[11px] text-gray-600 italic">
+                            AI heeft geen inhoudelijke wijzigingen voorgesteld.
+                          </p>
+                        )}
+
+                        {/* Tekstdiffs per veld */}
+                        {pending.textDiffs.map((d) => (
+                          <div key={d.field} className="space-y-1">
+                            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
+                              {d.label}
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div className="bg-red-50 border border-red-200 rounded p-2 text-[11px] leading-relaxed">
+                                <p className="text-[9px] font-semibold text-red-700 uppercase tracking-wider mb-1">Vóór</p>
+                                {d.segments.length === 0 ? (
+                                  <span className="text-gray-400 italic">(leeg)</span>
+                                ) : (
+                                  d.segments
+                                    .filter((s) => s.type !== "add")
+                                    .map((s, i) =>
+                                      s.type === "del" ? (
+                                        <span key={i} className="bg-red-200/60 line-through text-red-900">
+                                          {s.text}
+                                        </span>
+                                      ) : (
+                                        <span key={i} className="text-gray-700">
+                                          {s.text}
+                                        </span>
+                                      )
+                                    )
+                                )}
+                              </div>
+                              <div className="bg-green-50 border border-green-200 rounded p-2 text-[11px] leading-relaxed">
+                                <p className="text-[9px] font-semibold text-green-700 uppercase tracking-wider mb-1">Na</p>
+                                {d.segments.length === 0 ? (
+                                  <span className="text-gray-400 italic">(leeg)</span>
+                                ) : (
+                                  d.segments
+                                    .filter((s) => s.type !== "del")
+                                    .map((s, i) =>
+                                      s.type === "add" ? (
+                                        <span key={i} className="bg-green-200/60 font-semibold text-green-900">
+                                          {s.text}
+                                        </span>
+                                      ) : (
+                                        <span key={i} className="text-gray-700">
+                                          {s.text}
+                                        </span>
+                                      )
+                                    )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Vermogen-impact diff (object-level) */}
+                        {pending.vermogenImpactChanged && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
+                              Vermogen-impact per sector
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div className="bg-red-50 border border-red-200 rounded p-2 text-[11px]">
+                                <p className="text-[9px] font-semibold text-red-700 uppercase tracking-wider mb-1">Vóór</p>
+                                <ul className="space-y-1">
+                                  {(entry.vermogenImpact ?? []).map((v, i) => (
+                                    <li key={i}><strong>{v.sectorId}:</strong> {v.impact}</li>
+                                  )) || <li className="italic text-gray-400">leeg</li>}
+                                </ul>
+                              </div>
+                              <div className="bg-green-50 border border-green-200 rounded p-2 text-[11px]">
+                                <p className="text-[9px] font-semibold text-green-700 uppercase tracking-wider mb-1">Na</p>
+                                <ul className="space-y-1">
+                                  {(pending.proposed.vermogenImpact ?? []).map((v, i) => (
+                                    <li key={i}><strong>{v.sectorId}:</strong> {v.impact}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Dossier diff (veld-level) */}
+                        {pending.dossierChanged && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
+                              Dossier (eigenaar / leider / kosten / randvoorwaarden)
+                            </p>
+                            <div className="text-[11px] text-gray-700 space-y-0.5">
+                              {(["eigenaar", "inspanningsleider", "verwachtResultaat", "kostenraming", "randvoorwaarden"] as const).map((k) => {
+                                const oldVal = entry.dossier?.[k] ?? "";
+                                const newVal = pending.proposed.dossier?.[k] ?? "";
+                                if (oldVal === newVal) return null;
+                                return (
+                                  <div key={k} className="grid grid-cols-[120px_1fr] gap-2">
+                                    <span className="font-semibold text-gray-500">{k}:</span>
+                                    <span>
+                                      <span className="bg-red-100 line-through text-red-900 px-1">{oldVal || "(leeg)"}</span>
+                                      {" → "}
+                                      <span className="bg-green-100 font-semibold text-green-900 px-1">{newVal || "(leeg)"}</span>
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Gerichte optimalisatie config */}
                   <div className="mt-3 pt-3 border-t border-gray-200 bg-white rounded p-3 space-y-2">
