@@ -146,6 +146,39 @@ export default function CrossAnalyseWizard() {
     // Start at step 1 if neither exists (default state)
   }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-persist wizardState bij elke wijziging (safety-net bovenop per-event
+  // persists). Voorkomt verlies als user tijdens een AI-call wegnavigeert of
+  // als een per-event persist per ongeluk overgeslagen is. Debounced 500ms
+  // en vergelijkt content om no-op writes te vermijden.
+  useEffect(() => {
+    if (!session) return;
+    // Skip initiële mount-state (leeg)
+    if (
+      wizardState.currentStep === 1 &&
+      wizardState.completedSteps.size === 0 &&
+      Object.keys(wizardState.stepResults).length === 0
+    ) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      updateSession((prev) => {
+        const nextWiz = {
+          currentStep: wizardState.currentStep,
+          completedSteps: Array.from(wizardState.completedSteps),
+          wizardVersion: 2,
+          stepResults: wizardState.stepResults,
+        };
+        // Vergelijk op JSON-gelijkheid — voorkom onnodige writes naar Supabase
+        if (JSON.stringify(prev.crossAnalyseWizard) === JSON.stringify(nextWiz)) {
+          return prev;
+        }
+        return { ...prev, crossAnalyseWizard: nextWiz };
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardState]);
+
   // Step completion handler
   // resultKey = API stap (1-5) voor stepResults, displayStep = display stap (1-6) voor completedSteps
   const handleStepComplete = useCallback(
