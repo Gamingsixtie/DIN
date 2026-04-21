@@ -328,19 +328,29 @@ export async function POST(request: NextRequest) {
           groepen.map(async (groep) => {
             const capIdSet = new Set(groep.vermogenIds);
             const groepVermogens = capsData.filter((c: { id: string }) => capIdSet.has(c.id));
+            const isAutoGroep = groep.id === "auto-groep-focus";
+
+            // Voor de auto-groep: neem ALLE actieve (niet-geconsolideerde) efforts
+            // mee, niet alleen die via capEffortMaps gekoppeld zijn. De maps kunnen
+            // incompleet zijn terwijl de sector wel degelijk inspanningen aanleverde
+            // per domein. AI krijgt zo de volledige input per sector/domein.
             const groepEffortIdSet = new Set(
               capEffortMapsLocal
                 .filter((m) => capIdSet.has(m.capabilityId))
                 .map((m) => m.effortId)
             );
+            const rawEffortsForGate = (body.efforts || []) as Array<{ id: string; consolidated?: boolean }>;
+            const activeEffortIds = new Set(
+              rawEffortsForGate.filter((e) => !e.consolidated).map((e) => e.id)
+            );
             const groepEfforts = effortsData.filter((e: { id: string }) =>
-              groepEffortIdSet.has(e.id)
+              isAutoGroep
+                ? activeEffortIds.has(e.id)
+                : groepEffortIdSet.has(e.id)
             );
 
-            // Phase 18: skip-gate versoepeld — auto-groep (fallback uit stap 2 leegte)
-            // mag WEL door zonder efforts, AI leidt inspanningen af uit vermogen-profielen
-            // + focusDoel. Alleen skippen als geen efforts EN niet een auto-groep.
-            if (groepEfforts.length === 0 && groep.id !== "auto-groep-focus") {
+            // Phase 18: skip-gate versoepeld — auto-groep mag altijd door.
+            if (groepEfforts.length === 0 && !isAutoGroep) {
               // D-13: skip AI-call — geen gekoppelde efforts
               return [];
             }
