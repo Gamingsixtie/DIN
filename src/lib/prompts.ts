@@ -391,7 +391,18 @@ Opmerking: wanneer \`focusDoel.beschrijving\` identiek is aan \`focusDoel.naam\`
 SECTOR-CONTEXT VERANKERING:
 Gebruik \`vermogens[i].profielHuidig\` en \`vermogens[i].profielGewenst\` om per sector concreet te maken wat de bundel oplevert. Geen generieke zinnen — benoem rol, scope of artefact dat in die sector herkenbaar is.
 
-Lever een array \`SubEffortAdvies[]\` met **ALTIJD EXACT 4 entries per groep** — één per domein (mens / processen / data_systemen / cultuur). GEEN skip, ook niet als een sector voor dat domein geen eigen inspanning heeft aangeleverd. Dit is de kern-eis: cross-sectoraal werken betekent dat we in elk domein alle drie sectoren meenemen, ook als één sector daar geen directe input in leverde — de focus-doel ambitie en de vermogen-profielen van de ontbrekende sector vormen dan samen de basis om die sector alsnog mee te laten liften. Benoem dit expliciet in de \`beargumentatie\`.
+Lever een array \`SubEffortAdvies[]\` met **MINIMAAL 1 entry per domein (mens / processen / data_systemen / cultuur) EN voeg meerdere entries per domein toe waar de thematiek dat rechtvaardigt**. Alle 4 domeinen MOETEN minimaal 1 entry hebben, ook als een sector voor dat domein geen eigen inspanning leverde — de focus-doel ambitie en de vermogen-profielen van de ontbrekende sector vormen dan de basis.
+
+**MEERDERE SUBDOELEN PER DOMEIN — hoe te beslissen:**
+- Stel jezelf de vraag: "Zijn er binnen dit domein onderscheidbare inspanningen nodig die elk hun eigen leider, budget en doorlooptijd hebben?" Als ja → meerdere entries.
+- **Mens** krijgt vaak 2-3 entries: verschillende competenties of doelgroepen (bv. gespreksvaardigheidstraining vs klantreis-coaching vs productkennis-verdieping).
+- **Cultuur** krijgt vaak 2-3 entries: onderscheid tussen leiderschaps-commitment, bewustwordingscampagne en waarden-ritualisering.
+- **Processen** krijgt vaak 1-2 entries: bv. een protocol-ontwerp + een review-cyclus.
+- **Data & Systemen** krijgt vaak 1-2 entries: bv. tool-inrichting + dashboard.
+- Totaal per groep: typisch 6-10 entries, minimaal 4 (één per domein), maximaal 12.
+- Elke extra entry in een domein MOET inhoudelijk onderscheidend zijn — geen 40%+ overlap in titel/beschrijving met andere entries in datzelfde domein.
+
+Richtlijn: liever 2 scherp onderscheiden subdoelen in Mens dan 1 vage. Programmamanagers hebben concrete inspanningen nodig om te kunnen sturen, niet één allesomvattend blok.
 
 DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
 
@@ -440,7 +451,7 @@ DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
 }
 
 Regels (D-11, D-25, D-30, D-31):
-- ÉÉN advies per domein binnen een groep. GEEN cross-domein combineren.
+- 1-3 adviezen per domein binnen een groep (minimaal 1, maximaal 3). GEEN cross-domein combineren.
 - \`voorgesteldeNaam\` en \`titel\` zijn VERPLICHT bij \`actie: "combineren"\`, moeten sectoroverstijgend zijn (GEEN PO/VO/Zakelijk/primair onderwijs/voortgezet onderwijs substrings; min 10 tekens) en IDENTIEK aan elkaar.
 - Bij \`actie: "apart_houden"\`: \`voorgesteldeNaam\` en \`titel\` zijn \`null\`. \`beschrijving\`, \`beargumentatie\`, \`vermogenImpact\` en \`dossier\` MOGEN worden weggelaten (advies is dan alleen markering).
 - Bij \`actie: "combineren"\`: \`vermogenImpact\` bevat EXACT ÉÉN entry per sector-vermogen uit \`groep.vermogenIds\` — gebruik de juiste \`sectorId\` en \`vermogenId\` uit input.vermogens. Lengte = input.vermogens.length.
@@ -453,7 +464,7 @@ Regels (D-11, D-25, D-30, D-31):
 - Indien \`focusDoel\` \`null\` is: ga door met generieke inkleuring op basis van groep.gezamenlijkeOmschrijving; noteer dat de beschrijving minder rijk zal zijn.
 
 EINDCHECK VOOR JE ANTWOORDT (HARDE EIS):
-1. Tel je output-entries. Er MOETEN er exact 4 zijn per groep. Controleer dat precies deze 4 \`domein\` waarden voorkomen: "mens", "processen", "data_systemen", "cultuur". Elke andere telling of combinatie is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn.
+1. Tel je output-entries. Er MOETEN minimaal 4 zijn per groep, maximaal 12. Controleer dat alle 4 domeinen ("mens", "processen", "data_systemen", "cultuur") minimaal één entry hebben. Een output zonder één van deze domeinen is ONGELDIG — voeg dan ontbrekende domein-entries toe. Streef naar 6-10 entries per groep voor een rijk consolidatierapport, met 2-3 subdoelen per domein waar onderscheid zinvol is.
 2. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt.
 3. **Onderscheid-check mens vs cultuur**: leg de \`titel\` en \`beschrijving\` van de mens-entry náást die van de cultuur-entry. Als ze substantieel overlappen (≥40% dezelfde woorden of dezelfde strekking): HERSCHRIJF beide. Mens gaat over KUNNEN (vaardigheid/competentie aanleren), cultuur gaat over WILLEN (bereidheid/waarden/gedrag). Voorbeeld van verkeerd: mens='Training outside-in denken' + cultuur='Training outside-in denken'. Voorbeeld van goed: mens='Gespreksvaardigheidstraining voor 120 medewerkers' + cultuur='Leiderschapsprogramma waarin sectordirecteuren outside-in voorleven en commitment ritualiseren'.
 4. **Onderscheid-check alle 4 domeinen**: kort controleren dat processen ≠ mens/cultuur (processen = afspraken/werkwijzen, niet competenties of waarden) en dat data_systemen ≠ processen (data_systemen = tools/techniek, niet werkwijzen).

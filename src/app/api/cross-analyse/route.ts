@@ -394,8 +394,9 @@ export async function POST(request: NextRequest) {
 
             let entries = subResult.success ? subResult.data : [];
 
-            // Phase 18: garandeer 4 entries per groep (mens/processen/data_systemen/cultuur).
-            // Als AI een of meer domeinen oversloeg: gerichte retry alleen voor die domeinen.
+            // Phase 19 substap 5.1b: garandeer dat alle 4 domeinen minimaal 1 entry hebben.
+            // AI mag meerdere subdoelen per domein produceren (1-3 per domein, totaal 4-12 per groep),
+            // dus we checken op aanwezigheid van elk domein — niet op exact aantal.
             const ALL_DOMAINS = ["mens", "processen", "data_systemen", "cultuur"] as const;
             const present = new Set(entries.map((e) => e.domein));
             const missing = ALL_DOMAINS.filter((d) => !present.has(d));
@@ -407,7 +408,7 @@ export async function POST(request: NextRequest) {
                   groep,
                   vermogens: groepVermogensRich,
                   efforts: groepEfforts,
-                  _retry_instructie: `Je vorige response miste de volgende domeinen: ${missing.join(", ")}. Lever ALLEEN voor deze ontbrekende domeinen nieuwe SubEffortAdvies entries (${missing.length} stuk(s)), met actie "combineren", volledige Phase 18-velden en vermogenImpact voor alle 3 sectoren uit groep.vermogenIds. Als voor een domein geen efforts in input staan: zet items: [] en leid de inspanning af uit focusDoel.beschrijving + alle drie vermogen-profielen.`,
+                  _retry_instructie: `Je vorige response miste de volgende domeinen: ${missing.join(", ")}. Lever ALLEEN voor deze ontbrekende domeinen nieuwe SubEffortAdvies entries (1-3 per domein), met actie "combineren", volledige Phase 18-velden en vermogenImpact voor alle 3 sectoren uit groep.vermogenIds. Als voor een domein geen efforts in input staan: zet items: [] en leid de inspanning af uit focusDoel.beschrijving + alle drie vermogen-profielen.`,
                   _reeds_aanwezig: Array.from(present),
                 },
                 null,
