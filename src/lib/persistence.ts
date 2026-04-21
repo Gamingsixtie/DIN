@@ -93,15 +93,14 @@ export async function saveSessionToSupabase(
   try {
     return await withRetry(
       async () => {
-        // Lees remote versie
+        // Lees remote versie — maybeSingle() ipv single() zodat 0 rows geen 406 oplevert
         const { data: remote, error: readError } = await client
           .from("din_sessions")
           .select("data")
           .eq("id", session.id)
-          .single();
+          .maybeSingle();
 
-        if (readError && readError.code !== "PGRST116") {
-          // PGRST116 = no rows found (OK for first save)
+        if (readError) {
           _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] Read fout: ${readError.message} (code: ${readError.code})`;
           throw new Error(readError.message);
         }
@@ -159,7 +158,7 @@ export async function loadSessionFromSupabase(
       .from("din_sessions")
       .select("data")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) return null;
     return data.data as DINSession;
