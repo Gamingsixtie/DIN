@@ -437,20 +437,22 @@ Antwoord in het Nederlands.`,
         </div>
       )}
 
-      {/* Stap 5 Consolidatierapport — één doorlopend overzicht per VermogenGelijkenisGroep */}
+      {/* Stap 5 Consolidatierapport — DOMEIN-EERSTE view:
+          4 overkoepelende inspanningen (cultuur → mens → processen → data/systemen),
+          binnen elk domein de subdoelen/tussenstappen per gedeeld vermogen. */}
       {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (() => {
-        // Groepeer sub-effort entries per groepId (niet per domein) zodat we per
-        // VermogenGelijkenisGroep één sectie krijgen met daarbinnen de 4 domein-bundels.
-        const entriesByGroep = new Map<string, typeof stap4Result.subEffortAnalysis>();
+        // Groepeer entries per DOMEIN (niet per gelijkenisgroep) zodat Mens-inspanningen
+        // uit alle vermogensgroepen samenkomen tot één overkoepelende Mens-inspanning.
+        const entriesByDomein = new Map<string, typeof stap4Result.subEffortAnalysis>();
         for (const e of stap4Result.subEffortAnalysis) {
-          const list = entriesByGroep.get(e.groepId) ?? [];
+          const list = entriesByDomein.get(e.domein) ?? [];
           list.push(e);
-          entriesByGroep.set(e.groepId, list);
+          entriesByDomein.set(e.domein, list);
         }
         const gelijkenisGroepen = stap2Result?.vermogenGelijkenisGroepen ?? [];
 
-        // Totalen voor de banner
         const combinerenCount = stap4Result.subEffortAnalysis.filter((e) => e.actie === "combineren").length;
+        const activeDomeinen = OUTSIDE_IN_DOMEIN_ORDER.filter((d) => (entriesByDomein.get(d)?.length ?? 0) > 0);
 
         return (
           <>
@@ -460,156 +462,158 @@ Antwoord in het Nederlands.`,
                 Consolidatierapport
               </p>
               <h4 className="text-base font-semibold mb-2">
-                {combinerenCount} cross-sectorale inspanningen gebundeld over {entriesByGroep.size} gedeeld{entriesByGroep.size === 1 ? "" : "e"} vermogen{entriesByGroep.size === 1 ? "" : "s"}
+                {activeDomeinen.length} overkoepelende inspanningen (één per domein), {combinerenCount} subdoelen over {gelijkenisGroepen.length} gedeeld{gelijkenisGroepen.length === 1 ? "" : "e"} vermogen{gelijkenisGroepen.length === 1 ? "" : "s"}
               </h4>
               <p className="text-sm text-blue-100 leading-relaxed">
-                Per gedeeld vermogen zie je welke originele inspanningen samengaan, waarom ze gebundeld worden en welk vermogen ze per sector opbouwen. Onderaan staan losse inspanningen en de programma-brede rode draad per domein.
+                Alle Mens-activiteiten komen samen in één overkoepelende Mens-inspanning; hetzelfde voor Processen, Data &amp; Systemen en Cultuur. Binnen elke sectie zie je de subdoelen / tussenstappen per gedeeld vermogen — zo krijg je overzicht in plaats van 12 losse kaarten.
               </p>
             </div>
 
-            {/* Per VermogenGelijkenisGroep: titel + 4 domein-kaarten */}
-            {Array.from(entriesByGroep.entries()).map(([groepId, groepEntries]) => {
-              const groep = gelijkenisGroepen.find((g) => g.id === groepId);
-              // Sorteer entries binnen de groep outside-in
-              const sortedEntries = [...groepEntries].sort(
-                (a, b) =>
-                  OUTSIDE_IN_DOMEIN_ORDER.indexOf(a.domein as (typeof OUTSIDE_IN_DOMEIN_ORDER)[number]) -
-                  OUTSIDE_IN_DOMEIN_ORDER.indexOf(b.domein as (typeof OUTSIDE_IN_DOMEIN_ORDER)[number])
-              );
+            {/* Per DOMEIN één overkoepelende sectie (outside-in: cultuur → mens → processen → data_systemen) */}
+            {activeDomeinen.map((domein) => {
+              const domeinEntries = entriesByDomein.get(domein) ?? [];
+              const meta = DOMEIN_META[domein];
+              // Tel unieke bron-inspanningen over alle subdoelen in dit domein
+              const totaalBronIds = new Set<string>();
+              domeinEntries.forEach((e) => e.items.forEach((id) => totaalBronIds.add(id)));
 
               return (
-                <div key={groepId} className="space-y-3">
-                  {/* Kop van de gelijkenisgroep */}
-                  <div className="bg-white border border-[#003366]/20 rounded-lg p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#003366] mb-1">
-                      Gedeeld vermogen
+                <div key={domein} className={`border-2 ${meta.border} ${meta.bg} rounded-lg overflow-hidden`}>
+                  {/* Overkoepelende domein-kop */}
+                  <div className="bg-white/70 border-b border-gray-200 p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg className={`w-5 h-5 ${meta.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={meta.icon} />
+                      </svg>
+                      <h4 className={`text-base font-semibold ${meta.text}`}>
+                        {meta.label} — overkoepelende inspanning
+                      </h4>
+                      <span className="text-[11px] text-gray-500">
+                        · {domeinEntries.length} subdoel{domeinEntries.length === 1 ? "" : "en"} · {totaalBronIds.size} bron-inspanning{totaalBronIds.size === 1 ? "" : "en"}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-gray-600 italic leading-snug">
+                      {OUTSIDE_IN_UITLEG[domein]}
                     </p>
-                    <h5 className="text-sm font-semibold text-gray-900 leading-snug">
-                      {groep?.gezamenlijkeOmschrijving ?? "Gedeeld vermogen zonder omschrijving"}
-                    </h5>
-                    {groep?.reden && (
-                      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
-                        <span className="font-semibold">Waarom deze drieluik: </span>
-                        {groep.reden}
-                      </p>
-                    )}
                   </div>
 
-                  {/* 4 domein-kaarten in outside-in volgorde */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {sortedEntries.map((entry, i) => {
-                      const meta = DOMEIN_META[entry.domein];
-                      // Zoek originele efforts die in deze bundel zitten — dit is de combinatie-uitleg
+                  {/* Subdoelen per gedeeld vermogen */}
+                  <div className="p-4 space-y-3 bg-white">
+                    {domeinEntries.map((entry, i) => {
+                      const groep = gelijkenisGroepen.find((g) => g.id === entry.groepId);
                       const bronEfforts = entry.items
                         .map((effortId) => session.efforts.find((e) => e.id === effortId))
                         .filter((e): e is NonNullable<typeof e> => Boolean(e));
 
                       return (
-                        <div key={i} className={`border ${meta.border} ${meta.bg} rounded-lg p-4`}>
-                          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                            <p className={`text-[10px] font-bold uppercase tracking-wider ${meta.text}`}>
-                              {meta.label}
-                            </p>
-                            <span
-                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                                entry.actie === "combineren"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {entry.actie === "combineren" ? "Combineren" : "Apart houden"}
+                        <div key={i} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
+                          <div className="flex items-start gap-3">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-300 text-gray-600 text-xs font-bold shrink-0 mt-0.5">
+                              {i + 1}
                             </span>
+                            <div className="flex-1 min-w-0">
+                              {/* Subdoel-titel = entry.titel, onder aanwijzing van het gedeeld vermogen */}
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <h5 className="text-sm font-semibold text-[#003366] leading-snug">
+                                  {entry.titel || entry.voorgesteldeNaam || `Subdoel ${i + 1}`}
+                                </h5>
+                                <span
+                                  className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                    entry.actie === "combineren"
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {entry.actie === "combineren" ? "Combineren" : "Apart"}
+                                </span>
+                              </div>
+                              {groep && (
+                                <p className="text-[11px] text-gray-500 italic mb-2">
+                                  Gedeeld vermogen: {groep.gezamenlijkeOmschrijving}
+                                </p>
+                              )}
+
+                              {/* Combinatie-uitleg */}
+                              {bronEfforts.length > 0 && (
+                                <section className="mb-2 bg-white border border-gray-200 rounded p-2">
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                    Dit subdoel bundelt {bronEfforts.length} inspanning{bronEfforts.length === 1 ? "" : "en"}
+                                  </p>
+                                  <ul className="space-y-0.5">
+                                    {bronEfforts.map((eff) => (
+                                      <li key={eff.id} className="text-[11px] text-gray-700 leading-snug">
+                                        <span className="inline-block text-[9px] font-semibold px-1 py-0.5 rounded bg-gray-100 text-gray-600 mr-1">
+                                          {eff.sectorId}
+                                        </span>
+                                        {eff.title || eff.description}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </section>
+                              )}
+
+                              {/* Wat wordt er gedaan */}
+                              {entry.beschrijving && (
+                                <section className="mb-2">
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+                                    Wat wordt er gedaan
+                                  </p>
+                                  <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beschrijving}</p>
+                                </section>
+                              )}
+
+                              {/* Onderbouwing */}
+                              {entry.beargumentatie && (
+                                <section className="mb-2">
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+                                    Onderbouwing
+                                  </p>
+                                  <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beargumentatie}</p>
+                                </section>
+                              )}
+
+                              {/* Vermogen-impact per sector */}
+                              {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
+                                <section className="mb-2">
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                    Vermogen per sector
+                                  </p>
+                                  <ul className="space-y-0.5">
+                                    {entry.vermogenImpact.map((v, j) => (
+                                      <li key={j} className="text-[12px] text-gray-700 leading-snug">
+                                        <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </section>
+                              )}
+
+                              {/* Dossier uitklapbaar */}
+                              {entry.dossier && (
+                                <details className="mt-2">
+                                  <summary className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer">
+                                    Eigenaar, leider, kosten, randvoorwaarden
+                                  </summary>
+                                  <dl className="mt-1.5 space-y-1">
+                                    {([
+                                      ["Eigenaar", entry.dossier.eigenaar],
+                                      ["Inspanningsleider", entry.dossier.inspanningsleider],
+                                      ["Verwacht resultaat", entry.dossier.verwachtResultaat],
+                                      ["Kostenraming", entry.dossier.kostenraming],
+                                      ["Randvoorwaarden", entry.dossier.randvoorwaarden],
+                                    ] as const).map(([label, value]) =>
+                                      value && value.length > 0 ? (
+                                        <div key={label} className="grid grid-cols-[140px_1fr] gap-2 text-[11px]">
+                                          <dt className="font-semibold text-gray-500">{label}</dt>
+                                          <dd className="text-gray-700 leading-snug">{value}</dd>
+                                        </div>
+                                      ) : null
+                                    )}
+                                  </dl>
+                                </details>
+                              )}
+                            </div>
                           </div>
-                          {/* Outside-in mini-uitleg per domein */}
-                          <p className="text-[10px] text-gray-500 italic mb-2 leading-snug">
-                            {OUTSIDE_IN_UITLEG[entry.domein]}
-                          </p>
-
-                          {(entry.titel || entry.voorgesteldeNaam) && (
-                            <h4 className="text-sm font-semibold text-[#003366] mb-2 leading-snug">
-                              {entry.titel || entry.voorgesteldeNaam}
-                            </h4>
-                          )}
-
-                          {/* Combinatie-uitleg: welke originele inspanningen worden gebundeld */}
-                          {bronEfforts.length > 0 && (
-                            <section className="mb-3 bg-white/70 border border-gray-200 rounded p-2.5">
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                                Dit cluster bundelt {bronEfforts.length} inspanning{bronEfforts.length === 1 ? "" : "en"}
-                              </p>
-                              <ul className="space-y-1">
-                                {bronEfforts.map((eff) => (
-                                  <li key={eff.id} className="text-[11px] text-gray-700 leading-snug">
-                                    <span className="inline-block text-[9px] font-semibold px-1 py-0.5 rounded bg-gray-100 text-gray-600 mr-1">
-                                      {eff.sectorId}
-                                    </span>
-                                    {eff.title || eff.description}
-                                  </li>
-                                ))}
-                              </ul>
-                            </section>
-                          )}
-
-                          {/* Wat wordt er gedaan */}
-                          {entry.beschrijving && (
-                            <section className="mb-3">
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                Wat wordt er gedaan
-                              </p>
-                              <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beschrijving}</p>
-                            </section>
-                          )}
-
-                          {/* Onderbouwing — waarom dit cluster (voorheen "Beargumentatie") */}
-                          {entry.beargumentatie && (
-                            <section className="mb-3 pt-3 border-t border-gray-200">
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                Onderbouwing — waarom dit cluster
-                              </p>
-                              <p className="text-[12px] text-gray-700 leading-relaxed">{entry.beargumentatie}</p>
-                            </section>
-                          )}
-
-                          {/* Welk vermogen bouwt dit op (per sector) */}
-                          {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
-                            <section className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                Welk vermogen bouwt dit op (per sector)
-                              </p>
-                              <ul className="space-y-1.5">
-                                {entry.vermogenImpact.map((v, j) => (
-                                  <li key={j} className="text-[12px] text-gray-700 leading-snug">
-                                    <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
-                                  </li>
-                                ))}
-                              </ul>
-                            </section>
-                          )}
-
-                          {/* Inspanningsdossier — uitklapbaar */}
-                          {entry.dossier && (
-                            <details className="mt-3 pt-3 border-t border-gray-200">
-                              <summary className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 cursor-pointer">
-                                Eigenaar, leider, kosten, randvoorwaarden
-                              </summary>
-                              <dl className="mt-2 space-y-1.5">
-                                {([
-                                  ["Eigenaar", entry.dossier.eigenaar],
-                                  ["Inspanningsleider", entry.dossier.inspanningsleider],
-                                  ["Verwacht resultaat", entry.dossier.verwachtResultaat],
-                                  ["Kostenraming", entry.dossier.kostenraming],
-                                  ["Randvoorwaarden", entry.dossier.randvoorwaarden],
-                                ] as const).map(([label, value]) =>
-                                  value && value.length > 0 ? (
-                                    <div key={label} className="grid grid-cols-[140px_1fr] gap-2 text-[12px]">
-                                      <dt className="font-semibold text-gray-500">{label}</dt>
-                                      <dd className="text-gray-700 leading-snug">{value}</dd>
-                                    </div>
-                                  ) : null
-                                )}
-                              </dl>
-                            </details>
-                          )}
                         </div>
                       );
                     })}
