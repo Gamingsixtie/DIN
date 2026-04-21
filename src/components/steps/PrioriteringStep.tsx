@@ -1,31 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "@/lib/session-context";
-import { SECTORS, SECTOR_COLORS, DOMAIN_LABELS, generateQuarters } from "@/lib/types";
-import type { SectorName, EffortDomain, ApprovalStatus, DINEffort } from "@/lib/types";
+import {
+  SECTORS,
+  SECTOR_COLORS,
+  DOMAIN_LABELS,
+  DOMAIN_COLORS,
+  generateQuarters,
+} from "@/lib/types";
+import type {
+  EffortDomain,
+  DINEffort,
+  SectorName,
+  PlanningVoorstel,
+} from "@/lib/types";
+import { LoadingOverlay } from "@/components/cross-analyse/shared";
 
-const QUARTERS = ["Nader te bepalen", ...generateQuarters()];
+const NADER_TE_BEPALEN = "Nader te bepalen";
+const QUARTERS_AVAILABLE = generateQuarters(8);
 
-const DOMAIN_COLORS: Record<EffortDomain, { bar: string; bg: string; text: string }> = {
-  mens: { bar: "#2563eb", bg: "bg-blue-50", text: "text-blue-700" },
-  processen: { bar: "#059669", bg: "bg-green-50", text: "text-green-700" },
-  data_systemen: { bar: "#7c3aed", bg: "bg-purple-50", text: "text-purple-700" },
-  cultuur: { bar: "#d97706", bg: "bg-amber-50", text: "text-amber-700" },
-};
-
-const APPROVAL_STYLES: Record<ApprovalStatus, { bg: string; text: string; label: string }> = {
-  voorstel: { bg: "bg-gray-100", text: "text-gray-600", label: "Voorstel" },
-  goedgekeurd: { bg: "bg-green-100", text: "text-green-700", label: "Goedgekeurd" },
-  afgewezen: { bg: "bg-red-100", text: "text-red-700", label: "Afgewezen" },
-  aangepast: { bg: "bg-amber-100", text: "text-amber-700", label: "Aanpassing gevraagd" },
-};
-
-const SECTOR_TAB_STYLES: Record<SectorName, { active: string; inactive: string }> = {
-  PO: { active: "bg-blue-100 text-blue-800 border-blue-300", inactive: "text-blue-600 hover:bg-blue-50" },
-  VO: { active: "bg-green-100 text-green-800 border-green-300", inactive: "text-green-600 hover:bg-green-50" },
-  Zakelijk: { active: "bg-purple-100 text-purple-800 border-purple-300", inactive: "text-purple-600 hover:bg-purple-50" },
-};
+const DOMAIN_ORDER: EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"];
 
 function SectorBadge({ sector }: { sector: string }) {
   const colors = SECTOR_COLORS[sector as SectorName] || "bg-gray-100 text-gray-700 border-gray-200";
@@ -36,274 +31,402 @@ function SectorBadge({ sector }: { sector: string }) {
   );
 }
 
+function formatPlanningDate(iso?: string): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("nl-NL", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export default function PrioriteringStep() {
   const { session, updateSession } = useSession();
-  const [activeSector, setActiveSector] = useState<SectorName>("PO");
-  const [pendingAction, setPendingAction] = useState<{
-    effortId: string;
-    status: ApprovalStatus;
-    opmerking: string;
-  } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [userFeedback, setUserFeedback] = useState("");
+  const [editingEffortId, setEditingEffortId] = useState<string | null>(null);
+
+  const allEfforts = useMemo(
+    () => (session ? session.efforts.filter((e) => !e.consolidated) : []),
+    [session]
+  );
+
+  const planningVoorstel = session?.planningVoorstel;
+
+  const stap4Complete =
+    !!session?.crossAnalyseWizard?.stepResults?.stap4?.subEffortAnalysis &&
+    session.crossAnalyseWizard.stepResults.stap4.subEffortAnalysis.length > 0;
+
+  const beargumentatieMap = useMemo(() => {
+    const m = new Map<string, string>();
+    if (planningVoorstel?.inspanningPlanning) {
+      for (const p of planningVoorstel.inspanningPlanning) {
+        m.set(p.inspanningId, p.beargumentatie);
+      }
+    }
+    return m;
+  }, [planningVoorstel]);
+
+  const afhankelijkhedenMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    if (planningVoorstel?.inspanningPlanning) {
+      for (const p of planningVoorstel.inspanningPlanning) {
+        if (p.afhankelijkVan && p.afhankelijkVan.length > 0) {
+          m.set(p.inspanningId, p.afhankelijkVan);
+        }
+      }
+    }
+    return m;
+  }, [planningVoorstel]);
 
   if (!session) return null;
 
-  const allEfforts = session.efforts.filter((e) => !e.consolidated);
-  const totalEfforts = allEfforts.length;
-
-  if (totalEfforts === 0) {
+  if (allEfforts.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12h18M3 6h18M3 18h18" />
           </svg>
         </div>
-        <p className="text-gray-500 font-medium mb-1">Nog geen inspanningen om te beoordelen</p>
+        <p className="text-gray-500 font-medium mb-1">Nog geen inspanningen om te plannen</p>
         <p className="text-sm text-gray-400">
-          Vul eerst het DIN-netwerk in via de DIN-Mapping stap.
+          Doorloop eerst de DIN-Mapping en Cross-analyse stappen.
         </p>
       </div>
     );
   }
 
-  // Statistieken
-  const statsVoorstel = allEfforts.filter((e) => !e.approvalStatus || e.approvalStatus === "voorstel").length;
-  const statsGoedgekeurd = allEfforts.filter((e) => e.approvalStatus === "goedgekeurd").length;
-  const statsAfgewezen = allEfforts.filter((e) => e.approvalStatus === "afgewezen").length;
-  const statsIngepland = allEfforts.filter((e) => e.quarter && e.quarter !== "Nader te bepalen").length;
+  const totaal = allEfforts.length;
+  const ingepland = allEfforts.filter((e) => e.quarter && e.quarter !== NADER_TE_BEPALEN).length;
+  const nietIngepland = totaal - ingepland;
 
-  function handleApprovalClick(effortId: string, status: ApprovalStatus) {
-    const effort = session!.efforts.find((e) => e.id === effortId);
-    setPendingAction({
-      effortId,
-      status,
-      opmerking: effort?.opmerking || "",
-    });
-  }
+  async function handleGenerate() {
+    if (!session || !stap4Complete) return;
 
-  function confirmApproval() {
-    if (!pendingAction) return;
-    updateSession(prev => ({
-      efforts: prev.efforts.map((e) =>
-        e.id === pendingAction.effortId
-          ? {
-              ...e,
-              approvalStatus: pendingAction.status,
-              opmerking: pendingAction.opmerking || e.opmerking,
-              approvalDate: new Date().toISOString(),
-              status: pendingAction.status === "afgewezen" ? "on_hold" as const : e.status,
-            }
-          : e
-      ),
-    }));
-    setPendingAction(null);
+    setIsGenerating(true);
+    setAiError(null);
+
+    try {
+      const focusGoal = [...session.goals]
+        .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] || null;
+
+      const response = await fetch("/api/planning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          focusGoal,
+          efforts: allEfforts,
+          stap4Result: session.crossAnalyseWizard?.stepResults?.stap4,
+          stap5Result: session.crossAnalyseWizard?.stepResults?.stap5,
+          availableQuarters: QUARTERS_AVAILABLE,
+          kibGoals: session.goals,
+          kibScope: session.scope,
+          userFeedback: userFeedback || undefined,
+        }),
+      });
+
+      const rawText = await response.text();
+      let data: { success: boolean; error?: string; data?: PlanningVoorstel };
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        setAiError(
+          response.status === 504
+            ? "De planning-analyse duurde te lang (timeout). Probeer het opnieuw."
+            : `Serverfout (${response.status}). Probeer het opnieuw.`
+        );
+        return;
+      }
+
+      if (!data.success || !data.data) {
+        setAiError(data.error || "Het planning-voorstel is mislukt. Probeer het opnieuw.");
+        return;
+      }
+
+      const voorstel = data.data;
+
+      // Persisteer voorstel + pas kwartalen toe op efforts
+      updateSession((prev) => {
+        const quartersById = new Map<string, string>();
+        for (const p of voorstel.inspanningPlanning) {
+          quartersById.set(p.inspanningId, p.voorgesteldKwartaal);
+        }
+        return {
+          planningVoorstel: voorstel,
+          efforts: prev.efforts.map((e) => {
+            const nieuwKwartaal = quartersById.get(e.id);
+            if (!nieuwKwartaal) return e;
+            return { ...e, quarter: nieuwKwartaal };
+          }),
+        };
+      });
+
+      setUserFeedback("");
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Onbekende fout bij planning-voorstel.");
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function updateQuarter(effortId: string, quarter: string) {
-    updateSession(prev => ({
+    updateSession((prev) => ({
       efforts: prev.efforts.map((e) =>
-        e.id === effortId ? { ...e, quarter } : e
+        e.id === effortId ? { ...e, quarter: quarter || undefined } : e
       ),
     }));
   }
 
-  const sectorEfforts = allEfforts.filter((e) => e.sectorId === activeSector);
+  // Roadmap-matrix: per domein × kwartaal lijst met inspanningen
+  const roadmapMatrix = useMemo(() => {
+    const matrix: Record<EffortDomain, Record<string, DINEffort[]>> = {
+      mens: {},
+      processen: {},
+      data_systemen: {},
+      cultuur: {},
+    };
+    for (const q of QUARTERS_AVAILABLE) {
+      for (const d of DOMAIN_ORDER) matrix[d][q] = [];
+    }
+    for (const e of allEfforts) {
+      const q = e.quarter && e.quarter !== NADER_TE_BEPALEN ? e.quarter : null;
+      if (!q || !QUARTERS_AVAILABLE.includes(q)) continue;
+      if (!matrix[e.domain][q]) matrix[e.domain][q] = [];
+      matrix[e.domain][q].push(e);
+    }
+    return matrix;
+  }, [allEfforts]);
 
-  // Tijdlijn data
-  const timelineQuarters = QUARTERS.filter((q) => q !== "Nader te bepalen");
-  const onbepaaldEfforts = allEfforts.filter((e) => !e.quarter || e.quarter === "Nader te bepalen");
+  const onbepaaldEfforts = allEfforts.filter(
+    (e) => !e.quarter || e.quarter === NADER_TE_BEPALEN || !QUARTERS_AVAILABLE.includes(e.quarter)
+  );
+
+  // Balans-check: te veel in 1 domein × kwartaal, of ongebalanceerde verdeling
+  const overloadCells: { domein: EffortDomain; quarter: string; count: number }[] = [];
+  for (const d of DOMAIN_ORDER) {
+    for (const q of QUARTERS_AVAILABLE) {
+      const count = roadmapMatrix[d][q].length;
+      if (count > 4) overloadCells.push({ domein: d, quarter: q, count });
+    }
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Sectie 1: Header + Statistieken */}
+    <div className="space-y-6">
+      {isGenerating && (
+        <LoadingOverlay
+          title="AI stelt planning voor…"
+          description="De AI bepaalt op basis van de cross-analyse welke kwartalen bij welke inspanningen passen."
+        />
+      )}
+
+      {/* Sectie 1: Header + stats */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-cito-blue">Planning & Goedkeuring</h3>
+          <h3 className="text-lg font-semibold text-cito-blue">Roadmap & Planning</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            Beoordeel inspanningen per sector, voeg opmerkingen toe en plan de tijdlijn.
+            Leg op basis van de cross-analyse (stap 4) een kwartaalplanning neer voor alle inspanningen, per domein.
           </p>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-cito-blue">{totalEfforts}</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Totaal</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-gray-500">{statsVoorstel}</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Voorstel</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-green-600">{statsGoedgekeurd}</div>
-            <div className="text-[10px] text-green-600 uppercase tracking-wider font-medium">Goedgekeurd</div>
-          </div>
-          <div className="bg-red-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-red-600">{statsAfgewezen}</div>
-            <div className="text-[10px] text-red-600 uppercase tracking-wider font-medium">Afgewezen</div>
+            <div className="text-xl font-bold text-cito-blue">{totaal}</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Totaal inspanningen</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold text-cito-accent">{statsIngepland}</div>
+            <div className="text-xl font-bold text-cito-accent">{ingepland}</div>
             <div className="text-[10px] text-cito-accent uppercase tracking-wider font-medium">Ingepland</div>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold text-amber-600">{nietIngepland}</div>
+            <div className="text-[10px] text-amber-600 uppercase tracking-wider font-medium">Nader te bepalen</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold text-gray-600">
+              {planningVoorstel ? "Ja" : "Nee"}
+            </div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">AI-voorstel aanwezig</div>
           </div>
         </div>
       </div>
 
-      {/* Sectie 2: Goedkeuring per Sector */}
+      {/* Sectie 2: AI-voorstel */}
       <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-cito-blue">Goedkeuring per Sector</h3>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-cito-blue">AI-planning-voorstel</h3>
             <p className="text-xs text-gray-400">
-              Beoordeel de voorgestelde inspanningen per sector en voeg eventueel opmerkingen toe.
+              Genereer op basis van de cross-analyse stap 6 (geconsolideerde bundels) en stap 7 (prioriteitsview) een voorstel voor kwartaalplanning en cluster-fasering.
             </p>
           </div>
-        </div>
-
-        {/* Sector tabs */}
-        <div className="px-5 pt-4">
-          <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg border border-gray-200">
-            {SECTORS.map((sector) => {
-              const count = allEfforts.filter((e) => e.sectorId === sector).length;
-              const reviewed = allEfforts.filter((e) => e.sectorId === sector && e.approvalStatus && e.approvalStatus !== "voorstel").length;
-              const isActive = activeSector === sector;
-              const styles = SECTOR_TAB_STYLES[sector];
-              return (
-                <button
-                  key={sector}
-                  onClick={() => setActiveSector(sector)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
-                    isActive ? styles.active : `border-transparent ${styles.inactive}`
-                  } ${count === 0 ? "opacity-40" : ""}`}
-                >
-                  <span>{sector}</span>
-                  {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/60" : "bg-gray-100"}`}>
-                      {reviewed}/{count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Voortgangsbalk sector */}
-        <div className="px-5 pt-3">
-          {(() => {
-            const total = sectorEfforts.length;
-            const reviewed = sectorEfforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel").length;
-            const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0;
-            return total > 0 ? (
-              <div>
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                  <span>{reviewed} van {total} beoordeeld</span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 rounded-full transition-all duration-300"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            ) : null;
-          })()}
-        </div>
-
-        {/* Inspanningen per domein */}
-        <div className="p-5 space-y-4">
-          {sectorEfforts.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-400">Geen inspanningen voor {activeSector}.</p>
-              <p className="text-xs text-gray-300 mt-1">Voeg inspanningen toe in de DIN-Mapping stap.</p>
-            </div>
-          ) : (
-            (Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => {
-              const domainEfforts = sectorEfforts.filter((e) => e.domain === domain);
-              if (domainEfforts.length === 0) return null;
-              const colors = DOMAIN_COLORS[domain];
-
-              return (
-                <div key={domain}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.bar }} />
-                    <h4 className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
-                      {DOMAIN_LABELS[domain]} ({domainEfforts.length})
-                    </h4>
-                  </div>
-
-                  <div className="space-y-2">
-                    {domainEfforts.map((effort) => (
-                      <EffortApprovalCard
-                        key={effort.id}
-                        effort={effort}
-                        domain={domain}
-                        pendingAction={pendingAction}
-                        onApprovalClick={handleApprovalClick}
-                        onConfirm={confirmApproval}
-                        onCancel={() => setPendingAction(null)}
-                        onOpmerkingChange={(text) =>
-                          setPendingAction((prev) => prev ? { ...prev, opmerking: text } : null)
-                        }
-                        onQuarterChange={updateQuarter}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })
+          {planningVoorstel?.gegenereerdOp && (
+            <span className="text-[10px] text-gray-400">
+              {formatPlanningDate(planningVoorstel.gegenereerdOp)}
+            </span>
           )}
+        </div>
+        <div className="p-5 space-y-3">
+          {!stap4Complete && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-start gap-2">
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-medium">Cross-analyse stap 6 nog niet voltooid</p>
+                <p className="text-xs mt-0.5">
+                  Rond eerst de cross-analyse af (stap 6 &quot;Optimaliseren&quot;) zodat er geconsolideerde cross-sectorale inspanningen zijn om op te plannen.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {planningVoorstel?.samenvatting && (
+            <div className="p-4 rounded-lg bg-indigo-50/50 border border-indigo-100">
+              <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-1">
+                AI-samenvatting
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{planningVoorstel.samenvatting}</p>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">
+              Optioneel: extra context voor het AI-voorstel (bijv. &quot;eerst alle Mens-inspanningen starten&quot;, &quot;geen parallelle IT-releases in Q3&quot;).
+            </label>
+            <textarea
+              value={userFeedback}
+              onChange={(e) => setUserFeedback(e.target.value)}
+              disabled={isGenerating || !stap4Complete}
+              className="w-full p-3 border border-gray-300 rounded-lg text-sm min-h-[60px] max-h-[120px] resize-y placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
+              placeholder="Extra instructies voor de AI..."
+            />
+          </div>
+
+          {aiError && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <p className="font-medium">Planning-voorstel mislukt</p>
+              <p className="text-xs mt-0.5">{aiError}</p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !stap4Complete}
+              className="px-4 py-2 min-h-[40px] bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {planningVoorstel ? "Planning opnieuw genereren" : "Genereer planning-voorstel"}
+            </button>
+            {planningVoorstel && (
+              <span className="text-xs text-gray-400">
+                {planningVoorstel.inspanningPlanning.length} inspanningen ingepland door AI
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Sectie 3: Tijdlijn */}
+      {/* Sectie 3: Roadmap-grid (domein × kwartaal) */}
       <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-cito-blue">Programmaplanning — Tijdlijn</h3>
+            <h3 className="text-sm font-semibold text-cito-blue">Roadmap — Domein × Kwartaal</h3>
             <p className="text-xs text-gray-400">
-              Inspanningen per kwartaal over alle sectoren.
+              Klik op een inspanning om het kwartaal aan te passen. AI-beargumentatie verschijnt in het pop-over.
             </p>
           </div>
         </div>
-        <div className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {timelineQuarters.map((quarter) => {
-              const qEfforts = allEfforts.filter((e) => e.quarter === quarter);
+        <div className="p-5 overflow-x-auto">
+          <div className="min-w-[900px]">
+            {/* Header-rij met kwartalen */}
+            <div
+              className="grid gap-1.5 mb-2"
+              style={{ gridTemplateColumns: `120px repeat(${QUARTERS_AVAILABLE.length}, minmax(110px, 1fr))` }}
+            >
+              <div />
+              {QUARTERS_AVAILABLE.map((q) => (
+                <div key={q} className="text-[11px] font-semibold text-gray-500 text-center py-1.5 border-b border-gray-100">
+                  {q}
+                </div>
+              ))}
+            </div>
+
+            {/* Rijen per domein */}
+            {DOMAIN_ORDER.map((domain) => {
+              const colors = DOMAIN_COLORS[domain];
               return (
-                <div key={quarter} className="border border-gray-200 rounded-lg p-3 min-h-[100px]">
-                  <div className="text-xs font-semibold text-gray-500 mb-2 pb-1.5 border-b border-gray-100">
-                    {quarter}
-                    {qEfforts.length > 0 && (
-                      <span className="ml-1.5 text-[10px] font-normal text-gray-400">({qEfforts.length})</span>
-                    )}
+                <div
+                  key={domain}
+                  className="grid gap-1.5 mb-1.5"
+                  style={{ gridTemplateColumns: `120px repeat(${QUARTERS_AVAILABLE.length}, minmax(110px, 1fr))` }}
+                >
+                  <div
+                    className={`flex items-center gap-1.5 px-2 py-2 rounded-l-md ${colors.bg} ${colors.text}`}
+                    style={{ borderLeft: `3px solid ${colors.bar}` }}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wider">
+                      {DOMAIN_LABELS[domain]}
+                    </span>
                   </div>
-                  <div className="space-y-1.5">
-                    {qEfforts.map((e) => (
-                      <TimelineChip key={e.id} effort={e} />
-                    ))}
-                    {qEfforts.length === 0 && (
-                      <p className="text-[10px] text-gray-300 italic">Geen inspanningen</p>
-                    )}
-                  </div>
+                  {QUARTERS_AVAILABLE.map((q) => {
+                    const cellEfforts = roadmapMatrix[domain][q];
+                    const isOverload = cellEfforts.length > 4;
+                    return (
+                      <div
+                        key={q}
+                        className={`border rounded-md p-1 min-h-[60px] space-y-1 ${
+                          isOverload
+                            ? "border-red-300 bg-red-50/30"
+                            : cellEfforts.length > 0
+                            ? `${colors.border} bg-white`
+                            : "border-gray-100 bg-gray-50/40"
+                        }`}
+                      >
+                        {cellEfforts.map((e) => (
+                          <RoadmapChip
+                            key={e.id}
+                            effort={e}
+                            beargumentatie={beargumentatieMap.get(e.id)}
+                            afhankelijkVan={afhankelijkhedenMap.get(e.id) || []}
+                            allEfforts={allEfforts}
+                            isEditing={editingEffortId === e.id}
+                            onToggleEdit={() =>
+                              setEditingEffortId(editingEffortId === e.id ? null : e.id)
+                            }
+                            onQuarterChange={(q2) => {
+                              updateQuarter(e.id, q2);
+                              setEditingEffortId(null);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
           </div>
 
-          {/* Nader te bepalen */}
+          {/* Nader te bepalen lane */}
           {onbepaaldEfforts.length > 0 && (
-            <div className="mt-4 border border-amber-200 rounded-lg p-3 bg-amber-50/30">
+            <div className="mt-5 border border-amber-200 rounded-lg p-3 bg-amber-50/30">
               <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -312,7 +435,21 @@ export default function PrioriteringStep() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
                 {onbepaaldEfforts.map((e) => (
-                  <TimelineChip key={e.id} effort={e} />
+                  <RoadmapChip
+                    key={e.id}
+                    effort={e}
+                    beargumentatie={beargumentatieMap.get(e.id)}
+                    afhankelijkVan={afhankelijkhedenMap.get(e.id) || []}
+                    allEfforts={allEfforts}
+                    isEditing={editingEffortId === e.id}
+                    onToggleEdit={() =>
+                      setEditingEffortId(editingEffortId === e.id ? null : e.id)
+                    }
+                    onQuarterChange={(q2) => {
+                      updateQuarter(e.id, q2);
+                      setEditingEffortId(null);
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -320,82 +457,112 @@ export default function PrioriteringStep() {
         </div>
       </section>
 
-      {/* Sectie 4: Voortgangsoverzicht */}
+      {/* Sectie 4: Cluster-fasering */}
+      {planningVoorstel?.clusterFasering && planningVoorstel.clusterFasering.length > 0 && (
+        <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+              <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-cito-blue">Cluster-fasering</h3>
+              <p className="text-xs text-gray-400">
+                Per cross-sectorale bundel: periodes, mijlpalen en risico&apos;s.
+              </p>
+            </div>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {planningVoorstel.clusterFasering.map((cluster, idx) => {
+              const colors = DOMAIN_COLORS[cluster.domein];
+              return (
+                <div
+                  key={`${cluster.clusterTitel}-${idx}`}
+                  className={`rounded-lg border ${colors.border} overflow-hidden`}
+                >
+                  <div
+                    className={`px-3 py-2 ${colors.bg} flex items-center gap-2`}
+                    style={{ borderLeft: `3px solid ${colors.bar}` }}
+                  >
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${colors.text}`}>
+                      {DOMAIN_LABELS[cluster.domein]}
+                    </span>
+                    <span className="text-sm font-medium text-gray-800 flex-1 truncate" title={cluster.clusterTitel}>
+                      {cluster.clusterTitel}
+                    </span>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {cluster.fases && cluster.fases.length > 0 && (
+                      <ol className="space-y-1.5">
+                        {cluster.fases.map((fase, fidx) => (
+                          <li key={fidx} className="text-xs flex gap-2">
+                            <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                              {fase.periode}
+                            </span>
+                            <span className="text-gray-700">{fase.mijlpaal}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    {cluster.risico && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <p className="text-[11px] text-amber-700 italic">
+                          <span className="font-medium not-italic">Risico: </span>
+                          {cluster.risico}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Sectie 5: Balans-check */}
       <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-cito-blue">Voortgangsoverzicht</h3>
-            <p className="text-xs text-gray-400">
-              Status van het goedkeuringsproces per sector.
-            </p>
+            <h3 className="text-sm font-semibold text-cito-blue">Balans-check</h3>
+            <p className="text-xs text-gray-400">Signalen over overvolle kwartalen en domein-dekking.</p>
           </div>
         </div>
-        <div className="p-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-5 space-y-3">
+          {/* Per-sector: tel hoeveel inspanningen ingepland vs niet */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {SECTORS.map((sector) => {
               const sEfforts = allEfforts.filter((e) => e.sectorId === sector);
-              const total = sEfforts.length;
-              const reviewed = sEfforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel").length;
-              const goedgekeurd = sEfforts.filter((e) => e.approvalStatus === "goedgekeurd").length;
-              const afgewezen = sEfforts.filter((e) => e.approvalStatus === "afgewezen").length;
-              const aangepast = sEfforts.filter((e) => e.approvalStatus === "aangepast").length;
-              const open = total - reviewed;
-              const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0;
+              const sIngepland = sEfforts.filter(
+                (e) => e.quarter && e.quarter !== NADER_TE_BEPALEN && QUARTERS_AVAILABLE.includes(e.quarter)
+              ).length;
+              const sTotal = sEfforts.length;
+              const pct = sTotal > 0 ? Math.round((sIngepland / sTotal) * 100) : 0;
               const sectorColors = SECTOR_COLORS[sector];
-
               return (
-                <div key={sector} className={`rounded-xl border p-4 ${sectorColors}`}>
-                  <div className="font-semibold text-sm mb-3">{sector}</div>
-
-                  {total === 0 ? (
+                <div key={sector} className={`rounded-lg border p-3 ${sectorColors}`}>
+                  <div className="font-semibold text-sm mb-1.5">{sector}</div>
+                  {sTotal === 0 ? (
                     <p className="text-xs opacity-60">Geen inspanningen</p>
                   ) : (
                     <>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span>{reviewed} / {total} beoordeeld</span>
+                        <span>
+                          {sIngepland} / {sTotal} ingepland
+                        </span>
                         <span className="font-bold">{pct}%</span>
                       </div>
-                      <div className="h-1.5 bg-white/50 rounded-full overflow-hidden mb-3">
+                      <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full transition-all"
+                          className="h-full bg-cito-blue rounded-full transition-all"
                           style={{ width: `${pct}%` }}
                         />
-                      </div>
-
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-green-500" />
-                            Goedgekeurd
-                          </span>
-                          <span className="font-bold">{goedgekeurd}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-red-500" />
-                            Afgewezen
-                          </span>
-                          <span className="font-bold">{afgewezen}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-amber-500" />
-                            Aanpassing
-                          </span>
-                          <span className="font-bold">{aangepast}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-gray-400" />
-                            Open
-                          </span>
-                          <span className="font-bold">{open}</span>
-                        </div>
                       </div>
                     </>
                   )}
@@ -404,325 +571,142 @@ export default function PrioriteringStep() {
             })}
           </div>
 
-          {/* Balans-check */}
-          {(() => {
-            const zonderKwartaal = allEfforts.filter((e) => !e.quarter || e.quarter === "Nader te bepalen").length;
-            const zonderBeoordeling = allEfforts.filter((e) => !e.approvalStatus || e.approvalStatus === "voorstel").length;
+          {overloadCells.length > 0 && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-sm font-medium text-red-700 mb-1">Kwartalen met &gt;4 inspanningen in één domein:</p>
+              <ul className="text-xs text-red-600 space-y-0.5">
+                {overloadCells.map((c) => (
+                  <li key={`${c.domein}-${c.quarter}`}>
+                    • {DOMAIN_LABELS[c.domein]} in {c.quarter}: {c.count} inspanningen — overweeg spreiden
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            if (zonderKwartaal === 0 && zonderBeoordeling === 0) {
-              return (
-                <div className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700 flex items-center gap-2">
-                  <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                  </svg>
-                  <span><strong>Volledig:</strong> Alle inspanningen zijn beoordeeld en ingepland.</span>
-                </div>
-              );
-            }
-
-            return (
-              <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-start gap-2">
-                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  {zonderBeoordeling > 0 && (
-                    <p><strong>{zonderBeoordeling} inspanning{zonderBeoordeling !== 1 ? "en" : ""}</strong> nog niet beoordeeld.</p>
-                  )}
-                  {zonderKwartaal > 0 && (
-                    <p><strong>{zonderKwartaal} inspanning{zonderKwartaal !== 1 ? "en" : ""}</strong> zonder kwartaal-toewijzing.</p>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {nietIngepland === 0 && overloadCells.length === 0 && (
+            <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700 flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+              </svg>
+              <span>
+                <strong>Gebalanceerd:</strong> alle inspanningen zijn ingepland en geen enkel domein × kwartaal is overvol.
+              </span>
+            </div>
+          )}
         </div>
       </section>
-
-      {/* Sectie 5: Opmerkingen Overzicht */}
-      {(() => {
-        const effortsWithOpmerkingen = allEfforts.filter((e) => e.opmerking);
-        if (effortsWithOpmerkingen.length === 0) return null;
-
-        // Sort by approvalDate desc
-        const sorted = [...effortsWithOpmerkingen].sort((a, b) =>
-          (b.approvalDate || "").localeCompare(a.approvalDate || "")
-        );
-
-        return (
-          <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-cito-blue">Opmerkingen overzicht</h3>
-                <p className="text-xs text-gray-400">
-                  Alle opmerkingen van de programma-eigenaar ({effortsWithOpmerkingen.length}).
-                </p>
-              </div>
-            </div>
-            <div className="p-5 space-y-3">
-              {sorted.map((effort) => {
-                const approvalStyle = effort.approvalStatus
-                  ? APPROVAL_STYLES[effort.approvalStatus]
-                  : APPROVAL_STYLES.voorstel;
-
-                return (
-                  <div key={effort.id} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <SectorBadge sector={effort.sectorId} />
-                      <span className="text-sm font-medium text-gray-700 flex-1">
-                        {effort.title || effort.description || "(naamloos)"}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${approvalStyle.bg} ${approvalStyle.text}`}>
-                        {approvalStyle.label}
-                      </span>
-                      {effort.quarter && (
-                        <span className="text-[10px] text-gray-400">{effort.quarter}</span>
-                      )}
-                    </div>
-                    <div className="pl-2 border-l-2 border-amber-300 ml-1">
-                      <p className="text-sm text-gray-600 italic">&ldquo;{effort.opmerking}&rdquo;</p>
-                      {effort.approvalDate && (
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {new Date(effort.approvalDate).toLocaleDateString("nl-NL", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })()}
     </div>
   );
 }
 
 // --- Sub-componenten ---
 
-function EffortApprovalCard({
+function RoadmapChip({
   effort,
-  domain,
-  pendingAction,
-  onApprovalClick,
-  onConfirm,
-  onCancel,
-  onOpmerkingChange,
+  beargumentatie,
+  afhankelijkVan,
+  allEfforts,
+  isEditing,
+  onToggleEdit,
   onQuarterChange,
 }: {
   effort: DINEffort;
-  domain: EffortDomain;
-  pendingAction: { effortId: string; status: ApprovalStatus; opmerking: string } | null;
-  onApprovalClick: (id: string, status: ApprovalStatus) => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-  onOpmerkingChange: (text: string) => void;
-  onQuarterChange: (id: string, quarter: string) => void;
+  beargumentatie?: string;
+  afhankelijkVan: string[];
+  allEfforts: DINEffort[];
+  isEditing: boolean;
+  onToggleEdit: () => void;
+  onQuarterChange: (quarter: string) => void;
 }) {
-  const colors = DOMAIN_COLORS[domain];
-  const isExpanded = pendingAction?.effortId === effort.id;
-  const approvalStyle = effort.approvalStatus
-    ? APPROVAL_STYLES[effort.approvalStatus]
-    : null;
+  const domainColor = DOMAIN_COLORS[effort.domain].bar;
 
-  const statusBg = effort.status === "gepland"
-    ? "border-green-200 bg-green-50/30"
-    : effort.status === "on_hold"
-    ? "border-red-200 bg-red-50/30"
-    : effort.status === "in_uitvoering"
-    ? "border-blue-200 bg-blue-50/30"
-    : "border-gray-200 bg-white";
+  const afhankelijkVanTitles = afhankelijkVan
+    .map((id) => {
+      const e = allEfforts.find((x) => x.id === id);
+      return e ? e.title || e.description : null;
+    })
+    .filter((t): t is string => !!t);
 
   return (
-    <div className={`rounded-lg border overflow-hidden transition-all ${statusBg}`}>
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          {/* Domein kleur indicator */}
-          <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: colors.bar }} />
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <div className="text-sm font-medium text-gray-800">
-                  {effort.title || effort.description || "(naamloos)"}
-                </div>
-                {/* Dossier samenvatting */}
-                {effort.dossier && (effort.dossier.eigenaar || effort.dossier.inspanningsleider || effort.dossier.kostenraming) && (
-                  <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-500">
-                    {effort.dossier.eigenaar && (
-                      <span title="Opdrachtgever">📋 {effort.dossier.eigenaar}</span>
-                    )}
-                    {effort.dossier.inspanningsleider && (
-                      <span title="Inspanningsleider">👤 {effort.dossier.inspanningsleider}</span>
-                    )}
-                    {effort.dossier.kostenraming && (
-                      <span title="Kostenraming">💰 {effort.dossier.kostenraming}</span>
-                    )}
-                  </div>
-                )}
-                {effort.dossier?.verwachtResultaat && (
-                  <div className="mt-0.5 text-[11px] text-gray-400 italic line-clamp-1" title={effort.dossier.verwachtResultaat}>
-                    Resultaat: {effort.dossier.verwachtResultaat}
-                  </div>
-                )}
-                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                  {/* Kwartaal dropdown */}
-                  <select
-                    value={effort.quarter || ""}
-                    onChange={(e) => onQuarterChange(effort.id, e.target.value)}
-                    className="px-2 py-1 border border-gray-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
-                  >
-                    <option value="">Kwartaal...</option>
-                    {QUARTERS.map((q) => (
-                      <option key={q} value={q}>{q}</option>
-                    ))}
-                  </select>
-
-                  {/* Approval badge */}
-                  {approvalStyle && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${approvalStyle.bg} ${approvalStyle.text}`}>
-                      {approvalStyle.label}
-                    </span>
-                  )}
-
-                  {/* Opmerking indicator */}
-                  {effort.opmerking && !isExpanded && (
-                    <span className="text-[10px] text-amber-600 flex items-center gap-0.5" title={effort.opmerking}>
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 3.89 1 5.198v5.6c0 1.3.983 2.438 2.418 2.672.168.027.338.052.508.076l-.707 2.121a.5.5 0 00.77.53l3.463-2.207c.81.056 1.63.085 2.458.085 2.236 0 4.43-.18 6.57-.524C17.007 13.44 18 12.3 18 11v-5.6c0-1.31-.983-2.444-2.418-2.676A47.71 47.71 0 0010 2z" clipRule="evenodd" />
-                      </svg>
-                      Opmerking
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Actieknoppen */}
-              <div className="flex gap-1 shrink-0">
-                <button
-                  onClick={() => onApprovalClick(effort.id, "goedgekeurd")}
-                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                    effort.approvalStatus === "goedgekeurd"
-                      ? "bg-green-500 text-white"
-                      : "bg-green-100 text-green-700 hover:bg-green-200"
-                  }`}
-                  title="Goedkeuren"
-                >
-                  Goedkeuren
-                </button>
-                <button
-                  onClick={() => onApprovalClick(effort.id, "afgewezen")}
-                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                    effort.approvalStatus === "afgewezen"
-                      ? "bg-red-500 text-white"
-                      : "bg-red-100 text-red-700 hover:bg-red-200"
-                  }`}
-                  title="Afwijzen"
-                >
-                  Afwijzen
-                </button>
-                <button
-                  onClick={() => onApprovalClick(effort.id, "aangepast")}
-                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                    effort.approvalStatus === "aangepast"
-                      ? "bg-amber-500 text-white"
-                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                  }`}
-                  title="Aanpassen"
-                >
-                  Aanpassen
-                </button>
-              </div>
-            </div>
-
-            {/* Bestaande opmerking weergeven */}
-            {effort.opmerking && !isExpanded && (
-              <div className="mt-2 pl-2 border-l-2 border-amber-300">
-                <p className="text-xs text-gray-500 italic">&ldquo;{effort.opmerking}&rdquo;</p>
-                {effort.approvalDate && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {new Date(effort.approvalDate).toLocaleDateString("nl-NL", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+    <div className="relative">
+      <button
+        onClick={onToggleEdit}
+        className="w-full text-left bg-white border border-gray-200 rounded-md p-1.5 shadow-sm hover:border-cito-blue/50 hover:shadow transition-all"
+        style={{ borderLeft: `3px solid ${domainColor}` }}
+        title={effort.title || effort.description}
+      >
+        <div className="flex items-start gap-1.5">
+          <SectorBadge sector={effort.sectorId} />
+          <span className="text-[11px] text-gray-700 line-clamp-2 flex-1 leading-tight">
+            {effort.title || effort.description || "(naamloos)"}
+          </span>
+          {beargumentatie && (
+            <span className="shrink-0 text-[9px] px-1 rounded bg-indigo-50 text-indigo-600 font-medium" title="AI-beargumentatie beschikbaar">
+              AI
+            </span>
+          )}
         </div>
-      </div>
+        {effort.dossier?.eigenaar && (
+          <div className="mt-0.5 text-[9px] text-gray-400 truncate">
+            {effort.dossier.eigenaar}
+          </div>
+        )}
+      </button>
 
-      {/* Expanded: opmerking invoer */}
-      {isExpanded && pendingAction && (
-        <div className="border-t border-gray-200 bg-gray-50 p-4">
-          <label className="text-xs font-medium text-gray-600 block mb-1.5">
-            Opmerking bij {APPROVAL_STYLES[pendingAction.status].label.toLowerCase()} (optioneel):
+      {isEditing && (
+        <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl p-3 min-w-[260px]">
+          <div className="text-xs font-semibold text-gray-700 mb-2">
+            {effort.title || effort.description || "(naamloos)"}
+          </div>
+          <label className="text-[10px] text-gray-500 block mb-1 uppercase tracking-wider">
+            Kwartaal
           </label>
-          <textarea
-            value={pendingAction.opmerking}
-            onChange={(e) => onOpmerkingChange(e.target.value)}
-            placeholder="Voeg een opmerking of toelichting toe..."
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cito-blue/20 focus:border-cito-blue resize-none"
-          />
-          <div className="flex justify-end gap-2 mt-2">
+          <select
+            value={effort.quarter || ""}
+            onChange={(e) => onQuarterChange(e.target.value)}
+            className="w-full px-2 py-1.5 border border-gray-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-cito-blue/30"
+          >
+            <option value="">— Nader te bepalen —</option>
+            {QUARTERS_AVAILABLE.map((q) => (
+              <option key={q} value={q}>
+                {q}
+              </option>
+            ))}
+          </select>
+
+          {beargumentatie && (
+            <div className="mt-3 pt-2 border-t border-gray-100">
+              <div className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider mb-1">
+                AI-beargumentatie
+              </div>
+              <p className="text-[11px] text-gray-600 leading-relaxed">{beargumentatie}</p>
+            </div>
+          )}
+
+          {afhankelijkVanTitles.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <div className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1">
+                Afhankelijk van
+              </div>
+              <ul className="text-[11px] text-gray-600 space-y-0.5">
+                {afhankelijkVanTitles.map((t, i) => (
+                  <li key={i}>• {t}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-3 flex justify-end">
             <button
-              onClick={onCancel}
-              className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
+              onClick={onToggleEdit}
+              className="text-[11px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
             >
-              Annuleren
-            </button>
-            <button
-              onClick={onConfirm}
-              className={`px-4 py-1.5 text-xs text-white rounded-md font-medium ${
-                pendingAction.status === "goedgekeurd"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : pendingAction.status === "afgewezen"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-amber-600 hover:bg-amber-700"
-              }`}
-            >
-              Bevestigen
+              Sluiten
             </button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function TimelineChip({ effort }: { effort: DINEffort }) {
-  const domainColor = DOMAIN_COLORS[effort.domain]?.bar || "#6b7280";
-  const isAfgewezen = effort.approvalStatus === "afgewezen" || effort.status === "on_hold";
-
-  return (
-    <div
-      className={`text-xs p-2 rounded-md border-l-2 bg-white border border-gray-100 shadow-sm ${
-        isAfgewezen ? "opacity-40 line-through" : ""
-      }`}
-      style={{ borderLeftColor: domainColor }}
-      title={`${effort.title || effort.description}${effort.opmerking ? `\n\nOpmerking: ${effort.opmerking}` : ""}`}
-    >
-      <div className="flex items-center gap-1.5">
-        <SectorBadge sector={effort.sectorId} />
-        <span className="text-gray-600 truncate flex-1">{effort.title || effort.description || "(naamloos)"}</span>
-        {effort.opmerking && (
-          <svg className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 3.89 1 5.198v5.6c0 1.3.983 2.438 2.418 2.672.168.027.338.052.508.076l-.707 2.121a.5.5 0 00.77.53l3.463-2.207c.81.056 1.63.085 2.458.085 2.236 0 4.43-.18 6.57-.524C17.007 13.44 18 12.3 18 11v-5.6c0-1.31-.983-2.444-2.418-2.676A47.71 47.71 0 0010 2z" clipRule="evenodd" />
-          </svg>
-        )}
-      </div>
     </div>
   );
 }

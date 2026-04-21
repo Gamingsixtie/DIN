@@ -1114,17 +1114,6 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     children.push(emptyLine());
   }
 
-  // Goedkeuringsstatus (use active efforts only)
-  const approvedEfforts = activeEfforts.filter((e) => e.approvalStatus && e.approvalStatus !== "voorstel");
-  if (approvedEfforts.length > 0) {
-    children.push(subHeading("Goedkeuringsstatus inspanningen"));
-    approvedEfforts.forEach((e) => {
-      const status = e.approvalStatus || "onbekend";
-      const date = e.approvalDate ? ` (${e.approvalDate})` : "";
-      children.push(bullet(`[${status}] [${e.sectorId}] ${e.title || e.description}${date}`));
-    });
-  }
-
   return { properties: {}, children };
 }
 
@@ -1400,6 +1389,38 @@ export function roadmapSection(session: DINSession, numState: NumberingState, ac
     { color: TEXT_SECONDARY, size: 20 }
   ));
   children.push(emptyLine());
+
+  // AI-planning samenvatting (Phase 20)
+  const planning = session.planningVoorstel;
+  if (planning?.samenvatting) {
+    children.push(subHeading("Samenvatting planning"));
+    children.push(bodyText(planning.samenvatting, { size: 22 }));
+    children.push(emptyLine());
+  }
+
+  // Cluster-fasering (Phase 20)
+  if (planning?.clusterFasering && planning.clusterFasering.length > 0) {
+    children.push(subHeading("Cluster-fasering"));
+    children.push(bodyText(
+      "Per cross-sectorale inspanningsbundel: periodes, mijlpalen en risico's zoals voorgesteld door de AI-planning.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    for (const cluster of planning.clusterFasering) {
+      children.push(
+        bodyText(`${DOMAIN_LABELS[cluster.domein] || cluster.domein} — ${cluster.clusterTitel}`, {
+          bold: true,
+          size: 22,
+        })
+      );
+      for (const fase of cluster.fases || []) {
+        children.push(bullet(`${fase.periode}: ${fase.mijlpaal}`));
+      }
+      if (cluster.risico) {
+        children.push(bodyText(`Risico: ${cluster.risico}`, { italic: true, color: TEXT_MUTED, size: 20 }));
+      }
+      children.push(emptyLine());
+    }
+  }
 
   const quarters = Array.from(
     new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))

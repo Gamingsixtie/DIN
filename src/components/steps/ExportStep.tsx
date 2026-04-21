@@ -676,12 +676,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
     (b) => b.profiel.measurementMoment || b.profiel.meetmethode
   );
 
-  // Goedkeuringsstatus inspanningen
-  const approvedEfforts = session.efforts.filter((e) => {
-    const a = (e as unknown as { approvalStatus?: string }).approvalStatus;
-    return a && a !== "voorstel";
-  });
-
   const po = session.programmaorganisatie;
   const clusterRasci = session.clusterRasci ?? [];
   const allRollen: Array<{
@@ -873,30 +867,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
         </SubSection>
       )}
 
-      {/* Goedkeuringsstatus */}
-      {approvedEfforts.length > 0 && (
-        <SubSection title="Goedkeuringsstatus inspanningen">
-          <div className="space-y-1">
-            {approvedEfforts.map((e) => {
-              const extra = e as unknown as { approvalStatus?: string; approvalDate?: string };
-              const statusColors: Record<string, string> = {
-                goedgekeurd: "bg-emerald-100 text-emerald-700",
-                afgewezen: "bg-red-100 text-red-700",
-                aangepast: "bg-amber-100 text-amber-700",
-              };
-              return (
-                <div key={e.id} className="flex items-center gap-2 text-xs">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[extra.approvalStatus ?? ""] || "bg-gray-100 text-gray-600"}`}>
-                    {extra.approvalStatus}
-                  </span>
-                  <span className="text-gray-600">[{e.sectorId}] {e.title || e.description}</span>
-                  {extra.approvalDate && <span className="text-gray-400">({extra.approvalDate})</span>}
-                </div>
-              );
-            })}
-          </div>
-        </SubSection>
-      )}
     </Section>
   );
 }
@@ -1171,8 +1141,50 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
     new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))
   ).sort();
 
+  const planning = session.planningVoorstel;
+
   return (
     <Section title="Roadmap" number={number}>
+      {planning?.samenvatting && (
+        <div className="mb-4 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
+            Samenvatting planning
+          </div>
+          <p className="text-xs text-gray-700 leading-relaxed">{planning.samenvatting}</p>
+        </div>
+      )}
+
+      {planning?.clusterFasering && planning.clusterFasering.length > 0 && (
+        <div className="mb-5">
+          <h4 className="text-sm font-bold text-cito-blue/70 mb-2">Cluster-fasering</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {planning.clusterFasering.map((c, idx) => (
+              <div key={`${c.clusterTitel}-${idx}`} className="border border-gray-200 rounded p-2 bg-white">
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">
+                  {DOMAIN_LABELS[c.domein] || c.domein}
+                </div>
+                <div className="text-xs font-medium text-gray-800 mb-1">{c.clusterTitel}</div>
+                {c.fases && c.fases.length > 0 && (
+                  <ul className="space-y-0.5 text-[11px] text-gray-600">
+                    {c.fases.map((f, fidx) => (
+                      <li key={fidx}>
+                        <span className="inline-block px-1 rounded bg-gray-100 text-gray-600 font-medium mr-1">
+                          {f.periode}
+                        </span>
+                        {f.mijlpaal}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {c.risico && (
+                  <p className="text-[10px] text-amber-700 italic mt-1">Risico: {c.risico}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {quarters.length === 0 ? (
         <p className="text-sm text-gray-400 italic">
           Kwartaalplanning wordt in een volgende cyclus bepaald.
