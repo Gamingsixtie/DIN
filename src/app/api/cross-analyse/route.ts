@@ -419,34 +419,71 @@ export async function POST(request: NextRequest) {
 
             let entries = subResult.success ? subResult.data : [];
 
-            // Server-side vangnet: forceer dat items[] per domein ALLE bron-effort-IDs
-            // uit dat domein bevat (over alle sectoren). Dit bundelt de originele
-            // DIN-mapping-efforts — óók als ze later in stap 5 zijn gemerged
-            // (consolidated: true). De client stuurt daarvoor `allEfforts` mee.
+            // Server-side vangnet — items[] = bron-efforts per (groep × domein).
+            // PRIMAIRE BRON: Stap 3 inspanningClusters. Die zijn user-facing getoond
+            // in de Inspanningen-overlap view en bevatten de correcte sector-items
+            // per (groep × domein). We mappen clusters naar groepen via items →
+            // capabilityEffortMap → capability → groep.vermogenIds.
             const allEfforts = (body.allEfforts ?? body.efforts ?? []) as Array<{
               id: string;
               sectorId: string;
               domain?: string;
               consolidated?: boolean;
+              consolidatedInto?: string;
             }>;
-            // Pak alle effort-IDs (inclusief consolidated) die aan capabilities in deze groep gekoppeld zijn
-            const allGroepEffortIds = new Set(
+            const sharedTargetIds = new Set(
+              allEfforts.filter((e) => e.consolidatedInto).map((e) => e.consolidatedInto as string)
+            );
+
+            const domainToEffortIds: Record<string, string[]> = {};
+
+            // --- Bron 1: Stap 3 inspanningClusters ---
+            const stap3 = body.stap3Result as {
+              inspanningClusters?: Array<{
+                clusterTitel?: string;
+                items?: Array<{ id: string; sector?: string; domein?: string }>;
+              }>;
+            } | undefined;
+            const stap3Clusters = stap3?.inspanningClusters ?? [];
+
+            // Welke effort-IDs koppelen naar capabilities in deze groep?
+            const effortIdsInGroep = new Set(
               capEffortMapsLocal
                 .filter((m) => capIdSet.has(m.capabilityId))
                 .map((m) => m.effortId)
             );
-            // Bouw map per domein -> lijst van bron-effort-IDs (inclusief geconsolideerde originelen)
-            const domainToEffortIds: Record<string, string[]> = {};
-            for (const ef of allEfforts) {
-              if (!ef.domain) continue;
-              if (!allGroepEffortIds.has(ef.id)) continue;
-              (domainToEffortIds[ef.domain] ??= []).push(ef.id);
+
+            for (const cluster of stap3Clusters) {
+              const clusterItems = cluster.items ?? [];
+              // Cluster hoort bij deze groep als ≥1 item aan een cap uit de groep gekoppeld is
+              const cluisterInGroep = clusterItems.some((it) => effortIdsInGroep.has(it.id));
+              if (!cluisterInGroep) continue;
+              for (const it of clusterItems) {
+                if (!it.domein) continue;
+                if (sharedTargetIds.has(it.id)) continue; // skip shared merge-targets
+                (domainToEffortIds[it.domein] ??= []).push(it.id);
+              }
             }
+
+            // --- Bron 2 (fallback): capabilityEffortMaps × allEfforts ---
+            // Alleen gebruiken als stap 3 geen clusters leverde voor deze groep.
+            if (Object.keys(domainToEffortIds).length === 0) {
+              for (const ef of allEfforts) {
+                if (!ef.domain) continue;
+                if (!effortIdsInGroep.has(ef.id)) continue;
+                if (sharedTargetIds.has(ef.id)) continue; // skip shared merge-targets
+                (domainToEffortIds[ef.domain] ??= []).push(ef.id);
+              }
+            }
+
+            // Dedupliceer per domein
+            for (const dom of Object.keys(domainToEffortIds)) {
+              domainToEffortIds[dom] = Array.from(new Set(domainToEffortIds[dom]));
+            }
+
             entries = entries.map((e) => {
               const allIds = domainToEffortIds[e.domein] ?? [];
-              // Dedupliceer (merge AI-choice + all domain efforts, keep unique)
-              const merged = Array.from(new Set([...(e.items ?? []), ...allIds]));
-              return { ...e, items: merged };
+              return { ...e, items: allIds };
             });
 
             // Phase 19 substap 5.1b: garandeer dat alle 4 domeinen minimaal 1 entry hebben.
