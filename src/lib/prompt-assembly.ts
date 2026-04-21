@@ -19,6 +19,7 @@ import {
   PROGRAMMABOEK_VERMOGENS_ASPECTEN,
   PROGRAMMABOEK_CROSS_ANALYSE,
 } from "./programmaboek-context";
+import { CITO_STRATEGISCH_FUNDAMENT, CITO_STRATEGISCH_FUNDAMENT_KORT } from "./cito-context";
 
 /**
  * Alle AI use cases die programmaboek-context ontvangen.
@@ -388,6 +389,26 @@ export function assembleSystemPrompt(
     ? buildKiBBlock(kibContext)
     : "";
 
+  // Cito strategisch fundament — extra controle-check voor cross-analyse prompts.
+  // Niet leidend (programmaboek-methodiek blijft primair), maar AI moet toetsen
+  // of het voorstel past binnen de Cito-brede strategie, positionering en kaders.
+  const citoBlock =
+    useCase === "cross-analyse"
+      ? `
+
+---
+${CITO_STRATEGISCH_FUNDAMENT}
+---
+
+EXTRA CONTROLE-CHECK: Toets elk voorstel tegen bovenstaand Cito-strategisch kader.
+- Past het binnen de kerndoelen 2026 (omzetgroei, winstgevendheid 10%, commerciële slagkracht, nieuwe producten in bestaande markten, medewerker-ontwikkeling)?
+- Respecteert het het formatie-kader (2027-2028 stabiel, geen groei)?
+- Past het bij de positionering (maatschappelijke onderneming, onafhankelijk, drie pijlers)?
+- Vult het een aandachtspunt in (portfolio-balans, microniveau, IT-afstand, innovatieruimte)?
+- Respecteert het kostenefficiëntie?
+Dit kader is NIET leidend (de programmaboek-methodiek en het focusdoel zijn leidend) maar dient wél als extra validatie. Wanneer een voorstel duidelijk buiten dit kader valt: signaleer dit in je beargumentatie en kies een alternatief dat wél past.`
+      : "";
+
   return `${instructionPrompt}
 
 ---
@@ -396,5 +417,9 @@ ACHTERGRONDKENNIS UIT HET PROGRAMMABOEK (Prevaas & Van Loon, 'Werken aan Program
 ${context}
 ---
 
-Gebruik bovenstaande methodiek-kennis als referentie bij het genereren van je antwoord. De theorie is leidend voor correcte terminologie en definities.${kibBlock}`;
+Gebruik bovenstaande methodiek-kennis als referentie bij het genereren van je antwoord. De theorie is leidend voor correcte terminologie en definities.${kibBlock}${citoBlock}`;
 }
+
+// Expose compact variant for callers who want to inject the Cito kader
+// zelf (bv. in een follow-up prompt zonder assembleSystemPrompt).
+export { CITO_STRATEGISCH_FUNDAMENT, CITO_STRATEGISCH_FUNDAMENT_KORT };

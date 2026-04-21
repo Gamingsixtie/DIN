@@ -171,9 +171,13 @@ BELANGRIJK — Vermogens worden NIET samengevoegd in cross-analyse (D-25).
 De drie sector-vermogens blijven aparte records. Markeer uitsluitend gelijkenis via \`vermogenGelijkenisGroepen\`.
 
 Voor elke groep van gelijkende sector-vermogens:
-- Minimaal ÉÉN vermogen per sector uit {PO, VO, Zakelijk}. Als je geen drieluik kunt samenstellen (bv. één sector mist), laat die vermogens ongeclusterd.
-- \`gezamenlijkeOmschrijving\`: waarom deze vermogens inhoudelijk op elkaar lijken (zelfde capaciteit, zelfde doel-keten).
-- \`reden\`: korte onderbouwing (1-2 zinnen, methodiek-conform).
+- **Voorkeur drieluik** — één vermogen per sector uit {PO, VO, Zakelijk}. Dat is het ideaal.
+- **Soepeler: 2-van-3 sectoren telt óók als gelijkenisgroep** wanneer het thema in de derde sector impliciet speelt via cultuur, mindset of bestaande inspanningen. In \`reden\` beargumenteer je waarom de derde sector impliciet is meegenomen en welk vermogen-profiel van die sector alsnog aangesloten wordt.
+- **CULTUUR-THEMA'S ALTIJD OPNEMEN** — vermogens die over bereidheid, mindset, eigenaarschap, leiderschap, samenwerking of gedrag gaan zijn per definitie sectoroverstijgend. Ook als de exacte wording per sector verschilt, detecteer deze als gelijkenisgroep. Cultuur is de onderlaag waarop alle drie de sectoren rusten.
+- \`gezamenlijkeOmschrijving\`: waarom deze vermogens inhoudelijk op elkaar lijken (zelfde capaciteit, zelfde doel-keten, gedeelde cultuuronderlaag).
+- \`reden\`: korte onderbouwing (1-2 zinnen, methodiek-conform). Bij 2-van-3 sectoren: expliciet benoemen welke sector impliciet is en hoe het via cultuur/mindset alsnog aansluit.
+
+**BELANGRIJK — ELK GEDEELD VERMOGEN WORDT IN STAP 4 CROSS-SECTORAAL UITGEWERKT OVER ALLE VIER DE INSPANNINGSDOMEINEN (mens, processen, data_systemen, cultuur).** Produceer dus alleen \`vermogenGelijkenisGroepen\` waarvan je denkt dat ze daadwerkelijk cross-sectorale hefboom leveren — anders ontstaat een leeg kader. Wees ruim waar de thematiek aansluit (vooral bij cultuur-gerelateerde vermogens), maar streng waar vermogens echt sectoraal specifiek zijn.
 
 Voor \`vermogenClusters[].aanbeveling\`: gebruik UITSLUITEND \`"markeer_gelijkenis"\` wanneer het een cross-sector gelijkenis betreft. \`"combineren"\` is NIET toegestaan voor vermogens in cross-analyse. De enum-waardes \`"afstemmen"\` en \`"apart_houden"\` zijn toegestaan.
 
@@ -420,6 +424,12 @@ Regels (D-11, D-25, D-30, D-31):
 
 EINDCHECK VOOR JE ANTWOORDT (HARDE EIS):
 Tel je output-entries. Er MOETEN er exact 4 zijn per groep. Controleer dat precies deze 4 \`domein\` waarden voorkomen: "mens", "processen", "data_systemen", "cultuur". Elke andere telling of combinatie is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt via de focus-doel-ambitie en de bestaande vermogen-profielen.
+
+VARIANT 2-VAN-3 DRIELUIK:
+Wanneer de gelijkenisgroep maar 2 sectoren expliciet bevat en de 3e sector impliciet meedoet via cultuur/mindset: produceer ALSNOG alle vier domein-entries. In \`vermogenImpact\` neem je voor de impliciete sector een ontwerp-impact op gebaseerd op het \`profielGewenst\` en het focusdoel. In \`beargumentatie\` benoem je expliciet dat de derde sector via de cultuur-onderlaag aansluit.
+
+EXTRA CONTROLE-CHECK — CITO-STRATEGISCH FUNDAMENT:
+Het Cito-kader is hierna toegevoegd als achtergrondcontext. Dit kader is NIET leidend (focusdoel en programmaboek blijven primair) maar dient wél als validatie. Toets je bundel tegen het kader: past de voorgestelde inspanning bij de kerndoelen 2026, de positionering (onafhankelijk, maatschappelijke onderneming, drie pijlers data-gedreven/innovatie/deskundigheid), het formatie-kader (2027-2028 stabiel) en de kostenefficiëntie? Vult het een aandachtspunt in (portfolio-balans, microniveau in de klas, IT-afstand, innovatieruimte)? Signaleer in \`beargumentatie\` expliciet waar de bundel het Cito-kader raakt of ermee spant.
 
 Produceer ALLEEN geldige JSON, geen prose errom. Antwoord in het Nederlands.`;
 
