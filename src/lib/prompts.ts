@@ -389,8 +389,8 @@ Lever een array \`SubEffortAdvies[]\` met **ALTIJD EXACT 4 entries per groep** �
 
   // --- Phase 18 rijke uitwerking (alleen verplicht bij actie: "combineren") ---
   "titel":            "<actielabel met werkwoord, max 8 woorden — MOET identiek zijn aan voorgesteldeNaam bij combineren>",
-  "beschrijving":     "<2-3 zinnen: wat houdt deze bundel in, wat wordt concreet gedaan, welke scope over welke sectoren>",
-  "beargumentatie":   "<Waarom cross-sectoraal opbouwen zinvol is — de HEFBOOM: één inspanning → drie vermogens → drie baten → één focusdoel. Benoem expliciet het schaalvoordeel t.o.v. drie losse trajecten (bijv. '~30% besparing' of 'voorkomt datasilo\\'s'). Verwijs letterlijk naar de focus-doel ambitie.>",
+  "beschrijving":     "<'Wat wordt er gedaan' — 2-3 korte, concrete zinnen. Geen inleiding ('In dit cluster...'), direct to-the-point. Welke concrete activiteit voeren de drie sectoren samen uit? Lezer moet in één oogopslag begrijpen wat er GEBEURT.>",
+  "beargumentatie":   "<'Onderbouwing — waarom dit cluster.' BEGIN MET WELKE CONCRETE ITEMS SAMENKOMEN (bijv. 'PO-training X + VO-intervisie Y + Zakelijk-coaching Z komen samen omdat...'). Leg daarna uit waarom ze samen MEER opleveren dan apart (hefboom, schaalvoordeel, voorkomen van silo's). Verwijs naar de focus-doel ambitie. Maximaal 4 zinnen.>",
   "vermogenImpact":   [
     { "sectorId": "PO",       "vermogenId": "<cap-po-id>",   "impact": "<Concreet: hoe deze bundel het PO-vermogen opbouwt — PO-vocabulaire (leerkrachten, schoolbesturen, leerlingen)>" },
     { "sectorId": "VO",       "vermogenId": "<cap-vo-id>",   "impact": "<VO-vocabulaire (schoolleiders, teamleiders, examens, leerlingen)>" },
