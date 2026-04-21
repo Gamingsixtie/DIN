@@ -23,6 +23,9 @@ export default function WizardNavigation({
 }: WizardNavigationProps) {
   const isStepAccessible = (step: number): boolean => {
     if (step === 1) return true;
+    // Stap 7 (DIN-netwerk) hangt af van stap 5 (Consolidatie), niet stap 6
+    // (Optimaliseren) omdat stap 6 geen AI-call heeft om completion te markeren.
+    if (step === 7) return completedSteps.has(5);
     return completedSteps.has(step - 1);
   };
 
@@ -150,7 +153,8 @@ function NavigationButtons({
   completedSteps: Set<number>;
   onStepChange: (step: number) => void;
 }) {
-  const canProceed = completedSteps.has(currentStep);
+  // Stap 6 (Optimaliseren) heeft geen verplichte AI-call: altijd doorgaan als stap 5 klaar is.
+  const canProceed = currentStep === 6 ? completedSteps.has(5) : completedSteps.has(currentStep);
 
   return (
     <div className="flex flex-col md:flex-row justify-between pt-4 border-t border-gray-200 gap-2">
