@@ -68,6 +68,28 @@ export default function StapOptimaliseren({
     risicos?: string[];
   }>>({});
 
+  // Per-kaart: geselecteerde vragen voor AI-fineuten (scope-beperkt, rest
+  // blijft onaangeroerd) + optionele instructie + loading-state.
+  const [bcSelectedByIdx, setBcSelectedByIdx] = useState<Record<number, Set<string>>>({});
+  const [bcRefineInstrByIdx, setBcRefineInstrByIdx] = useState<Record<number, string>>({});
+  const [bcRefiningIdx, setBcRefiningIdx] = useState<number | null>(null);
+
+  function toggleBcSelected(idx: number, key: string) {
+    setBcSelectedByIdx((prev) => {
+      const set = new Set(prev[idx] ?? []);
+      if (set.has(key)) set.delete(key);
+      else set.add(key);
+      return { ...prev, [idx]: set };
+    });
+  }
+  function selectAllBc(idx: number) {
+    const qs = bcQuestionsByIdx[idx] ?? [];
+    setBcSelectedByIdx((p) => ({ ...p, [idx]: new Set(qs.map((q) => q.key)) }));
+  }
+  function clearBcSelection(idx: number) {
+    setBcSelectedByIdx((p) => ({ ...p, [idx]: new Set() }));
+  }
+
   function getOptFields(idx: number): Set<OptField> {
     return (
       optimizeFieldsByIdx[idx] ??
@@ -371,6 +393,81 @@ export default function StapOptimaliseren({
       clearTimeout(timeoutId);
       // Als mode nog steeds loading is (dus geen answering-transitie), reset naar idle
       setBcModeByIdx((p) => (p[idx] === "loading-questions" ? { ...p, [idx]: "idle" } : p));
+    }
+  }
+
+  async function refineSelectedBcAnswers(idx: number) {
+    const selected = bcSelectedByIdx[idx];
+    if (!selected || selected.size === 0) {
+      setOptimizeError("Selecteer eerst minimaal één vraag om te fineuten.");
+      return;
+    }
+    setBcRefiningIdx(idx);
+    setOptimizeError(null);
+
+    const entry = entries[idx];
+    const allQuestions = bcQuestionsByIdx[idx] ?? [];
+    const questionsToRefine = allQuestions.filter((q) => selected.has(q.key));
+    const currentAnswers: Record<string, string> = {};
+    for (const q of questionsToRefine) {
+      currentAnswers[q.key] = bcAnswersByIdx[idx]?.[q.key] ?? "";
+    }
+
+    const focusGoal = [...(session.goals ?? [])]
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] ?? null;
+    const focusDoel = focusGoal
+      ? {
+          naam: focusGoal.name ?? "",
+          beschrijving:
+            focusGoal.description && focusGoal.description.trim().length > 0
+              ? focusGoal.description
+              : focusGoal.name ?? "",
+        }
+      : null;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+    try {
+      const res = await fetch("/api/business-case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "refine-answers",
+          entry,
+          focusDoel,
+          questionsToRefine,
+          currentAnswers,
+          userInstructie: bcRefineInstrByIdx[idx] ?? "",
+          scope: session.scope,
+          vision: session.vision,
+        }),
+        signal: controller.signal,
+      });
+      const data = await res.json();
+      if (!data.success || !data.data?.suggestedAnswers) {
+        setOptimizeError(data.error ?? "Fineuten mislukt");
+        return;
+      }
+      const suggested = data.data.suggestedAnswers as Record<string, string>;
+      setBcAnswersByIdx((p) => {
+        const merged = { ...(p[idx] ?? {}) };
+        for (const k of Object.keys(suggested)) {
+          if (selected.has(k)) merged[k] = suggested[k];
+        }
+        return { ...p, [idx]: merged };
+      });
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.name === "AbortError"
+            ? "Time-out na 60s — probeer opnieuw"
+            : err.message
+          : "Netwerkfout";
+      setOptimizeError(msg);
+    } finally {
+      clearTimeout(timeoutId);
+      setBcRefiningIdx(null);
     }
   }
 
@@ -908,54 +1005,115 @@ export default function StapOptimaliseren({
                     </div>
 
                     {/* Business-case Q&A sectie */}
-                    {bcModeByIdx[idx] === "answering" && bcQuestionsByIdx[idx] && (
-                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded p-3 space-y-2">
-                        <p className="text-[11px] font-semibold text-amber-900 uppercase tracking-wider">
-                          Business-case vragen — beantwoord voor eerste raming
-                        </p>
-                        {bcQuestionsByIdx[idx].map((q) => (
-                          <div key={q.key}>
-                            <label className="text-[11px] font-semibold text-gray-700">
-                              {q.vraag}
-                              {q.eenheid && <span className="text-gray-500 ml-1">({q.eenheid})</span>}
-                            </label>
-                            {q.toelichting && (
-                              <p className="text-[10px] text-gray-500 mb-1">{q.toelichting}</p>
-                            )}
-                            {/* Altijd textarea — gebruiker mag een getal geven
-                                of een omschrijving ("circa 40", "weten we nog niet", etc).
-                                De AI estimate-stap verwerkt vrije tekst. */}
+                    {bcModeByIdx[idx] === "answering" && bcQuestionsByIdx[idx] && (() => {
+                      const selected = bcSelectedByIdx[idx] ?? new Set<string>();
+                      const totalQs = bcQuestionsByIdx[idx]?.length ?? 0;
+                      const isRefining = bcRefiningIdx === idx;
+                      return (
+                        <div className="mt-3 bg-amber-50 border border-amber-200 rounded p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <p className="text-[11px] font-semibold text-amber-900 uppercase tracking-wider">
+                              Business-case vragen — beantwoord of laat AI fineuten
+                            </p>
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <span className="text-amber-800">
+                                {selected.size} van {totalQs} geselecteerd
+                              </span>
+                              <button
+                                onClick={() => selectAllBc(idx)}
+                                className="px-1.5 py-0.5 rounded border border-amber-300 text-amber-800 bg-white hover:bg-amber-100"
+                              >
+                                Alles
+                              </button>
+                              <button
+                                onClick={() => clearBcSelection(idx)}
+                                className="px-1.5 py-0.5 rounded border border-amber-300 text-amber-800 bg-white hover:bg-amber-100"
+                              >
+                                Geen
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-amber-800 leading-snug">
+                            Vink vragen aan waar je AI wilt inzetten. Bij <strong>Fineut geselecteerde met AI</strong> wordt alleen voor díe vragen een voorstel gedaan — andere antwoorden blijven onaangeroerd.
+                          </p>
+                          {bcQuestionsByIdx[idx].map((q) => {
+                            const isSel = selected.has(q.key);
+                            return (
+                              <div key={q.key} className={`${isSel ? "bg-amber-100/60 border border-amber-300" : "bg-white/60 border border-transparent"} rounded p-2`}>
+                                <div className="flex items-start gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSel}
+                                    onChange={() => toggleBcSelected(idx, q.key)}
+                                    className="mt-0.5 accent-amber-600"
+                                    title="Selecteer voor AI-fineuten"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <label className="text-[11px] font-semibold text-gray-700">
+                                      {q.vraag}
+                                      {q.eenheid && <span className="text-gray-500 ml-1">({q.eenheid})</span>}
+                                    </label>
+                                    {q.toelichting && (
+                                      <p className="text-[10px] text-gray-500 mb-1">{q.toelichting}</p>
+                                    )}
+                                    <textarea
+                                      value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
+                                      onChange={(e) =>
+                                        setBcAnswersByIdx((p) => ({
+                                          ...p,
+                                          [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
+                                        }))
+                                      }
+                                      rows={2}
+                                      placeholder="Vul een getal, range, omschrijving of 'weet ik niet' in…"
+                                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded resize-y leading-relaxed"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* AI-fineut-paneel: alleen op geselecteerde vragen */}
+                          <div className="pt-1 border-t border-amber-200 space-y-1.5">
                             <textarea
-                              value={bcAnswersByIdx[idx]?.[q.key] ?? ""}
+                              value={bcRefineInstrByIdx[idx] ?? ""}
                               onChange={(e) =>
-                                setBcAnswersByIdx((p) => ({
-                                  ...p,
-                                  [idx]: { ...(p[idx] ?? {}), [q.key]: e.target.value },
-                                }))
+                                setBcRefineInstrByIdx((p) => ({ ...p, [idx]: e.target.value }))
                               }
                               rows={2}
-                              placeholder="Vul een getal, range, omschrijving of 'weet ik niet' in…"
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded resize-y leading-relaxed"
+                              placeholder="Optionele AI-instructie voor de geselecteerde vragen (bv. 'minder ambitieus', 'focus op VO-sector', 'geef range + middenpunt')…"
+                              className="w-full px-2 py-1 text-xs border border-amber-300 rounded resize-y leading-relaxed bg-white"
                             />
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <button
+                                onClick={() => refineSelectedBcAnswers(idx)}
+                                disabled={isRefining || selected.size === 0}
+                                className="text-[11px] px-2.5 py-1 rounded border border-amber-500 text-amber-900 bg-white hover:bg-amber-100 disabled:opacity-50"
+                                title="AI fineut alleen de aangevinkte antwoorden"
+                              >
+                                {isRefining ? "AI fineut..." : `Fineut ${selected.size} geselecteerde met AI`}
+                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }))}
+                                  className="text-[11px] px-2.5 py-1 rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50"
+                                >
+                                  Annuleer
+                                </button>
+                                <button
+                                  onClick={() => runBusinessCaseEstimate(idx)}
+                                  disabled={bcModeByIdx[idx] !== "answering"}
+                                  className="text-[11px] px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                                >
+                                  Genereer raming uit antwoorden
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                        <div className="flex items-center justify-end gap-2 pt-1">
-                          <button
-                            onClick={() => setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }))}
-                            className="text-[11px] px-2.5 py-1 rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50"
-                          >
-                            Annuleer
-                          </button>
-                          <button
-                            onClick={() => runBusinessCaseEstimate(idx)}
-                            disabled={bcModeByIdx[idx] !== "answering"}
-                            className="text-[11px] px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
-                          >
-                            Genereer raming uit antwoorden
-                          </button>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     {bcModeByIdx[idx] === "loading-estimate" && (
                       <p className="text-[11px] text-amber-700 italic">AI berekent raming uit antwoorden...</p>
                     )}

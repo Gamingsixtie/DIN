@@ -34,6 +34,13 @@ const EstimateSchema = z.object({
   risicos: z.array(z.string()).optional().default([]),
 });
 
+// Gericht fineuten: alleen voor door de gebruiker geselecteerde vragen een
+// AI-voorstel voor het antwoord teruggeven. De overige antwoorden blijven
+// onaangeroerd — geen full-regen.
+const RefineAnswersSchema = z.object({
+  suggestedAnswers: z.record(z.string(), z.string()),
+});
+
 const QUESTIONS_PROMPT = `Je bent een business-case expert. Genereer 4-8 scherpe vragen die helpen bij het maken van een eerste kostenraming voor één cross-sectorale inspanning binnen Cito BV (PO + VO + Zakelijk).
 
 Input JSON:
@@ -85,10 +92,40 @@ Regels:
 - Minstens 1 aanname, 0-3 risico's.
 - Nederlands, € symbool, JSON only.`;
 
+const REFINE_ANSWERS_PROMPT = `Je bent een business-case expert voor Cito BV (PO + VO + Zakelijk). De gebruiker heeft een set vragen gekregen voor een kostenraming. Voor een SUBSET van die vragen wil de gebruiker dat jij een realistisch antwoord voorstelt — de rest blijft onaangeroerd.
+
+Input JSON:
+{
+  "entry": { domein, titel, beschrijving, beargumentatie, vermogenImpact },
+  "focusDoel": { naam, beschrijving },
+  "questionsToRefine": [{ key, vraag, toelichting, eenheid }],
+  "currentAnswers": { "<key>": "<huidig antwoord of leeg>" },
+  "userInstructie": "<optioneel: specifieke wensen van de gebruiker>"
+}
+
+Output JSON:
+{
+  "suggestedAnswers": {
+    "<key>": "<voorgesteld antwoord — 1-3 regels, redelijk onderbouwd>",
+    ...
+  }
+}
+
+Regels:
+- Geef ALLEEN antwoorden voor de keys in "questionsToRefine" — niks extra.
+- Gebruik Cito-context: PO ≈ 6000 leerkrachten, VO ≈ 3000 docenten, Zakelijk-professionals-markt. Trainingsdag ≈ €800 p.p., FTE/jaar ≈ €100K, consultantuur ≈ €120.
+- Als er een currentAnswer is: verfijn/aanscherp dat antwoord (respecteer de richting van de gebruiker), niet overschrijven met iets totaal anders.
+- Als currentAnswer leeg is: stel een realistische eerste schatting voor.
+- Vermeld altijd een range of orde van grootte als dat helpt ("40-60 medewerkers, ±50 als middenpunt").
+- Antwoorden mogen vrij tekstueel zijn — omschrijving + getal mag ("ongeveer 40 per sector, verdeeld over 2 jaar").
+- Pas de eenheid toe uit de vraag (FTE / uren / € / weken / licenties).
+- Respecteer userInstructie als aanwezig (bv. "minder ambitieus", "focus op VO-sector").
+- Nederlands, JSON only, geen markdown.`;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mode } = body as { mode?: "questions" | "estimate" };
+    const { mode } = body as { mode?: "questions" | "estimate" | "refine-answers" };
 
     const kibContext = extractKiBContext(body);
 
@@ -120,8 +157,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: result.data });
     }
 
+    if (mode === "refine-answers") {
+      const systemPrompt = assembleSystemPrompt(REFINE_ANSWERS_PROMPT, "cross-analyse", undefined, kibContext);
+      const userMessage = JSON.stringify(
+        {
+          entry: body.entry,
+          focusDoel: body.focusDoel,
+          questionsToRefine: body.questionsToRefine,
+          currentAnswers: body.currentAnswers,
+          userInstructie: body.userInstructie ?? "",
+        },
+        null,
+        2
+      );
+      const result = await callClaudeWithValidation(RefineAnswersSchema, systemPrompt, userMessage, { maxTokens: 2048 });
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: "Fineuten mislukt" }, { status: 502 });
+      }
+      return NextResponse.json({ success: true, data: result.data });
+    }
+
     return NextResponse.json(
-      { success: false, error: "mode is verplicht: 'questions' of 'estimate'" },
+      { success: false, error: "mode is verplicht: 'questions' | 'estimate' | 'refine-answers'" },
       { status: 400 }
     );
   } catch (err) {
