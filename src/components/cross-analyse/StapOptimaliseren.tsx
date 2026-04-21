@@ -1178,7 +1178,7 @@ export default function StapOptimaliseren({
           Voer het <strong>vaste jaarlijks budget</strong> in (bedrag per jaar dat beschikbaar is zolang het programma loopt).
           AI berekent drie scenario&apos;s die allemaal hetzelfde einddoel bereiken — alleen het tempo verschilt:
           <strong> Optimaal</strong> (jouw budget), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
-          Outside-in volgorde: cultuur → mens → processen → data/systemen.
+          Outside-in volgorde: cultuur → mens → data/systemen → processen.
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">

@@ -75,7 +75,7 @@ const DOMEIN_ORDER = ["mens", "processen", "data_systemen", "cultuur"] as const;
 
 // Outside-in-volgorde (5.1/6.4): cultuur eerst (bereidheid) → mens (competenties) →
 // processen (volgen uit vragen) → data/systemen (CRM ingeregeld op vragen).
-const OUTSIDE_IN_DOMEIN_ORDER = ["cultuur", "mens", "processen", "data_systemen"] as const;
+const OUTSIDE_IN_DOMEIN_ORDER = ["cultuur", "mens", "data_systemen", "processen"] as const;
 
 const OUTSIDE_IN_UITLEG: Record<string, string> = {
   cultuur: "Waar het begint — zijn medewerkers bereid outside-in te werken?",
@@ -438,7 +438,7 @@ Antwoord in het Nederlands.`,
       )}
 
       {/* Stap 5 Consolidatierapport — DOMEIN-EERSTE view:
-          4 overkoepelende inspanningen (cultuur → mens → processen → data/systemen),
+          4 overkoepelende inspanningen (cultuur → mens → data/systemen → processen),
           binnen elk domein de subdoelen/tussenstappen per gedeeld vermogen. */}
       {stap4Result?.subEffortAnalysis && stap4Result.subEffortAnalysis.length > 0 && (() => {
         // Groepeer entries per DOMEIN (niet per gelijkenisgroep) zodat Mens-inspanningen
@@ -469,7 +469,7 @@ Antwoord in het Nederlands.`,
               </p>
             </div>
 
-            {/* Per DOMEIN één overkoepelende sectie (outside-in: cultuur → mens → processen → data_systemen) */}
+            {/* Per DOMEIN één overkoepelende sectie (outside-in: cultuur → mens → data_systemen → processen) */}
             {activeDomeinen.map((domein) => {
               const domeinEntries = entriesByDomein.get(domein) ?? [];
               const meta = DOMEIN_META[domein];

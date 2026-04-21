@@ -107,7 +107,7 @@ Taak — lever EXACT dit JSON-object (één Scenario):
     { "jaar": <startJaar>, "euro": <som over alle inspanningen dit jaar>, "percentage": <van jaarlijksBudgetEuro van dit scenario> },
     ...één per jaar
   ],
-  "prioriteitAdvies": "<3-5 zinnen: outside-in volgorde motiveren — cultuur EERST (bereidheid), dan mens (competenties), dan processen (werkwijzen), dan data/systemen (CRM/tooling) LAATST>",
+  "prioriteitAdvies": "<3-5 zinnen: outside-in volgorde motiveren — cultuur EERST (bereidheid), dan mens (competenties), dan data/systemen (CRM/tooling ondersteunend), dan processen (werkwijzen) LAATST — processen borgen wat mens en data hebben opgebouwd>",
   "samenvatting": "<1-2 zinnen executive summary van dít scenario>"
 }
 
@@ -115,17 +115,17 @@ HARDE REGELS:
 1. **aantalJaren moet REËEL zijn** gegeven jaarlijksBudgetEuro: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
 2. **Geen jaar mag jaarlijksBudgetEuro overschrijden.** Zorg dat som(totalenPerJaar[jaar].euro) ≤ jaarlijksBudgetEuro in élk jaar.
 3. **Som verdelingPerJaar[*].percentage per inspanning = precies 100.**
-4. **Outside-in volgorde — STRIKT deze ranking:**
+4. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
    - rank 1 = Cultuur (bereidheid — zijn ze bereid te doen wat ze beloven? — moet eerst)
-   - rank 2-3 = Mens (competenties, gesprekvaardigheid — kan parallel aan cultuur starten, maar NA of GELIJK met cultuur)
-   - rank 4-5 = Processen (werkwijzen — komen voort uit de vragen die mensen leren stellen)
-   - rank 6+ = Data/Systemen (CRM, tooling — wordt ingeregeld op wat er genoteerd moet worden — ALTIJD LAATST)
-   **Data/Systemen komt NOOIT voor Processen.** Volgorde van domeinen in de lijst: Cultuur → Mens → Processen → Data/Systemen.
+   - rank 2 = Mens (competenties, gesprekvaardigheid — volgt direct na cultuur, kan parallel starten)
+   - rank 3 = Data/Systemen (CRM, tooling — ondersteunt mens bij het werk, moet klaar zijn voor de processen gestandaardiseerd worden)
+   - rank 4 = Processen (werkwijzen — LAATST omdat processen borgen wat mens + data al hebben opgebouwd)
+   **Processen komt ALTIJD als laatste. Data/Systemen komt VOOR Processen.** Volgorde van domeinen in de lijst: Cultuur → Mens → Data/Systemen → Processen.
 5. **Realistische fasering per inspanning:**
    - Cultuur: piek jaar 1 (bewustwording), afnemend (borging)
    - Mens: start jaar 1, piek middenjaren (training aan volle breedte), borging eind
-   - Processen: ontwerp middenjaren, uitrol latere jaren
-   - Data/Systemen: PAS starten in de laatste 1-2 jaren (CRM volgt uit wat gevraagd moet worden)
+   - Data/Systemen: ontwerp en bouw middenjaren (CRM, tooling klaar krijgen voor gebruik)
+   - Processen: uitrol en borging LAATST (processen slaan mens-gedrag + data-gebruik vast als werkwijze)
 6. Alle euros als integers (75000, niet "€75K").
 7. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
