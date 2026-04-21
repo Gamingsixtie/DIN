@@ -141,6 +141,36 @@ export default function StapOptimaliseren({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stap4Result]);
 
+  // Auto-persist entries naar sessie (debounced) — voorkomt dat edits verloren
+  // gaan bij navigatie. De handmatige 'Opslaan' knop blijft werken voor directe
+  // bevestiging, maar is niet meer vereist.
+  useEffect(() => {
+    if (entries.length === 0) return;
+    const timer = setTimeout(() => {
+      updateSession((prev) => {
+        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
+        const prevSub = prev.crossAnalyseWizard.stepResults.stap4.subEffortAnalysis ?? [];
+        // Vergelijk alleen op inhoud — voorkom no-op writes
+        if (JSON.stringify(prevSub) === JSON.stringify(entries)) return prev;
+        return {
+          ...prev,
+          crossAnalyseWizard: {
+            ...prev.crossAnalyseWizard,
+            stepResults: {
+              ...prev.crossAnalyseWizard.stepResults,
+              stap4: {
+                ...prev.crossAnalyseWizard.stepResults.stap4,
+                subEffortAnalysis: entries,
+              },
+            },
+          },
+        };
+      });
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
+
   if (!stap4Result?.subEffortAnalysis || stap4Result.subEffortAnalysis.length === 0) {
     return (
       <div className="text-center py-10">
