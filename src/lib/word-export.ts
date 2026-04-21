@@ -999,6 +999,57 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     );
     children.push(emptyLine());
 
+    // Officiële RASCI-matrix: clusters (rijen) × rollen (kolommen)
+    if (allRollen.length > 0) {
+      children.push(bodyText("Offici\u00eble RASCI-matrix", { bold: true, size: 22, color: CITO_BLUE }));
+      const clusterCol = 34;
+      const rolColCount = allRollen.length;
+      const rolColWidth = Math.max(4, Math.floor((100 - clusterCol) / Math.max(1, rolColCount)));
+      const matrixHeader = new TableRow({
+        children: [
+          headerCell("Cluster", clusterCol),
+          ...allRollen.map((rol) => headerCell(rol.rol, rolColWidth)),
+        ],
+      });
+      const matrixRows = clusterRasci.map((c) => {
+        const rijMap = new Map(c.rijen.map((r) => [r.rolId, r.letter]));
+        return new TableRow({
+          children: [
+            styledCell(`${c.clusterType === "vermogen" ? "V" : "I"} \u2014 ${c.clusterTitel}`, {
+              width: clusterCol,
+              bold: true,
+              size: 16,
+            }),
+            ...allRollen.map((rol) => {
+              const letter = rijMap.get(rol.id);
+              return styledCell(letter ?? "", {
+                width: rolColWidth,
+                bold: letter === "A",
+                shading: letter === "A" ? "FFF3C4" : letter === "R" ? "DBEAFE" : undefined,
+                size: 16,
+              });
+            }),
+          ],
+        });
+      });
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [matrixHeader, ...matrixRows],
+        })
+      );
+      children.push(
+        bodyText("V = vermogen-cluster, I = inspanning-cluster. A = Accountable (1 per rij), R = Responsible, S = Supportive, C = Consulted, I = Informed.", {
+          italic: true,
+          color: TEXT_SECONDARY,
+          size: 16,
+        })
+      );
+      children.push(emptyLine());
+    }
+
+    // Detailweergave per cluster met toelichting
+    children.push(bodyText("Detailweergave per cluster", { bold: true, size: 22, color: CITO_BLUE }));
     for (const c of clusterRasci) {
       const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [] };
       for (const rij of c.rijen) {

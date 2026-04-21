@@ -17,12 +17,36 @@ import type {
 
 type Tab = "organisatie" | "rasci";
 
-type ClusterBron = {
+export type ClusterBron = {
   clusterTitel: string;
   clusterType: "vermogen" | "inspanning";
   advies?: string;
   itemCount: number;
 };
+
+export function buildClusterBron(
+  vermogenClusters: VermogenClusterItem[],
+  inspanningClusters: InspanningClusterItem[]
+): ClusterBron[] {
+  return [
+    ...vermogenClusters.map(
+      (c): ClusterBron => ({
+        clusterTitel: c.clusterTitel,
+        clusterType: "vermogen",
+        advies: c.advies,
+        itemCount: c.items?.length ?? 0,
+      })
+    ),
+    ...inspanningClusters.map(
+      (c): ClusterBron => ({
+        clusterTitel: c.clusterTitel,
+        clusterType: "inspanning",
+        advies: c.advies,
+        itemCount: c.items?.length ?? 0,
+      })
+    ),
+  ];
+}
 
 function generateId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -370,6 +394,8 @@ function OrganisatieTab({
           {po.aiToelichting}
         </div>
       )}
+
+      <OrganigramView po={po} />
 
       <SingleRolCard
         titel="Opdrachtgever"
@@ -726,18 +752,33 @@ function RasciTab({
         </div>
       </div>
 
-      <div className="space-y-4">
-        {syncedRasci.map((row) => (
-          <ClusterRasciRow
-            key={row.clusterTitel}
-            row={row}
-            clusterBron={clusters.find((c) => c.clusterTitel === row.clusterTitel)!}
-            rollen={rollen}
-            onSetRij={(rolId, letter) => setRij(row.clusterTitel, rolId, letter)}
-            onSetToelichting={(t) => setToelichting(row.clusterTitel, t)}
-          />
-        ))}
-      </div>
+      {/* Officiële RASCI-matrix als primaire weergave */}
+      <RasciFullMatrix
+        clusters={clusters}
+        rollen={rollen}
+        rasci={syncedRasci}
+        onSetCell={setRij}
+      />
+
+      {/* Per-cluster detailweergave met toelichting */}
+      <details className="group">
+        <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-semibold text-cito-blue hover:text-cito-blue/80">
+          <span className="transition-transform group-open:rotate-90">▶</span>
+          Detailweergave per cluster (met toelichting)
+        </summary>
+        <div className="space-y-4 mt-4">
+          {syncedRasci.map((row) => (
+            <ClusterRasciRow
+              key={row.clusterTitel}
+              row={row}
+              clusterBron={clusters.find((c) => c.clusterTitel === row.clusterTitel)!}
+              rollen={rollen}
+              onSetRij={(rolId, letter) => setRij(row.clusterTitel, rolId, letter)}
+              onSetToelichting={(t) => setToelichting(row.clusterTitel, t)}
+            />
+          ))}
+        </div>
+      </details>
     </div>
   );
 }
@@ -859,6 +900,367 @@ function ClusterRasciRow({
           className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white"
           placeholder="bv. A bij domeineigenaar Mens omdat cluster volledig binnen dat domein valt"
         />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Organigram (visueel)
+// ============================================================
+
+function RoleBox({
+  rol,
+  variant = "default",
+}: {
+  rol: ProgrammaRol;
+  variant?: "default" | "primary" | "domein" | "side";
+}) {
+  const styles: Record<string, string> = {
+    default: "bg-white border-gray-300 text-gray-800",
+    primary: "bg-cito-blue text-white border-cito-blue",
+    domein: "bg-amber-50 border-amber-300 text-amber-900",
+    side: "bg-gray-50 border-gray-300 text-gray-700",
+  };
+  return (
+    <div className={`rounded border-2 px-3 py-2 shadow-sm ${styles[variant]}`}>
+      <div className="font-semibold text-xs leading-tight">{rol.rol || "(geen rol)"}</div>
+      {rol.naam && <div className="text-[10px] opacity-80 mt-0.5">{rol.naam}</div>}
+      {rol.sector && (
+        <div className="text-[9px] uppercase tracking-wide opacity-70 mt-0.5">{rol.sector}</div>
+      )}
+    </div>
+  );
+}
+
+function GroupBox({
+  titel,
+  rollen,
+  variant = "default",
+  emptyHint,
+}: {
+  titel: string;
+  rollen: ProgrammaRol[];
+  variant?: "default" | "primary" | "domein" | "side";
+  emptyHint?: string;
+}) {
+  if (rollen.length === 0) {
+    return (
+      <div className="rounded border-2 border-dashed border-gray-300 px-3 py-2 bg-gray-50 text-center">
+        <div className="text-[10px] uppercase tracking-wide font-bold text-gray-500 mb-1">{titel}</div>
+        <div className="text-[10px] text-gray-400 italic">{emptyHint ?? "Nog leeg"}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded border-2 border-gray-300 bg-gray-50 p-2">
+      <div className="text-[10px] uppercase tracking-wide font-bold text-gray-600 mb-2 text-center">
+        {titel} ({rollen.length})
+      </div>
+      <div className="space-y-1.5">
+        {rollen.map((r) => (
+          <RoleBox key={r.id} rol={r} variant={variant} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function OrganigramView({ po }: { po: Programmaorganisatie }) {
+  const heeftIets =
+    po.opdrachtgever ||
+    po.programmamanager ||
+    (po.kerngroep ?? []).length > 0 ||
+    (po.stuurgroep ?? []).length > 0 ||
+    (po.domeineigenaren ?? []).length > 0 ||
+    (po.klankbordgroep ?? []).length > 0;
+
+  if (!heeftIets) {
+    return (
+      <div className="p-8 rounded border border-dashed border-gray-300 bg-gray-50 text-center">
+        <div className="text-sm font-medium text-gray-600 mb-1">Organigram verschijnt hier</div>
+        <div className="text-xs text-gray-500">
+          Klik &quot;AI: stel voor&quot; of vul de rollen hieronder handmatig in.
+        </div>
+      </div>
+    );
+  }
+
+  // Domein-eigenaren in vaste DIN-volgorde tonen indien herkenbaar
+  const DOMEIN_ORDER = ["Mens", "Processen", "Data", "Systemen", "Cultuur"];
+  const domeinen = (po.domeineigenaren ?? []).slice().sort((a, b) => {
+    const idxA = DOMEIN_ORDER.findIndex((d) => a.rol.toLowerCase().includes(d.toLowerCase()));
+    const idxB = DOMEIN_ORDER.findIndex((d) => b.rol.toLowerCase().includes(d.toLowerCase()));
+    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+  });
+
+  return (
+    <div className="p-6 rounded-lg border border-cito-blue/20 bg-gradient-to-b from-cito-blue/5 to-white">
+      <h3 className="text-sm font-bold text-cito-blue mb-1">Organigram programmaorganisatie</h3>
+      <p className="text-xs text-gray-600 mb-6">
+        Hiërarchische weergave van de programmaorganisatie volgens &quot;Werken aan Programma&apos;s&quot;.
+      </p>
+
+      <div className="grid grid-cols-12 gap-4 items-start">
+        {/* Linkerkolom: Klankbordgroep */}
+        <div className="col-span-3">
+          <GroupBox
+            titel="Klankbordgroep"
+            rollen={po.klankbordgroep ?? []}
+            variant="side"
+            emptyHint="Optioneel"
+          />
+        </div>
+
+        {/* Middenkolom: Opdrachtgever → Programmamanager → Kerngroep → Domeineigenaren */}
+        <div className="col-span-6">
+          <div className="flex flex-col items-center">
+            {/* Opdrachtgever */}
+            {po.opdrachtgever ? (
+              <div className="w-full max-w-xs">
+                <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue mb-1 text-center">
+                  Opdrachtgever
+                </div>
+                <RoleBox rol={po.opdrachtgever} variant="primary" />
+              </div>
+            ) : (
+              <div className="w-full max-w-xs rounded border-2 border-dashed border-cito-blue/40 px-3 py-2 bg-white text-center">
+                <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue/60">
+                  Opdrachtgever
+                </div>
+                <div className="text-[10px] text-gray-400 italic">Nog niet ingevuld</div>
+              </div>
+            )}
+
+            {/* Verticale verbindingslijn */}
+            <div className="h-6 w-0.5 bg-cito-blue/40" />
+
+            {/* Programmamanager */}
+            {po.programmamanager ? (
+              <div className="w-full max-w-xs">
+                <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue mb-1 text-center">
+                  Programmamanager
+                </div>
+                <RoleBox rol={po.programmamanager} variant="primary" />
+              </div>
+            ) : (
+              <div className="w-full max-w-xs rounded border-2 border-dashed border-cito-blue/40 px-3 py-2 bg-white text-center">
+                <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue/60">
+                  Programmamanager
+                </div>
+                <div className="text-[10px] text-gray-400 italic">Nog niet ingevuld</div>
+              </div>
+            )}
+
+            {/* Verticale lijn naar kerngroep */}
+            <div className="h-6 w-0.5 bg-cito-blue/40" />
+
+            {/* Kerngroep */}
+            <div className="w-full">
+              <GroupBox titel="Kerngroep" rollen={po.kerngroep ?? []} variant="default" />
+            </div>
+
+            {/* Verticale lijn naar domeineigenaren */}
+            {domeinen.length > 0 && <div className="h-6 w-0.5 bg-cito-blue/40" />}
+
+            {/* Domeineigenaren */}
+            {domeinen.length > 0 && (
+              <div className="w-full">
+                <div className="text-[10px] uppercase tracking-wide font-bold text-amber-700 mb-2 text-center">
+                  Domeineigenaren
+                </div>
+                <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.min(domeinen.length, 4)}, minmax(0, 1fr))` }}>
+                  {domeinen.map((d) => (
+                    <RoleBox key={d.id} rol={d} variant="domein" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Rechterkolom: Stuurgroep */}
+        <div className="col-span-3">
+          <GroupBox
+            titel="Stuurgroep"
+            rollen={po.stuurgroep ?? []}
+            variant="side"
+            emptyHint="Strategische sturing"
+          />
+        </div>
+      </div>
+
+      {/* Onder organigram: ritme + escalatie */}
+      {(po.besluitvormingsritme || po.escalatiepad) && (
+        <div className="mt-6 pt-4 border-t border-cito-blue/10 grid grid-cols-2 gap-3 text-xs">
+          {po.besluitvormingsritme && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue/70 mb-1">
+                Besluitvormingsritme
+              </div>
+              <div className="text-gray-700">{po.besluitvormingsritme}</div>
+            </div>
+          )}
+          {po.escalatiepad && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide font-bold text-cito-blue/70 mb-1">
+                Escalatiepad
+              </div>
+              <div className="text-gray-700">{po.escalatiepad}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Officiële RASCI-matrix (clusters × rollen — één grote tabel)
+// ============================================================
+
+export function RasciFullMatrix({
+  clusters,
+  rollen,
+  rasci,
+  onSetCell,
+}: {
+  clusters: ClusterBron[];
+  rollen: ProgrammaRol[];
+  rasci: ClusterRasci[];
+  onSetCell?: (clusterTitel: string, rolId: string, letter: RasciLetter | null) => void;
+}) {
+  if (clusters.length === 0 || rollen.length === 0) return null;
+
+  const rasciByTitel = new Map(rasci.map((r) => [r.clusterTitel, r]));
+
+  return (
+    <div className="rounded border border-gray-200 overflow-hidden bg-white">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <h3 className="text-sm font-bold text-cito-blue">Officiële RASCI-matrix</h3>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Cross-sectorale clusters (rijen) × rollen uit programmaorganisatie (kolommen).
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th className="bg-gray-100 border-b border-r border-gray-200 px-2 py-2 text-left font-bold text-gray-700 sticky left-0 z-20 min-w-[220px]">
+                Cluster
+              </th>
+              {rollen.map((rol) => (
+                <th
+                  key={rol.id}
+                  className="bg-gray-100 border-b border-r border-gray-200 px-1.5 py-2 text-center font-bold text-gray-700 align-bottom"
+                  style={{ minWidth: 56 }}
+                >
+                  <div
+                    className="text-[10px] leading-tight whitespace-normal"
+                    style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 110, margin: "0 auto" }}
+                  >
+                    {rol.rol}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {clusters.map((cluster) => {
+              const row = rasciByTitel.get(cluster.clusterTitel);
+              const rijMap = new Map((row?.rijen ?? []).map((r) => [r.rolId, r.letter]));
+              const nA = (row?.rijen ?? []).filter((r) => r.letter === "A").length;
+              const nR = (row?.rijen ?? []).filter((r) => r.letter === "R").length;
+              const valid = nA === 1 && nR >= 1;
+              return (
+                <tr key={cluster.clusterTitel} className="hover:bg-gray-50/50">
+                  <td className="border-b border-r border-gray-200 px-2 py-1.5 sticky left-0 bg-white z-10">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[8px] uppercase tracking-wide font-bold px-1 py-0.5 rounded shrink-0 ${
+                          cluster.clusterType === "vermogen"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-teal-100 text-teal-800"
+                        }`}
+                      >
+                        {cluster.clusterType === "vermogen" ? "V" : "I"}
+                      </span>
+                      <span className="font-medium text-gray-800 text-[11px] leading-tight">
+                        {cluster.clusterTitel}
+                      </span>
+                      <span
+                        className={`ml-auto shrink-0 w-2 h-2 rounded-full ${
+                          valid ? "bg-green-500" : "bg-amber-400"
+                        }`}
+                        title={valid ? "Geldig (1 A + ≥1 R)" : `Ongeldig: ${nA} A, ${nR} R`}
+                      />
+                    </div>
+                  </td>
+                  {rollen.map((rol) => {
+                    const letter = rijMap.get(rol.id);
+                    if (!onSetCell) {
+                      return (
+                        <td
+                          key={rol.id}
+                          className="border-b border-r border-gray-200 text-center p-0"
+                          style={{ minWidth: 56 }}
+                        >
+                          {letter ? (
+                            <span
+                              className={`inline-block w-7 h-7 leading-7 rounded text-[11px] font-bold ${RASCI_KLEUREN[letter]}`}
+                            >
+                              {letter}
+                            </span>
+                          ) : (
+                            <span className="text-gray-200">·</span>
+                          )}
+                        </td>
+                      );
+                    }
+                    return (
+                      <td
+                        key={rol.id}
+                        className="border-b border-r border-gray-200 text-center p-0.5"
+                        style={{ minWidth: 56 }}
+                      >
+                        <select
+                          value={letter ?? ""}
+                          onChange={(e) =>
+                            onSetCell(
+                              cluster.clusterTitel,
+                              rol.id,
+                              (e.target.value as RasciLetter) || null
+                            )
+                          }
+                          className={`w-full text-[11px] font-bold text-center border-none rounded cursor-pointer ${
+                            letter ? RASCI_KLEUREN[letter] : "text-gray-300 bg-white hover:bg-gray-100"
+                          }`}
+                          style={{ height: 28, paddingLeft: 4, paddingRight: 4 }}
+                          title={letter ? `${RASCI_LABELS[letter]} — ${RASCI_TOELICHTING[letter]}` : "Geen rol"}
+                        >
+                          <option value="">·</option>
+                          <option value="R">R</option>
+                          <option value="A">A</option>
+                          <option value="S">S</option>
+                          <option value="C">C</option>
+                          <option value="I">I</option>
+                        </select>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-3 text-[10px] text-gray-600">
+        <span>
+          <b>V</b> = vermogen-cluster, <b>I</b> = inspanning-cluster
+        </span>
+        <span className="ml-auto">
+          🟢 valide (1 A + ≥1 R) · 🟡 ongeldig
+        </span>
       </div>
     </div>
   );

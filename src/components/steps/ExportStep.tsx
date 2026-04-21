@@ -6,6 +6,11 @@ import { useToast } from "@/components/ui/Toast";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS, STATUS_STYLES } from "@/lib/types";
 import { buildChainsForSector, analyzeHefbomen, getDomainBalance } from "@/lib/din-service";
 import { categorizeGaps, getActiveCaps, getActiveEfforts } from "@/lib/word-export";
+import {
+  OrganigramView,
+  RasciFullMatrix,
+  buildClusterBron,
+} from "@/components/steps/GovernanceStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 
 // Domein kleuren
@@ -678,14 +683,8 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
 
   const po = session.programmaorganisatie;
   const clusterRasci = session.clusterRasci ?? [];
-  const allRollen: Array<{
-    id: string;
-    rol: string;
-    naam?: string;
-    sector?: string;
-    mandaat?: string;
-    groep: string;
-  }> = [];
+  type RolWithGroep = import("@/lib/types").ProgrammaRol & { groep: string };
+  const allRollen: RolWithGroep[] = [];
   if (po) {
     if (po.opdrachtgever) allRollen.push({ ...po.opdrachtgever, groep: "Opdrachtgever" });
     if (po.programmamanager) allRollen.push({ ...po.programmamanager, groep: "Programmamanager" });
@@ -709,6 +708,9 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
           {po.aiToelichting && (
             <p className="text-xs text-gray-600 italic mb-3">{po.aiToelichting}</p>
           )}
+          <div className="mb-4">
+            <OrganigramView po={po} />
+          </div>
           <div className="overflow-hidden border border-gray-200 rounded-lg">
             <table className="w-full text-xs">
               <thead>
@@ -760,10 +762,25 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
       {/* RASCI per hoofdthema */}
       {clusterRasci.length > 0 && (
         <SubSection title="RASCI per hoofdthema">
-          <p className="text-xs text-gray-500 mb-2">
+          <p className="text-xs text-gray-500 mb-3">
             Verantwoordelijkheidsverdeling per cross-sectoraal cluster — wet die geldt voor alle
             onderliggende baten, vermogens en inspanningen binnen dat cluster.
           </p>
+
+          {/* Officiële RASCI-matrix (cluster × rol) */}
+          {(() => {
+            const wizard = session.crossAnalyseWizard;
+            const bron = buildClusterBron(
+              wizard?.stepResults?.stap2?.vermogenClusters ?? [],
+              wizard?.stepResults?.stap3?.inspanningClusters ?? []
+            );
+            return (
+              <div className="mb-4">
+                <RasciFullMatrix clusters={bron} rollen={allRollen} rasci={clusterRasci} />
+              </div>
+            );
+          })()}
+
           <div className="space-y-3">
             {clusterRasci.map((c) => {
               const nA = c.rijen.filter((x) => x.letter === "A").length;
