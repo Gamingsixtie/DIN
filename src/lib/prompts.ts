@@ -400,6 +400,13 @@ Input krijg je (JSON):
 FOCUS-DOEL VERANKERING (kritisch):
 Kleur je \`beschrijving\` en \`beargumentatie\` in het vocabulaire en de ambitie van \`focusDoel.beschrijving\`. De bundel bestaat omdat deze bijdraagt aan dit focusdoel — verwijs er expliciet naar. De sector-vermogens geven de aarding: hun \`title\`, \`description\`, \`profielHuidig\` en \`profielGewenst\` bepalen welke sector-specifieke taal past in \`vermogenImpact\`.
 
+**GEEN ENKELE SECTOR IS DOMINANT — ZELFS ALS MAAR 1 SECTOR EEN BRON-INSPANNING LEVERDE:**
+De \`titel\`, \`beschrijving\` en \`beargumentatie\` mogen NOOIT voelen alsof ze één sector-inspanning als anker nemen en de andere sectoren er omheen hangen. De gezamenlijke inspanning is een NIEUWE synthese die uit alle drie sectoren vertrekt. Concreet:
+- Titel: sector-overstijgend — niet "Outside-in leiderschap als rolmodel" (dat is PO's titel) maar "Gedragsverandering outside-in leiderschap cross-sectoraal verankeren".
+- Beschrijving: benoem wat elke sector INBRENGT (bron-inspanning óf gewenst profiel óf cultuur-gap), niet wat één sector als basis levert.
+- Beargumentatie: begin met het GEDEELDE vraagstuk over de sectoren ("Alle drie sectoren kennen de uitdaging X"), niet met een sector-specifieke inspanning als kern.
+- Wanneer slechts 1 sector een bron-inspanning heeft: de andere 2 sectoren dragen bij via hun profielGewenst + cultuur-gap. Deze bijdrage is EVEN BELANGRIJK als een eigen bron-inspanning; behandel beide gelijk.
+
 Opmerking: wanneer \`focusDoel.beschrijving\` identiek is aan \`focusDoel.naam\` (fallback) is de inkleuringsbron korter; gebruik dan groep.gezamenlijkeOmschrijving + de vermogen-profielen als aanvullende context. Noem dit NIET in de output — het is een interne runtime-situatie.
 
 SECTOR-CONTEXT VERANKERING:
@@ -452,9 +459,9 @@ DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
   "voorgesteldeNaam": "<sectoroverstijgende titel>" | null,
 
   // --- Phase 18 rijke uitwerking (alleen verplicht bij actie: "combineren") ---
-  "titel":            "<actielabel met werkwoord, max 8 woorden — MOET identiek zijn aan voorgesteldeNaam bij combineren>",
-  "beschrijving":     "<'Wat wordt er gedaan' — 2-3 korte, concrete zinnen. Geen inleiding ('In dit cluster...'), direct to-the-point. Welke concrete activiteit voeren de drie sectoren samen uit? Lezer moet in één oogopslag begrijpen wat er GEBEURT.>",
-  "beargumentatie":   "<'Onderbouwing — waarom dit cluster.' BEGIN MET WELKE CONCRETE ITEMS SAMENKOMEN (bijv. 'PO-training X + VO-intervisie Y + Zakelijk-coaching Z komen samen omdat...'). Leg daarna uit waarom ze samen MEER opleveren dan apart (hefboom, schaalvoordeel, voorkomen van silo's). Verwijs naar de focus-doel ambitie. Maximaal 4 zinnen.>",
+  "titel":            "<SECTOR-OVERSTIJGEND actielabel met werkwoord, max 8 woorden. MAG NOOIT een kopie zijn van een enkele sector-inspanning. Zelfs als slechts 1 sector een bron-inspanning leverde: de titel moet de GEZAMENLIJKE cross-sectorale ambitie uitdrukken, niet de oorspronkelijke sector-titel. MOET identiek zijn aan voorgesteldeNaam bij combineren.>",
+  "beschrijving":     "<'Wat wordt er gedaan' — 2-3 korte, concrete zinnen. Geen inleiding ('In dit cluster...'), direct to-the-point. Beschrijf de GEZAMENLIJKE activiteit die alle drie sectoren samen uitvoeren; gebruik wat ELKE sector bijdraagt (ook sectoren zonder eigen bron-inspanning dragen bij via hun profielGewenst + cultuur-gaps). NOOIT een zin van 1 sector overnemen als de beschrijving.>",
+  "beargumentatie":   "<'Onderbouwing — waarom dit cluster.' MAAK EXPLICIET WAT ELKE SECTOR BIJDRAAGT (ook sectoren zonder eigen bron-inspanning). Begin NIET met 'De PO-inspanning X vormt de kern' — dat centreert één sector. Begin met 'Alle drie sectoren kennen hetzelfde vraagstuk: ...' of 'Deze inspanning brengt samen: PO's [bron of profielgewenst], VO's [bron of gap], Zakelijk's [bron of gap] ...'. Leg daarna uit waarom gezamenlijk aanpakken meer oplevert dan sector-specifiek (hefboom, gedeelde taal, schaalvoordeel). Max 4 zinnen.>",
   "vermogenImpact":   [
     { "sectorId": "PO",       "vermogenId": "<cap-po-id>",   "impact": "<Concreet: hoe deze bundel het PO-vermogen opbouwt — PO-vocabulaire (leerkrachten, schoolbesturen, leerlingen)>" },
     { "sectorId": "VO",       "vermogenId": "<cap-vo-id>",   "impact": "<VO-vocabulaire (schoolleiders, teamleiders, examens, leerlingen)>" },
