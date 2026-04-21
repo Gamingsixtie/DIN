@@ -242,6 +242,10 @@ export default function CrossAnalyseWizard() {
     try {
       const activeCaps = session.capabilities.filter((c) => !c.consolidated);
       const activeEfforts = session.efforts.filter((e) => !e.consolidated);
+      // Voor Stap 4 (consolidatie) hebben we ook de originele DIN-mapping-efforts
+      // nodig — ook als die in Stap 5 zijn gemerged (consolidated: true). De
+      // server-side vangnet bundelt op basis van allEfforts per domein × groep.
+      const allEfforts = session.efforts;
 
       // Alleen het eerste (hoogst gerankte) doel meenemen in cross-analyse
       const focusGoal = getFocusGoal(session.goals);
@@ -258,6 +262,7 @@ export default function CrossAnalyseWizard() {
         benefits: focusBenefits,
         capabilities: activeCaps,
         efforts: activeEfforts,
+        allEfforts, // Phase 19 5.1b: inclusief consolidated efforts voor Stap 4 bundeling
         externalProjects: session.externalProjects || [],
         goalBenefitMaps: focusGBMaps,
         benefitCapabilityMaps: focusBCMaps,

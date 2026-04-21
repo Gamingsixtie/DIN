@@ -34,10 +34,11 @@ async function main() {
 
   const efforts = (s.efforts as Array<{ sectorId: string; domain: string; consolidated?: boolean }> | undefined) ?? [];
   const effortsByDom: Record<string, Record<string, number>> = {};
+  const consolidatedByDom: Record<string, Record<string, number>> = {};
   for (const e of efforts) {
-    if (e.consolidated) continue;
-    effortsByDom[e.domain] ??= {};
-    effortsByDom[e.domain][e.sectorId] = (effortsByDom[e.domain][e.sectorId] ?? 0) + 1;
+    const target = e.consolidated ? consolidatedByDom : effortsByDom;
+    target[e.domain] ??= {};
+    target[e.domain][e.sectorId] = (target[e.domain][e.sectorId] ?? 0) + 1;
   }
 
   const wiz = s.crossAnalyseWizard as { stepResults?: Record<string, unknown> } | undefined;
@@ -49,7 +50,9 @@ async function main() {
   console.log("SESSIE:", sessionId);
   console.log("Capabilities:", (s.capabilities as unknown[] | undefined)?.length ?? 0);
   console.log("Efforts (actief):", efforts.filter((e) => !e.consolidated).length);
-  console.log("Bron-inspanningen per domein × sector:", effortsByDom);
+  console.log("Actieve bron-inspanningen per domein × sector:", effortsByDom);
+  console.log("Geconsolideerde (gemergde) per domein × sector:", consolidatedByDom);
+  console.log("Totaal efforts array lengte:", efforts.length);
   console.log("Gelijkenisgroepen in stap2:", stap2?.vermogenGelijkenisGroepen?.length ?? 0);
   const sub = stap4?.subEffortAnalysis ?? [];
   console.log("subEffortAnalysis entries totaal:", sub.length);

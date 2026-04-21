@@ -420,12 +420,26 @@ export async function POST(request: NextRequest) {
             let entries = subResult.success ? subResult.data : [];
 
             // Server-side vangnet: forceer dat items[] per domein ALLE bron-effort-IDs
-            // uit dat domein bevat (over alle sectoren). AI is onbetrouwbaar in het
-            // bundelen; wij berekenen het deterministisch.
-            // Bouw een map per domein -> lijst van bron-effort-IDs (uit groepEfforts):
+            // uit dat domein bevat (over alle sectoren). Dit bundelt de originele
+            // DIN-mapping-efforts — óók als ze later in stap 5 zijn gemerged
+            // (consolidated: true). De client stuurt daarvoor `allEfforts` mee.
+            const allEfforts = (body.allEfforts ?? body.efforts ?? []) as Array<{
+              id: string;
+              sectorId: string;
+              domain?: string;
+              consolidated?: boolean;
+            }>;
+            // Pak alle effort-IDs (inclusief consolidated) die aan capabilities in deze groep gekoppeld zijn
+            const allGroepEffortIds = new Set(
+              capEffortMapsLocal
+                .filter((m) => capIdSet.has(m.capabilityId))
+                .map((m) => m.effortId)
+            );
+            // Bouw map per domein -> lijst van bron-effort-IDs (inclusief geconsolideerde originelen)
             const domainToEffortIds: Record<string, string[]> = {};
-            for (const ef of groepEfforts as Array<{ id: string; domain?: string }>) {
+            for (const ef of allEfforts) {
               if (!ef.domain) continue;
+              if (!allGroepEffortIds.has(ef.id)) continue;
               (domainToEffortIds[ef.domain] ??= []).push(ef.id);
             }
             entries = entries.map((e) => {
