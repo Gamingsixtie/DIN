@@ -609,56 +609,10 @@ Antwoord in het Nederlands.`,
         </div>
       )}
 
-      {/* Inspanning clusters section */}
-      {inspanningClusters.length > 0 && (
-        <div className="space-y-3">
-          <h5 className="text-sm font-semibold text-indigo-700">
-            Gedeelde inspanningen <span className="text-xs font-normal text-gray-400">(uit stap 3)</span>
-            <span className="ml-2 text-xs font-normal text-gray-400">· {inspanningClusters.length} clusters</span>
-          </h5>
-          <div className="space-y-3">
-            {inspanningClusters.map((cluster, idx) => {
-              const key = cluster.items.map((it) => it.id).sort().join(",");
-              const isMerged = mergedEffClusters.has(key);
-              const sharedId = mergedEffClusters.get(key);
-              const isReviewed = reviewedClusters.has(key);
-              const requiresReview = failedClusterKeys.has(key);
-              const reason = clusterReasons[key];
-              const savedContext = clusterContexts[cluster.clusterTitel];
-              const isHerzienLoading = herzienLoadingKeys.has(cluster.clusterTitel);
-
-              return (
-                <div key={idx}>
-                  {requiresReview && reason && (
-                    <div className="bg-red-50 border border-red-200 rounded px-2 py-1 mb-1 text-[11px] text-red-700">
-                      <span className="font-semibold">Reden: </span>{reason}
-                    </div>
-                  )}
-                  <ClusterCard
-                    cluster={cluster}
-                    type="inspanning"
-                    onMerge={(ids) => handleMergeEfforts(ids, cluster.clusterTitel)}
-                    isMerged={isMerged}
-                    onUndo={handleUndoMergeEff}
-                    sharedId={sharedId}
-                    onReview={() => handleReviewCluster(key)}
-                    isReviewed={isReviewed}
-                    readOnly={false}
-                    afstemmingsStappen={getAfstemmingsStappen(cluster.clusterTitel)}
-                    onGenerateAdvice={() => handleGenerateAdvice(cluster.clusterTitel, "inspanning", cluster.items)}
-                    requiresReview={requiresReview}
-                    savedContext={savedContext}
-                    isHerzienLoading={isHerzienLoading}
-                    onHerzieAdvies={async (userContext) =>
-                      handleHerzieAdvies(cluster.clusterTitel, cluster.items, userContext)
-                    }
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Phase 18 (R-CROSS-03): inspanning-cluster handmatige review is verwijderd.
+          De 4 domein-inspanningen uit stap 4 (Phase 18 sub-effort analyse) zijn
+          leidend en worden in stap 6 (Optimaliseren) verfijnd. Geen parallel
+          handmatig merge-spoor meer om conflicten te voorkomen. */}
     </div>
   );
 }
