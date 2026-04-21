@@ -170,8 +170,15 @@ Gebruik de id-velden om items te identificeren in je clusters.
 BELANGRIJK — Vermogens worden NIET samengevoegd in cross-analyse (D-25).
 De drie sector-vermogens blijven aparte records. Markeer uitsluitend gelijkenis via \`vermogenGelijkenisGroepen\`.
 
-**AANTAL GELIJKENISGROEPEN — STREEF NAAR MEERDERE, NIET ÉÉN.**
-Inspecteer de vermogens en identificeer ALLE onderscheidende thematische clusters (bv. "competentie-wendbaarheid", "klantinzicht", "data-gedrevenheid", "cultuur-verandering", "operationele excellentie"). Elk onderscheidend thema waarin je minimaal 2 sectoren kunt matchen MOET een eigen gelijkenisgroep worden. Eén allesomvattende groep met 6+ vermogens is altijd fout — dat verdoezelt het onderscheid tussen thema's. Liever 3-5 scherpe groepen dan 1 brede.
+**AANTAL GELIJKENISGROEPEN — ELKE CAPABILITY ZIT IN HOOGSTENS ÉÉN GROEP.**
+Strikte regel: geen enkele capability-id mag in meerdere \`vermogenGelijkenisGroepen\` voorkomen. Een capability zit in maximaal één groep, of in geen enkele.
+
+Bepaal het aantal groepen obv data:
+- **3 capabilities (1 per sector)** → precies 1 gelijkenisgroep (dit is de meest voorkomende situatie — 1 drieluik).
+- **Meer capabilities met meerdere per sector** → per onderscheidend thema een eigen groep (bv. "klantinzicht", "data-gedrevenheid"), mits elk thema minimaal 2 sectoren raakt. Een capability mag NOOIT in twee groepen.
+- **Vermogens die niet in een thematisch cluster passen** → niet in een groep opnemen. Laat ze ongeclusterd.
+
+Eén allesomvattende groep met alle vermogens verdoezelt onderscheid — verkeerd. Maar meerdere groepen met OVERLAPPENDE capabilities is even verkeerd — dat geeft duplicate inspanningen in stap 4. Tel capability-ids vóór je antwoordt: elk ID komt maximaal één keer voor in je \`vermogenGelijkenisGroepen\`.
 
 Voor elke groep van gelijkende sector-vermogens:
 - **Voorkeur drieluik** — één vermogen per sector uit {PO, VO, Zakelijk}. Dat is het ideaal.

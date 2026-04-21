@@ -220,6 +220,31 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Post-validatie Stap 2: dedupliceer vermogenGelijkenisGroepen zodat
+      // geen enkele capability-id in meerdere groepen voorkomt. Voorkomt dat
+      // Stap 4 dubbele cross-sectorale inspanningen genereert voor overlappende groepen.
+      if (stap === 2) {
+        const s2 = result.data as {
+          vermogenGelijkenisGroepen?: Array<{ id: string; vermogenIds: string[]; gezamenlijkeOmschrijving: string; reden: string }>;
+        };
+        if (s2.vermogenGelijkenisGroepen && s2.vermogenGelijkenisGroepen.length > 1) {
+          const claimedCaps = new Set<string>();
+          const uniqueGroups: typeof s2.vermogenGelijkenisGroepen = [];
+          // Sorteer op groepsgrootte (grootste eerst = meeste sectoren gedekt) zodat
+          // we de meest complete drieluik behouden bij conflict.
+          const sorted = [...s2.vermogenGelijkenisGroepen].sort(
+            (a, b) => (b.vermogenIds?.length ?? 0) - (a.vermogenIds?.length ?? 0)
+          );
+          for (const g of sorted) {
+            const overlap = g.vermogenIds.some((id) => claimedCaps.has(id));
+            if (overlap) continue; // skip duplicate — deze capabilities zitten al in eerdere groep
+            uniqueGroups.push(g);
+            g.vermogenIds.forEach((id) => claimedCaps.add(id));
+          }
+          s2.vermogenGelijkenisGroepen = uniqueGroups;
+        }
+      }
+
       // --- D-10/D-11 (Phase 17): sub-effort analyse per VermogenGelijkenisGroep (alleen stap 4) ---
       // Voor elke drieluik-groep uit stap 2 roepen we parallel SUB_EFFORT_ANALYSE_PROMPT aan.
       // Groepen zonder gekoppelde efforts worden geskipt (D-13: geen verspilde tokens).
