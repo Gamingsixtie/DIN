@@ -197,14 +197,23 @@ export default function StapOptimaliseren({
         prev.map((e, i) => {
           if (i !== idx) return e;
           const merged: SubEffortAdvies = { ...e };
-          if (fields.includes("titel")) {
+          // Guard: alleen overschrijven als AI een waarde teruggaf (niet undefined / leeg)
+          if (fields.includes("titel") && ai.titel) {
             merged.titel = ai.titel;
             merged.voorgesteldeNaam = ai.voorgesteldeNaam ?? ai.titel;
           }
-          if (fields.includes("beschrijving")) merged.beschrijving = ai.beschrijving;
-          if (fields.includes("beargumentatie")) merged.beargumentatie = ai.beargumentatie;
-          if (fields.includes("vermogenImpact")) merged.vermogenImpact = ai.vermogenImpact;
-          if (fields.includes("dossier")) merged.dossier = ai.dossier;
+          if (fields.includes("beschrijving") && ai.beschrijving) {
+            merged.beschrijving = ai.beschrijving;
+          }
+          if (fields.includes("beargumentatie") && ai.beargumentatie) {
+            merged.beargumentatie = ai.beargumentatie;
+          }
+          if (fields.includes("vermogenImpact") && ai.vermogenImpact && ai.vermogenImpact.length > 0) {
+            merged.vermogenImpact = ai.vermogenImpact;
+          }
+          if (fields.includes("dossier") && ai.dossier) {
+            merged.dossier = ai.dossier;
+          }
           return merged;
         })
       );
@@ -218,6 +227,7 @@ export default function StapOptimaliseren({
 
   async function runBusinessCaseQuestions(idx: number) {
     setBcModeByIdx((p) => ({ ...p, [idx]: "loading-questions" }));
+    setOptimizeError(null);
     const entry = entries[idx];
     const focusGoal = [...(session.goals ?? [])]
       .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))[0] ?? null;
@@ -231,6 +241,9 @@ export default function StapOptimaliseren({
         }
       : null;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000); // 60s timeout
+
     try {
       const res = await fetch("/api/business-case", {
         method: "POST",
@@ -242,27 +255,42 @@ export default function StapOptimaliseren({
           scope: session.scope,
           vision: session.vision,
         }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!data.success || !data.data?.questions) {
-        setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
         setOptimizeError(data.error ?? "Vragen-genereren mislukt");
         return;
       }
       setBcQuestionsByIdx((p) => ({ ...p, [idx]: data.data.questions }));
       setBcAnswersByIdx((p) => ({ ...p, [idx]: p[idx] ?? {} }));
       setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
+      return;
     } catch (err) {
-      setOptimizeError(err instanceof Error ? err.message : "Netwerkfout");
-      setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
+      const msg =
+        err instanceof Error
+          ? err.name === "AbortError"
+            ? "Time-out na 60s — probeer opnieuw of pas de inspanning aan"
+            : err.message
+          : "Netwerkfout";
+      setOptimizeError(msg);
+    } finally {
+      clearTimeout(timeoutId);
+      // Als mode nog steeds loading is (dus geen answering-transitie), reset naar idle
+      setBcModeByIdx((p) => (p[idx] === "loading-questions" ? { ...p, [idx]: "idle" } : p));
     }
   }
 
   async function runBusinessCaseEstimate(idx: number) {
     setBcModeByIdx((p) => ({ ...p, [idx]: "loading-estimate" }));
+    setOptimizeError(null);
     const entry = entries[idx];
     const questions = bcQuestionsByIdx[idx] ?? [];
     const answers = bcAnswersByIdx[idx] ?? {};
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
     try {
       const res = await fetch("/api/business-case", {
         method: "POST",
@@ -275,11 +303,12 @@ export default function StapOptimaliseren({
           scope: session.scope,
           vision: session.vision,
         }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!data.success || !data.data?.kostenraming) {
-        setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
         setOptimizeError(data.error ?? "Raming-genereren mislukt");
+        setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
         return;
       }
       setBcResultByIdx((p) => ({ ...p, [idx]: data.data }));
@@ -301,8 +330,16 @@ export default function StapOptimaliseren({
       );
       setBcModeByIdx((p) => ({ ...p, [idx]: "idle" }));
     } catch (err) {
-      setOptimizeError(err instanceof Error ? err.message : "Netwerkfout");
+      const msg =
+        err instanceof Error
+          ? err.name === "AbortError"
+            ? "Time-out na 60s — probeer opnieuw"
+            : err.message
+          : "Netwerkfout";
+      setOptimizeError(msg);
       setBcModeByIdx((p) => ({ ...p, [idx]: "answering" }));
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

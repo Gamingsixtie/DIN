@@ -21,8 +21,8 @@ const QuestionsSchema = z.object({
         eenheid: z.string().optional().default(""),
       })
     )
-    .min(3)
-    .max(10),
+    .min(1)
+    .max(12),
 });
 
 const EstimateSchema = z.object({
