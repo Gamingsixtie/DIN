@@ -170,6 +170,9 @@ Gebruik de id-velden om items te identificeren in je clusters.
 BELANGRIJK — Vermogens worden NIET samengevoegd in cross-analyse (D-25).
 De drie sector-vermogens blijven aparte records. Markeer uitsluitend gelijkenis via \`vermogenGelijkenisGroepen\`.
 
+**AANTAL GELIJKENISGROEPEN — STREEF NAAR MEERDERE, NIET ÉÉN.**
+Inspecteer de vermogens en identificeer ALLE onderscheidende thematische clusters (bv. "competentie-wendbaarheid", "klantinzicht", "data-gedrevenheid", "cultuur-verandering", "operationele excellentie"). Elk onderscheidend thema waarin je minimaal 2 sectoren kunt matchen MOET een eigen gelijkenisgroep worden. Eén allesomvattende groep met 6+ vermogens is altijd fout — dat verdoezelt het onderscheid tussen thema's. Liever 3-5 scherpe groepen dan 1 brede.
+
 Voor elke groep van gelijkende sector-vermogens:
 - **Voorkeur drieluik** — één vermogen per sector uit {PO, VO, Zakelijk}. Dat is het ideaal.
 - **Soepeler: 2-van-3 sectoren telt óók als gelijkenisgroep** wanneer het thema in de derde sector impliciet speelt via cultuur, mindset of bestaande inspanningen. In \`reden\` beargumenteer je waarom de derde sector impliciet is meegenomen en welk vermogen-profiel van die sector alsnog aangesloten wordt.
