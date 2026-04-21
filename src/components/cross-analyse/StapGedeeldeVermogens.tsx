@@ -38,7 +38,7 @@ export default function StapGedeeldeVermogens({ session, result }: StapGedeeldeV
       />
 
       {/* AI result (when available) */}
-      {result && <AIVermogenResult result={result} />}
+      {result && <AIVermogenResult result={result} session={session} />}
     </div>
   );
 }
@@ -149,7 +149,7 @@ function VermogenSynergieMatrix({
 
 // --- AI result ---
 
-function AIVermogenResult({ result }: { result: Stap2Result }) {
+function AIVermogenResult({ result, session }: { result: Stap2Result; session: DINSession }) {
   const priorityColors: Record<string, string> = {
     hoog: "bg-red-100 text-red-700 border-red-200",
     midden: "bg-amber-100 text-amber-700 border-amber-200",
@@ -175,6 +175,58 @@ function AIVermogenResult({ result }: { result: Stap2Result }) {
                 isReviewed={false}
                 readOnly={true}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gelijkenisgroepen (drieluiken) — waarom deze N van M gedeelde vermogens (5.3) */}
+      {result.vermogenGelijkenisGroepen && result.vermogenGelijkenisGroepen.length > 0 && (
+        <div className="border border-[#003366]/20 rounded-xl overflow-hidden">
+          <div className="bg-[#003366]/5 px-5 py-3 border-b border-[#003366]/20">
+            <h4 className="text-sm font-semibold text-[#003366]">
+              Gekozen drieluikgroepen
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                · {result.vermogenGelijkenisGroepen.length} van alle gedeelde vermogens
+              </span>
+            </h4>
+            <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+              De AI heeft deze drieluiken (PO + VO + Zakelijk) geselecteerd omdat ze samen de sterkste hefboom leveren — ze worden in stap 4 cross-sectoraal uitgewerkt. Andere gedeelde vermogens in de matrix hierboven blijven sectoraal of wachten op een volgende cyclus.
+            </p>
+          </div>
+          <div className="bg-white p-4 space-y-3">
+            {result.vermogenGelijkenisGroepen.map((groep, i) => (
+              <div key={groep.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#003366] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">
+                      {groep.gezamenlijkeOmschrijving}
+                    </p>
+                    <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+                      <span className="font-semibold">Waarom gekozen: </span>
+                      {groep.reden}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <span className="text-[10px] text-gray-400 mr-1">Bundelt:</span>
+                      {groep.vermogenIds.map((vid) => {
+                        const cap = session.capabilities.find((c) => c.id === vid);
+                        if (!cap) return null;
+                        return (
+                          <span
+                            key={vid}
+                            className="text-[10px] bg-white border border-gray-200 text-gray-700 px-1.5 py-0.5 rounded"
+                          >
+                            <span className="font-semibold">{cap.sectorId}:</span> {cap.title || cap.description?.slice(0, 40)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>

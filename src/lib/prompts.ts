@@ -196,7 +196,7 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
       "id": "g1",
       "vermogenIds": ["<cap-po-id>", "<cap-vo-id>", "<cap-zak-id>"],
       "gezamenlijkeOmschrijving": "Medewerker-wendbaarheid bij digitalisering",
-      "reden": "Alle drie sectoren vereisen adaptief vermogen bij snelle digitaliseringstrajecten."
+      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen.>"
     }
   ],
   "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"
