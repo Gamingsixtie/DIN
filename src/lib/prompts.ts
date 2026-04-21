@@ -177,7 +177,14 @@ Voor elke groep van gelijkende sector-vermogens:
 - \`gezamenlijkeOmschrijving\`: waarom deze vermogens inhoudelijk op elkaar lijken (zelfde capaciteit, zelfde doel-keten, gedeelde cultuuronderlaag).
 - \`reden\`: korte onderbouwing (1-2 zinnen, methodiek-conform). Bij 2-van-3 sectoren: expliciet benoemen welke sector impliciet is en hoe het via cultuur/mindset alsnog aansluit.
 
-**BELANGRIJK — ELK GEDEELD VERMOGEN WORDT IN STAP 4 CROSS-SECTORAAL UITGEWERKT OVER ALLE VIER DE INSPANNINGSDOMEINEN (mens, processen, data_systemen, cultuur).** Produceer dus alleen \`vermogenGelijkenisGroepen\` waarvan je denkt dat ze daadwerkelijk cross-sectorale hefboom leveren — anders ontstaat een leeg kader. Wees ruim waar de thematiek aansluit (vooral bij cultuur-gerelateerde vermogens), maar streng waar vermogens echt sectoraal specifiek zijn.
+**HARDE EIS — 4-DOMEIN-DEKKING VALIDEREN VOOR JE DE GROEP OPNEEMT.**
+Elk gedeeld vermogen wordt in stap 4 cross-sectoraal uitgewerkt over ALLE vier inspanningsdomeinen (mens, processen, data_systemen, cultuur). Voordat je een \`vermogenGelijkenisGroep\` opneemt, controleer je of je redelijkerwijs substantiële en ONDERSCHEIDEND van elkaar inspanningen kunt verzinnen in alle vier domeinen. Dit betekent concreet:
+- **mens**: valt er een competentie, training, coaching of opleiding te ontwerpen? (niet hetzelfde als cultuur)
+- **processen**: valt er een werkwijze, procedure of governance-afspraak te ontwerpen?
+- **data_systemen**: valt er een tool, platform of data-inrichting te ontwerpen?
+- **cultuur**: valt er een mindset-, waarden- of gedragsverandering te ontwerpen? (niet hetzelfde als mens)
+
+Wanneer het antwoord op één van deze domeinen NEE is (geen zinvol onderscheidend inspanning mogelijk in dat domein), laat de groep dan VALLEN. Een half-lege gelijkenisgroep is onzinnig en vervuilt de cross-analyse. Beter géén groep dan een groep die niet vier onderscheidende domein-uitwerkingen kan dragen.
 
 Voor \`vermogenClusters[].aanbeveling\`: gebruik UITSLUITEND \`"markeer_gelijkenis"\` wanneer het een cross-sector gelijkenis betreft. \`"combineren"\` is NIET toegestaan voor vermogens in cross-analyse. De enum-waardes \`"afstemmen"\` en \`"apart_houden"\` zijn toegestaan.
 
@@ -383,6 +390,26 @@ Gebruik \`vermogens[i].profielHuidig\` en \`vermogens[i].profielGewenst\` om per
 
 Lever een array \`SubEffortAdvies[]\` met **ALTIJD EXACT 4 entries per groep** — één per domein (mens / processen / data_systemen / cultuur). GEEN skip, ook niet als een sector voor dat domein geen eigen inspanning heeft aangeleverd. Dit is de kern-eis: cross-sectoraal werken betekent dat we in elk domein alle drie sectoren meenemen, ook als één sector daar geen directe input in leverde — de focus-doel ambitie en de vermogen-profielen van de ontbrekende sector vormen dan samen de basis om die sector alsnog mee te laten liften. Benoem dit expliciet in de \`beargumentatie\`.
 
+DOMEIN-DEFINITIES — ELK DOMEIN IS INHOUDELIJK ONDERSCHEIDEND (HARDE EIS):
+
+- **mens** — *competenties, kennis, vaardigheden van individuen/teams*
+  Denk aan: training, opleiding, coaching, gespreksvaardigheid, expertise-ontwikkeling, bemensing.
+  Voorbeeld: "Training gesprekvoering outside-in voor 120 medewerkers over 3 sectoren".
+
+- **processen** — *werkwijzen, procedures, governance, afspraken*
+  Denk aan: nieuwe werkwijze, standaard operating procedure, samenwerkingsmodel, besluitvormingsroute, KPI-cyclus.
+  Voorbeeld: "Uniform klantgesprek-protocol met gedeelde escalatiepaden".
+
+- **data_systemen** — *tools, platformen, data-architectuur, integraties, techniek*
+  Denk aan: CRM-inrichting, gedeelde database, API-koppeling, dashboard, tooling-keuze.
+  Voorbeeld: "CRM-uitbreiding met outside-in-vragensjabloon en feedback-loop".
+
+- **cultuur** — *mindset, bereidheid, waarden, gedragsnormen, leiderschap*
+  Denk aan: bewustwordingscampagne, leiderschapsprogramma, commitmentritueel, waardenverkenning, gedragscontract.
+  Voorbeeld: "Leiderschapsprogramma waarin sectordirecteuren outside-in als waarde uitdragen en voorleven".
+
+**VERBOD: Mens-inspanning en cultuur-inspanning mogen NIET dezelfde inhoud, titel of tekst hebben.** Mens gaat over kunnen (vaardigheid aanleren), cultuur gaat over willen (bereidheid, waarden). Een training is mens. Een bewustwordingstraject of leiderschapsprogramma dat waarden belichaamt is cultuur. Als je jezelf betrapt op bijna identieke teksten voor mens en cultuur: herschrijf beide zodat het onderscheid scherp is.
+
 {
   "groepId":          "<zelfde als input.groep.id>",
   "domein":           "mens | processen | data_systemen | cultuur",
@@ -423,7 +450,10 @@ Regels (D-11, D-25, D-30, D-31):
 - Indien \`focusDoel\` \`null\` is: ga door met generieke inkleuring op basis van groep.gezamenlijkeOmschrijving; noteer dat de beschrijving minder rijk zal zijn.
 
 EINDCHECK VOOR JE ANTWOORDT (HARDE EIS):
-Tel je output-entries. Er MOETEN er exact 4 zijn per groep. Controleer dat precies deze 4 \`domein\` waarden voorkomen: "mens", "processen", "data_systemen", "cultuur". Elke andere telling of combinatie is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt via de focus-doel-ambitie en de bestaande vermogen-profielen.
+1. Tel je output-entries. Er MOETEN er exact 4 zijn per groep. Controleer dat precies deze 4 \`domein\` waarden voorkomen: "mens", "processen", "data_systemen", "cultuur". Elke andere telling of combinatie is ONGELDIG — herschrijf dan je output zodat alle vier aanwezig zijn.
+2. Een domein waar geen sector input aanleverde is GEEN reden om het over te slaan: construeer dan de cross-sectorale inspanning vanuit focusDoel.beschrijving + alle drie vermogen-profielen, zet \`items: []\` en \`actie: "combineren"\`, en leg in \`beargumentatie\` uit welke sectoren nog directe input moeten leveren en waarom de hefboom toch werkt.
+3. **Onderscheid-check mens vs cultuur**: leg de \`titel\` en \`beschrijving\` van de mens-entry náást die van de cultuur-entry. Als ze substantieel overlappen (≥40% dezelfde woorden of dezelfde strekking): HERSCHRIJF beide. Mens gaat over KUNNEN (vaardigheid/competentie aanleren), cultuur gaat over WILLEN (bereidheid/waarden/gedrag). Voorbeeld van verkeerd: mens='Training outside-in denken' + cultuur='Training outside-in denken'. Voorbeeld van goed: mens='Gespreksvaardigheidstraining voor 120 medewerkers' + cultuur='Leiderschapsprogramma waarin sectordirecteuren outside-in voorleven en commitment ritualiseren'.
+4. **Onderscheid-check alle 4 domeinen**: kort controleren dat processen ≠ mens/cultuur (processen = afspraken/werkwijzen, niet competenties of waarden) en dat data_systemen ≠ processen (data_systemen = tools/techniek, niet werkwijzen).
 
 VARIANT 2-VAN-3 DRIELUIK:
 Wanneer de gelijkenisgroep maar 2 sectoren expliciet bevat en de 3e sector impliciet meedoet via cultuur/mindset: produceer ALSNOG alle vier domein-entries. In \`vermogenImpact\` neem je voor de impliciete sector een ontwerp-impact op gebaseerd op het \`profielGewenst\` en het focusdoel. In \`beargumentatie\` benoem je expliciet dat de derde sector via de cultuur-onderlaag aansluit.
