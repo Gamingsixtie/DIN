@@ -496,87 +496,111 @@ export default function StapOptimaliseren({
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-                      Titel
-                    </label>
-                    <input
-                      type="text"
-                      value={entry.titel ?? ""}
-                      onChange={(e) =>
-                        updateEntry(idx, (v) => ({ ...v, titel: e.target.value }))
-                      }
-                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
-                      placeholder="Sectoroverstijgende inspanningstitel"
-                    />
-                  </div>
+                  {/* 12-koloms grid: beschrijving-kolom dominant (8), details rechts (4) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Linkerkolom — titel, beschrijving (groot), beargumentatie */}
+                    <div className="lg:col-span-8 space-y-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                          Titel
+                        </label>
+                        <input
+                          type="text"
+                          value={entry.titel ?? ""}
+                          onChange={(e) =>
+                            updateEntry(idx, (v) => ({ ...v, titel: e.target.value }))
+                          }
+                          className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                          placeholder="Sectoroverstijgende inspanningstitel"
+                        />
+                      </div>
 
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-                      Beschrijving
-                    </label>
-                    <textarea
-                      value={entry.beschrijving ?? ""}
-                      onChange={(e) =>
-                        updateEntry(idx, (v) => ({ ...v, beschrijving: e.target.value }))
-                      }
-                      rows={3}
-                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
-                      placeholder="Wat houdt deze cross-sectorale inspanning in?"
-                    />
-                  </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                          Beschrijving — wat wordt er gedaan
+                        </label>
+                        <textarea
+                          value={entry.beschrijving ?? ""}
+                          onChange={(e) =>
+                            updateEntry(idx, (v) => ({ ...v, beschrijving: e.target.value }))
+                          }
+                          rows={10}
+                          className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] min-h-[220px] resize-y leading-relaxed"
+                          placeholder="Wat houdt deze cross-sectorale inspanning concreet in? Neem voldoende ruimte voor detail — dit is de kern van het cluster."
+                        />
+                      </div>
 
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-                      Beargumentatie (Waarom cross-sectoraal?)
-                    </label>
-                    <textarea
-                      value={entry.beargumentatie ?? ""}
-                      onChange={(e) =>
-                        updateEntry(idx, (v) => ({ ...v, beargumentatie: e.target.value }))
-                      }
-                      rows={3}
-                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
-                      placeholder="Waarom deze drie sectoren gezamenlijk aanpakken?"
-                    />
-                  </div>
-
-                  <details className="bg-white border border-gray-200 rounded p-3">
-                    <summary className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">
-                      Dossier (opdrachtgever / kostenraming / …)
-                    </summary>
-                    <div className="mt-3 space-y-2">
-                      {([
-                        ["eigenaar", "Opdrachtgever / eigenaar"],
-                        ["inspanningsleider", "Inspanningsleider"],
-                        ["verwachtResultaat", "Verwacht resultaat"],
-                        ["kostenraming", "Kostenraming"],
-                        ["randvoorwaarden", "Randvoorwaarden"],
-                      ] as const).map(([key, label]) => (
-                        <div key={key}>
-                          <label className="text-[10px] font-semibold text-gray-500">{label}</label>
-                          <input
-                            type="text"
-                            value={entry.dossier?.[key] ?? ""}
-                            onChange={(e) =>
-                              updateEntry(idx, (v) => ({
-                                ...v,
-                                dossier: {
-                                  eigenaar: v.dossier?.eigenaar ?? "",
-                                  inspanningsleider: v.dossier?.inspanningsleider ?? "",
-                                  verwachtResultaat: v.dossier?.verwachtResultaat ?? "",
-                                  kostenraming: v.dossier?.kostenraming ?? "",
-                                  randvoorwaarden: v.dossier?.randvoorwaarden ?? "",
-                                  [key]: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full mt-1 px-2 py-1.5 text-xs border border-gray-300 rounded"
-                          />
-                        </div>
-                      ))}
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                          Onderbouwing — waarom dit cluster
+                        </label>
+                        <textarea
+                          value={entry.beargumentatie ?? ""}
+                          onChange={(e) =>
+                            updateEntry(idx, (v) => ({ ...v, beargumentatie: e.target.value }))
+                          }
+                          rows={6}
+                          className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] min-h-[140px] resize-y leading-relaxed"
+                          placeholder="Welke originele inspanningen komen hier samen en waarom leveren ze samen meer op dan apart?"
+                        />
+                      </div>
                     </div>
-                  </details>
+
+                    {/* Rechterkolom — vermogen-impact + dossier, direct zichtbaar */}
+                    <div className="lg:col-span-4 space-y-3">
+                      {entry.vermogenImpact && entry.vermogenImpact.length > 0 && (
+                        <div className="bg-white border border-gray-200 rounded p-3">
+                          <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                            Welk vermogen bouwt dit op (per sector)
+                          </p>
+                          <ul className="space-y-1.5">
+                            {entry.vermogenImpact.map((v, j) => (
+                              <li key={j} className="text-[11px] text-gray-700 leading-snug">
+                                <strong className="text-gray-800">{v.sectorId}:</strong> {v.impact}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                          Eigenaar, leider, kosten, randvoorwaarden
+                        </p>
+                        <div className="space-y-2">
+                          {([
+                            ["eigenaar", "Eigenaar"],
+                            ["inspanningsleider", "Inspanningsleider"],
+                            ["verwachtResultaat", "Verwacht resultaat"],
+                            ["kostenraming", "Kostenraming"],
+                            ["randvoorwaarden", "Randvoorwaarden"],
+                          ] as const).map(([key, label]) => (
+                            <div key={key}>
+                              <label className="text-[10px] font-semibold text-gray-500">{label}</label>
+                              <input
+                                type="text"
+                                value={entry.dossier?.[key] ?? ""}
+                                onChange={(e) =>
+                                  updateEntry(idx, (v) => ({
+                                    ...v,
+                                    dossier: {
+                                      eigenaar: v.dossier?.eigenaar ?? "",
+                                      inspanningsleider: v.dossier?.inspanningsleider ?? "",
+                                      verwachtResultaat: v.dossier?.verwachtResultaat ?? "",
+                                      kostenraming: v.dossier?.kostenraming ?? "",
+                                      randvoorwaarden: v.dossier?.randvoorwaarden ?? "",
+                                      [key]: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-300 rounded"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Gerichte optimalisatie config */}
                   <div className="mt-3 pt-3 border-t border-gray-200 bg-white rounded p-3 space-y-2">
