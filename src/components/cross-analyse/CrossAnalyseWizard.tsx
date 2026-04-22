@@ -19,6 +19,7 @@ import StapInspanningenOverlap from "./StapInspanningenOverlap";
 import StapConsolidatie from "./StapConsolidatie";
 import StapOptimaliseren from "./StapOptimaliseren";
 import StapInterneUren from "./StapInterneUren";
+import StapTotaaloverzicht from "./StapTotaaloverzicht";
 import StapSectorVertaling from "./StapSectorVertaling";
 import StapLopendeProjecten from "./StapLopendeProjecten";
 import { LoadingOverlay } from "./shared";
@@ -543,14 +544,7 @@ export default function CrossAnalyseWizard() {
           />
         )}
         {wizardState.currentStep === 8 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <p className="text-sm text-gray-600">
-              <strong>Stap 8 — Totaaloverzicht</strong> wordt binnenkort geactiveerd.
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Combineert AI-begroting (stap 6) + interne uren (stap 7) per scenario per jaar.
-            </p>
-          </div>
+          <StapTotaaloverzicht session={session} stap4Result={wizardState.stepResults.stap4} />
         )}
         {wizardState.currentStep === 9 && (
           <StapSectorVertaling
