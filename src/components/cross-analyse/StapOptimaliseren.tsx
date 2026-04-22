@@ -1311,8 +1311,8 @@ export default function StapOptimaliseren({
           Voer het <strong>vaste jaarlijks budget</strong> in (bedrag per jaar dat beschikbaar is zolang het programma loopt).
           AI berekent drie scenario&apos;s die allemaal hetzelfde einddoel bereiken — alleen het tempo verschilt:
           <strong> Optimaal</strong> (jouw budget), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
-          Outside-in volgorde voor zwaartepunt: cultuur → mens → data/systemen → processen.
-          Parallel werken is toegestaan — zachte kant (cultuur+mens) en harde kant (data/systemen+processen) kunnen tegelijk lopen.
+          Outside-in volgorde voor SPEND-zwaartepunt: cultuur → mens → data/systemen → processen.
+          <strong> Alle 4 domeinen starten parallel vanaf jaar 1</strong> — harde kant (data/systemen+processen) wacht NIET tot zachte kant (cultuur+mens) klaar is.
           <strong> Elk jaar moet het volledige budget worden opgemaakt</strong> (alleen het laatste jaar mag minder zijn — de rest valt vrij bij onderbesteding).
         </p>
 

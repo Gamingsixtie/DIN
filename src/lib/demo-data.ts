@@ -30,6 +30,7 @@ export function createDemoSession(): DINSession {
     projectCapabilityMaps: snapshot.projectCapabilityMaps,
     completedGoals: snapshot.completedGoals,
     clusterRasci: (snapshot as { clusterRasci?: unknown[] }).clusterRasci ?? [],
+    itemRasci: (snapshot as { itemRasci?: unknown[] }).itemRasci ?? [],
     crossAnalyseWizard: (snapshot as { crossAnalyseWizard?: unknown }).crossAnalyseWizard,
   } as DINSession;
 }

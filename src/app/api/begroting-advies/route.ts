@@ -188,23 +188,27 @@ HARDE REGELS:
      Dit is geen organisatorische eis maar een financiële noodzaak om de meerjarenfinanciering veilig te stellen. Activiteit + budget moeten 1-op-1 lopen.
    - Voorbeeld bij €250K/jr en aantalJaren=4 (startjaar 2026): jaren 2026, 2027 en 2028 MOETEN samen ongeveer €250K per jaar uitgeven (€237.5K-€250K). Alleen 2029 mag minder zijn (bv. €100K als afrondingsjaar).
    - Plan zoveel parallelle activiteit (cultuur+mens samen, of harde+zachte kant tegelijk) dat het budget elk jaar tot het laatste volledig benut wordt. ALS er minder werk is dan budget toelaat: kies dan een korter aantalJaren in plaats van te onderbesteden.
-5. **PARALLELLE UITVOERING IS TOEGESTAAN EN GEWENST.** Inspanningen hoeven NIET sequentieel — combineer in dezelfde jaren:
-   - **Zachte kant** (cultuur + mens) kan parallel lopen — leiderschapsprogramma's en gesprekvaardigheidstraining versterken elkaar
-   - **Harde kant** (data/systemen + processen) kan parallel lopen — CRM-bouw en proces-ontwerp informeren elkaar
-   - Zachte en harde kant kunnen ook parallel lopen, mits het jaarbudget het toestaat
-   Het outside-in principe blijft (rank: cultuur > mens > data/systemen > processen voor STARTzwaartepunt), maar overlap in dezelfde kalenderjaren is uitdrukkelijk OK. Plan vooral het eerste jaar zo dat het budget volledig benut is met meerdere parallelle starts.
-6. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
-   - rank 1 = Cultuur (bereidheid — zijn ze bereid te doen wat ze beloven? — moet eerst)
-   - rank 2 = Mens (competenties, gesprekvaardigheid — volgt direct na cultuur, kan parallel starten)
-   - rank 3 = Data/Systemen (CRM, tooling — ondersteunt mens bij het werk, moet klaar zijn voor de processen gestandaardiseerd worden)
-   - rank 4 = Processen (werkwijzen — LAATST omdat processen borgen wat mens + data al hebben opgebouwd)
-   **Processen komt ALTIJD als laatste. Data/Systemen komt VOOR Processen.** Volgorde van domeinen in de lijst: Cultuur → Mens → Data/Systemen → Processen.
-7. **Realistische fasering per inspanning + activiteits-tekst per jaar:**
-   - Cultuur: piek jaar 1 (bewustwording), afnemend (borging)
-   - Mens: start jaar 1, piek middenjaren (training aan volle breedte), borging eind
-   - Data/Systemen: ontwerp en bouw middenjaren (CRM, tooling klaar krijgen voor gebruik)
-   - Processen: uitrol en borging LAATST (processen slaan mens-gedrag + data-gebruik vast als werkwijze)
-   - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1, "Borging via leiderschapscoaching + jaarcyclus-evaluatie" voor cultuur jaar 3. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
+5. **HARDE KANT EN ZACHTE KANT MOETEN PARALLEL — VANAF JAAR 1.**
+   Dit is de belangrijkste regel naast de budget-opmaak. **Geen enkel domein mag wachten** tot een ander domein "klaar" is. Alle 4 domeinen MOETEN al in het startjaar (\`startJaar\`) een non-zero \`euro\`-bedrag hebben in hun \`verdelingPerJaar\`.
+   - **Zachte kant** (cultuur + mens): leiderschapsprogramma's en gesprekvaardigheidstraining starten in jaar 1 en versterken elkaar.
+   - **Harde kant** (data/systemen + processen): CRM-bouw, tooling-keuze, proces-ontwerp starten OOK in jaar 1 — die kan NIET wachten tot mens of cultuur "klaar" is. Wachten betekent dat in jaar 4 nog steeds geen werkende systemen er zijn — onacceptabel.
+   - Beide kanten lopen tegelijk binnen het jaarbudget. Combineer en stagger binnen elk jaar; geen sequentiële domein-blokken.
+   - **CONCREET — verplichte minimum-spreiding:**
+     - In het STARTJAAR moet ELK van de 4 domeinen (cultuur, mens, data/systemen, processen) ten minste 10% van het jaarlijksBudgetEuro krijgen (bv. bij €250K/jr → minstens €25K per domein in 2026).
+     - In ALLE andere jaren behalve het laatste: minimaal 3 van de 4 domeinen actief (>5% van jaarlijksBudgetEuro elk).
+   - Outside-in geldt voor SPEND-zwaartepunt en RANKING (rank 1-4), NIET voor wanneer iets begint. Cultuur en mens hebben hun zwaartepunt vroeg, data/systemen en processen midden-tot-laat — maar ze starten allemaal samen.
+6. **Outside-in volgorde — voor RANKING (zwaartepunt-prioriteit), NIET voor sequentiële uitvoering:**
+   - rank 1 = Cultuur (bereidheid — hoogste startzwaartepunt)
+   - rank 2 = Mens (competenties — start parallel met cultuur, piek middenjaren)
+   - rank 3 = Data/Systemen (CRM, tooling — start in jaar 1 maar piek midden-tot-laat)
+   - rank 4 = Processen (werkwijzen — start in jaar 1 maar grootste deel borging in latere jaren)
+   **De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Ranking ≠ "begint pas later". Alle 4 domeinen starten parallel.** Volgorde van domeinen in de lijst (display): Cultuur → Mens → Data/Systemen → Processen.
+7. **Realistische fasering per inspanning + activiteits-tekst per jaar — ALLE DOMEINEN STARTEN PARALLEL IN JAAR 1:**
+   - Cultuur: START jaar 1 met piek (bewustwording, leiderschapsworkshops), afnemend (borging) → meest budget jaar 1-2
+   - Mens: START jaar 1 (kick-off training + ontwerp curricula), piek middenjaren (training aan volle breedte), borging eind → over alle jaren verdeeld
+   - Data/Systemen: START jaar 1 (architectuur-keuze, leverancier-selectie, eerste tooling), bouw + integratie middenjaren, optimalisatie eind → NIET wachten tot jaar 3
+   - Processen: START jaar 1 (eerste proces-mapping en quick-wins), uitrol middenjaren, standaardisatie + borging eind → NIET wachten tot mens "klaar" is
+   - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1; "CRM-leverancier selectie + architectuur-besluit" voor data/systemen jaar 1; "Quick-win procesmapping + standaard-template ontwerp" voor processen jaar 1. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
 8. Alle euros als integers (75000, niet "€75K").
 9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
