@@ -37,6 +37,39 @@ interface WizardState {
   };
 }
 
+// Sub-velden in stap4 die uitsluitend door kindcomponenten in session worden
+// geschreven (StapOptimaliseren: begrotingAdvies; StapInterneUren: stap7InterneUren).
+// Onze lokale wizardState.stap4 kan een stale kopie hebben (van initial mount);
+// bij een merge mag die stale kopie nooit de verse session-waarde overschrijven.
+const CHILD_OWNED_STAP4_KEYS = ["begrotingAdvies", "stap7InterneUren"] as const;
+
+function mergeStepResults(
+  prevStepResults: Record<string, Record<string, unknown> | undefined>,
+  localStepResults: Record<string, Record<string, unknown> | undefined>
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...prevStepResults };
+  for (const [key, value] of Object.entries(localStepResults)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const combined: Record<string, unknown> = { ...(prevStepResults[key] ?? {}), ...value };
+      if (key === "stap4") {
+        // Session (prev) is altijd authoritative voor kind-owned velden.
+        const prevStap4 = prevStepResults.stap4 ?? {};
+        for (const ownedKey of CHILD_OWNED_STAP4_KEYS) {
+          if (prevStap4[ownedKey] !== undefined) {
+            combined[ownedKey] = prevStap4[ownedKey];
+          } else {
+            delete combined[ownedKey];
+          }
+        }
+      }
+      merged[key] = combined;
+    } else {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 const STEP_INFO: Record<number, {
   title: string;
   description: string;
@@ -180,19 +213,9 @@ export default function CrossAnalyseWizard() {
     }
     const timer = setTimeout(() => {
       updateSession((prev) => {
-        // Per-stap shallow merge: behoud sub-velden die kindcomponenten direct in
-        // session schrijven (zoals stap4.stap7InterneUren of stap4.begrotingAdvies)
-        // en die NIET in onze lokale wizardState staan.
         const prevStepResults = (prev.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
         const localStepResults = (wizardState.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
-        const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
-        for (const [key, value] of Object.entries(localStepResults)) {
-          if (value && typeof value === "object" && !Array.isArray(value)) {
-            mergedStepResults[key] = { ...(prevStepResults[key] ?? {}), ...value };
-          } else {
-            mergedStepResults[key] = value;
-          }
-        }
+        const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
         const nextWiz = {
           currentStep: wizardState.currentStep,
           completedSteps: Array.from(wizardState.completedSteps),
@@ -220,18 +243,10 @@ export default function CrossAnalyseWizard() {
         const key = `stap${resultKey}` as keyof typeof prev.stepResults;
         const newStepResults = { ...prev.stepResults, [key]: result };
 
-        // Persist to session — merge per stap zodat sub-velden die kindcomponenten
-        // direct in session schrijven (bv. stap4.stap7InterneUren) bewaard blijven
         updateSession((prevSession) => {
           const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
-          const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
-          for (const [k, v] of Object.entries(newStepResults)) {
-            if (v && typeof v === "object" && !Array.isArray(v)) {
-              mergedStepResults[k] = { ...(prevStepResults[k] ?? {}), ...v };
-            } else {
-              mergedStepResults[k] = v;
-            }
-          }
+          const localStepResults = newStepResults as Record<string, Record<string, unknown> | undefined>;
+          const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
           return {
             crossAnalyseWizard: {
               currentStep: prev.currentStep,
@@ -260,14 +275,8 @@ export default function CrossAnalyseWizard() {
 
       updateSession((prevSession) => {
         const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
-        const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
-        for (const [k, v] of Object.entries(prev.stepResults)) {
-          if (v && typeof v === "object" && !Array.isArray(v)) {
-            mergedStepResults[k] = { ...(prevStepResults[k] ?? {}), ...v };
-          } else {
-            mergedStepResults[k] = v;
-          }
-        }
+        const localStepResults = prev.stepResults as Record<string, Record<string, unknown> | undefined>;
+        const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
         return {
           crossAnalyseWizard: {
             currentStep: prev.currentStep,
@@ -373,14 +382,19 @@ export default function CrossAnalyseWizard() {
   const handleStepChange = useCallback(
     (step: number) => {
       setWizardState((prev) => {
-        updateSession(() => ({
-          crossAnalyseWizard: {
-            currentStep: step,
-            completedSteps: Array.from(prev.completedSteps),
-            wizardVersion: 2,
-            stepResults: prev.stepResults,
-          },
-        }));
+        updateSession((prevSession) => {
+          const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+          const localStepResults = prev.stepResults as Record<string, Record<string, unknown> | undefined>;
+          const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
+          return {
+            crossAnalyseWizard: {
+              currentStep: step,
+              completedSteps: Array.from(prev.completedSteps),
+              wizardVersion: 2,
+              stepResults: mergedStepResults as typeof prev.stepResults,
+            },
+          };
+        });
 
         return { ...prev, currentStep: step };
       });
@@ -652,6 +666,32 @@ export default function CrossAnalyseWizard() {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Stap 6 (Optimaliseren) — eigen save & complete knop. Edits in de
+            cards worden al auto-gepersisteerd; deze knop bevestigt expliciet
+            en markeert stap 6 als afgerond zodat de wizardnavigatie dit toont. */}
+        {wizardState.currentStep === 6 && !error && (
+          <div className="mt-6 flex items-center gap-3">
+            {wizardState.completedSteps.has(6) ? (
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Stap 6 afgerond — je kunt door naar stap 7.
+              </div>
+            ) : (
+              <button
+                onClick={handleMarkViewed}
+                className="px-4 min-h-[44px] bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Opslaan & stap 6 afronden
+              </button>
+            )}
           </div>
         )}
       </div>
