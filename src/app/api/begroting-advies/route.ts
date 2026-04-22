@@ -210,6 +210,7 @@ HARDE REGELS:
    - Data/Systemen: START jaar 1 (architectuur-keuze, leverancier-selectie, eerste tooling), bouw + integratie middenjaren, optimalisatie eind → NIET wachten tot jaar 3
    - Processen: START jaar 1 (eerste proces-mapping en quick-wins), uitrol middenjaren, standaardisatie + borging eind → NIET wachten tot mens "klaar" is
    - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1; "CRM-leverancier selectie + architectuur-besluit" voor data/systemen jaar 1; "Quick-win procesmapping + standaard-template ontwerp" voor processen jaar 1. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
+   - **VARIEER DE FASE-WOORDEN — geen herhaling van "Voorbereiding/Uitrol/Opschaling/Borging" alleen.** Gebruik concretere alternatieven die de inhoud dekken: "Scoping", "Leverancier-selectie", "Pilot", "Opbouw", "Eerste uitrol", "Brede uitrol", "Schaaluitrol", "Consolidatie", "Verankering", "Optimalisatie", "Continu verbeteren", "Jaarcyclus-evaluatie", "Nazorg". Elk jaar mag een ander fase-label krijgen binnen dezelfde inspanning — anders leest het als een sjabloon.
 8. Alle euros als integers (75000, niet "€75K").
 9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
@@ -409,6 +410,58 @@ export async function POST(request: NextRequest) {
             bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
           }
           huidigTotaal += shift;
+        }
+      }
+
+      // DERDE GUARD: overschrijding reduceren.
+      // Als een jaar > jaarlijksBudget, shift het teveel naar het laatste jaar.
+      // Herhaal voor alle jaren (ook laatste mag boven budget als er werk is,
+      // maar liever niet). We gaan van vroeg naar laat, zodat overshoot
+      // naar achteren vloeit.
+      for (let yr = startJ; yr <= eindJ; yr++) {
+        let huidigTotaal = totalGuardedInsps.reduce(
+          (s, insp) => s + (insp.verdelingPerJaar.find((v) => v.jaar === yr)?.euro ?? 0),
+          0
+        );
+        let veiligheidsTeller = 0;
+        while (huidigTotaal > jaarlijksBudget && veiligheidsTeller < 50) {
+          veiligheidsTeller++;
+          const overschot = huidigTotaal - jaarlijksBudget;
+          // Zoek de inspanning met het grootste bedrag IN DIT jaar — neem daar af
+          let bestInsp: typeof totalGuardedInsps[number] | null = null;
+          let bestCell: { jaar: number; euro: number; fase: string; activiteit?: string } | null = null;
+          let bestAmount = 0;
+          for (const insp of totalGuardedInsps) {
+            const cell = insp.verdelingPerJaar.find((v) => v.jaar === yr);
+            if (cell && (cell.euro ?? 0) > bestAmount) {
+              bestAmount = cell.euro ?? 0;
+              bestInsp = insp;
+              bestCell = cell;
+            }
+          }
+          if (!bestInsp || !bestCell || bestAmount <= 0) break;
+          const shift = Math.min(overschot, bestAmount);
+          bestCell.euro = (bestCell.euro ?? 0) - shift;
+          // Shift naar het LAATSTE jaar van diezelfde inspanning (of eerstvolgende ruimte)
+          const laatsteCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === eindJ);
+          if (laatsteCell) {
+            laatsteCell.euro = (laatsteCell.euro ?? 0) + shift;
+            if (!laatsteCell.activiteit || laatsteCell.activiteit.trim().length === 0) {
+              laatsteCell.activiteit = "Afronding en borging (verschoven bij herverdeling).";
+            }
+            if (!laatsteCell.fase || laatsteCell.fase.trim().length === 0) {
+              laatsteCell.fase = "Borging";
+            }
+          } else {
+            bestInsp.verdelingPerJaar.push({
+              jaar: eindJ,
+              euro: shift,
+              fase: "Borging",
+              activiteit: "Afronding en borging (toegevoegd bij herverdeling).",
+            });
+            bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
+          }
+          huidigTotaal -= shift;
         }
       }
 
