@@ -179,8 +179,8 @@ HARDE REGELS:
 1. **aantalJaren moet REËEL zijn** gegeven het jaarlijks budget: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
 2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen overschrijding van het jaarlijks budget in welk jaar dan ook.
 3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING moet de totale dossier-raming benaderen** (eenmalige + structurele kosten samen).
-4. **ELK JAAR MOET HET VOLLEDIGE JAARLIJKSBUDGET WORDEN OPGEMAAKT — niet alleen het startjaar.**
-   - Voor ELK jaar van \`startJaar\` tot en met \`startJaar + aantalJaren − 2\` (= alle jaren BEHALVE het laatste): som van \`verdelingPerJaar[jaar].euro\` over alle inspanningen MOET binnen 5% van \`jaarlijksBudgetEuro\` zijn (dus tussen 95% en 100%). NOOIT eronder.
+4. **ELK JAAR MOET HET VOLLEDIGE JAARLIJKSBUDGET WORDEN OPGEMAAKT — 100%, NOOIT ERONDER.**
+   - Voor ELK jaar van \`startJaar\` tot en met \`startJaar + aantalJaren − 2\` (= alle jaren BEHALVE het laatste): som van \`verdelingPerJaar[jaar].euro\` over alle inspanningen MOET PRECIES \`jaarlijksBudgetEuro\` zijn — 100% benutting, geen onderbesteding.
    - Alleen het LAATSTE jaar (\`startJaar + aantalJaren − 1\`) mag een lager bedrag hebben (de afrondings-rest van het programma).
    - **BEDRIJFSECONOMISCHE NOODZAAK (Cito-realiteit):** jaarlijks budget dat NIET volledig besteed wordt heeft DUBBELE schade:
      (a) het ongebruikte bedrag valt vrij in datzelfde jaar (geen carry-over naar volgend jaar mogelijk), én
@@ -346,7 +346,69 @@ export async function POST(request: NextRequest) {
         return { ...insp, verdelingPerJaar: verdeling };
       });
 
-      const enrichedInsps = aiInspsParallelGuarded.map((insp) => {
+      // TWEEDE GUARD: per-jaar-totaal enforcement.
+      // Eis: voor ELK jaar van startJ t/m eindJ-1 (= alle BEHALVE laatste):
+      // som van inspanningen[i].verdelingPerJaar[jaar].euro >= 95% × jaarlijksBudget.
+      // Als tekort: shift uit het GROOTSTE bedrag in een later jaar van de
+      // grootste inspanning, totdat target gehaald is of er niets meer kan.
+      const totalGuardedInsps = aiInspsParallelGuarded.map((insp) => ({
+        ...insp,
+        verdelingPerJaar: insp.verdelingPerJaar.map((v) => ({ ...v })),
+      }));
+      // 100% target — user-eis: optimistisch scenario MOET het volle bedrag besteden
+      const minPerYear = jaarlijksBudget;
+      for (let yr = startJ; yr <= eindJ - 1; yr++) {
+        let huidigTotaal = totalGuardedInsps.reduce(
+          (s, insp) => s + (insp.verdelingPerJaar.find((v) => v.jaar === yr)?.euro ?? 0),
+          0
+        );
+        let veiligheidsTeller = 0;
+        while (huidigTotaal < minPerYear && veiligheidsTeller < 50) {
+          veiligheidsTeller++;
+          const tekort = minPerYear - huidigTotaal;
+          // Zoek het grootste bedrag in latere jaren (eindJ inclusief — laatste jaar mag korter)
+          let bestInsp: typeof totalGuardedInsps[number] | null = null;
+          let bestCell: { jaar: number; euro: number; fase: string; activiteit?: string } | null = null;
+          let bestAmount = 0;
+          for (const insp of totalGuardedInsps) {
+            for (const cell of insp.verdelingPerJaar) {
+              if (cell.jaar > yr && (cell.euro ?? 0) > bestAmount) {
+                bestAmount = cell.euro ?? 0;
+                bestInsp = insp;
+                bestCell = cell;
+              }
+            }
+          }
+          if (!bestInsp || !bestCell || bestAmount <= 0) break;
+          // GEEN buffer — user-eis is 'altijd 100%, niks eronder'.
+          // Mag de hele cell leeggehaald worden indien nodig.
+          const shift = Math.min(tekort, bestAmount);
+          if (shift <= 0) break;
+          bestCell.euro = (bestCell.euro ?? 0) - shift;
+          // Voeg toe aan het current-year cell van diezelfde inspanning
+          const targetCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === yr);
+          if (targetCell) {
+            targetCell.euro = (targetCell.euro ?? 0) + shift;
+            if (!targetCell.activiteit || targetCell.activiteit.trim().length === 0) {
+              targetCell.activiteit = "Voortzetting / opschaling van traject (server-rebalanced).";
+            }
+            if (!targetCell.fase || targetCell.fase.trim().length === 0) {
+              targetCell.fase = "Uitrol";
+            }
+          } else {
+            bestInsp.verdelingPerJaar.push({
+              jaar: yr,
+              euro: shift,
+              fase: "Uitrol",
+              activiteit: "Voortzetting van traject (server-rebalanced).",
+            });
+            bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
+          }
+          huidigTotaal += shift;
+        }
+      }
+
+      const enrichedInsps = totalGuardedInsps.map((insp) => {
         // Som per inspanning over alle jaren = totaalEuro
         const totaalEuro = insp.verdelingPerJaar.reduce((s, v) => s + (v.euro ?? 0), 0);
         return {
