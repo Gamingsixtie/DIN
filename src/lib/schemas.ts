@@ -547,25 +547,28 @@ export const Stap5ResultSchema = z.object({
   samenvatting: z.string(),
 });
 
-// --- Planning & Roadmap (Phase 20: roadmap-planning obv cross-analyse) ---
-// AI-voorstel voor kwartaaltoewijzing en cluster-fasering; gevoed door Stap4Result
-// (subEffortAnalysis — geconsolideerde bundels per domein) en Stap5Result (prioriteitsview).
+// --- Planning & Roadmap (Phase 20: bundel-gedreven roadmap obv cross-analyse) ---
+// AI-voorstel voor de 4 gezamenlijke (cross-sectorale) inspanningen uit stap 4
+// (subEffortAnalysis — exact 1 bundel per domein). Elke bundel loopt over
+// meerdere kwartalen (6-9 maanden per cyclus/cohort); geen losse effort-planning.
+export const BundelPlanningSchema = z.object({
+  bundelId: z.string(),            // stabiele id: `${groepId}:${domein}`
+  domein: EffortDomainSchema,
+  titel: z.string(),
+  startKwartaal: z.string(),       // bv "Q2 2026"
+  eindKwartaal: z.string(),        // bv "Q4 2026" (6-9 maanden = 2-3 kwartalen verder)
+  cyclusLabel: z.string(),         // bv "Cyclus 1" / "Cohort 1"
+  beargumentatie: z.string(),
+  afhankelijkVan: z.array(z.string()).optional().default([]),  // andere bundelIds
+  mijlpalen: z.array(z.object({
+    periode: z.string(),           // bv "Q2-Q3 2026"
+    mijlpaal: z.string(),
+  })).optional().default([]),
+  risico: z.string().optional(),
+});
+
 export const PlanningVoorstelSchema = z.object({
-  inspanningPlanning: z.array(z.object({
-    inspanningId: z.string(),
-    voorgesteldKwartaal: z.string(),
-    beargumentatie: z.string(),
-    afhankelijkVan: z.array(z.string()).optional().default([]),
-  })).optional().default([]),
-  clusterFasering: z.array(z.object({
-    clusterTitel: z.string(),
-    domein: EffortDomainSchema,
-    fases: z.array(z.object({
-      periode: z.string(),   // bv "Q1-Q2 2026"
-      mijlpaal: z.string(),
-    })).optional().default([]),
-    risico: z.string().optional(),
-  })).optional().default([]),
+  bundelPlanning: z.array(BundelPlanningSchema).optional().default([]),
   samenvatting: z.string(),
   gegenereerdOp: z.string().optional(),  // ISO date
 });
@@ -1100,6 +1103,7 @@ export type Stap4Result = z.infer<typeof Stap4ResultSchema>;
 export type Stap5Result = z.infer<typeof Stap5ResultSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
 export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
+export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;
 
 export type ProgrammaRol = z.infer<typeof ProgrammaRolSchema>;
 export type Programmaorganisatie = z.infer<typeof ProgrammaorganisatieSchema>;

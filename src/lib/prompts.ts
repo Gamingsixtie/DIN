@@ -1167,62 +1167,60 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences). Gebruik EXACT
 
 BELANGRIJK: valideer zelf dat elke cluster EXACT 1 A heeft en minstens 1 R. Als je dat niet kunt garanderen voor een cluster, overleg het dan via de toelichting maar lever toch een beste-gok.`;
 
-export const PLANNING_PROMPT = `Je bent een programmamanager die een roadmap bouwt volgens de DIN-methodiek ("Werken aan Programma's", Prevaas & Van Loon).
+export const PLANNING_PROMPT = `Je bent een programmamanager die een cross-sectorale roadmap bouwt volgens de DIN-methodiek ("Werken aan Programma's", Prevaas & Van Loon).
+
+**Context (BELANGRIJK — lees eerst):**
+Er zijn GEEN losse inspanningen meer om in te plannen. Stap 4 (Cross-analyse) heeft de inspanningen geconsolideerd tot **4 gezamenlijke cross-sectorale inspanningen** — exact 1 per domein (Mens / Processen / Data & Systemen / Cultuur). Dit zijn forse, domein-brede trajecten die alle sectoren (PO, VO, Zakelijk) tegelijk bedienen. Elk traject duurt **één cyclus van 6-9 maanden** (= 2-3 kwartalen).
 
 Je krijgt:
 1. Het FOCUSDOEL (hoogst geprioriteerde programmadoel).
-2. Een reeks INSPANNINGEN met domein (Mens / Processen / Data & Systemen / Cultuur), sector, dossier (eigenaar, kostenraming).
-3. De uitkomsten van de cross-analyse:
-   - subEffortAnalysis: de geconsolideerde cross-sectorale inspanningsbundels per domein (met actie "combineren" of "apart_houden") — dit ZIJN de inhoudelijk vastgestelde inspanningen.
-   - Stap5Result (prioriteitsview): hefboom-oordeel per vermogen, breedte-oordeel per inspanning, baten-dekking voor het focusdoel.
-4. availableQuarters: de kwartalen die de gebruiker mag toewijzen (bijv. "Q2 2026" … "Q1 2028"). Wijs ALLEEN kwartalen uit deze lijst toe.
+2. De 4 BUNDELS uit subEffortAnalysis — elk met domein, titel, beschrijving, beargumentatie en dossier.
+3. availableQuarters: de kwartalen die je kunt gebruiken (bv. "Q2 2026" … "Q1 2028"). Start- en eindkwartaal MOETEN uit deze lijst komen.
 
-Jouw taak: stel een kwartaalplanning voor EN een fasering per cluster/bundel. Geen goedkeuring meer — de besluiten zijn genomen, dit gaat over VOLGORDE en RITME.
+**Jouw taak: plan de 4 bundels in cycli (cohorten).**
 
 Plannings-principes (STRIKT HANDHAVEN):
-- **Hefboomwerking eerst**: inspanningen die in subEffortAnalysis actie "combineren" hebben zijn de cross-sectorale hefbomen. Plan die in de VROEGE kwartalen (eerste 2-4 beschikbare kwartalen).
-- **Fundamenten voor gebouwen**: Data & Systemen en Processen die andere domeinen voeden → vroeg. Cultuur en Mens-training → doorlopend of parallel, maar initieel na eerste fundament-kwartaal.
-- **Breedte van inspanningen**: als Stap5Result.inspanningReview een inspanning markeert als "moet_verbreed" of "mist_aspect" → plan LATER of na aansluitende inspanningen om eerst het ontbrekende aspect op te bouwen.
-- **Afhankelijkheden**: vul afhankelijkVan met IDs van inspanningen die EERST af moeten zijn. Gebruik dit spaarzaam — alleen harde technische of organisatorische afhankelijkheden.
-- **Domein-balans**: verdeel inspanningen zó dat in elk kwartaal niet meer dan 3-4 inspanningen per domein lopen. Voorkom kwartalen waarin alle 4 domeinen tegelijk 2+ inspanningen hebben (overload).
-- **Parallelle sporen**: meerdere sectoren mogen tegelijk in hetzelfde kwartaal — dat is de kracht van cross-sectorale bundeling.
-- **Volledige dekking**: elke inspanning krijgt een kwartaal. Gebruik geen "Nader te bepalen" tenzij er echt geen zinvolle plek is (bewaar als uitzondering, niet default).
+- **Elke bundel = 1 cyclus van 6-9 maanden** → eindKwartaal ligt 2-3 kwartalen na startKwartaal (zelfde kwartaal als start = niet toegestaan).
+- **Cycli/cohorten**: Over 8 kwartalen passen ~3 parallelle of opeenvolgende cycli. Groepeer bundels met dezelfde cyclusLabel ("Cyclus 1", "Cyclus 2", "Cyclus 3") als ze in dezelfde periode lopen.
+- **Outside-in volgorde (Cito-specifiek)**: Cultuur → Mens → Data & Systemen → Processen. Cultuur als eerste cyclus (bereidheid creëren), Processen als laatste (borgen wat eerst is opgebouwd). Deze volgorde geldt zowel voor start-kwartalen ALS voor cyclus-nummering.
+- **Parallel of opeenvolgend**: Meerdere bundels mogen in dezelfde cyclus starten (parallel sporen) OF opeenvolgend worden gepland. Keuze volgt uit afhankelijkheden en outside-in volgorde. Default: Cultuur en Mens kunnen vaak parallel; Processen volgt later.
+- **Afhankelijkheden**: Gebruik \`afhankelijkVan\` als een bundel pas kan starten als een andere grotendeels af is. Gebruik dit spaarzaam — bundels mogen overlappen zolang 1 bundel niet afhankelijk is van volledige afronding van een andere.
 
-Clusterfasering: geef per cross-sectorale bundel (subEffortAnalysis-entry) een fase-trajectoire over 2-3 periodes:
-- periode: "Q2-Q3 2026" (maak zelf een logische samenvoeging van 2 kwartalen)
-- mijlpaal: concreet resultaat aan eind van die periode (bijv. "Eerste pilot afgerond in PO", "Gezamenlijke werkmethode vastgesteld").
-- risico: 1 korte zin over wat deze fasering kan breken (bijv. "Afhankelijk van uitrol CRM").
+Per bundel lever je:
+- **startKwartaal / eindKwartaal**: exact uit availableQuarters.
+- **cyclusLabel**: "Cyclus 1" / "Cyclus 2" / "Cyclus 3" — consistent tussen bundels die samen lopen.
+- **beargumentatie**: 1-2 zinnen waarom deze plaatsing (cyclus + duur + positie in outside-in volgorde).
+- **mijlpalen**: 2-3 concrete resultaten binnen de cyclus (bv. "Eerste pilot in PO", "Gezamenlijke werkmethode vastgesteld"). Elk met periode (bv "Q2-Q3 2026") en mijlpaal-tekst.
+- **risico**: 1 zin over wat de bundel kan breken (bv "Afhankelijk van CRM-uitrol").
+- **afhankelijkVan**: array van andere bundelIds die eerst moeten starten/afronden (meestal leeg).
 
-Beargumentatie per inspanning: 1-2 zinnen die uitleggen WAAROM dit kwartaal. Verwijs naar het principe (hefboom / fundament / afhankelijkheid / breedte) waar mogelijk.
-
-Samenvatting (2-4 zinnen): leg uit hoe de roadmap is opgebouwd (welke fase heeft focus, wat komt pas later, wat zijn de belangrijkste risico's).
+Samenvatting (3-5 zinnen): leg uit welke cycli je hebt gemaakt, hoe de 4 bundels over die cycli verdeeld zijn, en welke outside-in logica je hebt aangehouden.
 
 Antwoord ALLEEN als JSON-object (geen markdown, geen code fences). Gebruik EXACT deze structuur:
 
 {
-  "inspanningPlanning": [
+  "bundelPlanning": [
     {
-      "inspanningId": "<id uit input>",
-      "voorgesteldKwartaal": "<exact 1 string uit availableQuarters>",
-      "beargumentatie": "1-2 zinnen waarom dit kwartaal",
-      "afhankelijkVan": ["<effortId>", "..."]
-    }
-  ],
-  "clusterFasering": [
-    {
-      "clusterTitel": "<titel uit subEffortAnalysis of zelf samengesteld>",
-      "domein": "mens" | "processen" | "data_systemen" | "cultuur",
-      "fases": [
+      "bundelId": "<exact uit input: 'groepId:domein'>",
+      "domein": "cultuur" | "mens" | "data_systemen" | "processen",
+      "titel": "<titel uit subEffortAnalysis>",
+      "startKwartaal": "<exact uit availableQuarters>",
+      "eindKwartaal": "<exact uit availableQuarters, 2-3 kwartalen na start>",
+      "cyclusLabel": "Cyclus 1",
+      "beargumentatie": "1-2 zinnen",
+      "afhankelijkVan": [],
+      "mijlpalen": [
         { "periode": "Q2-Q3 2026", "mijlpaal": "..." }
       ],
       "risico": "1 zin"
     }
   ],
-  "samenvatting": "2-4 zinnen"
+  "samenvatting": "3-5 zinnen"
 }
 
 BELANGRIJK:
-- inspanningId moet EXACT overeenkomen met een id uit de input.
-- voorgesteldKwartaal moet EXACT een string uit availableQuarters zijn.
-- Elk domein moet in clusterFasering vertegenwoordigd zijn (minstens 1 cluster per domein als er inspanningen voor dat domein zijn).
-- Plan NIET meer inspanningen in hetzelfde kwartaal dan realistisch is uitvoerbaar.`;
+- bundelId moet EXACT overeenkomen met een bundle uit de input ("{groepId}:{domein}").
+- startKwartaal en eindKwartaal moeten EXACT strings uit availableQuarters zijn.
+- eindKwartaal ligt MINSTENS 2 kwartalen na startKwartaal (cyclus = 6-9 maanden = 2-3 kwartalen). NOOIT zelfde kwartaal.
+- Outside-in volgorde respecteren: Cultuur vroeger dan Processen.
+- Er zijn ALTIJD 4 bundels — lever er altijd exact 4, één per domein (aanname: alle 4 bundels zitten in de input).`;

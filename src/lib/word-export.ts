@@ -1431,92 +1431,101 @@ function sectorSection(session: DINSession, sector: SectorName, numState: Number
   return { properties: {}, children };
 }
 
-export function roadmapSection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
+export function roadmapSection(session: DINSession, numState: NumberingState, _activeEfforts: DINEffort[]) {
+  void _activeEfforts;
   const children: (Paragraph | Table)[] = [];
 
   children.push(numberedHeading("Roadmap", "h1", numState));
   children.push(bodyText(
-    "Overzicht van alle inspanningen gepland per kwartaal, georganiseerd per sector en domein.",
+    "De 4 gezamenlijke cross-sectorale inspanningen — 1 per domein (Cultuur, Mens, Data & Systemen, Processen) — gepland in cycli van 6-9 maanden.",
     { color: TEXT_SECONDARY, size: 20 }
   ));
   children.push(emptyLine());
 
-  // AI-planning samenvatting (Phase 20)
   const planning = session.planningVoorstel;
-  if (planning?.samenvatting) {
+
+  if (!planning || planning.bundelPlanning.length === 0) {
+    children.push(bodyText(
+      "De roadmap-planning is nog niet opgesteld. Genereer een AI-voorstel in stap 6 van de app.",
+      { italic: true, color: TEXT_MUTED }
+    ));
+    return { properties: {}, children };
+  }
+
+  // Samenvatting
+  if (planning.samenvatting) {
     children.push(subHeading("Samenvatting planning"));
     children.push(bodyText(planning.samenvatting, { size: 22 }));
     children.push(emptyLine());
   }
 
-  // Cluster-fasering (Phase 20)
-  if (planning?.clusterFasering && planning.clusterFasering.length > 0) {
-    children.push(subHeading("Cluster-fasering"));
-    children.push(bodyText(
-      "Per cross-sectorale inspanningsbundel: periodes, mijlpalen en risico's zoals voorgesteld door de AI-planning.",
-      { color: TEXT_SECONDARY, size: 20 }
-    ));
-    for (const cluster of planning.clusterFasering) {
+  // Cycli-overzicht
+  const cycliMap = new Map<string, typeof planning.bundelPlanning>();
+  for (const bp of planning.bundelPlanning) {
+    const arr = cycliMap.get(bp.cyclusLabel) ?? [];
+    arr.push(bp);
+    cycliMap.set(bp.cyclusLabel, arr);
+  }
+  const cycli = Array.from(cycliMap.entries()).sort((a, b) => {
+    const aStart = Math.min(...a[1].map((x) => x.startKwartaal.localeCompare(x.startKwartaal) || 0));
+    const bStart = Math.min(...b[1].map((x) => x.startKwartaal.localeCompare(x.startKwartaal) || 0));
+    return aStart - bStart;
+  });
+
+  // Hoofdtabel: één rij per bundel met domein, titel, start, eind, cyclus
+  children.push(subHeading("Roadmap-overzicht"));
+  const bundelRows = [...planning.bundelPlanning]
+    .sort((a, b) => a.startKwartaal.localeCompare(b.startKwartaal))
+    .map((bp) => {
+      return new TableRow({
+        children: [
+          styledCell(DOMAIN_LABELS[bp.domein] || bp.domein, { bold: true, width: 18, shading: DOMAIN_COLORS[bp.domein] }),
+          styledCell(bp.titel, { bold: true, width: 32 }),
+          styledCell(bp.cyclusLabel, { width: 12 }),
+          styledCell(bp.startKwartaal, { width: 12 }),
+          styledCell(bp.eindKwartaal, { width: 12 }),
+          styledCell(bp.beargumentatie || "\u2014", { width: 14 }),
+        ],
+      });
+    });
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            headerCell("Domein", 18),
+            headerCell("Gezamenlijke inspanning", 32),
+            headerCell("Cyclus", 12),
+            headerCell("Start", 12),
+            headerCell("Eind", 12),
+            headerCell("Beargumentatie", 14),
+          ],
+        }),
+        ...bundelRows,
+      ],
+    })
+  );
+  children.push(emptyLine());
+
+  // Per cyclus: mijlpalen en risico's
+  cycli.forEach(([cyclusLabel, items]) => {
+    children.push(numberedHeading(cyclusLabel, "h2", numState));
+    for (const bp of items) {
       children.push(
-        bodyText(`${DOMAIN_LABELS[cluster.domein] || cluster.domein} — ${cluster.clusterTitel}`, {
+        bodyText(`${DOMAIN_LABELS[bp.domein]} — ${bp.titel} (${bp.startKwartaal} → ${bp.eindKwartaal})`, {
           bold: true,
           size: 22,
         })
       );
-      for (const fase of cluster.fases || []) {
-        children.push(bullet(`${fase.periode}: ${fase.mijlpaal}`));
+      for (const m of bp.mijlpalen || []) {
+        children.push(bullet(`${m.periode}: ${m.mijlpaal}`));
       }
-      if (cluster.risico) {
-        children.push(bodyText(`Risico: ${cluster.risico}`, { italic: true, color: TEXT_MUTED, size: 20 }));
+      if (bp.risico) {
+        children.push(bodyText(`Risico: ${bp.risico}`, { italic: true, color: TEXT_MUTED, size: 20 }));
       }
-      children.push(emptyLine());
+      children.push(emptyLine(80));
     }
-  }
-
-  const quarters = Array.from(
-    new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))
-  ).sort();
-
-  if (quarters.length === 0) {
-    children.push(bodyText("Kwartaalplanning wordt in een volgende cyclus bepaald.", { italic: true, color: TEXT_MUTED }));
-    return { properties: {}, children };
-  }
-
-  quarters.forEach((q) => {
-    children.push(numberedHeading(q, "h2", numState));
-    const qEfforts = activeEfforts.filter((e) => e.quarter === q);
-
-    const dataRows = qEfforts.map(
-      (e) =>
-        new TableRow({
-          children: [
-            styledCell(e.sectorId, { width: 12 }),
-            styledCell(DOMAIN_LABELS[e.domain], { width: 18, shading: DOMAIN_COLORS[e.domain] }),
-            styledCell(e.title || e.description || "\u2014", { bold: true, width: 40 }),
-            styledCell(e.dossier?.eigenaar || "\u2014", { width: 15 }),
-            styledCell(STATUS_LABELS[e.status] || e.status, { width: 15 }),
-          ],
-        })
-    );
-
-    children.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              headerCell("Sector", 12),
-              headerCell("Domein", 18),
-              headerCell("Inspanning", 40),
-              headerCell("Opdrachtgever", 15),
-              headerCell("Status", 15),
-            ],
-          }),
-          ...dataRows,
-        ],
-      })
-    );
-    children.push(emptyLine());
   });
 
   return { properties: {}, children };

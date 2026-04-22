@@ -3,20 +3,13 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import { PlanningVoorstelSchema } from "@/lib/schemas";
 import { PLANNING_PROMPT } from "@/lib/prompts";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
-import type {
-  DINEffort,
-  ProgrammeGoal,
-  Stap4Result,
-  Stap5Result,
-} from "@/lib/types";
+import type { ProgrammeGoal, Stap4Result, SubEffortAdvies } from "@/lib/types";
 
 export const maxDuration = 300;
 
 type PlanningBody = {
   focusGoal: ProgrammeGoal | null;
-  efforts: DINEffort[];
   stap4Result?: Stap4Result;
-  stap5Result?: Stap5Result;
   availableQuarters: string[];
   kibGoals?: { name: string; description: string; rank: number }[];
   kibScope?: { inScope: string[]; outScope: string[] } | null;
@@ -26,6 +19,10 @@ type PlanningBody = {
 function truncate(text: string, maxChars: number): string {
   if (!text) return "";
   return text.length <= maxChars ? text : text.slice(0, maxChars) + "…";
+}
+
+function makeBundelId(b: SubEffortAdvies): string {
+  return `${b.groepId}:${b.domein}`;
 }
 
 function buildUserMessage(body: PlanningBody): string {
@@ -39,70 +36,32 @@ function buildUserMessage(body: PlanningBody): string {
   }
 
   parts.push(
-    `\nAVAILABLE QUARTERS (gebruik ALLEEN deze strings voor voorgesteldKwartaal):`,
+    `\nAVAILABLE QUARTERS (gebruik ALLEEN deze strings voor startKwartaal en eindKwartaal):`,
     body.availableQuarters.map((q) => `- ${q}`).join("\n")
   );
 
-  // Inspanningen compact
-  parts.push(`\nINSPANNINGEN (${body.efforts.length}):`);
-  for (const e of body.efforts) {
-    const dossierBits: string[] = [];
-    if (e.dossier?.eigenaar) dossierBits.push(`eigenaar: ${e.dossier.eigenaar}`);
-    if (e.dossier?.inspanningsleider) dossierBits.push(`leider: ${e.dossier.inspanningsleider}`);
-    if (e.dossier?.kostenraming) dossierBits.push(`kosten: ${e.dossier.kostenraming}`);
-    const dossier = dossierBits.length > 0 ? ` [${dossierBits.join(" | ")}]` : "";
+  const bundels = body.stap4Result?.subEffortAnalysis ?? [];
+  parts.push(`\n4 GEZAMENLIJKE CROSS-SECTORALE INSPANNINGEN (uit cross-analyse stap 6 — 1 per domein):`);
+  for (const b of bundels) {
     parts.push(
-      `- id=${e.id} | sector=${e.sectorId} | domein=${e.domain} | "${e.title || e.description}"${dossier}`
+      `- bundelId=${makeBundelId(b)} | domein=${b.domein} | titel="${b.titel || b.voorgesteldeNaam || "(naamloos)"}"`
     );
+    if (b.beschrijving) parts.push(`  beschrijving: ${truncate(b.beschrijving, 250)}`);
+    if (b.beargumentatie) parts.push(`  hefboom-logica: ${truncate(b.beargumentatie, 200)}`);
+    if (b.dossier?.eigenaar) parts.push(`  eigenaar: ${b.dossier.eigenaar}`);
+    if (b.dossier?.kostenraming) parts.push(`  kostenraming: ${b.dossier.kostenraming}`);
   }
 
-  // Cross-analyse stap 4 — subEffortAnalysis (de geconsolideerde bundels)
-  if (body.stap4Result?.subEffortAnalysis && body.stap4Result.subEffortAnalysis.length > 0) {
-    parts.push(`\nCROSS-ANALYSE STAP 6 — GECONSOLIDEERDE CROSS-SECTORALE INSPANNINGEN (${body.stap4Result.subEffortAnalysis.length}):`);
-    for (const s of body.stap4Result.subEffortAnalysis) {
-      parts.push(
-        `- groep=${s.groepId} | domein=${s.domein} | actie=${s.actie} | titel="${s.titel || s.voorgesteldeNaam || "(naamloos)"}"`
-      );
-      if (s.beschrijving) parts.push(`  beschrijving: ${truncate(s.beschrijving, 200)}`);
-      if (s.beargumentatie) parts.push(`  hefboom: ${truncate(s.beargumentatie, 200)}`);
-      if (s.items && s.items.length > 0) parts.push(`  effort-ids: ${s.items.join(", ")}`);
-    }
-  }
-
-  // Cross-analyse stap 4 — citobreedInzicht (4 domeinen, strategisch)
+  // Cito-brede domein-inzichten — kan helpen bij cyclus-volgorde
   if (body.stap4Result?.citobreedInzicht && body.stap4Result.citobreedInzicht.length > 0) {
-    parts.push(`\nCITO-BREDE DOMEIN-INZICHTEN:`);
+    parts.push(`\nCITO-BREDE DOMEIN-INZICHTEN (context voor cyclus-keuze):`);
     for (const i of body.stap4Result.citobreedInzicht) {
       parts.push(`- ${i.domein}: ${i.titel} — ${truncate(i.beschrijving, 150)}`);
     }
   }
 
-  // Cross-analyse stap 5 — prioriteitsview voor focusdoel
-  if (body.stap5Result) {
-    if (body.stap5Result.inspanningReview && body.stap5Result.inspanningReview.length > 0) {
-      parts.push(`\nBREEDTE-OORDEEL INSPANNINGEN (uit stap 7 prioriteitsview — gebruik voor fasering):`);
-      for (const r of body.stap5Result.inspanningReview) {
-        parts.push(
-          `- effort=${r.inspanningId} | breedte=${r.breedteOordeel} | ${truncate(r.toelichting, 150)}`
-        );
-      }
-    }
-    if (body.stap5Result.batenDekking && body.stap5Result.batenDekking.length > 0) {
-      const geraakt = body.stap5Result.batenDekking.filter((b) => b.wordtGeraakt).length;
-      const total = body.stap5Result.batenDekking.length;
-      parts.push(`\nBATEN-DEKKING FOCUSDOEL: ${geraakt}/${total} baten worden geraakt.`);
-      const niet = body.stap5Result.batenDekking.filter((b) => !b.wordtGeraakt);
-      if (niet.length > 0) {
-        parts.push(`Niet-gedekte baten (overweeg dit bij volgorde):`);
-        for (const b of niet.slice(0, 5)) {
-          parts.push(`- baat=${b.baatId} (${b.sector}): ${truncate(b.risico || b.redenering, 120)}`);
-        }
-      }
-    }
-  }
-
   parts.push(
-    `\nOPDRACHT: Stel een kwartaalplanning voor elke inspanning voor EN geef per cross-sectorale bundel een fasering met mijlpalen over 2-3 periodes. Respecteer de plannings-principes uit het systemprompt.`
+    `\nOPDRACHT: Plan de 4 bundels in cycli van 6-9 maanden (2-3 kwartalen) met start- en eindkwartaal, cyclusLabel, 2-3 mijlpalen per bundel en 1 risico-regel. Respecteer de Cito-outside-in volgorde (Cultuur → Mens → Data & Systemen → Processen).`
   );
 
   if (body.userFeedback) {
@@ -110,6 +69,10 @@ function buildUserMessage(body: PlanningBody): string {
   }
 
   return parts.join("\n");
+}
+
+function quarterIndex(q: string, available: string[]): number {
+  return available.indexOf(q);
 }
 
 export async function POST(request: NextRequest) {
@@ -123,9 +86,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.efforts || body.efforts.length === 0) {
+    const bundels = body.stap4Result?.subEffortAnalysis ?? [];
+    if (bundels.length === 0) {
       return NextResponse.json(
-        { success: false, error: "Geen inspanningen om te plannen." },
+        {
+          success: false,
+          error:
+            "Geen gezamenlijke inspanningen gevonden — rond eerst cross-analyse stap 6 (Optimaliseren) af.",
+        },
         { status: 400 }
       );
     }
@@ -142,8 +110,6 @@ export async function POST(request: NextRequest) {
       scope: body.kibScope ?? undefined,
     });
 
-    // Use "cross-analyse" usecase — planning bouwt rechtstreeks voort op cross-analyse output
-    // en krijgt daarmee dezelfde programmaboek-context + Cito-strategisch fundament mee.
     const systemPrompt = assembleSystemPrompt(
       PLANNING_PROMPT,
       "cross-analyse",
@@ -157,7 +123,7 @@ export async function POST(request: NextRequest) {
       PlanningVoorstelSchema,
       systemPrompt,
       userMessage,
-      { maxTokens: 8192, model: "claude-opus-4-7" }
+      { maxTokens: 6144, model: "claude-opus-4-7" }
     );
 
     if (!result.success) {
@@ -167,20 +133,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Post-validatie: gooi entries weg die verwijzen naar onbekende effort-ids
-    // of kwartalen buiten availableQuarters (AI kan hallucineren).
-    const validEffortIds = new Set(body.efforts.map((e) => e.id));
+    const validBundelIds = new Set(bundels.map((b) => makeBundelId(b)));
     const validQuarters = new Set(body.availableQuarters);
 
-    const cleanInspanningPlanning = result.data.inspanningPlanning.filter(
-      (p) => validEffortIds.has(p.inspanningId) && validQuarters.has(p.voorgesteldKwartaal)
-    );
+    // Post-validatie:
+    //  - bundelId moet bestaan
+    //  - start/eind-kwartaal moet geldig zijn
+    //  - eindKwartaal moet ≥ 1 kwartaal na startKwartaal liggen (corrigeer als <)
+    const cleanBundelPlanning = result.data.bundelPlanning
+      .filter(
+        (p) =>
+          validBundelIds.has(p.bundelId) &&
+          validQuarters.has(p.startKwartaal) &&
+          validQuarters.has(p.eindKwartaal)
+      )
+      .map((p) => {
+        const si = quarterIndex(p.startKwartaal, body.availableQuarters);
+        const ei = quarterIndex(p.eindKwartaal, body.availableQuarters);
+        if (ei <= si) {
+          // Forceer minimum 2 kwartalen (6 maanden) — als AI korter plant, rek eind op
+          const minEnd = Math.min(si + 2, body.availableQuarters.length - 1);
+          return { ...p, eindKwartaal: body.availableQuarters[minEnd] };
+        }
+        return p;
+      });
 
     return NextResponse.json({
       success: true,
       data: {
         ...result.data,
-        inspanningPlanning: cleanInspanningPlanning,
+        bundelPlanning: cleanBundelPlanning,
         gegenereerdOp: new Date().toISOString(),
       },
     });

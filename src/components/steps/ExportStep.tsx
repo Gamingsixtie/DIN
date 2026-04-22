@@ -1152,100 +1152,83 @@ function SectorBlocks({ session, sectionNumbers }: { session: DINSession; sectio
 // --- Roadmap ---
 
 function RoadmapBlock({ session, number }: { session: DINSession; number?: string }) {
-  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
-
-  const quarters = Array.from(
-    new Set(activeEfforts.filter((e) => e.quarter).map((e) => e.quarter!))
-  ).sort();
-
   const planning = session.planningVoorstel;
+
+  const sortedBundels = useMemo(() => {
+    if (!planning?.bundelPlanning) return [];
+    return [...planning.bundelPlanning].sort((a, b) =>
+      a.startKwartaal.localeCompare(b.startKwartaal)
+    );
+  }, [planning]);
 
   return (
     <Section title="Roadmap" number={number}>
-      {planning?.samenvatting && (
-        <div className="mb-4 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
-            Samenvatting planning
-          </div>
-          <p className="text-xs text-gray-700 leading-relaxed">{planning.samenvatting}</p>
-        </div>
-      )}
+      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+        De 4 gezamenlijke cross-sectorale inspanningen (één per domein), gepland in cycli van 6-9 maanden.
+      </p>
 
-      {planning?.bundelPlanning && planning.bundelPlanning.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-sm font-bold text-cito-blue/70 mb-2">Bundel-planning</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {planning.bundelPlanning.map((c, idx) => (
-              <div key={`${c.bundelId}-${idx}`} className="border border-gray-200 rounded p-2 bg-white">
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">
-                  {DOMAIN_LABELS[c.domein] || c.domein} · {c.startKwartaal}
-                  {c.eindKwartaal && c.eindKwartaal !== c.startKwartaal ? ` – ${c.eindKwartaal}` : ""}
+      {!planning || sortedBundels.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">
+          Roadmap wordt in stap 6 gegenereerd via AI-voorstel en vervolgens handmatig bijgesteld.
+        </p>
+      ) : (
+        <>
+          {planning.samenvatting && (
+            <div className="mb-4 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
+                Samenvatting planning
+              </div>
+              <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{planning.samenvatting}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {sortedBundels.map((bp) => (
+              <div
+                key={bp.bundelId}
+                className="border border-gray-200 rounded-lg bg-white overflow-hidden"
+              >
+                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">
+                    {DOMAIN_LABELS[bp.domein] || bp.domein}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 flex-1 truncate" title={bp.titel}>
+                    {bp.titel}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600 font-medium shrink-0">
+                    {bp.cyclusLabel}
+                  </span>
                 </div>
-                <div className="text-xs font-medium text-gray-800 mb-1">{c.titel}</div>
-                {c.mijlpalen && c.mijlpalen.length > 0 && (
-                  <ul className="space-y-0.5 text-[11px] text-gray-600">
-                    {c.mijlpalen.map((m, fidx) => (
-                      <li key={fidx}>
-                        <span className="inline-block px-1 rounded bg-gray-100 text-gray-600 font-medium mr-1">
-                          {m.periode}
-                        </span>
-                        {m.mijlpaal}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {c.risico && (
-                  <p className="text-[10px] text-amber-700 italic mt-1">Risico: {c.risico}</p>
-                )}
+                <div className="p-3 space-y-2">
+                  <div className="text-[11px] text-gray-500">
+                    {bp.startKwartaal} → {bp.eindKwartaal}
+                  </div>
+                  {bp.beargumentatie && (
+                    <p className="text-xs text-gray-600 italic leading-relaxed">{bp.beargumentatie}</p>
+                  )}
+                  {bp.mijlpalen && bp.mijlpalen.length > 0 && (
+                    <ol className="space-y-1 pt-1">
+                      {bp.mijlpalen.map((m, idx) => (
+                        <li key={idx} className="text-xs flex gap-2">
+                          <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                            {m.periode}
+                          </span>
+                          <span className="text-gray-700">{m.mijlpaal}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {bp.risico && (
+                    <p className="text-[11px] text-amber-700 italic pt-2 border-t border-gray-100">
+                      <span className="font-medium not-italic">Risico: </span>
+                      {bp.risico}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {quarters.length === 0 ? (
-        <p className="text-sm text-gray-400 italic">
-          Kwartaalplanning wordt in een volgende cyclus bepaald.
-        </p>
-      ) : (
-        <div className="space-y-5">
-          {quarters.map((q) => {
-            const qEfforts = activeEfforts.filter((e) => e.quarter === q);
-            return (
-              <div key={q}>
-                <h4 className="text-sm font-bold text-cito-blue/70 mb-2">{q}</h4>
-                <div className="overflow-hidden border border-gray-200 rounded-lg">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-3 py-2 text-left font-bold text-gray-600">Sector</th>
-                        <th className="px-3 py-2 text-left font-bold text-gray-600">Domein</th>
-                        <th className="px-3 py-2 text-left font-bold text-gray-600">Inspanning</th>
-                        <th className="px-3 py-2 text-left font-bold text-gray-600">Opdrachtgever</th>
-                        <th className="px-3 py-2 text-left font-bold text-gray-600">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {qEfforts.map((e, i) => (
-                        <tr key={e.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                          <td className="px-3 py-2 text-gray-600">{e.sectorId}</td>
-                          <td className="px-3 py-2 text-gray-600">{DOMAIN_LABELS[e.domain]}</td>
-                          <td className="px-3 py-2 font-medium text-gray-800">{e.title || e.description}</td>
-                          <td className="px-3 py-2 text-gray-600">{e.dossier?.eigenaar || "\u2014"}</td>
-                          <td className="px-3 py-2">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[e.status] || "bg-gray-100 text-gray-600"}`}>
-                              {STATUS_LABELS[e.status] || e.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        </>
       )}
     </Section>
   );
