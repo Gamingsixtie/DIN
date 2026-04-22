@@ -155,7 +155,46 @@ export default function StapOptimaliseren({
 
   useEffect(() => {
     if (stap4Result?.subEffortAnalysis) {
-      setEntries(JSON.parse(JSON.stringify(stap4Result.subEffortAnalysis)));
+      const cloned = JSON.parse(JSON.stringify(stap4Result.subEffortAnalysis)) as SubEffortAdvies[];
+      setEntries(cloned);
+      // Hydrate business-case Q&A state uit entries — voorkomt verlies bij navigatie
+      const qByIdx: Record<number, Array<{
+        key: string;
+        vraag: string;
+        toelichting?: string;
+        inputType: "text" | "number" | "select";
+        opties?: string[];
+        eenheid?: string;
+      }>> = {};
+      const aByIdx: Record<number, Record<string, string>> = {};
+      const rByIdx: Record<number, { kostenraming: string; aannames: string[]; risicos?: string[] }> = {};
+      const sByIdx: Record<number, Set<string>> = {};
+      const iByIdx: Record<number, string> = {};
+      const mByIdx: Record<number, "idle" | "loading-questions" | "answering" | "loading-estimate"> = {};
+      cloned.forEach((e, idx) => {
+        const bc = (e as unknown as { businessCase?: {
+          questions?: typeof qByIdx[number];
+          answers?: Record<string, string>;
+          result?: { kostenraming: string; aannames?: string[]; risicos?: string[] };
+          refineInstructie?: string;
+          selectedKeys?: string[];
+        }}).businessCase;
+        if (!bc) return;
+        if (bc.questions && bc.questions.length > 0) {
+          qByIdx[idx] = bc.questions;
+          mByIdx[idx] = "answering";
+        }
+        if (bc.answers) aByIdx[idx] = bc.answers;
+        if (bc.result) rByIdx[idx] = { kostenraming: bc.result.kostenraming, aannames: bc.result.aannames ?? [], risicos: bc.result.risicos };
+        if (bc.selectedKeys) sByIdx[idx] = new Set(bc.selectedKeys);
+        if (bc.refineInstructie) iByIdx[idx] = bc.refineInstructie;
+      });
+      setBcQuestionsByIdx(qByIdx);
+      setBcAnswersByIdx(aByIdx);
+      setBcResultByIdx(rByIdx);
+      setBcSelectedByIdx(sByIdx);
+      setBcRefineInstrByIdx(iByIdx);
+      setBcModeByIdx(mByIdx);
     }
     // Restore begrotingsadvies uit session. Detecteer oude shape (direct
     // inspanningen[]) vs nieuwe 3-scenario shape (scenarios.optimaal etc).
@@ -184,6 +223,29 @@ export default function StapOptimaliseren({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stap4Result]);
+
+  // Mirror business-case Q&A state op entries — entry.businessCase wordt
+  // mee-gepersist via de bestaande entries-auto-persist effect hieronder.
+  useEffect(() => {
+    if (entries.length === 0) return;
+    let dirty = false;
+    const next = entries.map((e, idx) => {
+      const desired = {
+        questions: bcQuestionsByIdx[idx] ?? [],
+        answers: bcAnswersByIdx[idx] ?? {},
+        result: bcResultByIdx[idx],
+        selectedKeys: Array.from(bcSelectedByIdx[idx] ?? []),
+        refineInstructie: bcRefineInstrByIdx[idx] ?? "",
+      };
+      const current = (e as unknown as { businessCase?: typeof desired }).businessCase;
+      // Vergelijk via JSON — voorkom no-op updates die infinite loops triggeren
+      if (JSON.stringify(current ?? null) === JSON.stringify(desired)) return e;
+      dirty = true;
+      return { ...e, businessCase: desired } as SubEffortAdvies;
+    });
+    if (dirty) setEntries(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bcQuestionsByIdx, bcAnswersByIdx, bcResultByIdx, bcSelectedByIdx, bcRefineInstrByIdx]);
 
   // Auto-persist entries naar sessie (debounced) — voorkomt dat edits verloren
   // gaan bij navigatie. De handmatige 'Opslaan' knop blijft werken voor directe

@@ -352,6 +352,27 @@ export const SubEffortDossierSchema = z.object({
 // Tweede-niveau effort-analyse per domein binnen een VermogenGelijkenisGroep.
 // AI stelt per domein voor: combineren (cross-sector training etc.) of apart_houden.
 // Phase 18 breidt uit met titel/beschrijving/beargumentatie/vermogenImpact[]/dossier{} — alle optional voor backward compat.
+export const BusinessCaseQuestionSchema = z.object({
+  key: z.string(),
+  vraag: z.string(),
+  toelichting: z.string().optional().default(""),
+  inputType: z.string().optional().default("text"),
+  opties: z.array(z.string()).optional().default([]),
+  eenheid: z.string().optional().default(""),
+});
+
+export const BusinessCaseStateSchema = z.object({
+  questions: z.array(BusinessCaseQuestionSchema).optional().default([]),
+  answers: z.record(z.string(), z.string()).optional().default({}),
+  result: z.object({
+    kostenraming: z.string(),
+    aannames: z.array(z.string()).optional().default([]),
+    risicos: z.array(z.string()).optional().default([]),
+  }).optional(),
+  refineInstructie: z.string().optional().default(""),
+  selectedKeys: z.array(z.string()).optional().default([]),
+});
+
 export const SubEffortAdviesSchema = z.object({
   // Phase 17 — bestaande velden (NIET wijzigen)
   groepId: z.string(),
@@ -366,6 +387,8 @@ export const SubEffortAdviesSchema = z.object({
   beargumentatie: z.string().optional(),
   vermogenImpact: z.array(SubEffortVermogenImpactSchema).optional(),
   dossier: SubEffortDossierSchema.optional(),
+  // Phase 19 — business-case Q&A state (auto-persist via subEffortAnalysis)
+  businessCase: BusinessCaseStateSchema.optional(),
 });
 
 export const InspanningClusterItemSchema = z.object({
