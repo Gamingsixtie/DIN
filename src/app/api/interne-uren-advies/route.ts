@@ -18,17 +18,20 @@ const RolAISchema = z.object({
   uren: z.number(),
 });
 
+// Schema bewust leniënt — rollen mag leeg als AI een jaar "idle" maakt,
+// activiteit mag leeg, koppeling mag ontbreken. Voorkomt dat 1 scenario
+// stuk gaat op een triviale schemavalidatie-miss terwijl de rest klopt.
 const DomeinJaarAISchema = z.object({
   jaar: z.number(),
-  activiteit: z.string(),
-  rollen: z.array(RolAISchema).min(1),
+  activiteit: z.string().optional().default(""),
+  rollen: z.array(RolAISchema).optional().default([]),
 });
 
 const DomeinAISchema = z.object({
   domein: z.enum(["cultuur", "mens", "data_systemen", "processen"]),
   koppeling: z.array(z.string()).optional().default([]),
-  jaren: z.array(DomeinJaarAISchema),
-  motivatie: z.string(),
+  jaren: z.array(DomeinJaarAISchema).optional().default([]),
+  motivatie: z.string().optional().default(""),
 });
 
 const InterneUrenScenarioAISchema = z.object({
@@ -355,11 +358,16 @@ export async function POST(request: NextRequest) {
         kibContext
       );
       const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
-      // 2 pogingen — bij JSON-truncation door token-limiet probeert tweede met meer tokens
-      const pogingen: Array<{ maxTokens: number; retryDelayMs: number }> = [
-        { maxTokens: 16384, retryDelayMs: 2000 },
-        { maxTokens: 16384, retryDelayMs: 4000 },
+      // 3 pogingen met prefillJson ("{" voor-gepusht zodat AI niet kan afdwalen
+      // in preamble/markdown). Hogere tokens voor min20 — dat scenario heeft
+      // meer jaren dus langere output. Model claude-sonnet-4-6 blijft default
+      // maar we kunnen escaleren naar opus bij herhaald falen.
+      const pogingen: Array<{ maxTokens: number; retryDelayMs: number; prefillJson: boolean; model?: string }> = [
+        { maxTokens: 20000, retryDelayMs: 0, prefillJson: true },
+        { maxTokens: 20000, retryDelayMs: 2000, prefillJson: true },
+        { maxTokens: 24000, retryDelayMs: 4000, prefillJson: true, model: "claude-opus-4-7" },
       ];
+      let lastError = "";
       for (let i = 0; i < pogingen.length; i++) {
         try {
           const res = await callClaudeWithValidation(
@@ -369,20 +377,21 @@ export async function POST(request: NextRequest) {
             pogingen[i]
           );
           if (res.success) {
+            console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK`);
             return verrijkScenario(res.data, {
               aantalJaren: scenario.aantalJaren,
               startJaar: scenario.startJaar,
               uurtariefSettings: uurtariefSettings!,
             });
           }
-          console.error(`[interne-uren-advies] ${label} poging ${i + 1} validation failed:`, res.error);
+          lastError = res.error;
+          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} validation failed: ${res.error}`);
         } catch (err) {
-          console.error(`[interne-uren-advies] ${label} poging ${i + 1} threw:`, err);
-        }
-        if (i < pogingen.length - 1) {
-          await new Promise((r) => setTimeout(r, 1500));
+          lastError = err instanceof Error ? err.message : String(err);
+          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} threw: ${lastError}`);
         }
       }
+      console.error(`[interne-uren-advies] ${label} ALLE pogingen gefaald, laatste fout: ${lastError}`);
       return null;
     }
 
@@ -459,11 +468,14 @@ export async function POST(request: NextRequest) {
     // Per-scenario mode: genereer maar 1 van de 3. Voorkomt Vercel 504 bij
     // grote prompts — frontend doet 3 parallelle HTTP-calls en combineert.
     if (onlyScenario) {
+      const t0 = Date.now();
       const result = await genereer(onlyScenario, 0);
+      const dt = Date.now() - t0;
+      console.log(`[interne-uren-advies] ${onlyScenario} ${result ? "✓" : "✗"} in ${dt}ms`);
       if (!result) {
         return NextResponse.json({
           success: false,
-          error: `Scenario ${onlyScenario} faalde — probeer opnieuw.`,
+          error: `Scenario ${onlyScenario} faalde na alle pogingen — zie Vercel function logs.`,
         }, { status: 200 });
       }
       return NextResponse.json({
