@@ -751,46 +751,76 @@ export default function StapInterneUren({
         jaar: begroting.startJaar + i,
         urenBudget: urenBudgetStart,
       }));
-      const res = await fetch("/api/interne-uren-advies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scenarios: scenariosPayload,
-          uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
-          inspanningenMeta,
-          toegestaneFuncties,
-          toegestaneFunctiesPerDomein,
-          urenBudgetPerJaar,
-          // STAP 2 output (Q&A): hard input voor uren per rol per inspanning (totaal over optimaal scenario)
-          vastgesteldeUrenPerInspanning: vastgesteldeUrenPerInspanning.length > 0 ? vastgesteldeUrenPerInspanning : undefined,
-          scope: session.scope,
-          vision: session.vision,
-          finetuneInstructie: opts?.finetuneInstructie ?? "",
-          previousAdvies: opts?.previousAdvies ?? null,
-        }),
-      });
-      const text = await res.text();
-      let data: { success?: boolean; data?: InterneUrenAdvies; error?: string };
-      try {
-        data = JSON.parse(text);
-      } catch {
-        setError(res.status >= 500 ? "Server-fout — probeer opnieuw." : `Onverwacht antwoord (${res.status})`);
+      // Split 3 scenarios over 3 parallelle HTTP-requests — voorkomt Vercel 504
+      // op grote prompts (elke request doet 1 AI-call i.p.v. 3).
+      const basePayload = {
+        scenarios: scenariosPayload,
+        uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
+        inspanningenMeta,
+        toegestaneFuncties,
+        toegestaneFunctiesPerDomein,
+        urenBudgetPerJaar,
+        vastgesteldeUrenPerInspanning: vastgesteldeUrenPerInspanning.length > 0 ? vastgesteldeUrenPerInspanning : undefined,
+        scope: session.scope,
+        vision: session.vision,
+        finetuneInstructie: opts?.finetuneInstructie ?? "",
+        previousAdvies: opts?.previousAdvies ?? null,
+      };
+
+      async function fetchScenario(label: "optimaal" | "plus20" | "min20") {
+        try {
+          const r = await fetch("/api/interne-uren-advies", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...basePayload, onlyScenario: label }),
+          });
+          const t = await r.text();
+          try {
+            const d = JSON.parse(t) as { success?: boolean; data?: { scenario?: unknown }; error?: string };
+            if (d.success && d.data?.scenario) return d.data.scenario;
+            console.error(`[stap7] ${label} faalde:`, d.error ?? `status ${r.status}`);
+            return null;
+          } catch {
+            console.error(`[stap7] ${label} non-JSON response (status ${r.status})`);
+            return null;
+          }
+        } catch (err) {
+          console.error(`[stap7] ${label} network error:`, err);
+          return null;
+        }
+      }
+
+      const [optRes, plusRes, minRes] = await Promise.all([
+        fetchScenario("optimaal"),
+        fetchScenario("plus20"),
+        fetchScenario("min20"),
+      ]);
+
+      if (!optRes && !plusRes && !minRes) {
+        setError("Alle 3 scenario's faalden — controleer Console of probeer opnieuw.");
         setLoading(false);
         return;
       }
-      if (!data.success || !data.data) {
-        setError(data.error ?? "Onbekende fout");
-        setLoading(false);
-        return;
-      }
+
+      const partialFailures = [
+        !optRes ? "optimaal" : null,
+        !plusRes ? "plus20" : null,
+        !minRes ? "min20" : null,
+      ].filter(Boolean) as string[];
+
       // Verrijk met user-settings zodat ze bij terugkeer bewaard blijven
       const verrijkt: InterneUrenAdvies = {
-        ...data.data,
+        uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
+        scenarios: {
+          optimaal: optRes as InterneUrenAdvies["scenarios"]["optimaal"] | null,
+          plus20: plusRes as InterneUrenAdvies["scenarios"]["plus20"] | null,
+          min20: minRes as InterneUrenAdvies["scenarios"]["min20"] | null,
+        },
+        partialFailures,
         urenBudgetStart,
         selectiePerDomein,
         customFunctiesPerDomein,
         vragenAntwoorden: antwoordenPerInspanning,
-        // Persist Q&A flow voor latere restore
         ...(vragenPerInspanning.length > 0 ? { vragenPerInspanning } : {}),
         ...(vastgesteldeUrenPerInspanning.length > 0 ? { vastgesteldeUrenPerInspanning } : {}),
       } as InterneUrenAdvies;

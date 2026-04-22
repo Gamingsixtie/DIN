@@ -258,6 +258,9 @@ export async function POST(request: NextRequest) {
       vastgesteldeUrenPerInspanning,
       finetuneInstructie,
       previousAdvies,
+      // NIEUW: als meegegeven, genereer alleen dit scenario (frontend splitst
+      // de 3 parallelle calls in 3 HTTP-requests om Vercel 504 te voorkomen).
+      onlyScenario,
     } = body as {
       scenarios?: Record<
         "optimaal" | "plus20" | "min20",
@@ -290,6 +293,7 @@ export async function POST(request: NextRequest) {
       vastgesteldeUrenPerInspanning?: VastgesteldeUrenInspanning[];
       finetuneInstructie?: string;
       previousAdvies?: unknown;
+      onlyScenario?: "optimaal" | "plus20" | "min20";
     };
 
     if (!scenarios) {
@@ -452,6 +456,28 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Per-scenario mode: genereer maar 1 van de 3. Voorkomt Vercel 504 bij
+    // grote prompts — frontend doet 3 parallelle HTTP-calls en combineert.
+    if (onlyScenario) {
+      const result = await genereer(onlyScenario, 0);
+      if (!result) {
+        return NextResponse.json({
+          success: false,
+          error: `Scenario ${onlyScenario} faalde — probeer opnieuw.`,
+        }, { status: 200 });
+      }
+      return NextResponse.json({
+        success: true,
+        data: {
+          uurtariefSettings,
+          scenario: result,
+          scenarioLabel: onlyScenario,
+        },
+      });
+    }
+
+    // Legacy path: 3 parallelle calls in 1 request. Blijft werken voor niet-
+    // bijgewerkte clients, maar nieuwe frontend gebruikt onlyScenario-mode.
     const [optimaal, plus20, min20] = await Promise.all([
       genereer("optimaal", 0),
       genereer("plus20", 200),
