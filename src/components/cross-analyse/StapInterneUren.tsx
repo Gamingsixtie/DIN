@@ -12,6 +12,9 @@ import {
 import { CITO_FUNCTIES, type CitoFunctie, type CitoAfdeling } from "@/lib/cito-functies";
 
 type CustomFunctie = { id: string; naam: string; schaal?: number };
+// Per geselecteerde functie: aantal personen + (optioneel) hard uren-budget per jaar per persoon
+// Als urenPerJaar leeg is → AI bepaalt; ingevuld → AI moet dit als jaarlijks budget per persoon respecteren
+type FunctieInput = { aantal: number; urenPerJaar?: number };
 
 type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
 type ScenarioLabel = "optimaal" | "plus20" | "min20";
@@ -62,10 +65,14 @@ type InterneUrenAdvies = {
   urenBudgetStart?: number;
   geselecteerdeFunctieIds?: string[]; // legacy (backward compat)
   functieAantallen?: Record<string, number>; // legacy (backward compat)
-  // Per-domein selectie: functie-id → aantal personen (Cito-id of custom-id)
-  selectiePerDomein?: Record<Domein, Record<string, number>>;
+  // Legacy: per-domein selectie als alleen aantallen (number)
+  selectiePerDomeinLegacy?: Record<Domein, Record<string, number>>;
+  // Per-domein selectie: functie-id → { aantal, urenPerJaar? }
+  selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
   // Custom functies door user toegevoegd, per domein
   customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
+  // AI-vragen Q&A antwoorden per inspanning (voor uren-verfijning)
+  vragenAntwoorden?: Record<string, Record<string, string>>;
   scenarios: {
     optimaal: ScenarioBlok | null;
     plus20: ScenarioBlok | null;
@@ -119,21 +126,54 @@ export default function StapInterneUren({
   const [fineutOpen, setFineutOpen] = useState(false);
   const [fineutInstr, setFineutInstr] = useState("");
 
-  // Functie-selectie per domein — user kiest per inspanningsdomein welke functies + hoeveel personen
+  // ───── Q&A FLOW (3-stappen): vragen → antwoorden → vastgestelde uren ─────
+  type Vraag = { id: string; vraag: string; voorbeeldAntwoord?: string };
+  type InspanningVragen = {
+    groepId: string;
+    inspanningTitel: string;
+    domein: Domein;
+    vragen: Vraag[];
+  };
+  type RolUren = {
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    urenTotaal: number;
+    onderbouwing: string;
+  };
+  type InspanningUren = {
+    groepId: string;
+    inspanningTitel: string;
+    domein: Domein;
+    rollen: RolUren[];
+  };
+
+  const [vragenLoading, setVragenLoading] = useState(false);
+  const [vragenError, setVragenError] = useState<string | null>(null);
+  const [vragenPerInspanning, setVragenPerInspanning] = useState<InspanningVragen[]>([]);
+  // antwoordenPerInspanning[groepId][vraagId] = antwoord-tekst
+  const [antwoordenPerInspanning, setAntwoordenPerInspanning] = useState<Record<string, Record<string, string>>>({});
+  const [vaststellenLoading, setVaststellenLoading] = useState(false);
+  const [vaststellenError, setVaststellenError] = useState<string | null>(null);
+  const [vastgesteldeUrenPerInspanning, setVastgesteldeUrenPerInspanning] = useState<InspanningUren[]>([]);
+  const [vragenModalOpen, setVragenModalOpen] = useState(false);
+  const [urenTabelOpen, setUrenTabelOpen] = useState(false);
+
+  // Functie-selectie per domein — per functie: aantal personen + (optioneel) uren/jaar/persoon
   const DOMEINEN: Domein[] = ["cultuur", "mens", "data_systemen", "processen"];
 
-  function defaultSelectiePerDomein(): Record<Domein, Record<string, number>> {
-    const init: Record<Domein, Record<string, number>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
+  function defaultSelectiePerDomein(): Record<Domein, Record<string, FunctieInput>> {
+    const init: Record<Domein, Record<string, FunctieInput>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
     for (const f of CITO_FUNCTIES) {
       const rel = (f.inspanningRelevantie ?? []) as Domein[];
       for (const d of rel) {
-        if (d in init) init[d][f.id] = 1;
+        if (d in init) init[d][f.id] = { aantal: 1 };
       }
     }
     return init;
   }
 
-  const [selectiePerDomein, setSelectiePerDomein] = useState<Record<Domein, Record<string, number>>>(
+  const [selectiePerDomein, setSelectiePerDomein] = useState<Record<Domein, Record<string, FunctieInput>>>(
     () => defaultSelectiePerDomein()
   );
   const [customFunctiesPerDomein, setCustomFunctiesPerDomein] = useState<Record<Domein, CustomFunctie[]>>({
@@ -150,21 +190,33 @@ export default function StapInterneUren({
     setSelectiePerDomein((prev) => {
       const next = { ...prev, [domein]: { ...prev[domein] } };
       if (id in next[domein]) delete next[domein][id];
-      else next[domein][id] = 1;
+      else next[domein][id] = { aantal: 1 };
       return next;
     });
   }
   function setAantalVoor(domein: Domein, id: string, aantal: number) {
     setSelectiePerDomein((prev) => {
       const clamped = Math.max(1, Math.min(50, Math.floor(aantal) || 1));
-      const next = { ...prev, [domein]: { ...prev[domein], [id]: clamped } };
-      return next;
+      const cur = prev[domein][id] ?? { aantal: 1 };
+      return { ...prev, [domein]: { ...prev[domein], [id]: { ...cur, aantal: clamped } } };
+    });
+  }
+  function setUrenPerJaarVoor(domein: Domein, id: string, urenPerJaar: number | undefined) {
+    setSelectiePerDomein((prev) => {
+      const cur = prev[domein][id] ?? { aantal: 1 };
+      const next = { ...cur };
+      if (urenPerJaar === undefined || urenPerJaar <= 0 || !Number.isFinite(urenPerJaar)) {
+        delete next.urenPerJaar;
+      } else {
+        next.urenPerJaar = Math.max(1, Math.min(2000, Math.floor(urenPerJaar)));
+      }
+      return { ...prev, [domein]: { ...prev[domein], [id]: next } };
     });
   }
   function selecteerAllesIn(domein: Domein, afdeling: CitoAfdeling) {
     setSelectiePerDomein((prev) => {
       const copy = { ...prev[domein] };
-      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling && !(f.id in copy)) copy[f.id] = 1;
+      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling && !(f.id in copy)) copy[f.id] = { aantal: 1 };
       return { ...prev, [domein]: copy };
     });
   }
@@ -181,8 +233,8 @@ export default function StapInterneUren({
   }
   function allesInDomein(domein: Domein) {
     setSelectiePerDomein((prev) => {
-      const copy: Record<string, number> = { ...prev[domein] };
-      for (const f of CITO_FUNCTIES) if (!(f.id in copy)) copy[f.id] = 1;
+      const copy: Record<string, FunctieInput> = { ...prev[domein] };
+      for (const f of CITO_FUNCTIES) if (!(f.id in copy)) copy[f.id] = { aantal: 1 };
       return { ...prev, [domein]: copy };
     });
   }
@@ -197,7 +249,7 @@ export default function StapInterneUren({
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const nieuwe: CustomFunctie = { id, naam, schaal: Number.isFinite(schaal) ? (schaal as number) : undefined };
     setCustomFunctiesPerDomein((prev) => ({ ...prev, [domein]: [...prev[domein], nieuwe] }));
-    setSelectiePerDomein((prev) => ({ ...prev, [domein]: { ...prev[domein], [id]: 1 } }));
+    setSelectiePerDomein((prev) => ({ ...prev, [domein]: { ...prev[domein], [id]: { aantal: 1 } } }));
     setCustomNaam("");
     setCustomSchaal("");
   }
@@ -220,9 +272,187 @@ export default function StapInterneUren({
     geselecteerdePerDomein.cultuur + geselecteerdePerDomein.mens +
     geselecteerdePerDomein.data_systemen + geselecteerdePerDomein.processen;
   const totaalAantalPersonen = DOMEINEN.reduce(
-    (s, d) => s + Object.values(selectiePerDomein[d]).reduce((a, b) => a + b, 0),
+    (s, d) => s + Object.values(selectiePerDomein[d]).reduce((a, b) => a + b.aantal, 0),
     0
   );
+
+  // Helper: bouw toegestaneFunctiesPerDomein payload voor API's
+  type ToegestaneFunctiePayload = {
+    id: string;
+    naam: string;
+    afdeling: string;
+    schaal?: number;
+    aantal: number;
+    urenPerJaar?: number;
+    custom?: boolean;
+  };
+  function buildToegestaneFunctiesPerDomein(): Record<Domein, ToegestaneFunctiePayload[]> {
+    const out: Record<Domein, ToegestaneFunctiePayload[]> = { cultuur: [], mens: [], data_systemen: [], processen: [] };
+    for (const d of DOMEINEN) {
+      for (const [id, input] of Object.entries(selectiePerDomein[d])) {
+        const citoF = CITO_FUNCTIES.find((f) => f.id === id);
+        if (citoF) {
+          out[d].push({
+            id: citoF.id, naam: citoF.naam, afdeling: citoF.afdeling, schaal: citoF.schaal,
+            aantal: input.aantal, ...(input.urenPerJaar ? { urenPerJaar: input.urenPerJaar } : {}),
+          });
+          continue;
+        }
+        const cf = customFunctiesPerDomein[d].find((c) => c.id === id);
+        if (cf) {
+          out[d].push({
+            id: cf.id, naam: cf.naam, afdeling: "Custom", schaal: cf.schaal,
+            aantal: input.aantal, ...(input.urenPerJaar ? { urenPerJaar: input.urenPerJaar } : {}),
+            custom: true,
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  // STAP 2a — vragen ophalen
+  async function haalVragenOp() {
+    setVragenError(null);
+    setVaststellenError(null);
+    if (!begroting?.scenarios?.optimaal) {
+      setVragenError("Geen optimaal scenario uit stap 6 beschikbaar.");
+      return;
+    }
+    if (geselecteerdeTotaal === 0) {
+      setVragenError("Selecteer eerst minstens één functie in een domein (stap 1).");
+      return;
+    }
+    setVragenLoading(true);
+    try {
+      const optimaal = begroting.scenarios.optimaal;
+      // Verzamel inspanningen-input met groepId, titel, domein, verdeling, business-case
+      const inspanningenInput = optimaal.inspanningen.map((i) => {
+        const bcEntry = stap4Result?.subEffortAnalysis?.find((e) => e.groepId === i.groepId);
+        const bc = (bcEntry as unknown as { businessCase?: { answers?: Record<string, string> } })?.businessCase;
+        return {
+          inspanningTitel: i.inspanningTitel,
+          groepId: i.groepId ?? "",
+          domein: i.domein,
+          motivatie: i.motivatie,
+          verdelingPerJaar: i.verdelingPerJaar,
+          businessCaseInterneRollen: bc?.answers?.["interne_rollen"] ?? bc?.answers?.["cito_rollen"],
+          businessCaseInterneUren: bc?.answers?.["interne_uren_per_rol"] ?? bc?.answers?.["uren_per_rol"],
+        };
+      });
+      const res = await fetch("/api/interne-uren-vragen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspanningen: inspanningenInput,
+          toegestaneFunctiesPerDomein: buildToegestaneFunctiesPerDomein(),
+          scope: session.scope, vision: session.vision,
+        }),
+      });
+      const text = await res.text();
+      let data: { success?: boolean; data?: { inspanningen?: InspanningVragen[] }; error?: string };
+      try { data = JSON.parse(text); }
+      catch { setVragenError(`Onverwacht antwoord (${res.status})`); setVragenLoading(false); return; }
+      if (!data.success || !data.data?.inspanningen) {
+        setVragenError(data.error ?? "AI gaf geen geldig antwoord");
+        setVragenLoading(false);
+        return;
+      }
+      setVragenPerInspanning(data.data.inspanningen);
+      // Initialiseer lege antwoorden, behoud bestaande
+      setAntwoordenPerInspanning((prev) => {
+        const next: Record<string, Record<string, string>> = { ...prev };
+        for (const insp of data.data!.inspanningen!) {
+          if (!next[insp.groepId]) next[insp.groepId] = {};
+          for (const v of insp.vragen) {
+            if (!(v.id in next[insp.groepId])) next[insp.groepId][v.id] = "";
+          }
+        }
+        return next;
+      });
+      setVragenModalOpen(true);
+      setVragenLoading(false);
+    } catch (err) {
+      setVragenError(err instanceof Error ? err.message : "Netwerkfout");
+      setVragenLoading(false);
+    }
+  }
+
+  // STAP 2b — vaststellen uren op basis van antwoorden
+  async function vaststellenUren() {
+    setVaststellenError(null);
+    if (vragenPerInspanning.length === 0) {
+      setVaststellenError("Geen vragen — haal eerst vragen op.");
+      return;
+    }
+    if (!begroting?.scenarios?.optimaal) {
+      setVaststellenError("Geen optimaal scenario beschikbaar.");
+      return;
+    }
+    setVaststellenLoading(true);
+    try {
+      const optimaal = begroting.scenarios.optimaal;
+      const inspanningenInput = optimaal.inspanningen.map((i) => ({
+        inspanningTitel: i.inspanningTitel,
+        groepId: i.groepId ?? "",
+        domein: i.domein,
+        motivatie: i.motivatie,
+        verdelingPerJaar: i.verdelingPerJaar,
+      }));
+      const vragenAntwoorden = vragenPerInspanning.map((vi) => ({
+        groepId: vi.groepId,
+        inspanningTitel: vi.inspanningTitel,
+        domein: vi.domein,
+        vragenAntwoorden: vi.vragen.map((v) => ({
+          vraag: v.vraag,
+          antwoord: antwoordenPerInspanning[vi.groepId]?.[v.id] ?? "",
+        })),
+      }));
+      const res = await fetch("/api/interne-uren-vaststellen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspanningen: inspanningenInput,
+          vragenAntwoorden,
+          toegestaneFunctiesPerDomein: buildToegestaneFunctiesPerDomein(),
+          aantalJarenOptimaal: optimaal.aantalJaren,
+          scope: session.scope, vision: session.vision,
+        }),
+      });
+      const text = await res.text();
+      let data: { success?: boolean; data?: { inspanningen?: InspanningUren[] }; error?: string };
+      try { data = JSON.parse(text); }
+      catch { setVaststellenError(`Onverwacht antwoord (${res.status})`); setVaststellenLoading(false); return; }
+      if (!data.success || !data.data?.inspanningen) {
+        setVaststellenError(data.error ?? "AI gaf geen geldig antwoord");
+        setVaststellenLoading(false);
+        return;
+      }
+      setVastgesteldeUrenPerInspanning(data.data.inspanningen);
+      setUrenTabelOpen(true);
+      setVragenModalOpen(false);
+      setVaststellenLoading(false);
+    } catch (err) {
+      setVaststellenError(err instanceof Error ? err.message : "Netwerkfout");
+      setVaststellenLoading(false);
+    }
+  }
+
+  // Handmatig per rol uren aanpassen
+  function pasUrenAan(groepId: string, functieId: string, urenTotaal: number) {
+    setVastgesteldeUrenPerInspanning((prev) =>
+      prev.map((i) =>
+        i.groepId !== groepId
+          ? i
+          : {
+              ...i,
+              rollen: i.rollen.map((r) =>
+                r.functieId === functieId ? { ...r, urenTotaal: Math.max(0, Math.floor(urenTotaal) || 0) } : r
+              ),
+            }
+      )
+    );
+  }
 
   const FINEUT_VOORBEELDEN: ReadonlyArray<{ kort: string; instructie: string }> = [
     { kort: "Meer sectormanagement-uren", instructie: "Verhoog de sectormanager-uren in het eerste jaar — zij moeten de cultuur-verandering gaan dragen." },
@@ -246,23 +476,35 @@ export default function StapInterneUren({
         setUrenBudgetStart(persisted.urenBudgetStart);
       }
       if (persisted.selectiePerDomein) {
-        setSelectiePerDomein({
-          cultuur: persisted.selectiePerDomein.cultuur ?? {},
-          mens: persisted.selectiePerDomein.mens ?? {},
-          data_systemen: persisted.selectiePerDomein.data_systemen ?? {},
-          processen: persisted.selectiePerDomein.processen ?? {},
-        });
+        // Detect of het al de nieuwe vorm is ({aantal, urenPerJaar?}) of legacy (number)
+        const sample = Object.values(persisted.selectiePerDomein.cultuur ?? {})[0];
+        const isLegacyNumberShape = typeof sample === "number";
+        const restored: Record<Domein, Record<string, FunctieInput>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
+        for (const d of DOMEINEN) {
+          const dEntry = (persisted.selectiePerDomein as Record<string, Record<string, unknown>>)[d] ?? {};
+          for (const [id, val] of Object.entries(dEntry)) {
+            if (isLegacyNumberShape) {
+              restored[d][id] = { aantal: typeof val === "number" ? val : 1 };
+            } else if (val && typeof val === "object" && "aantal" in (val as object)) {
+              const obj = val as FunctieInput;
+              restored[d][id] = { aantal: obj.aantal ?? 1, ...(obj.urenPerJaar ? { urenPerJaar: obj.urenPerJaar } : {}) };
+            } else {
+              restored[d][id] = { aantal: 1 };
+            }
+          }
+        }
+        setSelectiePerDomein(restored);
       } else if (persisted.functieAantallen || (persisted.geselecteerdeFunctieIds && persisted.geselecteerdeFunctieIds.length > 0)) {
         // Legacy-migratie: zet oude globale selectie om naar domein-default (op basis van inspanningRelevantie)
         const legacy: Record<string, number> =
           persisted.functieAantallen ??
           Object.fromEntries((persisted.geselecteerdeFunctieIds ?? []).map((id) => [id, 1]));
-        const migrated: Record<Domein, Record<string, number>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
+        const migrated: Record<Domein, Record<string, FunctieInput>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
         for (const [id, aantal] of Object.entries(legacy)) {
           const f = CITO_FUNCTIES.find((x) => x.id === id);
           const rel = (f?.inspanningRelevantie ?? []) as Domein[];
           const targets = rel.length > 0 ? rel : (DOMEINEN as Domein[]);
-          for (const d of targets) migrated[d][id] = aantal;
+          for (const d of targets) migrated[d][id] = { aantal };
         }
         setSelectiePerDomein(migrated);
       }
@@ -273,6 +515,20 @@ export default function StapInterneUren({
           data_systemen: persisted.customFunctiesPerDomein.data_systemen ?? [],
           processen: persisted.customFunctiesPerDomein.processen ?? [],
         });
+      }
+      if (persisted.vragenAntwoorden) {
+        setAntwoordenPerInspanning(persisted.vragenAntwoorden);
+      }
+      // Q&A state restore — vragen en vastgestelde uren als die er zijn
+      const persistedExtra = persisted as unknown as {
+        vragenPerInspanning?: InspanningVragen[];
+        vastgesteldeUrenPerInspanning?: InspanningUren[];
+      };
+      if (persistedExtra.vragenPerInspanning) {
+        setVragenPerInspanning(persistedExtra.vragenPerInspanning);
+      }
+      if (persistedExtra.vastgesteldeUrenPerInspanning) {
+        setVastgesteldeUrenPerInspanning(persistedExtra.vastgesteldeUrenPerInspanning);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -336,20 +592,23 @@ export default function StapInterneUren({
     };
 
     try {
-      // Per-domein toegestane functies (Cito + custom), met aantal personen
+      // Per-domein toegestane functies (Cito + custom), met aantal personen + (optioneel) urenPerJaar
       type ToegestaneFunctie = {
         id: string;
         naam: string;
         afdeling: string;
         schaal?: number;
         aantal: number;
+        urenPerJaar?: number;
         custom?: boolean;
       };
       const toegestaneFunctiesPerDomein: Record<Domein, ToegestaneFunctie[]> = {
         cultuur: [], mens: [], data_systemen: [], processen: [],
       };
       for (const d of DOMEINEN) {
-        for (const [id, aantal] of Object.entries(selectiePerDomein[d])) {
+        for (const [id, input] of Object.entries(selectiePerDomein[d])) {
+          const aantal = input.aantal;
+          const urenPerJaar = input.urenPerJaar;
           const citoF = CITO_FUNCTIES.find((f) => f.id === id);
           if (citoF) {
             toegestaneFunctiesPerDomein[d].push({
@@ -358,6 +617,7 @@ export default function StapInterneUren({
               afdeling: citoF.afdeling,
               schaal: citoF.schaal,
               aantal,
+              ...(urenPerJaar ? { urenPerJaar } : {}),
             });
             continue;
           }
@@ -369,6 +629,7 @@ export default function StapInterneUren({
               afdeling: "Custom",
               schaal: custom.schaal,
               aantal,
+              ...(urenPerJaar ? { urenPerJaar } : {}),
               custom: true,
             });
           }
@@ -396,6 +657,8 @@ export default function StapInterneUren({
           toegestaneFuncties,
           toegestaneFunctiesPerDomein,
           urenBudgetPerJaar,
+          // STAP 2 output (Q&A): hard input voor uren per rol per inspanning (totaal over optimaal scenario)
+          vastgesteldeUrenPerInspanning: vastgesteldeUrenPerInspanning.length > 0 ? vastgesteldeUrenPerInspanning : undefined,
           scope: session.scope,
           vision: session.vision,
           finetuneInstructie: opts?.finetuneInstructie ?? "",
@@ -422,7 +685,11 @@ export default function StapInterneUren({
         urenBudgetStart,
         selectiePerDomein,
         customFunctiesPerDomein,
-      };
+        vragenAntwoorden: antwoordenPerInspanning,
+        // Persist Q&A flow voor latere restore
+        ...(vragenPerInspanning.length > 0 ? { vragenPerInspanning } : {}),
+        ...(vastgesteldeUrenPerInspanning.length > 0 ? { vastgesteldeUrenPerInspanning } : {}),
+      } as InterneUrenAdvies;
       setAdvies(verrijkt);
       // Persisteer in session onder stap4.stap7InterneUren
       updateSession((prev) => {
@@ -658,12 +925,14 @@ export default function StapInterneUren({
                 {customFunctiesPerDomein[actiefDomein].length > 0 && (
                   <div className="mt-2 space-y-1">
                     {customFunctiesPerDomein[actiefDomein].map((cf) => {
-                      const aantal = selectiePerDomein[actiefDomein][cf.id] ?? 0;
+                      const input = selectiePerDomein[actiefDomein][cf.id];
+                      const aantal = input?.aantal ?? 0;
+                      const actief = cf.id in selectiePerDomein[actiefDomein];
                       return (
                         <div key={cf.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-2 py-1">
                           <input
                             type="checkbox"
-                            checked={cf.id in selectiePerDomein[actiefDomein]}
+                            checked={actief}
                             onChange={() => toggleFunctie(actiefDomein, cf.id)}
                             className="accent-[#003366]"
                           />
@@ -677,7 +946,7 @@ export default function StapInterneUren({
                             min={1}
                             max={50}
                             value={aantal || 1}
-                            disabled={!(cf.id in selectiePerDomein[actiefDomein])}
+                            disabled={!actief}
                             onChange={(e) => setAantalVoor(actiefDomein, cf.id, Number(e.target.value))}
                             className="w-14 px-1 py-0.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#003366] disabled:bg-gray-100 disabled:text-gray-400"
                           />
@@ -730,7 +999,8 @@ export default function StapInterneUren({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                         {functies.map((f) => {
                           const actief = f.id in selectiePerDomein[actiefDomein];
-                          const aantal = selectiePerDomein[actiefDomein][f.id] ?? 0;
+                          const input = selectiePerDomein[actiefDomein][f.id];
+                          const aantal = input?.aantal ?? 0;
                           return (
                             <div
                               key={f.id}
@@ -771,17 +1041,91 @@ export default function StapInterneUren({
         )}
       </div>
 
-      <button
-        onClick={() => generateAdvies()}
-        disabled={loading || geselecteerdeTotaal === 0}
-        className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
-      >
-        {loading
-          ? "AI berekent interne uren voor 3 scenario's..."
-          : advies
-          ? `Regenereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen)`
-          : `Genereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen)`}
-      </button>
+      {/* ───────── 3-STAPPEN FLOW ───────── */}
+      <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`flex items-center gap-2 ${geselecteerdeTotaal > 0 ? "text-green-700" : "text-gray-400"}`}>
+            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${geselecteerdeTotaal > 0 ? "bg-green-100 border border-green-300" : "bg-gray-100 border border-gray-300"}`}>1</span>
+            <span className="text-sm font-semibold">Functies geselecteerd</span>
+          </div>
+          <div className={`flex-1 h-px ${vragenPerInspanning.length > 0 ? "bg-green-300" : "bg-gray-200"}`} />
+          <div className={`flex items-center gap-2 ${vastgesteldeUrenPerInspanning.length > 0 ? "text-green-700" : vragenPerInspanning.length > 0 ? "text-[#003366]" : "text-gray-400"}`}>
+            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${vastgesteldeUrenPerInspanning.length > 0 ? "bg-green-100 border border-green-300" : vragenPerInspanning.length > 0 ? "bg-blue-100 border border-blue-300" : "bg-gray-100 border border-gray-300"}`}>2</span>
+            <span className="text-sm font-semibold">Uren vastgesteld via AI-vragen</span>
+          </div>
+          <div className={`flex-1 h-px ${advies ? "bg-green-300" : "bg-gray-200"}`} />
+          <div className={`flex items-center gap-2 ${advies ? "text-green-700" : "text-gray-400"}`}>
+            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${advies ? "bg-green-100 border border-green-300" : "bg-gray-100 border border-gray-300"}`}>3</span>
+            <span className="text-sm font-semibold">Advies gegenereerd</span>
+          </div>
+        </div>
+
+        {/* Stap 2 — AI-vragen */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={haalVragenOp}
+              disabled={vragenLoading || geselecteerdeTotaal === 0}
+              className="text-sm px-4 py-2 rounded border-2 border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8] disabled:opacity-50 font-medium"
+            >
+              {vragenLoading
+                ? "AI stelt vragen op..."
+                : vragenPerInspanning.length > 0
+                ? `↻ Stap 2 herstart — vraag opnieuw (${vragenPerInspanning.length} inspanningen)`
+                : "Stap 2 — Stel uren-vragen op via AI"}
+            </button>
+            {vragenPerInspanning.length > 0 && (
+              <button
+                onClick={() => setVragenModalOpen(true)}
+                className="text-sm px-3 py-2 rounded text-[#003366] hover:bg-[#f0f4f8] font-medium"
+              >
+                ✎ Open vragenformulier ({Object.values(antwoordenPerInspanning).reduce((s, a) => s + Object.values(a).filter((v) => v.trim().length > 0).length, 0)} antwoorden)
+              </button>
+            )}
+            {vastgesteldeUrenPerInspanning.length > 0 && (
+              <button
+                onClick={() => setUrenTabelOpen(true)}
+                className="text-sm px-3 py-2 rounded border border-green-600 text-green-700 hover:bg-green-50 font-medium"
+              >
+                📊 Bekijk vastgestelde uren ({vastgesteldeUrenPerInspanning.reduce((s, i) => s + i.rollen.reduce((a, r) => a + r.urenTotaal, 0), 0).toLocaleString("nl-NL")}u totaal)
+              </button>
+            )}
+          </div>
+          {vragenError && (
+            <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-700">{vragenError}</div>
+          )}
+          {vaststellenError && (
+            <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-700">{vaststellenError}</div>
+          )}
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            Stap 2 is <strong>optioneel maar aanbevolen</strong> voor realistische uren — AI stelt per inspanning 3 gerichte vragen (frequentie, duur, deelnemers), berekent dan op basis van jouw antwoorden de uren per rol. Sla over en AI maakt zelf een schatting op basis van fasering + organogram.
+          </p>
+        </div>
+
+        {/* Stap 3 — Genereer */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => generateAdvies()}
+            disabled={loading || geselecteerdeTotaal === 0}
+            className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium"
+          >
+            {loading
+              ? "AI berekent interne uren voor 3 scenario's..."
+              : advies
+              ? `↻ Stap 3 — Regenereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen${vastgesteldeUrenPerInspanning.length > 0 ? " · met user-input" : ""})`
+              : `Stap 3 — Genereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen${vastgesteldeUrenPerInspanning.length > 0 ? " · met user-input" : ""})`}
+          </button>
+          {vastgesteldeUrenPerInspanning.length > 0 ? (
+            <p className="text-[11px] text-green-700 mt-1">
+              ✓ AI gebruikt jouw vastgestelde uren als hard input (totaal {vastgesteldeUrenPerInspanning.reduce((s, i) => s + i.rollen.reduce((a, r) => a + r.urenTotaal, 0), 0).toLocaleString("nl-NL")}u over alle inspanningen).
+            </p>
+          ) : (
+            <p className="text-[11px] text-gray-500 mt-1">
+              Geen vastgestelde uren — AI maakt zelf een schatting per scenario.
+            </p>
+          )}
+        </div>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -836,6 +1180,182 @@ export default function StapInterneUren({
             if (!s) return null;
             return <ScenarioBlokView key={sv.key} s={s} sv={sv} />;
           })}
+        </div>
+      )}
+
+      {/* Vragen-modal — STAP 2 Q&A */}
+      {vragenModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !vaststellenLoading && setVragenModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#003366]">Stap 2 — AI-vragen voor uren-onderbouwing</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Beantwoord per inspanning de 3 vragen. Antwoorden mogen kort/grof zijn (bijv. &quot;maandelijks 2u&quot;, &quot;12 sessies&quot;). Hoe specifieker, hoe realistischer de uren-schatting.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setVragenModalOpen(false)}
+                  disabled={vaststellenLoading}
+                  className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              {vragenPerInspanning.map((vi) => {
+                const col = DOMEIN_COLORS[vi.domein];
+                return (
+                  <div key={vi.groepId} className={`border-2 rounded-lg p-4 ${col.bg} ${col.border}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${col.text} bg-white`}>
+                        {DOMEIN_LABELS[vi.domein]}
+                      </span>
+                      <p className={`text-sm font-semibold ${col.text}`}>{vi.inspanningTitel}</p>
+                    </div>
+                    <div className="space-y-3">
+                      {vi.vragen.map((v, idx) => (
+                        <div key={v.id} className="bg-white rounded p-3 border border-gray-200">
+                          <p className="text-sm text-gray-800 mb-2">
+                            <span className="text-[#003366] font-semibold">{idx + 1}.</span> {v.vraag}
+                          </p>
+                          {v.voorbeeldAntwoord && (
+                            <p className="text-[11px] text-gray-500 italic mb-2">Bijvoorbeeld: {v.voorbeeldAntwoord}</p>
+                          )}
+                          <textarea
+                            value={antwoordenPerInspanning[vi.groepId]?.[v.id] ?? ""}
+                            onChange={(e) =>
+                              setAntwoordenPerInspanning((prev) => ({
+                                ...prev,
+                                [vi.groepId]: { ...prev[vi.groepId], [v.id]: e.target.value },
+                              }))
+                            }
+                            rows={2}
+                            placeholder="Jouw antwoord..."
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-5 border-t border-gray-200 sticky bottom-0 bg-white flex items-center justify-between gap-2">
+              <p className="text-xs text-gray-500">Lege antwoorden krijgen een conservatieve schatting van AI.</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setVragenModalOpen(false)}
+                  disabled={vaststellenLoading}
+                  className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Sluit
+                </button>
+                <button
+                  onClick={vaststellenUren}
+                  disabled={vaststellenLoading}
+                  className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium"
+                >
+                  {vaststellenLoading ? "AI rekent uren uit..." : "→ Stel uren vast"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vastgestelde uren — editable tabel */}
+      {urenTabelOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => setUrenTabelOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#003366]">Vastgestelde uren per inspanning (totaal over optimaal scenario)</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Pas waar nodig handmatig aan. Deze uren worden als <strong>hard input</strong> gebruikt door stap 3 — AI verdeelt ze over de jaren per scenario.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUrenTabelOpen(false)}
+                  className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              {vastgesteldeUrenPerInspanning.map((iu) => {
+                const col = DOMEIN_COLORS[iu.domein];
+                const totaalUrenInsp = iu.rollen.reduce((s, r) => s + r.urenTotaal, 0);
+                return (
+                  <div key={iu.groepId} className={`border-2 rounded-lg p-3 ${col.bg} ${col.border}`}>
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${col.text} bg-white`}>
+                          {DOMEIN_LABELS[iu.domein]}
+                        </span>
+                        <p className={`text-sm font-semibold ${col.text}`}>{iu.inspanningTitel}</p>
+                      </div>
+                      <p className="text-sm font-bold text-gray-800">{totaalUrenInsp.toLocaleString("nl-NL")}u</p>
+                    </div>
+                    <table className="w-full text-xs bg-white rounded">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-1 px-2 text-gray-500 font-semibold">Rol</th>
+                          <th className="text-left py-1 px-2 text-gray-500 font-semibold">Onderbouwing (AI)</th>
+                          <th className="text-right py-1 px-2 text-gray-500 font-semibold w-32">Uren totaal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {iu.rollen.map((r) => (
+                          <tr key={r.functieId} className="border-b border-gray-100 last:border-b-0">
+                            <td className="py-1 px-2">
+                              <p className="text-gray-800 font-medium">{r.functieNaam}</p>
+                              {r.afdeling && <p className="text-[10px] text-gray-500">{r.afdeling}</p>}
+                            </td>
+                            <td className="py-1 px-2 text-[11px] text-gray-600 italic leading-snug">{r.onderbouwing}</td>
+                            <td className="py-1 px-2 text-right">
+                              <input
+                                type="number"
+                                min={0}
+                                value={r.urenTotaal}
+                                onChange={(e) => pasUrenAan(iu.groepId, r.functieId, Number(e.target.value))}
+                                className="w-24 px-2 py-1 text-xs border border-gray-300 rounded bg-white text-right focus:outline-none focus:ring-1 focus:ring-[#003366]"
+                              />
+                              <span className="text-[10px] text-gray-500 ml-1">u</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-5 border-t border-gray-200 sticky bottom-0 bg-white flex items-center justify-end gap-2">
+              <button
+                onClick={() => setUrenTabelOpen(false)}
+                className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] font-medium"
+              >
+                Klaar — gebruik bij stap 3
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

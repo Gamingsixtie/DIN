@@ -86,10 +86,25 @@ type ToegestaneFunctieInput = {
   afdeling: string;
   schaal?: number;
   aantal?: number;
+  urenPerJaar?: number;
   custom?: boolean;
 };
 type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
 type ToegestaneFunctiesPerDomein = Record<Domein, ToegestaneFunctieInput[]>;
+
+// STAP 2 (Q&A) output: per inspanning per rol een uren-totaal over OPTIMAAL scenario
+type VastgesteldeUrenInspanning = {
+  groepId: string;
+  inspanningTitel: string;
+  domein: Domein;
+  rollen: Array<{
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    urenTotaal: number; // totaal over alle jaren × alle personen
+    onderbouwing: string;
+  }>;
+};
 
 function scenarioPrompt(
   scenarioLabel: "optimaal" | "plus20" | "min20",
@@ -109,8 +124,14 @@ function scenarioPrompt(
   },
   toegestaneFuncties?: Array<ToegestaneFunctieInput>,
   urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>,
-  toegestaneFunctiesPerDomein?: ToegestaneFunctiesPerDomein
+  toegestaneFunctiesPerDomein?: ToegestaneFunctiesPerDomein,
+  vastgesteldeUrenPerInspanning?: VastgesteldeUrenInspanning[],
+  aantalJarenOptimaal?: number
 ): string {
+  // Schaal vastgestelde uren (totaal over optimaal-scenario) naar dit scenario obv jaar-ratio
+  const ratioVoorDitScenario =
+    aantalJarenOptimaal && aantalJarenOptimaal > 0 ? scenarioData.aantalJaren / aantalJarenOptimaal : 1;
+  const heeftVastgestelde = vastgesteldeUrenPerInspanning && vastgesteldeUrenPerInspanning.length > 0;
   const tag =
     scenarioLabel === "optimaal"
       ? "OPTIMAAL (basis tempo)"
@@ -159,7 +180,29 @@ ${
     : citoFunctiesAlsPromptBlok()
 }
 
-**Taak — lever EXACT dit JSON-object voor dit ene scenario:**
+${
+  heeftVastgestelde
+    ? `**VASTGESTELDE UREN PER ROL PER INSPANNING (HARD INPUT VAN GEBRUIKER) — gebruik dit als BUDGET; verdeel het over de jaren obv fasering uit stap 6.**
+De gebruiker heeft via een vragen-flow per inspanning per rol een uren-totaal vastgesteld voor het OPTIMAAL scenario (${aantalJarenOptimaal ?? scenarioData.aantalJaren} jaar). Voor DIT scenario (${scenarioData.aantalJaren} jaar) schaal je proportioneel met factor ${ratioVoorDitScenario.toFixed(3)} (= dit_scenario_jaren / optimaal_jaren). De totaaluren per rol per inspanning over alle jaren in DIT scenario MOET gelijk zijn aan vastgesteldUrenTotaal × ${ratioVoorDitScenario.toFixed(3)} (afgerond).
+
+${vastgesteldeUrenPerInspanning!
+        .map(
+          (i) =>
+            `[${i.groepId}] ${i.inspanningTitel} (${i.domein}):\n${i.rollen
+              .map(
+                (r) =>
+                  `  - ${r.functieNaam} (id: ${r.functieId}): ${r.urenTotaal}u optimaal → ${Math.round(
+                    r.urenTotaal * ratioVoorDitScenario
+                  )}u in dit scenario | onderbouwing: ${r.onderbouwing}`
+              )
+              .join("\n")}`
+        )
+        .join("\n\n")}
+
+**Verdeel deze uren OVER DE JAREN per rol obv de fasering** (voorbereiding lager, uitrol hoger, borging matig). Geen rollen toevoegen die NIET in deze lijst staan voor die inspanning. Geen rollen weglaten. Activiteit-tekst per jaar mag je zelf maken obv stap 6.
+`
+    : ""
+}**Taak — lever EXACT dit JSON-object voor dit ene scenario:**
 {
   "scenarioLabel": "${scenarioLabel}",
   "domeinen": [
@@ -212,6 +255,7 @@ export async function POST(request: NextRequest) {
       toegestaneFuncties,
       toegestaneFunctiesPerDomein,
       urenBudgetPerJaar,
+      vastgesteldeUrenPerInspanning,
       finetuneInstructie,
       previousAdvies,
     } = body as {
@@ -243,6 +287,7 @@ export async function POST(request: NextRequest) {
       toegestaneFuncties?: Array<ToegestaneFunctieInput>;
       toegestaneFunctiesPerDomein?: ToegestaneFunctiesPerDomein;
       urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>;
+      vastgesteldeUrenPerInspanning?: VastgesteldeUrenInspanning[];
       finetuneInstructie?: string;
       previousAdvies?: unknown;
     };
@@ -297,7 +342,9 @@ export async function POST(request: NextRequest) {
           { ...scenario, inspanningen: enrichedInsps },
           toegestaneFuncties,
           urenBudgetPerJaar,
-          toegestaneFunctiesPerDomein
+          toegestaneFunctiesPerDomein,
+          vastgesteldeUrenPerInspanning,
+          scenarios?.optimaal?.aantalJaren
         ) + finetuneBlock,
         "cross-analyse",
         undefined,
