@@ -193,10 +193,11 @@ HARDE REGELS:
    - **Zachte kant** (cultuur + mens): leiderschapsprogramma's en gesprekvaardigheidstraining starten in jaar 1 en versterken elkaar.
    - **Harde kant** (data/systemen + processen): CRM-bouw, tooling-keuze, proces-ontwerp starten OOK in jaar 1 — die kan NIET wachten tot mens of cultuur "klaar" is. Wachten betekent dat in jaar 4 nog steeds geen werkende systemen er zijn — onacceptabel.
    - Beide kanten lopen tegelijk binnen het jaarbudget. Combineer en stagger binnen elk jaar; geen sequentiële domein-blokken.
-   - **CONCREET — verplichte minimum-spreiding:**
-     - In het STARTJAAR moet ELK van de 4 domeinen (cultuur, mens, data/systemen, processen) ten minste 10% van het jaarlijksBudgetEuro krijgen (bv. bij €250K/jr → minstens €25K per domein in 2026).
-     - In ALLE andere jaren behalve het laatste: minimaal 3 van de 4 domeinen actief (>5% van jaarlijksBudgetEuro elk).
-   - Outside-in geldt voor SPEND-zwaartepunt en RANKING (rank 1-4), NIET voor wanneer iets begint. Cultuur en mens hebben hun zwaartepunt vroeg, data/systemen en processen midden-tot-laat — maar ze starten allemaal samen.
+   - **FASE-REALISTISCHE VERDELING per inspanning** (verhouding moet aansluiten bij wat in dat jaar gedaan wordt):
+     - **Voorbereiding** (jaar 1, soms ook 2): typisch 10-25% van de inspannings-totaalkosten. Werk: scoping, ontwerp, leverancier-selectie, kick-off, eerste pilots.
+     - **Uitrol** (middenjaren): typisch 50-65% van de totaalkosten — de zwaarste fase. Werk: trainingen aan volle breedte, CRM-bouw + integratie, proces-implementatie.
+     - **Borging** (laatste jaar(en)): typisch 15-25% — verankering, evaluatie, doorlopende ondersteuning.
+   - Outside-in geldt voor SPEND-zwaartepunt en RANKING (rank 1-4), NIET voor wanneer iets begint. Cultuur en mens hebben hun zwaartepunt vroeg (uitrol-fase eerder), data/systemen en processen midden-tot-laat (uitrol verder in tijd) — maar ze starten allemaal in jaar 1 met voorbereiding.
 6. **Outside-in volgorde — voor RANKING (zwaartepunt-prioriteit), NIET voor sequentiële uitvoering:**
    - rank 1 = Cultuur (bereidheid — hoogste startzwaartepunt)
    - rank 2 = Mens (competenties — start parallel met cultuur, piek middenjaren)
@@ -297,17 +298,20 @@ export async function POST(request: NextRequest) {
       const eindJ = startJ + ai.aantalJaren - 1;
 
       // Server-side ENFORCEMENT: elke inspanning MOET in startjaar een non-zero
-      // bedrag hebben (parallelle uitvoering vanaf jaar 1). AI negeert deze regel
-      // soms, dus we shiften 10% van totaalEuro naar startjaar uit het grootste
-      // andere jaar.
+      // bedrag hebben (parallelle uitvoering = geen wachten). De HOOGTE volgt
+      // fase-logica (voorbereiding klein, uitrol groot, borging klein) — AI
+      // bepaalt zelf de verhoudingen op basis van \`fase\`. We forceren alleen
+      // een minimaal symbolisch bedrag (€1000) als startCell volledig €0 is.
       const aiInspsParallelGuarded = ai.inspanningen.map((insp) => {
         const verdeling = insp.verdelingPerJaar.map((v) => ({ ...v }));
         const startCell = verdeling.find((v) => v.jaar === startJ);
         const totaal = verdeling.reduce((s, v) => s + (v.euro ?? 0), 0);
         if (totaal === 0) return insp;
-        const minStartEuro = Math.round((totaal * 0.1) / 1000) * 1000; // 10% naar startjaar
         const huidigStart = startCell?.euro ?? 0;
-        if (huidigStart >= minStartEuro) return { ...insp, verdelingPerJaar: verdeling };
+        // Geen vast 10% meer — AI bepaalt fase-realistische verhouding.
+        // Alleen ingrijpen als startjaar VOLLEDIG €0 is (= "wachten", verboden).
+        if (huidigStart > 0) return { ...insp, verdelingPerJaar: verdeling };
+        const minStartEuro = 1000; // Symbolisch — AI moet zelf realistischer ratio kiezen
         const tekort = minStartEuro - huidigStart;
         // Pak het grootste niet-startjaar en haal er tekort vandaan
         const nietStart = verdeling.filter((v) => v.jaar !== startJ);
