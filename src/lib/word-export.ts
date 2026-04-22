@@ -1085,6 +1085,73 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     }
   }
 
+  // RASCI per individueel item: baten / vermogens / inspanningen
+  const itemRasci = session.itemRasci ?? [];
+  if (itemRasci.length > 0 && allRollen.length > 0) {
+    const renderItemMatrix = (
+      sectionTitle: string,
+      itemType: "benefit" | "capability" | "effort",
+      lookupTitle: (id: string) => string
+    ) => {
+      const filtered = itemRasci.filter((i) => i.itemType === itemType);
+      if (filtered.length === 0) return;
+      children.push(subHeading(sectionTitle));
+      const itemCol = 38;
+      const rolColCount = allRollen.length;
+      const rolColWidth = Math.max(4, Math.floor((100 - itemCol) / Math.max(1, rolColCount)));
+      const headerRow = new TableRow({
+        children: [
+          headerCell("Item", itemCol),
+          ...allRollen.map((rol) => headerCell(rol.rol, rolColWidth)),
+        ],
+      });
+      const rows = filtered.map((it) => {
+        const rijMap = new Map(it.rijen.map((r) => [r.rolId, r.letter]));
+        return new TableRow({
+          children: [
+            styledCell(lookupTitle(it.itemId), { width: itemCol, bold: true, size: 14 }),
+            ...allRollen.map((rol) => {
+              const letter = rijMap.get(rol.id);
+              return styledCell(letter ?? "", {
+                width: rolColWidth,
+                bold: letter === "A",
+                shading:
+                  letter === "A"
+                    ? "FFF3C4"
+                    : letter === "R"
+                      ? "DBEAFE"
+                      : letter === "V"
+                        ? "CFFAFE"
+                        : undefined,
+                size: 14,
+              });
+            }),
+          ],
+        });
+      });
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [headerRow, ...rows],
+        })
+      );
+      children.push(emptyLine());
+    };
+
+    renderItemMatrix("RASCI per baat", "benefit", (id) => {
+      const b = session.benefits.find((x) => x.id === id);
+      return b ? (b.title || b.description || "(naamloos)") : id;
+    });
+    renderItemMatrix("RASCI per individueel vermogen", "capability", (id) => {
+      const c = session.capabilities.find((x) => x.id === id);
+      return c ? `[${c.sectorId}] ${c.title || c.description || "(naamloos)"}` : id;
+    });
+    renderItemMatrix("RASCI per individuele inspanning", "effort", (id) => {
+      const e = session.efforts.find((x) => x.id === id);
+      return e ? `[${e.sectorId}] ${e.title || e.description || "(naamloos)"}` : id;
+    });
+  }
+
   // Bateneigenaren aggregeren
   const eigenaarMap: Record<string, { baten: string[]; sectors: Set<string> }> = {};
   session.benefits.forEach((b) => {

@@ -210,6 +210,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       verrijkteSectorplannen: {},
       completedGoals: [],
       clusterRasci: [],
+      itemRasci: [],
     };
     setSession(newSession);
     saveLocal(`session_${newSession.id}`, newSession);

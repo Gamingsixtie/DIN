@@ -299,16 +299,22 @@ Besluitvormingsritme en escalatiepad:
 - Escalatiepad: inspanningsleider → domeineigenaar → programmamanager → stuurgroep → opdrachtgever → bestuur. Expliciet maken voorkomt dat beslissingen blijven hangen.
 
 RASCI — het toewijzen van verantwoordelijkheden:
-RASCI is een methodiek om per taak, product of cluster helder vast te leggen wie welke rol heeft. De vijf letters:
+RASCI is een methodiek om per taak, product of cluster helder vast te leggen wie welke rol heeft. De vijf basisletters plus een optionele zesde:
 - R (Responsible) — voert het werk uit; kan meerdere personen zijn.
 - A (Accountable) — eindverantwoordelijk voor het resultaat; exact één persoon per regel (essentiële regel: nooit twee A's, anders is niemand verantwoordelijk).
 - S (Supportive) — ondersteunt de uitvoering actief met middelen, capaciteit of kennis.
 - C (Consulted) — wordt vóór het besluit of de uitvoering geraadpleegd (tweezijdige communicatie).
 - I (Informed) — wordt over de uitkomst geïnformeerd (eenzijdige communicatie).
+- V (Verifier) — OPTIONEEL: verifieert onafhankelijk dat de leverable of baat aan de afgesproken acceptatiecriteria voldoet, vóórdat A formeel accepteert. Voorkomt claim-drift in cross-sectorale baatrealisatie en sluit aan op vraag 3 van de batenprofiel-validatie (Hfst 8.5: 'Is de baat helder en meetbaar?'). Niet verplicht; gebruik vooral bij baten en bij cross-sectorale leverables waar onafhankelijke acceptatie zinvol is.
 
 Toepassingsregels:
-- Per regel (= per cluster, baat of inspanning): exact 1 A, minstens 1 R, S/C/I naar behoefte.
-- RASCI wordt bij voorkeur op clusterniveau gedefinieerd — hetzelfde cluster baten/vermogens/inspanningen kent dezelfde verantwoordelijkheidsverdeling. Alleen bij uitzondering wordt per individueel onderdeel afgeweken.
+- Per regel (= per item of cluster): exact 1 A, minstens 1 R, S/C/I naar behoefte. V is optioneel.
+- RASCI wordt op meerdere niveaus toegepast:
+  • Op cross-sectorale clusters (vermogen-clusters en inspanning-clusters uit cross-analyse) — voor programma-brede coördinatie.
+  • Op individuele BATEN — bateneigenaar = vrijwel altijd A (Hfst 8.5: 'eindverantwoordelijk voor realisatie'); programmamanager = C of V; stuurgroep = I.
+  • Op individuele VERMOGENS per sector — domeineigenaar binnen de sector = A; sectortrekker = R; bateneigenaren die dit vermogen nodig hebben = C.
+  • Op individuele INSPANNINGEN — inspanningsleider (Hfst 11.3 'beoogde projectleider/trekker') = R; opdrachtgever van de inspanning (Hfst 11.3 'beoogde eigenaar') = A; domeineigenaar = C; programmamanager = S of I.
+- Overload-regel: geen rol mag op meer dan 4 items A zijn. Boven die drempel ontstaat overlapping eindverantwoordelijkheid en burnout-risico; verdeel A's over kerngroep/domeineigenaren.
 - De RASCI-matrix hoort bij het programmaplan en wordt samen met de programmaorganisatie geagendeerd bij de eerste stuurgroep.
 - In cross-sectorale programma's is RASCI cruciaal omdat meerdere sectoren aanspraak kunnen maken op hetzelfde resultaat.
 

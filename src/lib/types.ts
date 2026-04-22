@@ -59,6 +59,10 @@ export type {
   AIProgrammaorganisatie,
   AIGovernanceRasciResponse,
   SubEffortAdvies,
+  RasciItemType,
+  ItemRasci,
+  AIItemRasci,
+  AIGovernanceItemRasciResponse,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder
@@ -154,28 +158,33 @@ export const DOMAIN_COLORS: Record<EffortDomain, { bar: string; bg: string; text
 
 // --- RASCI labels (single source of truth) ---
 
-export const RASCI_LABELS: Record<"R" | "A" | "S" | "C" | "I", string> = {
+export type RasciLetterKey = "R" | "A" | "S" | "C" | "I" | "V";
+
+export const RASCI_LABELS: Record<RasciLetterKey, string> = {
   R: "Responsible",
   A: "Accountable",
   S: "Supportive",
   C: "Consulted",
   I: "Informed",
+  V: "Verifier",
 };
 
-export const RASCI_TOELICHTING: Record<"R" | "A" | "S" | "C" | "I", string> = {
+export const RASCI_TOELICHTING: Record<RasciLetterKey, string> = {
   R: "Voert het werk uit",
   A: "Eindverantwoordelijk (exact 1 per regel)",
   S: "Ondersteunt actief de uitvoering",
   C: "Wordt vooraf geraadpleegd",
   I: "Wordt geïnformeerd over voortgang",
+  V: "Verifieert leverable onafhankelijk (optioneel)",
 };
 
-export const RASCI_KLEUREN: Record<"R" | "A" | "S" | "C" | "I", string> = {
+export const RASCI_KLEUREN: Record<RasciLetterKey, string> = {
   R: "bg-blue-100 text-blue-800 border-blue-300",
   A: "bg-amber-100 text-amber-900 border-amber-400 font-bold",
   S: "bg-emerald-50 text-emerald-700 border-emerald-200",
   C: "bg-purple-50 text-purple-700 border-purple-200",
   I: "bg-gray-100 text-gray-600 border-gray-300",
+  V: "bg-cyan-50 text-cyan-800 border-cyan-300",
 };
 
 // --- Integratie-advies gestructureerd resultaat ---

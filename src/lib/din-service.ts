@@ -675,13 +675,28 @@ function computeGovernanceCompletion(session: DINSession): number {
   }
 
   const rasci = session.clusterRasci ?? [];
-  const validCount = rasci.filter((r) => {
+  const validClusterCount = rasci.filter((r) => {
     const nA = r.rijen.filter((x) => x.letter === "A").length;
     const nR = r.rijen.filter((x) => x.letter === "R").length;
     return nA === 1 && nR >= 1;
   }).length;
 
-  const rasciScore = Math.round((validCount / totalClusters) * 100);
+  // Item-RASCI: hoeveel items hebben een geldige RASCI?
+  const items = session.itemRasci ?? [];
+  const validItemCount = items.filter((i) => {
+    const nA = i.rijen.filter((x) => x.letter === "A").length;
+    const nR = i.rijen.filter((x) => x.letter === "R").length;
+    return nA === 1 && nR >= 1;
+  }).length;
+  const totalItems =
+    session.benefits.length +
+    session.capabilities.filter((c) => !c.consolidated).length +
+    session.efforts.filter((e) => !e.consolidated).length;
+
+  const clusterScore = Math.round((validClusterCount / totalClusters) * 100);
+  // Item-coverage telt voor 30%, cluster-coverage voor 70% van het RASCI-deel
+  const itemScore = totalItems > 0 ? Math.round((validItemCount / totalItems) * 100) : clusterScore;
+  const rasciScore = Math.round(clusterScore * 0.7 + itemScore * 0.3);
   return Math.round(organisatieScore * 0.5 + rasciScore * 0.5);
 }
 
@@ -689,9 +704,15 @@ function governanceDetails(session: DINSession): string {
   const po = session.programmaorganisatie;
   if (!po) return "Nog niet ingevuld";
   const rasci = session.clusterRasci ?? [];
-  const validCount = rasci.filter((r) => {
+  const validClusterCount = rasci.filter((r) => {
     const nA = r.rijen.filter((x) => x.letter === "A").length;
     const nR = r.rijen.filter((x) => x.letter === "R").length;
+    return nA === 1 && nR >= 1;
+  }).length;
+  const items = session.itemRasci ?? [];
+  const validItemCount = items.filter((i) => {
+    const nA = i.rijen.filter((x) => x.letter === "A").length;
+    const nR = i.rijen.filter((x) => x.letter === "R").length;
     return nA === 1 && nR >= 1;
   }).length;
   const rolCount =
@@ -701,7 +722,8 @@ function governanceDetails(session: DINSession): string {
     (po.stuurgroep?.length ?? 0) +
     (po.domeineigenaren?.length ?? 0) +
     (po.klankbordgroep?.length ?? 0);
-  return `${rolCount} rollen, ${validCount}/${rasci.length} clusters met geldige RASCI`;
+  const itemTotal = items.length;
+  return `${rolCount} rollen · ${validClusterCount}/${rasci.length} clusters · ${validItemCount}/${itemTotal} items`;
 }
 
 // --- Doel-voor-Doel Voortgang (Phase 6) ---

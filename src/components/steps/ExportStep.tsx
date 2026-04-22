@@ -830,6 +830,83 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
         </SubSection>
       )}
 
+      {/* RASCI per individueel item (baten, vermogens, inspanningen) */}
+      {(() => {
+        const itemRasci = session.itemRasci ?? [];
+        if (itemRasci.length === 0 || allRollen.length === 0) return null;
+        const benefitsRasci = itemRasci.filter((i) => i.itemType === "benefit");
+        const capabilitiesRasci = itemRasci.filter((i) => i.itemType === "capability");
+        const effortsRasci = itemRasci.filter((i) => i.itemType === "effort");
+        const renderItemList = (
+          itemsRasci: typeof itemRasci,
+          lookupTitle: (id: string) => string
+        ) => (
+          <div className="space-y-2">
+            {itemsRasci.map((it) => {
+              const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [], V: [] };
+              for (const rij of it.rijen) {
+                const rol = rolMap.get(rij.rolId);
+                if (rol) perLetter[rij.letter].push(rol.rol);
+              }
+              const nA = it.rijen.filter((x) => x.letter === "A").length;
+              const nR = it.rijen.filter((x) => x.letter === "R").length;
+              const valid = nA === 1 && nR >= 1;
+              return (
+                <div key={it.itemId} className="border border-gray-200 rounded p-2 bg-white">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-gray-800">{lookupTitle(it.itemId)}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${valid ? "bg-green-50 text-green-800 border-green-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
+                      {valid ? "✓" : `${nA}A/${nR}R`}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-gray-700 space-y-0.5">
+                    {(["A", "R", "S", "C", "I", "V"] as const).map((l) =>
+                      perLetter[l].length > 0 ? (
+                        <div key={l}>
+                          <span className="font-bold text-gray-600">{l}:</span> {perLetter[l].join("; ")}
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                  {it.toelichting && (
+                    <div className="text-[10px] text-gray-500 italic mt-1">{it.toelichting}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+        return (
+          <>
+            {benefitsRasci.length > 0 && (
+              <SubSection title="RASCI per baat">
+                {renderItemList(benefitsRasci, (id) => {
+                  const b = session.benefits.find((x) => x.id === id);
+                  return b ? (b.title || b.description || "(naamloos)") : id;
+                })}
+              </SubSection>
+            )}
+            {capabilitiesRasci.length > 0 && (
+              <SubSection title="RASCI per individueel vermogen">
+                {renderItemList(capabilitiesRasci, (id) => {
+                  const c = session.capabilities.find((x) => x.id === id);
+                  return c ? `[${c.sectorId}] ${c.title || c.description || "(naamloos)"}` : id;
+                })}
+              </SubSection>
+            )}
+            {effortsRasci.length > 0 && (
+              <SubSection title="RASCI per individuele inspanning">
+                {renderItemList(effortsRasci, (id) => {
+                  const e = session.efforts.find((x) => x.id === id);
+                  return e ? `[${e.sectorId} · ${DOMAIN_LABELS[e.domain]}] ${e.title || e.description || "(naamloos)"}` : id;
+                })}
+              </SubSection>
+            )}
+          </>
+        );
+      })()}
+
       {/* Bateneigenaren */}
       <SubSection title="Bateneigenaren">
         <div className="overflow-hidden border border-gray-200 rounded-lg">

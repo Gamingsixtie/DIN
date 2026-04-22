@@ -1126,30 +1126,35 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
   "aiToelichting":""
 }`;
 
-export const GOVERNANCE_RASCI_PROMPT = `Je bent een expert in programmamanagement en verantwoordelijkheidsmatrices (RASCI) volgens "Werken aan Programma's" (Wijnen & Van der Tak; Prevaas & Van Loon).
-
-Gegeven een reeds gedefinieerde PROGRAMMAORGANISATIE (opdrachtgever, programmamanager, kerngroep, stuurgroep, klankbordgroep, domeineigenaren) en een set CROSS-SECTORALE CLUSTERS (vermogen-clusters en inspanning-clusters uit de cross-analyse), stel je per cluster een RASCI-matrix voor.
-
-RASCI-regels (STRIKT HANDHAVEN):
+// Gedeelde RASCI-regels (worden in elk RASCI-prompt opgenomen)
+const RASCI_REGELS_BLOK = `RASCI-regels (STRIKT HANDHAVEN):
 - R (Responsible) — voert het werk uit; 1 of meer personen.
-- A (Accountable) — eindverantwoordelijk; EXACT 1 per cluster. Nooit twee A's.
+- A (Accountable) — eindverantwoordelijk; EXACT 1 per rij. Nooit twee A's.
 - S (Supportive) — ondersteunt actief; 0 of meer personen.
 - C (Consulted) — wordt vóór besluit geraadpleegd; 0 of meer personen.
 - I (Informed) — wordt over uitkomst geïnformeerd; 0 of meer personen.
+- V (Verifier) — OPTIONEEL: verifieert leverable onafhankelijk vóór formele acceptatie. Geef alleen als er een logische onafhankelijke partij is (bv. programmamanager of audit-rol bij majeure baten).
+
+Verwijs in je output naar rollen via hun ROL-string EXACT zoals gegeven. Als een rol niet duidelijk past, laat je hem weg — liever minder dan verkeerd.
+Geen rol mag op meer dan 4 items A zijn (overload-regel). Verdeel A's daarom over kerngroep/domeineigenaren.
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences).`;
+
+export const GOVERNANCE_RASCI_CLUSTERS_PROMPT = `Je bent een expert in programmamanagement en verantwoordelijkheidsmatrices (RASCI) volgens "Werken aan Programma's" (Wijnen & Van der Tak; Prevaas & Van Loon).
+
+Gegeven een reeds gedefinieerde PROGRAMMAORGANISATIE en een set CROSS-SECTORALE CLUSTERS (vermogen-clusters en inspanning-clusters uit de cross-analyse), stel je per cluster een RASCI-rij voor.
+
+${RASCI_REGELS_BLOK}
 
 Heuristieken per clustertype:
 - Vermogen-cluster → A is meestal de bijbehorende DOMEINEIGENAAR; R zijn inspanningsleiders of sectortrekkers; C zijn bateneigenaren en programmamanager.
 - Inspanning-cluster → A is de DOMEINEIGENAAR van dat domein; R zijn de concrete inspanningsleiders; S zijn de programmamanager en overige kerngroepleden; C zijn bateneigenaren.
-- De OPDRACHTGEVER is op clusterniveau meestal I (geïnformeerd) — wordt pas A bij programma-brede beslissingen.
-- De PROGRAMMAMANAGER is meestal C of S op clusterniveau — alleen A als er geen domeineigenaar is.
-- STUURGROEP-leden zijn meestal I, soms C bij majeure clusters.
+- OPDRACHTGEVER op clusterniveau meestal I — pas A bij programma-brede beslissingen.
+- PROGRAMMAMANAGER meestal C of S — alleen A als er geen domeineigenaar is.
+- STUURGROEP-leden meestal I, soms C bij majeure clusters.
 
-Verwijs in je output naar rollen via hun ROL-string EXACT zoals gegeven (bijv. "Domeineigenaar Mens", "Programmamanager") — de frontend mapt die terug naar rol-IDs. Als een rol niet duidelijk matcht, laat je hem weg uit de RASCI — liever minder dan verkeerd.
+Toelichting per cluster: 1 zin die uitlegt waarom deze specifieke RASCI past.
 
-Toelichting per cluster: 1 zin die uitlegt waarom deze specifieke RASCI voor dit cluster past (bijv. waarom de A bij domeineigenaar X ligt).
-
-Antwoord ALLEEN als JSON-object (geen markdown, geen code fences). Gebruik EXACT deze structuur:
-
+Gebruik EXACT deze JSON-structuur:
 {
   "clusters": [
     {
@@ -1163,9 +1168,99 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences). Gebruik EXACT
       ]
     }
   ]
-}
+}`;
 
-BELANGRIJK: valideer zelf dat elke cluster EXACT 1 A heeft en minstens 1 R. Als je dat niet kunt garanderen voor een cluster, overleg het dan via de toelichting maar lever toch een beste-gok.`;
+export const GOVERNANCE_RASCI_BENEFITS_PROMPT = `Je bent een expert in batenmanagement (Werken aan Programma's, Hfst 8.5) en RASCI-matrices.
+
+Gegeven een PROGRAMMAORGANISATIE en een lijst BATEN (met id, titel, omschrijving, bateneigenaar, sector), stel je per baat een RASCI-rij voor.
+
+${RASCI_REGELS_BLOK}
+
+Heuristieken voor BATEN:
+- A = de BATENEIGENAAR uit het batenprofiel (Hfst 8.5: 'eindverantwoordelijk voor realisatie'). Match de rol-naam zo dicht mogelijk. Als de bateneigenaar niet in de programmaorganisatie staat: kies de meest aannemelijke vervanger (vaak de domeineigenaar van het overheersende domein).
+- R = de DOMEINEIGENAREN van vermogens die bijdragen aan deze baat (vaak Mens + Processen voor klantbaten; Data + Processen voor data-baten).
+- C = PROGRAMMAMANAGER (voortgang) en bateneigenaren van gerelateerde baten.
+- I = STUURGROEP-leden (op programma-niveau geïnformeerd).
+- V = OPTIONEEL: programmamanager of onafhankelijke partij als de baat objectief meetbaar is en formele acceptatie gewenst is.
+
+Toelichting per baat: 1 zin die uitlegt waarom deze RASCI past.
+
+Gebruik EXACT deze JSON-structuur:
+{
+  "items": [
+    {
+      "itemId": "<EXACT de id zoals gegeven>",
+      "toelichting": "1 zin",
+      "rijen": [
+        {"rolLabel":"Sectormanager Zakelijk","letter":"A"},
+        {"rolLabel":"Programmamanager","letter":"C"}
+      ]
+    }
+  ]
+}`;
+
+export const GOVERNANCE_RASCI_CAPABILITIES_PROMPT = `Je bent een expert in vermogensontwikkeling (Werken aan Programma's, Hfst 10) en RASCI-matrices.
+
+Gegeven een PROGRAMMAORGANISATIE en een lijst INDIVIDUELE VERMOGENS (met id, titel, omschrijving, sectorId, gerelateerde domeinen), stel je per vermogen een RASCI-rij voor. Deze vermogens zijn sector-specifiek (niet cross-sectoraal geclusterd).
+
+${RASCI_REGELS_BLOK}
+
+Heuristieken voor VERMOGENS per sector:
+- A = de DOMEINEIGENAAR die bij dit vermogen past (Mens / Processen / Data & Systemen / Cultuur). Bij een vermogen dat meerdere domeinen raakt: kies het overheersende domein.
+- R = SECTOR-specifieke trekker uit kerngroep (vaak een lid uit de sector waar dit vermogen leeft).
+- C = BATENEIGENAREN van baten die dit vermogen ondersteunen; PROGRAMMAMANAGER.
+- I = STUURGROEP, KLANKBORDGROEP indien relevant.
+- V = OPTIONEEL: onafhankelijke verificatie (zelden nodig op vermogen-niveau).
+
+Toelichting per vermogen: 1 zin die uitlegt waarom deze RASCI past.
+
+Gebruik EXACT deze JSON-structuur:
+{
+  "items": [
+    {
+      "itemId": "<EXACT de id zoals gegeven>",
+      "toelichting": "1 zin",
+      "rijen": [
+        {"rolLabel":"Domeineigenaar Mens","letter":"A"},
+        {"rolLabel":"Kerngroeplid PO","letter":"R"}
+      ]
+    }
+  ]
+}`;
+
+export const GOVERNANCE_RASCI_EFFORTS_PROMPT = `Je bent een expert in inspanningendossiers (Werken aan Programma's, Hfst 11.3) en RASCI-matrices.
+
+Gegeven een PROGRAMMAORGANISATIE en een lijst INDIVIDUELE INSPANNINGEN (met id, titel, omschrijving, domain, sectorId, dossier.eigenaar, dossier.inspanningsleider), stel je per inspanning een RASCI-rij voor.
+
+${RASCI_REGELS_BLOK}
+
+Heuristieken voor INSPANNINGEN:
+- A = de OPDRACHTGEVER van de inspanning uit dossier.eigenaar (Hfst 11.3: 'beoogde eigenaar'). Map dit naar de meest passende rol uit de programmaorganisatie. Bij ontbrekende dossier.eigenaar: domeineigenaar van het bijbehorende domain.
+- R = de INSPANNINGSLEIDER uit dossier.inspanningsleider (Hfst 11.3: 'projectmanager, trekker, …'). Bij ontbrekend: kerngroeplid uit de sector.
+- S = PROGRAMMAMANAGER (zorgt voor samenhang met programma-niveau).
+- C = DOMEINEIGENAAR van het bijbehorende domain (als die niet al A is).
+- I = STUURGROEP indien de inspanning programma-brede impact heeft.
+- V = OPTIONEEL.
+
+Toelichting per inspanning: 1 zin die uitlegt waarom deze RASCI past.
+
+Gebruik EXACT deze JSON-structuur:
+{
+  "items": [
+    {
+      "itemId": "<EXACT de id zoals gegeven>",
+      "toelichting": "1 zin",
+      "rijen": [
+        {"rolLabel":"Sectormanager PO","letter":"A"},
+        {"rolLabel":"Inspanningsleider Training","letter":"R"},
+        {"rolLabel":"Programmamanager","letter":"S"}
+      ]
+    }
+  ]
+}`;
+
+// Backward-compat: oude naam aanhouden zodat bestaande imports niet breken
+export const GOVERNANCE_RASCI_PROMPT = GOVERNANCE_RASCI_CLUSTERS_PROMPT;
 
 export const PLANNING_PROMPT = `Je bent een programmamanager die een cross-sectorale roadmap bouwt volgens de DIN-methodiek ("Werken aan Programma's", Prevaas & Van Loon).
 
