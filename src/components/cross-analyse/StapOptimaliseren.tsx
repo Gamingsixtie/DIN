@@ -112,6 +112,8 @@ export default function StapOptimaliseren({
   const [begrotingLoading, setBegrotingLoading] = useState(false);
   const [begrotingError, setBegrotingError] = useState<string | null>(null);
   const [oudBegrotingGevonden, setOudBegrotingGevonden] = useState(false);
+  const [finetuneInstructie, setFinetuneInstructie] = useState<string>("");
+  const [finetuneOpen, setFinetuneOpen] = useState<boolean>(false);
 
   type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
   type ScenarioLabel = "optimaal" | "plus20" | "min20";
@@ -620,7 +622,10 @@ export default function StapOptimaliseren({
     }
   }
 
-  async function generateBegrotingsAdvies() {
+  async function generateBegrotingsAdvies(opts?: {
+    finetuneInstructie?: string;
+    previousAdvies?: DrieScenarioAdvies | null;
+  }) {
     setBegrotingLoading(true);
     setBegrotingError(null);
 
@@ -679,6 +684,8 @@ export default function StapOptimaliseren({
           inspanningen,
           scope: session.scope,
           vision: session.vision,
+          finetuneInstructie: opts?.finetuneInstructie ?? "",
+          previousAdvies: opts?.previousAdvies ?? null,
         }),
       });
       // Robust parse — Vercel/edge kan bij timeout HTML "An error occurred" terugsturen
@@ -1269,7 +1276,9 @@ export default function StapOptimaliseren({
           Voer het <strong>vaste jaarlijks budget</strong> in (bedrag per jaar dat beschikbaar is zolang het programma loopt).
           AI berekent drie scenario&apos;s die allemaal hetzelfde einddoel bereiken — alleen het tempo verschilt:
           <strong> Optimaal</strong> (jouw budget), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
-          Outside-in volgorde: cultuur → mens → data/systemen → processen.
+          Outside-in volgorde voor zwaartepunt: cultuur → mens → data/systemen → processen.
+          Parallel werken is toegestaan — zachte kant (cultuur+mens) en harde kant (data/systemen+processen) kunnen tegelijk lopen.
+          <strong> Het startjaar-budget moet volledig benut worden</strong> (vrijval bij onderbesteding).
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
@@ -1325,7 +1334,7 @@ export default function StapOptimaliseren({
         )}
 
         <button
-          onClick={generateBegrotingsAdvies}
+          onClick={() => generateBegrotingsAdvies()}
           disabled={begrotingLoading}
           className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
         >
@@ -1423,6 +1432,61 @@ export default function StapOptimaliseren({
                     {begrotingAdvies.vergelijking}
                   </p>
                 )}
+
+                {/* Fineut-paneel — instructie naar AI voor herrekening van scenarios */}
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                  {!finetuneOpen ? (
+                    <button
+                      onClick={() => setFinetuneOpen(true)}
+                      className="text-xs px-3 py-1.5 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8]"
+                    >
+                      ✎ Fineut met AI
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                        Fineut met AI — wat moet anders?
+                      </p>
+                      <textarea
+                        value={finetuneInstructie}
+                        onChange={(e) => setFinetuneInstructie(e.target.value)}
+                        rows={3}
+                        placeholder="Bijvoorbeeld: 'verleng Optimaal naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'schuif data/systemen volledig naar de laatste 2 jaar' of 'maak prioriteitAdvies concreter — benoem de PO-leiders'."
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setFinetuneOpen(false);
+                            setFinetuneInstructie("");
+                          }}
+                          disabled={begrotingLoading}
+                          className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          Annuleer
+                        </button>
+                        <button
+                          onClick={() => {
+                            const instr = finetuneInstructie.trim();
+                            if (!instr) {
+                              setBegrotingError("Vul een fineut-instructie in.");
+                              return;
+                            }
+                            generateBegrotingsAdvies({
+                              finetuneInstructie: instr,
+                              previousAdvies: begrotingAdvies,
+                            });
+                            setFinetuneOpen(false);
+                          }}
+                          disabled={begrotingLoading || !finetuneInstructie.trim()}
+                          className="text-xs px-3 py-1.5 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
+                        >
+                          {begrotingLoading ? "AI rekent door..." : "Stuur naar AI"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Per scenario een blok — alleen voor succesvol gegenereerde scenarios */}

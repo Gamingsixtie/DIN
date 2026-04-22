@@ -86,7 +86,8 @@ type Scenario = {
 
 function scenarioPrompt(
   label: "optimaal" | "plus20" | "min20",
-  jaarlijksBudget: number
+  jaarlijksBudget: number,
+  finetune?: { instructie: string; vorigeScenario: unknown }
 ): string {
   const intro =
     label === "optimaal"
@@ -95,7 +96,11 @@ function scenarioPrompt(
       ? "SCENARIO +20% — 20% méér budget per jaar. Daardoor gaat de uitvoering SNELLER: minder jaren nodig, werk per jaar intensiever."
       : "SCENARIO −20% — 20% mínder budget per jaar. Daardoor gaat de uitvoering LANGZAMER: meer jaren nodig, werk per jaar extensiever.";
 
-  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.
+  const finetuneBlock = finetune
+    ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (aantalJaren, verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie.\n`
+    : "";
+
+  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}
 
 **JAARLIJKS BUDGET IS VAST.** Bepaal hoeveel jaar nodig is om ALLE inspanningen volledig uit te voeren, gegeven het jaarlijks budget. Niet af-schalen, niet uitdunnen — álle inspanningen moeten er volledig in.
 
@@ -171,6 +176,12 @@ HARDE REGELS:
 1. **aantalJaren moet REËEL zijn** gegeven het jaarlijks budget: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
 2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen overschrijding van het jaarlijks budget in welk jaar dan ook.
 3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING moet de totale dossier-raming benaderen** (eenmalige + structurele kosten samen).
+4. **STARTJAAR-BUDGET MOET VOLLEDIG WORDEN OPGEMAAKT.** Het budget van het eerste jaar (\`startJaar\`) is al toegekend en MOET dat jaar daadwerkelijk worden uitgegeven — geen onderbesteding, geen doorschuiven naar later. Som van \`verdelingPerJaar[startJaar].euro\` over alle inspanningen ≈ \`jaarlijksBudgetEuro\` (binnen 5% marge naar boven afronding). Dit is een harde organisatorische eis: budget dat dit jaar niet wordt besteed, valt vrij. Plan dus zoveel cultuur/mens/voorbereiding-werk in dat het volledig benut wordt.
+5. **PARALLELLE UITVOERING IS TOEGESTAAN EN GEWENST.** Inspanningen hoeven NIET sequentieel — combineer in dezelfde jaren:
+   - **Zachte kant** (cultuur + mens) kan parallel lopen — leiderschapsprogramma's en gesprekvaardigheidstraining versterken elkaar
+   - **Harde kant** (data/systemen + processen) kan parallel lopen — CRM-bouw en proces-ontwerp informeren elkaar
+   - Zachte en harde kant kunnen ook parallel lopen, mits het jaarbudget het toestaat
+   Het outside-in principe blijft (rank: cultuur > mens > data/systemen > processen voor STARTzwaartepunt), maar overlap in dezelfde kalenderjaren is uitdrukkelijk OK. Plan vooral het eerste jaar zo dat het budget volledig benut is met meerdere parallelle starts.
 4. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
    - rank 1 = Cultuur (bereidheid — zijn ze bereid te doen wat ze beloven? — moet eerst)
    - rank 2 = Mens (competenties, gesprekvaardigheid — volgt direct na cultuur, kan parallel starten)
@@ -215,12 +226,16 @@ export async function POST(request: NextRequest) {
       startJaar,
       focusDoel,
       inspanningen,
+      finetuneInstructie,
+      previousAdvies,
     } = body as {
       jaarlijksBudgetEuro?: number;
       cyclusMaanden?: number;
       startJaar?: number;
       focusDoel?: unknown;
       inspanningen?: unknown;
+      finetuneInstructie?: string;
+      previousAdvies?: unknown;
     };
 
     if (!jaarlijksBudgetEuro || typeof jaarlijksBudgetEuro !== "number" || jaarlijksBudgetEuro <= 0) {
@@ -318,6 +333,14 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Bij finetune: pak de vorige scenario uit previousAdvies om als context mee
+    // te geven aan AI. Helpt om consistentie te bewaren met onveranderde delen.
+    const prevScenarios = (previousAdvies as
+      | { scenarios?: { optimaal?: unknown; plus20?: unknown; min20?: unknown } }
+      | undefined)?.scenarios;
+    const trimmedInstructie = (finetuneInstructie ?? "").trim();
+    const isFinetune = trimmedInstructie.length > 0 && !!prevScenarios;
+
     async function genereer(
       label: "optimaal" | "plus20" | "min20",
       jaarlijksBudget: number,
@@ -326,8 +349,11 @@ export async function POST(request: NextRequest) {
       // Stagger startup om rate-limit-burst bij parallelle calls te voorkomen
       if (staggerMs > 0) await new Promise((r) => setTimeout(r, staggerMs));
       try {
+        const finetuneArg = isFinetune
+          ? { instructie: trimmedInstructie, vorigeScenario: prevScenarios?.[label] ?? null }
+          : undefined;
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, jaarlijksBudget),
+          scenarioPrompt(label, jaarlijksBudget, finetuneArg),
           "cross-analyse",
           undefined,
           kibContext
