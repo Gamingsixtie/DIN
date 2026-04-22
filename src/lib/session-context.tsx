@@ -60,6 +60,10 @@ interface SessionContextValue {
   loadSession: (id: string) => void;
   createSession: (name: string) => DINSession;
   updateSession: (updater: (prev: DINSession) => Partial<DINSession>) => void;
+  // Forceer direct een Supabase-save + wacht op resultaat. Gebruik na critical
+  // writes (begrotingsadvies, interne-uren-advies, totaaloverzicht) zodat je een
+  // success/fail kan tonen aan de gebruiker i.p.v. fire-and-forget.
+  saveNow: () => Promise<number | false>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -286,6 +290,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // Force-save naar Supabase — blokkerend (awaitable) en returnt success/fail.
+  // Gebruik na critical writes zodat UI direct kan bevestigen of het landde.
+  const saveNow = useCallback(async (): Promise<number | false> => {
+    const toSave = latestSessionRef.current;
+    if (!toSave) return false;
+    syncStatusRef.current.setSyncing();
+    try {
+      const result = await saveSessionToSupabase(toSave);
+      if (result !== false) {
+        syncStatusRef.current.setSynced();
+        setSession((prev) => prev && prev.version !== result ? { ...prev, version: result } : prev);
+        return result;
+      }
+      addPendingSave(toSave);
+      syncStatusRef.current.setError();
+      return false;
+    } catch {
+      addPendingSave(toSave);
+      syncStatusRef.current.setError();
+      return false;
+    }
+  }, []);
+
   return (
     <SessionContext.Provider
       value={{
@@ -296,6 +323,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         loadSession,
         createSession,
         updateSession,
+        saveNow,
       }}
     >
       {children}

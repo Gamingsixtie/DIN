@@ -291,6 +291,32 @@ export default function CrossAnalyseWizard() {
     });
   }, [updateSession]);
 
+  // Markeer een specifieke stap als voltooid (gebruikt door kindcomponenten die
+  // na een succesvolle generate + save automatisch willen voltooien).
+  const handleMarkStepCompleted = useCallback((displayStep: number) => {
+    setWizardState((prev) => {
+      if (prev.completedSteps.has(displayStep)) return prev;
+      const newCompleted = new Set(prev.completedSteps);
+      newCompleted.add(displayStep);
+
+      updateSession((prevSession) => {
+        const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+        const localStepResults = prev.stepResults as Record<string, Record<string, unknown> | undefined>;
+        const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
+        return {
+          crossAnalyseWizard: {
+            currentStep: prev.currentStep,
+            completedSteps: Array.from(newCompleted),
+            wizardVersion: 2,
+            stepResults: mergedStepResults as typeof prev.stepResults,
+          },
+        };
+      });
+
+      return { ...prev, completedSteps: newCompleted };
+    });
+  }, [updateSession]);
+
   // AI call handler
   const handleAnalyse = useCallback(async () => {
     if (!session || wizardState.currentStep < 2) return;
@@ -585,12 +611,14 @@ export default function CrossAnalyseWizard() {
             session={session}
             stap4Result={wizardState.stepResults.stap4}
             stap2Result={wizardState.stepResults.stap2}
+            onStepCompleted={() => handleMarkStepCompleted(6)}
           />
         )}
         {wizardState.currentStep === 7 && (
           <StapInterneUren
             session={session}
             stap4Result={wizardState.stepResults.stap4}
+            onStepCompleted={() => handleMarkStepCompleted(7)}
           />
         )}
         {wizardState.currentStep === 8 && (

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "@/lib/session-context";
+import { useToast } from "@/components/ui/Toast";
 import type { DINSession, Stap4Result, EffortDomain } from "@/lib/types";
 import type { SubEffortAdvies } from "@/lib/schemas";
 import { computeFieldDiff, type FieldDiff } from "@/lib/diff";
@@ -24,12 +25,15 @@ export default function StapOptimaliseren({
   session,
   stap4Result,
   stap2Result,
+  onStepCompleted,
 }: {
   session: DINSession;
   stap4Result?: Stap4Result;
   stap2Result?: import("@/lib/types").Stap2Result;
+  onStepCompleted?: () => void;
 }): React.ReactElement {
-  const { updateSession } = useSession();
+  const { updateSession, saveNow } = useSession();
+  const { addToast } = useToast();
   const [entries, setEntries] = useState<SubEffortAdvies[]>([]);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [savedIndex, setSavedIndex] = useState<number | null>(null);
@@ -285,18 +289,23 @@ export default function StapOptimaliseren({
     if (entries.length === 0) return;
     const timer = setTimeout(() => {
       updateSession((prev) => {
-        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
-        const prevSub = prev.crossAnalyseWizard.stepResults.stap4.subEffortAnalysis ?? [];
+        const currentWiz = prev.crossAnalyseWizard;
+        const currentStap4 = currentWiz?.stepResults?.stap4;
+        const prevSub = currentStap4?.subEffortAnalysis ?? [];
         // Vergelijk alleen op inhoud — voorkom no-op writes
         if (JSON.stringify(prevSub) === JSON.stringify(entries)) return prev;
+        // NOOIT silent-droppen: als stap4 niet bestaat, init minimaal.
         return {
           ...prev,
           crossAnalyseWizard: {
-            ...prev.crossAnalyseWizard,
+            currentStep: currentWiz?.currentStep ?? 6,
+            completedSteps: currentWiz?.completedSteps ?? [],
+            wizardVersion: currentWiz?.wizardVersion ?? 2,
+            ...currentWiz,
             stepResults: {
-              ...prev.crossAnalyseWizard.stepResults,
+              ...(currentWiz?.stepResults ?? {}),
               stap4: {
-                ...prev.crossAnalyseWizard.stepResults.stap4,
+                ...(currentStap4 ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
                 subEffortAnalysis: entries,
               },
             },
@@ -743,23 +752,35 @@ export default function StapOptimaliseren({
         setFinetuneVersie(1);
         setLaatsteFineutInstructie("");
       }
-      // Persisteer in session onder stap4Result (zodat navigatie + reload behouden blijft)
+      // Persisteer in session — NOOIT silent-droppen: init minimaal als stap4 ontbreekt.
       updateSession((prev) => {
-        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
+        const currentWiz = prev.crossAnalyseWizard;
+        const currentStap4 = currentWiz?.stepResults?.stap4;
         return {
           ...prev,
           crossAnalyseWizard: {
-            ...prev.crossAnalyseWizard,
+            currentStep: currentWiz?.currentStep ?? 6,
+            completedSteps: currentWiz?.completedSteps ?? [],
+            wizardVersion: currentWiz?.wizardVersion ?? 2,
+            ...currentWiz,
             stepResults: {
-              ...prev.crossAnalyseWizard.stepResults,
+              ...(currentWiz?.stepResults ?? {}),
               stap4: {
-                ...prev.crossAnalyseWizard.stepResults.stap4,
+                ...(currentStap4 ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
                 begrotingAdvies: data.data,
-              } as typeof prev.crossAnalyseWizard.stepResults.stap4,
+              } as NonNullable<typeof currentStap4>,
             },
           },
         };
       });
+      // Force direct een Supabase-save + wacht op resultaat zodat we UI-feedback kunnen tonen.
+      const version = await saveNow();
+      if (version !== false) {
+        addToast(`Begrotingsadvies opgeslagen (v${version})`, "success");
+        onStepCompleted?.();
+      } else {
+        addToast("Opslaan naar cloud mislukt — wijzigingen staan lokaal opgeslagen. Probeer later opnieuw.", "error");
+      }
       setBegrotingLoading(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Netwerkfout";

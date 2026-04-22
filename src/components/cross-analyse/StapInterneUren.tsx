@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
+import { useToast } from "@/components/ui/Toast";
 import type { DINSession, Stap4Result } from "@/lib/types";
 import {
   DEFAULT_BASIS_TARIEF,
@@ -107,11 +108,14 @@ const SCENARIO_META: Array<{
 export default function StapInterneUren({
   session,
   stap4Result,
+  onStepCompleted,
 }: {
   session: DINSession;
   stap4Result?: Stap4Result;
+  onStepCompleted?: () => void;
 }): React.ReactElement {
-  const { updateSession } = useSession();
+  const { updateSession, saveNow } = useSession();
+  const { addToast } = useToast();
 
   const [basisTarief, setBasisTarief] = useState<number>(DEFAULT_BASIS_TARIEF);
   const [referentiejaar, setReferentiejaar] = useState<number>(DEFAULT_REFERENTIEJAAR);
@@ -581,10 +585,11 @@ export default function StapInterneUren({
     if (!hasMounted) return;
     const timer = setTimeout(() => {
       updateSession((prev) => {
-        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
-        const huidig = (prev.crossAnalyseWizard.stepResults.stap4 as unknown as {
+        const currentWiz = prev.crossAnalyseWizard;
+        const currentStap4 = currentWiz?.stepResults?.stap4;
+        const huidig = (currentStap4 as unknown as {
           stap7InterneUren?: InterneUrenAdvies;
-        }).stap7InterneUren;
+        } | undefined)?.stap7InterneUren;
         // Bestaand AI-advies behouden, alleen user-input merge'n
         const merged: InterneUrenAdvies = {
           ...(huidig ?? {
@@ -599,16 +604,20 @@ export default function StapInterneUren({
           ...(vragenPerInspanning.length > 0 ? { vragenPerInspanning } : {}),
           ...(vastgesteldeUrenPerInspanning.length > 0 ? { vastgesteldeUrenPerInspanning } : {}),
         } as InterneUrenAdvies;
+        // NOOIT silent-droppen: als stap4 niet bestaat, init minimaal.
         return {
           ...prev,
           crossAnalyseWizard: {
-            ...prev.crossAnalyseWizard,
+            currentStep: currentWiz?.currentStep ?? 7,
+            completedSteps: currentWiz?.completedSteps ?? [],
+            wizardVersion: currentWiz?.wizardVersion ?? 2,
+            ...currentWiz,
             stepResults: {
-              ...prev.crossAnalyseWizard.stepResults,
+              ...(currentWiz?.stepResults ?? {}),
               stap4: {
-                ...prev.crossAnalyseWizard.stepResults.stap4,
+                ...(currentStap4 ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
                 stap7InterneUren: merged,
-              } as typeof prev.crossAnalyseWizard.stepResults.stap4,
+              } as NonNullable<typeof currentStap4>,
             },
           },
         };
@@ -786,23 +795,35 @@ export default function StapInterneUren({
         ...(vastgesteldeUrenPerInspanning.length > 0 ? { vastgesteldeUrenPerInspanning } : {}),
       } as InterneUrenAdvies;
       setAdvies(verrijkt);
-      // Persisteer in session onder stap4.stap7InterneUren
+      // Persisteer in session — NOOIT silent-droppen: init minimaal als stap4 ontbreekt.
       updateSession((prev) => {
-        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
+        const currentWiz = prev.crossAnalyseWizard;
+        const currentStap4 = currentWiz?.stepResults?.stap4;
         return {
           ...prev,
           crossAnalyseWizard: {
-            ...prev.crossAnalyseWizard,
+            currentStep: currentWiz?.currentStep ?? 7,
+            completedSteps: currentWiz?.completedSteps ?? [],
+            wizardVersion: currentWiz?.wizardVersion ?? 2,
+            ...currentWiz,
             stepResults: {
-              ...prev.crossAnalyseWizard.stepResults,
+              ...(currentWiz?.stepResults ?? {}),
               stap4: {
-                ...prev.crossAnalyseWizard.stepResults.stap4,
+                ...(currentStap4 ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
                 stap7InterneUren: verrijkt,
-              } as typeof prev.crossAnalyseWizard.stepResults.stap4,
+              } as NonNullable<typeof currentStap4>,
             },
           },
         };
       });
+      // Force save + bevestig in UI
+      const version = await saveNow();
+      if (version !== false) {
+        addToast(`Interne-uren-advies opgeslagen (v${version})`, "success");
+        onStepCompleted?.();
+      } else {
+        addToast("Opslaan naar cloud mislukt — wijzigingen staan lokaal opgeslagen. Probeer later opnieuw.", "error");
+      }
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Netwerkfout");

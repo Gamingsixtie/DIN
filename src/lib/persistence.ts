@@ -90,6 +90,11 @@ export async function saveSessionToSupabase(
 
   const client = supabase; // TS narrowing: non-null after guard
 
+  const t0 = Date.now();
+  const payloadSizeKB = Math.round(JSON.stringify(session).length / 1024);
+  const shortId = session.id.slice(0, 8);
+  console.log(`[save] sessie ${shortId} v${session.version ?? 0} → Supabase (${payloadSizeKB} KB)…`);
+
   try {
     return await withRetry(
       async () => {
@@ -136,7 +141,9 @@ export async function saveSessionToSupabase(
           saveLocal(`session_${session.id}`, current);
         }
 
+        const dt = Date.now() - t0;
         _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] OK v${nextVersion} | ${effortCount} inspanningen | remote was v${remoteVersion}`;
+        console.log(`[save] ✓ sessie ${shortId} v${nextVersion} | ${payloadSizeKB} KB | ${dt}ms`);
         return nextVersion;
       },
       { maxRetries: 3, label: "saveSession" }
@@ -144,7 +151,7 @@ export async function saveSessionToSupabase(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     _lastSyncDebug = `[${new Date().toLocaleTimeString("nl-NL")}] MISLUKT: ${msg}`;
-    console.error("[persistence] Supabase sessie-opslag mislukt na retries:", e);
+    console.error(`[save] ✗ sessie ${shortId}: ${msg}`);
     return false;
   }
 }
