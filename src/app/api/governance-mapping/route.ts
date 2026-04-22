@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
         AIProgrammaorganisatieSchema,
         systemPrompt,
         userMessage,
-        { maxTokens: 3000, model: "claude-sonnet-4-6" }
+        { maxTokens: 8192, model: "claude-sonnet-4-6", prefillJson: true }
       );
 
       if (!result.success) {
