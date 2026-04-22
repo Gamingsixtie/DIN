@@ -90,7 +90,9 @@ Input JSON:
       "beargumentatie": "<waarom dit cluster — hefboom-onderbouwing>",
       "vermogenImpact": [{ "sectorId": "po|vo|zakelijk", "impact": "<wat het vermogen oplevert voor die sector>" }],
       "dossier": { "eigenaar", "inspanningsleider", "verwachtResultaat", "randvoorwaarden" },
-      "dossierKostenraming": "<business-case-raming, 1-3 zinnen met €-bedragen + fasering>"
+      "dossierKostenraming": "<business-case-raming, 1-3 zinnen met €-bedragen + fasering>",
+      "businessCaseAannames": ["<aanname die de raming onderbouwt>", ...],
+      "businessCaseRisicos": ["<risico dat de raming kan veranderen>", ...]
     }
   ]
 }
@@ -99,6 +101,11 @@ Input JSON:
 - \`motivatie\` per inspanning (waarom deze in deze fase, waarom dit budget-aandeel)
 - \`verdelingPerJaar.fase\` (welke fase past bij welke activiteit — voorbereiding / uitrol / borging)
 - \`prioriteitAdvies\` (outside-in motivering op basis van de inhoudelijke hefbomen)
+
+**Business-case aannames + risico's gebruiken:** \`businessCaseAannames\` zijn de ramings-onderbouwingen door de gebruiker (bv. "uitgaande van 40 medewerkers per sector", "trainingsdag €800"). \`businessCaseRisicos\` zijn factoren die de raming kunnen veranderen (bv. "consultant-tarieven kunnen 20% omhoog", "scope kan uitbreiden"). Gebruik deze:
+- Om \`motivatie\` per inspanning te onderbouwen (verwijs naar de aannames waar relevant)
+- Om in de fasering rekening te houden met risico's (bv. risico-vol traject in latere jaren plannen voor afname-onzekerheid)
+- In \`samenvatting\` of \`prioriteitAdvies\` benoemen welke aannames kritisch zijn voor het slagen binnen budget
 
 Taak — lever EXACT dit JSON-object (één Scenario):
 {

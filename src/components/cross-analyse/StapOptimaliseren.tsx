@@ -635,21 +635,28 @@ export default function StapOptimaliseren({
 
     const inspanningen = entries
       .filter((e) => e.actie === "combineren")
-      .map((e) => ({
-        titel: e.titel ?? e.voorgesteldeNaam ?? `${e.domein} inspanning`,
-        groepId: e.groepId,
-        domein: e.domein,
-        beschrijving: e.beschrijving ?? "",
-        beargumentatie: e.beargumentatie ?? "",
-        vermogenImpact: e.vermogenImpact ?? [],
-        dossier: {
-          eigenaar: e.dossier?.eigenaar ?? "",
-          inspanningsleider: e.dossier?.inspanningsleider ?? "",
-          verwachtResultaat: e.dossier?.verwachtResultaat ?? "",
-          randvoorwaarden: e.dossier?.randvoorwaarden ?? "",
-        },
-        dossierKostenraming: e.dossier?.kostenraming ?? "",
-      }));
+      .map((e) => {
+        const bc = (e as unknown as { businessCase?: {
+          result?: { kostenraming: string; aannames?: string[]; risicos?: string[] };
+        }}).businessCase;
+        return {
+          titel: e.titel ?? e.voorgesteldeNaam ?? `${e.domein} inspanning`,
+          groepId: e.groepId,
+          domein: e.domein,
+          beschrijving: e.beschrijving ?? "",
+          beargumentatie: e.beargumentatie ?? "",
+          vermogenImpact: e.vermogenImpact ?? [],
+          dossier: {
+            eigenaar: e.dossier?.eigenaar ?? "",
+            inspanningsleider: e.dossier?.inspanningsleider ?? "",
+            verwachtResultaat: e.dossier?.verwachtResultaat ?? "",
+            randvoorwaarden: e.dossier?.randvoorwaarden ?? "",
+          },
+          dossierKostenraming: e.dossier?.kostenraming ?? "",
+          businessCaseAannames: bc?.result?.aannames ?? [],
+          businessCaseRisicos: bc?.result?.risicos ?? [],
+        };
+      });
 
     if (inspanningen.length === 0) {
       setBegrotingError("Geen geconsolideerde inspanningen om te begroten.");
