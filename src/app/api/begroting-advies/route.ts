@@ -229,42 +229,43 @@ export async function POST(request: NextRequest) {
 
     async function genereer(
       label: "optimaal" | "plus20" | "min20",
-      jaarlijksBudget: number,
-      pogingen = 2
+      jaarlijksBudget: number
     ): Promise<Scenario | null> {
-      const systemPrompt = assembleSystemPrompt(
-        scenarioPrompt(label, jaarlijksBudget),
-        "cross-analyse",
-        undefined,
-        kibContext
-      );
-      const userMessage = JSON.stringify(
-        { ...scenarioInput, jaarlijksBudgetEuro: jaarlijksBudget },
-        null,
-        2
-      );
-      for (let i = 0; i < pogingen; i++) {
-        try {
-          const res = await callClaudeWithValidation(
-            ScenarioSchema,
-            systemPrompt,
-            userMessage,
-            { maxTokens: 6144 }
-          );
-          if (res.success) return res.data;
-        } catch {
-          // zwaluwen — retry
-        }
-        // korte backoff voor eventuele rate-limit
-        if (i < pogingen - 1) await new Promise((r) => setTimeout(r, 1500));
+      try {
+        const systemPrompt = assembleSystemPrompt(
+          scenarioPrompt(label, jaarlijksBudget),
+          "cross-analyse",
+          undefined,
+          kibContext
+        );
+        const userMessage = JSON.stringify(
+          { ...scenarioInput, jaarlijksBudgetEuro: jaarlijksBudget },
+          null,
+          2
+        );
+        // callClaudeWithValidation heeft al 2 interne retries — geen outer retry hier.
+        const res = await callClaudeWithValidation(
+          ScenarioSchema,
+          systemPrompt,
+          userMessage,
+          { maxTokens: 6144 }
+        );
+        if (res.success) return res.data;
+        console.error(`[begroting-advies] ${label} validation failed:`, res.error);
+        return null;
+      } catch (err) {
+        console.error(`[begroting-advies] ${label} threw:`, err);
+        return null;
       }
-      return null;
     }
 
-    // Sequentieel — voorkomt rate-limit burst bij parallelle Claude-calls
-    const optimaal = await genereer("optimaal", budgetOptimaal);
-    const plus20 = await genereer("plus20", budgetPlus20);
-    const min20 = await genereer("min20", budgetMin20);
+    // Parallel — sneller binnen Vercel-timeout. callClaudeWithValidation
+    // heeft interne retries dus rate-limit hits worden netjes opgevangen.
+    const [optimaal, plus20, min20] = await Promise.all([
+      genereer("optimaal", budgetOptimaal),
+      genereer("plus20", budgetPlus20),
+      genereer("min20", budgetMin20),
+    ]);
 
     if (!optimaal || !plus20 || !min20) {
       const falend = [

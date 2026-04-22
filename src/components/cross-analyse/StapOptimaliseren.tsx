@@ -609,13 +609,25 @@ export default function StapOptimaliseren({
           vision: session.vision,
         }),
       });
-      const data = await res.json();
+      // Robust parse — Vercel/edge kan bij timeout HTML "An error occurred" terugsturen
+      let data: { success?: boolean; data?: unknown; error?: string };
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        const hint = res.status === 504 || res.status === 502
+          ? "Server-time-out — probeer opnieuw of vereenvoudig de inspanningen."
+          : `Server-fout ${res.status}: ${text.slice(0, 120)}`;
+        setBegrotingError(hint);
+        setBegrotingLoading(false);
+        return;
+      }
       if (!data.success) {
         setBegrotingError(data.error ?? "Onbekende fout");
         setBegrotingLoading(false);
         return;
       }
-      setBegrotingAdvies(data.data);
+      setBegrotingAdvies(data.data as DrieScenarioAdvies);
       setOudBegrotingGevonden(false);
       // Persisteer in session onder stap4Result (zodat navigatie + reload behouden blijft)
       updateSession((prev) => {
