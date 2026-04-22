@@ -282,7 +282,7 @@ export async function POST(request: NextRequest) {
         AIGovernanceRasciResponseSchema,
         systemPrompt,
         userMessage,
-        { maxTokens: 8192, model: "claude-sonnet-4-6" }
+        { maxTokens: 16384, model: "claude-sonnet-4-6", prefillJson: true }
       );
 
       if (!result.success) {
@@ -313,7 +313,7 @@ export async function POST(request: NextRequest) {
         AIGovernanceItemRasciResponseSchema,
         systemPrompt,
         userMessage,
-        { maxTokens: 8192, model: "claude-sonnet-4-6" }
+        { maxTokens: 16384, model: "claude-sonnet-4-6", prefillJson: true }
       );
 
       if (!result.success) {
@@ -344,7 +344,7 @@ export async function POST(request: NextRequest) {
         AIGovernanceItemRasciResponseSchema,
         systemPrompt,
         userMessage,
-        { maxTokens: 8192, model: "claude-sonnet-4-6" }
+        { maxTokens: 16384, model: "claude-sonnet-4-6", prefillJson: true }
       );
 
       if (!result.success) {
@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
         AIGovernanceItemRasciResponseSchema,
         systemPrompt,
         userMessage,
-        { maxTokens: 8192, model: "claude-sonnet-4-6" }
+        { maxTokens: 16384, model: "claude-sonnet-4-6", prefillJson: true }
       );
 
       if (!result.success) {

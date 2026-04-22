@@ -45,28 +45,56 @@ function getClient(): Anthropic {
   });
 }
 
+async function callClaudeRich(
+  systemPrompt: string,
+  userMessage: string,
+  maxTokens?: number,
+  model: "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7" = "claude-sonnet-4-6",
+  options?: { prefillJson?: boolean }
+): Promise<{ text: string; stopReason: string | null }> {
+  const client = getClient();
+  try {
+    const messages: { role: "user" | "assistant"; content: string }[] = [
+      { role: "user", content: userMessage },
+    ];
+    // Anthropic prefill: forceer JSON-only output door assistant te starten met "{"
+    if (options?.prefillJson) {
+      messages.push({ role: "assistant", content: "{" });
+    }
+    const response = await client.messages.create({
+      model,
+      max_tokens: maxTokens || 4096,
+      system: systemPrompt,
+      messages,
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    let text = textBlock ? textBlock.text : "";
+    if (options?.prefillJson) {
+      // Prefill verschijnt NIET in de response — plak terug zodat parser hem ziet
+      text = "{" + text;
+    }
+    if (response.stop_reason === "max_tokens") {
+      console.warn(
+        `[ai-client] Output afgekapt op max_tokens (${maxTokens || 4096}). Repair via extractJSON wordt toegepast.`
+      );
+    }
+    return { text, stopReason: response.stop_reason ?? null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Onbekende AI-fout";
+    console.error("[ai-client] callClaudeRich fout:", message);
+    throw new Error(`Claude API-fout: ${message}`);
+  }
+}
+
 async function callClaude(
   systemPrompt: string,
   userMessage: string,
   maxTokens?: number,
   model: "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7" = "claude-sonnet-4-6"
 ): Promise<string> {
-  const client = getClient();
-  try {
-    const response = await client.messages.create({
-      model,
-      max_tokens: maxTokens || 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    });
-
-    const textBlock = response.content.find((b) => b.type === "text");
-    return textBlock ? textBlock.text : "";
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Onbekende AI-fout";
-    console.error("[ai-client] callClaude fout:", message);
-    throw new Error(`Claude API-fout: ${message}`);
-  }
+  const { text } = await callClaudeRich(systemPrompt, userMessage, maxTokens, model);
+  return text;
 }
 
 // ============================================================
@@ -79,32 +107,106 @@ export type ParseResult<T> =
 
 /**
  * Extract JSON uit een AI response string.
- * Verwijdert markdown code blocks en zoekt naar het eerste valide JSON object.
+ * Strategie:
+ *  1. Strip markdown code fences.
+ *  2. Probeer de hele tekst als JSON.
+ *  3. Greedy regex (eerste { tot laatste }).
+ *  4. Brace-scanner: zoek eerste { en bouw exact één balanced object.
+ *  5. Repair: bij truncatie sluit open strings/braces en strip trailing comma's.
  */
 export function extractJSON(raw: string): string | null {
   if (!raw || raw.trim().length === 0) return null;
 
-  const cleaned = raw
+  // Strip codefences en eventuele leidende prose tot eerste {
+  let cleaned = raw
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/i, "")
     .trim();
 
-  // Probeer de hele cleaned string als JSON te parsen
+  // 1) hele string?
   try {
     JSON.parse(cleaned);
     return cleaned;
-  } catch { /* ga door naar regex fallback */ }
+  } catch { /* door */ }
 
-  // Fallback: zoek naar JSON object in de tekst
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) {
+  // 2) greedy first { → last }
+  const greedy = cleaned.match(/\{[\s\S]*\}/);
+  if (greedy) {
     try {
-      JSON.parse(match[0]);
-      return match[0];
-    } catch { /* geen valide JSON gevonden */ }
+      JSON.parse(greedy[0]);
+      return greedy[0];
+    } catch { /* door */ }
   }
 
-  return null;
+  // 3) brace-scanner — vind eerste { en bouw zo veel mogelijk een balanced object
+  const start = cleaned.indexOf("{");
+  if (start < 0) return null;
+  cleaned = cleaned.slice(start);
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let lastBalancedEnd = -1;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const c = cleaned[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (c === "\\") { escape = true; continue; }
+      if (c === '"') { inString = false; }
+      continue;
+    }
+    if (c === '"') { inString = true; continue; }
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) lastBalancedEnd = i;
+    }
+  }
+
+  if (lastBalancedEnd > 0) {
+    const candidate = cleaned.slice(0, lastBalancedEnd + 1);
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch { /* door */ }
+  }
+
+  // 4) Repair-poging op truncatie: sluit open string + open braces, strip trailing komma's
+  let repair = cleaned;
+  if (inString) repair += '"';
+  // Strip trailing onvolledige sleutel/waarde na laatste komma op huidig diepteniveau:
+  // pragmatisch — knip af tot laatste duidelijke , of {
+  const lastBreak = Math.max(repair.lastIndexOf(","), repair.lastIndexOf("{"));
+  if (lastBreak > 0) {
+    repair = repair.slice(0, lastBreak);
+    if (repair.endsWith(",")) repair = repair.slice(0, -1);
+  }
+  // Sluit overgebleven open braces
+  let openBraces = 0;
+  let inStr = false;
+  let esc = false;
+  for (const c of repair) {
+    if (esc) { esc = false; continue; }
+    if (inStr) {
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') { inStr = true; continue; }
+    if (c === "{") openBraces++;
+    else if (c === "}") openBraces--;
+  }
+  if (inStr) repair += '"';
+  while (openBraces > 0) { repair += "}"; openBraces--; }
+
+  try {
+    JSON.parse(repair);
+    console.warn("[ai-client] extractJSON gerepareerd vanuit truncatie");
+    return repair;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -154,7 +256,13 @@ export async function callClaudeWithValidation<T>(
   schema: z.ZodType<T>,
   systemPrompt: string,
   userMessage: string,
-  options?: { maxTokens?: number; model?: string; maxRetries?: number; retryDelayMs?: number }
+  options?: {
+    maxTokens?: number;
+    model?: string;
+    maxRetries?: number;
+    retryDelayMs?: number;
+    prefillJson?: boolean;
+  }
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
   const MAX_RETRIES = options?.maxRetries ?? 2;
   const baseDelay = options?.retryDelayMs ?? 0;
@@ -167,13 +275,17 @@ export async function callClaudeWithValidation<T>(
       await new Promise((r) => setTimeout(r, wait));
     }
     let raw: string;
+    let stopReason: string | null = null;
     try {
-      raw = await callClaude(
+      const rich = await callClaudeRich(
         systemPrompt,
         userMessage,
         options?.maxTokens,
-        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7") || "claude-sonnet-4-6"
+        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7") || "claude-sonnet-4-6",
+        { prefillJson: options?.prefillJson }
       );
+      raw = rich.text;
+      stopReason = rich.stopReason;
     } catch (err) {
       lastError = err instanceof Error ? err.message : "Claude API-fout";
       console.error(`[ai-client] callClaudeWithValidation poging ${attempt + 1}/${MAX_RETRIES + 1} mislukt:`, lastError);
@@ -183,7 +295,10 @@ export async function callClaudeWithValidation<T>(
     if (result.success) {
       return { success: true, data: result.data };
     }
-    lastError = result.error;
+    lastError =
+      stopReason === "max_tokens"
+        ? `${result.error} (output afgekapt op max_tokens=${options?.maxTokens || 4096} — verhoog of splits invoer)`
+        : result.error;
   }
 
   return { success: false, error: lastError };
