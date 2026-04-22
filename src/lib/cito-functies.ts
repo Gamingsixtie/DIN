@@ -66,9 +66,11 @@ export const CITO_FUNCTIES: CitoFunctie[] = [
   { id: "mdw_ms_c", naam: "Medewerker Media Support C", schaal: 8, afdeling: "Ondersteuning & Productie", indicatieFte: 3, inspanningRelevantie: ["processen"] },
   { id: "bureauredacteur", naam: "Bureauredacteur / documentalist", schaal: 9, afdeling: "Ondersteuning & Productie", indicatieFte: 0.89, inspanningRelevantie: ["processen"] },
   { id: "content_specialist", naam: "Content Specialist", schaal: 10, afdeling: "Ondersteuning & Productie", indicatieFte: 1.78, inspanningRelevantie: ["mens", "processen"] },
-  { id: "teamleider_trainingen", naam: "Teamleider Trainingen", schaal: 10, afdeling: "Ondersteuning & Productie", indicatieFte: 1, inspanningRelevantie: ["mens", "cultuur"] },
-  { id: "trainer_adviseur_a", naam: "Trainer/Adviseur A", schaal: 11, afdeling: "Ondersteuning & Productie", indicatieFte: 2, inspanningRelevantie: ["mens", "cultuur"] },
-  { id: "trainer_adviseur_b", naam: "Trainer/Adviseur B", schaal: 12, afdeling: "Ondersteuning & Productie", indicatieFte: 5.84, inspanningRelevantie: ["mens", "cultuur"] },
+  // Trainers zijn voor klantcontact-training, NIET voor programma-interne-begeleiding —
+  // standaard niet in default-relevantie. Gebruiker kan ze handmatig selecteren indien relevant.
+  { id: "teamleider_trainingen", naam: "Teamleider Trainingen", schaal: 10, afdeling: "Ondersteuning & Productie", indicatieFte: 1, inspanningRelevantie: [] },
+  { id: "trainer_adviseur_a", naam: "Trainer/Adviseur A", schaal: 11, afdeling: "Ondersteuning & Productie", indicatieFte: 2, inspanningRelevantie: [] },
+  { id: "trainer_adviseur_b", naam: "Trainer/Adviseur B", schaal: 12, afdeling: "Ondersteuning & Productie", indicatieFte: 5.84, inspanningRelevantie: [] },
 
   // === SECTOR PO ===
   { id: "sectormanager_po", naam: "Sectormanager PO", schaal: 14, afdeling: "Sector PO", indicatieFte: 1, inspanningRelevantie: ["cultuur", "mens", "data_systemen", "processen"] },

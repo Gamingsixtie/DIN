@@ -68,7 +68,13 @@ type VerrijkteScenario = {
   startJaar: number;
   uurtariefGebruikt: number;
   domeinen: VerrijkteDomein[];
-  totalenPerJaar: Array<{ jaar: number; uren: number; kosten: number }>;
+  totalenPerJaar: Array<{
+    jaar: number;
+    uren: number;
+    kosten: number;
+    urenBudget?: number;
+    urenGap?: number; // voorstel − budget; positief = tekort, negatief = overschot
+  }>;
   totaalUren: number;
   totaalKosten: number;
   samenvatting: string;
@@ -89,7 +95,9 @@ function scenarioPrompt(
       businessCaseInterneRollen?: string;
       businessCaseInterneUren?: string;
     }>;
-  }
+  },
+  toegestaneFuncties?: Array<{ id: string; naam: string; afdeling: string; schaal: number }>,
+  urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>
 ): string {
   const tag =
     scenarioLabel === "optimaal"
@@ -105,8 +113,22 @@ function scenarioPrompt(
 - jaarlijksBudgetEuro (out-of-pocket): € ${scenarioData.jaarlijksBudgetEuro.toLocaleString("nl-NL")}
 - inspanningen (per inspanning per jaar: fase, activiteit, out-of-pocket euros)
 
-**Cito-organogram (kies rollen HIERUIT, niet verzinnen):**
-${citoFunctiesAlsPromptBlok()}
+${
+  urenBudgetPerJaar && urenBudgetPerJaar.length > 0
+    ? `**UREN-BUDGET NORM per jaar (beschikbaar vanuit Finance voor programma-interne uren) — toon een GAP als je totaal voorstel afwijkt:**
+${urenBudgetPerJaar.map((u) => `  - ${u.jaar}: ${u.urenBudget.toLocaleString("nl-NL")} uren beschikbaar`).join("\n")}
+\nStreef ernaar binnen dit uren-budget per jaar te blijven. Als het programma MEER uren vraagt dan beschikbaar is: BENOEM dit expliciet in de motivatie per domein (gap = voorstel − budget). Onderbesteding is ook OK — maar niet als dat betekent dat werk blijft liggen.
+
+`
+    : ""
+}**TOEGESTANE FUNCTIES — de gebruiker heeft DEZE rollen geselecteerd voor deze analyse. Kies UITSLUITEND hieruit; gebruik geen enkele functie die hier NIET in staat.**
+${
+  toegestaneFuncties && toegestaneFuncties.length > 0
+    ? toegestaneFuncties
+        .map((f) => `  - ${f.naam} (id: ${f.id}, afdeling: ${f.afdeling}, schaal ${f.schaal})`)
+        .join("\n")
+    : citoFunctiesAlsPromptBlok()
+}
 
 **Taak — lever EXACT dit JSON-object voor dit ene scenario:**
 {
@@ -132,13 +154,13 @@ ${citoFunctiesAlsPromptBlok()}
 }
 
 **HARDE REGELS:**
-1. **Gebruik ALLEEN functieId + functieNaam uit het Cito-organogram hierboven.** Geen verzonnen rollen. Als een rol echt ontbreekt (bv. externe consultant): gebruik functieId "extern" en functieNaam "Externe <specialisme>".
-2. **Aansluiten bij stap 6 fasering:** dezelfde jaren, activiteiten die matchen bij wat in dat jaar voor die inspanning gepland is. Als stap 6 zegt "CRM-leverancier selectie + architectuur-besluit" in jaar 1 voor data/systemen, dan horen daar rollen bij als "Manager Data & Technologie", "Business informatieanalist C", "Productowner".
+1. **Gebruik UITSLUITEND functieId + functieNaam uit de TOEGESTANE FUNCTIES-lijst hierboven.** Geen enkele andere rol. Geen verzonnen rollen. Geen trainers of andere functies die NIET in die lijst staan. Als een echt nodig specialisme ontbreekt in de toegestane lijst: gebruik functieId "extern" en functieNaam "Externe <specialisme>" — maar bij voorkeur kies je iets uit de toegestane lijst.
+2. **Aansluiten bij stap 6 fasering:** dezelfde jaren, activiteiten die matchen bij wat in dat jaar voor die inspanning gepland is. Als stap 6 zegt "CRM-leverancier selectie + architectuur-besluit" in jaar 1 voor data/systemen, dan horen daar rollen bij als "Manager Data & Technologie", "Business informatieanalist C", "Productowner" — MITS die in de toegestane lijst staan.
 3. **Realistische uren per rol per jaar.** 1 FTE = ~1600 werkbare uren/jaar. Voor een rol die 10% op dit programma zit = 160 uur/jr. Voor zware trekkers (Sectormanager op cultuur in jaar 1) = 300-500u. Voor experts die af en toe bijspringen = 40-120u.
-4. **Per domein minimaal 2-3 rollen per jaar**, soms meer bij grote inspanningen. Vermijd 10+ rollen per jaar (onoverzichtelijk).
-5. **Domein → rollen richtlijn:**
-   - **Cultuur**: Directeur BV, Sectormanagers (PO/VO/Professionals), Manager Klantcontact, Trainer/Adviseur A/B, Projectmanager D, Campagne Marketeer
-   - **Mens**: Teamleider Trainingen, Trainer/Adviseur A/B, Content Specialist, Toetsdeskundigen A/B/C (PO/VO/Professionals), Medewerker Media Support
+4. **Per domein minimaal 2-3 rollen per jaar uit de toegestane lijst**, soms meer bij grote inspanningen. Vermijd 10+ rollen per jaar (onoverzichtelijk). Als het domein weinig passende toegestane rollen heeft: houd het compact met 1-2 rollen.
+5. **Domein → rol-richtlijn (alleen toepassen als die rol in de toegestane lijst staat):**
+   - **Cultuur**: Directeur BV, Sectormanagers (PO/VO/Professionals), Manager Klantcontact, Projectmanager D, Campagne Marketeer
+   - **Mens**: Content Specialist, Toetsdeskundigen A/B/C (PO/VO/Professionals), Medewerker Media Support
    - **Data/Systemen**: Manager Data & Technologie, Productowners, Business informatieanalist C, Procesmanager Data, Productmanager A/B (per sector), Onderwijskundig onderzoeker C
    - **Processen**: Teamleider PS, Procesondersteuner C (per sector), Projectmanager C/D, Kwaliteitsmanager, Medewerker Proces Support A-E, Inkoper B
 6. **Gebruik ook de business-case antwoorden** (businessCaseInterneRollen + businessCaseInterneUren) als die er zijn — dat zijn door de user zelf opgegeven rollen/uren, respecteer die aannames.
@@ -157,6 +179,8 @@ export async function POST(request: NextRequest) {
       scenarios,
       uurtariefSettings,
       inspanningenMeta,
+      toegestaneFuncties,
+      urenBudgetPerJaar,
       finetuneInstructie,
       previousAdvies,
     } = body as {
@@ -185,6 +209,8 @@ export async function POST(request: NextRequest) {
         businessCaseInterneRollen?: string;
         businessCaseInterneUren?: string;
       }>;
+      toegestaneFuncties?: Array<{ id: string; naam: string; afdeling: string; schaal: number }>;
+      urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>;
       finetuneInstructie?: string;
       previousAdvies?: unknown;
     };
@@ -235,7 +261,7 @@ export async function POST(request: NextRequest) {
             ? `\n\n**FINETUNE-VERZOEK:** "${finetuneInstructie.trim()}"\nPas de uren/rollen aan naar de instructie. Vorige versie:\n${JSON.stringify((previousAdvies as { scenarios?: Record<string, unknown> })?.scenarios?.[label] ?? null, null, 2)}\n`
             : "";
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, { ...scenario, inspanningen: enrichedInsps }) + finetuneBlock,
+          scenarioPrompt(label, { ...scenario, inspanningen: enrichedInsps }, toegestaneFuncties, urenBudgetPerJaar) + finetuneBlock,
           "cross-analyse",
           undefined,
           kibContext
@@ -293,7 +319,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Totalen per jaar (over alle domeinen)
-      const totalenPerJaar: Array<{ jaar: number; uren: number; kosten: number }> = [];
+      const totalenPerJaar: Array<{ jaar: number; uren: number; kosten: number; urenBudget?: number; urenGap?: number }> = [];
       for (let i = 0; i < ctx.aantalJaren; i++) {
         const jaar = ctx.startJaar + i;
         let uren = 0;
@@ -305,7 +331,10 @@ export async function POST(request: NextRequest) {
             kosten += jr.totaalKosten;
           }
         }
-        totalenPerJaar.push({ jaar, uren, kosten });
+        const budgetEntry = urenBudgetPerJaar?.find((b) => b.jaar === jaar);
+        const urenBudget = budgetEntry?.urenBudget;
+        const urenGap = urenBudget !== undefined ? uren - urenBudget : undefined;
+        totalenPerJaar.push({ jaar, uren, kosten, urenBudget, urenGap });
       }
 
       const totaalUren = totalenPerJaar.reduce((s, j) => s + j.uren, 0);
