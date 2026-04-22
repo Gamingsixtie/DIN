@@ -1278,7 +1278,7 @@ export default function StapOptimaliseren({
           <strong> Optimaal</strong> (jouw budget), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
           Outside-in volgorde voor zwaartepunt: cultuur → mens → data/systemen → processen.
           Parallel werken is toegestaan — zachte kant (cultuur+mens) en harde kant (data/systemen+processen) kunnen tegelijk lopen.
-          <strong> Het startjaar-budget moet volledig benut worden</strong> (vrijval bij onderbesteding).
+          <strong> Elk jaar moet het volledige budget worden opgemaakt</strong> (alleen het laatste jaar mag minder zijn — de rest valt vrij bij onderbesteding).
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">

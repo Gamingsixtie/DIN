@@ -176,7 +176,12 @@ HARDE REGELS:
 1. **aantalJaren moet REËEL zijn** gegeven het jaarlijks budget: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
 2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen overschrijding van het jaarlijks budget in welk jaar dan ook.
 3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING moet de totale dossier-raming benaderen** (eenmalige + structurele kosten samen).
-4. **STARTJAAR-BUDGET MOET VOLLEDIG WORDEN OPGEMAAKT.** Het budget van het eerste jaar (\`startJaar\`) is al toegekend en MOET dat jaar daadwerkelijk worden uitgegeven — geen onderbesteding, geen doorschuiven naar later. Som van \`verdelingPerJaar[startJaar].euro\` over alle inspanningen ≈ \`jaarlijksBudgetEuro\` (binnen 5% marge naar boven afronding). Dit is een harde organisatorische eis: budget dat dit jaar niet wordt besteed, valt vrij. Plan dus zoveel cultuur/mens/voorbereiding-werk in dat het volledig benut wordt.
+4. **ELK JAAR MOET HET VOLLEDIGE JAARLIJKSBUDGET WORDEN OPGEMAAKT — niet alleen het startjaar.**
+   - Voor ELK jaar van \`startJaar\` tot en met \`startJaar + aantalJaren − 2\` (= alle jaren BEHALVE het laatste): som van \`verdelingPerJaar[jaar].euro\` over alle inspanningen MOET binnen 5% van \`jaarlijksBudgetEuro\` zijn (dus tussen 95% en 100%). NOOIT eronder.
+   - Alleen het LAATSTE jaar (\`startJaar + aantalJaren − 1\`) mag een lager bedrag hebben (de afrondings-rest van het programma).
+   - Dit is een harde ORGANISATORISCHE EIS: jaarlijks budget dat NIET besteed wordt, valt vrij — dat mag niet gebeuren.
+   - Voorbeeld bij €250K/jr en aantalJaren=4 (startjaar 2026): jaren 2026, 2027 en 2028 MOETEN samen ongeveer €250K per jaar uitgeven (€237.5K-€250K). Alleen 2029 mag minder zijn (bv. €100K als afrondingsjaar).
+   - Plan zoveel parallelle activiteit (cultuur+mens samen, of harde+zachte kant tegelijk) dat het budget elk jaar tot het laatste volledig benut wordt. ALS er minder werk is dan budget toelaat: kies dan een korter aantalJaren in plaats van te onderbesteden.
 5. **PARALLELLE UITVOERING IS TOEGESTAAN EN GEWENST.** Inspanningen hoeven NIET sequentieel — combineer in dezelfde jaren:
    - **Zachte kant** (cultuur + mens) kan parallel lopen — leiderschapsprogramma's en gesprekvaardigheidstraining versterken elkaar
    - **Harde kant** (data/systemen + processen) kan parallel lopen — CRM-bouw en proces-ontwerp informeren elkaar
