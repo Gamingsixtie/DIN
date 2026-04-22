@@ -560,8 +560,68 @@ export default function StapInterneUren({
         setVastgesteldeUrenPerInspanning(persistedExtra.vastgesteldeUrenPerInspanning);
       }
     }
+    // Mark mounted so auto-save niet bij eerste render firet
+    setHasMounted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stap4Result]);
+
+  // Mount-tracking voor auto-save (vermijd write bij eerste render)
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // ───── AUTO-SAVE user-input (debounced 600ms) ─────
+  // Persisteer ALLE user-input naar session ook al heeft user nog niet geklikt
+  // op "Genereer interne-uren-advies". Dit voorkomt verlies bij navigatie.
+  useEffect(() => {
+    if (!hasMounted) return;
+    const timer = setTimeout(() => {
+      updateSession((prev) => {
+        if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
+        const huidig = (prev.crossAnalyseWizard.stepResults.stap4 as unknown as {
+          stap7InterneUren?: InterneUrenAdvies;
+        }).stap7InterneUren;
+        // Bestaand AI-advies behouden, alleen user-input merge'n
+        const merged: InterneUrenAdvies = {
+          ...(huidig ?? {
+            uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
+            scenarios: { optimaal: null, plus20: null, min20: null },
+          }),
+          uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
+          urenBudgetStart,
+          selectiePerDomein,
+          customFunctiesPerDomein,
+          vragenAntwoorden: antwoordenPerInspanning,
+          ...(vragenPerInspanning.length > 0 ? { vragenPerInspanning } : {}),
+          ...(vastgesteldeUrenPerInspanning.length > 0 ? { vastgesteldeUrenPerInspanning } : {}),
+        } as InterneUrenAdvies;
+        return {
+          ...prev,
+          crossAnalyseWizard: {
+            ...prev.crossAnalyseWizard,
+            stepResults: {
+              ...prev.crossAnalyseWizard.stepResults,
+              stap4: {
+                ...prev.crossAnalyseWizard.stepResults.stap4,
+                stap7InterneUren: merged,
+              } as typeof prev.crossAnalyseWizard.stepResults.stap4,
+            },
+          },
+        };
+      });
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    hasMounted,
+    selectiePerDomein,
+    customFunctiesPerDomein,
+    urenBudgetStart,
+    basisTarief,
+    referentiejaar,
+    indexatiePct,
+    antwoordenPerInspanning,
+    vragenPerInspanning,
+    vastgesteldeUrenPerInspanning,
+  ]);
 
   const huidigJaar = new Date().getFullYear();
   const tariefPreview = berekenGeindexeerdTarief(basisTarief, referentiejaar, indexatiePct, huidigJaar);
