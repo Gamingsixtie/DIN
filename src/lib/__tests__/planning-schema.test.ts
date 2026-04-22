@@ -131,4 +131,17 @@ describe("PlanningVoorstelSchema", () => {
       expect(result.data.gegenereerdOp).toBe("2026-04-22T10:15:00.000Z");
     }
   });
+
+  test("toelichting veld wordt behouden en krijgt default lege string", () => {
+    const r1 = PlanningVoorstelSchema.safeParse({ samenvatting: "x" });
+    expect(r1.success).toBe(true);
+    if (r1.success) expect(r1.data.toelichting).toBe("");
+
+    const r2 = PlanningVoorstelSchema.safeParse({
+      samenvatting: "x",
+      toelichting: "Eigen notities van de programmamanager.",
+    });
+    expect(r2.success).toBe(true);
+    if (r2.success) expect(r2.data.toelichting).toBe("Eigen notities van de programmamanager.");
+  });
 });

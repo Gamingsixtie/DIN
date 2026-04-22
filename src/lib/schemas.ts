@@ -594,6 +594,9 @@ export const PlanningVoorstelSchema = z.object({
   bundelPlanning: z.array(BundelPlanningSchema).optional().default([]),
   samenvatting: z.string(),
   gegenereerdOp: z.string().optional(),  // ISO date
+  // Handgeschreven toelichting door de programma-eigenaar (los van het AI-voorstel).
+  // Wordt apart gerenderd in de app en export.
+  toelichting: z.string().optional().default(""),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({

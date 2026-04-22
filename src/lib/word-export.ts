@@ -1526,6 +1526,18 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
     children.push(emptyLine());
   }
 
+  // Eigen toelichting van de programmamanager
+  if (planning.toelichting && planning.toelichting.trim().length > 0) {
+    children.push(subHeading("Toelichting programmamanager"));
+    for (const line of planning.toelichting.split(/\n{2,}/)) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        children.push(bodyText(trimmed, { size: 22 }));
+      }
+    }
+    children.push(emptyLine());
+  }
+
   // Cycli-overzicht
   const cycliMap = new Map<string, typeof planning.bundelPlanning>();
   for (const bp of planning.bundelPlanning) {
