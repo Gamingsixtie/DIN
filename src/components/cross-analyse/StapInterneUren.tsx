@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
 import type { DINSession, Stap4Result } from "@/lib/types";
 import {
@@ -492,7 +492,13 @@ export default function StapInterneUren({
   ];
 
   // Restore vanuit sessie — inclusief user-settings (urenBudget, selectie per domein, custom functies)
+  // BELANGRIJK: alleen 1× draaien om state-loop te voorkomen (auto-save → session update →
+  // nieuwe stap4Result reference → restore → nieuwe state ref → auto-save → loop).
+  const restoredRef = useRef(false);
   useEffect(() => {
+    if (restoredRef.current) return;
+    if (stap4Result === undefined) return; // wacht tot stap4Result beschikbaar is
+    restoredRef.current = true; // mark restored UNCONDITIONEEL — voorkom loop
     const persisted = (stap4Result as unknown as { stap7InterneUren?: InterneUrenAdvies })?.stap7InterneUren;
     if (persisted) {
       setAdvies(persisted);

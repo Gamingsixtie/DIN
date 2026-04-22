@@ -63,6 +63,12 @@ export type {
   ItemRasci,
   AIItemRasci,
   AIGovernanceItemRasciResponse,
+  Stap7InterneUren,
+  Stap8Totaaloverzicht,
+  DomeinInterneUren,
+  InterneUrenScenario,
+  InterneUrenRol,
+  ScenarioTotaal,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder
