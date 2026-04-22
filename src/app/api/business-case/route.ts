@@ -59,7 +59,11 @@ Regels:
 - Formuleer vragen zo dat zowel een getal als een omschrijving werkt. Stel niet "Hoeveel FTE?" maar "Hoeveel FTE of medewerkers — een schatting of range mag ook".
 - Eenheid duidelijk benoemen in het veld \`eenheid\` (FTE, uren, €, weken, licenties) zodat gebruiker context heeft.
 - Keys kort en snake_case.
-- Geef tenminste 4, max 8 vragen.
+- **VERPLICHT — voeg ook 2 vragen toe over INTERNE UREN van Cito-medewerkers** (niet alleen out-of-pocket):
+  1. "Welke Cito-rollen verwacht je nodig voor deze inspanning? Denk aan: Sectormanager PO/VO/Professionals, Productmanager, Toetsdeskundige A/B/C, Manager Data & Technologie, Trainer/Adviseur, Procesmanager, Projectmanager." (key: \`interne_rollen\`, eenheid: rol-namen)
+  2. "Hoeveel interne uren per rol per jaar verwacht je? Range of ruwe schatting mag." (key: \`interne_uren_per_rol\`, eenheid: uren/jaar)
+  Die antwoorden worden gebruikt voor de interne-uren-planning in stap 7 — belangrijk om die apart uit te vragen naast externe kosten.
+- Geef tenminste 6, max 10 vragen (inclusief de 2 interne-uren vragen).
 - Alles in Nederlands, JSON only.`;
 
 const ESTIMATE_PROMPT = `Je bent een business-case expert. Op basis van de antwoorden op business-case vragen maak je een eerste kostenraming (dossier.kostenraming) voor één cross-sectorale inspanning.

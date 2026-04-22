@@ -599,8 +599,88 @@ export const PlanningVoorstelSchema = z.object({
   toelichting: z.string().optional().default(""),
 });
 
+// Interne uren (stap 7) — per domein × jaar, gekoppeld aan stap 6 scenario's
+export const InterneUrenRolSchema = z.object({
+  functieId: z.string(),
+  functieNaam: z.string(),
+  afdeling: z.string().optional(),
+  uren: z.number(),
+  uurtarief: z.number(),
+  kosten: z.number(),
+});
+
+export const DomeinJaarBlokSchema = z.object({
+  jaar: z.number(),
+  activiteit: z.string(),
+  rollen: z.array(InterneUrenRolSchema),
+  totaalUren: z.number().optional(),
+  totaalKosten: z.number().optional(),
+});
+
+export const DomeinInterneUrenSchema = z.object({
+  domein: z.enum(["cultuur", "mens", "data_systemen", "processen"]),
+  koppeling: z.array(z.string()).optional().default([]),
+  jaren: z.array(DomeinJaarBlokSchema),
+  totaalUren: z.number().optional(),
+  totaalKosten: z.number().optional(),
+  motivatie: z.string(),
+});
+
+export const InterneUrenScenarioSchema = z.object({
+  scenarioLabel: z.enum(["optimaal", "plus20", "min20"]),
+  aantalJaren: z.number(),
+  startJaar: z.number(),
+  uurtariefGebruikt: z.number(),
+  domeinen: z.array(DomeinInterneUrenSchema),
+  totalenPerJaar: z.array(z.object({
+    jaar: z.number(),
+    uren: z.number(),
+    kosten: z.number(),
+  })).optional(),
+  totaalUren: z.number().optional(),
+  totaalKosten: z.number().optional(),
+  samenvatting: z.string().optional(),
+});
+
+export const Stap7InterneUrenSchema = z.object({
+  uurtariefSettings: z.object({
+    basisTarief: z.number(),
+    referentiejaar: z.number(),
+    indexatiePercentage: z.number(),
+  }),
+  scenarios: z.object({
+    optimaal: InterneUrenScenarioSchema.nullable(),
+    plus20: InterneUrenScenarioSchema.nullable(),
+    min20: InterneUrenScenarioSchema.nullable(),
+  }),
+  partialFailures: z.array(z.string()).optional().default([]),
+});
+
+// Totaaloverzicht (stap 8) — combineert stap 6 + stap 7
+export const ScenarioTotaalSchema = z.object({
+  scenarioLabel: z.enum(["optimaal", "plus20", "min20"]),
+  perJaar: z.array(z.object({
+    jaar: z.number(),
+    outOfPocket: z.number(),
+    interneUren: z.number(),
+    totaal: z.number(),
+  })),
+  totaalOutOfPocket: z.number(),
+  totaalInterneUren: z.number(),
+  totaalGeraamd: z.number(),
+});
+
+export const Stap8TotaaloverzichtSchema = z.object({
+  scenarios: z.object({
+    optimaal: ScenarioTotaalSchema.nullable(),
+    plus20: ScenarioTotaalSchema.nullable(),
+    min20: ScenarioTotaalSchema.nullable(),
+  }),
+  actiefScenario: z.enum(["optimaal", "plus20", "min20"]).optional(),
+});
+
 export const CrossAnalyseWizardStateSchema = z.object({
-  currentStep: z.number().min(1).max(6),
+  currentStep: z.number().min(1).max(9),
   completedSteps: z.array(z.number()),
   wizardVersion: z.number().optional(),
   stepResults: z.object({
@@ -609,6 +689,8 @@ export const CrossAnalyseWizardStateSchema = z.object({
     stap3: Stap3ResultSchema.optional(),
     stap4: Stap4ResultSchema.optional(),
     stap5: Stap5ResultSchema.optional(),
+    stap7: Stap7InterneUrenSchema.optional(),
+    stap8: Stap8TotaaloverzichtSchema.optional(),
   }).optional(),
 });
 
@@ -1150,6 +1232,13 @@ export type Stap2Result = z.infer<typeof Stap2ResultSchema>;
 export type Stap3Result = z.infer<typeof Stap3ResultSchema>;
 export type Stap4Result = z.infer<typeof Stap4ResultSchema>;
 export type Stap5Result = z.infer<typeof Stap5ResultSchema>;
+export type InterneUrenRol = z.infer<typeof InterneUrenRolSchema>;
+export type DomeinJaarBlok = z.infer<typeof DomeinJaarBlokSchema>;
+export type DomeinInterneUren = z.infer<typeof DomeinInterneUrenSchema>;
+export type InterneUrenScenario = z.infer<typeof InterneUrenScenarioSchema>;
+export type Stap7InterneUren = z.infer<typeof Stap7InterneUrenSchema>;
+export type ScenarioTotaal = z.infer<typeof ScenarioTotaalSchema>;
+export type Stap8Totaaloverzicht = z.infer<typeof Stap8TotaaloverzichtSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
 export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
 export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;
