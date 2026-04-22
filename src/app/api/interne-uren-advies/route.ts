@@ -358,12 +358,11 @@ export async function POST(request: NextRequest) {
         kibContext
       );
       const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
-      // Alle pogingen op OPUS-4-7 met prefillJson — maximale schema-compliance
-      // voor dit domein (groot prompt, gestructureerde output, 4 domeinen × N
-      // jaren × M rollen). Liever traag-en-correct dan snel-en-stuk.
+      // Gebalanceerd: SONNET eerst (snel, goed genoeg bij leniënt schema),
+      // OPUS als fallback (trager maar betere schema-compliance).
       const pogingen: Array<{ maxTokens: number; retryDelayMs: number; prefillJson: boolean; model: string }> = [
-        { maxTokens: 24000, retryDelayMs: 0, prefillJson: true, model: "claude-opus-4-7" },
-        { maxTokens: 24000, retryDelayMs: 2000, prefillJson: true, model: "claude-opus-4-7" },
+        { maxTokens: 20000, retryDelayMs: 0, prefillJson: true, model: "claude-sonnet-4-6" },
+        { maxTokens: 24000, retryDelayMs: 1500, prefillJson: true, model: "claude-opus-4-7" },
       ];
       let lastError = "";
       for (let i = 0; i < pogingen.length; i++) {
