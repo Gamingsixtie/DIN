@@ -544,6 +544,10 @@ export const Stap4ResultSchema = z.object({
   // D-30 (Phase 17): sub-effort analyse per VermogenGelijkenisGroep × domein
   subEffortAnalysis: z.array(SubEffortAdviesSchema).optional().default([]),
   samenvatting: z.string(),
+  // Stap 6 (Optimaliseren) output — out-of-pocket begroting per scenario
+  begrotingAdvies: z.lazy(() => BegrotingAdviesSchema).optional(),
+  // Stap 7 (Interne Uren) output — Cito-uren + kosten per scenario
+  stap7InterneUren: z.lazy(() => Stap7InterneUrenSchema).optional(),
 });
 
 export const Stap5ResultSchema = z.object({
@@ -597,6 +601,55 @@ export const PlanningVoorstelSchema = z.object({
   // Handgeschreven toelichting door de programma-eigenaar (los van het AI-voorstel).
   // Wordt apart gerenderd in de app en export.
   toelichting: z.string().optional().default(""),
+});
+
+// --- Begrotingsadvies (stap 6 Optimaliseren) — 3 scenario's (optimaal/+20%/−20%) ---
+export const InspanningBegrotingSchema = z.object({
+  inspanningTitel: z.string(),
+  groepId: z.string().optional(),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  totaalEuro: z.number(),
+  percentageTotaal: z.number(),
+  motivatie: z.string(),
+  verdelingPerJaar: z.array(z.object({
+    jaar: z.number(),
+    percentage: z.number(),
+    euro: z.number(),
+    fase: z.string(),
+    activiteit: z.string().optional(),
+  })),
+  volgorde: z.object({
+    rank: z.number(),
+    reden: z.string(),
+  }),
+});
+
+export const BegrotingScenarioSchema = z.object({
+  label: z.enum(["optimaal", "plus20", "min20"]),
+  jaarlijksBudgetEuro: z.number(),
+  aantalJaren: z.number(),
+  totaalGeraamdEuro: z.number(),
+  inspanningen: z.array(InspanningBegrotingSchema).default([]),
+  totalenPerJaar: z.array(z.object({
+    jaar: z.number(),
+    euro: z.number(),
+    percentage: z.number(),
+  })).default([]),
+  prioriteitAdvies: z.string().optional().default(""),
+  samenvatting: z.string().optional().default(""),
+});
+
+export const BegrotingAdviesSchema = z.object({
+  jaarlijksBudgetBasis: z.number(),
+  startJaar: z.number(),
+  cyclusMaanden: z.number(),
+  scenarios: z.object({
+    optimaal: BegrotingScenarioSchema.nullable(),
+    plus20: BegrotingScenarioSchema.nullable(),
+    min20: BegrotingScenarioSchema.nullable(),
+  }),
+  vergelijking: z.string().optional().default(""),
+  partialFailures: z.array(z.string()).optional().default([]),
 });
 
 // Interne uren (stap 7) — per domein × jaar, gekoppeld aan stap 6 scenario's
@@ -1237,6 +1290,9 @@ export type DomeinJaarBlok = z.infer<typeof DomeinJaarBlokSchema>;
 export type DomeinInterneUren = z.infer<typeof DomeinInterneUrenSchema>;
 export type InterneUrenScenario = z.infer<typeof InterneUrenScenarioSchema>;
 export type Stap7InterneUren = z.infer<typeof Stap7InterneUrenSchema>;
+export type InspanningBegroting = z.infer<typeof InspanningBegrotingSchema>;
+export type BegrotingScenario = z.infer<typeof BegrotingScenarioSchema>;
+export type BegrotingAdvies = z.infer<typeof BegrotingAdviesSchema>;
 export type ScenarioTotaal = z.infer<typeof ScenarioTotaalSchema>;
 export type Stap8Totaaloverzicht = z.infer<typeof Stap8TotaaloverzichtSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;

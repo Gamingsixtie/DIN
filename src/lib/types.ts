@@ -69,6 +69,9 @@ export type {
   InterneUrenScenario,
   InterneUrenRol,
   ScenarioTotaal,
+  BegrotingAdvies,
+  BegrotingScenario,
+  InspanningBegroting,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder

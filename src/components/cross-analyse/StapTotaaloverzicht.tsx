@@ -1,37 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import type { DINSession, Stap4Result } from "@/lib/types";
+import type { DINSession, Stap4Result, BegrotingAdvies, Stap7InterneUren } from "@/lib/types";
 
 type ScenarioLabel = "optimaal" | "plus20" | "min20";
-type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
-
-type BegrotingScenario = {
-  aantalJaren: number;
-  jaarlijksBudgetEuro: number;
-  totaalGeraamdEuro: number;
-  totalenPerJaar?: Array<{ jaar: number; euro: number; percentage?: number }>;
-};
-type BegrotingAdvies = {
-  jaarlijksBudgetBasis: number;
-  startJaar: number;
-  cyclusMaanden: number;
-  scenarios: Record<ScenarioLabel, BegrotingScenario | null>;
-  vergelijking?: string;
-};
-
-type InterneUrenScenario = {
-  aantalJaren: number;
-  startJaar: number;
-  totaalUren: number;
-  totaalKosten: number;
-  totalenPerJaar: Array<{ jaar: number; uren: number; kosten: number }>;
-  domeinen: Array<{ domein: Domein; totaalUren: number; totaalKosten: number }>;
-};
-type Stap7InterneUren = {
-  uurtariefSettings: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
-  scenarios: Record<ScenarioLabel, InterneUrenScenario | null>;
-};
 
 const SCENARIO_META: Array<{
   key: ScenarioLabel;
@@ -43,6 +15,18 @@ const SCENARIO_META: Array<{
   { key: "min20", label: "−20% (langzamer)", kleur: { banner: "bg-amber-800", tekst: "text-amber-100", accent: "text-amber-800" } },
 ];
 
+type PerScenarioTotaal = {
+  perJaar: Array<{ jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number }>;
+  totaalOutOfPocket: number;
+  totaalInterneKosten: number;
+  totaalInterneUren: number;
+  totaalGeraamd: number;
+  aantalJaren: number;
+  startJaar: number;
+  heeftBegroting: boolean;
+  heeftInterneUren: boolean;
+};
+
 export default function StapTotaaloverzicht({
   stap4Result,
 }: {
@@ -51,23 +35,24 @@ export default function StapTotaaloverzicht({
 }): React.ReactElement {
   const [actiefScenario, setActiefScenario] = useState<ScenarioLabel>("optimaal");
 
-  const begroting = (stap4Result as unknown as { begrotingAdvies?: BegrotingAdvies })?.begrotingAdvies;
-  const interneUren = (stap4Result as unknown as { stap7InterneUren?: Stap7InterneUren })?.stap7InterneUren;
+  const begroting = stap4Result?.begrotingAdvies as BegrotingAdvies | undefined;
+  const interneUren = stap4Result?.stap7InterneUren as Stap7InterneUren | undefined;
 
   const totalen = useMemo(() => {
-    if (!begroting?.scenarios || !interneUren?.scenarios) return null;
+    const startJaarDefault = begroting?.startJaar ?? interneUren?.scenarios?.optimaal?.startJaar ?? new Date().getFullYear();
 
-    function combineScenario(label: ScenarioLabel) {
-      const b = begroting?.scenarios?.[label];
-      const i = interneUren?.scenarios?.[label];
-      if (!b || !i) return null;
-      const startJaar = begroting?.startJaar ?? new Date().getFullYear();
-      const aantalJaren = Math.max(b.aantalJaren, i.aantalJaren);
-      const perJaar: Array<{ jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number }> = [];
+    function combineScenario(label: ScenarioLabel): PerScenarioTotaal | null {
+      const b = begroting?.scenarios?.[label] ?? null;
+      const i = interneUren?.scenarios?.[label] ?? null;
+      if (!b && !i) return null;
+
+      const startJaar = b ? begroting?.startJaar ?? startJaarDefault : i?.startJaar ?? startJaarDefault;
+      const aantalJaren = Math.max(b?.aantalJaren ?? 0, i?.aantalJaren ?? 0);
+      const perJaar: PerScenarioTotaal["perJaar"] = [];
       for (let k = 0; k < aantalJaren; k++) {
         const jaar = startJaar + k;
-        const outCell = b.totalenPerJaar?.find((t) => t.jaar === jaar);
-        const inCell = i.totalenPerJaar?.find((t) => t.jaar === jaar);
+        const outCell = b?.totalenPerJaar?.find((t) => t.jaar === jaar);
+        const inCell = i?.totalenPerJaar?.find((t) => t.jaar === jaar);
         const outOfPocket = outCell?.euro ?? 0;
         const urenAantal = inCell?.uren ?? 0;
         const interneKosten = inCell?.kosten ?? 0;
@@ -83,7 +68,17 @@ export default function StapTotaaloverzicht({
       const totaalInterneKosten = perJaar.reduce((s, p) => s + p.interneKosten, 0);
       const totaalInterneUren = perJaar.reduce((s, p) => s + p.interneUren, 0);
       const totaalGeraamd = totaalOutOfPocket + totaalInterneKosten;
-      return { perJaar, totaalOutOfPocket, totaalInterneKosten, totaalInterneUren, totaalGeraamd, aantalJaren, startJaar };
+      return {
+        perJaar,
+        totaalOutOfPocket,
+        totaalInterneKosten,
+        totaalInterneUren,
+        totaalGeraamd,
+        aantalJaren,
+        startJaar,
+        heeftBegroting: !!b,
+        heeftInterneUren: !!i,
+      };
     }
 
     return {
@@ -93,24 +88,9 @@ export default function StapTotaaloverzicht({
     };
   }, [begroting, interneUren]);
 
-  if (!begroting?.scenarios) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-sm text-gray-600">Nog geen begrotingsadvies uit stap 6 beschikbaar.</p>
-        <p className="text-xs text-gray-500 mt-2">Ga eerst naar stap 6 <strong>Optimaliseren</strong> en genereer de begroting.</p>
-      </div>
-    );
-  }
-  if (!interneUren?.scenarios) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-sm text-gray-600">Nog geen interne-uren-advies uit stap 7 beschikbaar.</p>
-        <p className="text-xs text-gray-500 mt-2">Ga naar stap 7 <strong>Interne uren</strong> en genereer het advies.</p>
-      </div>
-    );
-  }
-
-  const actief = totalen?.[actiefScenario];
+  const heeftEnigeBegroting = !!begroting?.scenarios && SCENARIO_META.some((s) => begroting.scenarios?.[s.key]);
+  const heeftEnigeInterneUren = !!interneUren?.scenarios && SCENARIO_META.some((s) => interneUren.scenarios?.[s.key]);
+  const actief = totalen[actiefScenario];
 
   return (
     <div className="space-y-6">
@@ -121,18 +101,33 @@ export default function StapTotaaloverzicht({
         </p>
       </div>
 
-      {/* Scenario-vergelijkingsbanner */}
+      {(!heeftEnigeBegroting || !heeftEnigeInterneUren) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-1">
+          <p className="text-sm font-semibold text-amber-900">Nog niet alle bronnen gegenereerd</p>
+          <ul className="text-xs text-amber-800 list-disc ml-5 space-y-0.5">
+            {!heeftEnigeBegroting && (
+              <li>Geen begrotingsadvies uit <strong>stap 6 Optimaliseren</strong> — out-of-pocket kolom blijft leeg.</li>
+            )}
+            {!heeftEnigeInterneUren && (
+              <li>Geen interne-uren-advies uit <strong>stap 7 Interne uren</strong> — interne uren kolom blijft leeg.</li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* Scenario-vergelijkingsbanner — altijd 3 kaarten */}
       <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
         <h4 className="text-sm font-semibold text-[#003366] mb-3">Totaaloverzicht — 3 scenario&apos;s</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SCENARIO_META.map((sv) => {
-            const t = totalen?.[sv.key];
+            const t = totalen[sv.key];
             const isActief = actiefScenario === sv.key;
             if (!t) {
               return (
-                <div key={sv.key} className="border-2 border-gray-200 bg-gray-50 rounded p-3 opacity-60">
+                <div key={sv.key} className="border-2 border-gray-200 bg-gray-50 rounded p-3 opacity-70">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{sv.label}</p>
                   <p className="text-sm font-medium text-gray-500 mt-2">— geen data —</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Genereer scenario in stap 6 en 7.</p>
                 </div>
               );
             }
@@ -151,8 +146,16 @@ export default function StapTotaaloverzicht({
                   {t.aantalJaren} jaar ({t.startJaar}–{t.startJaar + t.aantalJaren - 1})
                 </p>
                 <div className="text-[11px] text-gray-500 mt-1.5 space-y-0.5">
-                  <p>Out-of-pocket: € {t.totaalOutOfPocket.toLocaleString("nl-NL")}</p>
-                  <p>Interne uren: € {t.totaalInterneKosten.toLocaleString("nl-NL")} ({t.totaalInterneUren.toLocaleString("nl-NL")} u)</p>
+                  {t.heeftBegroting ? (
+                    <p>Out-of-pocket: € {t.totaalOutOfPocket.toLocaleString("nl-NL")}</p>
+                  ) : (
+                    <p className="text-amber-700">Out-of-pocket: — nog niet uit stap 6</p>
+                  )}
+                  {t.heeftInterneUren ? (
+                    <p>Interne uren: € {t.totaalInterneKosten.toLocaleString("nl-NL")} ({t.totaalInterneUren.toLocaleString("nl-NL")} u)</p>
+                  ) : (
+                    <p className="text-amber-700">Interne uren: — nog niet uit stap 7</p>
+                  )}
                 </div>
               </button>
             );
@@ -228,7 +231,7 @@ export default function StapTotaaloverzicht({
       )}
 
       {/* Visuele stacked-bar */}
-      {actief && (
+      {actief && actief.perJaar.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h4 className="text-sm font-semibold text-[#003366] mb-3">Visuele verdeling per jaar</h4>
           <div className="space-y-2">
