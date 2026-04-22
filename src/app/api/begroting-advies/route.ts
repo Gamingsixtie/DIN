@@ -16,14 +16,16 @@ export const maxDuration = 300;
 // Implementatie: 3 parallelle AI-calls (één per scenario) i.p.v. één grote
 // call. Dat voorkomt token-limiet-afkappen en levert stabielere output.
 
-// Schemas verzacht — alle percentage-velden tolerant ([-5, 105]) of optional;
+// Schemas verzacht — alle percentage-velden tolerant ([-5, 110]) of optional;
 // totaalEuro wordt door server berekend uit verdelingPerJaar; totalenPerJaar
 // en totaalGeraamdEuro worden volledig server-side gevuld.
+// activiteit (NIEUW) — 1-2 zinnen per jaar wat CONCREET in dat jaar gebeurt.
 const VerdelingPerJaarItemSchema = z.object({
   jaar: z.number(),
   percentage: z.number().min(-5).max(110).optional(),
   euro: z.number(),
   fase: z.string(),
+  activiteit: z.string().optional(),
 });
 
 const InspanningBegrotingSchema = z.object({
@@ -76,6 +78,7 @@ type Scenario = {
       percentage: number;
       euro: number;
       fase: string;
+      activiteit?: string;
     }>;
     volgorde: { rank: number; reden: string };
   }>;
@@ -151,7 +154,7 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "domein": "mens|processen|data_systemen|cultuur",
       "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames waar relevant>",
       "verdelingPerJaar": [
-        { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<Voorbereiding | Uitrol | Opschaling | Borging>" },
+        { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<Voorbereiding | Uitrol | Opschaling | Borging>", "activiteit": "<1-2 ZINNEN concreet wat er DIT JAAR voor DEZE inspanning gebeurt — geen herhaling tussen jaren>" },
         ...één item per jaar tot en met startJaar+aantalJaren−1
       ],
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
@@ -179,7 +182,10 @@ HARDE REGELS:
 4. **ELK JAAR MOET HET VOLLEDIGE JAARLIJKSBUDGET WORDEN OPGEMAAKT — niet alleen het startjaar.**
    - Voor ELK jaar van \`startJaar\` tot en met \`startJaar + aantalJaren − 2\` (= alle jaren BEHALVE het laatste): som van \`verdelingPerJaar[jaar].euro\` over alle inspanningen MOET binnen 5% van \`jaarlijksBudgetEuro\` zijn (dus tussen 95% en 100%). NOOIT eronder.
    - Alleen het LAATSTE jaar (\`startJaar + aantalJaren − 1\`) mag een lager bedrag hebben (de afrondings-rest van het programma).
-   - Dit is een harde ORGANISATORISCHE EIS: jaarlijks budget dat NIET besteed wordt, valt vrij — dat mag niet gebeuren.
+   - **BEDRIJFSECONOMISCHE NOODZAAK (Cito-realiteit):** jaarlijks budget dat NIET volledig besteed wordt heeft DUBBELE schade:
+     (a) het ongebruikte bedrag valt vrij in datzelfde jaar (geen carry-over naar volgend jaar mogelijk), én
+     (b) het opvolgende jaarbudget wordt door Finance verlaagd op basis van de werkelijke besteding van het vorige jaar — twee jaar onderbesteding kan het budget structureel halveren.
+     Dit is geen organisatorische eis maar een financiële noodzaak om de meerjarenfinanciering veilig te stellen. Activiteit + budget moeten 1-op-1 lopen.
    - Voorbeeld bij €250K/jr en aantalJaren=4 (startjaar 2026): jaren 2026, 2027 en 2028 MOETEN samen ongeveer €250K per jaar uitgeven (€237.5K-€250K). Alleen 2029 mag minder zijn (bv. €100K als afrondingsjaar).
    - Plan zoveel parallelle activiteit (cultuur+mens samen, of harde+zachte kant tegelijk) dat het budget elk jaar tot het laatste volledig benut wordt. ALS er minder werk is dan budget toelaat: kies dan een korter aantalJaren in plaats van te onderbesteden.
 5. **PARALLELLE UITVOERING IS TOEGESTAAN EN GEWENST.** Inspanningen hoeven NIET sequentieel — combineer in dezelfde jaren:
@@ -187,19 +193,20 @@ HARDE REGELS:
    - **Harde kant** (data/systemen + processen) kan parallel lopen — CRM-bouw en proces-ontwerp informeren elkaar
    - Zachte en harde kant kunnen ook parallel lopen, mits het jaarbudget het toestaat
    Het outside-in principe blijft (rank: cultuur > mens > data/systemen > processen voor STARTzwaartepunt), maar overlap in dezelfde kalenderjaren is uitdrukkelijk OK. Plan vooral het eerste jaar zo dat het budget volledig benut is met meerdere parallelle starts.
-4. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
+6. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
    - rank 1 = Cultuur (bereidheid — zijn ze bereid te doen wat ze beloven? — moet eerst)
    - rank 2 = Mens (competenties, gesprekvaardigheid — volgt direct na cultuur, kan parallel starten)
    - rank 3 = Data/Systemen (CRM, tooling — ondersteunt mens bij het werk, moet klaar zijn voor de processen gestandaardiseerd worden)
    - rank 4 = Processen (werkwijzen — LAATST omdat processen borgen wat mens + data al hebben opgebouwd)
    **Processen komt ALTIJD als laatste. Data/Systemen komt VOOR Processen.** Volgorde van domeinen in de lijst: Cultuur → Mens → Data/Systemen → Processen.
-5. **Realistische fasering per inspanning:**
+7. **Realistische fasering per inspanning + activiteits-tekst per jaar:**
    - Cultuur: piek jaar 1 (bewustwording), afnemend (borging)
    - Mens: start jaar 1, piek middenjaren (training aan volle breedte), borging eind
    - Data/Systemen: ontwerp en bouw middenjaren (CRM, tooling klaar krijgen voor gebruik)
    - Processen: uitrol en borging LAATST (processen slaan mens-gedrag + data-gebruik vast als werkwijze)
-6. Alle euros als integers (75000, niet "€75K").
-7. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
+   - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1, "Borging via leiderschapscoaching + jaarcyclus-evaluatie" voor cultuur jaar 3. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
+8. Alle euros als integers (75000, niet "€75K").
+9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
 
 const VergelijkingSchema = z.object({
@@ -294,6 +301,7 @@ export async function POST(request: NextRequest) {
             jaar: v.jaar,
             euro: v.euro,
             fase: v.fase,
+            activiteit: v.activiteit,
             // Server-berekende percentage; clamp [0,100]
             percentage:
               totaalEuro > 0

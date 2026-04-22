@@ -114,6 +114,31 @@ export default function StapOptimaliseren({
   const [oudBegrotingGevonden, setOudBegrotingGevonden] = useState(false);
   const [finetuneInstructie, setFinetuneInstructie] = useState<string>("");
   const [finetuneOpen, setFinetuneOpen] = useState<boolean>(false);
+  const [finetuneVersie, setFinetuneVersie] = useState<number>(1);
+  const [laatsteFineutInstructie, setLaatsteFineutInstructie] = useState<string>("");
+
+  const FINETUNE_VOORBEELDEN: ReadonlyArray<{ kort: string; instructie: string }> = [
+    {
+      kort: "Verleng Optimaal +1 jaar",
+      instructie: "Verleng het Optimaal-scenario met 1 jaar omdat cultuurverandering en gedragsverankering meer tijd vragen — spreid de mens-trajecten over meer jaren.",
+    },
+    {
+      kort: "Schuif data/systemen naar achter",
+      instructie: "Schuif data/systemen-inspanningen volledig naar de laatste 2 jaar, want eerst moeten mens en processen helder zijn voordat we CRM gaan inrichten.",
+    },
+    {
+      kort: "Concreter prioriteitAdvies",
+      instructie: "Maak prioriteitAdvies concreter — benoem expliciet welke rollen/eigenaren elk traject moeten dragen (sectordirecteur, programmamanager, etc.).",
+    },
+    {
+      kort: "Meer parallelle activiteit jaar 1",
+      instructie: "Voeg meer parallelle activiteit toe in het startjaar — laat zachte kant (cultuur+mens) en harde kant (data/systemen+processen) tegelijk starten zodat het volledige jaarbudget benut wordt.",
+    },
+    {
+      kort: "Splits per sector",
+      instructie: "Splits de cultuur-inspanning in PO-, VO- en Zakelijk-deeltrajecten met een eigen rank en eigenaar — de sectoren zitten in andere transformatie-fases.",
+    },
+  ];
 
   type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
   type ScenarioLabel = "optimaal" | "plus20" | "min20";
@@ -129,6 +154,7 @@ export default function StapOptimaliseren({
       percentage: number;
       euro: number;
       fase: string;
+      activiteit?: string;
     }>;
     volgorde: { rank: number; reden: string };
   };
@@ -708,6 +734,15 @@ export default function StapOptimaliseren({
       }
       setBegrotingAdvies(data.data as DrieScenarioAdvies);
       setOudBegrotingGevonden(false);
+      // Versie + laatste instructie bijhouden voor de versie-badge in de UI
+      if (opts?.finetuneInstructie && opts.finetuneInstructie.trim().length > 0) {
+        setFinetuneVersie((v) => v + 1);
+        setLaatsteFineutInstructie(opts.finetuneInstructie);
+      } else {
+        // Eerste generatie of regenerate-from-scratch — reset versie
+        setFinetuneVersie(1);
+        setLaatsteFineutInstructie("");
+      }
       // Persisteer in session onder stap4Result (zodat navigatie + reload behouden blijft)
       updateSession((prev) => {
         if (!prev.crossAnalyseWizard?.stepResults?.stap4) return prev;
@@ -1433,59 +1468,25 @@ export default function StapOptimaliseren({
                   </p>
                 )}
 
-                {/* Fineut-paneel — instructie naar AI voor herrekening van scenarios */}
-                <div className="mt-4 pt-3 border-t border-gray-200">
-                  {!finetuneOpen ? (
-                    <button
-                      onClick={() => setFinetuneOpen(true)}
-                      className="text-xs px-3 py-1.5 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8]"
-                    >
-                      ✎ Fineut met AI
-                    </button>
+                {/* Versie-badge + prominente fineut-knop */}
+                <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+                  {finetuneVersie > 1 ? (
+                    <p className="text-[11px] text-gray-500 italic">
+                      Versie {finetuneVersie} — gefineut met:{" "}
+                      <span className="text-gray-700">&quot;{laatsteFineutInstructie.slice(0, 80)}{laatsteFineutInstructie.length > 80 ? "…" : ""}&quot;</span>
+                    </p>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                        Fineut met AI — wat moet anders?
-                      </p>
-                      <textarea
-                        value={finetuneInstructie}
-                        onChange={(e) => setFinetuneInstructie(e.target.value)}
-                        rows={3}
-                        placeholder="Bijvoorbeeld: 'verleng Optimaal naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'schuif data/systemen volledig naar de laatste 2 jaar' of 'maak prioriteitAdvies concreter — benoem de PO-leiders'."
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
-                      />
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setFinetuneOpen(false);
-                            setFinetuneInstructie("");
-                          }}
-                          disabled={begrotingLoading}
-                          className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50"
-                        >
-                          Annuleer
-                        </button>
-                        <button
-                          onClick={() => {
-                            const instr = finetuneInstructie.trim();
-                            if (!instr) {
-                              setBegrotingError("Vul een fineut-instructie in.");
-                              return;
-                            }
-                            generateBegrotingsAdvies({
-                              finetuneInstructie: instr,
-                              previousAdvies: begrotingAdvies,
-                            });
-                            setFinetuneOpen(false);
-                          }}
-                          disabled={begrotingLoading || !finetuneInstructie.trim()}
-                          className="text-xs px-3 py-1.5 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
-                        >
-                          {begrotingLoading ? "AI rekent door..." : "Stuur naar AI"}
-                        </button>
-                      </div>
-                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Niet tevreden? Stuur AI een instructie om de scenario&apos;s aan te passen.
+                    </p>
                   )}
+                  <button
+                    onClick={() => setFinetuneOpen(true)}
+                    disabled={begrotingLoading}
+                    className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
+                  >
+                    ✎ Fineut met AI
+                  </button>
                 </div>
               </div>
 
@@ -1555,14 +1556,19 @@ export default function StapOptimaliseren({
                                     const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
                                     if (!cell || cell.euro === 0) {
                                       return (
-                                        <td key={jr} className="text-right py-3 px-2 text-[11px] text-gray-300">—</td>
+                                        <td key={jr} className="text-right py-3 px-2 text-[11px] text-gray-300 align-top">—</td>
                                       );
                                     }
                                     return (
-                                      <td key={jr} className="text-right py-3 px-2">
-                                        <p className="text-sm font-semibold text-gray-800">€ {cell.euro.toLocaleString("nl-NL")}</p>
-                                        <p className="text-[10px] text-gray-500">{cell.percentage}%</p>
-                                        <p className="text-[10px] text-gray-500 italic mt-0.5">{cell.fase}</p>
+                                      <td key={jr} className="py-3 px-2 align-top min-w-[180px]">
+                                        <p className="text-sm font-semibold text-gray-800 text-right">€ {cell.euro.toLocaleString("nl-NL")}</p>
+                                        <p className="text-[10px] text-gray-500 text-right">{cell.percentage}%</p>
+                                        <p className="text-[10px] text-gray-500 italic mt-0.5 text-right">{cell.fase}</p>
+                                        {cell.activiteit && (
+                                          <p className="text-[10px] text-gray-700 mt-1.5 leading-snug border-t border-gray-100 pt-1">
+                                            {cell.activiteit}
+                                          </p>
+                                        )}
                                       </td>
                                     );
                                   })}
@@ -1613,6 +1619,103 @@ export default function StapOptimaliseren({
           );
         })()}
       </div>
+
+      {/* ===== FINEUT-MODAL ===== */}
+      {finetuneOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => {
+            if (!begrotingLoading) {
+              setFinetuneOpen(false);
+              setFinetuneInstructie("");
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-[#003366]">Begroting fineuten met AI</h3>
+              <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                Geef instructie hoe de scenario&apos;s anders moeten — een ander tempo, andere fasering,
+                of een specifiekere prioriteit-onderbouwing. Of klik op een voorbeeld hieronder om te starten.
+              </p>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                  Voorbeelden — klik om in te vullen
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {FINETUNE_VOORBEELDEN.map((vb) => (
+                    <button
+                      key={vb.kort}
+                      onClick={() => setFinetuneInstructie(vb.instructie)}
+                      disabled={begrotingLoading}
+                      className="text-xs px-3 py-1.5 rounded-full border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8] disabled:opacity-50"
+                      title={vb.instructie}
+                    >
+                      {vb.kort}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                  Instructie aan AI
+                </label>
+                <textarea
+                  value={finetuneInstructie}
+                  onChange={(e) => setFinetuneInstructie(e.target.value)}
+                  rows={5}
+                  placeholder="Bijvoorbeeld: 'Verleng Optimaal naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'Schuif data/systemen volledig naar de laatste 2 jaar'."
+                  className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Tip: wees specifiek over WAT en WAAROM. AI kent de huidige scenario&apos;s en past die aan op basis van je instructie.
+                </p>
+              </div>
+              {begrotingError && (
+                <div className="bg-red-50 border border-red-200 rounded p-2">
+                  <p className="text-xs text-red-700">{begrotingError}</p>
+                </div>
+              )}
+            </div>
+            <div className="p-5 border-t border-gray-200 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setFinetuneOpen(false);
+                  setFinetuneInstructie("");
+                }}
+                disabled={begrotingLoading}
+                className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Annuleer
+              </button>
+              <button
+                onClick={async () => {
+                  const instr = finetuneInstructie.trim();
+                  if (!instr) {
+                    setBegrotingError("Vul een fineut-instructie in.");
+                    return;
+                  }
+                  await generateBegrotingsAdvies({
+                    finetuneInstructie: instr,
+                    previousAdvies: begrotingAdvies,
+                  });
+                  setFinetuneOpen(false);
+                  setFinetuneInstructie("");
+                }}
+                disabled={begrotingLoading || !finetuneInstructie.trim()}
+                className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium"
+              >
+                {begrotingLoading ? "AI rekent door..." : "Stuur naar AI"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
