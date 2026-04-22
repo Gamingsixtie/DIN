@@ -81,8 +81,24 @@ Input JSON:
   "cyclusMaanden": <number>,
   "startJaar": <number>,
   "focusDoel": { naam, beschrijving },
-  "inspanningen": [{ titel, groepId, domein, beschrijving, beargumentatie, dossierKostenraming }]
+  "inspanningen": [
+    {
+      "titel": "<cross-sectorale inspanning-naam>",
+      "groepId": "<ID van gedeeld vermogen>",
+      "domein": "mens|processen|data_systemen|cultuur",
+      "beschrijving": "<wat wordt er gedaan>",
+      "beargumentatie": "<waarom dit cluster — hefboom-onderbouwing>",
+      "vermogenImpact": [{ "sectorId": "po|vo|zakelijk", "impact": "<wat het vermogen oplevert voor die sector>" }],
+      "dossier": { "eigenaar", "inspanningsleider", "verwachtResultaat", "randvoorwaarden" },
+      "dossierKostenraming": "<business-case-raming, 1-3 zinnen met €-bedragen + fasering>"
+    }
+  ]
 }
+
+**Belangrijk — INSPANNING-CONTEXT IS MEDE LEIDEND:** lees \`beschrijving\`, \`beargumentatie\`, \`vermogenImpact\` en \`dossier\` zorgvuldig. Die context bepaalt WAAROM een inspanning nodig is, welke sectoren het raakt, en wat de randvoorwaarden zijn. Gebruik die informatie voor:
+- \`motivatie\` per inspanning (waarom deze in deze fase, waarom dit budget-aandeel)
+- \`verdelingPerJaar.fase\` (welke fase past bij welke activiteit — voorbereiding / uitrol / borging)
+- \`prioriteitAdvies\` (outside-in motivering op basis van de inhoudelijke hefbomen)
 
 Taak — lever EXACT dit JSON-object (één Scenario):
 {
@@ -114,6 +130,12 @@ Taak — lever EXACT dit JSON-object (één Scenario):
 }
 
 HARDE REGELS:
+0. **DOSSIERKOSTENRAMING IS LEIDEND voor totaalEuro per inspanning.**
+   Elke inspanning komt binnen met een \`dossierKostenraming\` (tekst, bv. "€75.000 eenmalig + €25.000/jr borging over 3 jaar"). Die raming is door de business-case-Q&A van de user opgebouwd en is de onderbouwde bron-waarheid voor de kosten.
+   - Parse de \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit, samen maken die \`totaalEuro\` voor die inspanning.
+   - Als \`dossierKostenraming\` leeg of zeer vaag is: geef een redelijke eerste schatting op basis van Cito-benchmarks (trainingsdag €800, FTE/jaar €100K, consultantuur €120) en benoem dat in \`motivatie\`.
+   - WIJK NIET sterk af van de dossierKostenraming zonder motivatie. Als je afwijkt (bv. omdat de raming onrealistisch oogt), benoem dat expliciet in \`motivatie\`.
+   - De optelsom \`totaalGeraamdEuro = som(inspanningen[].totaalEuro)\` moet matchen met de som van alle individuele dossier-ramingen (tenzij je expliciet een inspanning bijgesteld hebt).
 1. **aantalJaren moet REËEL zijn** gegeven jaarlijksBudgetEuro: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
 2. **Geen jaar mag jaarlijksBudgetEuro overschrijden.** Zorg dat som(totalenPerJaar[jaar].euro) ≤ jaarlijksBudgetEuro in élk jaar.
 3. **Som verdelingPerJaar[*].percentage per inspanning = precies 100.**

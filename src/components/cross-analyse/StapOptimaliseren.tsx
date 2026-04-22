@@ -579,6 +579,13 @@ export default function StapOptimaliseren({
         domein: e.domein,
         beschrijving: e.beschrijving ?? "",
         beargumentatie: e.beargumentatie ?? "",
+        vermogenImpact: e.vermogenImpact ?? [],
+        dossier: {
+          eigenaar: e.dossier?.eigenaar ?? "",
+          inspanningsleider: e.dossier?.inspanningsleider ?? "",
+          verwachtResultaat: e.dossier?.verwachtResultaat ?? "",
+          randvoorwaarden: e.dossier?.randvoorwaarden ?? "",
+        },
         dossierKostenraming: e.dossier?.kostenraming ?? "",
       }));
 
