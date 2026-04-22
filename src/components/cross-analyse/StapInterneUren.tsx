@@ -127,7 +127,13 @@ export default function StapInterneUren({
   const [fineutInstr, setFineutInstr] = useState("");
 
   // ───── Q&A FLOW (3-stappen): vragen → antwoorden → vastgestelde uren ─────
-  type Vraag = { id: string; vraag: string; voorbeeldAntwoord?: string };
+  type Vraag = {
+    id: string;
+    vraag: string;
+    aanbevolenAntwoord?: string;
+    toelichtingAanbeveling?: string;
+    voorbeeldAntwoord?: string; // legacy
+  };
   type InspanningVragen = {
     groepId: string;
     inspanningTitel: string;
@@ -326,13 +332,17 @@ export default function StapInterneUren({
     setVragenLoading(true);
     try {
       const optimaal = begroting.scenarios.optimaal;
-      // Verzamel inspanningen-input met groepId, titel, domein, verdeling, business-case
-      const inspanningenInput = optimaal.inspanningen.map((i) => {
+      // BUG-FIX: ALTIJD een unieke groepId per inspanning afdwingen — voorheen werd
+      // missing groepId als "" opgeslagen, waardoor antwoorden van inspanning A
+      // ook in inspanning B verschenen.
+      const inspanningenInput = optimaal.inspanningen.map((i, idx) => {
+        const stableGroepId =
+          i.groepId && i.groepId.trim().length > 0 ? i.groepId : `insp-${idx}-${i.domein}`;
         const bcEntry = stap4Result?.subEffortAnalysis?.find((e) => e.groepId === i.groepId);
         const bc = (bcEntry as unknown as { businessCase?: { answers?: Record<string, string> } })?.businessCase;
         return {
           inspanningTitel: i.inspanningTitel,
-          groepId: i.groepId ?? "",
+          groepId: stableGroepId,
           domein: i.domein,
           motivatie: i.motivatie,
           verdelingPerJaar: i.verdelingPerJaar,
@@ -358,14 +368,26 @@ export default function StapInterneUren({
         setVragenLoading(false);
         return;
       }
-      setVragenPerInspanning(data.data.inspanningen);
-      // Initialiseer lege antwoorden, behoud bestaande
+      // Force-uniqueness van groepId in AI-output (fallback als AI toch dupliceert)
+      const seen = new Set<string>();
+      const uniqueInspanningen = data.data.inspanningen.map((insp, idx) => {
+        let gid = insp.groepId;
+        if (!gid || seen.has(gid)) gid = `insp-${idx}-${insp.domein}`;
+        seen.add(gid);
+        return { ...insp, groepId: gid };
+      });
+      setVragenPerInspanning(uniqueInspanningen);
+      // Pre-fill antwoorden met aanbevolenAntwoord (Cito-context); behoud bestaande user-input
       setAntwoordenPerInspanning((prev) => {
         const next: Record<string, Record<string, string>> = { ...prev };
-        for (const insp of data.data!.inspanningen!) {
+        for (const insp of uniqueInspanningen) {
           if (!next[insp.groepId]) next[insp.groepId] = {};
           for (const v of insp.vragen) {
-            if (!(v.id in next[insp.groepId])) next[insp.groepId][v.id] = "";
+            const bestaand = next[insp.groepId][v.id];
+            if (bestaand === undefined || bestaand.trim() === "") {
+              // Pre-fill met AI-aanbeveling (of legacy voorbeeldAntwoord)
+              next[insp.groepId][v.id] = v.aanbevolenAntwoord ?? v.voorbeeldAntwoord ?? "";
+            }
           }
         }
         return next;
@@ -1222,28 +1244,57 @@ export default function StapInterneUren({
                       <p className={`text-sm font-semibold ${col.text}`}>{vi.inspanningTitel}</p>
                     </div>
                     <div className="space-y-3">
-                      {vi.vragen.map((v, idx) => (
-                        <div key={v.id} className="bg-white rounded p-3 border border-gray-200">
-                          <p className="text-sm text-gray-800 mb-2">
-                            <span className="text-[#003366] font-semibold">{idx + 1}.</span> {v.vraag}
-                          </p>
-                          {v.voorbeeldAntwoord && (
-                            <p className="text-[11px] text-gray-500 italic mb-2">Bijvoorbeeld: {v.voorbeeldAntwoord}</p>
-                          )}
-                          <textarea
-                            value={antwoordenPerInspanning[vi.groepId]?.[v.id] ?? ""}
-                            onChange={(e) =>
-                              setAntwoordenPerInspanning((prev) => ({
-                                ...prev,
-                                [vi.groepId]: { ...prev[vi.groepId], [v.id]: e.target.value },
-                              }))
-                            }
-                            rows={2}
-                            placeholder="Jouw antwoord..."
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y"
-                          />
-                        </div>
-                      ))}
+                      {vi.vragen.map((v, idx) => {
+                        const huidig = antwoordenPerInspanning[vi.groepId]?.[v.id] ?? "";
+                        const aanbeveling = v.aanbevolenAntwoord ?? v.voorbeeldAntwoord ?? "";
+                        const ongewijzigd = aanbeveling.length > 0 && huidig.trim() === aanbeveling.trim();
+                        return (
+                          <div key={v.id} className="bg-white rounded p-3 border border-gray-200">
+                            <p className="text-sm text-gray-800 mb-2">
+                              <span className="text-[#003366] font-semibold">{idx + 1}.</span> {v.vraag}
+                            </p>
+                            {aanbeveling && (
+                              <div className="mb-2 bg-blue-50 border border-blue-200 rounded p-2">
+                                <p className="text-[10px] font-semibold text-[#003366] uppercase tracking-wider mb-1">
+                                  💡 AI-aanbeveling (Cito-context)
+                                </p>
+                                <p className="text-[12px] text-gray-800 leading-snug">{aanbeveling}</p>
+                                {v.toelichtingAanbeveling && (
+                                  <p className="text-[10px] text-gray-600 italic mt-1">{v.toelichtingAanbeveling}</p>
+                                )}
+                                <div className="mt-1 flex items-center gap-2">
+                                  <button
+                                    onClick={() =>
+                                      setAntwoordenPerInspanning((prev) => ({
+                                        ...prev,
+                                        [vi.groepId]: { ...prev[vi.groepId], [v.id]: aanbeveling },
+                                      }))
+                                    }
+                                    className="text-[10px] px-2 py-0.5 rounded bg-[#003366] text-white hover:bg-[#002244]"
+                                  >
+                                    {ongewijzigd ? "✓ aanbeveling overgenomen" : "↺ Vul aanbeveling in"}
+                                  </button>
+                                  {!ongewijzigd && huidig.trim().length > 0 && (
+                                    <span className="text-[10px] text-gray-500">(jouw antwoord wordt gebruikt)</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            <textarea
+                              value={huidig}
+                              onChange={(e) =>
+                                setAntwoordenPerInspanning((prev) => ({
+                                  ...prev,
+                                  [vi.groepId]: { ...prev[vi.groepId], [v.id]: e.target.value },
+                                }))
+                              }
+                              rows={2}
+                              placeholder="Jouw antwoord (overschrijf aanbeveling als die niet past)..."
+                              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y"
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
