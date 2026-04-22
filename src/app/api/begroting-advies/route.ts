@@ -210,7 +210,12 @@ HARDE REGELS:
    - Data/Systemen: START jaar 1 (architectuur-keuze, leverancier-selectie, eerste tooling), bouw + integratie middenjaren, optimalisatie eind → NIET wachten tot jaar 3
    - Processen: START jaar 1 (eerste proces-mapping en quick-wins), uitrol middenjaren, standaardisatie + borging eind → NIET wachten tot mens "klaar" is
    - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1; "CRM-leverancier selectie + architectuur-besluit" voor data/systemen jaar 1; "Quick-win procesmapping + standaard-template ontwerp" voor processen jaar 1. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
-   - **VARIEER DE FASE-WOORDEN — geen herhaling van "Voorbereiding/Uitrol/Opschaling/Borging" alleen.** Gebruik concretere alternatieven die de inhoud dekken: "Scoping", "Leverancier-selectie", "Pilot", "Opbouw", "Eerste uitrol", "Brede uitrol", "Schaaluitrol", "Consolidatie", "Verankering", "Optimalisatie", "Continu verbeteren", "Jaarcyclus-evaluatie", "Nazorg". Elk jaar mag een ander fase-label krijgen binnen dezelfde inspanning — anders leest het als een sjabloon.
+   - **FASE-TERMINOLOGIE — methodologisch en domein-passend (geen generiek "Voorbereiding/Uitrol/Borging" herhalen).** Kies per inspanning × jaar een fase-label uit de methodiek die bij dat domein past. Richtlijn:
+     - **Cultuur** (veranderkundige fases — Kotter / ADKAR): Bewustwording → Acceptatie → Adoptie → Verankering. Of: Urgentiebesef → Coalitievorming → Waardenverankering → Rolmodel-gedrag.
+     - **Mens** (competentie-ontwikkeling): Behoeftestelling → Curriculumontwerp → Basistraining → Vaardigheidstraining → Toepassing in praktijk → Borging (e-learning/nazorg).
+     - **Data/Systemen** (IT-lifecycle — PRINCE2 / BiSL): Analyse → Ontwerp (architectuur) → Leverancier-selectie → Realisatie (bouw) → Acceptatie (tests/pilot) → In beheer → Optimalisatie.
+     - **Processen** (BPM-lifecycle): Inventarisatie (as-is) → Herontwerp (to-be) → Pilot → Uitrol → Standaardisatie → Continu verbeteren.
+   - Kies het fase-label dat beste past bij de concrete activiteit van dat jaar, niet willekeurig. Elk jaar mag een ander label hebben binnen dezelfde inspanning — het sjabloon-effect ("Voorbereiding/Uitrol/Borging" telkens) is expliciet verboden.
 8. Alle euros als integers (75000, niet "€75K").
 9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
@@ -329,21 +334,28 @@ export async function POST(request: NextRequest) {
         }
         const verschoven = tekort - nogTeShiften;
         if (verschoven > 0) {
+          // Kies fase-label afhankelijk van domein (methodologisch)
+          const domeinStartFase: Record<string, string> = {
+            cultuur: "Bewustwording",
+            mens: "Behoeftestelling",
+            data_systemen: "Analyse",
+            processen: "Inventarisatie",
+          };
+          const startFase = domeinStartFase[insp.domein] ?? "Scoping";
           if (startCell) {
             startCell.euro = (startCell.euro ?? 0) + verschoven;
-            // Activiteit aanvullen als die leeg was na het toevoegen van budget
             if (!startCell.activiteit || startCell.activiteit.trim().length === 0) {
-              startCell.activiteit = "Start in jaar 1 (parallelle aanloop, voorbereiding/scoping).";
+              startCell.activiteit = "Parallelle start in jaar 1 — scoping en voorbereiding.";
             }
             if (!startCell.fase || startCell.fase.trim().length === 0) {
-              startCell.fase = "Voorbereiding";
+              startCell.fase = startFase;
             }
           } else {
             verdeling.push({
               jaar: startJ,
               euro: verschoven,
-              fase: "Voorbereiding",
-              activiteit: "Start in jaar 1 (parallelle aanloop, voorbereiding/scoping).",
+              fase: startFase,
+              activiteit: "Parallelle start in jaar 1 — scoping en voorbereiding.",
             });
           }
         }
@@ -392,20 +404,27 @@ export async function POST(request: NextRequest) {
           bestCell.euro = (bestCell.euro ?? 0) - shift;
           // Voeg toe aan het current-year cell van diezelfde inspanning
           const targetCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === yr);
+          const domeinMidFase: Record<string, string> = {
+            cultuur: "Adoptie",
+            mens: "Vaardigheidstraining",
+            data_systemen: "Realisatie",
+            processen: "Uitrol",
+          };
+          const midFase = domeinMidFase[bestInsp.domein] ?? "Uitrol";
           if (targetCell) {
             targetCell.euro = (targetCell.euro ?? 0) + shift;
             if (!targetCell.activiteit || targetCell.activiteit.trim().length === 0) {
-              targetCell.activiteit = "Voortzetting / opschaling van traject (server-rebalanced).";
+              targetCell.activiteit = "Opschaling en verdere uitrol van het traject.";
             }
             if (!targetCell.fase || targetCell.fase.trim().length === 0) {
-              targetCell.fase = "Uitrol";
+              targetCell.fase = midFase;
             }
           } else {
             bestInsp.verdelingPerJaar.push({
               jaar: yr,
               euro: shift,
-              fase: "Uitrol",
-              activiteit: "Voortzetting van traject (server-rebalanced).",
+              fase: midFase,
+              activiteit: "Opschaling en verdere uitrol van het traject.",
             });
             bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
           }
@@ -444,20 +463,27 @@ export async function POST(request: NextRequest) {
           bestCell.euro = (bestCell.euro ?? 0) - shift;
           // Shift naar het LAATSTE jaar van diezelfde inspanning (of eerstvolgende ruimte)
           const laatsteCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === eindJ);
+          const domeinEindFase: Record<string, string> = {
+            cultuur: "Verankering",
+            mens: "Borging en nazorg",
+            data_systemen: "In beheer",
+            processen: "Standaardisatie",
+          };
+          const eindFase = domeinEindFase[bestInsp.domein] ?? "Borging";
           if (laatsteCell) {
             laatsteCell.euro = (laatsteCell.euro ?? 0) + shift;
             if (!laatsteCell.activiteit || laatsteCell.activiteit.trim().length === 0) {
-              laatsteCell.activiteit = "Afronding en borging (verschoven bij herverdeling).";
+              laatsteCell.activiteit = "Verankering en duurzame borging van het resultaat.";
             }
             if (!laatsteCell.fase || laatsteCell.fase.trim().length === 0) {
-              laatsteCell.fase = "Borging";
+              laatsteCell.fase = eindFase;
             }
           } else {
             bestInsp.verdelingPerJaar.push({
               jaar: eindJ,
               euro: shift,
-              fase: "Borging",
-              activiteit: "Afronding en borging (toegevoegd bij herverdeling).",
+              fase: eindFase,
+              activiteit: "Verankering en duurzame borging van het resultaat.",
             });
             bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
           }
