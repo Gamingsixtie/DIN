@@ -286,44 +286,53 @@ export async function POST(request: NextRequest) {
       const scenario = scenarios?.[label];
       if (!scenario) return null;
       if (staggerMs > 0) await new Promise((r) => setTimeout(r, staggerMs));
-      try {
-        const enrichedInsps = enrichInspanningen(scenario.inspanningen);
-        const finetuneBlock =
-          finetuneInstructie && finetuneInstructie.trim().length > 0
-            ? `\n\n**FINETUNE-VERZOEK:** "${finetuneInstructie.trim()}"\nPas de uren/rollen aan naar de instructie. Vorige versie:\n${JSON.stringify((previousAdvies as { scenarios?: Record<string, unknown> })?.scenarios?.[label] ?? null, null, 2)}\n`
-            : "";
-        const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(
-            label,
-            { ...scenario, inspanningen: enrichedInsps },
-            toegestaneFuncties,
-            urenBudgetPerJaar,
-            toegestaneFunctiesPerDomein
-          ) + finetuneBlock,
-          "cross-analyse",
-          undefined,
-          kibContext
-        );
-        const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
-        const res = await callClaudeWithValidation(
-          InterneUrenScenarioAISchema,
-          systemPrompt,
-          userMessage,
-          { maxTokens: 8192, retryDelayMs: 2000 }
-        );
-        if (!res.success) {
-          console.error(`[interne-uren-advies] ${label} validation failed:`, res.error);
-          return null;
+      const enrichedInsps = enrichInspanningen(scenario.inspanningen);
+      const finetuneBlock =
+        finetuneInstructie && finetuneInstructie.trim().length > 0
+          ? `\n\n**FINETUNE-VERZOEK:** "${finetuneInstructie.trim()}"\nPas de uren/rollen aan naar de instructie. Vorige versie:\n${JSON.stringify((previousAdvies as { scenarios?: Record<string, unknown> })?.scenarios?.[label] ?? null, null, 2)}\n`
+          : "";
+      const systemPrompt = assembleSystemPrompt(
+        scenarioPrompt(
+          label,
+          { ...scenario, inspanningen: enrichedInsps },
+          toegestaneFuncties,
+          urenBudgetPerJaar,
+          toegestaneFunctiesPerDomein
+        ) + finetuneBlock,
+        "cross-analyse",
+        undefined,
+        kibContext
+      );
+      const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
+      // 2 pogingen — bij JSON-truncation door token-limiet probeert tweede met meer tokens
+      const pogingen: Array<{ maxTokens: number; retryDelayMs: number }> = [
+        { maxTokens: 16384, retryDelayMs: 2000 },
+        { maxTokens: 16384, retryDelayMs: 4000 },
+      ];
+      for (let i = 0; i < pogingen.length; i++) {
+        try {
+          const res = await callClaudeWithValidation(
+            InterneUrenScenarioAISchema,
+            systemPrompt,
+            userMessage,
+            pogingen[i]
+          );
+          if (res.success) {
+            return verrijkScenario(res.data, {
+              aantalJaren: scenario.aantalJaren,
+              startJaar: scenario.startJaar,
+              uurtariefSettings: uurtariefSettings!,
+            });
+          }
+          console.error(`[interne-uren-advies] ${label} poging ${i + 1} validation failed:`, res.error);
+        } catch (err) {
+          console.error(`[interne-uren-advies] ${label} poging ${i + 1} threw:`, err);
         }
-        return verrijkScenario(res.data, {
-          aantalJaren: scenario.aantalJaren,
-          startJaar: scenario.startJaar,
-          uurtariefSettings: uurtariefSettings!,
-        });
-      } catch (err) {
-        console.error(`[interne-uren-advies] ${label} threw:`, err);
-        return null;
+        if (i < pogingen.length - 1) {
+          await new Promise((r) => setTimeout(r, 1500));
+        }
       }
+      return null;
     }
 
     function verrijkScenario(

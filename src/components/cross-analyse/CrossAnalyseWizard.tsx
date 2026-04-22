@@ -180,11 +180,24 @@ export default function CrossAnalyseWizard() {
     }
     const timer = setTimeout(() => {
       updateSession((prev) => {
+        // Per-stap shallow merge: behoud sub-velden die kindcomponenten direct in
+        // session schrijven (zoals stap4.stap7InterneUren of stap4.begrotingAdvies)
+        // en die NIET in onze lokale wizardState staan.
+        const prevStepResults = (prev.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+        const localStepResults = (wizardState.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+        const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
+        for (const [key, value] of Object.entries(localStepResults)) {
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            mergedStepResults[key] = { ...(prevStepResults[key] ?? {}), ...value };
+          } else {
+            mergedStepResults[key] = value;
+          }
+        }
         const nextWiz = {
           currentStep: wizardState.currentStep,
           completedSteps: Array.from(wizardState.completedSteps),
           wizardVersion: 2,
-          stepResults: wizardState.stepResults,
+          stepResults: mergedStepResults as typeof wizardState.stepResults,
         };
         // Vergelijk op JSON-gelijkheid — voorkom onnodige writes naar Supabase
         if (JSON.stringify(prev.crossAnalyseWizard) === JSON.stringify(nextWiz)) {
@@ -207,15 +220,27 @@ export default function CrossAnalyseWizard() {
         const key = `stap${resultKey}` as keyof typeof prev.stepResults;
         const newStepResults = { ...prev.stepResults, [key]: result };
 
-        // Persist to session
-        updateSession(() => ({
-          crossAnalyseWizard: {
-            currentStep: prev.currentStep,
-            completedSteps: Array.from(newCompleted),
-            wizardVersion: 2,
-            stepResults: newStepResults,
-          },
-        }));
+        // Persist to session — merge per stap zodat sub-velden die kindcomponenten
+        // direct in session schrijven (bv. stap4.stap7InterneUren) bewaard blijven
+        updateSession((prevSession) => {
+          const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+          const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
+          for (const [k, v] of Object.entries(newStepResults)) {
+            if (v && typeof v === "object" && !Array.isArray(v)) {
+              mergedStepResults[k] = { ...(prevStepResults[k] ?? {}), ...v };
+            } else {
+              mergedStepResults[k] = v;
+            }
+          }
+          return {
+            crossAnalyseWizard: {
+              currentStep: prev.currentStep,
+              completedSteps: Array.from(newCompleted),
+              wizardVersion: 2,
+              stepResults: mergedStepResults as typeof newStepResults,
+            },
+          };
+        });
 
         return {
           ...prev,
@@ -233,14 +258,25 @@ export default function CrossAnalyseWizard() {
       const newCompleted = new Set(prev.completedSteps);
       newCompleted.add(prev.currentStep);
 
-      updateSession(() => ({
-        crossAnalyseWizard: {
-          currentStep: prev.currentStep,
-          completedSteps: Array.from(newCompleted),
-          wizardVersion: 2,
-          stepResults: prev.stepResults,
-        },
-      }));
+      updateSession((prevSession) => {
+        const prevStepResults = (prevSession.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
+        const mergedStepResults: Record<string, unknown> = { ...prevStepResults };
+        for (const [k, v] of Object.entries(prev.stepResults)) {
+          if (v && typeof v === "object" && !Array.isArray(v)) {
+            mergedStepResults[k] = { ...(prevStepResults[k] ?? {}), ...v };
+          } else {
+            mergedStepResults[k] = v;
+          }
+        }
+        return {
+          crossAnalyseWizard: {
+            currentStep: prev.currentStep,
+            completedSteps: Array.from(newCompleted),
+            wizardVersion: 2,
+            stepResults: mergedStepResults as typeof prev.stepResults,
+          },
+        };
+      });
 
       return { ...prev, completedSteps: newCompleted };
     });

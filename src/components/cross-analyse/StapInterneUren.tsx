@@ -471,6 +471,24 @@ export default function StapInterneUren({
         </p>
       </div>
 
+      {/* Bronnen waar AI de uren-schatting op baseert — transparant voor gebruiker */}
+      <details className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#003366] hover:bg-gray-50">
+          Waar baseert de AI de uren-schatting op? <span className="text-xs text-gray-500 font-normal">(klik voor details)</span>
+        </summary>
+        <div className="px-4 pb-4 pt-1 space-y-2 text-[12px] text-gray-700 leading-relaxed border-t border-gray-100">
+          <p>De AI haalt het aantal uren NIET uit de stap 6 begroting (die gaat over <em>out-of-pocket</em> euro&apos;s, niet uren). De uren-schatting komt tot stand uit:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Stap 6 fasering &amp; activiteiten</strong> — per inspanning per jaar: welke fase (voorbereiding / uitrol / borging) en welke activiteit. Hieruit leidt AI af hoe zwaar het werk is en waar de pieken zitten.</li>
+            <li><strong>Toegestane functies per domein (jouw selectie hierboven)</strong> — alleen rollen die je hebt aangevinkt mag AI inzetten. Met &quot;aantal personen&quot; (bijv. 3 accountmanagers) schaalt AI de uren op die rol.</li>
+            <li><strong>Business-case antwoorden per inspanning</strong> — wanneer je bij een inspanning Cito-rollen + uren-schattingen hebt opgegeven (interne_rollen + interne_uren_per_rol), gebruikt AI die als harde aanname.</li>
+            <li><strong>Realistische FTE-norm</strong> — 1 FTE ≈ 1600 werkbare uren/jaar. Een 10%-rol = ~160u/jr; zware trekkers in een piekjaar = 300-500u/rol.</li>
+            <li><strong>Uren-budget norm (Finance, hierboven)</strong> — AI streeft binnen het ingestelde budget per jaar te blijven en toont een gap in rood (tekort) of groen (overschot).</li>
+          </ul>
+          <p className="text-[11px] text-gray-500 italic">Per domein staat onder &quot;motivatie&quot; concreet welke rol waarom is gekozen, en in elk jaarblok zie je de activiteit-tekst die met stap 6 correspondeert.</p>
+        </div>
+      </details>
+
       {/* Uren-budget norm */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center gap-3 flex-wrap">
