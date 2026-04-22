@@ -295,7 +295,58 @@ export async function POST(request: NextRequest) {
     function enrichScenario(ai: ScenarioAI, jaarlijksBudget: number): Scenario {
       const startJ = effectiefStartJaar;
       const eindJ = startJ + ai.aantalJaren - 1;
-      const enrichedInsps = ai.inspanningen.map((insp) => {
+
+      // Server-side ENFORCEMENT: elke inspanning MOET in startjaar een non-zero
+      // bedrag hebben (parallelle uitvoering vanaf jaar 1). AI negeert deze regel
+      // soms, dus we shiften 10% van totaalEuro naar startjaar uit het grootste
+      // andere jaar.
+      const aiInspsParallelGuarded = ai.inspanningen.map((insp) => {
+        const verdeling = insp.verdelingPerJaar.map((v) => ({ ...v }));
+        const startCell = verdeling.find((v) => v.jaar === startJ);
+        const totaal = verdeling.reduce((s, v) => s + (v.euro ?? 0), 0);
+        if (totaal === 0) return insp;
+        const minStartEuro = Math.round((totaal * 0.1) / 1000) * 1000; // 10% naar startjaar
+        const huidigStart = startCell?.euro ?? 0;
+        if (huidigStart >= minStartEuro) return { ...insp, verdelingPerJaar: verdeling };
+        const tekort = minStartEuro - huidigStart;
+        // Pak het grootste niet-startjaar en haal er tekort vandaan
+        const nietStart = verdeling.filter((v) => v.jaar !== startJ);
+        nietStart.sort((a, b) => (b.euro ?? 0) - (a.euro ?? 0));
+        let nogTeShiften = tekort;
+        for (const cell of nietStart) {
+          if (nogTeShiften <= 0) break;
+          const beschikbaar = Math.max(0, (cell.euro ?? 0) - 1000); // laat min 1k staan
+          const shift = Math.min(beschikbaar, nogTeShiften);
+          if (shift > 0) {
+            cell.euro = (cell.euro ?? 0) - shift;
+            nogTeShiften -= shift;
+          }
+        }
+        const verschoven = tekort - nogTeShiften;
+        if (verschoven > 0) {
+          if (startCell) {
+            startCell.euro = (startCell.euro ?? 0) + verschoven;
+            // Activiteit aanvullen als die leeg was na het toevoegen van budget
+            if (!startCell.activiteit || startCell.activiteit.trim().length === 0) {
+              startCell.activiteit = "Start in jaar 1 (parallelle aanloop, voorbereiding/scoping).";
+            }
+            if (!startCell.fase || startCell.fase.trim().length === 0) {
+              startCell.fase = "Voorbereiding";
+            }
+          } else {
+            verdeling.push({
+              jaar: startJ,
+              euro: verschoven,
+              fase: "Voorbereiding",
+              activiteit: "Start in jaar 1 (parallelle aanloop, voorbereiding/scoping).",
+            });
+          }
+        }
+        verdeling.sort((a, b) => a.jaar - b.jaar);
+        return { ...insp, verdelingPerJaar: verdeling };
+      });
+
+      const enrichedInsps = aiInspsParallelGuarded.map((insp) => {
         // Som per inspanning over alle jaren = totaalEuro
         const totaalEuro = insp.verdelingPerJaar.reduce((s, v) => s + (v.euro ?? 0), 0);
         return {
