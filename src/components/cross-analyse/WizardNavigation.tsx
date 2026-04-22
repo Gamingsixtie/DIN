@@ -1,7 +1,7 @@
 "use client";
 
 interface WizardNavigationProps {
-  currentStep: number;          // 1-7
+  currentStep: number;          // 1-9
   completedSteps: Set<number>;
   onStepChange: (step: number) => void;
 }
@@ -13,6 +13,8 @@ const STEP_LABELS = [
   "Inspanningen",
   "Consolidatie",
   "Optimaliseren",
+  "Interne uren",
+  "Totaaloverzicht",
   "DIN-netwerk",
 ];
 
@@ -23,9 +25,9 @@ export default function WizardNavigation({
 }: WizardNavigationProps) {
   const isStepAccessible = (step: number): boolean => {
     if (step === 1) return true;
-    // Stap 7 (DIN-netwerk) hangt af van stap 5 (Consolidatie), niet stap 6
-    // (Optimaliseren) omdat stap 6 geen AI-call heeft om completion te markeren.
-    if (step === 7) return completedSteps.has(5);
+    // Stap 6 (Optimaliseren), stap 7 (Interne uren) en stap 8 (Totaaloverzicht)
+    // hebben geen harde AI-completion, dus daar gaan we uit van stap 5.
+    if (step === 7 || step === 8 || step === 9) return completedSteps.has(5);
     return completedSteps.has(step - 1);
   };
 
@@ -153,8 +155,12 @@ function NavigationButtons({
   completedSteps: Set<number>;
   onStepChange: (step: number) => void;
 }) {
-  // Stap 6 (Optimaliseren) heeft geen verplichte AI-call: altijd doorgaan als stap 5 klaar is.
-  const canProceed = currentStep === 6 ? completedSteps.has(5) : completedSteps.has(currentStep);
+  // Stap 6 (Optimaliseren), 7 (Interne uren), 8 (Totaaloverzicht) hebben geen
+  // harde completion-trigger — doorgaan toegestaan als stap 5 klaar is.
+  const canProceed =
+    currentStep === 6 || currentStep === 7 || currentStep === 8
+      ? completedSteps.has(5)
+      : completedSteps.has(currentStep);
 
   return (
     <div className="flex flex-col md:flex-row justify-between pt-4 border-t border-gray-200 gap-2">
@@ -170,7 +176,7 @@ function NavigationButtons({
         <div />
       )}
 
-      {currentStep < 7 && (
+      {currentStep < 9 && (
         <button
           type="button"
           onClick={() => onStepChange(currentStep + 1)}

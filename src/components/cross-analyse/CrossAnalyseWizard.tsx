@@ -18,6 +18,7 @@ import StapGedeeldeVermogens from "./StapGedeeldeVermogens";
 import StapInspanningenOverlap from "./StapInspanningenOverlap";
 import StapConsolidatie from "./StapConsolidatie";
 import StapOptimaliseren from "./StapOptimaliseren";
+import StapInterneUren from "./StapInterneUren";
 import StapSectorVertaling from "./StapSectorVertaling";
 import StapLopendeProjecten from "./StapLopendeProjecten";
 import { LoadingOverlay } from "./shared";
@@ -92,6 +93,22 @@ const STEP_INFO: Record<number, {
     loadingDescription: "",
   },
   7: {
+    title: "Interne uren",
+    description: "AI berekent per domein en per jaar hoeveel interne uren (welke Cito-rollen) nodig zijn, gekoppeld aan de scenario-fasering uit stap 6. Uurtarief wordt geïndexeerd vanaf referentiejaar.",
+    placeholder: "",
+    analyseLabel: "",
+    loadingTitle: "",
+    loadingDescription: "",
+  },
+  8: {
+    title: "Totaaloverzicht",
+    description: "Out-of-pocket + interne uren samen per scenario — de volledige programmakosten over alle jaren.",
+    placeholder: "",
+    analyseLabel: "",
+    loadingTitle: "",
+    loadingDescription: "",
+  },
+  9: {
     title: "Prioriteitsview — eerste doel",
     description: "Dit is de scherpste hefboom: de keten doel → baten → vermogens → inspanningen voor uw hoogste prioriteit. We tonen alleen het eerste doel omdat daar het meeste mandaat en de hoogste urgentie zit.",
     placeholder: "Bijv. specifieke aandachtspunten voor hefboomwerking of baten-dekking...",
@@ -520,6 +537,22 @@ export default function CrossAnalyseWizard() {
           />
         )}
         {wizardState.currentStep === 7 && (
+          <StapInterneUren
+            session={session}
+            stap4Result={wizardState.stepResults.stap4}
+          />
+        )}
+        {wizardState.currentStep === 8 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+            <p className="text-sm text-gray-600">
+              <strong>Stap 8 — Totaaloverzicht</strong> wordt binnenkort geactiveerd.
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Combineert AI-begroting (stap 6) + interne uren (stap 7) per scenario per jaar.
+            </p>
+          </div>
+        )}
+        {wizardState.currentStep === 9 && (
           <StapSectorVertaling
             session={session}
             result={wizardState.stepResults.stap5}
