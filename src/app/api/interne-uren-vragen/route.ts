@@ -57,15 +57,17 @@ function buildPrompt(
   return `Je bent programma-controller bij Cito BV. Je helpt de programma-eigenaar om realistische interne uren-schattingen te maken voor de inspanningen in een DIN-programma.
 
 **ORGANISATIE-CONTEXT (Cito BV) — gebruik dit voor je aanbevolen schattingen:**
-- Cito is een middelgrote, **bureaucratische en hiërarchische organisatie** (~700 medewerkers). Beslissingen vergen meerdere afstemmings- en goedkeuringsrondes.
-- Drie sectoren: PO (basisonderwijs), VO (voortgezet), Professionals (zakelijk). Elke sector heeft een eigen sectormanager + productmanagers + toetsdeskundigen.
-- **Vergader-cultuur**: stuurgroepen komen typisch 1× per kwartaal bijeen (2-3u), werkgroepen 2× per maand (1.5-2u), kick-offs 1-2 dagen, reviews 0.5-1 dag.
-- **Voorbereidingstijd is significant**: voor elke inhoudelijke sessie van 2u rekent een trekkende rol typisch 2-4u voorbereiding (slides, agenda, stakeholderafstemming).
+- Cito is een **kleine bureaucratische organisatie van ~124 FTE totaal**. Beslissingen vergen meerdere afstemmings- en goedkeuringsrondes ondanks de kleine schaal.
+- **Capaciteit is schaars**: elke FTE telt — programma's concurreren onderling om dezelfde mensen. Wees realistisch en zuinig met uren-aanvragen.
+- Drie sectoren: PO (basisonderwijs), VO (voortgezet), Professionals (zakelijk). Elke sector heeft een eigen sectormanager + productmanagers + toetsdeskundigen — typisch slechts 1-3 senior toetsdeskundigen per sector.
+- **Vergader-cultuur**: stuurgroepen komen typisch 1× per kwartaal bijeen (2-3u), werkgroepen 2× per maand (1.5-2u), kick-offs 0.5-1 dag (zelden 2 dagen), reviews 0.5 dag.
+- **Voorbereidingstijd is significant**: voor elke inhoudelijke sessie van 2u rekent een trekkende rol typisch 2-3u voorbereiding (slides, agenda, stakeholderafstemming).
 - **Cross-sectorale afstemming** kost relatief veel tijd: 1 cross-sectoraal initiatief raakt minimaal 3 sectormanagers + Directie BV → maandelijks afstem-overleg van ~1u + bilaterale afstemmingen.
-- Toetsdeskundigen + Inhoudsspecialisten worden op meerdere programma's tegelijk ingezet → realistisch 10-20% FTE per programma (160-320u/jr).
-- Sectormanagers + Directieleden: trekkers in jaar 1 typisch 15-25% FTE (240-400u), in latere jaren 5-10% FTE (80-160u).
-- Productowners + Business informatieanalisten op data/systemen-trajecten: vaak 30-50% FTE per jaar (480-800u) tijdens uitrol.
-- Klantcontact / Accountmanagers (3-15 personen per sector): 5-10% FTE bijdrage aan programma-borging is normaal.
+- Toetsdeskundigen + Inhoudsspecialisten zitten op meerdere programma's tegelijk → realistisch 5-15% FTE per programma (80-240u/jr); 20%+ alleen bij hun primaire trekrol.
+- Sectormanagers + Directieleden: trekkers in jaar 1 typisch 10-20% FTE (160-320u), in latere jaren 5-8% FTE (80-128u). Volwaardige 25%+ FTE komt zelden voor — daar is de organisatie te klein voor.
+- Productowners + Business informatieanalisten op data/systemen-trajecten: vaak 25-40% FTE per jaar (400-640u) tijdens uitrol — beperkt door beschikbaarheid.
+- Klantcontact / Accountmanagers (3-8 personen per sector): 5-8% FTE bijdrage aan programma-borging is normaal (80-128u).
+- **Realistische bovengrens**: een programma dat samen >2-3 FTE per jaar opslokt is voor Cito al een grote inspanning. Schat liever conservatief.
 
 **Doel:** stel per inspanning EXACT 3 gerichte korte vragen die nodig zijn om het aantal interne uren per rol GOED te kunnen schatten — EN geef per vraag een CONCREET aanbevolen antwoord dat past bij de bovenstaande Cito-context. De gebruiker krijgt dat antwoord als pre-fill en kan het overschrijven.
 
