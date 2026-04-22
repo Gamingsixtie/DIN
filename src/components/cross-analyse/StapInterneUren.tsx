@@ -274,13 +274,20 @@ export default function StapInterneUren({
     data_systemen: Object.keys(selectiePerDomein.data_systemen).length,
     processen: Object.keys(selectiePerDomein.processen).length,
   };
+  // Totaal aantal personen per domein (sum van aantal-veld) — gaat omhoog bij
+  // meer personen op één functie OF bij toevoegen van een nieuwe functie
+  const personenPerDomein: Record<Domein, number> = {
+    cultuur: Object.values(selectiePerDomein.cultuur).reduce((s, v) => s + v.aantal, 0),
+    mens: Object.values(selectiePerDomein.mens).reduce((s, v) => s + v.aantal, 0),
+    data_systemen: Object.values(selectiePerDomein.data_systemen).reduce((s, v) => s + v.aantal, 0),
+    processen: Object.values(selectiePerDomein.processen).reduce((s, v) => s + v.aantal, 0),
+  };
   const geselecteerdeTotaal =
     geselecteerdePerDomein.cultuur + geselecteerdePerDomein.mens +
     geselecteerdePerDomein.data_systemen + geselecteerdePerDomein.processen;
-  const totaalAantalPersonen = DOMEINEN.reduce(
-    (s, d) => s + Object.values(selectiePerDomein[d]).reduce((a, b) => a + b.aantal, 0),
-    0
-  );
+  const totaalAantalPersonen =
+    personenPerDomein.cultuur + personenPerDomein.mens +
+    personenPerDomein.data_systemen + personenPerDomein.processen;
 
   // Helper: bouw toegestaneFunctiesPerDomein payload voor API's
   type ToegestaneFunctiePayload = {
@@ -860,7 +867,7 @@ export default function StapInterneUren({
                     key={d}
                     className={`text-[10px] px-2 py-0.5 rounded border ${col.bg} ${col.border} ${col.text}`}
                   >
-                    {DOMEIN_LABELS[d]}: {geselecteerdePerDomein[d]}
+                    {DOMEIN_LABELS[d]}: {geselecteerdePerDomein[d]} fns / {personenPerDomein[d]} pers.
                   </span>
                 );
               })}
@@ -883,7 +890,10 @@ export default function StapInterneUren({
                       active ? `${col.bg} ${col.text} border-b-2` : "text-gray-600 hover:bg-white"
                     }`}
                   >
-                    {DOMEIN_LABELS[d]} · {geselecteerdePerDomein[d]}
+                    {DOMEIN_LABELS[d]}
+                    <span className="block text-[10px] font-normal opacity-80">
+                      {geselecteerdePerDomein[d]} fns · {personenPerDomein[d]} pers.
+                    </span>
                   </button>
                 );
               })}
