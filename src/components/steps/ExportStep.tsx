@@ -836,7 +836,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
         if (itemRasci.length === 0 || allRollen.length === 0) return null;
         const benefitsRasci = itemRasci.filter((i) => i.itemType === "benefit");
         const capabilitiesRasci = itemRasci.filter((i) => i.itemType === "capability");
-        const effortsRasci = itemRasci.filter((i) => i.itemType === "effort");
         const renderItemList = (
           itemsRasci: typeof itemRasci,
           lookupTitle: (id: string) => string
@@ -892,14 +891,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
                 {renderItemList(capabilitiesRasci, (id) => {
                   const c = session.capabilities.find((x) => x.id === id);
                   return c ? `[${c.sectorId}] ${c.title || c.description || "(naamloos)"}` : id;
-                })}
-              </SubSection>
-            )}
-            {effortsRasci.length > 0 && (
-              <SubSection title="RASCI per individuele inspanning">
-                {renderItemList(effortsRasci, (id) => {
-                  const e = session.efforts.find((x) => x.id === id);
-                  return e ? `[${e.sectorId} · ${DOMAIN_LABELS[e.domain]}] ${e.title || e.description || "(naamloos)"}` : id;
                 })}
               </SubSection>
             )}

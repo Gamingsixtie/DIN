@@ -1146,10 +1146,6 @@ function governanceSection(session: DINSession, numState: NumberingState, active
       const c = session.capabilities.find((x) => x.id === id);
       return c ? `[${c.sectorId}] ${c.title || c.description || "(naamloos)"}` : id;
     });
-    renderItemMatrix("RASCI per individuele inspanning", "effort", (id) => {
-      const e = session.efforts.find((x) => x.id === id);
-      return e ? `[${e.sectorId}] ${e.title || e.description || "(naamloos)"}` : id;
-    });
   }
 
   // Bateneigenaren aggregeren

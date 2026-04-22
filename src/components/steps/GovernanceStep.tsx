@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSession } from "@/lib/session-context";
-import { RASCI_LABELS, RASCI_TOELICHTING, RASCI_KLEUREN, DOMAIN_LABELS } from "@/lib/types";
+import { RASCI_LABELS, RASCI_TOELICHTING, RASCI_KLEUREN } from "@/lib/types";
 import type {
   ProgrammaRol,
   Programmaorganisatie,
@@ -22,7 +22,7 @@ import type {
 } from "@/lib/types";
 
 type Tab = "organisatie" | "rasci";
-type RasciSubTab = "clusters" | "benefits" | "capabilities" | "efforts";
+type RasciSubTab = "clusters" | "benefits" | "capabilities";
 
 export type ClusterBron = {
   clusterTitel: string;
@@ -372,9 +372,10 @@ export default function GovernanceStep() {
     if (!session) return;
     if (!checkPoIngevuld()) return;
     const heeftEnige =
-      rasci.some((c) => c.rijen.length > 0) || itemRasci.some((i) => i.rijen.length > 0);
+      rasci.some((c) => c.rijen.length > 0) ||
+      itemRasci.some((i) => i.itemType !== "effort" && i.rijen.length > 0);
     if (heeftEnige) {
-      if (!window.confirm("Er is al RASCI ingevuld op één of meer niveaus. AI vervangt ALLE matrices (clusters + baten + vermogens + inspanningen). Doorgaan?")) return;
+      if (!window.confirm("Er is al RASCI ingevuld op één of meer niveaus. AI vervangt ALLE matrices (clusters + baten + vermogens). Doorgaan?")) return;
     }
     setAILoading("rasci-all");
     setAIError(null);
@@ -383,7 +384,6 @@ export default function GovernanceStep() {
         handleAIRasciClusters(true),
         handleAIRasciItems("benefit", true),
         handleAIRasciItems("capability", true),
-        handleAIRasciItems("effort", true),
       ]);
     } finally {
       setAILoading("none");
@@ -465,7 +465,6 @@ export default function GovernanceStep() {
           clusters={clusters}
           benefits={benefits}
           capabilities={activeCapabilities}
-          efforts={activeEfforts}
           goals={session.goals}
           rollen={rollen}
           onUpdateClusters={updateRasci}
@@ -796,7 +795,6 @@ function RasciTab({
   clusters,
   benefits,
   capabilities,
-  efforts,
   goals,
   rollen,
   onUpdateClusters,
@@ -813,7 +811,6 @@ function RasciTab({
   clusters: ClusterBron[];
   benefits: DINBenefit[];
   capabilities: DINCapability[];
-  efforts: DINEffort[];
   goals: { id: string; name: string; rank: number }[];
   rollen: ProgrammaRol[];
   onUpdateClusters: (updater: (prev: ClusterRasci[]) => ClusterRasci[]) => void;
@@ -894,6 +891,62 @@ function RasciTab({
     });
   }
 
+  function setItemToelichting(
+    itemId: string,
+    itemType: RasciItemType,
+    sectorId: string | undefined,
+    toelichting: string
+  ) {
+    onUpdateItems((prev) => {
+      const existing = prev.find((i) => i.itemId === itemId);
+      const current: ItemRasci = existing ?? {
+        itemId,
+        itemType,
+        sectorId,
+        rijen: [],
+        toelichting: "",
+      };
+      const nextItem: ItemRasci = { ...current, toelichting };
+      return [...prev.filter((i) => i.itemId !== itemId), nextItem];
+    });
+  }
+
+  function copyItemFrom(
+    targetItemId: string,
+    itemType: RasciItemType,
+    sectorId: string | undefined,
+    sourceItemId: string
+  ) {
+    onUpdateItems((prev) => {
+      const source = prev.find((i) => i.itemId === sourceItemId);
+      if (!source) return prev;
+      const nextItem: ItemRasci = {
+        itemId: targetItemId,
+        itemType,
+        sectorId,
+        rijen: source.rijen.map((r) => ({ rolId: r.rolId, letter: r.letter })),
+        toelichting: source.toelichting ?? "",
+      };
+      return [...prev.filter((i) => i.itemId !== targetItemId), nextItem];
+    });
+  }
+
+  function copyClusterFrom(targetTitel: string, sourceTitel: string) {
+    onUpdateClusters((prev) => {
+      const source = prev.find((c) => c.clusterTitel === sourceTitel);
+      const baseCluster = clusters.find((c) => c.clusterTitel === targetTitel);
+      if (!source || !baseCluster) return prev;
+      const nextCluster: ClusterRasci = {
+        clusterTitel: targetTitel,
+        clusterType: baseCluster.clusterType,
+        toelichting: source.toelichting ?? "",
+        rijen: source.rijen.map((r) => ({ rolId: r.rolId, letter: r.letter })),
+        overrides: [],
+      };
+      return [...prev.filter((c) => c.clusterTitel !== targetTitel), nextCluster];
+    });
+  }
+
   // Sync clusters
   const rasciByTitel = new Map(rasci.map((r) => [r.clusterTitel, r]));
   const syncedClusterRasci: ClusterRasci[] = clusters.map(
@@ -926,18 +979,9 @@ function RasciTab({
     titel: c.title || c.description?.slice(0, 70) || "(naamloos)",
     groupKey: `Sector ${c.sectorId}`,
   }));
-  const effortRows: ItemRasciRow[] = efforts.map((e) => ({
-    itemId: e.id,
-    itemType: "effort",
-    sectorId: e.sectorId,
-    titel: e.title || e.description?.slice(0, 70) || "(naamloos)",
-    groupKey: `${DOMAIN_LABELS[e.domain]} · ${e.sectorId}`,
-  }));
-
   // Counters per sub-tab
   const benefitCount = benefits.length;
   const capabilityCount = capabilities.length;
-  const effortCount = efforts.length;
   const clusterCount = clusters.length;
 
   // Overload check (regel: geen rol meer dan 4 A's)
@@ -950,7 +994,7 @@ function RasciTab({
         <div>
           <p className="text-sm font-semibold text-cito-blue">AI-voorstel RASCI</p>
           <p className="text-xs text-gray-600 mt-0.5">
-            Vul alle vier de niveaus parallel, of per laag — clusters, baten, vermogens, inspanningen.
+            Vul alle drie de niveaus parallel, of per laag — clusters, baten, vermogens.
           </p>
         </div>
         <button
@@ -989,9 +1033,6 @@ function RasciTab({
         </SubTabButton>
         <SubTabButton active={subTab === "capabilities"} onClick={() => onSubTab("capabilities")} count={capabilityCount}>
           Individuele vermogens
-        </SubTabButton>
-        <SubTabButton active={subTab === "efforts"} onClick={() => onSubTab("efforts")} count={effortCount}>
-          Individuele inspanningen
         </SubTabButton>
       </div>
 
@@ -1043,8 +1084,12 @@ function RasciTab({
                       row={row}
                       clusterBron={clusters.find((c) => c.clusterTitel === row.clusterTitel)!}
                       rollen={rollen}
+                      otherClusters={syncedClusterRasci.filter(
+                        (c) => c.clusterTitel !== row.clusterTitel && c.rijen.length > 0
+                      )}
                       onSetRij={(rolId, letter) => setClusterCell(row.clusterTitel, rolId, letter)}
                       onSetToelichting={(t) => setClusterToelichting(row.clusterTitel, t)}
+                      onCopyFrom={(sourceTitel) => copyClusterFrom(row.clusterTitel, sourceTitel)}
                     />
                   ))}
                 </div>
@@ -1067,6 +1112,12 @@ function RasciTab({
           onSetCell={(itemId, sectorId, rolId, letter) =>
             setItemCell(itemId, "benefit", sectorId, rolId, letter)
           }
+          onSetToelichting={(itemId, sectorId, t) =>
+            setItemToelichting(itemId, "benefit", sectorId, t)
+          }
+          onCopyFrom={(itemId, sectorId, sourceItemId) =>
+            copyItemFrom(itemId, "benefit", sectorId, sourceItemId)
+          }
         />
       )}
 
@@ -1083,21 +1134,11 @@ function RasciTab({
           onSetCell={(itemId, sectorId, rolId, letter) =>
             setItemCell(itemId, "capability", sectorId, rolId, letter)
           }
-        />
-      )}
-
-      {subTab === "efforts" && (
-        <ItemRasciSection
-          titel="RASCI per individuele inspanning"
-          subtitel="A = opdrachtgever (uit dossier.eigenaar); R = inspanningsleider; S = programmamanager."
-          rows={effortRows}
-          rollen={rollen}
-          itemRasci={itemRasci}
-          aiLoadingThis={aiLoading === "rasci-efforts" || aiLoading === "rasci-all"}
-          aiDisabled={aiLoading !== "none"}
-          onAI={() => onAIItems("effort")}
-          onSetCell={(itemId, sectorId, rolId, letter) =>
-            setItemCell(itemId, "effort", sectorId, rolId, letter)
+          onSetToelichting={(itemId, sectorId, t) =>
+            setItemToelichting(itemId, "capability", sectorId, t)
+          }
+          onCopyFrom={(itemId, sectorId, sourceItemId) =>
+            copyItemFrom(itemId, "capability", sectorId, sourceItemId)
           }
         />
       )}
@@ -1174,6 +1215,8 @@ function ItemRasciSection({
   aiDisabled,
   onAI,
   onSetCell,
+  onSetToelichting,
+  onCopyFrom,
 }: {
   titel: string;
   subtitel: string;
@@ -1184,6 +1227,8 @@ function ItemRasciSection({
   aiDisabled: boolean;
   onAI: () => void;
   onSetCell: (itemId: string, sectorId: string | undefined, rolId: string, letter: RasciLetter | null) => void;
+  onSetToelichting: (itemId: string, sectorId: string | undefined, t: string) => void;
+  onCopyFrom: (itemId: string, sectorId: string | undefined, sourceItemId: string) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -1328,6 +1373,175 @@ function ItemRasciSection({
           </table>
         </div>
       </div>
+
+      <details className="group">
+        <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-semibold text-cito-blue hover:text-cito-blue/80">
+          <span className="transition-transform group-open:rotate-90">▶</span>
+          Detailweergave per item (met toelichting + kopieer-functie)
+        </summary>
+        <div className="space-y-4 mt-4">
+          {rows.map((r) => {
+            const it = itemMap.get(r.itemId);
+            const others = rows.filter(
+              (o) => o.itemId !== r.itemId && (itemMap.get(o.itemId)?.rijen?.length ?? 0) > 0
+            );
+            return (
+              <ItemRasciDetailCard
+                key={r.itemId}
+                row={r}
+                itemRasci={it}
+                rollen={rollen}
+                otherRows={others}
+                onSetRij={(rolId, letter) => onSetCell(r.itemId, r.sectorId, rolId, letter)}
+                onSetToelichting={(t) => onSetToelichting(r.itemId, r.sectorId, t)}
+                onCopyFrom={(sourceItemId) => onCopyFrom(r.itemId, r.sectorId, sourceItemId)}
+              />
+            );
+          })}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function ItemRasciDetailCard({
+  row,
+  itemRasci,
+  rollen,
+  otherRows,
+  onSetRij,
+  onSetToelichting,
+  onCopyFrom,
+}: {
+  row: ItemRasciRow;
+  itemRasci: ItemRasci | undefined;
+  rollen: ProgrammaRol[];
+  otherRows: ItemRasciRow[];
+  onSetRij: (rolId: string, letter: RasciLetter | null) => void;
+  onSetToelichting: (t: string) => void;
+  onCopyFrom: (sourceItemId: string) => void;
+}) {
+  const rijMap = new Map((itemRasci?.rijen ?? []).map((r) => [r.rolId, r.letter]));
+  const nA = (itemRasci?.rijen ?? []).filter((r) => r.letter === "A").length;
+  const nR = (itemRasci?.rijen ?? []).filter((r) => r.letter === "R").length;
+  const valid = nA === 1 && nR >= 1;
+
+  const headerColor =
+    row.itemType === "benefit"
+      ? "bg-emerald-50"
+      : row.itemType === "capability"
+        ? "bg-violet-50"
+        : "bg-gray-50";
+  const badgeColor =
+    row.itemType === "benefit"
+      ? "bg-emerald-200 text-emerald-900"
+      : row.itemType === "capability"
+        ? "bg-violet-200 text-violet-900"
+        : "bg-gray-200 text-gray-800";
+  const itemTypeLabel =
+    row.itemType === "benefit" ? "baat" : row.itemType === "capability" ? "vermogen" : "inspanning";
+
+  return (
+    <div className="rounded border border-gray-200 bg-white overflow-hidden">
+      <div className={`px-4 py-3 border-b border-gray-200 flex items-start justify-between gap-3 flex-wrap ${headerColor}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded ${badgeColor}`}>
+              {itemTypeLabel}
+            </span>
+            <h4 className="font-semibold text-gray-800">{row.titel}</h4>
+            <span className="text-xs text-gray-500">{row.groupKey}</span>
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center gap-2">
+          {otherRows.length > 0 && (
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) onCopyFrom(e.target.value);
+                e.target.value = "";
+              }}
+              className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 hover:border-cito-blue cursor-pointer"
+              title="Kopieer alle RASCI-toewijzingen van een ander item"
+            >
+              <option value="">↧ Kopieer van…</option>
+              {otherRows.map((o) => (
+                <option key={o.itemId} value={o.itemId}>
+                  {o.titel.length > 50 ? o.titel.slice(0, 50) + "…" : o.titel}
+                </option>
+              ))}
+            </select>
+          )}
+          {valid ? (
+            <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 border border-green-200">
+              ✓ Geldig
+            </span>
+          ) : (
+            <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-800 border border-red-200">
+              {nA === 0 ? "Geen A" : nA > 1 ? `${nA} A's` : "Geen R"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-3 py-2 font-medium text-gray-600">Rol</th>
+              {(["R", "A", "S", "C", "I", "V"] as RasciLetter[]).map((l) => (
+                <th key={l} className="text-center px-2 py-2 font-medium text-gray-600 w-12">
+                  {l}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rollen.map((rol) => {
+              const current = rijMap.get(rol.id);
+              return (
+                <tr key={rol.id} className="border-b border-gray-100 last:border-b-0">
+                  <td className="px-3 py-2 text-gray-800">
+                    <div className="font-medium">{rol.rol || <i className="text-gray-400">(geen rol)</i>}</div>
+                    {rol.naam && <div className="text-xs text-gray-500">{rol.naam}</div>}
+                  </td>
+                  {(["R", "A", "S", "C", "I", "V"] as RasciLetter[]).map((l) => {
+                    const active = current === l;
+                    return (
+                      <td key={l} className="text-center px-1 py-1">
+                        <button
+                          onClick={() => onSetRij(rol.id, active ? null : l)}
+                          title={`${RASCI_LABELS[l]} — ${RASCI_TOELICHTING[l]}`}
+                          className={`w-8 h-8 rounded text-xs font-bold border transition-all ${
+                            active
+                              ? RASCI_KLEUREN[l]
+                              : "border-gray-200 text-gray-300 hover:border-gray-400 hover:text-gray-600"
+                          }`}
+                        >
+                          {active ? l : "·"}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          Toelichting (waarom deze RASCI voor dit item)
+        </label>
+        <input
+          type="text"
+          value={itemRasci?.toelichting ?? ""}
+          onChange={(e) => onSetToelichting(e.target.value)}
+          className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+          placeholder="bv. A bij bateneigenaar uit batenprofiel; V bij programmamanager voor onafhankelijke verificatie"
+        />
+      </div>
     </div>
   );
 }
@@ -1336,14 +1550,18 @@ function ClusterRasciRow({
   row,
   clusterBron,
   rollen,
+  otherClusters,
   onSetRij,
   onSetToelichting,
+  onCopyFrom,
 }: {
   row: ClusterRasci;
   clusterBron: ClusterBron;
   rollen: ProgrammaRol[];
+  otherClusters: ClusterRasci[];
   onSetRij: (rolId: string, letter: RasciLetter | null) => void;
   onSetToelichting: (t: string) => void;
+  onCopyFrom: (sourceTitel: string) => void;
 }) {
   const rijMap = new Map(row.rijen.map((r) => [r.rolId, r.letter]));
   const nAccountable = row.rijen.filter((r) => r.letter === "A").length;
@@ -1353,12 +1571,12 @@ function ClusterRasciRow({
   return (
     <div className="rounded border border-gray-200 bg-white overflow-hidden">
       <div
-        className={`px-4 py-3 border-b border-gray-200 flex items-start justify-between ${
+        className={`px-4 py-3 border-b border-gray-200 flex items-start justify-between gap-3 flex-wrap ${
           clusterBron.clusterType === "vermogen" ? "bg-indigo-50" : "bg-teal-50"
         }`}
       >
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span
               className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded ${
                 clusterBron.clusterType === "vermogen"
@@ -1375,7 +1593,25 @@ function ClusterRasciRow({
             <p className="text-xs text-gray-600 italic mt-1">{clusterBron.advies}</p>
           )}
         </div>
-        <div className="ml-4 shrink-0">
+        <div className="shrink-0 flex items-center gap-2">
+          {otherClusters.length > 0 && (
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) onCopyFrom(e.target.value);
+                e.target.value = "";
+              }}
+              className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 hover:border-cito-blue cursor-pointer"
+              title="Kopieer alle RASCI-toewijzingen van een ander cluster"
+            >
+              <option value="">↧ Kopieer van…</option>
+              {otherClusters.map((c) => (
+                <option key={c.clusterTitel} value={c.clusterTitel}>
+                  {c.clusterTitel.length > 50 ? c.clusterTitel.slice(0, 50) + "…" : c.clusterTitel}
+                </option>
+              ))}
+            </select>
+          )}
           {valid ? (
             <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 border border-green-200">
               ✓ Geldig
