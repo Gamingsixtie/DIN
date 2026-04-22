@@ -635,7 +635,8 @@ export const ProgrammaorganisatieSchema = z.object({
   aiToelichting: z.string().optional().default(""),
 });
 
-export const RasciLetterSchema = z.enum(["R", "A", "S", "C", "I"]);
+// V toegevoegd: optionele Verifier (onafhankelijke verificatie van baten/leverables)
+export const RasciLetterSchema = z.enum(["R", "A", "S", "C", "I", "V"]);
 
 export const RasciRijSchema = z.object({
   rolId: z.string(),
@@ -698,6 +699,27 @@ export const AIGovernanceRasciResponseSchema = z.object({
   clusters: z.array(AIClusterRasciSchema),
 });
 
+// --- Item-RASCI: per individuele baat / vermogen / inspanning ---
+export const RasciItemTypeSchema = z.enum(["benefit", "capability", "effort"]);
+
+export const ItemRasciSchema = z.object({
+  itemId: z.string(),
+  itemType: RasciItemTypeSchema,
+  sectorId: z.string().optional(),
+  rijen: z.array(RasciRijSchema).optional().default([]),
+  toelichting: z.string().optional().default(""),
+});
+
+export const AIItemRasciSchema = z.object({
+  itemId: z.string(),
+  rijen: z.array(AIRasciRijSchema).optional().default([]),
+  toelichting: z.string().optional().default(""),
+});
+
+export const AIGovernanceItemRasciResponseSchema = z.object({
+  items: z.array(AIItemRasciSchema),
+});
+
 // ============================================================
 // DINSession schema
 // ============================================================
@@ -735,6 +757,7 @@ export const DINSessionSchema = z.object({
   // Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)
   programmaorganisatie: ProgrammaorganisatieSchema.optional(),
   clusterRasci: z.array(ClusterRasciSchema).optional().default([]),
+  itemRasci: z.array(ItemRasciSchema).optional().default([]),
   // Phase 20: AI-planning-voorstel (roadmap obv cross-analyse stap 6+7)
   planningVoorstel: PlanningVoorstelSchema.optional(),
 });
@@ -1138,3 +1161,7 @@ export type RasciOverride = z.infer<typeof RasciOverrideSchema>;
 export type ClusterRasci = z.infer<typeof ClusterRasciSchema>;
 export type AIProgrammaorganisatie = z.infer<typeof AIProgrammaorganisatieSchema>;
 export type AIGovernanceRasciResponse = z.infer<typeof AIGovernanceRasciResponseSchema>;
+export type RasciItemType = z.infer<typeof RasciItemTypeSchema>;
+export type ItemRasci = z.infer<typeof ItemRasciSchema>;
+export type AIItemRasci = z.infer<typeof AIItemRasciSchema>;
+export type AIGovernanceItemRasciResponse = z.infer<typeof AIGovernanceItemRasciResponseSchema>;
