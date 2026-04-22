@@ -358,14 +358,12 @@ export async function POST(request: NextRequest) {
         kibContext
       );
       const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
-      // 3 pogingen met prefillJson ("{" voor-gepusht zodat AI niet kan afdwalen
-      // in preamble/markdown). Hogere tokens voor min20 — dat scenario heeft
-      // meer jaren dus langere output. Model claude-sonnet-4-6 blijft default
-      // maar we kunnen escaleren naar opus bij herhaald falen.
-      const pogingen: Array<{ maxTokens: number; retryDelayMs: number; prefillJson: boolean; model?: string }> = [
-        { maxTokens: 20000, retryDelayMs: 0, prefillJson: true },
-        { maxTokens: 20000, retryDelayMs: 2000, prefillJson: true },
-        { maxTokens: 24000, retryDelayMs: 4000, prefillJson: true, model: "claude-opus-4-7" },
+      // Alle pogingen op OPUS-4-7 met prefillJson — maximale schema-compliance
+      // voor dit domein (groot prompt, gestructureerde output, 4 domeinen × N
+      // jaren × M rollen). Liever traag-en-correct dan snel-en-stuk.
+      const pogingen: Array<{ maxTokens: number; retryDelayMs: number; prefillJson: boolean; model: string }> = [
+        { maxTokens: 24000, retryDelayMs: 0, prefillJson: true, model: "claude-opus-4-7" },
+        { maxTokens: 24000, retryDelayMs: 2000, prefillJson: true, model: "claude-opus-4-7" },
       ];
       let lastError = "";
       for (let i = 0; i < pogingen.length; i++) {
@@ -377,7 +375,7 @@ export async function POST(request: NextRequest) {
             pogingen[i]
           );
           if (res.success) {
-            console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK`);
+            console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK (${pogingen[i].model})`);
             return verrijkScenario(res.data, {
               aantalJaren: scenario.aantalJaren,
               startJaar: scenario.startJaar,
@@ -385,14 +383,32 @@ export async function POST(request: NextRequest) {
             });
           }
           lastError = res.error;
-          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} validation failed: ${res.error}`);
+          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} (${pogingen[i].model}) validation failed: ${res.error}`);
         } catch (err) {
           lastError = err instanceof Error ? err.message : String(err);
           console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} threw: ${lastError}`);
         }
       }
       console.error(`[interne-uren-advies] ${label} ALLE pogingen gefaald, laatste fout: ${lastError}`);
-      return null;
+      // Laatste redmiddel: synthetiseer een lege-maar-geldige scenario-structuur
+      // zodat het frontend alle 3 scenario's krijgt i.p.v. een hiaat. Wordt in UI
+      // zichtbaar omdat totaalUren=0 en samenvatting expliciet zegt dat AI faalde.
+      const fallback: InterneUrenScenarioAI = {
+        scenarioLabel: label,
+        domeinen: (["cultuur", "mens", "data_systemen", "processen"] as const).map((d) => ({
+          domein: d,
+          koppeling: [],
+          jaren: [],
+          motivatie: `AI-generatie voor ${label} is gefaald na alle pogingen. Fout: ${lastError.slice(0, 120)}. Regenereer dit scenario handmatig.`,
+        })),
+      };
+      const verrijkt = verrijkScenario(fallback, {
+        aantalJaren: scenario.aantalJaren,
+        startJaar: scenario.startJaar,
+        uurtariefSettings: uurtariefSettings!,
+      });
+      verrijkt.samenvatting = `⚠️ AI-generatie gefaald voor scenario ${label}. Regenereer handmatig.`;
+      return verrijkt;
     }
 
     function verrijkScenario(
