@@ -102,9 +102,9 @@ Input JSON:
 - \`verdelingPerJaar.fase\` (welke fase past bij welke activiteit — voorbereiding / uitrol / borging)
 - \`prioriteitAdvies\` (outside-in motivering op basis van de inhoudelijke hefbomen)
 
-**Business-case aannames + risico's gebruiken:** \`businessCaseAannames\` zijn de ramings-onderbouwingen door de gebruiker (bv. "uitgaande van 40 medewerkers per sector", "trainingsdag €800"). \`businessCaseRisicos\` zijn factoren die de raming kunnen veranderen (bv. "consultant-tarieven kunnen 20% omhoog", "scope kan uitbreiden"). Gebruik deze:
-- Om \`motivatie\` per inspanning te onderbouwen (verwijs naar de aannames waar relevant)
-- Om in de fasering rekening te houden met risico's (bv. risico-vol traject in latere jaren plannen voor afname-onzekerheid)
+**Business-case aannames + risico's gebruiken:** \`businessCaseAannames\` zijn de onderbouwingen die de raming dragen — getallen, tarieven, looptijden, schaalveronderstellingen die door de business-case-Q&A zijn opgehaald bij de gebruiker. \`businessCaseRisicos\` zijn factoren die de raming kunnen veranderen (bv. tariefsveranderingen, scope-creep, afhankelijkheden). Beide zijn LEEG of kort als de gebruiker ze nog niet heeft ingevuld — verzin in dat geval GEEN getallen of details, blijf abstract. Gebruik deze velden voor:
+- \`motivatie\` per inspanning te onderbouwen door letterlijk te verwijzen naar de aannames die de gebruiker zelf heeft opgegeven (NOOIT zelf cijfers verzinnen die er niet staan)
+- In de fasering rekening houden met genoemde risico's (bv. risico-vol traject later plannen voor onzekerheid-afname)
 - In \`samenvatting\` of \`prioriteitAdvies\` benoemen welke aannames kritisch zijn voor het slagen binnen budget
 
 Taak — lever EXACT dit JSON-object (één Scenario):
@@ -138,9 +138,10 @@ Taak — lever EXACT dit JSON-object (één Scenario):
 
 HARDE REGELS:
 0. **DOSSIERKOSTENRAMING IS LEIDEND voor totaalEuro per inspanning.**
-   Elke inspanning komt binnen met een \`dossierKostenraming\` (tekst, bv. "€75.000 eenmalig + €25.000/jr borging over 3 jaar"). Die raming is door de business-case-Q&A van de user opgebouwd en is de onderbouwde bron-waarheid voor de kosten.
-   - Parse de \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit, samen maken die \`totaalEuro\` voor die inspanning.
-   - Als \`dossierKostenraming\` leeg of zeer vaag is: geef een redelijke eerste schatting op basis van Cito-benchmarks (trainingsdag €800, FTE/jaar €100K, consultantuur €120) en benoem dat in \`motivatie\`.
+   Elke inspanning komt binnen met een \`dossierKostenraming\` (tekst die de business-case-Q&A heeft opgebouwd) plus \`businessCaseAannames\` (de getallen, tarieven, aantallen die de raming dragen — bv. aantal medewerkers per sector, looptijd, dagtarief). Dat is de onderbouwde bron-waarheid voor de kosten.
+   - Parse \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit. Samen maken die \`totaalEuro\` voor die inspanning.
+   - Aantallen (medewerkers, FTE, trainingsdagen, licenties) komen ALTIJD uit \`businessCaseAannames\` of uit \`dossierKostenraming\`. **VERZIN NOOIT zelf aantallen** als ze er niet in staan — dan blijf je in \`motivatie\` op het kwalitatieve niveau ("aantal medewerkers nog te bepalen" of "schaal afhankelijk van uitrol-tempo").
+   - Als zowel \`dossierKostenraming\` als \`businessCaseAannames\` leeg/vaag zijn: geef een conservatieve grove schatting op basis van Cito-benchmarks (trainingsdag €800/persoon, FTE/jaar €100K, consultantuur €120). Benoem expliciet in \`motivatie\` dat dit een fallback-schatting is en welke aannames de gebruiker nog moet bevestigen.
    - WIJK NIET sterk af van de dossierKostenraming zonder motivatie. Als je afwijkt (bv. omdat de raming onrealistisch oogt), benoem dat expliciet in \`motivatie\`.
    - De optelsom \`totaalGeraamdEuro = som(inspanningen[].totaalEuro)\` moet matchen met de som van alle individuele dossier-ramingen (tenzij je expliciet een inspanning bijgesteld hebt).
 1. **aantalJaren moet REËEL zijn** gegeven jaarlijksBudgetEuro: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
