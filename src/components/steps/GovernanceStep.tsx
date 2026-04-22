@@ -151,6 +151,20 @@ export default function GovernanceStep() {
 
   async function handleAIOrganisatie() {
     if (!session) return;
+    // Bescherm bestaande handmatige invoer tegen overschrijven
+    const heeftBestaandeInvoer =
+      po.opdrachtgever?.rol ||
+      po.programmamanager?.rol ||
+      (po.kerngroep ?? []).length > 0 ||
+      (po.stuurgroep ?? []).length > 0 ||
+      (po.domeineigenaren ?? []).length > 0 ||
+      (po.klankbordgroep ?? []).length > 0;
+    if (heeftBestaandeInvoer) {
+      const ok = window.confirm(
+        "Er staan al rollen ingevuld. AI vervangt de COMPLETE programmaorganisatie. Doorgaan?"
+      );
+      if (!ok) return;
+    }
     setAILoading("organisatie");
     setAIError(null);
     try {
@@ -200,6 +214,14 @@ export default function GovernanceStep() {
     if (clusters.length === 0) {
       setAIError("Geen cross-sectorale clusters gevonden. Voltooi eerst de cross-analyse (stap 4).");
       return;
+    }
+    // Bescherm bestaande RASCI-invoer tegen overschrijven
+    const heeftRasciData = rasci.some((c) => c.rijen.length > 0);
+    if (heeftRasciData) {
+      const ok = window.confirm(
+        "Er is al RASCI ingevuld. AI vervangt de COMPLETE matrix. Doorgaan?"
+      );
+      if (!ok) return;
     }
     setAILoading("rasci");
     setAIError(null);
@@ -270,11 +292,19 @@ export default function GovernanceStep() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-cito-blue mb-2">Stap 5 — Programmaorganisatie & RASCI</h2>
-        <p className="text-gray-600">
-          Leg vast wie het programma stuurt en wie op elk cross-sectoraal cluster welke rol heeft.
-          Gebaseerd op &quot;Werken aan Programma&apos;s&quot; (Wijnen &amp; Van der Tak, Hoofdstuk 6).
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold text-cito-blue mb-2">Stap 5 — Programmaorganisatie & RASCI</h2>
+            <p className="text-gray-600">
+              Leg vast wie het programma stuurt en wie op elk cross-sectoraal cluster welke rol heeft.
+              Gebaseerd op &quot;Werken aan Programma&apos;s&quot; (Wijnen &amp; Van der Tak, Hoofdstuk 6).
+            </p>
+          </div>
+          <div className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Auto-opgeslagen tijdens typen
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}

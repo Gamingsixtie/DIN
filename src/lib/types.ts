@@ -47,6 +47,7 @@ export type {
   Stap5Result,
   CrossAnalyseWizardState,
   PlanningVoorstel,
+  BundelPlanning,
   ProgrammaRol,
   Programmaorganisatie,
   RasciLetter,
@@ -57,6 +58,7 @@ export type {
   RasciClusterType,
   AIProgrammaorganisatie,
   AIGovernanceRasciResponse,
+  SubEffortAdvies,
 } from "./schemas";
 
 // Import types nodig voor constanten hieronder

@@ -1171,24 +1171,25 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
         </div>
       )}
 
-      {planning?.clusterFasering && planning.clusterFasering.length > 0 && (
+      {planning?.bundelPlanning && planning.bundelPlanning.length > 0 && (
         <div className="mb-5">
-          <h4 className="text-sm font-bold text-cito-blue/70 mb-2">Cluster-fasering</h4>
+          <h4 className="text-sm font-bold text-cito-blue/70 mb-2">Bundel-planning</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {planning.clusterFasering.map((c, idx) => (
-              <div key={`${c.clusterTitel}-${idx}`} className="border border-gray-200 rounded p-2 bg-white">
+            {planning.bundelPlanning.map((c, idx) => (
+              <div key={`${c.bundelId}-${idx}`} className="border border-gray-200 rounded p-2 bg-white">
                 <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">
-                  {DOMAIN_LABELS[c.domein] || c.domein}
+                  {DOMAIN_LABELS[c.domein] || c.domein} · {c.startKwartaal}
+                  {c.eindKwartaal && c.eindKwartaal !== c.startKwartaal ? ` – ${c.eindKwartaal}` : ""}
                 </div>
-                <div className="text-xs font-medium text-gray-800 mb-1">{c.clusterTitel}</div>
-                {c.fases && c.fases.length > 0 && (
+                <div className="text-xs font-medium text-gray-800 mb-1">{c.titel}</div>
+                {c.mijlpalen && c.mijlpalen.length > 0 && (
                   <ul className="space-y-0.5 text-[11px] text-gray-600">
-                    {c.fases.map((f, fidx) => (
+                    {c.mijlpalen.map((m, fidx) => (
                       <li key={fidx}>
                         <span className="inline-block px-1 rounded bg-gray-100 text-gray-600 font-medium mr-1">
-                          {f.periode}
+                          {m.periode}
                         </span>
-                        {f.mijlpaal}
+                        {m.mijlpaal}
                       </li>
                     ))}
                   </ul>
