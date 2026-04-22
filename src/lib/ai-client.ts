@@ -154,12 +154,18 @@ export async function callClaudeWithValidation<T>(
   schema: z.ZodType<T>,
   systemPrompt: string,
   userMessage: string,
-  options?: { maxTokens?: number; model?: string; maxRetries?: number }
+  options?: { maxTokens?: number; model?: string; maxRetries?: number; retryDelayMs?: number }
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
   const MAX_RETRIES = options?.maxRetries ?? 2;
+  const baseDelay = options?.retryDelayMs ?? 0;
   let lastError = "";
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // Exponential backoff op retry: baseDelay * 2^(attempt-1) — alleen tussen pogingen
+    if (attempt > 0 && baseDelay > 0) {
+      const wait = baseDelay * Math.pow(2, attempt - 1);
+      await new Promise((r) => setTimeout(r, wait));
+    }
     let raw: string;
     try {
       raw = await callClaude(

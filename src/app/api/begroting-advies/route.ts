@@ -16,9 +16,12 @@ export const maxDuration = 300;
 // Implementatie: 3 parallelle AI-calls (één per scenario) i.p.v. één grote
 // call. Dat voorkomt token-limiet-afkappen en levert stabielere output.
 
+// Schemas verzacht — alle percentage-velden tolerant ([-5, 105]) of optional;
+// totaalEuro wordt door server berekend uit verdelingPerJaar; totalenPerJaar
+// en totaalGeraamdEuro worden volledig server-side gevuld.
 const VerdelingPerJaarItemSchema = z.object({
   jaar: z.number(),
-  percentage: z.number().min(0).max(100),
+  percentage: z.number().min(-5).max(110).optional(),
   euro: z.number(),
   fase: z.string(),
 });
@@ -27,8 +30,8 @@ const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
   domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
-  totaalEuro: z.number(),
-  percentageTotaal: z.number().min(0).max(100),
+  totaalEuro: z.number().optional(),
+  percentageTotaal: z.number().min(-5).max(110).optional(),
   motivatie: z.string(),
   verdelingPerJaar: z.array(VerdelingPerJaarItemSchema),
   volgorde: z.object({
@@ -40,21 +43,46 @@ const InspanningBegrotingSchema = z.object({
 const TotaalPerJaarSchema = z.object({
   jaar: z.number(),
   euro: z.number(),
-  percentage: z.number().min(0).max(100),
+  percentage: z.number().min(-5).max(110),
 });
 
-const ScenarioSchema = z.object({
+// AI-output schema — alleen wat AI nodig heeft te leveren.
+const ScenarioAISchema = z.object({
   label: z.enum(["optimaal", "plus20", "min20"]),
-  jaarlijksBudgetEuro: z.number(),
+  jaarlijksBudgetEuro: z.number().optional(),
   aantalJaren: z.number().int().min(1).max(15),
-  totaalGeraamdEuro: z.number(),
   inspanningen: z.array(InspanningBegrotingSchema),
-  totalenPerJaar: z.array(TotaalPerJaarSchema),
   prioriteitAdvies: z.string(),
   samenvatting: z.string(),
 });
 
-type Scenario = z.infer<typeof ScenarioSchema>;
+type ScenarioAI = z.infer<typeof ScenarioAISchema>;
+
+// Volle Scenario-shape (na server-enrichment) — wat we naar de client sturen.
+type Scenario = {
+  label: "optimaal" | "plus20" | "min20";
+  jaarlijksBudgetEuro: number;
+  aantalJaren: number;
+  totaalGeraamdEuro: number;
+  inspanningen: Array<{
+    inspanningTitel: string;
+    groepId?: string;
+    domein: "mens" | "processen" | "data_systemen" | "cultuur";
+    totaalEuro: number;
+    percentageTotaal: number;
+    motivatie: string;
+    verdelingPerJaar: Array<{
+      jaar: number;
+      percentage: number;
+      euro: number;
+      fase: string;
+    }>;
+    volgorde: { rank: number; reden: string };
+  }>;
+  totalenPerJaar: z.infer<typeof TotaalPerJaarSchema>[];
+  prioriteitAdvies: string;
+  samenvatting: string;
+};
 
 function scenarioPrompt(
   label: "optimaal" | "plus20" | "min20",
@@ -107,46 +135,42 @@ Input JSON:
 - In de fasering rekening houden met genoemde risico's (bv. risico-vol traject later plannen voor onzekerheid-afname)
 - In \`samenvatting\` of \`prioriteitAdvies\` benoemen welke aannames kritisch zijn voor het slagen binnen budget
 
-Taak — lever EXACT dit JSON-object (één Scenario):
+Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
 {
   "label": "${label}",
-  "jaarlijksBudgetEuro": ${jaarlijksBudget},
   "aantalJaren": <integer 1-15, MINIMAAL noodzakelijk gegeven jaarlijksBudgetEuro>,
-  "totaalGeraamdEuro": <som van alle inspanning.totaalEuro>,
   "inspanningen": [
     {
       "inspanningTitel": "...",
       "groepId": "...",
       "domein": "mens|processen|data_systemen|cultuur",
-      "totaalEuro": <afgerond op duizend>,
-      "percentageTotaal": <% van totaalGeraamdEuro>,
-      "motivatie": "<1-2 zinnen>",
+      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames waar relevant>",
       "verdelingPerJaar": [
-        { "jaar": <startJaar>, "percentage": <0-100 van deze totaalEuro>, "euro": <afgerond>, "fase": "<Voorbereiding | Uitrol | Opschaling | Borging>" },
+        { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<Voorbereiding | Uitrol | Opschaling | Borging>" },
         ...één item per jaar tot en met startJaar+aantalJaren−1
       ],
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
     }
   ],
-  "totalenPerJaar": [
-    { "jaar": <startJaar>, "euro": <som over alle inspanningen dit jaar>, "percentage": <van jaarlijksBudgetEuro van dit scenario> },
-    ...één per jaar
-  ],
   "prioriteitAdvies": "<3-5 zinnen: outside-in volgorde motiveren — cultuur EERST (bereidheid), dan mens (competenties), dan data/systemen (CRM/tooling ondersteunend), dan processen (werkwijzen) LAATST — processen borgen wat mens en data hebben opgebouwd>",
   "samenvatting": "<1-2 zinnen executive summary van dít scenario>"
 }
 
+**LET OP:**
+- Lever GEEN \`totaalEuro\`, \`percentageTotaal\`, \`totalenPerJaar\` of \`totaalGeraamdEuro\` — die wordt SERVER-SIDE berekend uit jouw \`verdelingPerJaar\`. Focus op de jaarlijkse euros en fasering.
+- Lever GEEN \`percentage\` per jaar — die wordt server-side berekend.
+- Houd \`verdelingPerJaar[].euro\` afgerond op duizend.
+
 HARDE REGELS:
-0. **DOSSIERKOSTENRAMING IS LEIDEND voor totaalEuro per inspanning.**
-   Elke inspanning komt binnen met een \`dossierKostenraming\` (tekst die de business-case-Q&A heeft opgebouwd) plus \`businessCaseAannames\` (de getallen, tarieven, aantallen die de raming dragen — bv. aantal medewerkers per sector, looptijd, dagtarief). Dat is de onderbouwde bron-waarheid voor de kosten.
-   - Parse \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit. Samen maken die \`totaalEuro\` voor die inspanning.
-   - Aantallen (medewerkers, FTE, trainingsdagen, licenties) komen ALTIJD uit \`businessCaseAannames\` of uit \`dossierKostenraming\`. **VERZIN NOOIT zelf aantallen** als ze er niet in staan — dan blijf je in \`motivatie\` op het kwalitatieve niveau ("aantal medewerkers nog te bepalen" of "schaal afhankelijk van uitrol-tempo").
-   - Als zowel \`dossierKostenraming\` als \`businessCaseAannames\` leeg/vaag zijn: geef een conservatieve grove schatting op basis van Cito-benchmarks (trainingsdag €800/persoon, FTE/jaar €100K, consultantuur €120). Benoem expliciet in \`motivatie\` dat dit een fallback-schatting is en welke aannames de gebruiker nog moet bevestigen.
-   - WIJK NIET sterk af van de dossierKostenraming zonder motivatie. Als je afwijkt (bv. omdat de raming onrealistisch oogt), benoem dat expliciet in \`motivatie\`.
-   - De optelsom \`totaalGeraamdEuro = som(inspanningen[].totaalEuro)\` moet matchen met de som van alle individuele dossier-ramingen (tenzij je expliciet een inspanning bijgesteld hebt).
-1. **aantalJaren moet REËEL zijn** gegeven jaarlijksBudgetEuro: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
-2. **Geen jaar mag jaarlijksBudgetEuro overschrijden.** Zorg dat som(totalenPerJaar[jaar].euro) ≤ jaarlijksBudgetEuro in élk jaar.
-3. **Som verdelingPerJaar[*].percentage per inspanning = precies 100.**
+0. **DOSSIERKOSTENRAMING + BUSINESSCASEAANNAMES ZIJN LEIDEND voor de euros per jaar.**
+   Elke inspanning komt binnen met een \`dossierKostenraming\` (raming-tekst uit business-case-Q&A) plus \`businessCaseAannames\` (de aantallen, tarieven, looptijden die de raming dragen).
+   - Parse \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit. Verdeel die over je \`verdelingPerJaar[].euro\`.
+   - Aantallen komen ALTIJD uit \`businessCaseAannames\` of uit \`dossierKostenraming\`. **VERZIN NOOIT zelf aantallen** die er niet in staan — blijf in \`motivatie\` kwalitatief ("aantal nog te bepalen").
+   - Als beide leeg/vaag zijn: conservatieve grove schatting op Cito-benchmarks (trainingsdag €800/persoon, FTE/jaar €100K, consultantuur €120). Benoem in \`motivatie\` dat dit fallback is.
+   - WIJK NIET sterk af van de dossierKostenraming zonder motivatie.
+1. **aantalJaren moet REËEL zijn** gegeven het jaarlijks budget: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
+2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen overschrijding van het jaarlijks budget in welk jaar dan ook.
+3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING moet de totale dossier-raming benaderen** (eenmalige + structurele kosten samen).
 4. **Outside-in volgorde — STRIKT deze ranking (Cito-specifiek, NIET de klassieke Prevaas-volgorde):**
    - rank 1 = Cultuur (bereidheid — zijn ze bereid te doen wat ze beloven? — moet eerst)
    - rank 2 = Mens (competenties, gesprekvaardigheid — volgt direct na cultuur, kan parallel starten)
@@ -235,10 +259,72 @@ export async function POST(request: NextRequest) {
       inspanningen,
     };
 
+    // Verrijk AI-output met server-berekende totalen (voorkomt validation
+    // failures op percentage-bounds en garandeert math-correctheid).
+    function enrichScenario(ai: ScenarioAI, jaarlijksBudget: number): Scenario {
+      const startJ = effectiefStartJaar;
+      const eindJ = startJ + ai.aantalJaren - 1;
+      const enrichedInsps = ai.inspanningen.map((insp) => {
+        // Som per inspanning over alle jaren = totaalEuro
+        const totaalEuro = insp.verdelingPerJaar.reduce((s, v) => s + (v.euro ?? 0), 0);
+        return {
+          ...insp,
+          totaalEuro,
+          verdelingPerJaar: insp.verdelingPerJaar.map((v) => ({
+            jaar: v.jaar,
+            euro: v.euro,
+            fase: v.fase,
+            // Server-berekende percentage; clamp [0,100]
+            percentage:
+              totaalEuro > 0
+                ? Math.max(0, Math.min(100, Math.round((v.euro / totaalEuro) * 100)))
+                : 0,
+          })),
+        };
+      });
+      const totaalGeraamdEuro = enrichedInsps.reduce((s, i) => s + i.totaalEuro, 0);
+      const enrichedInspsWithPct = enrichedInsps.map((insp) => ({
+        ...insp,
+        percentageTotaal:
+          totaalGeraamdEuro > 0
+            ? Math.max(0, Math.min(100, Math.round((insp.totaalEuro / totaalGeraamdEuro) * 100)))
+            : 0,
+      }));
+      // totalenPerJaar — som over alle inspanningen per jaar
+      const totalenPerJaar: Scenario["totalenPerJaar"] = [];
+      for (let jr = startJ; jr <= eindJ; jr++) {
+        const euro = enrichedInspsWithPct.reduce(
+          (s, i) => s + (i.verdelingPerJaar.find((v) => v.jaar === jr)?.euro ?? 0),
+          0
+        );
+        totalenPerJaar.push({
+          jaar: jr,
+          euro,
+          percentage:
+            jaarlijksBudget > 0
+              ? Math.max(0, Math.min(110, Math.round((euro / jaarlijksBudget) * 100)))
+              : 0,
+        });
+      }
+      return {
+        label: ai.label,
+        jaarlijksBudgetEuro: jaarlijksBudget,
+        aantalJaren: ai.aantalJaren,
+        totaalGeraamdEuro,
+        inspanningen: enrichedInspsWithPct,
+        totalenPerJaar,
+        prioriteitAdvies: ai.prioriteitAdvies,
+        samenvatting: ai.samenvatting,
+      };
+    }
+
     async function genereer(
       label: "optimaal" | "plus20" | "min20",
-      jaarlijksBudget: number
+      jaarlijksBudget: number,
+      staggerMs: number
     ): Promise<Scenario | null> {
+      // Stagger startup om rate-limit-burst bij parallelle calls te voorkomen
+      if (staggerMs > 0) await new Promise((r) => setTimeout(r, staggerMs));
       try {
         const systemPrompt = assembleSystemPrompt(
           scenarioPrompt(label, jaarlijksBudget),
@@ -251,14 +337,15 @@ export async function POST(request: NextRequest) {
           null,
           2
         );
-        // callClaudeWithValidation heeft al 2 interne retries — geen outer retry hier.
         const res = await callClaudeWithValidation(
-          ScenarioSchema,
+          ScenarioAISchema,
           systemPrompt,
           userMessage,
-          { maxTokens: 6144 }
+          { maxTokens: 8192, retryDelayMs: 2000 }
         );
-        if (res.success) return res.data;
+        if (res.success) {
+          return enrichScenario(res.data, jaarlijksBudget);
+        }
         console.error(`[begroting-advies] ${label} validation failed:`, res.error);
         return null;
       } catch (err) {
@@ -267,65 +354,73 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parallel — sneller binnen Vercel-timeout. callClaudeWithValidation
-    // heeft interne retries dus rate-limit hits worden netjes opgevangen.
     const [optimaal, plus20, min20] = await Promise.all([
-      genereer("optimaal", budgetOptimaal),
-      genereer("plus20", budgetPlus20),
-      genereer("min20", budgetMin20),
+      genereer("optimaal", budgetOptimaal, 0),
+      genereer("plus20", budgetPlus20, 200),
+      genereer("min20", budgetMin20, 400),
     ]);
 
-    if (!optimaal || !plus20 || !min20) {
-      const falend = [
-        !optimaal ? "optimaal" : null,
-        !plus20 ? "plus20" : null,
-        !min20 ? "min20" : null,
-      ]
-        .filter(Boolean)
-        .join(", ");
+    // Bij minimaal 1 succesvolle scenario: stuur die terug; client kan
+    // partial-result tonen met waarschuwing voor de gefaalde scenarios.
+    const falend = [
+      !optimaal ? "optimaal" : null,
+      !plus20 ? "plus20" : null,
+      !min20 ? "min20" : null,
+    ].filter(Boolean) as string[];
+
+    if (!optimaal && !plus20 && !min20) {
       return NextResponse.json(
-        { success: false, error: `AI-scenario generatie mislukt: ${falend}` },
-        { status: 502 }
+        {
+          success: false,
+          error: "Alle 3 scenario's faalden — controleer Vercel-logs voor details, of probeer opnieuw.",
+        },
+        { status: 200 }
       );
     }
 
-    // Vergelijking in aparte korte call
-    const vergelijkingSystem = assembleSystemPrompt(
-      vergelijkingsPrompt(),
-      "cross-analyse",
-      undefined,
-      kibContext
-    );
-    const vergelijkingUserMsg = JSON.stringify(
-      {
-        optimaal: {
-          aantalJaren: optimaal.aantalJaren,
-          jaarlijksBudgetEuro: optimaal.jaarlijksBudgetEuro,
-          totaalGeraamdEuro: optimaal.totaalGeraamdEuro,
+    // Vergelijking in aparte korte call — alleen als alle 3 succesvol
+    const allOk = optimaal && plus20 && min20;
+    let vergelijking = "";
+    if (allOk) {
+      const vergelijkingSystem = assembleSystemPrompt(
+        vergelijkingsPrompt(),
+        "cross-analyse",
+        undefined,
+        kibContext
+      );
+      const vergelijkingUserMsg = JSON.stringify(
+        {
+          optimaal: {
+            aantalJaren: optimaal.aantalJaren,
+            jaarlijksBudgetEuro: optimaal.jaarlijksBudgetEuro,
+            totaalGeraamdEuro: optimaal.totaalGeraamdEuro,
+          },
+          plus20: {
+            aantalJaren: plus20.aantalJaren,
+            jaarlijksBudgetEuro: plus20.jaarlijksBudgetEuro,
+            totaalGeraamdEuro: plus20.totaalGeraamdEuro,
+          },
+          min20: {
+            aantalJaren: min20.aantalJaren,
+            jaarlijksBudgetEuro: min20.jaarlijksBudgetEuro,
+            totaalGeraamdEuro: min20.totaalGeraamdEuro,
+          },
         },
-        plus20: {
-          aantalJaren: plus20.aantalJaren,
-          jaarlijksBudgetEuro: plus20.jaarlijksBudgetEuro,
-          totaalGeraamdEuro: plus20.totaalGeraamdEuro,
-        },
-        min20: {
-          aantalJaren: min20.aantalJaren,
-          jaarlijksBudgetEuro: min20.jaarlijksBudgetEuro,
-          totaalGeraamdEuro: min20.totaalGeraamdEuro,
-        },
-      },
-      null,
-      2
-    );
-    const vergelijkingRes = await callClaudeWithValidation(
-      VergelijkingSchema,
-      vergelijkingSystem,
-      vergelijkingUserMsg,
-      { maxTokens: 512 }
-    );
-    const vergelijking = vergelijkingRes.success
-      ? vergelijkingRes.data.vergelijking
-      : `Optimaal: ${optimaal.aantalJaren} jaar @ €${optimaal.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr. +20%: ${plus20.aantalJaren} jaar. −20%: ${min20.aantalJaren} jaar.`;
+        null,
+        2
+      );
+      const vergelijkingRes = await callClaudeWithValidation(
+        VergelijkingSchema,
+        vergelijkingSystem,
+        vergelijkingUserMsg,
+        { maxTokens: 512 }
+      );
+      vergelijking = vergelijkingRes.success
+        ? vergelijkingRes.data.vergelijking
+        : `Optimaal: ${optimaal.aantalJaren} jaar @ €${optimaal.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr. +20%: ${plus20.aantalJaren} jaar. −20%: ${min20.aantalJaren} jaar.`;
+    } else {
+      vergelijking = `Niet alle scenario's konden gegenereerd worden — gefaald: ${falend.join(", ")}.`;
+    }
 
     return NextResponse.json({
       success: true,
@@ -335,6 +430,7 @@ export async function POST(request: NextRequest) {
         cyclusMaanden,
         scenarios: { optimaal, plus20, min20 },
         vergelijking,
+        partialFailures: falend.length > 0 ? falend : undefined,
       },
     });
   } catch (err) {

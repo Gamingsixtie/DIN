@@ -145,11 +145,12 @@ export default function StapOptimaliseren({
     startJaar: number;
     cyclusMaanden: number;
     scenarios: {
-      optimaal: Scenario;
-      plus20: Scenario;
-      min20: Scenario;
+      optimaal: Scenario | null;
+      plus20: Scenario | null;
+      min20: Scenario | null;
     };
     vergelijking: string;
+    partialFailures?: string[];
   };
   const [begrotingAdvies, setBegrotingAdvies] = useState<DrieScenarioAdvies | null>(null);
 
@@ -204,11 +205,13 @@ export default function StapOptimaliseren({
       const scenariosField = persistedObj.scenarios as
         | { optimaal?: unknown; plus20?: unknown; min20?: unknown }
         | undefined;
+      // Nieuwe shape: scenarios object aanwezig met minimaal 1 niet-null scenario
       const heeftNieuweShape =
         scenariosField &&
-        scenariosField.optimaal &&
-        scenariosField.plus20 &&
-        scenariosField.min20;
+        ("optimaal" in scenariosField ||
+          "plus20" in scenariosField ||
+          "min20" in scenariosField) &&
+        (scenariosField.optimaal || scenariosField.plus20 || scenariosField.min20);
       if (heeftNieuweShape) {
         const nieuw = persistedObj as unknown as DrieScenarioAdvies;
         setBegrotingAdvies(nieuw);
@@ -1372,14 +1375,33 @@ export default function StapOptimaliseren({
               },
             },
           ];
+          const partialFailures = begrotingAdvies.partialFailures ?? [];
           return (
             <div className="mt-6 space-y-6">
+              {/* Partial-failure banner als 1-2 scenarios faalden */}
+              {partialFailures.length > 0 && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3">
+                  <p className="text-sm text-amber-900">
+                    <strong>Let op:</strong> {partialFailures.length} scenario{partialFailures.length === 1 ? "" : "'s"} faalde
+                    ({partialFailures.join(", ")}). Probeer opnieuw of bewerk de inspanningen om de andere scenario&apos;s ook te genereren.
+                  </p>
+                </div>
+              )}
+
               {/* Vergelijkingsbanner — 3 compact-kaartjes */}
               <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-[#003366] mb-3">Scenario-vergelijking</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {scenarioVolgorde.map((sv) => {
                     const s = begrotingAdvies.scenarios[sv.key];
+                    if (!s) {
+                      return (
+                        <div key={sv.key} className="border-2 border-gray-200 bg-gray-50 rounded p-3 opacity-60">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{sv.label}</p>
+                          <p className="text-sm font-medium text-gray-500 mt-2">— gefaald —</p>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={sv.key} className={`border-2 rounded p-3 ${sv.kleur.kaart}`}>
                         <p className={`text-[10px] font-bold uppercase tracking-wider ${sv.kleur.accent}`}>{sv.label}</p>
@@ -1403,9 +1425,10 @@ export default function StapOptimaliseren({
                 )}
               </div>
 
-              {/* Per scenario een blok */}
+              {/* Per scenario een blok — alleen voor succesvol gegenereerde scenarios */}
               {scenarioVolgorde.map((sv) => {
                 const s = begrotingAdvies.scenarios[sv.key];
+                if (!s) return null;
                 const eindJaar = begrotingAdvies.startJaar + s.aantalJaren - 1;
                 return (
                   <div key={sv.key} className="space-y-3">
