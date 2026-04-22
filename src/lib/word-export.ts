@@ -17,9 +17,57 @@ import {
   TabStopType,
   TabStopPosition,
 } from "docx";
-import type { DINSession, DINCapability, DINEffort, EffortDomain, SectorName, IntegratieAdviesResult } from "./types";
+import type {
+  DINSession,
+  DINCapability,
+  DINEffort,
+  EffortDomain,
+  SectorName,
+  IntegratieAdviesResult,
+  Stap7InterneUren,
+  Stap8Totaaloverzicht,
+  DomeinInterneUren,
+  BundelPlanning,
+} from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
+
+// --- Cito outside-in domeinvolgorde (cultuur → mens → data/systemen → processen) ---
+// NIET de klassieke Prevaas-volgorde. Zie memory: "Cito-outside-in volgorde".
+const DOMEIN_OUTSIDE_IN_ORDER: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+
+function sortDomeinenOutsideIn<T extends { domein: EffortDomain }>(items: T[]): T[] {
+  return [...items].sort(
+    (a, b) => DOMEIN_OUTSIDE_IN_ORDER.indexOf(a.domein) - DOMEIN_OUTSIDE_IN_ORDER.indexOf(b.domein)
+  );
+}
+
+function resolveBundelDependencies(bundelId: string, all: BundelPlanning[]): string {
+  const bundel = all.find((b) => b.bundelId === bundelId);
+  if (!bundel) return "\u2014";
+  const deps = bundel.afhankelijkVan ?? [];
+  if (deps.length === 0) return "\u2014";
+  return deps
+    .map((depId) => {
+      const dep = all.find((b) => b.bundelId === depId);
+      return dep ? dep.titel : depId;
+    })
+    .join("; ");
+}
+
+function formatEuro(amount: number): string {
+  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount);
+}
+
+function formatGetal(n: number): string {
+  return new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 }).format(n);
+}
+
+const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20", string> = {
+  optimaal: "Optimaal",
+  plus20: "+20% scenario",
+  min20: "\u221220% scenario",
+};
 
 // --- Numbering State ---
 
@@ -50,6 +98,24 @@ export function numberedHeading(
     state.tocEntries.push({ level: "h2", text: prefix });
     return heading(prefix, HeadingLevel.HEADING_2);
   }
+}
+
+// H1 zonder auto-nummer-prefix (voor managementsamenvatting, bijlagen).
+// Advanceert h1Counter zodat H2-nummering in subsecties correct blijft.
+export function plainH1(text: string, state: NumberingState): Paragraph {
+  state.h1Counter++;
+  state.h2Counter = 0;
+  state.tocEntries.push({ level: "h1", text });
+  return heading(text, HeadingLevel.HEADING_1);
+}
+
+// H1 voor methodiek-stappen: "Stap X — Titel".
+export function stepHeading(stepNum: number, title: string, state: NumberingState): Paragraph {
+  state.h1Counter++;
+  state.h2Counter = 0;
+  const prefix = `Stap ${stepNum} \u2014 ${title}`;
+  state.tocEntries.push({ level: "h1", text: prefix });
+  return heading(prefix, HeadingLevel.HEADING_1);
 }
 
 // --- Consolidation filtering ---
@@ -178,6 +244,27 @@ function bullet(content: string, indent?: number) {
 
 function emptyLine(space?: number) {
   return new Paragraph({ spacing: { after: space || 120 }, children: [] });
+}
+
+// Methodiek-intro: gestileerde alinea direct onder een stap-H1, met lichte achtergrond.
+function methodiekIntro(text: string) {
+  return new Paragraph({
+    spacing: { before: 120, after: 200, line: 300 },
+    indent: { left: 200, right: 200 },
+    shading: { fill: CITO_BLUE_LIGHT },
+    border: {
+      left: { style: BorderStyle.SINGLE, size: 12, color: CITO_BLUE },
+    },
+    children: [
+      new TextRun({
+        text,
+        italics: true,
+        size: 22,
+        color: TEXT_SECONDARY,
+        font: "Calibri",
+      }),
+    ],
+  });
 }
 
 function styledCell(content: string, opts?: { bold?: boolean; shading?: string; width?: number; color?: string; size?: number }) {
@@ -395,14 +482,21 @@ function tableOfContentsSection(numState: NumberingState) {
   return { properties: {}, children };
 }
 
-function executiveSummarySection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[]) {
+function executiveSummarySection(session: DINSession, numState: NumberingState, activeEfforts: DINEffort[], activeCaps: DINCapability[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Samenvatting", "h1", numState));
+  children.push(plainH1("Managementsamenvatting", numState));
+  children.push(
+    methodiekIntro(
+      "Deze samenvatting bundelt de kern van het programma: de visie, de omvang van het DIN-netwerk, " +
+      "en de drie cross-sectorale bevindingen die de richting bepalen. Gedetailleerde onderbouwing " +
+      "volgt in de Stap 1 t/m Stap 6 hoofdstukken."
+    )
+  );
 
-  // Programma-overzicht
+  // Programmanaam + visie
   if (session.vision?.beknopt) {
-    children.push(bodyText(session.vision.beknopt, { italic: true, color: TEXT_SECONDARY }));
+    children.push(bodyText(session.vision.beknopt, { italic: true, color: TEXT_SECONDARY, size: 22 }));
     children.push(emptyLine(60));
   }
 
@@ -411,8 +505,8 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
     children: [
       styledCell(`${session.goals.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
       styledCell(`${session.benefits.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
-      styledCell(`${session.capabilities.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
-      styledCell(`${session.efforts.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
+      styledCell(`${activeCaps.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
+      styledCell(`${activeEfforts.length}`, { bold: true, shading: CITO_BLUE_LIGHT, width: 25 }),
     ],
   });
   const labelRow = new TableRow({
@@ -432,38 +526,72 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
   );
   children.push(emptyLine());
 
-  // Top doelen beknopt
-  children.push(subHeading("Programmadoelen"));
-  session.goals
-    .sort((a, b) => a.rank - b.rank)
-    .forEach((g) => {
-      children.push(bullet(`${g.name}`));
-    });
+  // 3 kernboodschappen cross-sectoraal
+  children.push(subHeading("Drie cross-sectorale kernboodschappen"));
 
-  // Domeinbalans beknopt
-  const balance = getDomainBalance(activeEfforts);
-  const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
-  children.push(emptyLine(60));
-  children.push(subHeading("Verdeling inspanningen over domeinen"));
-  (Object.entries(balance) as [EffortDomain, number][]).forEach(([domain, count]) => {
-    const pct = Math.round((count / total) * 100);
-    children.push(bullet(`${DOMAIN_LABELS[domain]}: ${count} inspanningen (${pct}%)`));
-  });
+  const shared = findSharedCapabilities(activeCaps);
+  children.push(bullet(
+    `${shared.size} gedeelde vermogens tussen sectoren \u2014 cross-sectorale synergie is de belangrijkste hefboom van dit programma.`
+  ));
 
-  // Actieve sectoren
-  const summActiveSectors = SECTORS.filter(
-    (s) =>
-      session.benefits.some((b) => b.sectorId === s) ||
-      activeEfforts.some((e) => e.sectorId === s)
+  const hefbomen = analyzeHefbomen(session);
+  const hefboomCount = hefbomen.reduce(
+    (n, h) => n + h.clusters.filter((c) => c.hefboomScore > 1).length,
+    0
   );
-  if (summActiveSectors.length > 0) {
+  children.push(bullet(
+    `${hefboomCount} multi-sector hefboomclusters geïdentificeerd \u2014 gezamenlijke inspanningen met breed sectoraal effect.`
+  ));
+
+  const balance = getDomainBalance(activeEfforts);
+  const totBal = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
+  const balanceBullets = DOMEIN_OUTSIDE_IN_ORDER.map((d) => {
+    const pct = Math.round(((balance[d] ?? 0) / totBal) * 100);
+    return `${DOMAIN_LABELS[d]} ${pct}%`;
+  }).join(" \u2022 ");
+  children.push(bullet(
+    `Domeinbalans (cultuur \u2192 mens \u2192 data/systemen \u2192 processen): ${balanceBullets}.`
+  ));
+
+  children.push(emptyLine(60));
+
+  // Programmaduur + budget uit stap 8
+  const stap8 = session.crossAnalyseWizard?.stepResults?.stap8 as Stap8Totaaloverzicht | undefined;
+  const planning = session.planningVoorstel;
+  const kwartalenSet = new Set<string>();
+  planning?.bundelPlanning.forEach((bp) => {
+    if (bp.startKwartaal) kwartalenSet.add(bp.startKwartaal);
+    if (bp.eindKwartaal) kwartalenSet.add(bp.eindKwartaal);
+  });
+  const kwSorted = Array.from(kwartalenSet).sort();
+  if (kwSorted.length >= 2 || stap8) {
+    children.push(subHeading("Programmaduur en raming"));
+    if (kwSorted.length >= 2) {
+      children.push(bullet(`Programmaduur: ${kwSorted[0]} t/m ${kwSorted[kwSorted.length - 1]} (${planning?.bundelPlanning.length ?? 0} bundels)`));
+    }
+    if (stap8) {
+      const actief = stap8.actiefScenario ?? "optimaal";
+      const sc = stap8.scenarios[actief];
+      if (sc) {
+        children.push(bullet(
+          `Totaal geraamd (${SCENARIO_LABELS[actief]}): ${formatEuro(sc.totaalGeraamd)} ` +
+          `(out-of-pocket ${formatEuro(sc.totaalOutOfPocket)} + interne uren ${formatEuro(sc.totaalInterneUren)}).`
+        ));
+      }
+    }
     children.push(emptyLine(60));
-    children.push(subHeading("Betrokken sectoren"));
-    summActiveSectors.forEach((s) => {
-      const sectorBenefits = session.benefits.filter((b) => b.sectorId === s).length;
-      const sectorEffortsCount = activeEfforts.filter((e) => e.sectorId === s).length;
-      children.push(bullet(`${s}: ${sectorBenefits} baten, ${sectorEffortsCount} inspanningen`));
-    });
+  }
+
+  // Wat wordt van stakeholders gevraagd
+  const po = session.programmaorganisatie;
+  if (po?.besluitvormingsritme || po?.escalatiepad) {
+    children.push(subHeading("Wat wordt van stakeholders gevraagd"));
+    if (po.besluitvormingsritme) {
+      children.push(bullet(`Besluitvormingsritme: ${po.besluitvormingsritme}`));
+    }
+    if (po.escalatiepad) {
+      children.push(bullet(`Escalatiepad: ${po.escalatiepad}`));
+    }
   }
 
   return { properties: {}, children };
@@ -472,34 +600,43 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
 export function overviewSection(session: DINSession, numState: NumberingState) {
   const children: (Paragraph | Table)[] = [];
 
+  children.push(stepHeading(1, "Programmakader", numState));
+  children.push(
+    methodiekIntro(
+      "Visie, doelen en scope vormen het fundament van het programma. " +
+      "Conform \"Werken aan Programma's\" (Prevaas & Van Loon, Hfst 2) bepalen zij de richting " +
+      "waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
+    )
+  );
+
   // Visie
   if (session.vision) {
-    children.push(numberedHeading("Programmavisie", "h1", numState));
+    children.push(numberedHeading("Programmavisie", "h2", numState));
     if (session.vision.beknopt) {
-      children.push(numberedHeading("Beknopt", "h2", numState));
+      children.push(subHeading("Beknopt"));
       children.push(bodyText(session.vision.beknopt, { bold: true, size: 24 }));
     }
     if (session.vision.uitgebreid) {
-      children.push(numberedHeading("Uitgebreid", "h2", numState));
+      children.push(subHeading("Uitgebreid"));
       children.push(bodyText(session.vision.uitgebreid));
     }
   }
 
   // Scope
   if (session.scope) {
-    children.push(numberedHeading("Scope", "h1", numState));
+    children.push(numberedHeading("Scope", "h2", numState));
     if (session.scope.inScope.length > 0) {
-      children.push(numberedHeading("Binnen scope", "h2", numState));
+      children.push(subHeading("Binnen scope"));
       session.scope.inScope.forEach((s) => children.push(bullet(s)));
     }
     if (session.scope.outScope.length > 0) {
-      children.push(numberedHeading("Buiten scope", "h2", numState));
+      children.push(subHeading("Buiten scope"));
       session.scope.outScope.forEach((s) => children.push(bullet(s)));
     }
   }
 
   // Doelen
-  children.push(numberedHeading("Programmadoelen", "h1", numState));
+  children.push(numberedHeading("Programmadoelen", "h2", numState));
 
   // Doelen met data
   const goalIdsWithBenefits = new Set(session.goalBenefitMaps.map((m) => m.goalId));
@@ -532,12 +669,15 @@ export function overviewSection(session: DINSession, numState: NumberingState) {
 function goalDINSections(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("DIN-Netwerk per Doel", "h1", numState));
-  children.push(bodyText(
-    "Per programmadoel wordt de volledige DIN-keten getoond: welke baten worden nagestreefd, " +
-    "welke vermogens daarvoor nodig zijn, en welke inspanningen die vermogens opbouwen.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
+  children.push(stepHeading(3, "De DIN-keten: van doelen naar inspanningen", numState));
+  children.push(
+    methodiekIntro(
+      "In de DIN-methodiek vertalen we elk programmadoel naar concrete baten (effecten in de buitenwereld), " +
+      "vermogens (wat we moeten kunnen) en inspanningen (wat we gaan doen). Deze keten maakt zichtbaar " +
+      "waartoe elke activiteit dient en hoe sectoren samen bijdragen aan hetzelfde doel. " +
+      "Gedeelde vermogens zijn expliciet gemarkeerd \u2014 daar zit de cross-sectorale hefboom."
+    )
+  );
   children.push(emptyLine());
 
   // Build an activeSession with only non-consolidated caps/efforts for buildChainsForSector
@@ -698,20 +838,22 @@ function goalDINSections(session: DINSession, numState: NumberingState, activeCa
 function crossAnalysisSection(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Cross-analyse", "h1", numState));
-  children.push(bodyText(
-    "De cross-analyse identificeert synergieën tussen sectoren en beoordeelt de balans " +
-    "over de vier inspanningsdomeinen (Mens, Processen, Data & Systemen, Cultuur).",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
+  children.push(stepHeading(4, "Cross-sectorale analyse: synergie, hefboomwerking en gaps", numState));
+  children.push(
+    methodiekIntro(
+      "Het hart van een programma is niet de optelsom van sectorinitiatieven, maar de synergie ertussen. " +
+      "Deze analyse toont waar sectoren dezelfde vermogens nodig hebben, welke inspanningen hefboomwerking " +
+      "hebben over sectoren heen, en waar onbalans of gaps de realisatie in gevaar brengen."
+    )
+  );
   children.push(emptyLine());
 
-  // Gedeelde vermogens (use active caps only)
+  // 4.1 Synergieën — gedeelde vermogens (use active caps only)
   const shared = findSharedCapabilities(activeCaps);
   if (shared.size > 0) {
-    children.push(numberedHeading("Synergieën \u2014 Gedeelde vermogens", "h2", numState));
+    children.push(numberedHeading("Synergie\u00ebn \u2014 Gedeelde vermogens", "h2", numState));
     children.push(bodyText(
-      "Onderstaande vermogens komen in meerdere sectoren terug en bieden kansen voor gedeelde inspanningen.",
+      `Onderstaande ${shared.size} vermogens komen in meerdere sectoren terug en bieden kansen voor gedeelde inspanningen.`,
       { color: TEXT_SECONDARY, size: 20 }
     ));
     for (const [capId, sectors] of shared) {
@@ -725,35 +867,86 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     children.push(emptyLine());
   }
 
-  // Domeinbalans (use active efforts only)
+  // 4.2 Hefboomwerking
+  const hefbomen = analyzeHefbomen(session);
+  const multiSectorClusters = hefbomen.flatMap((h) => {
+    const goal = session.goals.find((g) => g.id === h.goalId);
+    return h.clusters
+      .filter((c) => c.hefboomScore > 1)
+      .map((cluster) => ({
+        goal,
+        cluster,
+        chains: h.clusterChains.get(cluster.benefits[0].id) || [],
+      }));
+  });
+  if (multiSectorClusters.length > 0) {
+    children.push(numberedHeading("Hefboomwerking", "h2", numState));
+    children.push(bodyText(
+      "Baten die in meerdere sectoren terugkomen bieden hefboomwerking: gedeelde inspanningen met breed effect.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    multiSectorClusters.forEach(({ goal, cluster, chains }) => {
+      children.push(
+        new Paragraph({
+          spacing: { before: 160, after: 60 },
+          children: [
+            new TextRun({ text: cluster.theme, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
+            new TextRun({
+              text: `  (Doel: ${goal?.name || "\u2014"}) \u2014 ${cluster.sectors.length} sectoren`,
+              size: 18, color: TEXT_MUTED, font: "Calibri",
+            }),
+          ],
+        })
+      );
+      children.push(bullet(`Sectoren: ${cluster.sectors.join(", ")}`));
+      if (chains.length > 0) {
+        chains.forEach((ch) => {
+          const capNames = ch.capabilities.map((c) => c.title || c.description).join(", ");
+          const detail = capNames ? ` \u2192 ${capNames}` : "";
+          children.push(
+            new Paragraph({
+              spacing: { after: 30 },
+              indent: { left: 600 },
+              children: [
+                new TextRun({ text: `${ch.sector}: `, bold: true, size: 20, color: TEXT_PRIMARY, font: "Calibri" }),
+                new TextRun({ text: `${ch.benefit.title || ch.benefit.description}${detail}`, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
+              ],
+            })
+          );
+        });
+      }
+      children.push(emptyLine(80));
+    });
+  }
+
+  // 4.3 Domeinbalans (Cito outside-in: cultuur → mens → data/systemen → processen)
   const balance = getDomainBalance(activeEfforts);
   const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
 
-  children.push(numberedHeading("Domeinbalans", "h2", numState));
+  children.push(numberedHeading("Domeinbalans (Cito outside-in)", "h2", numState));
   children.push(bodyText(
-    "Verdeling van inspanningen over de vier DIN-domeinen. Een evenwichtige verdeling " +
-    "is essentieel voor duurzame verandering.",
+    "Verdeling van inspanningen over de vier DIN-domeinen in Cito outside-in volgorde: " +
+    "cultuur \u2192 mens \u2192 data & systemen \u2192 processen. Een evenwichtige verdeling is essentieel voor duurzame verandering.",
     { color: TEXT_SECONDARY, size: 20 }
   ));
 
-  const balanceRows = (Object.entries(balance) as [EffortDomain, number][]).map(
-    ([domain, count]) => {
-      const pct = Math.round((count / total) * 100);
-      return new TableRow({
-        children: [
-          styledCell(DOMAIN_LABELS[domain], { bold: true, width: 30, shading: DOMAIN_COLORS[domain] }),
-          styledCell(`${count}`, { width: 20 }),
-          styledCell(`${pct}%`, { width: 20 }),
-          styledCell(
-            pct < 10 ? "Aandacht: ondervertegenwoordigd" :
-            pct > 40 ? "Aandacht: relatief dominant" :
-            "Evenwichtig",
-            { width: 30, color: pct < 10 || pct > 40 ? "CC6600" : "2E7D32" }
-          ),
-        ],
-      });
-    }
-  );
+  const balanceEntries: [EffortDomain, number][] = DOMEIN_OUTSIDE_IN_ORDER.map((d) => [d, balance[d] ?? 0]);
+  const balanceRows = balanceEntries.map(([domain, count]) => {
+    const pct = Math.round((count / total) * 100);
+    return new TableRow({
+      children: [
+        styledCell(DOMAIN_LABELS[domain], { bold: true, width: 30, shading: DOMAIN_COLORS[domain] }),
+        styledCell(`${count}`, { width: 20 }),
+        styledCell(`${pct}%`, { width: 20 }),
+        styledCell(
+          pct < 10 ? "Aandacht: ondervertegenwoordigd" :
+          pct > 40 ? "Aandacht: relatief dominant" :
+          "Evenwichtig",
+          { width: 30, color: pct < 10 || pct > 40 ? "CC6600" : "2E7D32" }
+        ),
+      ],
+    });
+  });
 
   children.push(
     new Table({
@@ -771,143 +964,134 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       ],
     })
   );
+  children.push(emptyLine());
 
-  return { properties: {}, children };
-}
+  // 4.4 Sector-overlap & integratieadvies (samenvatting — volle versie in Bijlage A)
+  const integratieRecord = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
+  const adviesEntries = integratieRecord
+    ? Object.entries(integratieRecord).filter(([, v]) => v && typeof v === "object")
+    : [];
+  if (adviesEntries.length > 0) {
+    children.push(numberedHeading("Sector-overlap en integratieadvies", "h2", numState));
+    children.push(bodyText(
+      "Per sector is een integratieadvies beschikbaar dat het cross-sectorale programma vertaalt naar de sectorcontext. " +
+      "De volledige teksten zijn opgenomen in Bijlage A.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    adviesEntries.forEach(([sectorKey, rawAdv]) => {
+      const adv = rawAdv as IntegratieAdviesResult;
+      const summary = (adv.aansluiting?.toelichting || "\u2014").trim();
+      const short = summary.length > 220 ? summary.slice(0, 217) + "\u2026" : summary;
+      children.push(
+        new Paragraph({
+          spacing: { before: 80, after: 40 },
+          children: [
+            new TextRun({ text: `${adv.sectorName || sectorKey}: `, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
+            new TextRun({ text: short, size: 20, color: TEXT_PRIMARY, font: "Calibri" }),
+          ],
+        })
+      );
+    });
+    children.push(emptyLine());
+  }
 
-function gapAnalysisSection(session: DINSession, numState: NumberingState) {
+  // 4.5 Gaps
   const categorized = categorizeGaps(session);
-
   const hasGaps =
     categorized.volgendeCyclus.length > 0 ||
     categorized.echteGapsGoals.length > 0 ||
     categorized.benefitsWithoutCaps.length > 0 ||
     categorized.capsWithoutEfforts.length > 0;
-
-  if (!hasGaps) return null;
-
-  const children: (Paragraph | Table)[] = [];
-
-  children.push(numberedHeading("Gap-analyse", "h1", numState));
-  children.push(bodyText(
-    "Onderstaande breuken in de DIN-keten vragen aandacht. Een compleet netwerk " +
-    "verbindt elk doel via baten en vermogens aan concrete inspanningen.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
-  children.push(emptyLine());
-
-  // Volgende cyclus: niet-alarmerend
-  if (categorized.volgendeCyclus.length > 0) {
-    children.push(numberedHeading("Volgende cyclus", "h2", numState));
+  if (hasGaps) {
+    children.push(numberedHeading("Gaps in de DIN-keten", "h2", numState));
     children.push(bodyText(
-      "Deze doelen worden in een volgende cyclus uitgewerkt.",
+      "Onderstaande breuken in de DIN-keten vragen aandacht. Een compleet netwerk verbindt elk doel " +
+      "via baten en vermogens aan concrete inspanningen.",
       { color: TEXT_SECONDARY, size: 20 }
     ));
-    categorized.volgendeCyclus.forEach((g) => {
+
+    if (categorized.volgendeCyclus.length > 0) {
+      children.push(subHeading("Volgende cyclus"));
       children.push(bodyText(
-        `${g.name} \u2014 uitwerking volgt in volgende cyclus`,
-        { italic: true, color: TEXT_MUTED }
+        "Deze doelen worden in een volgende cyclus uitgewerkt.",
+        { color: TEXT_SECONDARY, size: 20 }
       ));
-    });
-    children.push(emptyLine());
+      categorized.volgendeCyclus.forEach((g) => {
+        children.push(bodyText(
+          `${g.name} \u2014 uitwerking volgt in volgende cyclus`,
+          { italic: true, color: TEXT_MUTED }
+        ));
+      });
+      children.push(emptyLine(80));
+    }
+
+    const hasEchteGaps =
+      categorized.echteGapsGoals.length > 0 ||
+      categorized.benefitsWithoutCaps.length > 0 ||
+      categorized.capsWithoutEfforts.length > 0;
+    if (hasEchteGaps) {
+      children.push(subHeading("Onvolledige ketens"));
+      if (categorized.echteGapsGoals.length > 0) {
+        children.push(bodyText(`Doelen zonder baten (${categorized.echteGapsGoals.length})`, { bold: true, size: 20 }));
+        categorized.echteGapsGoals.forEach((g) => children.push(bullet(g.name)));
+        children.push(emptyLine(60));
+      }
+      if (categorized.benefitsWithoutCaps.length > 0) {
+        children.push(bodyText(`Baten zonder vermogens (${categorized.benefitsWithoutCaps.length})`, { bold: true, size: 20 }));
+        categorized.benefitsWithoutCaps.forEach((b) => {
+          if (b) children.push(bullet(`[${b.sectorId}] ${b.title || b.description}`));
+        });
+        children.push(emptyLine(60));
+      }
+      if (categorized.capsWithoutEfforts.length > 0) {
+        children.push(bodyText(`Vermogens zonder inspanningen (${categorized.capsWithoutEfforts.length})`, { bold: true, size: 20 }));
+        categorized.capsWithoutEfforts.forEach((c) => {
+          if (c) children.push(bullet(`[${c.sectorId}] ${c.title || c.description}`));
+        });
+        children.push(emptyLine(60));
+      }
+    }
   }
 
-  // Echte gaps: onvolledige ketens
-  const hasEchteGaps =
-    categorized.echteGapsGoals.length > 0 ||
-    categorized.benefitsWithoutCaps.length > 0 ||
-    categorized.capsWithoutEfforts.length > 0;
-
-  if (hasEchteGaps) {
-    children.push(numberedHeading("Onvolledige ketens", "h2", numState));
-
-    if (categorized.echteGapsGoals.length > 0) {
-      children.push(subHeading(`Doelen zonder baten (${categorized.echteGapsGoals.length})`));
-      categorized.echteGapsGoals.forEach((g) => {
-        children.push(bullet(g.name));
-      });
-      children.push(emptyLine());
-    }
-
-    if (categorized.benefitsWithoutCaps.length > 0) {
-      children.push(subHeading(`Baten zonder vermogens (${categorized.benefitsWithoutCaps.length})`));
-      categorized.benefitsWithoutCaps.forEach((b) => {
-        if (b) children.push(bullet(`[${b.sectorId}] ${b.title || b.description}`));
-      });
-      children.push(emptyLine());
-    }
-
-    if (categorized.capsWithoutEfforts.length > 0) {
-      children.push(subHeading(`Vermogens zonder inspanningen (${categorized.capsWithoutEfforts.length})`));
-      categorized.capsWithoutEfforts.forEach((c) => {
-        if (c) children.push(bullet(`[${c.sectorId}] ${c.title || c.description}`));
-      });
-    }
-  }
-
-  return { properties: {}, children };
-}
-
-function hefboomSection(session: DINSession, numState: NumberingState) {
-  const hefbomen = analyzeHefbomen(session);
-
-  const multiSectorClusters = hefbomen.flatMap((h) => {
-    const goal = session.goals.find((g) => g.id === h.goalId);
-    return h.clusters
-      .filter((c) => c.hefboomScore > 1)
-      .map((cluster) => ({
-        goal,
-        cluster,
-        chains: h.clusterChains.get(cluster.benefits[0].id) || [],
-      }));
-  });
-
-  if (multiSectorClusters.length === 0) return null;
-
-  const children: (Paragraph | Table)[] = [];
-
-  children.push(numberedHeading("Hefboomwerking", "h1", numState));
-  children.push(bodyText(
-    "Baten die in meerdere sectoren terugkomen bieden hefboomwerking: " +
-    "gedeelde inspanningen met breed effect.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
-  children.push(emptyLine());
-
-  multiSectorClusters.forEach(({ goal, cluster, chains }) => {
-    children.push(
-      new Paragraph({
-        spacing: { before: 160, after: 60 },
+  // 4.6 Externe projecten
+  if (session.externalProjects && session.externalProjects.length > 0) {
+    children.push(numberedHeading("Externe projecten", "h2", numState));
+    children.push(bodyText(
+      "Bestaande projecten gekoppeld aan het DIN-netwerk, gepositioneerd als inspanningen bij de relevante vermogens.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    const projectRows = session.externalProjects.map((p) => {
+      const linkedCaps = (session.projectCapabilityMaps ?? [])
+        .filter((m) => m.projectId === p.id)
+        .map((m) => {
+          const cap = session.capabilities.find((c) => c.id === m.capabilityId);
+          return cap ? `${cap.title || cap.description}` : "\u2014";
+        });
+      return new TableRow({
         children: [
-          new TextRun({ text: cluster.theme, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
-          new TextRun({
-            text: `  (Doel: ${goal?.name || "\u2014"}) \u2014 ${cluster.sectors.length} sectoren`,
-            size: 18, color: TEXT_MUTED, font: "Calibri",
+          styledCell(p.name || "\u2014", { bold: true, width: 30 }),
+          styledCell(p.description || "\u2014", { width: 40 }),
+          styledCell(linkedCaps.length > 0 ? linkedCaps.join("; ") : "Niet gekoppeld", { width: 30 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Project", 30),
+              headerCell("Beschrijving", 40),
+              headerCell("Gekoppelde vermogens", 30),
+            ],
           }),
+          ...projectRows,
         ],
       })
     );
-
-    children.push(bullet(`Sectoren: ${cluster.sectors.join(", ")}`));
-
-    if (chains.length > 0) {
-      chains.forEach((ch) => {
-        const capNames = ch.capabilities.map((c) => c.title || c.description).join(", ");
-        const detail = capNames ? ` \u2192 ${capNames}` : "";
-        children.push(
-          new Paragraph({
-            spacing: { after: 30 },
-            indent: { left: 600 },
-            children: [
-              new TextRun({ text: `${ch.sector}: `, bold: true, size: 20, color: TEXT_PRIMARY, font: "Calibri" }),
-              new TextRun({ text: `${ch.benefit.title || ch.benefit.description}${detail}`, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
-            ],
-          })
-        );
-      });
-    }
-    children.push(emptyLine(80));
-  });
+    children.push(emptyLine());
+  }
 
   return { properties: {}, children };
 }
@@ -921,12 +1105,15 @@ function governanceSection(session: DINSession, numState: NumberingState, active
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Governance & Monitoring", "h1", numState));
-  children.push(bodyText(
-    "Programmaorganisatie, RASCI-verantwoordelijkheden per hoofdthema, bateneigenaarschap en " +
-    "monitoring. Conform \"Werken aan Programma's\", Hoofdstuk 6.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
+  children.push(stepHeading(5, "Programmaorganisatie en raming", numState));
+  children.push(
+    methodiekIntro(
+      "De programmaorganisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt " +
+      "ge\u00efnformeerd. De raming maakt de benodigde capaciteit expliciet \u2014 in uren, euro's en " +
+      "verdeeld over de domeinen cultuur, mens, data & systemen en processen. " +
+      "Conform \"Werken aan Programma's\", Hoofdstuk 6."
+    )
+  );
   children.push(emptyLine());
 
   // Programmaorganisatie
@@ -1228,57 +1415,288 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     children.push(emptyLine());
   }
 
+  // --- Raming (stap 7 interne uren + stap 8 totaaloverzicht) ---
+  children.push(...buildRamingContent(session, numState));
+
   return { properties: {}, children };
 }
 
-function externalProjectsSection(session: DINSession, numState: NumberingState) {
-  if (!session.externalProjects || session.externalProjects.length === 0) return null;
-
+// --- Raming content builder (wordt aangeroepen binnen Stap 5 governance) ---
+function buildRamingContent(session: DINSession, numState: NumberingState): (Paragraph | Table)[] {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Lopende projecten", "h1", numState));
-  children.push(bodyText(
-    "Bestaande projecten gekoppeld aan het DIN-netwerk, gepositioneerd als inspanningen bij de relevante vermogens.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
+  const wizard = session.crossAnalyseWizard;
+  const stap7 = wizard?.stepResults?.stap7 as Stap7InterneUren | undefined;
+  const stap8 = wizard?.stepResults?.stap8 as Stap8Totaaloverzicht | undefined;
+
+  children.push(numberedHeading("Raming \u2014 interne uren, kosten en scenario's", "h2", numState));
+
+  if (!stap7 && !stap8) {
+    children.push(bodyText(
+      "De raming is nog niet ingevuld. Open de Cross-analyse wizard (Stap 4) om de interne " +
+      "uren per domein en de totaaloverzicht-scenario's te genereren.",
+      { italic: true, color: TEXT_MUTED }
+    ));
+    return children;
+  }
+
+  // Uurtarief-instellingen
+  if (stap7?.uurtariefSettings) {
+    const s = stap7.uurtariefSettings;
+    children.push(bodyText(
+      `Basisuurtarief: ${formatEuro(s.basisTarief)} (referentiejaar ${s.referentiejaar}, indexatie ${s.indexatiePercentage}%/jaar).`,
+      { size: 20, color: TEXT_SECONDARY }
+    ));
+    children.push(emptyLine(60));
+  }
+
+  // Scenario-vergelijking (stap 8)
+  if (stap8?.scenarios) {
+    children.push(bodyText("Scenario-vergelijking", { bold: true, size: 22, color: CITO_BLUE }));
+    const scenLabels: Array<"optimaal" | "plus20" | "min20"> = ["optimaal", "plus20", "min20"];
+    const scenarioRows = scenLabels
+      .map((key) => {
+        const sc = stap8.scenarios[key];
+        if (!sc) return null;
+        return new TableRow({
+          children: [
+            styledCell(SCENARIO_LABELS[key], { bold: true, width: 25, shading: key === (stap8.actiefScenario ?? "optimaal") ? CITO_BLUE_LIGHT : undefined }),
+            styledCell(formatEuro(sc.totaalOutOfPocket), { width: 25 }),
+            styledCell(formatEuro(sc.totaalInterneUren), { width: 25 }),
+            styledCell(formatEuro(sc.totaalGeraamd), { width: 25, bold: true }),
+          ],
+        });
+      })
+      .filter((r): r is TableRow => r !== null);
+
+    if (scenarioRows.length > 0) {
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                headerCell("Scenario", 25),
+                headerCell("Out-of-pocket", 25),
+                headerCell("Interne uren (kosten)", 25),
+                headerCell("Totaal geraamd", 25),
+              ],
+            }),
+            ...scenarioRows,
+          ],
+        })
+      );
+      if (stap8.actiefScenario) {
+        children.push(bodyText(
+          `Actief scenario voor programmabegroting: ${SCENARIO_LABELS[stap8.actiefScenario]}.`,
+          { italic: true, size: 18, color: TEXT_SECONDARY }
+        ));
+      }
+      children.push(emptyLine());
+    }
+  }
+
+  // Interne uren — per domein per jaar (Cito outside-in volgorde)
+  const actiefScenarioKey = stap8?.actiefScenario ?? "optimaal";
+  const scenario = stap7?.scenarios?.[actiefScenarioKey] ?? stap7?.scenarios?.optimaal ?? null;
+
+  if (scenario && scenario.domeinen.length > 0) {
+    children.push(bodyText(
+      `Interne uren per domein (${SCENARIO_LABELS[scenario.scenarioLabel]} \u2014 ${scenario.aantalJaren} jaar, startjaar ${scenario.startJaar})`,
+      { bold: true, size: 22, color: CITO_BLUE }
+    ));
+    children.push(bodyText(
+      "Verdeling in Cito outside-in volgorde: cultuur \u2192 mens \u2192 data & systemen \u2192 processen.",
+      { italic: true, size: 18, color: TEXT_SECONDARY }
+    ));
+    children.push(emptyLine(60));
+
+    const domeinenSorted = sortDomeinenOutsideIn(scenario.domeinen as DomeinInterneUren[]);
+    domeinenSorted.forEach((dom) => {
+      children.push(bodyText(
+        `${DOMAIN_LABELS[dom.domein]}`,
+        { bold: true, size: 22, color: CITO_BLUE }
+      ));
+      if (dom.motivatie) {
+        children.push(bodyText(dom.motivatie, { italic: true, size: 20, color: TEXT_SECONDARY }));
+      }
+
+      // Koppeling aan bundels
+      const bundels = session.planningVoorstel?.bundelPlanning ?? [];
+      const gekoppeldeBundels = (dom.koppeling ?? [])
+        .map((bid) => bundels.find((b) => b.bundelId === bid)?.titel)
+        .filter((t): t is string => Boolean(t));
+      if (gekoppeldeBundels.length > 0) {
+        children.push(bodyText(
+          `Gekoppeld aan bundels (Stap 6): ${gekoppeldeBundels.join("; ")}`,
+          { size: 18, color: TEXT_MUTED }
+        ));
+      }
+
+      // Jaartabel
+      const jaarRows = dom.jaren.map((j) => {
+        const totU = j.totaalUren ?? j.rollen.reduce((s, r) => s + r.uren, 0);
+        const totK = j.totaalKosten ?? j.rollen.reduce((s, r) => s + r.kosten, 0);
+        return new TableRow({
+          children: [
+            styledCell(`${j.jaar}`, { bold: true, width: 12 }),
+            styledCell(j.activiteit || "\u2014", { width: 48 }),
+            styledCell(formatGetal(totU), { width: 20 }),
+            styledCell(formatEuro(totK), { width: 20 }),
+          ],
+        });
+      });
+
+      const domTotU = dom.totaalUren ?? dom.jaren.reduce((s, j) => s + (j.totaalUren ?? j.rollen.reduce((a, r) => a + r.uren, 0)), 0);
+      const domTotK = dom.totaalKosten ?? dom.jaren.reduce((s, j) => s + (j.totaalKosten ?? j.rollen.reduce((a, r) => a + r.kosten, 0)), 0);
+
+      const totaalRow = new TableRow({
+        children: [
+          styledCell("Totaal", { bold: true, width: 12, shading: CITO_BLUE_LIGHT }),
+          styledCell("", { width: 48, shading: CITO_BLUE_LIGHT }),
+          styledCell(formatGetal(domTotU), { bold: true, width: 20, shading: CITO_BLUE_LIGHT }),
+          styledCell(formatEuro(domTotK), { bold: true, width: 20, shading: CITO_BLUE_LIGHT }),
+        ],
+      });
+
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                headerCell("Jaar", 12),
+                headerCell("Activiteit", 48),
+                headerCell("Uren", 20),
+                headerCell("Kosten", 20),
+              ],
+            }),
+            ...jaarRows,
+            totaalRow,
+          ],
+        })
+      );
+      children.push(emptyLine());
+    });
+
+    // Totalen per jaar
+    if (scenario.totalenPerJaar && scenario.totalenPerJaar.length > 0) {
+      children.push(bodyText("Totalen per jaar", { bold: true, size: 22, color: CITO_BLUE }));
+      const totRows = scenario.totalenPerJaar.map((t) =>
+        new TableRow({
+          children: [
+            styledCell(`${t.jaar}`, { bold: true, width: 33 }),
+            styledCell(formatGetal(t.uren), { width: 33 }),
+            styledCell(formatEuro(t.kosten), { width: 34 }),
+          ],
+        })
+      );
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                headerCell("Jaar", 33),
+                headerCell("Uren", 33),
+                headerCell("Kosten", 34),
+              ],
+            }),
+            ...totRows,
+          ],
+        })
+      );
+      children.push(emptyLine());
+    }
+
+    if (scenario.samenvatting) {
+      children.push(bodyText(scenario.samenvatting, { italic: true, size: 20, color: TEXT_SECONDARY }));
+    }
+  }
+
+  return children;
+}
+
+// Stap 2 — Sectorwerk: beknopt overzicht per sector (volle drilldown in Bijlage A)
+function buildSectorwerkKaderSection(session: DINSession, numState: NumberingState) {
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(stepHeading(2, "Sectorwerk", numState));
+  children.push(
+    methodiekIntro(
+      "Elke sector vertaalt de programmadoelen naar eigen baten, vermogens en inspanningen vanuit " +
+      "het eigen sectorplan en de product-marktcombinaties. Hieronder een beknopt overzicht per sector. " +
+      "De volledige sector-drilldowns staan in Bijlage A."
+    )
+  );
   children.push(emptyLine());
 
-  const DOMAIN_LABELS_LOCAL: Record<string, string> = {
-    mens: "Mens", processen: "Processen", data_systemen: "Data & Systemen", cultuur: "Cultuur"
-  };
+  const activeSectors = SECTORS.filter(
+    (s) =>
+      session.benefits.some((b) => b.sectorId === s) ||
+      session.capabilities.some((c) => c.sectorId === s) ||
+      session.efforts.some((e) => e.sectorId === s) ||
+      session.sectorPlans.some((sp) => sp.sectorName === s)
+  );
 
-  for (const project of session.externalProjects) {
-    const domainStr = (project.domains || []).map(d => DOMAIN_LABELS_LOCAL[d] || d).join(", ");
-    const statusStr = STATUS_LABELS[project.status] || project.status;
-
-    children.push(bodyText(`${project.name} [Lopend project]`, { bold: true }));
+  if (activeSectors.length === 0) {
     children.push(bodyText(
-      `Sector: ${project.sectorId} | Status: ${statusStr}${domainStr ? ` | Domeinen: ${domainStr}` : ""}`,
-      { color: TEXT_SECONDARY, size: 18 }
+      "Er zijn nog geen sectorplannen geladen of sector-specifieke baten/vermogens/inspanningen ingevoerd.",
+      { italic: true, color: TEXT_MUTED }
     ));
+    return { properties: {}, children };
+  }
 
-    if (project.description) {
-      children.push(bodyText(project.description));
-    }
+  const sectorRows = activeSectors.map((sector) => {
+    const plan = session.sectorPlans.find((s) => s.sectorName === sector);
+    const kern = plan?.rawText
+      ? (plan.rawText.slice(0, 160).replace(/\s+/g, " ").trim() + (plan.rawText.length > 160 ? "\u2026" : ""))
+      : "Geen sectorplan geladen";
 
-    // Linked capabilities via projectCapabilityMaps
-    const linkedCapIds = (session.projectCapabilityMaps || [])
-      .filter(m => m.projectId === project.id)
-      .map(m => m.capabilityId);
-    const linkedCaps = (session.capabilities || []).filter(c => linkedCapIds.includes(c.id));
+    const batenCount = session.benefits.filter((b) => b.sectorId === sector).length;
+    const vermogensCount = session.capabilities.filter((c) => c.sectorId === sector && !c.consolidated).length;
+    const inspanningenCount = session.efforts.filter((e) => e.sectorId === sector && !e.consolidated).length;
 
-    if (linkedCaps.length > 0) {
-      children.push(bodyText("Gekoppeld aan vermogens:", { bold: true, size: 18, color: TEXT_SECONDARY }));
-      for (const cap of linkedCaps) {
-        children.push(bullet(cap.description));
-      }
-    }
+    // Tel hoeveel doelen deze sector raakt (via baten)
+    const goalIds = new Set(
+      session.benefits.filter((b) => b.sectorId === sector).map((b) => b.goalId)
+    );
 
-    if (project.aiWarning) {
-      children.push(bodyText(`Let op: ${project.aiWarning}`, { color: "D97706", size: 18, italic: true }));
-    }
+    return new TableRow({
+      children: [
+        styledCell(sector, { bold: true, width: 14, shading: CITO_BLUE_LIGHT }),
+        styledCell(kern, { width: 54 }),
+        styledCell(`${goalIds.size}`, { width: 12 }),
+        styledCell(`${batenCount} B \u2022 ${vermogensCount} V \u2022 ${inspanningenCount} I`, { width: 20 }),
+      ],
+    });
+  });
 
-    children.push(emptyLine());
+  // Totaal-PMC's onder de tabel
+  const totaalPmc = (session.pmcEntries ?? []).length;
+
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            headerCell("Sector", 14),
+            headerCell("Kern sectorplan", 54),
+            headerCell("Doelen geraakt", 12),
+            headerCell("B/V/I", 20),
+          ],
+        }),
+        ...sectorRows,
+      ],
+    })
+  );
+  if (totaalPmc > 0) {
+    children.push(emptyLine(60));
+    children.push(bodyText(
+      `Totaal product-marktcombinaties in scope: ${totaalPmc}.`,
+      { size: 20, color: TEXT_SECONDARY, italic: true }
+    ));
   }
 
   return { properties: {}, children };
@@ -1287,7 +1705,7 @@ function externalProjectsSection(session: DINSession, numState: NumberingState) 
 function sectorSection(session: DINSession, sector: SectorName, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading(`Sectorplan: ${sector}`, "h1", numState));
+  children.push(plainH1(`Bijlage A \u2014 Sector ${sector}`, numState));
 
   // Origineel sectorplan (beknopt)
   const plan = session.sectorPlans.find((s) => s.sectorName === sector);
@@ -1498,11 +1916,15 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
   void _activeEfforts;
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Roadmap", "h1", numState));
-  children.push(bodyText(
-    "De 4 gezamenlijke cross-sectorale inspanningen — 1 per domein (Cultuur, Mens, Data & Systemen, Processen) — gepland in cycli van 6-9 maanden.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
+  children.push(stepHeading(6, "Roadmap: van bundels naar uitvoering", numState));
+  children.push(
+    methodiekIntro(
+      "De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en " +
+      "markeert de mijlpalen waarop we voortgang meten. Hij is het ritmische kompas van het programma. " +
+      "Vier gezamenlijke cross-sectorale bundels \u2014 \u00e9\u00e9n per domein (cultuur, mens, " +
+      "data & systemen, processen) \u2014 worden gepland in cycli van 6\u20139 maanden."
+    )
+  );
   children.push(emptyLine());
 
   const planning = session.planningVoorstel;
@@ -1547,19 +1969,21 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
     return aStart - bStart;
   });
 
-  // Hoofdtabel: één rij per bundel met domein, titel, start, eind, cyclus
+  // Hoofdtabel: per bundel domein, titel, cyclus, start, eind, afhankelijkheden, risico
   children.push(subHeading("Roadmap-overzicht"));
-  const bundelRows = [...planning.bundelPlanning]
+  const allBundels = planning.bundelPlanning;
+  const bundelRows = [...allBundels]
     .sort((a, b) => a.startKwartaal.localeCompare(b.startKwartaal))
     .map((bp) => {
+      const deps = resolveBundelDependencies(bp.bundelId, allBundels);
       return new TableRow({
         children: [
-          styledCell(DOMAIN_LABELS[bp.domein] || bp.domein, { bold: true, width: 18, shading: DOMAIN_COLORS[bp.domein] }),
-          styledCell(bp.titel, { bold: true, width: 32 }),
-          styledCell(bp.cyclusLabel, { width: 12 }),
-          styledCell(bp.startKwartaal, { width: 12 }),
-          styledCell(bp.eindKwartaal, { width: 12 }),
-          styledCell(bp.beargumentatie || "\u2014", { width: 14 }),
+          styledCell(DOMAIN_LABELS[bp.domein] || bp.domein, { bold: true, width: 14, shading: DOMAIN_COLORS[bp.domein] }),
+          styledCell(bp.titel, { bold: true, width: 24 }),
+          styledCell(bp.cyclusLabel, { width: 10 }),
+          styledCell(`${bp.startKwartaal} \u2192 ${bp.eindKwartaal}`, { width: 14 }),
+          styledCell(deps, { width: 20 }),
+          styledCell(bp.risico || "\u2014", { width: 18 }),
         ],
       });
     });
@@ -1569,12 +1993,12 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
       rows: [
         new TableRow({
           children: [
-            headerCell("Domein", 18),
-            headerCell("Gezamenlijke inspanning", 32),
-            headerCell("Cyclus", 12),
-            headerCell("Start", 12),
-            headerCell("Eind", 12),
-            headerCell("Beargumentatie", 14),
+            headerCell("Domein", 14),
+            headerCell("Gezamenlijke inspanning", 24),
+            headerCell("Cyclus", 10),
+            headerCell("Periode", 14),
+            headerCell("Afhankelijk van", 20),
+            headerCell("Risico", 18),
           ],
         }),
         ...bundelRows,
@@ -1583,16 +2007,53 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
   );
   children.push(emptyLine());
 
-  // Per cyclus: mijlpalen en risico's
+  // Tekstuele timeline per kwartaal
+  const kwartalen = Array.from(
+    new Set(
+      allBundels.flatMap((bp) => {
+        const start = bp.startKwartaal;
+        const eind = bp.eindKwartaal;
+        return [start, eind];
+      })
+    )
+  ).filter(Boolean).sort();
+
+  if (kwartalen.length > 0) {
+    children.push(subHeading("Timeline per kwartaal"));
+    kwartalen.forEach((kw) => {
+      const actiefIn = allBundels.filter(
+        (bp) => bp.startKwartaal.localeCompare(kw) <= 0 && bp.eindKwartaal.localeCompare(kw) >= 0
+      );
+      if (actiefIn.length === 0) return;
+      children.push(
+        new Paragraph({
+          spacing: { before: 60, after: 30 },
+          children: [
+            new TextRun({ text: `${kw}: `, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
+            new TextRun({
+              text: actiefIn.map((b) => `${DOMAIN_LABELS[b.domein]} \u2014 ${b.titel}`).join(" | "),
+              size: 20, color: TEXT_SECONDARY, font: "Calibri",
+            }),
+          ],
+        })
+      );
+    });
+    children.push(emptyLine());
+  }
+
+  // Per cyclus: mijlpalen
   cycli.forEach(([cyclusLabel, items]) => {
     children.push(numberedHeading(cyclusLabel, "h2", numState));
     for (const bp of items) {
       children.push(
-        bodyText(`${DOMAIN_LABELS[bp.domein]} — ${bp.titel} (${bp.startKwartaal} → ${bp.eindKwartaal})`, {
+        bodyText(`${DOMAIN_LABELS[bp.domein]} \u2014 ${bp.titel} (${bp.startKwartaal} \u2192 ${bp.eindKwartaal})`, {
           bold: true,
           size: 22,
         })
       );
+      if (bp.beargumentatie) {
+        children.push(bodyText(bp.beargumentatie, { italic: true, color: TEXT_SECONDARY, size: 20 }));
+      }
       for (const m of bp.mijlpalen || []) {
         children.push(bullet(`${m.periode}: ${m.mijlpaal}`));
       }
@@ -2048,38 +2509,37 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
 
   type SectionType = { properties: Record<string, unknown>; children: (Paragraph | Table)[] };
 
-  // Build all content sections first (advancing numState), then build TOC from tocEntries
+  // Build all content sections first (advancing numState), then build TOC from tocEntries.
+  // Methodische opbouw (DIN/Prevaas & Van Loon):
+  //   Managementsamenvatting \u2192 Stap 1 programmakader \u2192 Stap 2 sectorwerk \u2192
+  //   Stap 3 DIN-keten \u2192 Stap 4 cross-analyse (incl. gaps/hefbomen/externe projecten) \u2192
+  //   Stap 5 programmaorganisatie & raming \u2192 Stap 6 roadmap \u2192 Bijlage A per-sector drilldown.
   const contentSections: SectionType[] = [];
 
-  // 1. Samenvatting
-  contentSections.push(executiveSummarySection(session, numState, activeEfforts));
+  // 0. Managementsamenvatting (cross-sectorale nadruk)
+  contentSections.push(executiveSummarySection(session, numState, activeEfforts, activeCaps));
 
-  // 2. Overzicht (Visie, Scope, Doelen)
+  // Stap 1 \u2014 Programmakader (visie, scope, doelen)
   contentSections.push(overviewSection(session, numState));
 
-  // 3. DIN-Netwerk per Doel
-  contentSections.push(goalDINSections(session, numState, activeCaps, activeEfforts));
+  // Stap 2 \u2014 Sectorwerk (beknopt per-sector overzicht; volle drilldown in Bijlage A)
+  contentSections.push(buildSectorwerkKaderSection(session, numState));
 
-  // 4. DIN-Overzicht (Tabel-flow)
+  // Stap 3 \u2014 DIN-keten (doelen \u2192 baten \u2192 vermogens \u2192 inspanningen) + flow-tabel
+  contentSections.push(goalDINSections(session, numState, activeCaps, activeEfforts));
   contentSections.push(dinFlowTableSection(session, numState, activeCaps, activeEfforts));
 
-  // 5. Cross-analyse
+  // Stap 4 \u2014 Cross-sectorale analyse (synergie, hefboomwerking, domeinbalans, overlap, gaps, externe projecten)
   contentSections.push(crossAnalysisSection(session, numState, activeCaps, activeEfforts));
 
-  // 6-9. Optionele secties
-  const gapSection = gapAnalysisSection(session, numState);
-  if (gapSection) contentSections.push(gapSection);
-
-  const hefboom = hefboomSection(session, numState);
-  if (hefboom) contentSections.push(hefboom);
-
+  // Stap 5 \u2014 Programmaorganisatie & Raming
   const governance = governanceSection(session, numState, activeEfforts);
   if (governance) contentSections.push(governance);
 
-  const external = externalProjectsSection(session, numState);
-  if (external) contentSections.push(external);
+  // Stap 6 \u2014 Roadmap
+  contentSections.push(roadmapSection(session, numState, activeEfforts));
 
-  // 10+. Sector sections
+  // Bijlage A \u2014 Per-sector drilldowns (volle tabellen + integratieadvies per sector)
   SECTORS.filter((sector) => {
     return (
       session.benefits.some((b) => b.sectorId === sector) ||
@@ -2090,9 +2550,6 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
   }).forEach((sector) => {
     contentSections.push(sectorSection(session, sector, numState, activeCaps, activeEfforts));
   });
-
-  // Last: Roadmap
-  contentSections.push(roadmapSection(session, numState, activeEfforts));
 
   // Now build TOC from accumulated tocEntries
   const tocSection = tableOfContentsSection(numState);

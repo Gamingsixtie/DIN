@@ -1313,6 +1313,270 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
 
 // --- Gap Detection Modal ---
 
+// --- Stap-wrapper met methodiek-intro (live preview, spiegelt Word export) ---
+function StepBanner({ step, title, intro, children }: { step: number; title: string; intro?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-12">
+      <div className="flex items-center gap-3 mb-3 pb-2 border-b-2 border-cito-blue/30">
+        <span className="inline-flex items-center justify-center min-w-[70px] px-3 py-1 rounded-full bg-cito-blue text-white text-xs font-bold uppercase tracking-wide">
+          Stap {step}
+        </span>
+        <h2 className="text-lg font-bold text-cito-blue">{title}</h2>
+      </div>
+      {intro && (
+        <div className="bg-cito-blue/5 border-l-4 border-cito-blue/60 px-4 py-3 mb-6 text-sm italic text-gray-700 leading-relaxed">
+          {intro}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function ManagementSamenvattingBlock({ session }: { session: DINSession }) {
+  const activeCaps = getActiveCaps(session);
+  const activeEfforts = getActiveEfforts(session);
+
+  const sharedCount = (() => {
+    const byTitle = new Map<string, Set<string>>();
+    activeCaps.forEach((c) => {
+      const key = (c.title || c.description || "").trim().toLowerCase();
+      if (!key) return;
+      if (!byTitle.has(key)) byTitle.set(key, new Set());
+      byTitle.get(key)!.add(c.sectorId);
+    });
+    let n = 0;
+    byTitle.forEach((s) => { if (s.size > 1) n++; });
+    return n;
+  })();
+
+  const hefbomen = analyzeHefbomen(session);
+  const hefboomCount = hefbomen.reduce(
+    (n, h) => n + h.clusters.filter((c) => c.hefboomScore > 1).length,
+    0
+  );
+
+  const balance = getDomainBalance(activeEfforts);
+  const totBal = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
+  const domeinenOutsideIn: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+
+  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: { actiefScenario?: "optimaal" | "plus20" | "min20"; scenarios: Record<string, { totaalGeraamd?: number } | null> } } | undefined)?.stap8;
+  const actiefScenario = stap8?.actiefScenario ?? "optimaal";
+  const totaalGeraamd = stap8?.scenarios?.[actiefScenario]?.totaalGeraamd;
+
+  const kwartalenSet = new Set<string>();
+  session.planningVoorstel?.bundelPlanning.forEach((bp) => {
+    if (bp.startKwartaal) kwartalenSet.add(bp.startKwartaal);
+    if (bp.eindKwartaal) kwartalenSet.add(bp.eindKwartaal);
+  });
+  const kwSorted = Array.from(kwartalenSet).sort();
+
+  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+  return (
+    <div className="mb-12 bg-gradient-to-br from-cito-blue/5 to-cito-blue/10 border border-cito-blue/20 rounded-xl p-6">
+      <div className="text-xs uppercase tracking-[0.2em] text-cito-blue/70 font-bold mb-2">Managementsamenvatting</div>
+      {session.vision?.beknopt && (
+        <p className="text-sm italic text-gray-700 mb-4 leading-relaxed">{session.vision.beknopt}</p>
+      )}
+
+      <div className="grid grid-cols-4 gap-3 mb-5">
+        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
+          <div className="text-xl font-bold text-cito-blue">{session.goals.length}</div>
+          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Doelen</div>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
+          <div className="text-xl font-bold text-cito-blue">{session.benefits.length}</div>
+          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Baten</div>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
+          <div className="text-xl font-bold text-cito-blue">{activeCaps.length}</div>
+          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Vermogens</div>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
+          <div className="text-xl font-bold text-cito-blue">{activeEfforts.length}</div>
+          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Inspanningen</div>
+        </div>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="text-xs uppercase tracking-wide text-cito-blue/80 font-bold">Drie cross-sectorale kernboodschappen</div>
+        <ul className="text-sm text-gray-700 space-y-1.5 pl-4 list-disc marker:text-cito-blue">
+          <li><strong>{sharedCount}</strong> gedeelde vermogens tussen sectoren — de belangrijkste hefboom.</li>
+          <li><strong>{hefboomCount}</strong> multi-sector hefboomclusters — gezamenlijke inspanningen met breed effect.</li>
+          <li>
+            Domeinbalans (cultuur → mens → data/systemen → processen):{" "}
+            {domeinenOutsideIn.map((d, i) => {
+              const pct = Math.round(((balance[d] ?? 0) / totBal) * 100);
+              return (
+                <span key={d}>
+                  {i > 0 && " • "}<strong>{DOMAIN_LABELS[d]} {pct}%</strong>
+                </span>
+              );
+            })}
+          </li>
+        </ul>
+      </div>
+
+      {(kwSorted.length >= 2 || totaalGeraamd) && (
+        <div className="flex flex-wrap gap-4 text-sm text-gray-700 pt-3 border-t border-cito-blue/15">
+          {kwSorted.length >= 2 && (
+            <div>
+              <span className="text-xs uppercase text-gray-500 block">Programmaduur</span>
+              <strong className="text-cito-blue">{kwSorted[0]} → {kwSorted[kwSorted.length - 1]}</strong>
+            </div>
+          )}
+          {totaalGeraamd !== undefined && (
+            <div>
+              <span className="text-xs uppercase text-gray-500 block">Totaal geraamd ({actiefScenario})</span>
+              <strong className="text-cito-blue">{euroFmt.format(totaalGeraamd)}</strong>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectorwerkKaderBlock({ session }: { session: DINSession }) {
+  const activeSectors = SECTORS.filter(
+    (s) =>
+      session.benefits.some((b) => b.sectorId === s) ||
+      session.capabilities.some((c) => c.sectorId === s && !c.consolidated) ||
+      session.efforts.some((e) => e.sectorId === s && !e.consolidated) ||
+      session.sectorPlans.some((sp) => sp.sectorName === s)
+  );
+
+  if (activeSectors.length === 0) {
+    return (
+      <div className="text-sm italic text-gray-500 py-2">
+        Nog geen sectorplannen geladen of sector-specifieke DIN-items ingevoerd.
+      </div>
+    );
+  }
+
+  const totaalPmc = (session.pmcEntries ?? []).length;
+
+  return (
+    <div>
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Sector</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Kern sectorplan</th>
+              <th className="text-center px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Doelen</th>
+              <th className="text-center px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">B / V / I</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {activeSectors.map((sector) => {
+              const plan = session.sectorPlans.find((s) => s.sectorName === sector);
+              const kern = plan?.rawText
+                ? plan.rawText.slice(0, 160).replace(/\s+/g, " ").trim() + (plan.rawText.length > 160 ? "…" : "")
+                : "Geen sectorplan geladen";
+              const batenCount = session.benefits.filter((b) => b.sectorId === sector).length;
+              const vermogensCount = session.capabilities.filter((c) => c.sectorId === sector && !c.consolidated).length;
+              const inspanningenCount = session.efforts.filter((e) => e.sectorId === sector && !e.consolidated).length;
+              const goalIds = new Set(session.benefits.filter((b) => b.sectorId === sector).map((b) => b.goalId));
+              return (
+                <tr key={sector} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 font-bold text-cito-blue">{sector}</td>
+                  <td className="px-3 py-2 text-gray-700 text-xs leading-relaxed">{kern}</td>
+                  <td className="px-3 py-2 text-center text-gray-700">{goalIds.size}</td>
+                  <td className="px-3 py-2 text-center text-gray-700 text-xs">{batenCount} / {vermogensCount} / {inspanningenCount}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {totaalPmc > 0 && (
+        <div className="text-xs italic text-gray-500 mt-2">
+          Totaal product-marktcombinaties in scope: {totaalPmc}.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RamingBlock({ session }: { session: DINSession }) {
+  type Stap7 = {
+    uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
+    scenarios?: { optimaal: unknown; plus20: unknown; min20: unknown };
+  };
+  type Stap8 = {
+    actiefScenario?: "optimaal" | "plus20" | "min20";
+    scenarios: Record<"optimaal" | "plus20" | "min20", {
+      totaalOutOfPocket: number;
+      totaalInterneUren: number;
+      totaalGeraamd: number;
+    } | null>;
+  };
+  const wizard = session.crossAnalyseWizard?.stepResults as { stap7?: Stap7; stap8?: Stap8 } | undefined;
+  const stap7 = wizard?.stap7;
+  const stap8 = wizard?.stap8;
+
+  if (!stap7 && !stap8) {
+    return (
+      <div className="text-sm italic text-gray-500 border border-dashed border-gray-300 rounded-lg px-4 py-3">
+        De raming is nog niet ingevuld. Open de Cross-analyse wizard (Stap 4) om de interne uren per domein en de scenario-overzichten te genereren.
+      </div>
+    );
+  }
+
+  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const scenLabels: Record<"optimaal" | "plus20" | "min20", string> = {
+    optimaal: "Optimaal", plus20: "+20% scenario", min20: "−20% scenario",
+  };
+  const actief = stap8?.actiefScenario ?? "optimaal";
+
+  return (
+    <div className="space-y-4">
+      {stap7?.uurtariefSettings && (
+        <div className="text-xs text-gray-500">
+          Basisuurtarief: <strong className="text-gray-700">{euroFmt.format(stap7.uurtariefSettings.basisTarief)}</strong>
+          {" "}(referentiejaar {stap7.uurtariefSettings.referentiejaar}, indexatie {stap7.uurtariefSettings.indexatiePercentage}%/jaar)
+        </div>
+      )}
+      {stap8?.scenarios && (
+        <div className="overflow-hidden border border-gray-200 rounded-lg">
+          <table className="w-full text-sm">
+            <thead className="bg-cito-blue/5">
+              <tr>
+                <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Scenario</th>
+                <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Out-of-pocket</th>
+                <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Interne uren</th>
+                <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Totaal geraamd</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(["optimaal", "plus20", "min20"] as const).map((key) => {
+                const sc = stap8.scenarios[key];
+                if (!sc) return null;
+                const isActief = key === actief;
+                return (
+                  <tr key={key} className={isActief ? "bg-cito-blue/10" : "hover:bg-gray-50"}>
+                    <td className="px-3 py-2 font-bold text-cito-blue">
+                      {scenLabels[key]}{isActief && <span className="ml-2 text-[10px] uppercase text-cito-blue/70">(actief)</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalOutOfPocket)}</td>
+                    <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalInterneUren)}</td>
+                    <td className="px-3 py-2 text-right text-cito-blue font-bold tabular-nums">{euroFmt.format(sc.totaalGeraamd)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs italic text-gray-500">
+        De volledige raming (per domein per jaar, in outside-in volgorde cultuur → mens → data/systemen → processen) staat in het Word-document.
+      </p>
+    </div>
+  );
+}
+
 function GapDetectionModal({
   session,
   onProceed,
@@ -1610,18 +1874,72 @@ export default function ExportStep() {
           <div className="p-8 max-w-none">
             <DocumentTitlePage session={session} />
             <div className="mt-10">
-              <VisionBlock session={session} number={sectionNumbers["vision"]} />
-              <ScopeBlock session={session} number={sectionNumbers["scope"]} />
-              <GoalsBlock session={session} number={sectionNumbers["goals"]} />
-              <DINKetenBlock session={session} number={sectionNumbers["din"]} />
-              <DINFlowTable session={session} number={sectionNumbers["flow"]} />
-              <CrossAnalyseBlock session={session} number={sectionNumbers["cross"]} />
-              <GapAnalyseBlock session={session} number={sectionNumbers["gap"]} />
-              <HefboomBlock session={session} number={sectionNumbers["hefboom"]} />
-              <GovernanceBlock session={session} number={sectionNumbers["governance"]} />
-              <ExterneProjectenBlock session={session} number={sectionNumbers["extern"]} />
+              <ManagementSamenvattingBlock session={session} />
+
+              <StepBanner
+                step={1}
+                title="Programmakader"
+                intro="Visie, doelen en scope vormen het fundament van het programma. Conform Prevaas & Van Loon (Hfst 2) bepalen zij de richting waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
+              >
+                <VisionBlock session={session} />
+                <ScopeBlock session={session} />
+                <GoalsBlock session={session} />
+              </StepBanner>
+
+              <StepBanner
+                step={2}
+                title="Sectorwerk"
+                intro="Elke sector vertaalt de programmadoelen naar eigen baten, vermogens en inspanningen vanuit het eigen sectorplan en de product-marktcombinaties. Hieronder een beknopt overzicht; volledige drilldowns staan in Bijlage A."
+              >
+                <SectorwerkKaderBlock session={session} />
+              </StepBanner>
+
+              <StepBanner
+                step={3}
+                title="De DIN-keten: van doelen naar inspanningen"
+                intro="In de DIN-methodiek vertalen we elk programmadoel naar concrete baten (effecten in de buitenwereld), vermogens (wat we moeten kunnen) en inspanningen (wat we gaan doen). Gedeelde vermogens zijn expliciet gemarkeerd — daar zit de cross-sectorale hefboom."
+              >
+                <DINKetenBlock session={session} />
+                <DINFlowTable session={session} />
+              </StepBanner>
+
+              <StepBanner
+                step={4}
+                title="Cross-sectorale analyse: synergie, hefboomwerking en gaps"
+                intro="Het hart van een programma is niet de optelsom van sectorinitiatieven, maar de synergie ertussen. Deze analyse toont waar sectoren dezelfde vermogens nodig hebben, welke inspanningen hefboomwerking hebben over sectoren heen, en waar onbalans of gaps de realisatie in gevaar brengen."
+              >
+                <CrossAnalyseBlock session={session} />
+                <HefboomBlock session={session} />
+                <GapAnalyseBlock session={session} />
+                <ExterneProjectenBlock session={session} />
+              </StepBanner>
+
+              <StepBanner
+                step={5}
+                title="Programmaorganisatie en raming"
+                intro="De programmaorganisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De raming maakt de benodigde capaciteit expliciet — in uren, euro's en verdeeld over de domeinen cultuur, mens, data & systemen en processen."
+              >
+                <GovernanceBlock session={session} />
+                <SubSection title="Raming — interne uren, kosten en scenario's">
+                  <RamingBlock session={session} />
+                </SubSection>
+              </StepBanner>
+
+              <StepBanner
+                step={6}
+                title="Roadmap: van bundels naar uitvoering"
+                intro="De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop we voortgang meten. Hij is het ritmische kompas van het programma."
+              >
+                <RoadmapBlock session={session} />
+              </StepBanner>
+
+              <div className="mb-6 mt-10 pb-2 border-b-2 border-cito-blue/20">
+                <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-bold uppercase tracking-wide">
+                  Bijlage A
+                </span>
+                <h2 className="inline-block ml-3 text-lg font-bold text-cito-blue">Per-sector drilldowns</h2>
+              </div>
               <SectorBlocks session={session} sectionNumbers={sectionNumbers} />
-              <RoadmapBlock session={session} number={sectionNumbers["roadmap"]} />
             </div>
           </div>
         </div>
