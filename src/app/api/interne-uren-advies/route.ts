@@ -80,6 +80,17 @@ type VerrijkteScenario = {
   samenvatting: string;
 };
 
+type ToegestaneFunctieInput = {
+  id: string;
+  naam: string;
+  afdeling: string;
+  schaal?: number;
+  aantal?: number;
+  custom?: boolean;
+};
+type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
+type ToegestaneFunctiesPerDomein = Record<Domein, ToegestaneFunctieInput[]>;
+
 function scenarioPrompt(
   scenarioLabel: "optimaal" | "plus20" | "min20",
   scenarioData: {
@@ -96,8 +107,9 @@ function scenarioPrompt(
       businessCaseInterneUren?: string;
     }>;
   },
-  toegestaneFuncties?: Array<{ id: string; naam: string; afdeling: string; schaal: number }>,
-  urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>
+  toegestaneFuncties?: Array<ToegestaneFunctieInput>,
+  urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>,
+  toegestaneFunctiesPerDomein?: ToegestaneFunctiesPerDomein
 ): string {
   const tag =
     scenarioLabel === "optimaal"
@@ -121,11 +133,28 @@ ${urenBudgetPerJaar.map((u) => `  - ${u.jaar}: ${u.urenBudget.toLocaleString("nl
 
 `
     : ""
-}**TOEGESTANE FUNCTIES — de gebruiker heeft DEZE rollen geselecteerd voor deze analyse. Kies UITSLUITEND hieruit; gebruik geen enkele functie die hier NIET in staat.**
+}**TOEGESTANE FUNCTIES PER DOMEIN — de gebruiker heeft PER INSPANNINGSDOMEIN (cultuur / mens / data_systemen / processen) specifieke rollen geselecteerd. Kies per domein UITSLUITEND uit de lijst van DAT domein. Gebruik geen rol uit een ander domein. Het \`aantal\` geeft aan hoeveel personen er van die rol beschikbaar zijn — schaal uren daarmee (bijv. 3 accountmanagers × 200u = 600u totaal op die rol).**
 ${
-  toegestaneFuncties && toegestaneFuncties.length > 0
+  toegestaneFunctiesPerDomein
+    ? (["cultuur", "mens", "data_systemen", "processen"] as const)
+        .map((d) => {
+          const lijst = toegestaneFunctiesPerDomein[d] ?? [];
+          if (lijst.length === 0) {
+            return `\n**${d.toUpperCase()}** — GEEN functies geselecteerd door gebruiker. Lever voor dit domein een domein-blok met \`jaren: []\` en een motivatie die zegt "Gebruiker heeft geen functies voor dit domein aangewezen — geen interne uren toegewezen."`;
+          }
+          return `\n**${d.toUpperCase()}** (${lijst.length} toegestane functies):\n${lijst
+            .map(
+              (f) =>
+                `  - ${f.naam} (id: ${f.id}, afdeling: ${f.afdeling}${
+                  f.schaal !== undefined ? `, schaal ${f.schaal}` : ""
+                }, aantal personen beschikbaar: ${f.aantal ?? 1}${f.custom ? ", CUSTOM" : ""})`
+            )
+            .join("\n")}`;
+        })
+        .join("\n")
+    : toegestaneFuncties && toegestaneFuncties.length > 0
     ? toegestaneFuncties
-        .map((f) => `  - ${f.naam} (id: ${f.id}, afdeling: ${f.afdeling}, schaal ${f.schaal})`)
+        .map((f) => `  - ${f.naam} (id: ${f.id}, afdeling: ${f.afdeling}${f.schaal !== undefined ? `, schaal ${f.schaal}` : ""}, aantal: ${f.aantal ?? 1})`)
         .join("\n")
     : citoFunctiesAlsPromptBlok()
 }
@@ -154,10 +183,11 @@ ${
 }
 
 **HARDE REGELS:**
-1. **Gebruik UITSLUITEND functieId + functieNaam uit de TOEGESTANE FUNCTIES-lijst hierboven.** Geen enkele andere rol. Geen verzonnen rollen. Geen trainers of andere functies die NIET in die lijst staan. Als een echt nodig specialisme ontbreekt in de toegestane lijst: gebruik functieId "extern" en functieNaam "Externe <specialisme>" — maar bij voorkeur kies je iets uit de toegestane lijst.
+1. **Gebruik UITSLUITEND functieId + functieNaam uit de TOEGESTANE FUNCTIES-lijst van DAT DOMEIN hierboven.** Geen enkele andere rol. Geen verzonnen rollen. Geen trainers of andere functies die NIET in die lijst staan. Als een echt nodig specialisme ontbreekt in de toegestane lijst voor dat domein: gebruik functieId "extern" en functieNaam "Externe <specialisme>" — maar bij voorkeur kies je iets uit de toegestane lijst.
+   - **Respecteer ook het \`aantal\` personen per functie**: als er 3 accountmanagers beschikbaar zijn, mag je meer uren op die rol toekennen (bijv. samen 3 × 250u = 750u voor het jaar). Geef in de uren-waarde het TOTAAL over alle personen in die rol voor dat jaar.
 2. **Aansluiten bij stap 6 fasering:** dezelfde jaren, activiteiten die matchen bij wat in dat jaar voor die inspanning gepland is. Als stap 6 zegt "CRM-leverancier selectie + architectuur-besluit" in jaar 1 voor data/systemen, dan horen daar rollen bij als "Manager Data & Technologie", "Business informatieanalist C", "Productowner" — MITS die in de toegestane lijst staan.
-3. **Realistische uren per rol per jaar.** 1 FTE = ~1600 werkbare uren/jaar. Voor een rol die 10% op dit programma zit = 160 uur/jr. Voor zware trekkers (Sectormanager op cultuur in jaar 1) = 300-500u. Voor experts die af en toe bijspringen = 40-120u.
-4. **Per domein minimaal 2-3 rollen per jaar uit de toegestane lijst**, soms meer bij grote inspanningen. Vermijd 10+ rollen per jaar (onoverzichtelijk). Als het domein weinig passende toegestane rollen heeft: houd het compact met 1-2 rollen.
+3. **Realistische uren per rol per jaar.** 1 FTE = ~1600 werkbare uren/jaar. Voor een rol die 10% op dit programma zit = 160 uur/jr. Voor zware trekkers (Sectormanager op cultuur in jaar 1) = 300-500u. Voor experts die af en toe bijspringen = 40-120u. Schaal met het aantal personen.
+4. **Per domein minimaal 2-3 rollen per jaar uit de toegestane lijst van DAT domein**, soms meer bij grote inspanningen. Vermijd 10+ rollen per jaar (onoverzichtelijk). Als het domein weinig passende toegestane rollen heeft: houd het compact met 1-2 rollen. Als er 0 toegestane functies voor een domein zijn: lever \`jaren: []\` voor dat domein.
 5. **Domein → rol-richtlijn (alleen toepassen als die rol in de toegestane lijst staat):**
    - **Cultuur**: Directeur BV, Sectormanagers (PO/VO/Professionals), Manager Klantcontact, Projectmanager D, Campagne Marketeer
    - **Mens**: Content Specialist, Toetsdeskundigen A/B/C (PO/VO/Professionals), Medewerker Media Support
@@ -180,6 +210,7 @@ export async function POST(request: NextRequest) {
       uurtariefSettings,
       inspanningenMeta,
       toegestaneFuncties,
+      toegestaneFunctiesPerDomein,
       urenBudgetPerJaar,
       finetuneInstructie,
       previousAdvies,
@@ -209,7 +240,8 @@ export async function POST(request: NextRequest) {
         businessCaseInterneRollen?: string;
         businessCaseInterneUren?: string;
       }>;
-      toegestaneFuncties?: Array<{ id: string; naam: string; afdeling: string; schaal: number }>;
+      toegestaneFuncties?: Array<ToegestaneFunctieInput>;
+      toegestaneFunctiesPerDomein?: ToegestaneFunctiesPerDomein;
       urenBudgetPerJaar?: Array<{ jaar: number; urenBudget: number }>;
       finetuneInstructie?: string;
       previousAdvies?: unknown;
@@ -261,7 +293,13 @@ export async function POST(request: NextRequest) {
             ? `\n\n**FINETUNE-VERZOEK:** "${finetuneInstructie.trim()}"\nPas de uren/rollen aan naar de instructie. Vorige versie:\n${JSON.stringify((previousAdvies as { scenarios?: Record<string, unknown> })?.scenarios?.[label] ?? null, null, 2)}\n`
             : "";
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, { ...scenario, inspanningen: enrichedInsps }, toegestaneFuncties, urenBudgetPerJaar) + finetuneBlock,
+          scenarioPrompt(
+            label,
+            { ...scenario, inspanningen: enrichedInsps },
+            toegestaneFuncties,
+            urenBudgetPerJaar,
+            toegestaneFunctiesPerDomein
+          ) + finetuneBlock,
           "cross-analyse",
           undefined,
           kibContext

@@ -11,6 +11,8 @@ import {
 } from "@/lib/uurtarief";
 import { CITO_FUNCTIES, type CitoFunctie, type CitoAfdeling } from "@/lib/cito-functies";
 
+type CustomFunctie = { id: string; naam: string; schaal?: number };
+
 type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
 type ScenarioLabel = "optimaal" | "plus20" | "min20";
 
@@ -58,7 +60,12 @@ type InterneUrenAdvies = {
   uurtariefSettings: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
   // User-settings die we opslaan zodat ze bij terugkeer bewaard blijven
   urenBudgetStart?: number;
-  geselecteerdeFunctieIds?: string[];
+  geselecteerdeFunctieIds?: string[]; // legacy (backward compat)
+  functieAantallen?: Record<string, number>; // legacy (backward compat)
+  // Per-domein selectie: functie-id → aantal personen (Cito-id of custom-id)
+  selectiePerDomein?: Record<Domein, Record<string, number>>;
+  // Custom functies door user toegevoegd, per domein
+  customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
   scenarios: {
     optimaal: ScenarioBlok | null;
     plus20: ScenarioBlok | null;
@@ -112,39 +119,110 @@ export default function StapInterneUren({
   const [fineutOpen, setFineutOpen] = useState(false);
   const [fineutInstr, setFineutInstr] = useState("");
 
-  // Functie-selectie (Fase 1 — user kiest welke functies AI mag gebruiken)
-  const [geselecteerdeFunctieIds, setGeselecteerdeFunctieIds] = useState<Set<string>>(
-    () => new Set(CITO_FUNCTIES.filter((f) => (f.inspanningRelevantie?.length ?? 0) > 0).map((f) => f.id))
+  // Functie-selectie per domein — user kiest per inspanningsdomein welke functies + hoeveel personen
+  const DOMEINEN: Domein[] = ["cultuur", "mens", "data_systemen", "processen"];
+
+  function defaultSelectiePerDomein(): Record<Domein, Record<string, number>> {
+    const init: Record<Domein, Record<string, number>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
+    for (const f of CITO_FUNCTIES) {
+      const rel = (f.inspanningRelevantie ?? []) as Domein[];
+      for (const d of rel) {
+        if (d in init) init[d][f.id] = 1;
+      }
+    }
+    return init;
+  }
+
+  const [selectiePerDomein, setSelectiePerDomein] = useState<Record<Domein, Record<string, number>>>(
+    () => defaultSelectiePerDomein()
   );
+  const [customFunctiesPerDomein, setCustomFunctiesPerDomein] = useState<Record<Domein, CustomFunctie[]>>({
+    cultuur: [], mens: [], data_systemen: [], processen: [],
+  });
+  const [actiefDomein, setActiefDomein] = useState<Domein>("cultuur");
   const [selectieOpen, setSelectieOpen] = useState(false);
 
-  function toggleFunctie(id: string) {
-    setGeselecteerdeFunctieIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  // Form-state voor custom functie toevoegen (per domein)
+  const [customNaam, setCustomNaam] = useState("");
+  const [customSchaal, setCustomSchaal] = useState<string>("");
+
+  function toggleFunctie(domein: Domein, id: string) {
+    setSelectiePerDomein((prev) => {
+      const next = { ...prev, [domein]: { ...prev[domein] } };
+      if (id in next[domein]) delete next[domein][id];
+      else next[domein][id] = 1;
       return next;
     });
   }
-  function selecteerAllesIn(afdeling: CitoAfdeling) {
-    setGeselecteerdeFunctieIds((prev) => {
-      const next = new Set(prev);
-      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling) next.add(f.id);
+  function setAantalVoor(domein: Domein, id: string, aantal: number) {
+    setSelectiePerDomein((prev) => {
+      const clamped = Math.max(1, Math.min(50, Math.floor(aantal) || 1));
+      const next = { ...prev, [domein]: { ...prev[domein], [id]: clamped } };
       return next;
     });
   }
-  function deselecteerAllesIn(afdeling: CitoAfdeling) {
-    setGeselecteerdeFunctieIds((prev) => {
-      const next = new Set(prev);
-      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling) next.delete(f.id);
-      return next;
+  function selecteerAllesIn(domein: Domein, afdeling: CitoAfdeling) {
+    setSelectiePerDomein((prev) => {
+      const copy = { ...prev[domein] };
+      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling && !(f.id in copy)) copy[f.id] = 1;
+      return { ...prev, [domein]: copy };
     });
   }
-  function resetNaarAanbevolen() {
-    setGeselecteerdeFunctieIds(
-      new Set(CITO_FUNCTIES.filter((f) => (f.inspanningRelevantie?.length ?? 0) > 0).map((f) => f.id))
-    );
+  function deselecteerAllesIn(domein: Domein, afdeling: CitoAfdeling) {
+    setSelectiePerDomein((prev) => {
+      const copy = { ...prev[domein] };
+      for (const f of CITO_FUNCTIES) if (f.afdeling === afdeling) delete copy[f.id];
+      return { ...prev, [domein]: copy };
+    });
   }
+  function resetNaarAanbevolen(domein: Domein) {
+    const alle = defaultSelectiePerDomein();
+    setSelectiePerDomein((prev) => ({ ...prev, [domein]: alle[domein] }));
+  }
+  function allesInDomein(domein: Domein) {
+    setSelectiePerDomein((prev) => {
+      const copy: Record<string, number> = { ...prev[domein] };
+      for (const f of CITO_FUNCTIES) if (!(f.id in copy)) copy[f.id] = 1;
+      return { ...prev, [domein]: copy };
+    });
+  }
+  function nietsInDomein(domein: Domein) {
+    setSelectiePerDomein((prev) => ({ ...prev, [domein]: {} }));
+  }
+
+  function voegCustomFunctieToe(domein: Domein) {
+    const naam = customNaam.trim();
+    if (!naam) return;
+    const schaal = customSchaal.trim() ? Number(customSchaal) : undefined;
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const nieuwe: CustomFunctie = { id, naam, schaal: Number.isFinite(schaal) ? (schaal as number) : undefined };
+    setCustomFunctiesPerDomein((prev) => ({ ...prev, [domein]: [...prev[domein], nieuwe] }));
+    setSelectiePerDomein((prev) => ({ ...prev, [domein]: { ...prev[domein], [id]: 1 } }));
+    setCustomNaam("");
+    setCustomSchaal("");
+  }
+  function verwijderCustomFunctie(domein: Domein, id: string) {
+    setCustomFunctiesPerDomein((prev) => ({ ...prev, [domein]: prev[domein].filter((c) => c.id !== id) }));
+    setSelectiePerDomein((prev) => {
+      const copy = { ...prev[domein] };
+      delete copy[id];
+      return { ...prev, [domein]: copy };
+    });
+  }
+
+  const geselecteerdePerDomein: Record<Domein, number> = {
+    cultuur: Object.keys(selectiePerDomein.cultuur).length,
+    mens: Object.keys(selectiePerDomein.mens).length,
+    data_systemen: Object.keys(selectiePerDomein.data_systemen).length,
+    processen: Object.keys(selectiePerDomein.processen).length,
+  };
+  const geselecteerdeTotaal =
+    geselecteerdePerDomein.cultuur + geselecteerdePerDomein.mens +
+    geselecteerdePerDomein.data_systemen + geselecteerdePerDomein.processen;
+  const totaalAantalPersonen = DOMEINEN.reduce(
+    (s, d) => s + Object.values(selectiePerDomein[d]).reduce((a, b) => a + b, 0),
+    0
+  );
 
   const FINEUT_VOORBEELDEN: ReadonlyArray<{ kort: string; instructie: string }> = [
     { kort: "Meer sectormanagement-uren", instructie: "Verhoog de sectormanager-uren in het eerste jaar — zij moeten de cultuur-verandering gaan dragen." },
@@ -154,7 +232,7 @@ export default function StapInterneUren({
     { kort: "Voeg project-coördinatie toe", instructie: "Voeg overal een Projectmanager D toe voor programma-coördinatie — 10-20% FTE per jaar." },
   ];
 
-  // Restore vanuit sessie — inclusief user-settings (urenBudget, selectie)
+  // Restore vanuit sessie — inclusief user-settings (urenBudget, selectie per domein, custom functies)
   useEffect(() => {
     const persisted = (stap4Result as unknown as { stap7InterneUren?: InterneUrenAdvies })?.stap7InterneUren;
     if (persisted) {
@@ -167,8 +245,34 @@ export default function StapInterneUren({
       if (typeof persisted.urenBudgetStart === "number") {
         setUrenBudgetStart(persisted.urenBudgetStart);
       }
-      if (persisted.geselecteerdeFunctieIds && persisted.geselecteerdeFunctieIds.length > 0) {
-        setGeselecteerdeFunctieIds(new Set(persisted.geselecteerdeFunctieIds));
+      if (persisted.selectiePerDomein) {
+        setSelectiePerDomein({
+          cultuur: persisted.selectiePerDomein.cultuur ?? {},
+          mens: persisted.selectiePerDomein.mens ?? {},
+          data_systemen: persisted.selectiePerDomein.data_systemen ?? {},
+          processen: persisted.selectiePerDomein.processen ?? {},
+        });
+      } else if (persisted.functieAantallen || (persisted.geselecteerdeFunctieIds && persisted.geselecteerdeFunctieIds.length > 0)) {
+        // Legacy-migratie: zet oude globale selectie om naar domein-default (op basis van inspanningRelevantie)
+        const legacy: Record<string, number> =
+          persisted.functieAantallen ??
+          Object.fromEntries((persisted.geselecteerdeFunctieIds ?? []).map((id) => [id, 1]));
+        const migrated: Record<Domein, Record<string, number>> = { cultuur: {}, mens: {}, data_systemen: {}, processen: {} };
+        for (const [id, aantal] of Object.entries(legacy)) {
+          const f = CITO_FUNCTIES.find((x) => x.id === id);
+          const rel = (f?.inspanningRelevantie ?? []) as Domein[];
+          const targets = rel.length > 0 ? rel : (DOMEINEN as Domein[]);
+          for (const d of targets) migrated[d][id] = aantal;
+        }
+        setSelectiePerDomein(migrated);
+      }
+      if (persisted.customFunctiesPerDomein) {
+        setCustomFunctiesPerDomein({
+          cultuur: persisted.customFunctiesPerDomein.cultuur ?? [],
+          mens: persisted.customFunctiesPerDomein.mens ?? [],
+          data_systemen: persisted.customFunctiesPerDomein.data_systemen ?? [],
+          processen: persisted.customFunctiesPerDomein.processen ?? [],
+        });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,8 +310,8 @@ export default function StapInterneUren({
       setLoading(false);
       return;
     }
-    if (geselecteerdeFunctieIds.size === 0) {
-      setError("Selecteer minimaal één functie voordat je de analyse draait.");
+    if (geselecteerdeTotaal === 0) {
+      setError("Selecteer minimaal één functie in minstens één domein voordat je de analyse draait.");
       setLoading(false);
       return;
     }
@@ -232,12 +336,46 @@ export default function StapInterneUren({
     };
 
     try {
-      const toegestaneFuncties = CITO_FUNCTIES.filter((f) => geselecteerdeFunctieIds.has(f.id)).map((f) => ({
-        id: f.id,
-        naam: f.naam,
-        afdeling: f.afdeling,
-        schaal: f.schaal,
-      }));
+      // Per-domein toegestane functies (Cito + custom), met aantal personen
+      type ToegestaneFunctie = {
+        id: string;
+        naam: string;
+        afdeling: string;
+        schaal?: number;
+        aantal: number;
+        custom?: boolean;
+      };
+      const toegestaneFunctiesPerDomein: Record<Domein, ToegestaneFunctie[]> = {
+        cultuur: [], mens: [], data_systemen: [], processen: [],
+      };
+      for (const d of DOMEINEN) {
+        for (const [id, aantal] of Object.entries(selectiePerDomein[d])) {
+          const citoF = CITO_FUNCTIES.find((f) => f.id === id);
+          if (citoF) {
+            toegestaneFunctiesPerDomein[d].push({
+              id: citoF.id,
+              naam: citoF.naam,
+              afdeling: citoF.afdeling,
+              schaal: citoF.schaal,
+              aantal,
+            });
+            continue;
+          }
+          const custom = customFunctiesPerDomein[d].find((c) => c.id === id);
+          if (custom) {
+            toegestaneFunctiesPerDomein[d].push({
+              id: custom.id,
+              naam: custom.naam,
+              afdeling: "Custom",
+              schaal: custom.schaal,
+              aantal,
+              custom: true,
+            });
+          }
+        }
+      }
+      // Flat list (backward compat voor API's/onderdelen die nog over alle functies heen kijken)
+      const toegestaneFuncties = DOMEINEN.flatMap((d) => toegestaneFunctiesPerDomein[d]);
       // Bouw urenBudgetPerJaar voor alle jaren van het langste scenario (gebruik startJaar norm constant)
       const maxAantalJaren = Math.max(
         begroting.scenarios.optimaal?.aantalJaren ?? 0,
@@ -256,6 +394,7 @@ export default function StapInterneUren({
           uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
           inspanningenMeta,
           toegestaneFuncties,
+          toegestaneFunctiesPerDomein,
           urenBudgetPerJaar,
           scope: session.scope,
           vision: session.vision,
@@ -281,7 +420,8 @@ export default function StapInterneUren({
       const verrijkt: InterneUrenAdvies = {
         ...data.data,
         urenBudgetStart,
-        geselecteerdeFunctieIds: Array.from(geselecteerdeFunctieIds),
+        selectiePerDomein,
+        customFunctiesPerDomein,
       };
       setAdvies(verrijkt);
       // Persisteer in session onder stap4.stap7InterneUren
@@ -392,7 +532,7 @@ export default function StapInterneUren({
         </div>
       </div>
 
-      {/* Functie-selectie — Fase 1: user kiest welke Cito-functies AI mag inzetten */}
+      {/* Functie-selectie per domein (cultuur / mens / data&systemen / processen) — met aantal per functie + custom functies */}
       <div className="bg-white border border-gray-200 rounded-lg">
         <button
           onClick={() => setSelectieOpen((v) => !v)}
@@ -400,95 +540,229 @@ export default function StapInterneUren({
         >
           <div>
             <p className="text-sm font-semibold text-[#003366]">
-              Functie-selectie ({geselecteerdeFunctieIds.size} / {CITO_FUNCTIES.length} actief)
+              Functie-selectie per inspanning ({geselecteerdeTotaal} functies · {totaalAantalPersonen} personen totaal)
             </p>
             <p className="text-[11px] text-gray-500 mt-0.5">
-              Kies welke Cito-rollen AI mag inzetten in de analyse. Default: aanbevolen rollen op basis van inspanningsdomein. Trainers zijn standaard uit (klantcontact-context, niet programma).
+              Kies per domein (cultuur / mens / data & systemen / processen) welke Cito-rollen AI mag inzetten. Vul per rol het aantal personen in (bijv. 3 accountmanagers). Eigen functies zijn ook mogelijk.
             </p>
+            <div className="flex gap-2 flex-wrap mt-2">
+              {DOMEINEN.map((d) => {
+                const col = DOMEIN_COLORS[d];
+                return (
+                  <span
+                    key={d}
+                    className={`text-[10px] px-2 py-0.5 rounded border ${col.bg} ${col.border} ${col.text}`}
+                  >
+                    {DOMEIN_LABELS[d]}: {geselecteerdePerDomein[d]}
+                  </span>
+                );
+              })}
+            </div>
           </div>
           <span className="text-xs text-gray-500">{selectieOpen ? "▲ inklappen" : "▼ uitklappen"}</span>
         </button>
         {selectieOpen && (
-          <div className="border-t border-gray-200 p-4 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={resetNaarAanbevolen}
-                className="text-xs px-2.5 py-1 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8]"
-              >
-                Reset naar aanbevolen
-              </button>
-              <button
-                onClick={() => setGeselecteerdeFunctieIds(new Set(CITO_FUNCTIES.map((f) => f.id)))}
-                className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Alles
-              </button>
-              <button
-                onClick={() => setGeselecteerdeFunctieIds(new Set())}
-                className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Niets
-              </button>
-            </div>
-            {(() => {
-              const perAfdeling = new Map<CitoAfdeling, CitoFunctie[]>();
-              for (const f of CITO_FUNCTIES) {
-                const list = perAfdeling.get(f.afdeling) ?? [];
-                list.push(f);
-                perAfdeling.set(f.afdeling, list);
-              }
-              return Array.from(perAfdeling.entries()).map(([afd, functies]) => {
-                const actiefInAfd = functies.filter((f) => geselecteerdeFunctieIds.has(f.id)).length;
+          <div className="border-t border-gray-200">
+            {/* Domein-tabs */}
+            <div className="flex flex-wrap border-b border-gray-200 bg-gray-50">
+              {DOMEINEN.map((d) => {
+                const col = DOMEIN_COLORS[d];
+                const active = actiefDomein === d;
                 return (
-                  <div key={afd} className="border border-gray-100 rounded p-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-[11px] font-semibold text-gray-700">
-                        {afd} <span className="text-gray-400">({actiefInAfd}/{functies.length})</span>
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => selecteerAllesIn(afd)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700">✓ alles</button>
-                        <button onClick={() => deselecteerAllesIn(afd)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700">✕ geen</button>
+                  <button
+                    key={d}
+                    onClick={() => setActiefDomein(d)}
+                    className={`flex-1 min-w-[130px] px-3 py-2.5 text-xs font-semibold border-r border-gray-200 last:border-r-0 ${
+                      active ? `${col.bg} ${col.text} border-b-2` : "text-gray-600 hover:bg-white"
+                    }`}
+                  >
+                    {DOMEIN_LABELS[d]} · {geselecteerdePerDomein[d]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Content voor actief domein */}
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => resetNaarAanbevolen(actiefDomein)}
+                  className="text-xs px-2.5 py-1 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#f0f4f8]"
+                >
+                  Reset naar aanbevolen
+                </button>
+                <button
+                  onClick={() => allesInDomein(actiefDomein)}
+                  className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Alles
+                </button>
+                <button
+                  onClick={() => nietsInDomein(actiefDomein)}
+                  className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Niets
+                </button>
+              </div>
+
+              {/* Custom functies voor dit domein */}
+              <div className="border border-dashed border-gray-300 rounded p-3 bg-gray-50">
+                <p className="text-[11px] font-semibold text-gray-700 mb-2">Eigen functie toevoegen voor {DOMEIN_LABELS[actiefDomein]}</p>
+                <div className="flex items-end gap-2 flex-wrap">
+                  <div className="flex-1 min-w-[180px]">
+                    <label className="text-[10px] text-gray-500">Functienaam</label>
+                    <input
+                      type="text"
+                      value={customNaam}
+                      onChange={(e) => setCustomNaam(e.target.value)}
+                      placeholder="Bijv. Programmadirecteur"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                    />
+                  </div>
+                  <div className="w-20">
+                    <label className="text-[10px] text-gray-500">Schaal (opt.)</label>
+                    <input
+                      type="number"
+                      value={customSchaal}
+                      onChange={(e) => setCustomSchaal(e.target.value)}
+                      placeholder="14"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                    />
+                  </div>
+                  <button
+                    onClick={() => voegCustomFunctieToe(actiefDomein)}
+                    disabled={!customNaam.trim()}
+                    className="text-xs px-3 py-1.5 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
+                  >
+                    + Toevoegen
+                  </button>
+                </div>
+                {customFunctiesPerDomein[actiefDomein].length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {customFunctiesPerDomein[actiefDomein].map((cf) => {
+                      const aantal = selectiePerDomein[actiefDomein][cf.id] ?? 0;
+                      return (
+                        <div key={cf.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-2 py-1">
+                          <input
+                            type="checkbox"
+                            checked={cf.id in selectiePerDomein[actiefDomein]}
+                            onChange={() => toggleFunctie(actiefDomein, cf.id)}
+                            className="accent-[#003366]"
+                          />
+                          <span className="text-xs flex-1 text-gray-800">
+                            {cf.naam}
+                            {cf.schaal !== undefined && <span className="text-[10px] text-gray-400 ml-1">s{cf.schaal}</span>}
+                            <span className="text-[10px] text-gray-400 ml-1">(custom)</span>
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={aantal || 1}
+                            disabled={!(cf.id in selectiePerDomein[actiefDomein])}
+                            onChange={(e) => setAantalVoor(actiefDomein, cf.id, Number(e.target.value))}
+                            className="w-14 px-1 py-0.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#003366] disabled:bg-gray-100 disabled:text-gray-400"
+                          />
+                          <span className="text-[10px] text-gray-500">pers.</span>
+                          <button
+                            onClick={() => verwijderCustomFunctie(actiefDomein, cf.id)}
+                            className="text-[10px] text-red-600 hover:text-red-800 px-1"
+                            title="Verwijder custom functie"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Cito functies per afdeling */}
+              {(() => {
+                const perAfdeling = new Map<CitoAfdeling, CitoFunctie[]>();
+                for (const f of CITO_FUNCTIES) {
+                  const list = perAfdeling.get(f.afdeling) ?? [];
+                  list.push(f);
+                  perAfdeling.set(f.afdeling, list);
+                }
+                return Array.from(perAfdeling.entries()).map(([afd, functies]) => {
+                  const actiefInAfd = functies.filter((f) => f.id in selectiePerDomein[actiefDomein]).length;
+                  return (
+                    <div key={afd} className="border border-gray-100 rounded p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[11px] font-semibold text-gray-700">
+                          {afd} <span className="text-gray-400">({actiefInAfd}/{functies.length})</span>
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => selecteerAllesIn(actiefDomein, afd)}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          >
+                            ✓ alles
+                          </button>
+                          <button
+                            onClick={() => deselecteerAllesIn(actiefDomein, afd)}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          >
+                            ✕ geen
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {functies.map((f) => {
+                          const actief = f.id in selectiePerDomein[actiefDomein];
+                          const aantal = selectiePerDomein[actiefDomein][f.id] ?? 0;
+                          return (
+                            <div
+                              key={f.id}
+                              className={`flex items-center gap-2 text-[11px] px-2 py-1 rounded ${
+                                actief ? "bg-blue-50" : "hover:bg-gray-50"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={actief}
+                                onChange={() => toggleFunctie(actiefDomein, f.id)}
+                                className="accent-[#003366]"
+                              />
+                              <span className="flex-1 leading-tight text-gray-800">
+                                {f.naam} <span className="text-gray-400">s{f.schaal}</span>
+                              </span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={aantal || 1}
+                                disabled={!actief}
+                                onChange={(e) => setAantalVoor(actiefDomein, f.id, Number(e.target.value))}
+                                className="w-12 px-1 py-0.5 text-[11px] border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#003366] disabled:bg-gray-100 disabled:text-gray-400"
+                                title="Aantal personen in deze rol"
+                              />
+                              <span className="text-[10px] text-gray-500">pers.</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1">
-                      {functies.map((f) => {
-                        const actief = geselecteerdeFunctieIds.has(f.id);
-                        return (
-                          <label
-                            key={f.id}
-                            className={`flex items-center gap-2 text-[11px] px-2 py-1 rounded cursor-pointer ${actief ? "bg-blue-50 text-gray-800" : "text-gray-600 hover:bg-gray-50"}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={actief}
-                              onChange={() => toggleFunctie(f.id)}
-                              className="accent-[#003366]"
-                            />
-                            <span className="flex-1 leading-tight">
-                              {f.naam} <span className="text-gray-400">s{f.schaal}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              });
-            })()}
+                  );
+                });
+              })()}
+            </div>
           </div>
         )}
       </div>
 
       <button
         onClick={() => generateAdvies()}
-        disabled={loading || geselecteerdeFunctieIds.size === 0}
+        disabled={loading || geselecteerdeTotaal === 0}
         className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50"
       >
         {loading
           ? "AI berekent interne uren voor 3 scenario's..."
           : advies
-          ? `Regenereer interne-uren-advies (${geselecteerdeFunctieIds.size} functies)`
-          : `Genereer interne-uren-advies (${geselecteerdeFunctieIds.size} functies)`}
+          ? `Regenereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen)`
+          : `Genereer interne-uren-advies (${geselecteerdeTotaal} functies · ${totaalAantalPersonen} personen)`}
       </button>
 
       {error && (
