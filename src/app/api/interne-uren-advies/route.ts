@@ -358,13 +358,13 @@ export async function POST(request: NextRequest) {
         kibContext
       );
       const userMessage = `Genereer interne-uren-plan voor scenario: ${label}`;
-      // Known-good config: sonnet, 16K tokens, geen prefill, 2 pogingen.
-      // Geen opus — te traag voor Vercel bij 3 parallelle requests.
-      // Geen synthesized fallback — bij falen returnt deze functie null en
-      // de frontend toont een per-scenario "Regenereer"-knop.
-      const pogingen: Array<{ maxTokens: number; retryDelayMs: number }> = [
-        { maxTokens: 16384, retryDelayMs: 2000 },
-        { maxTokens: 16384, retryDelayMs: 4000 },
+      // Beide pogingen op OPUS (user-keuze: hogere kwaliteit voor deze
+      // zwaardere analyse). Retry-knop in UI gebruikt hetzelfde endpoint
+      // dus ook opus — manueel vangnet voor individuele scenario's die
+      // het niet halen. Altijd nog downgrade naar sonnet mogelijk.
+      const pogingen: Array<{ maxTokens: number; retryDelayMs: number; model: string }> = [
+        { maxTokens: 16384, retryDelayMs: 0, model: "claude-opus-4-7" },
+        { maxTokens: 16384, retryDelayMs: 1500, model: "claude-opus-4-7" },
       ];
       for (let i = 0; i < pogingen.length; i++) {
         try {
@@ -375,16 +375,16 @@ export async function POST(request: NextRequest) {
             pogingen[i]
           );
           if (res.success) {
-            console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK`);
+            console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK (${pogingen[i].model})`);
             return verrijkScenario(res.data, {
               aantalJaren: scenario.aantalJaren,
               startJaar: scenario.startJaar,
               uurtariefSettings: uurtariefSettings!,
             });
           }
-          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} validation failed: ${res.error}`);
+          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} (${pogingen[i].model}) validation failed: ${res.error}`);
         } catch (err) {
-          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} threw:`, err);
+          console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} (${pogingen[i].model}) threw:`, err);
         }
       }
       console.error(`[interne-uren-advies] ${label} alle pogingen gefaald`);
