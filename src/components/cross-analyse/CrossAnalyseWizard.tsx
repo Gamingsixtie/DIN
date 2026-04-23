@@ -603,13 +603,13 @@ export default function CrossAnalyseWizard() {
             session={session}
             stap2Result={wizardState.stepResults.stap2}
             stap3Result={wizardState.stepResults.stap3}
-            stap4Result={wizardState.stepResults.stap4}
+            stap4Result={(session.crossAnalyseWizard?.stepResults?.stap4 ?? wizardState.stepResults.stap4) as typeof wizardState.stepResults.stap4}
           />
         )}
         {wizardState.currentStep === 6 && (
           <StapOptimaliseren
             session={session}
-            stap4Result={wizardState.stepResults.stap4}
+            stap4Result={(session.crossAnalyseWizard?.stepResults?.stap4 ?? wizardState.stepResults.stap4) as typeof wizardState.stepResults.stap4}
             stap2Result={wizardState.stepResults.stap2}
             onStepCompleted={() => handleMarkStepCompleted(6)}
           />
@@ -617,19 +617,19 @@ export default function CrossAnalyseWizard() {
         {wizardState.currentStep === 7 && (
           <StapInterneUren
             session={session}
-            stap4Result={wizardState.stepResults.stap4}
+            stap4Result={(session.crossAnalyseWizard?.stepResults?.stap4 ?? wizardState.stepResults.stap4) as typeof wizardState.stepResults.stap4}
             onStepCompleted={() => handleMarkStepCompleted(7)}
           />
         )}
         {wizardState.currentStep === 8 && (
-          <StapTotaaloverzicht session={session} stap4Result={wizardState.stepResults.stap4} />
+          <StapTotaaloverzicht session={session} stap4Result={(session.crossAnalyseWizard?.stepResults?.stap4 ?? wizardState.stepResults.stap4) as typeof wizardState.stepResults.stap4} />
         )}
         {wizardState.currentStep === 9 && (
           <StapSectorVertaling
             session={session}
             result={wizardState.stepResults.stap5}
             stap2Result={wizardState.stepResults.stap2}
-            stap4Result={wizardState.stepResults.stap4}
+            stap4Result={(session.crossAnalyseWizard?.stepResults?.stap4 ?? wizardState.stepResults.stap4) as typeof wizardState.stepResults.stap4}
           />
         )}
 
