@@ -126,6 +126,8 @@ export default function StapInterneUren({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advies, setAdvies] = useState<InterneUrenAdvies | null>(null);
+  // Per-scenario retry — welk label is nu aan het her-genereren?
+  const [retryingLabel, setRetryingLabel] = useState<"optimaal" | "plus20" | "min20" | null>(null);
 
   const [fineutOpen, setFineutOpen] = useState(false);
   const [fineutInstr, setFineutInstr] = useState("");
@@ -861,6 +863,134 @@ export default function StapInterneUren({
     }
   }
 
+  // Regenereer 1 specifiek scenario. Gebruikt als het oorspronkelijke
+  // genereer-request voor dat label faalde (scenarios.<label> === null).
+  // Merget het resultaat in de bestaande advies zonder de andere 2 te raken.
+  async function retryScenario(label: "optimaal" | "plus20" | "min20") {
+    if (!advies || !begroting?.scenarios) return;
+    setRetryingLabel(label);
+    try {
+      // Bouw dezelfde payload als generateAdvies
+      type ToegestaneFunctie = {
+        id: string; naam: string; afdeling: string; schaal?: number;
+        aantal: number; urenPerJaar?: number; custom?: boolean;
+      };
+      const toegestaneFunctiesPerDomein: Record<Domein, ToegestaneFunctie[]> = {
+        cultuur: [], mens: [], data_systemen: [], processen: [],
+      };
+      for (const d of DOMEINEN) {
+        for (const [id, input] of Object.entries(selectiePerDomein[d])) {
+          const citoF = CITO_FUNCTIES.find((f) => f.id === id);
+          if (citoF) {
+            toegestaneFunctiesPerDomein[d].push({
+              id: citoF.id, naam: citoF.naam, afdeling: citoF.afdeling, schaal: citoF.schaal,
+              aantal: input.aantal, ...(input.urenPerJaar ? { urenPerJaar: input.urenPerJaar } : {}),
+            });
+            continue;
+          }
+          const custom = customFunctiesPerDomein[d].find((c) => c.id === id);
+          if (custom) {
+            toegestaneFunctiesPerDomein[d].push({
+              id: custom.id, naam: custom.naam, afdeling: "Custom", schaal: custom.schaal,
+              aantal: input.aantal, ...(input.urenPerJaar ? { urenPerJaar: input.urenPerJaar } : {}),
+              custom: true,
+            });
+          }
+        }
+      }
+      const toegestaneFuncties = DOMEINEN.flatMap((d) => toegestaneFunctiesPerDomein[d]);
+      const scenariosPayload: Record<ScenarioLabel, BegrotingScenario | null> = {
+        optimaal: begroting.scenarios.optimaal ? { ...begroting.scenarios.optimaal, startJaar: begroting.startJaar } : null,
+        plus20: begroting.scenarios.plus20 ? { ...begroting.scenarios.plus20, startJaar: begroting.startJaar } : null,
+        min20: begroting.scenarios.min20 ? { ...begroting.scenarios.min20, startJaar: begroting.startJaar } : null,
+      };
+      const maxAantalJaren = Math.max(
+        begroting.scenarios.optimaal?.aantalJaren ?? 0,
+        begroting.scenarios.plus20?.aantalJaren ?? 0,
+        begroting.scenarios.min20?.aantalJaren ?? 0,
+      );
+      const urenBudgetPerJaar = Array.from({ length: maxAantalJaren }, (_, i) => ({
+        jaar: begroting.startJaar + i, urenBudget: urenBudgetStart,
+      }));
+      const inspanningenMeta: Array<{ groepId?: string; businessCaseInterneRollen?: string; businessCaseInterneUren?: string }> = [];
+      for (const entry of stap4Result?.subEffortAnalysis ?? []) {
+        const bc = (entry as unknown as { businessCase?: { answers?: Record<string, string> } }).businessCase;
+        if (bc?.answers) {
+          inspanningenMeta.push({
+            groepId: entry.groepId,
+            businessCaseInterneRollen: bc.answers["interne_rollen"] ?? bc.answers["cito_rollen"] ?? "",
+            businessCaseInterneUren: bc.answers["interne_uren_per_rol"] ?? bc.answers["uren_per_rol"] ?? "",
+          });
+        }
+      }
+
+      const r = await fetch("/api/interne-uren-advies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenarios: scenariosPayload,
+          uurtariefSettings: { basisTarief, referentiejaar, indexatiePercentage: indexatiePct },
+          inspanningenMeta,
+          toegestaneFuncties,
+          toegestaneFunctiesPerDomein,
+          urenBudgetPerJaar,
+          vastgesteldeUrenPerInspanning: vastgesteldeUrenPerInspanning.length > 0 ? vastgesteldeUrenPerInspanning : undefined,
+          scope: session.scope,
+          vision: session.vision,
+          onlyScenario: label,
+        }),
+      });
+      const t = await r.text();
+      const d = JSON.parse(t) as { success?: boolean; data?: { scenario?: unknown }; error?: string };
+      if (!d.success || !d.data?.scenario) {
+        addToast(`Regenereren ${label} mislukt — ${d.error ?? "onbekende fout"}`, "error");
+        setRetryingLabel(null);
+        return;
+      }
+      // Merge in bestaande advies — alleen deze scenario-slot vervangen
+      const nieuwScenario = d.data.scenario as InterneUrenAdvies["scenarios"]["optimaal"];
+      const nieuweFailures = (advies.partialFailures ?? []).filter((l) => l !== label);
+      const verrijkt: InterneUrenAdvies = {
+        ...advies,
+        scenarios: { ...advies.scenarios, [label]: nieuwScenario },
+        partialFailures: nieuweFailures,
+      } as InterneUrenAdvies;
+      setAdvies(verrijkt);
+      // Persisteer
+      updateSession((prev) => {
+        const currentWiz = prev.crossAnalyseWizard;
+        const currentStap4 = currentWiz?.stepResults?.stap4;
+        return {
+          ...prev,
+          crossAnalyseWizard: {
+            currentStep: currentWiz?.currentStep ?? 7,
+            completedSteps: currentWiz?.completedSteps ?? [],
+            wizardVersion: currentWiz?.wizardVersion ?? 2,
+            ...currentWiz,
+            stepResults: {
+              ...(currentWiz?.stepResults ?? {}),
+              stap4: {
+                ...(currentStap4 ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+                stap7InterneUren: verrijkt,
+              } as NonNullable<typeof currentStap4>,
+            },
+          },
+        };
+      });
+      const version = await saveNow();
+      if (version !== false) {
+        addToast(`Scenario ${label} opgeslagen (v${version})`, "success");
+        if (nieuweFailures.length === 0) onStepCompleted?.();
+      } else {
+        addToast("Opslaan naar cloud mislukt — wijzigingen staan lokaal opgeslagen.", "error");
+      }
+    } catch (err) {
+      addToast(`Regenereren ${label} faalde: ${err instanceof Error ? err.message : "netwerkfout"}`, "error");
+    } finally {
+      setRetryingLabel(null);
+    }
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -1300,10 +1430,18 @@ export default function StapInterneUren({
               {SCENARIO_META.map((sv) => {
                 const s = advies.scenarios[sv.key];
                 if (!s) {
+                  const isRetrying = retryingLabel === sv.key;
                   return (
-                    <div key={sv.key} className="border-2 border-gray-200 bg-gray-50 rounded p-3 opacity-60">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{sv.label}</p>
-                      <p className="text-sm font-medium text-gray-500 mt-2">— gefaald —</p>
+                    <div key={sv.key} className="border-2 border-amber-300 bg-amber-50 rounded p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">{sv.label}</p>
+                      <p className="text-sm font-medium text-amber-900 mt-2">⚠️ Niet gegenereerd</p>
+                      <button
+                        onClick={() => retryScenario(sv.key)}
+                        disabled={isRetrying || retryingLabel !== null || loading}
+                        className="mt-2 w-full text-xs px-3 py-2 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 font-medium"
+                      >
+                        {isRetrying ? "Bezig..." : `↻ Regenereer ${sv.label}`}
+                      </button>
                     </div>
                   );
                 }
