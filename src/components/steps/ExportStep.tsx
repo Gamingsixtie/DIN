@@ -94,6 +94,11 @@ function VisionBlock({ session, number }: { session: DINSession; number?: string
 
 function ScopeBlock({ session, number }: { session: DINSession; number?: string }) {
   if (!session.scope) return null;
+  const gapData = categorizeGaps(session);
+  const buitenItems: string[] = [];
+  gapData.volgendeCyclus.forEach((g) => buitenItems.push(`Doel: ${g.name} — wordt in volgende cyclus uitgewerkt`));
+  (session.scope.outScope ?? []).forEach((s) => buitenItems.push(s));
+
   return (
     <Section title="Scope" number={number}>
       <div className="grid grid-cols-2 gap-6">
@@ -109,18 +114,64 @@ function ScopeBlock({ session, number }: { session: DINSession; number?: string 
             </ul>
           </div>
         )}
-        {session.scope.outScope.length > 0 && (
+        {buitenItems.length > 0 && (
           <div>
-            <div className="text-xs font-bold text-red-700/70 uppercase tracking-wide mb-2">Buiten scope</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Buiten deze cyclus</div>
+            <p className="text-[10px] italic text-gray-400 mb-1">Afgeleid uit Stap 4 + expliciete scope-uitsluitingen</p>
             <ul className="space-y-1">
-              {session.scope.outScope.map((item, i) => (
+              {buitenItems.map((item, i) => (
                 <li key={i} className="text-sm text-gray-500 flex items-start gap-2">
-                  <span className="text-red-400 mt-0.5 shrink-0">&minus;</span>{item}
+                  <span className="text-gray-400 mt-0.5 shrink-0">&minus;</span>{item}
                 </li>
               ))}
             </ul>
           </div>
         )}
+      </div>
+    </Section>
+  );
+}
+
+function KernonderwerpenBlock({ session }: { session: DINSession }) {
+  const rows = [...session.goals]
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 8)
+    .map((g) => {
+      const benefits = session.benefits.filter((b) => b.goalId === g.id);
+      const sectorsHit = new Set(benefits.map((b) => b.sectorId));
+      return { rank: g.rank, name: g.name, sectorsCount: sectorsHit.size, benefitsCount: benefits.length, sectors: Array.from(sectorsHit) };
+    });
+
+  if (rows.length === 0) return null;
+
+  return (
+    <Section title="Kernonderwerpen">
+      <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+        De belangrijkste onderwerpen van dit programma, afgeleid uit de programmadoelen en hun thematische spreiding over de sectoren.
+      </p>
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="w-10 text-center px-2 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">#</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Onderwerp (programmadoel)</th>
+              <th className="text-center px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Sectoren</th>
+              <th className="text-center px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Baten</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Spreiding</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((r) => (
+              <tr key={r.rank} className="hover:bg-gray-50">
+                <td className="px-2 py-2 text-center font-bold text-cito-blue">{r.rank}</td>
+                <td className="px-3 py-2 font-medium text-gray-800">{r.name}</td>
+                <td className="px-3 py-2 text-center text-gray-700 tabular-nums">{r.sectorsCount}</td>
+                <td className="px-3 py-2 text-center text-gray-700 tabular-nums">{r.benefitsCount}</td>
+                <td className="px-3 py-2 text-xs text-gray-500">{r.sectors.join(", ") || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </Section>
   );
@@ -1581,6 +1632,134 @@ function RamingBlock({ session }: { session: DINSession }) {
   );
 }
 
+function OptimalisatieBlock({ session }: { session: DINSession }) {
+  type SubEffort = {
+    groepId: string;
+    domein: EffortDomain;
+    actie: "combineren" | "apart_houden";
+    items: string[];
+    reden: string;
+    voorgesteldeNaam?: string | null;
+    titel?: string;
+    beschrijving?: string;
+    beargumentatie?: string;
+    dossier?: {
+      eigenaar?: string;
+      inspanningsleider?: string;
+      kostenraming?: string;
+      verwachtResultaat?: string;
+      randvoorwaarden?: string;
+    };
+  };
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffort[] } } | undefined)?.stap4;
+  const adviezen = stap4?.subEffortAnalysis ?? [];
+  if (adviezen.length === 0) {
+    return (
+      <div className="text-sm italic text-gray-500 border border-dashed border-gray-300 rounded-lg px-4 py-3">
+        Stap-optimalisatie nog niet gegenereerd. Ga naar de Cross-analyse wizard (Stap 4) om geconsolideerde cross-sectorale inspanningen per domein te bepalen.
+      </div>
+    );
+  }
+
+  const outsideIn: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const sorted = [...adviezen].sort((a, b) => outsideIn.indexOf(a.domein) - outsideIn.indexOf(b.domein));
+
+  return (
+    <div className="space-y-3">
+      {sorted.map((se, i) => {
+        const dc = DOMAIN_COLORS[se.domein];
+        const titel = se.titel || se.voorgesteldeNaam || se.items.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+        return (
+          <div key={i} className={`border ${dc.border} rounded-lg overflow-hidden`}>
+            <div className={`${dc.bg} px-3 py-2 flex items-center gap-2`}>
+              <span className={`text-[10px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[se.domein]}</span>
+              <span className="text-sm font-bold text-gray-800">{titel}</span>
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
+                {se.actie === "combineren" ? "combineren" : "apart houden"}
+              </span>
+            </div>
+            <div className="p-3 space-y-1.5 text-xs">
+              {se.beschrijving && <p className="text-gray-700 leading-relaxed">{se.beschrijving}</p>}
+              {se.beargumentatie && <p className="text-gray-500 italic">Beargumentatie: {se.beargumentatie}</p>}
+              {se.items.length > 0 && (
+                <p className="text-gray-500">Onderliggende inspanningen: {se.items.join("; ")}</p>
+              )}
+              {se.dossier && (
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+                  {se.dossier.eigenaar && <div><span className="text-gray-400">Eigenaar:</span> {se.dossier.eigenaar}</div>}
+                  {se.dossier.inspanningsleider && <div><span className="text-gray-400">Leider:</span> {se.dossier.inspanningsleider}</div>}
+                  {se.dossier.kostenraming && <div><span className="text-gray-400">Kosten:</span> {se.dossier.kostenraming}</div>}
+                  {se.dossier.verwachtResultaat && <div><span className="text-gray-400">Resultaat:</span> {se.dossier.verwachtResultaat}</div>}
+                  {se.dossier.randvoorwaarden && <div className="col-span-2"><span className="text-gray-400">Randvoorwaarden:</span> {se.dossier.randvoorwaarden}</div>}
+                </div>
+              )}
+              {se.reden && <p className="text-gray-400 italic">Reden consolidatie: {se.reden}</p>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function UiteindelijkDINBlock({ session }: { session: DINSession }) {
+  const record = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
+  const entries = record
+    ? Object.entries(record).filter(([, v]) => v && typeof v === "object")
+    : [];
+  if (entries.length === 0) {
+    return (
+      <div className="text-sm italic text-gray-500 border border-dashed border-gray-300 rounded-lg px-4 py-3">
+        Sector-vertaling nog niet gegenereerd. Doorloop Stap 9 in de Cross-analyse wizard om het uiteindelijke DIN-netwerk per sector op te stellen.
+      </div>
+    );
+  }
+
+  const sectieKeys: { key: keyof IntegratieAdviesResult; label: string; color: string }[] = [
+    { key: "aansluiting", label: "Aansluiting", color: "text-blue-700" },
+    { key: "verrijking", label: "Verrijking", color: "text-emerald-700" },
+    { key: "aanvullingen", label: "Aanvullingen", color: "text-purple-700" },
+    { key: "quickWins", label: "Quick wins", color: "text-amber-700" },
+    { key: "aandachtspunten", label: "Aandachtspunten", color: "text-rose-700" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {entries.map(([sectorKey, raw]) => {
+        const adv = raw as IntegratieAdviesResult;
+        return (
+          <div key={sectorKey} className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="px-3 py-2 bg-cito-blue/5 border-b border-gray-200">
+              <span className="text-sm font-bold text-cito-blue">Sector {adv.sectorName || sectorKey}</span>
+            </div>
+            <div className="p-3 space-y-2 text-xs">
+              {sectieKeys.map(({ key, label, color }) => {
+                const item = adv[key] as { titel?: string; toelichting?: string; punten?: string[] } | undefined;
+                if (!item) return null;
+                const hasContent = (item.toelichting && item.toelichting.trim().length > 0) || (item.punten && item.punten.length > 0);
+                if (!hasContent) return null;
+                return (
+                  <div key={key}>
+                    <div className={`text-[10px] uppercase font-bold ${color} mb-1`}>{label}</div>
+                    {item.toelichting && <p className="text-gray-700 leading-relaxed mb-1">{item.toelichting}</p>}
+                    {item.punten && item.punten.length > 0 && (
+                      <ul className="space-y-0.5 pl-4 list-disc marker:text-gray-400">
+                        {item.punten.map((p, i) => (
+                          <li key={i} className="text-gray-600">{p}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function GapDetectionModal({
   session,
   onProceed,
@@ -1883,67 +2062,57 @@ export default function ExportStep() {
               <StepBanner
                 step={1}
                 title="Programmakader"
-                intro="Visie, doelen en scope vormen het fundament van het programma. Conform Prevaas & Van Loon (Hfst 2) bepalen zij de richting waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
+                intro="Visie, kernonderwerpen en scope vormen het fundament van het programma. Conform Prevaas & Van Loon (Hfst 2) bepalen zij de richting waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
               >
                 <VisionBlock session={session} />
+                <KernonderwerpenBlock session={session} />
                 <ScopeBlock session={session} />
                 <GoalsBlock session={session} />
               </StepBanner>
 
               <StepBanner
-                step={2}
-                title="Sectorwerk"
-                intro="Elke sector vertaalt de programmadoelen naar eigen baten, vermogens en inspanningen vanuit het eigen sectorplan en de product-marktcombinaties. Hieronder een beknopt overzicht; volledige drilldowns staan in Bijlage A."
-              >
-                <SectorwerkKaderBlock session={session} />
-              </StepBanner>
-
-              <StepBanner
                 step={3}
-                title="De DIN-keten: van doelen naar inspanningen"
-                intro="In de DIN-methodiek vertalen we elk programmadoel naar concrete baten (effecten in de buitenwereld), vermogens (wat we moeten kunnen) en inspanningen (wat we gaan doen). Gedeelde vermogens zijn expliciet gemarkeerd — daar zit de cross-sectorale hefboom."
+                title="DIN-netwerk per doel"
+                intro="Per programmadoel de DIN-keten per sector in beknopte vorm: welke baten, welke vermogens, welke inspanningen. Het cross-sectorale totaalbeeld volgt in Stap 4."
               >
                 <DINKetenBlock session={session} />
-                <DINFlowTable session={session} />
               </StepBanner>
 
               <StepBanner
                 step={4}
-                title="Cross-sectorale analyse: synergie, hefboomwerking en gaps"
-                intro="Het hart van een programma is niet de optelsom van sectorinitiatieven, maar de synergie ertussen. Deze analyse toont waar sectoren dezelfde vermogens nodig hebben, welke inspanningen hefboomwerking hebben over sectoren heen, en waar onbalans of gaps de realisatie in gevaar brengen."
+                title="Cross-sectorale uitkomst"
+                intro="Dit is de kern van het programma: synergie en hefboomwerking tussen sectoren, geconsolideerde inspanningen per domein, de integrale raming, en het uiteindelijke DIN-netwerk vertaald terug naar elke sector."
               >
                 <CrossAnalyseBlock session={session} />
                 <HefboomBlock session={session} />
                 <GapAnalyseBlock session={session} />
                 <ExterneProjectenBlock session={session} />
-              </StepBanner>
-
-              <StepBanner
-                step={5}
-                title="Programmaorganisatie en raming"
-                intro="De programmaorganisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De raming maakt de benodigde capaciteit expliciet — in uren, euro's en verdeeld over de domeinen cultuur, mens, data & systemen en processen."
-              >
-                <GovernanceBlock session={session} />
+                <SubSection title="Stap-optimalisatie — geconsolideerde inspanningen">
+                  <OptimalisatieBlock session={session} />
+                </SubSection>
                 <SubSection title="Raming — interne uren, kosten en scenario's">
                   <RamingBlock session={session} />
+                </SubSection>
+                <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
+                  <UiteindelijkDINBlock session={session} />
                 </SubSection>
               </StepBanner>
 
               <StepBanner
+                step={5}
+                title="Programma-organisatie en RASCI"
+                intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) de verantwoordelijkheidsverdeling vast."
+              >
+                <GovernanceBlock session={session} />
+              </StepBanner>
+
+              <StepBanner
                 step={6}
-                title="Roadmap: van bundels naar uitvoering"
+                title="Planning en roadmap"
                 intro="De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop we voortgang meten. Hij is het ritmische kompas van het programma."
               >
                 <RoadmapBlock session={session} />
               </StepBanner>
-
-              <div className="mb-6 mt-10 pb-2 border-b-2 border-cito-blue/20">
-                <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-bold uppercase tracking-wide">
-                  Bijlage A
-                </span>
-                <h2 className="inline-block ml-3 text-lg font-bold text-cito-blue">Per-sector drilldowns</h2>
-              </div>
-              <SectorBlocks session={session} sectionNumbers={sectionNumbers} />
             </div>
           </div>
         </div>
