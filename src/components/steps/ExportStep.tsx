@@ -786,10 +786,10 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
               const nA = c.rijen.filter((x) => x.letter === "A").length;
               const nR = c.rijen.filter((x) => x.letter === "R").length;
               const valid = nA === 1 && nR >= 1;
-              const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [] };
+              const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [], V: [] };
               for (const rij of c.rijen) {
                 const rol = rolMap.get(rij.rolId);
-                if (rol) perLetter[rij.letter].push(rol.rol);
+                if (rol && perLetter[rij.letter]) perLetter[rij.letter].push(rol.rol);
               }
               return (
                 <div key={c.clusterTitel} className="border border-gray-200 rounded overflow-hidden">
@@ -806,16 +806,20 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
                   </div>
                   <table className="w-full text-xs">
                     <tbody>
-                      {(["A", "R", "S", "C", "I"] as const).map((letter) => (
-                        <tr key={letter} className="border-b border-gray-100 last:border-b-0">
-                          <td className="px-3 py-1.5 w-10 font-bold text-center text-gray-700 bg-gray-50 border-r border-gray-100">
-                            {letter}
-                          </td>
-                          <td className="px-3 py-1.5 text-gray-700">
-                            {perLetter[letter].length > 0 ? perLetter[letter].join("; ") : <span className="text-gray-400 italic">{"\u2014"}</span>}
-                          </td>
-                        </tr>
-                      ))}
+                      {(["A", "R", "S", "C", "I", "V"] as const).map((letter) => {
+                        const namen = perLetter[letter] ?? [];
+                        if (letter === "V" && namen.length === 0) return null;
+                        return (
+                          <tr key={letter} className="border-b border-gray-100 last:border-b-0">
+                            <td className="px-3 py-1.5 w-10 font-bold text-center text-gray-700 bg-gray-50 border-r border-gray-100">
+                              {letter}
+                            </td>
+                            <td className="px-3 py-1.5 text-gray-700">
+                              {namen.length > 0 ? namen.join("; ") : <span className="text-gray-400 italic">{"\u2014"}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                   {c.toelichting && (

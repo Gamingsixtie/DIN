@@ -1238,10 +1238,10 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     // Detailweergave per cluster met toelichting
     children.push(bodyText("Detailweergave per cluster", { bold: true, size: 22, color: CITO_BLUE }));
     for (const c of clusterRasci) {
-      const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [] };
+      const perLetter: Record<string, string[]> = { R: [], A: [], S: [], C: [], I: [], V: [] };
       for (const rij of c.rijen) {
         const rol = rolMap.get(rij.rolId);
-        if (rol) perLetter[rij.letter].push(rol.rol);
+        if (rol && perLetter[rij.letter]) perLetter[rij.letter].push(rol.rol);
       }
       children.push(
         bodyText(`${c.clusterType === "vermogen" ? "Vermogen-cluster" : "Inspanning-cluster"}: ${c.clusterTitel}`, { bold: true, size: 22 })
@@ -1253,15 +1253,17 @@ function governanceSection(session: DINSession, numState: NumberingState, active
             new TableRow({
               children: [headerCell("Rol", 12), headerCell("Invullers", 88)],
             }),
-            ...(["A", "R", "S", "C", "I"] as const).map(
-              (letter) =>
-                new TableRow({
-                  children: [
-                    styledCell(letter, { bold: true, width: 12, shading: CITO_BLUE_LIGHT, color: CITO_BLUE }),
-                    styledCell(perLetter[letter].length > 0 ? perLetter[letter].join("; ") : "\u2014", { width: 88 }),
-                  ],
-                })
-            ),
+            ...(["A", "R", "S", "C", "I", "V"] as const)
+              .filter((letter) => letter !== "V" || (perLetter[letter]?.length ?? 0) > 0)
+              .map(
+                (letter) =>
+                  new TableRow({
+                    children: [
+                      styledCell(letter, { bold: true, width: 12, shading: CITO_BLUE_LIGHT, color: CITO_BLUE }),
+                      styledCell((perLetter[letter]?.length ?? 0) > 0 ? perLetter[letter].join("; ") : "\u2014", { width: 88 }),
+                    ],
+                  })
+              ),
           ],
         })
       );
