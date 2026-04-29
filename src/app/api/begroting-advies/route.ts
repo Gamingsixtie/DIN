@@ -114,7 +114,7 @@ function scenarioPrompt(
       ? "SCENARIO +20% — 20% méér budget per jaar; daardoor minder jaren nodig."
       : label === "min20"
       ? "SCENARIO −20% — 20% mínder budget per jaar; daardoor meer jaren nodig."
-      : "SCENARIO OPTIMAAL (ADVIES) — server koos het kortste haalbare aantal jaren binnen [3,5] dat nog bekostbaar is voor Cito (max ~+40% boven huidig budget). Dit is het AI-aanbevolen tempo: snel genoeg om momentum te houden, langzaam genoeg om verandering te laten landen.";
+      : `SCENARIO OPTIMAAL (ADVIES) — server koos het kortste haalbare aantal jaren binnen [3,5] dat nog bekostbaar is voor Cito (max ~+40% boven huidig budget). In jouw \`samenvatting\` MOET je expliciet motiveren waarom precies dit aantal jaren (${fixedAantalJaren}) optimaal is. Gebruik kwalitatieve argumenten zoals:\n  - Cultuurverandering vraagt minimaal 3 jaar voor verankering (Kotter / ADKAR-cycli);\n  - CRM-implementatie kan technisch in 2-3 jaar maar adoptie + datakwaliteit vergt nog 1 extra jaar;\n  - Outside-in gespreksvaardigheid vraagt 2 trainingsblokken + praktijkborging — minimaal 18-24 maanden actieve uitvoering;\n  - Bekostigingsrealisme: het benodigde jaarlijks budget moet binnen acceptabele groei (typisch +30-40%) blijven van het huidige budget om door Finance gedragen te worden.\nVerzin GEEN concrete cijfers die niet uit dossier-aannames volgen — blijf kwalitatief in de motivatie.`;
 
   const finetuneBlock = finetune
     ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie. **aantalJaren staat vast — pas die NIET aan.**\n`
@@ -183,7 +183,7 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
     }
   ],
-  "prioriteitAdvies": "<3-5 zinnen: outside-in volgorde motiveren — cultuur EERST (bereidheid), dan mens (competenties), dan data/systemen (CRM/tooling ondersteunend), dan processen (werkwijzen) LAATST — processen borgen wat mens en data hebben opgebouwd>",
+  "prioriteitAdvies": "<4-6 zinnen: motiveer de BUDGET-VERHOUDING data/systemen > cultuur > mens > processen vanuit outside-in perspectief — leg uit waarom CRM het fundament is (grootste eenmalige post + technisch enabler), waarom cultuur #2 budget krijgt (zonder draagvlak geen adoptie van CRM en geen waarde uit outside-in), waarom mens #3 (gespreksvaardigheid vertaalt cultuur naar klant), en waarom processen het minst krijgen (borgings-werk in laatste fase). Sluit af met: alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.>",
   "samenvatting": "<1-2 zinnen executive summary van dít scenario>"
 }
 
@@ -216,12 +216,13 @@ HARDE REGELS:
      - **Uitrol** (middenjaren): typisch 50-65% van de totaalkosten — de zwaarste fase. Werk: trainingen aan volle breedte, CRM-bouw + integratie, proces-implementatie.
      - **Borging** (laatste jaar(en)): typisch 15-25% — verankering, evaluatie, doorlopende ondersteuning.
    - Outside-in geldt voor SPEND-zwaartepunt en RANKING (rank 1-4), NIET voor wanneer iets begint. Cultuur en mens hebben hun zwaartepunt vroeg (uitrol-fase eerder), data/systemen en processen midden-tot-laat (uitrol verder in tijd) — maar ze starten allemaal in jaar 1 met voorbereiding.
-6. **Outside-in volgorde — voor RANKING (zwaartepunt-prioriteit), NIET voor sequentiële uitvoering:**
-   - rank 1 = Cultuur (bereidheid — hoogste startzwaartepunt)
-   - rank 2 = Mens (competenties — start parallel met cultuur, piek middenjaren)
-   - rank 3 = Data/Systemen (CRM, tooling — start in jaar 1 maar piek midden-tot-laat)
-   - rank 4 = Processen (werkwijzen — start in jaar 1 maar grootste deel borging in latere jaren)
-   **De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Ranking ≠ "begint pas later". Alle 4 domeinen starten parallel.** Volgorde van domeinen in de lijst (display): Cultuur → Mens → Data/Systemen → Processen.
+6. **BUDGET-VERHOUDING & RANKING — gebaseerd op kosten-omvang én cruciale rol voor outside-in transformatie:**
+   - rank 1 = **Data/Systemen** (CRM, tooling — HOOGSTE budget-aandeel; technisch fundament en grootste eenmalige post)
+   - rank 2 = **Cultuur** (#2 budget-aandeel — draagvlak en leiderschap zijn cruciaal; zonder cultuurverandering wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip)
+   - rank 3 = **Mens** (#3 budget-aandeel — outside-in gespreksvaardigheid internaliseert wat cultuur en CRM mogelijk maken)
+   - rank 4 = **Processen** (#4 / kleinste budget-aandeel — borging als laatste fase: standaardiseren wat mens, data en cultuur al hebben opgebouwd)
+   **Rationale (in \`prioriteitAdvies\` expliciet uitleggen):** CRM is de duurste post (eenmalig + structureel) en het fundament; cultuur is de #2 grootste hefboom want zonder draagvlak verzaakt elke andere investering; mens komt daarna omdat gespreksvaardigheid de cultuurverandering naar de klant vertaalt; processen krijgen het minste omdat ze borgings-werk zijn.
+   De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Ranking ≠ "begint pas later" — alle 4 domeinen starten parallel in jaar 1. Volgorde van domeinen in de lijst (display): **Data/Systemen → Cultuur → Mens → Processen**.
 7. **Realistische fasering per inspanning + activiteits-tekst per jaar — ALLE DOMEINEN STARTEN PARALLEL IN JAAR 1:**
    - Cultuur: START jaar 1 met piek (bewustwording, leiderschapsworkshops), afnemend (borging) → meest budget jaar 1-2
    - Mens: START jaar 1 (kick-off training + ontwerp curricula), piek middenjaren (training aan volle breedte), borging eind → over alle jaren verdeeld
@@ -331,36 +332,45 @@ export async function POST(request: NextRequest) {
     }));
 
     // Bereken minimum jaren per scenario op basis van dossier-totalen.
-    // Cap optimaal op 6 jaar — daarboven retourneren we budget-advies.
-    const MAX_OPTIMAAL_JAREN = 6;
+    // GEEN harde cap meer: aantalJaren volgt vrij uit dossier-totaal /
+    // jaarlijksBudget zodat dossier-bedragen (vooral CRM-min) ALTIJD
+    // worden overgenomen. Eventuele lange uitlopers (>6 jaar) zijn een
+    // signaal dat budget structureel te krap is — dan toont UI nog steeds
+    // het budgetAdvies-banner.
+    const MAX_JAREN_GEVEL = 15; // absolute bovengrens, alleen safeguard
     const minOptimaal = berekenMinimumJaren(
       ramingenPerInsp.map((r) => r.raming),
       budgetOptimaal,
       "mid",
-      MAX_OPTIMAAL_JAREN
+      MAX_JAREN_GEVEL
     );
     const minPlus20 = berekenMinimumJaren(
       ramingenPerInsp.map((r) => r.raming),
       budgetPlus20,
       "mid",
-      MAX_OPTIMAAL_JAREN
+      MAX_JAREN_GEVEL
     );
     const minMin20 = berekenMinimumJaren(
       ramingenPerInsp.map((r) => r.raming),
       budgetMin20,
       "mid",
-      10 // min20 mag uitlopen tot 10 jaar (langzamer scenario)
+      MAX_JAREN_GEVEL
     );
 
-    // Budget-advies: alleen tonen als optimaal-scenario gecapped is op de
-    // max (= dossier-totaal past niet in 6 jaar bij €jaarlijksBudget/jr).
-    const budgetAdviesData = minOptimaal.capped
-      ? berekenBudgetAdvies({
-          jaarlijksBudgetEuro: budgetOptimaal,
-          ramingen: ramingenPerInsp.map((r) => ({ titel: r.titel, raming: r.raming })),
-          doelJaren: 5,
-        })
-      : null;
+    // Budget-advies: tonen wanneer huidig-budget-scenario meer dan 6 jaar
+    // nodig heeft (= signaal dat budget structureel te krap is voor
+    // gewenste 5-jaarlijkse uitvoering). Dit is informatief, niet beperkend
+    // — het scenario zelf wordt gewoon volledig op basis van dossier
+    // gegenereerd, ongeacht het aantal jaren.
+    const HUIDIG_BUDGET_DREMPEL_JAREN = 6;
+    const budgetAdviesData =
+      minOptimaal.jaren > HUIDIG_BUDGET_DREMPEL_JAREN
+        ? berekenBudgetAdvies({
+            jaarlijksBudgetEuro: budgetOptimaal,
+            ramingen: ramingenPerInsp.map((r) => ({ titel: r.titel, raming: r.raming })),
+            doelJaren: 5,
+          })
+        : null;
 
     // ADVIES-scenario: server kiest kortste haalbare aantal jaren binnen
     // [3,5] dat nog bekostbaar is voor Cito (drempel: max +40% boven huidig
