@@ -41,24 +41,40 @@ interface WizardState {
 // geschreven (StapOptimaliseren: begrotingAdvies; StapInterneUren: stap7InterneUren).
 // Onze lokale wizardState.stap4 kan een stale kopie hebben (van initial mount);
 // bij een merge mag die stale kopie nooit de verse session-waarde overschrijven.
-const CHILD_OWNED_STAP4_KEYS = ["begrotingAdvies", "stap7InterneUren"] as const;
+const STRICT_CHILD_OWNED_STAP4_KEYS = ["begrotingAdvies", "stap7InterneUren"] as const;
+
+// Sub-velden in stap4 die door de API gevuld worden bij eerste/regen-generatie,
+// maar daarna door kindcomponenten verrijkt worden (subEffortAnalysis krijgt
+// businessCase Q&A van StapOptimaliseren; consolidatieAdvies wordt aangepast in
+// StapConsolidatie). Bij auto-persist (zonder verse API-response) moet prev
+// (= session, mét kind-verrijkingen) winnen — anders overschrijft de stale
+// wizard-snapshot de Q&A's. Bij handleStepComplete (verse API-response) wint
+// local zodat regen werkt.
+const SOFT_CHILD_OWNED_STAP4_KEYS = ["subEffortAnalysis", "consolidatieAdvies"] as const;
 
 function mergeStepResults(
   prevStepResults: Record<string, Record<string, unknown> | undefined>,
-  localStepResults: Record<string, Record<string, unknown> | undefined>
+  localStepResults: Record<string, Record<string, unknown> | undefined>,
+  options: { preserveSoftChildOwned?: boolean } = {}
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...prevStepResults };
   for (const [key, value] of Object.entries(localStepResults)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const combined: Record<string, unknown> = { ...(prevStepResults[key] ?? {}), ...value };
       if (key === "stap4") {
-        // Session (prev) is altijd authoritative voor kind-owned velden.
         const prevStap4 = prevStepResults.stap4 ?? {};
-        for (const ownedKey of CHILD_OWNED_STAP4_KEYS) {
+        for (const ownedKey of STRICT_CHILD_OWNED_STAP4_KEYS) {
           if (prevStap4[ownedKey] !== undefined) {
             combined[ownedKey] = prevStap4[ownedKey];
           } else {
             delete combined[ownedKey];
+          }
+        }
+        if (options.preserveSoftChildOwned) {
+          for (const softKey of SOFT_CHILD_OWNED_STAP4_KEYS) {
+            if (prevStap4[softKey] !== undefined) {
+              combined[softKey] = prevStap4[softKey];
+            }
           }
         }
       }
@@ -215,7 +231,7 @@ export default function CrossAnalyseWizard() {
       updateSession((prev) => {
         const prevStepResults = (prev.crossAnalyseWizard?.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
         const localStepResults = (wizardState.stepResults ?? {}) as Record<string, Record<string, unknown> | undefined>;
-        const mergedStepResults = mergeStepResults(prevStepResults, localStepResults);
+        const mergedStepResults = mergeStepResults(prevStepResults, localStepResults, { preserveSoftChildOwned: true });
         const nextWiz = {
           currentStep: wizardState.currentStep,
           completedSteps: Array.from(wizardState.completedSteps),
