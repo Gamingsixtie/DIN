@@ -764,10 +764,9 @@ export async function POST(request: NextRequest) {
           {
             maxTokens: 8192,
             retryDelayMs: 1000,
-            // Haiku 4.5 — veel sneller dan Sonnet voor deze 'verdelen over
-            // jaren' taak; respecteert dossier-totalen omdat scale-up
-            // server-side gebeurt. Houdt route binnen Vercel's 60s timeout.
-            model: "claude-haiku-4-5-20251001",
+            // Sonnet 4.6 — gebruiker eist minimaal Sonnet voor inhoudelijke
+            // kwaliteit van motivatie/activiteit-teksten/prioriteitAdvies.
+            model: "claude-sonnet-4-6",
           }
         );
         if (res.success) {
