@@ -761,7 +761,14 @@ export async function POST(request: NextRequest) {
           ScenarioAISchema,
           systemPrompt,
           userMessage,
-          { maxTokens: 5120, retryDelayMs: 1000 }
+          {
+            maxTokens: 8192,
+            retryDelayMs: 1000,
+            // Haiku 4.5 — veel sneller dan Sonnet voor deze 'verdelen over
+            // jaren' taak; respecteert dossier-totalen omdat scale-up
+            // server-side gebeurt. Houdt route binnen Vercel's 60s timeout.
+            model: "claude-haiku-4-5-20251001",
+          }
         );
         if (res.success) {
           // Forceer aantalJaren naar de server-berekende waarde —

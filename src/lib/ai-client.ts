@@ -49,7 +49,11 @@ async function callClaudeRich(
   systemPrompt: string,
   userMessage: string,
   maxTokens?: number,
-  model: "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7" = "claude-sonnet-4-6",
+  model:
+    | "claude-sonnet-4-6"
+    | "claude-opus-4-6"
+    | "claude-opus-4-7"
+    | "claude-haiku-4-5-20251001" = "claude-sonnet-4-6",
   options?: { prefillJson?: boolean }
 ): Promise<{ text: string; stopReason: string | null }> {
   const client = getClient();
@@ -281,7 +285,11 @@ export async function callClaudeWithValidation<T>(
         systemPrompt,
         userMessage,
         options?.maxTokens,
-        (options?.model as "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-opus-4-7") || "claude-sonnet-4-6",
+        (options?.model as
+          | "claude-sonnet-4-6"
+          | "claude-opus-4-6"
+          | "claude-opus-4-7"
+          | "claude-haiku-4-5-20251001") || "claude-sonnet-4-6",
         { prefillJson: options?.prefillJson }
       );
       raw = rich.text;
