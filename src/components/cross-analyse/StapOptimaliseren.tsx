@@ -1498,34 +1498,90 @@ export default function StapOptimaliseren({
                 </div>
               )}
 
-              {/* Budget-advies banner — alleen tonen als optimaal-jaren > 6 (capped) */}
-              {advies && advies.tekortPerJaar > 0 && (
-                <div className="bg-rose-50 border-2 border-rose-400 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-rose-700 text-xl leading-none mt-0.5">!</span>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-rose-900 mb-2">
-                        Budget structureel te krap voor realistische uitvoering
-                      </h4>
-                      <p className="text-sm text-rose-900 leading-relaxed">{advies.uitlegMd}</p>
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <div className="bg-white rounded p-2 border border-rose-200">
-                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Realistisch totaal</p>
-                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.totaalRealistisch.toLocaleString("nl-NL")}</p>
-                        </div>
-                        <div className="bg-white rounded p-2 border border-rose-200">
-                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Benodigd per jaar (5 jr)</p>
-                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.benodigdJaarlijksVoorDoeltermijn.toLocaleString("nl-NL")}</p>
-                        </div>
-                        <div className="bg-white rounded p-2 border border-rose-200">
-                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Tekort per jaar</p>
-                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.tekortPerJaar.toLocaleString("nl-NL")}</p>
-                        </div>
-                      </div>
+              {/* Dossier-componenten toelichting — waarom verschillen totalen per scenario */}
+              {(() => {
+                const inspRams = (begrotingAdvies as unknown as {
+                  inspanningRamingen?: Array<{
+                    titel: string;
+                    domein: string;
+                    eenmaligLow: number;
+                    eenmaligMid: number;
+                    eenmaligHigh: number;
+                    structureelLowPerJr: number;
+                    structureelMidPerJr: number;
+                    structureelHighPerJr: number;
+                    unparsed: boolean;
+                  }>;
+                }).inspanningRamingen;
+                if (!inspRams || inspRams.length === 0) return null;
+                const domeinKleur: Record<string, { dot: string; tag: string }> = {
+                  cultuur: { dot: "bg-amber-500", tag: "text-amber-800 bg-amber-50 border-amber-200" },
+                  mens: { dot: "bg-blue-500", tag: "text-blue-800 bg-blue-50 border-blue-200" },
+                  data_systemen: { dot: "bg-purple-500", tag: "text-purple-800 bg-purple-50 border-purple-200" },
+                  processen: { dot: "bg-emerald-500", tag: "text-emerald-800 bg-emerald-50 border-emerald-200" },
+                };
+                const domeinLabel: Record<string, string> = {
+                  cultuur: "Cultuur",
+                  mens: "Mens",
+                  data_systemen: "Data/Systemen",
+                  processen: "Processen",
+                };
+                return (
+                  <div className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4">
+                    <h4 className="text-sm font-bold text-slate-900 mb-1">
+                      Waarom verschillen de totalen per scenario?
+                    </h4>
+                    <p className="text-xs text-slate-700 leading-relaxed mb-3">
+                      Elke inspanning bestaat uit een <strong>eenmalig deel</strong> (bouw, opzet, ontwerp) en optioneel een <strong>structureel deel per jaar</strong> (licenties, beheer, borging). Het scenario-totaal volgt uit:{" "}
+                      <span className="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border">
+                        eenmalig + structureel × (aantalJaren − 1)
+                      </span>
+                      . Daardoor schalen langere scenario&apos;s automatisch hoger door doorlopende beheerkosten.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {inspRams.map((r, i) => {
+                        const kleur = domeinKleur[r.domein] ?? { dot: "bg-gray-400", tag: "text-gray-700 bg-gray-50 border-gray-200" };
+                        return (
+                          <div key={i} className="bg-white border border-slate-200 rounded p-2.5">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className={`w-2 h-2 rounded-full ${kleur.dot}`}></span>
+                              <span className={`text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border ${kleur.tag}`}>
+                                {domeinLabel[r.domein] ?? r.domein}
+                              </span>
+                            </div>
+                            <p className="text-xs font-medium text-slate-800 leading-snug mb-1.5">{r.titel}</p>
+                            {r.unparsed ? (
+                              <p className="text-[11px] italic text-slate-500">Dossier-raming kon niet automatisch worden geparseerd.</p>
+                            ) : (
+                              <div className="text-[11px] text-slate-600 space-y-0.5">
+                                <div className="flex justify-between">
+                                  <span>Eenmalig:</span>
+                                  <span className="font-medium text-slate-900">
+                                    € {r.eenmaligLow.toLocaleString("nl-NL")} – € {r.eenmaligHigh.toLocaleString("nl-NL")}
+                                  </span>
+                                </div>
+                                {r.structureelMidPerJr > 0 ? (
+                                  <div className="flex justify-between">
+                                    <span>Structureel / jr:</span>
+                                    <span className="font-medium text-slate-900">
+                                      € {r.structureelLowPerJr.toLocaleString("nl-NL")} – € {r.structureelHighPerJr.toLocaleString("nl-NL")}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-between text-slate-400 italic">
+                                    <span>Structureel:</span>
+                                    <span>geen doorlopende kosten</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Dossier-validatie banner — als per-inspanning totalen onder ondergrens zitten */}
               {tekortenOptimaal.length > 0 && (

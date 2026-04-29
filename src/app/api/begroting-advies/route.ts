@@ -604,6 +604,68 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // VOL-BUDGET GUARD: vul niet-laatste jaren proactief tot ze precies
+      // jaarlijksBudget uitgeven. Schuift bedragen VAN latere jaren NAAR
+      // vroege jaren (preserve totaal per inspanning). Stop wanneer er geen
+      // surplus meer in latere jaren beschikbaar is. Het laatste jaar mag
+      // dan onder budget komen (= afrondingsjaar).
+      for (let yr = startJ; yr <= eindJ - 1; yr++) {
+        let huidigTotaal = totalGuardedInsps.reduce(
+          (s, insp) => s + (insp.verdelingPerJaar.find((v) => v.jaar === yr)?.euro ?? 0),
+          0
+        );
+        let veiligheidsTeller = 0;
+        while (huidigTotaal < jaarlijksBudget && veiligheidsTeller < 50) {
+          veiligheidsTeller++;
+          const tekort = jaarlijksBudget - huidigTotaal;
+          // Zoek het grootste bedrag in een later jaar (eindJ inclusief — daar mag
+          // resultbedrag staan). We nemen daarvan en shift naar huidig jaar.
+          let bestInsp: typeof totalGuardedInsps[number] | null = null;
+          let bestCell: { jaar: number; euro: number; fase: string; activiteit?: string } | null = null;
+          let bestAmount = 0;
+          for (const insp of totalGuardedInsps) {
+            for (const cell of insp.verdelingPerJaar) {
+              if (cell.jaar > yr && (cell.euro ?? 0) > bestAmount) {
+                bestAmount = cell.euro ?? 0;
+                bestInsp = insp;
+                bestCell = cell;
+              }
+            }
+          }
+          if (!bestInsp || !bestCell || bestAmount <= 0) break;
+          const shift = Math.min(tekort, bestAmount);
+          if (shift <= 0) break;
+          bestCell.euro = (bestCell.euro ?? 0) - shift;
+          // Voeg toe aan het current-year cell van diezelfde inspanning
+          const targetCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === yr);
+          const domeinMidFase: Record<string, string> = {
+            cultuur: "Adoptie",
+            mens: "Vaardigheidstraining",
+            data_systemen: "Realisatie",
+            processen: "Uitrol",
+          };
+          const midFase = domeinMidFase[bestInsp.domein] ?? "Uitrol";
+          if (targetCell) {
+            targetCell.euro = (targetCell.euro ?? 0) + shift;
+            if (!targetCell.activiteit || targetCell.activiteit.trim().length === 0) {
+              targetCell.activiteit = "Opschaling en verdere uitrol van het traject.";
+            }
+            if (!targetCell.fase || targetCell.fase.trim().length === 0) {
+              targetCell.fase = midFase;
+            }
+          } else {
+            bestInsp.verdelingPerJaar.push({
+              jaar: yr,
+              euro: shift,
+              fase: midFase,
+              activiteit: "Opschaling en verdere uitrol van het traject.",
+            });
+            bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
+          }
+          huidigTotaal += shift;
+        }
+      }
+
       const enrichedInsps = totalGuardedInsps.map((insp) => {
         // Som per inspanning over alle jaren = totaalEuro
         const totaalEuro = insp.verdelingPerJaar.reduce((s, v) => s + (v.euro ?? 0), 0);
@@ -851,6 +913,19 @@ export async function POST(request: NextRequest) {
         // kan tonen in een 'waarom dit advies'-toelichting.
         adviesKeuze,
         optimaalOpties,
+        // Per-inspanning dossier-componenten (eenmalig + structureel/jr) zodat
+        // UI kan uitleggen waarom totalen per scenario verschillen.
+        inspanningRamingen: ramingenPerInsp.map((r) => ({
+          titel: r.titel,
+          domein: r.domein,
+          eenmaligLow: r.raming.eenmaligLow,
+          eenmaligMid: r.raming.eenmaligMid,
+          eenmaligHigh: r.raming.eenmaligHigh,
+          structureelLowPerJr: r.raming.structureelLowPerJr,
+          structureelMidPerJr: r.raming.structureelMidPerJr,
+          structureelHighPerJr: r.raming.structureelHighPerJr,
+          unparsed: r.raming.unparsed,
+        })),
         // Totaal benodigd realistisch budget — voor transparantie in UI
         dossierTotalen: {
           totaalLowOverGekozenJaren: totaalBenodigdBudget(
