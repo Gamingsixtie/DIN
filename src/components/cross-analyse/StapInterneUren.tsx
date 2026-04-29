@@ -18,7 +18,7 @@ type CustomFunctie = { id: string; naam: string; schaal?: number };
 type FunctieInput = { aantal: number; urenPerJaar?: number };
 
 type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
-type ScenarioLabel = "optimaal" | "plus20" | "min20";
+type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
 
 type Rol = {
   functieId: string;
@@ -78,6 +78,7 @@ type InterneUrenAdvies = {
     optimaal: ScenarioBlok | null;
     plus20: ScenarioBlok | null;
     min20: ScenarioBlok | null;
+    advies?: ScenarioBlok | null;
   };
   partialFailures?: string[];
 };
@@ -100,9 +101,10 @@ const SCENARIO_META: Array<{
   label: string;
   kleur: { banner: string; tekst: string; accent: string; kaart: string };
 }> = [
-  { key: "optimaal", label: "Optimaal", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]", kaart: "border-blue-200 bg-blue-50" } },
+  { key: "optimaal", label: "Huidig budget", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]", kaart: "border-blue-200 bg-blue-50" } },
   { key: "plus20", label: "+20% budget (sneller)", kleur: { banner: "bg-green-800", tekst: "text-green-100", accent: "text-green-800", kaart: "border-green-200 bg-green-50" } },
   { key: "min20", label: "−20% budget (langzamer)", kleur: { banner: "bg-amber-800", tekst: "text-amber-100", accent: "text-amber-800", kaart: "border-amber-200 bg-amber-50" } },
+  { key: "advies", label: "Optimaal (advies)", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800", kaart: "border-purple-300 bg-purple-50" } },
 ];
 
 export default function StapInterneUren({
@@ -127,7 +129,7 @@ export default function StapInterneUren({
   const [error, setError] = useState<string | null>(null);
   const [advies, setAdvies] = useState<InterneUrenAdvies | null>(null);
   // Per-scenario retry — welk label is nu aan het her-genereren?
-  const [retryingLabel, setRetryingLabel] = useState<"optimaal" | "plus20" | "min20" | null>(null);
+  const [retryingLabel, setRetryingLabel] = useState<ScenarioLabel | null>(null);
 
   const [fineutOpen, setFineutOpen] = useState(false);
   const [fineutInstr, setFineutInstr] = useState("");
@@ -660,7 +662,7 @@ export default function StapInterneUren({
   const begroting = (stap4Result as unknown as {
     begrotingAdvies?: {
       startJaar: number;
-      scenarios: Record<ScenarioLabel, BegrotingScenario | null>;
+      scenarios: Partial<Record<ScenarioLabel, BegrotingScenario | null>>;
     };
   })?.begrotingAdvies;
 
@@ -691,10 +693,11 @@ export default function StapInterneUren({
     }
 
     // Bouw scenario-payload met startJaar invullen
-    const scenariosPayload: Record<ScenarioLabel, BegrotingScenario | null> = {
+    const scenariosPayload: Partial<Record<ScenarioLabel, BegrotingScenario | null>> = {
       optimaal: begroting.scenarios.optimaal ? { ...begroting.scenarios.optimaal, startJaar: begroting.startJaar } : null,
       plus20: begroting.scenarios.plus20 ? { ...begroting.scenarios.plus20, startJaar: begroting.startJaar } : null,
       min20: begroting.scenarios.min20 ? { ...begroting.scenarios.min20, startJaar: begroting.startJaar } : null,
+      advies: begroting.scenarios.advies ? { ...begroting.scenarios.advies, startJaar: begroting.startJaar } : null,
     };
 
     try {
@@ -748,6 +751,7 @@ export default function StapInterneUren({
         begroting.scenarios.optimaal?.aantalJaren ?? 0,
         begroting.scenarios.plus20?.aantalJaren ?? 0,
         begroting.scenarios.min20?.aantalJaren ?? 0,
+        begroting.scenarios.advies?.aantalJaren ?? 0,
       );
       const urenBudgetPerJaar = Array.from({ length: maxAantalJaren }, (_, i) => ({
         jaar: begroting.startJaar + i,
@@ -769,7 +773,7 @@ export default function StapInterneUren({
         previousAdvies: opts?.previousAdvies ?? null,
       };
 
-      async function fetchScenario(label: "optimaal" | "plus20" | "min20") {
+      async function fetchScenario(label: ScenarioLabel) {
         try {
           const r = await fetch("/api/interne-uren-advies", {
             method: "POST",
@@ -792,22 +796,24 @@ export default function StapInterneUren({
         }
       }
 
-      const [optRes, plusRes, minRes] = await Promise.all([
-        fetchScenario("optimaal"),
-        fetchScenario("plus20"),
-        fetchScenario("min20"),
+      const [optRes, plusRes, minRes, adviesRes] = await Promise.all([
+        scenariosPayload.optimaal ? fetchScenario("optimaal") : Promise.resolve(null),
+        scenariosPayload.plus20 ? fetchScenario("plus20") : Promise.resolve(null),
+        scenariosPayload.min20 ? fetchScenario("min20") : Promise.resolve(null),
+        scenariosPayload.advies ? fetchScenario("advies") : Promise.resolve(null),
       ]);
 
-      if (!optRes && !plusRes && !minRes) {
-        setError("Alle 3 scenario's faalden — controleer Console of probeer opnieuw.");
+      if (!optRes && !plusRes && !minRes && !adviesRes) {
+        setError("Alle scenario's faalden — controleer Console of probeer opnieuw.");
         setLoading(false);
         return;
       }
 
       const partialFailures = [
-        !optRes ? "optimaal" : null,
-        !plusRes ? "plus20" : null,
-        !minRes ? "min20" : null,
+        scenariosPayload.optimaal && !optRes ? "optimaal" : null,
+        scenariosPayload.plus20 && !plusRes ? "plus20" : null,
+        scenariosPayload.min20 && !minRes ? "min20" : null,
+        scenariosPayload.advies && !adviesRes ? "advies" : null,
       ].filter(Boolean) as string[];
 
       // Verrijk met user-settings zodat ze bij terugkeer bewaard blijven
@@ -817,6 +823,7 @@ export default function StapInterneUren({
           optimaal: optRes as InterneUrenAdvies["scenarios"]["optimaal"] | null,
           plus20: plusRes as InterneUrenAdvies["scenarios"]["plus20"] | null,
           min20: minRes as InterneUrenAdvies["scenarios"]["min20"] | null,
+          advies: adviesRes as InterneUrenAdvies["scenarios"]["advies"] | null,
         },
         partialFailures,
         urenBudgetStart,
@@ -866,7 +873,7 @@ export default function StapInterneUren({
   // Regenereer 1 specifiek scenario. Gebruikt als het oorspronkelijke
   // genereer-request voor dat label faalde (scenarios.<label> === null).
   // Merget het resultaat in de bestaande advies zonder de andere 2 te raken.
-  async function retryScenario(label: "optimaal" | "plus20" | "min20") {
+  async function retryScenario(label: ScenarioLabel) {
     if (!advies || !begroting?.scenarios) return;
     setRetryingLabel(label);
     try {
@@ -899,15 +906,17 @@ export default function StapInterneUren({
         }
       }
       const toegestaneFuncties = DOMEINEN.flatMap((d) => toegestaneFunctiesPerDomein[d]);
-      const scenariosPayload: Record<ScenarioLabel, BegrotingScenario | null> = {
+      const scenariosPayload: Partial<Record<ScenarioLabel, BegrotingScenario | null>> = {
         optimaal: begroting.scenarios.optimaal ? { ...begroting.scenarios.optimaal, startJaar: begroting.startJaar } : null,
         plus20: begroting.scenarios.plus20 ? { ...begroting.scenarios.plus20, startJaar: begroting.startJaar } : null,
         min20: begroting.scenarios.min20 ? { ...begroting.scenarios.min20, startJaar: begroting.startJaar } : null,
+        advies: begroting.scenarios.advies ? { ...begroting.scenarios.advies, startJaar: begroting.startJaar } : null,
       };
       const maxAantalJaren = Math.max(
         begroting.scenarios.optimaal?.aantalJaren ?? 0,
         begroting.scenarios.plus20?.aantalJaren ?? 0,
         begroting.scenarios.min20?.aantalJaren ?? 0,
+        begroting.scenarios.advies?.aantalJaren ?? 0,
       );
       const urenBudgetPerJaar = Array.from({ length: maxAantalJaren }, (_, i) => ({
         jaar: begroting.startJaar + i, urenBudget: urenBudgetStart,

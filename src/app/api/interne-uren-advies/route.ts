@@ -35,7 +35,7 @@ const DomeinAISchema = z.object({
 });
 
 const InterneUrenScenarioAISchema = z.object({
-  scenarioLabel: z.enum(["optimaal", "plus20", "min20"]),
+  scenarioLabel: z.enum(["optimaal", "plus20", "min20", "advies"]),
   domeinen: z.array(DomeinAISchema),
 });
 
@@ -66,7 +66,7 @@ type VerrijkteDomein = {
   motivatie: string;
 };
 type VerrijkteScenario = {
-  scenarioLabel: "optimaal" | "plus20" | "min20";
+  scenarioLabel: "optimaal" | "plus20" | "min20" | "advies";
   aantalJaren: number;
   startJaar: number;
   uurtariefGebruikt: number;
@@ -110,7 +110,7 @@ type VastgesteldeUrenInspanning = {
 };
 
 function scenarioPrompt(
-  scenarioLabel: "optimaal" | "plus20" | "min20",
+  scenarioLabel: "optimaal" | "plus20" | "min20" | "advies",
   scenarioData: {
     aantalJaren: number;
     startJaar: number;
@@ -137,10 +137,12 @@ function scenarioPrompt(
   const heeftVastgestelde = vastgesteldeUrenPerInspanning && vastgesteldeUrenPerInspanning.length > 0;
   const tag =
     scenarioLabel === "optimaal"
-      ? "OPTIMAAL (basis tempo)"
+      ? "HUIDIG BUDGET (basis tempo)"
       : scenarioLabel === "plus20"
       ? "+20% budget (sneller)"
-      : "−20% budget (langzamer)";
+      : scenarioLabel === "min20"
+      ? "−20% budget (langzamer)"
+      : "OPTIMAAL ADVIES (server-gekozen kortste haalbare looptijd 3-5 jaar)";
   return `Je bent programma-controller bij Cito BV. Je plant de INTERNE UREN van Cito-medewerkers voor EÉN scenario (${tag}) van de DIN-programma-begroting.
 
 **Input — scenario uit stap 6 (AI-begroting out-of-pocket):**
@@ -265,8 +267,8 @@ export async function POST(request: NextRequest) {
       // de 3 parallelle calls in 3 HTTP-requests om Vercel 504 te voorkomen).
       onlyScenario,
     } = body as {
-      scenarios?: Record<
-        "optimaal" | "plus20" | "min20",
+      scenarios?: Partial<Record<
+        "optimaal" | "plus20" | "min20" | "advies",
         {
           aantalJaren: number;
           startJaar: number;
@@ -279,7 +281,7 @@ export async function POST(request: NextRequest) {
             verdelingPerJaar: Array<{ jaar: number; euro: number; fase: string; activiteit?: string }>;
           }>;
         } | null
-      >;
+      >>;
       uurtariefSettings?: {
         basisTarief: number;
         referentiejaar: number;
@@ -296,7 +298,7 @@ export async function POST(request: NextRequest) {
       vastgesteldeUrenPerInspanning?: VastgesteldeUrenInspanning[];
       finetuneInstructie?: string;
       previousAdvies?: unknown;
-      onlyScenario?: "optimaal" | "plus20" | "min20";
+      onlyScenario?: "optimaal" | "plus20" | "min20" | "advies";
     };
 
     if (!scenarios) {
@@ -332,7 +334,7 @@ export async function POST(request: NextRequest) {
     }
 
     async function genereer(
-      label: "optimaal" | "plus20" | "min20",
+      label: "optimaal" | "plus20" | "min20" | "advies",
       staggerMs: number
     ): Promise<VerrijkteScenario | null> {
       const scenario = scenarios?.[label];
@@ -484,25 +486,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Legacy path: 3 parallelle calls in 1 request. Blijft werken voor niet-
+    // Legacy path: 4 parallelle calls in 1 request. Blijft werken voor niet-
     // bijgewerkte clients, maar nieuwe frontend gebruikt onlyScenario-mode.
-    const [optimaal, plus20, min20] = await Promise.all([
+    const [optimaal, plus20, min20, advies] = await Promise.all([
       genereer("optimaal", 0),
       genereer("plus20", 200),
       genereer("min20", 400),
+      genereer("advies", 600),
     ]);
 
     const partialFailures = [
       !optimaal ? "optimaal" : null,
       !plus20 ? "plus20" : null,
       !min20 ? "min20" : null,
+      !advies ? "advies" : null,
     ].filter(Boolean) as string[];
 
-    if (!optimaal && !plus20 && !min20) {
+    if (!optimaal && !plus20 && !min20 && !advies) {
       return NextResponse.json(
         {
           success: false,
-          error: "Alle 3 scenario's faalden — controleer Vercel-logs of probeer opnieuw.",
+          error: "Alle 4 scenario's faalden — controleer Vercel-logs of probeer opnieuw.",
         },
         { status: 200 }
       );
@@ -512,7 +516,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         uurtariefSettings,
-        scenarios: { optimaal, plus20, min20 },
+        scenarios: { optimaal, plus20, min20, advies },
         partialFailures,
       },
     });
