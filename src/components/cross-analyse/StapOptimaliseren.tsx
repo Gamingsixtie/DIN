@@ -172,6 +172,15 @@ export default function StapOptimaliseren({
     prioriteitAdvies: string;
     samenvatting: string;
   };
+  type DossierTekort = { titel: string; geleverd: number; minimaal: number };
+  type DossierValidatieScenario = { ok: boolean; tekorten: DossierTekort[] };
+  type BudgetAdviesData = {
+    totaalRealistisch: number;
+    benodigdJaarlijksVoorDoeltermijn: number;
+    tekortPerJaar: number;
+    uitlegMd: string;
+    meestKostbareInspanning?: { titel: string; eenmaligLow: number; eenmaligHigh: number };
+  };
   type DrieScenarioAdvies = {
     jaarlijksBudgetBasis: number;
     startJaar: number;
@@ -183,6 +192,19 @@ export default function StapOptimaliseren({
     };
     vergelijking: string;
     partialFailures?: string[];
+    budgetAdvies?: BudgetAdviesData | null;
+    dossierValidatie?: {
+      optimaal: DossierValidatieScenario;
+      plus20: DossierValidatieScenario;
+      min20: DossierValidatieScenario;
+    };
+    dossierTotalen?: {
+      totaalLowOverGekozenJaren: number;
+      totaalMidOverGekozenJaren: number;
+      totaalHighOverGekozenJaren: number;
+      minOptimaalJaren: number;
+      minOptimaalCapped: boolean;
+    };
   };
   const [begrotingAdvies, setBegrotingAdvies] = useState<DrieScenarioAdvies | null>(null);
 
@@ -1441,6 +1463,9 @@ export default function StapOptimaliseren({
             },
           ];
           const partialFailures = begrotingAdvies.partialFailures ?? [];
+          const advies = begrotingAdvies.budgetAdvies;
+          const dossierVal = begrotingAdvies.dossierValidatie;
+          const tekortenOptimaal = dossierVal?.optimaal?.tekorten ?? [];
           return (
             <div className="mt-6 space-y-6">
               {/* Partial-failure banner als 1-2 scenarios faalden */}
@@ -1450,6 +1475,54 @@ export default function StapOptimaliseren({
                     <strong>Let op:</strong> {partialFailures.length} scenario{partialFailures.length === 1 ? "" : "'s"} faalde
                     ({partialFailures.join(", ")}). Probeer opnieuw of bewerk de inspanningen om de andere scenario&apos;s ook te genereren.
                   </p>
+                </div>
+              )}
+
+              {/* Budget-advies banner — alleen tonen als optimaal-jaren > 6 (capped) */}
+              {advies && advies.tekortPerJaar > 0 && (
+                <div className="bg-rose-50 border-2 border-rose-400 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-rose-700 text-xl leading-none mt-0.5">!</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-rose-900 mb-2">
+                        Budget structureel te krap voor realistische uitvoering
+                      </h4>
+                      <p className="text-sm text-rose-900 leading-relaxed">{advies.uitlegMd}</p>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="bg-white rounded p-2 border border-rose-200">
+                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Realistisch totaal</p>
+                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.totaalRealistisch.toLocaleString("nl-NL")}</p>
+                        </div>
+                        <div className="bg-white rounded p-2 border border-rose-200">
+                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Benodigd per jaar (5 jr)</p>
+                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.benodigdJaarlijksVoorDoeltermijn.toLocaleString("nl-NL")}</p>
+                        </div>
+                        <div className="bg-white rounded p-2 border border-rose-200">
+                          <p className="text-[10px] uppercase tracking-wider text-rose-700 font-semibold">Tekort per jaar</p>
+                          <p className="text-base font-bold text-rose-900 mt-0.5">€ {advies.tekortPerJaar.toLocaleString("nl-NL")}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Dossier-validatie banner — als per-inspanning totalen onder ondergrens zitten */}
+              {tekortenOptimaal.length > 0 && (
+                <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-amber-900 mb-1">
+                    Dossier-tekort gedetecteerd in optimaal-scenario
+                  </p>
+                  <p className="text-xs text-amber-900 mb-2">
+                    De volgende inspanningen kregen minder budget toegewezen dan hun dossier-ondergrens — controleer of de raming klopt of pas de inspanning aan:
+                  </p>
+                  <ul className="text-xs text-amber-900 space-y-1 ml-4">
+                    {tekortenOptimaal.map((t, i) => (
+                      <li key={i}>
+                        <span className="font-semibold">{t.titel}:</span> € {t.geleverd.toLocaleString("nl-NL")} toegekend, dossier-minimum € {t.minimaal.toLocaleString("nl-NL")} (tekort € {(t.minimaal - t.geleverd).toLocaleString("nl-NL")}).
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

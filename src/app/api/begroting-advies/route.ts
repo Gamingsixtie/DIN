@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callClaudeWithValidation } from "@/lib/ai-client";
 import { assembleSystemPrompt, extractKiBContext } from "@/lib/prompt-assembly";
+import {
+  parseDossierRaming,
+  berekenMinimumJaren,
+  totaalBenodigdBudget,
+  budgetAdvies as berekenBudgetAdvies,
+  type ParsedDossierRaming,
+} from "@/lib/dossier-parser";
 import { z } from "zod";
 
 export const maxDuration = 300;
 
 // Phase 19 — 3-scenario begrotingsadvies.
-// Mental model: jaarlijksBudget is VAST. De vraag is niet of alles past,
-// maar hoeveel jaar nodig is om alles af te maken. Daarom drie scenarios:
+// Mental model: dossier-raming is HEILIG. Jaarlijks budget × aantal jaren
+// volgt uit de dossiers — niet andersom. Server berekent vooraf het minimum
+// aantal jaren per scenario uit parseDossierRaming(); AI mag dit NIET
+// verlagen om te 'comprimeren'. Bij optimaal-jaren > 6 retourneren we een
+// budgetAdvies — meer budget per jaar nodig om in 5–6 jaar af te ronden.
+//
+// Drie scenarios:
 //   - optimaal  — jaarlijksBudget (user input, typisch €250K)
 //   - plus20    — jaarlijksBudget × 1.2 (sneller)
 //   - min20     — jaarlijksBudget × 0.8 (langzamer)
-// Elk scenario bepaalt zelf aantalJaren o.b.v. benodigde kosten.
 //
 // Implementatie: 3 parallelle AI-calls (één per scenario) i.p.v. één grote
 // call. Dat voorkomt token-limiet-afkappen en levert stabielere output.
@@ -90,26 +101,34 @@ type Scenario = {
 function scenarioPrompt(
   label: "optimaal" | "plus20" | "min20",
   jaarlijksBudget: number,
+  fixedAantalJaren: number,
+  dossierMetaTekst: string,
   finetune?: { instructie: string; vorigeScenario: unknown }
 ): string {
   const intro =
     label === "optimaal"
-      ? "SCENARIO OPTIMAAL — het jaarlijks budget van de gebruiker ongewijzigd. Geef een realistisch plan."
+      ? "SCENARIO OPTIMAAL — het jaarlijks budget van de gebruiker ongewijzigd."
       : label === "plus20"
-      ? "SCENARIO +20% — 20% méér budget per jaar. Daardoor gaat de uitvoering SNELLER: minder jaren nodig, werk per jaar intensiever."
-      : "SCENARIO −20% — 20% mínder budget per jaar. Daardoor gaat de uitvoering LANGZAMER: meer jaren nodig, werk per jaar extensiever.";
+      ? "SCENARIO +20% — 20% méér budget per jaar; daardoor minder jaren nodig."
+      : "SCENARIO −20% — 20% mínder budget per jaar; daardoor meer jaren nodig.";
 
   const finetuneBlock = finetune
-    ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (aantalJaren, verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie.\n`
+    ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie. **aantalJaren staat vast — pas die NIET aan.**\n`
     : "";
 
   return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}
 
-**JAARLIJKS BUDGET IS VAST.** Bepaal hoeveel jaar nodig is om ALLE inspanningen volledig uit te voeren, gegeven het jaarlijks budget. Niet af-schalen, niet uitdunnen — álle inspanningen moeten er volledig in.
+**MENTAL MODEL — DOSSIER IS HEILIG, JAREN ZIJN BEREKEND:**
+Het aantal jaren én de totaalkosten per inspanning zijn al SERVER-SIDE berekend uit \`dossierKostenraming\` + \`businessCaseAannames\`. Jouw taak is **alleen verdelen**: hoe loopt elke inspanning over de gegeven jaren? Je mag de dossier-totalen NOOIT verlagen om in een budget-cap te passen — als het krap is, is dat al verwerkt in het aantal jaren.
 
 ${intro}
 
-**Voor dit scenario gebruik je het jaarlijks budget: € ${jaarlijksBudget.toLocaleString("nl-NL")}.**
+**VAST VOOR DIT SCENARIO:**
+- jaarlijks budget: **€ ${jaarlijksBudget.toLocaleString("nl-NL")}**
+- aantal jaren: **${fixedAantalJaren}** (server-berekend op basis van dossier-totalen — NIET aanpassen)
+
+**DOSSIER-TOTALEN PER INSPANNING (server-berekend):**
+${dossierMetaTekst}
 
 Input JSON:
 {
@@ -146,16 +165,16 @@ Input JSON:
 Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
 {
   "label": "${label}",
-  "aantalJaren": <integer 1-15, MINIMAAL noodzakelijk gegeven jaarlijksBudgetEuro>,
+  "aantalJaren": ${fixedAantalJaren},
   "inspanningen": [
     {
       "inspanningTitel": "...",
       "groepId": "...",
       "domein": "mens|processen|data_systemen|cultuur",
-      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames waar relevant>",
+      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames + dossier-totaal>",
       "verdelingPerJaar": [
-        { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<Voorbereiding | Uitrol | Opschaling | Borging>", "activiteit": "<1-2 ZINNEN concreet wat er DIT JAAR voor DEZE inspanning gebeurt — geen herhaling tussen jaren>" },
-        ...één item per jaar tot en met startJaar+aantalJaren−1
+        { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<domein-passende fase, zie regel 7>", "activiteit": "<1-2 ZINNEN concreet wat er DIT JAAR voor DEZE inspanning gebeurt — geen herhaling tussen jaren>" },
+        ...één item per jaar tot en met startJaar+${fixedAantalJaren}−1 (= ${fixedAantalJaren} items totaal)
       ],
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
     }
@@ -165,29 +184,24 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
 }
 
 **LET OP:**
-- Lever GEEN \`totaalEuro\`, \`percentageTotaal\`, \`totalenPerJaar\` of \`totaalGeraamdEuro\` — die wordt SERVER-SIDE berekend uit jouw \`verdelingPerJaar\`. Focus op de jaarlijkse euros en fasering.
+- \`aantalJaren\` is **${fixedAantalJaren}** — neem dit getal exact over, kies geen ander.
+- Lever GEEN \`totaalEuro\`, \`percentageTotaal\`, \`totalenPerJaar\` of \`totaalGeraamdEuro\` — die worden SERVER-SIDE berekend.
 - Lever GEEN \`percentage\` per jaar — die wordt server-side berekend.
 - Houd \`verdelingPerJaar[].euro\` afgerond op duizend.
 
 HARDE REGELS:
-0. **DOSSIERKOSTENRAMING + BUSINESSCASEAANNAMES ZIJN LEIDEND voor de euros per jaar.**
-   Elke inspanning komt binnen met een \`dossierKostenraming\` (raming-tekst uit business-case-Q&A) plus \`businessCaseAannames\` (de aantallen, tarieven, looptijden die de raming dragen).
-   - Parse \`dossierKostenraming\` zorgvuldig: haal er eenmalige kosten én structurele kosten (per jaar × jaren) uit. Verdeel die over je \`verdelingPerJaar[].euro\`.
-   - Aantallen komen ALTIJD uit \`businessCaseAannames\` of uit \`dossierKostenraming\`. **VERZIN NOOIT zelf aantallen** die er niet in staan — blijf in \`motivatie\` kwalitatief ("aantal nog te bepalen").
-   - Als beide leeg/vaag zijn: conservatieve grove schatting op Cito-benchmarks (trainingsdag €800/persoon, FTE/jaar €100K, consultantuur €120). Benoem in \`motivatie\` dat dit fallback is.
-   - WIJK NIET sterk af van de dossierKostenraming zonder motivatie.
-1. **aantalJaren moet REËEL zijn** gegeven het jaarlijks budget: zo weinig jaren als mogelijk zonder een enkel jaar over budget te gaan. Bij €250K/jr en €1M totaal → 4 jaar. Bij €200K/jr en €1M → 5 jaar. Bij €300K/jr en €1M → 3-4 jaar.
-2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen overschrijding van het jaarlijks budget in welk jaar dan ook.
-3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING moet de totale dossier-raming benaderen** (eenmalige + structurele kosten samen).
-4. **ELK JAAR MOET HET VOLLEDIGE JAARLIJKSBUDGET WORDEN OPGEMAAKT — 100%, NOOIT ERONDER.**
-   - Voor ELK jaar van \`startJaar\` tot en met \`startJaar + aantalJaren − 2\` (= alle jaren BEHALVE het laatste): som van \`verdelingPerJaar[jaar].euro\` over alle inspanningen MOET PRECIES \`jaarlijksBudgetEuro\` zijn — 100% benutting, geen onderbesteding.
-   - Alleen het LAATSTE jaar (\`startJaar + aantalJaren − 1\`) mag een lager bedrag hebben (de afrondings-rest van het programma).
-   - **BEDRIJFSECONOMISCHE NOODZAAK (Cito-realiteit):** jaarlijks budget dat NIET volledig besteed wordt heeft DUBBELE schade:
-     (a) het ongebruikte bedrag valt vrij in datzelfde jaar (geen carry-over naar volgend jaar mogelijk), én
-     (b) het opvolgende jaarbudget wordt door Finance verlaagd op basis van de werkelijke besteding van het vorige jaar — twee jaar onderbesteding kan het budget structureel halveren.
-     Dit is geen organisatorische eis maar een financiële noodzaak om de meerjarenfinanciering veilig te stellen. Activiteit + budget moeten 1-op-1 lopen.
-   - Voorbeeld bij €250K/jr en aantalJaren=4 (startjaar 2026): jaren 2026, 2027 en 2028 MOETEN samen ongeveer €250K per jaar uitgeven (€237.5K-€250K). Alleen 2029 mag minder zijn (bv. €100K als afrondingsjaar).
-   - Plan zoveel parallelle activiteit (cultuur+mens samen, of harde+zachte kant tegelijk) dat het budget elk jaar tot het laatste volledig benut wordt. ALS er minder werk is dan budget toelaat: kies dan een korter aantalJaren in plaats van te onderbesteden.
+0. **DOSSIER-TOTAAL PER INSPANNING IS HEILIG.**
+   Hierboven staat per inspanning een \`Doel-totaal\` (server-berekend midpunt + structureel × jaren) met een \`Min\` (ondergrens dossier-raming). De som van \`verdelingPerJaar[].euro\` per inspanning **MOET binnen [Min, Doel-totaal × 1.05]** vallen.
+   - Verlaag NOOIT een inspanning onder de \`Min\` om aan budgetregels te voldoen.
+   - VERZIN GEEN getallen die niet in \`businessCaseAannames\` of \`dossierKostenraming\` staan. Bij vage aannames: blijf in \`motivatie\` kwalitatief.
+   - Als beide leeg zijn: gebruik Cito-benchmarks (trainingsdag €800/persoon, FTE/jaar €100K, consultantuur €120) en benoem dat in \`motivatie\`.
+1. **aantalJaren is GEGEVEN: ${fixedAantalJaren}.** Niet aanpassen — het is server-berekend uit dossier-totalen / jaarlijksBudget. Verzet je niet door minder jaren te kiezen "om compacter te zijn" — dan moet je dossier-bedragen verlagen, en dat is verboden.
+2. **Som van \`verdelingPerJaar[].euro\` per JAAR over alle inspanningen ≤ jaarlijksBudgetEuro.** Geen jaar-overschrijding.
+3. **Som van \`verdelingPerJaar[].euro\` per INSPANNING ≥ \`Min\` (dossier-ondergrens) en ~ \`Doel-totaal\` (midpunt).** Streefwaarde is het Doel-totaal; tolerantie tot −5% (Min als absolute vloer) en +5% (mag iets hoger). Buiten deze band wordt het scenario afgekeurd.
+4. **Streef naar gelijkmatige budget-benutting per jaar (80–100% van jaarlijksBudget).**
+   - Onderbesteding van 1–2 jaar is acceptabel als het noodzakelijk is om dossier-totalen te respecteren (regel 0 staat boven regel 4).
+   - Het laatste jaar mag een afrondingsjaar zijn met lager bedrag.
+   - **Voorkeur**: jaren 1 t/m N−1 zitten op 85–100% van het jaarlijks budget. Als dat niet kan zonder dossier-bedragen te overschrijden, plan dan een afrondingsjaar; regel 0 weegt zwaarder dan deze regel.
 5. **HARDE KANT EN ZACHTE KANT MOETEN PARALLEL — VANAF JAAR 1.**
    Dit is de belangrijkste regel naast de budget-opmaak. **Geen enkel domein mag wachten** tot een ander domein "klaar" is. Alle 4 domeinen MOETEN al in het startjaar (\`startJaar\`) een non-zero \`euro\`-bedrag hebben in hun \`verdelingPerJaar\`.
    - **Zachte kant** (cultuur + mens): leiderschapsprogramma's en gesprekvaardigheidstraining starten in jaar 1 en versterken elkaar.
@@ -290,6 +304,77 @@ export async function POST(request: NextRequest) {
     const budgetPlus20 = Math.round((jaarlijksBudgetEuro * 1.2) / 1000) * 1000;
     const budgetMin20 = Math.round((jaarlijksBudgetEuro * 0.8) / 1000) * 1000;
 
+    // Parse dossier-ramingen per inspanning. Dit voorkomt dat AI bedragen
+    // comprimeert om in budget × jaren te passen — we berekenen vooraf het
+    // benodigde aantal jaren en geven dossier-totalen + Min-grens mee.
+    type InspIn = {
+      titel?: string;
+      domein?: string;
+      dossierKostenraming?: string;
+    };
+    const inspsArr = inspanningen as InspIn[];
+    const ramingenPerInsp: Array<{
+      titel: string;
+      domein: string;
+      raming: ParsedDossierRaming;
+    }> = inspsArr.map((i, idx) => ({
+      titel: i.titel ?? `Inspanning ${idx + 1}`,
+      domein: i.domein ?? "",
+      raming: parseDossierRaming(i.dossierKostenraming),
+    }));
+
+    // Bereken minimum jaren per scenario op basis van dossier-totalen.
+    // Cap optimaal op 6 jaar — daarboven retourneren we budget-advies.
+    const MAX_OPTIMAAL_JAREN = 6;
+    const minOptimaal = berekenMinimumJaren(
+      ramingenPerInsp.map((r) => r.raming),
+      budgetOptimaal,
+      "mid",
+      MAX_OPTIMAAL_JAREN
+    );
+    const minPlus20 = berekenMinimumJaren(
+      ramingenPerInsp.map((r) => r.raming),
+      budgetPlus20,
+      "mid",
+      MAX_OPTIMAAL_JAREN
+    );
+    const minMin20 = berekenMinimumJaren(
+      ramingenPerInsp.map((r) => r.raming),
+      budgetMin20,
+      "mid",
+      10 // min20 mag uitlopen tot 10 jaar (langzamer scenario)
+    );
+
+    // Budget-advies: alleen tonen als optimaal-scenario gecapped is op de
+    // max (= dossier-totaal past niet in 6 jaar bij €jaarlijksBudget/jr).
+    const budgetAdviesData = minOptimaal.capped
+      ? berekenBudgetAdvies({
+          jaarlijksBudgetEuro: budgetOptimaal,
+          ramingen: ramingenPerInsp.map((r) => ({ titel: r.titel, raming: r.raming })),
+          doelJaren: 5,
+        })
+      : null;
+
+    // Bouw dossier-meta tekst per scenario voor in de prompt
+    function dossierMetaTekst(scenarioJaren: number): string {
+      const structureleJaren = Math.max(0, scenarioJaren - 1);
+      return ramingenPerInsp
+        .map((r) => {
+          const eenmalig = r.raming.eenmaligMid;
+          const struc = r.raming.structureelMidPerJr;
+          const doelTotaal = eenmalig + struc * structureleJaren;
+          const minTotaal = r.raming.eenmaligLow + r.raming.structureelLowPerJr * structureleJaren;
+          if (r.raming.unparsed || doelTotaal === 0) {
+            return `- **${r.titel}** (${r.domein}): Doel-totaal onbekend — dossier-raming kon niet geparseerd worden, val terug op kwalitatieve schatting.`;
+          }
+          const strucDeel = struc > 0
+            ? ` (waarvan €${(struc * structureleJaren).toLocaleString("nl-NL")} structureel = €${struc.toLocaleString("nl-NL")}/jaar × ${structureleJaren} jaar)`
+            : "";
+          return `- **${r.titel}** (${r.domein}): Doel-totaal €${doelTotaal.toLocaleString("nl-NL")}${strucDeel}; Min €${minTotaal.toLocaleString("nl-NL")}.`;
+        })
+        .join("\n");
+    }
+
     const scenarioInput = {
       cyclusMaanden,
       startJaar: effectiefStartJaar,
@@ -363,76 +448,18 @@ export async function POST(request: NextRequest) {
         return { ...insp, verdelingPerJaar: verdeling };
       });
 
-      // TWEEDE GUARD: per-jaar-totaal enforcement.
-      // Eis: voor ELK jaar van startJ t/m eindJ-1 (= alle BEHALVE laatste):
-      // som van inspanningen[i].verdelingPerJaar[jaar].euro >= 95% × jaarlijksBudget.
-      // Als tekort: shift uit het GROOTSTE bedrag in een later jaar van de
-      // grootste inspanning, totdat target gehaald is of er niets meer kan.
+      // (Voorheen: TWEEDE GUARD die geld VAN latere jaren NAAR eerdere jaren
+      // shiftte om 100%-jaar-benutting af te dwingen — VERWIJDERD per
+      // 2026-04-29 omdat dit dossier-totalen onrealistisch hoog comprimeerde
+      // in jaar 1 en bv. CRM-realisatie in jaar 2 op €62K duwde. Dossier is
+      // nu heilig: aantalJaren wordt server-side gekozen zodat de bedragen
+      // gewoon passen, en onderbesteding in 1-2 jaar is acceptabel.)
       const totalGuardedInsps = aiInspsParallelGuarded.map((insp) => ({
         ...insp,
         verdelingPerJaar: insp.verdelingPerJaar.map((v) => ({ ...v })),
       }));
-      // 100% target — user-eis: optimistisch scenario MOET het volle bedrag besteden
-      const minPerYear = jaarlijksBudget;
-      for (let yr = startJ; yr <= eindJ - 1; yr++) {
-        let huidigTotaal = totalGuardedInsps.reduce(
-          (s, insp) => s + (insp.verdelingPerJaar.find((v) => v.jaar === yr)?.euro ?? 0),
-          0
-        );
-        let veiligheidsTeller = 0;
-        while (huidigTotaal < minPerYear && veiligheidsTeller < 50) {
-          veiligheidsTeller++;
-          const tekort = minPerYear - huidigTotaal;
-          // Zoek het grootste bedrag in latere jaren (eindJ inclusief — laatste jaar mag korter)
-          let bestInsp: typeof totalGuardedInsps[number] | null = null;
-          let bestCell: { jaar: number; euro: number; fase: string; activiteit?: string } | null = null;
-          let bestAmount = 0;
-          for (const insp of totalGuardedInsps) {
-            for (const cell of insp.verdelingPerJaar) {
-              if (cell.jaar > yr && (cell.euro ?? 0) > bestAmount) {
-                bestAmount = cell.euro ?? 0;
-                bestInsp = insp;
-                bestCell = cell;
-              }
-            }
-          }
-          if (!bestInsp || !bestCell || bestAmount <= 0) break;
-          // GEEN buffer — user-eis is 'altijd 100%, niks eronder'.
-          // Mag de hele cell leeggehaald worden indien nodig.
-          const shift = Math.min(tekort, bestAmount);
-          if (shift <= 0) break;
-          bestCell.euro = (bestCell.euro ?? 0) - shift;
-          // Voeg toe aan het current-year cell van diezelfde inspanning
-          const targetCell = bestInsp.verdelingPerJaar.find((v) => v.jaar === yr);
-          const domeinMidFase: Record<string, string> = {
-            cultuur: "Adoptie",
-            mens: "Vaardigheidstraining",
-            data_systemen: "Realisatie",
-            processen: "Uitrol",
-          };
-          const midFase = domeinMidFase[bestInsp.domein] ?? "Uitrol";
-          if (targetCell) {
-            targetCell.euro = (targetCell.euro ?? 0) + shift;
-            if (!targetCell.activiteit || targetCell.activiteit.trim().length === 0) {
-              targetCell.activiteit = "Opschaling en verdere uitrol van het traject.";
-            }
-            if (!targetCell.fase || targetCell.fase.trim().length === 0) {
-              targetCell.fase = midFase;
-            }
-          } else {
-            bestInsp.verdelingPerJaar.push({
-              jaar: yr,
-              euro: shift,
-              fase: midFase,
-              activiteit: "Opschaling en verdere uitrol van het traject.",
-            });
-            bestInsp.verdelingPerJaar.sort((a, b) => a.jaar - b.jaar);
-          }
-          huidigTotaal += shift;
-        }
-      }
 
-      // DERDE GUARD: overschrijding reduceren.
+      // GUARD: overschrijding reduceren.
       // Als een jaar > jaarlijksBudget, shift het teveel naar het laatste jaar.
       // Herhaal voor alle jaren (ook laatste mag boven budget als er werk is,
       // maar liever niet). We gaan van vroeg naar laat, zodat overshoot
@@ -557,6 +584,7 @@ export async function POST(request: NextRequest) {
     async function genereer(
       label: "optimaal" | "plus20" | "min20",
       jaarlijksBudget: number,
+      fixedAantalJaren: number,
       staggerMs: number
     ): Promise<Scenario | null> {
       // Stagger startup om rate-limit-burst bij parallelle calls te voorkomen
@@ -565,14 +593,19 @@ export async function POST(request: NextRequest) {
         const finetuneArg = isFinetune
           ? { instructie: trimmedInstructie, vorigeScenario: prevScenarios?.[label] ?? null }
           : undefined;
+        const dossierMd = dossierMetaTekst(fixedAantalJaren);
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, jaarlijksBudget, finetuneArg),
+          scenarioPrompt(label, jaarlijksBudget, fixedAantalJaren, dossierMd, finetuneArg),
           "cross-analyse",
           undefined,
           kibContext
         );
         const userMessage = JSON.stringify(
-          { ...scenarioInput, jaarlijksBudgetEuro: jaarlijksBudget },
+          {
+            ...scenarioInput,
+            jaarlijksBudgetEuro: jaarlijksBudget,
+            aantalJaren: fixedAantalJaren,
+          },
           null,
           2
         );
@@ -583,7 +616,10 @@ export async function POST(request: NextRequest) {
           { maxTokens: 8192, retryDelayMs: 2000 }
         );
         if (res.success) {
-          return enrichScenario(res.data, jaarlijksBudget);
+          // Forceer aantalJaren naar de server-berekende waarde —
+          // AI mag deze niet overrulen, ook al staat het in het schema.
+          const overruled = { ...res.data, aantalJaren: fixedAantalJaren };
+          return enrichScenario(overruled, jaarlijksBudget);
         }
         console.error(`[begroting-advies] ${label} validation failed:`, res.error);
         return null;
@@ -594,10 +630,46 @@ export async function POST(request: NextRequest) {
     }
 
     const [optimaal, plus20, min20] = await Promise.all([
-      genereer("optimaal", budgetOptimaal, 0),
-      genereer("plus20", budgetPlus20, 200),
-      genereer("min20", budgetMin20, 400),
+      genereer("optimaal", budgetOptimaal, minOptimaal.jaren, 0),
+      genereer("plus20", budgetPlus20, minPlus20.jaren, 200),
+      genereer("min20", budgetMin20, minMin20.jaren, 400),
     ]);
+
+    // Server-side validatie per inspanning: totaalEuro moet ≥ 90% × dossier-
+    // ondergrens zijn. Onder die drempel is het scenario verdacht (AI heeft
+    // bedragen alsnog gecomprimeerd ondanks instructies). We loggen + voegen
+    // metadata toe; we verwerpen niet — UI kan waarschuwen.
+    function validateAgainstDossier(scenario: Scenario | null): {
+      ok: boolean;
+      tekorten: Array<{ titel: string; geleverd: number; minimaal: number }>;
+    } {
+      if (!scenario) return { ok: true, tekorten: [] };
+      const tekorten: Array<{ titel: string; geleverd: number; minimaal: number }> = [];
+      const structureleJaren = Math.max(0, scenario.aantalJaren - 1);
+      for (const insp of scenario.inspanningen) {
+        const match = ramingenPerInsp.find(
+          (r) => r.titel === insp.inspanningTitel || r.titel.toLowerCase() === insp.inspanningTitel.toLowerCase()
+        );
+        if (!match || match.raming.unparsed || match.raming.eenmaligLow === 0) continue;
+        const minTotaal =
+          match.raming.eenmaligLow + match.raming.structureelLowPerJr * structureleJaren;
+        const drempel = Math.round(minTotaal * 0.9);
+        if (insp.totaalEuro < drempel) {
+          tekorten.push({
+            titel: insp.inspanningTitel,
+            geleverd: insp.totaalEuro,
+            minimaal: minTotaal,
+          });
+        }
+      }
+      if (tekorten.length > 0) {
+        console.warn(`[begroting-advies] dossier-validation tekorten:`, tekorten);
+      }
+      return { ok: tekorten.length === 0, tekorten };
+    }
+    const validatieOptimaal = validateAgainstDossier(optimaal);
+    const validatiePlus20 = validateAgainstDossier(plus20);
+    const validatieMin20 = validateAgainstDossier(min20);
 
     // Bij minimaal 1 succesvolle scenario: stuur die terug; client kan
     // partial-result tonen met waarschuwing voor de gefaalde scenarios.
@@ -661,6 +733,13 @@ export async function POST(request: NextRequest) {
       vergelijking = `Niet alle scenario's konden gegenereerd worden — gefaald: ${falend.join(", ")}.`;
     }
 
+    // Aggregeer dossier-validatie-tekorten per scenario voor de UI
+    const dossierValidatie = {
+      optimaal: validatieOptimaal,
+      plus20: validatiePlus20,
+      min20: validatieMin20,
+    };
+
     return NextResponse.json({
       success: true,
       data: {
@@ -670,6 +749,29 @@ export async function POST(request: NextRequest) {
         scenarios: { optimaal, plus20, min20 },
         vergelijking,
         partialFailures: falend.length > 0 ? falend : undefined,
+        // Server-side gebruikersfeedback over budget-haalbaarheid
+        budgetAdvies: budgetAdviesData,
+        dossierValidatie,
+        // Totaal benodigd realistisch budget — voor transparantie in UI
+        dossierTotalen: {
+          totaalLowOverGekozenJaren: totaalBenodigdBudget(
+            ramingenPerInsp.map((r) => r.raming),
+            Math.max(0, minOptimaal.jaren - 1),
+            "low"
+          ),
+          totaalMidOverGekozenJaren: totaalBenodigdBudget(
+            ramingenPerInsp.map((r) => r.raming),
+            Math.max(0, minOptimaal.jaren - 1),
+            "mid"
+          ),
+          totaalHighOverGekozenJaren: totaalBenodigdBudget(
+            ramingenPerInsp.map((r) => r.raming),
+            Math.max(0, minOptimaal.jaren - 1),
+            "high"
+          ),
+          minOptimaalJaren: minOptimaal.jaren,
+          minOptimaalCapped: minOptimaal.capped,
+        },
       },
     });
   } catch (err) {
