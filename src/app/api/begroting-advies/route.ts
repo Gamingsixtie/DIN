@@ -764,9 +764,10 @@ export async function POST(request: NextRequest) {
           {
             maxTokens: 8192,
             retryDelayMs: 1000,
-            // Sonnet 4.6 — gebruiker eist minimaal Sonnet voor inhoudelijke
-            // kwaliteit van motivatie/activiteit-teksten/prioriteitAdvies.
-            model: "claude-sonnet-4-6",
+            // Opus 4.7 — hoogste inhoudelijke kwaliteit voor DIN-context
+            // (Prevaas/Van Loon, outside-in, Cito-realiteit). Vercel Pro
+            // Fluid Compute met maxDuration=300s ondersteunt deze runtime.
+            model: "claude-opus-4-7",
           }
         );
         if (res.success) {
