@@ -123,8 +123,8 @@ export default function StapOptimaliseren({
 
   const FINETUNE_VOORBEELDEN: ReadonlyArray<{ kort: string; instructie: string }> = [
     {
-      kort: "Verleng Optimaal +1 jaar",
-      instructie: "Verleng het Optimaal-scenario met 1 jaar omdat cultuurverandering en gedragsverankering meer tijd vragen — spreid de mens-trajecten over meer jaren.",
+      kort: "Verleng huidig budget +1 jaar",
+      instructie: "Verleng het huidig-budget-scenario met 1 jaar omdat cultuurverandering en gedragsverankering meer tijd vragen — spreid de mens-trajecten over meer jaren.",
     },
     {
       kort: "Schuif data/systemen naar achter",
@@ -1353,7 +1353,7 @@ export default function StapOptimaliseren({
         <p className="text-sm text-gray-600 mb-4 leading-relaxed">
           Voer het <strong>vaste jaarlijks budget</strong> in (bedrag per jaar dat beschikbaar is zolang het programma loopt).
           AI berekent drie scenario&apos;s die allemaal hetzelfde einddoel bereiken — alleen het tempo verschilt:
-          <strong> Optimaal</strong> (jouw budget), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
+          <strong> Huidig budget</strong> (jouw bedrag per jaar), <strong>+20%</strong> (sneller), <strong>−20%</strong> (langzamer).
           Outside-in volgorde voor SPEND-zwaartepunt: cultuur → mens → data/systemen → processen.
           <strong> Alle 4 domeinen starten parallel vanaf jaar 1</strong> — harde kant (data/systemen+processen) wacht NIET tot zachte kant (cultuur+mens) klaar is.
           <strong> Elk jaar moet het volledige budget worden opgemaakt</strong> (alleen het laatste jaar mag minder zijn — de rest valt vrij bij onderbesteding).
@@ -1406,7 +1406,7 @@ export default function StapOptimaliseren({
           <div className="mb-3 bg-amber-50 border border-amber-200 rounded p-3">
             <p className="text-sm text-amber-900">
               <strong>Oud begrotingsadvies gevonden.</strong> Genereer opnieuw om de nieuwe 3-scenario-weergave te zien
-              (optimaal / +20% / −20%).
+              (huidig budget / +20% / −20%).
             </p>
           </div>
         )}
@@ -1433,7 +1433,7 @@ export default function StapOptimaliseren({
           }> = [
             {
               key: "optimaal",
-              label: "Optimaal",
+              label: "Huidig budget",
               kleur: {
                 banner: "bg-[#003366]",
                 tekst: "text-blue-100",
@@ -1511,7 +1511,7 @@ export default function StapOptimaliseren({
               {tekortenOptimaal.length > 0 && (
                 <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-3">
                   <p className="text-sm font-semibold text-amber-900 mb-1">
-                    Dossier-tekort gedetecteerd in optimaal-scenario
+                    Dossier-tekort gedetecteerd in huidig-budget-scenario
                   </p>
                   <p className="text-xs text-amber-900 mb-2">
                     De volgende inspanningen kregen minder budget toegewezen dan hun dossier-ondergrens — controleer of de raming klopt of pas de inspanning aan:
@@ -1763,7 +1763,7 @@ export default function StapOptimaliseren({
                   value={finetuneInstructie}
                   onChange={(e) => setFinetuneInstructie(e.target.value)}
                   rows={5}
-                  placeholder="Bijvoorbeeld: 'Verleng Optimaal naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'Schuif data/systemen volledig naar de laatste 2 jaar'."
+                  placeholder="Bijvoorbeeld: 'Verleng huidig budget naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'Schuif data/systemen volledig naar de laatste 2 jaar'."
                   className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-gray-500 mt-1">
