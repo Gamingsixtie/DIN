@@ -733,10 +733,10 @@ export async function POST(request: NextRequest) {
       label: "optimaal" | "plus20" | "min20" | "advies",
       jaarlijksBudget: number,
       fixedAantalJaren: number,
-      staggerMs: number
+      _staggerMs: number
     ): Promise<Scenario | null> {
-      // Stagger startup om rate-limit-burst bij parallelle calls te voorkomen
-      if (staggerMs > 0) await new Promise((r) => setTimeout(r, staggerMs));
+      // Stagger uitgeschakeld — alle 4 scenarios starten direct parallel om
+      // binnen Vercel's 60s timeout te blijven (anders +600ms voor advies-call).
       try {
         const finetuneArg = isFinetune
           ? { instructie: trimmedInstructie, vorigeScenario: prevScenarios?.[label] ?? null }
@@ -761,7 +761,7 @@ export async function POST(request: NextRequest) {
           ScenarioAISchema,
           systemPrompt,
           userMessage,
-          { maxTokens: 8192, retryDelayMs: 2000 }
+          { maxTokens: 5120, retryDelayMs: 1000 }
         );
         if (res.success) {
           // Forceer aantalJaren naar de server-berekende waarde —
@@ -840,51 +840,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vergelijking in aparte korte call — alleen als alle 4 succesvol
+    // Vergelijking — server-side template (geen extra AI-call) zodat we
+    // binnen Vercel's 60s timeout blijven. AI's motivatie zit al in elke
+    // scenario.samenvatting; deze tekst is een neutrale 4-scenario duiding.
     const allOk = optimaal && plus20 && min20 && advies;
     let vergelijking = "";
     if (allOk) {
-      const vergelijkingSystem = assembleSystemPrompt(
-        vergelijkingsPrompt(),
-        "cross-analyse",
-        undefined,
-        kibContext
-      );
-      const vergelijkingUserMsg = JSON.stringify(
-        {
-          huidigBudget: {
-            aantalJaren: optimaal.aantalJaren,
-            jaarlijksBudgetEuro: optimaal.jaarlijksBudgetEuro,
-            totaalGeraamdEuro: optimaal.totaalGeraamdEuro,
-          },
-          plus20: {
-            aantalJaren: plus20.aantalJaren,
-            jaarlijksBudgetEuro: plus20.jaarlijksBudgetEuro,
-            totaalGeraamdEuro: plus20.totaalGeraamdEuro,
-          },
-          min20: {
-            aantalJaren: min20.aantalJaren,
-            jaarlijksBudgetEuro: min20.jaarlijksBudgetEuro,
-            totaalGeraamdEuro: min20.totaalGeraamdEuro,
-          },
-          advies: {
-            aantalJaren: advies.aantalJaren,
-            jaarlijksBudgetEuro: advies.jaarlijksBudgetEuro,
-            totaalGeraamdEuro: advies.totaalGeraamdEuro,
-          },
-        },
-        null,
-        2
-      );
-      const vergelijkingRes = await callClaudeWithValidation(
-        VergelijkingSchema,
-        vergelijkingSystem,
-        vergelijkingUserMsg,
-        { maxTokens: 512 }
-      );
-      vergelijking = vergelijkingRes.success
-        ? vergelijkingRes.data.vergelijking
-        : `Huidig budget: ${optimaal.aantalJaren} jaar @ €${optimaal.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr. +20%: ${plus20.aantalJaren} jaar. −20%: ${min20.aantalJaren} jaar. Optimaal advies: ${advies.aantalJaren} jaar @ €${advies.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr.`;
+      const fmt = (n: number) => `€${n.toLocaleString("nl-NL")}`;
+      vergelijking =
+        `Huidig budget (${fmt(optimaal.jaarlijksBudgetEuro)}/jaar) heeft ${optimaal.aantalJaren} jaar nodig (totaal ${fmt(optimaal.totaalGeraamdEuro)}). ` +
+        `Met +20% budget (${fmt(plus20.jaarlijksBudgetEuro)}/jaar) loopt het in ${plus20.aantalJaren} jaar. ` +
+        `Met −20% budget (${fmt(min20.jaarlijksBudgetEuro)}/jaar) duurt het ${min20.aantalJaren} jaar. ` +
+        `Het advies-scenario (${fmt(advies.jaarlijksBudgetEuro)}/jaar, ${advies.aantalJaren} jaar — ${fmt(advies.totaalGeraamdEuro)} totaal) is de kortst haalbare looptijd binnen 3-5 jaar die nog binnen +40% boven huidig budget valt.`;
     } else {
       vergelijking = `Niet alle scenario's konden gegenereerd worden — gefaald: ${falend.join(", ")}.`;
     }
