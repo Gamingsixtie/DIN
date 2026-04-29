@@ -603,7 +603,7 @@ export const PlanningVoorstelSchema = z.object({
   toelichting: z.string().optional().default(""),
 });
 
-// --- Begrotingsadvies (stap 6 Optimaliseren) — 3 scenario's (optimaal/+20%/−20%) ---
+// --- Begrotingsadvies (stap 6 Optimaliseren) — 4 scenario's (optimaal/+20%/−20%/advies) ---
 export const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
@@ -625,7 +625,7 @@ export const InspanningBegrotingSchema = z.object({
 });
 
 export const BegrotingScenarioSchema = z.object({
-  label: z.enum(["optimaal", "plus20", "min20"]),
+  label: z.enum(["optimaal", "plus20", "min20", "advies"]),
   jaarlijksBudgetEuro: z.number(),
   aantalJaren: z.number(),
   totaalGeraamdEuro: z.number(),
@@ -647,6 +647,7 @@ export const BegrotingAdviesSchema = z.object({
     optimaal: BegrotingScenarioSchema.nullable(),
     plus20: BegrotingScenarioSchema.nullable(),
     min20: BegrotingScenarioSchema.nullable(),
+    advies: BegrotingScenarioSchema.nullable().optional(),
   }),
   vergelijking: z.string().optional().default(""),
   partialFailures: z.array(z.string()).optional().default([]),
@@ -680,7 +681,7 @@ export const DomeinInterneUrenSchema = z.object({
 });
 
 export const InterneUrenScenarioSchema = z.object({
-  scenarioLabel: z.enum(["optimaal", "plus20", "min20"]),
+  scenarioLabel: z.enum(["optimaal", "plus20", "min20", "advies"]),
   aantalJaren: z.number(),
   startJaar: z.number(),
   uurtariefGebruikt: z.number(),
@@ -705,13 +706,14 @@ export const Stap7InterneUrenSchema = z.object({
     optimaal: InterneUrenScenarioSchema.nullable(),
     plus20: InterneUrenScenarioSchema.nullable(),
     min20: InterneUrenScenarioSchema.nullable(),
+    advies: InterneUrenScenarioSchema.nullable().optional(),
   }),
   partialFailures: z.array(z.string()).optional().default([]),
 });
 
 // Totaaloverzicht (stap 8) — combineert stap 6 + stap 7
 export const ScenarioTotaalSchema = z.object({
-  scenarioLabel: z.enum(["optimaal", "plus20", "min20"]),
+  scenarioLabel: z.enum(["optimaal", "plus20", "min20", "advies"]),
   perJaar: z.array(z.object({
     jaar: z.number(),
     outOfPocket: z.number(),
@@ -728,8 +730,9 @@ export const Stap8TotaaloverzichtSchema = z.object({
     optimaal: ScenarioTotaalSchema.nullable(),
     plus20: ScenarioTotaalSchema.nullable(),
     min20: ScenarioTotaalSchema.nullable(),
+    advies: ScenarioTotaalSchema.nullable().optional(),
   }),
-  actiefScenario: z.enum(["optimaal", "plus20", "min20"]).optional(),
+  actiefScenario: z.enum(["optimaal", "plus20", "min20", "advies"]).optional(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({

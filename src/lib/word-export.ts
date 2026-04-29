@@ -63,10 +63,11 @@ function formatGetal(n: number): string {
   return new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 }).format(n);
 }
 
-const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20", string> = {
-  optimaal: "Optimaal",
+const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20" | "advies", string> = {
+  optimaal: "Huidig budget",
   plus20: "+20% scenario",
   min20: "\u221220% scenario",
+  advies: "Optimaal (advies)",
 };
 
 // --- Numbering State ---

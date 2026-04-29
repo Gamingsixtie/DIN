@@ -3,16 +3,17 @@
 import React, { useState, useMemo } from "react";
 import type { DINSession, Stap4Result, BegrotingAdvies, Stap7InterneUren } from "@/lib/types";
 
-type ScenarioLabel = "optimaal" | "plus20" | "min20";
+type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
 
 const SCENARIO_META: Array<{
   key: ScenarioLabel;
   label: string;
   kleur: { banner: string; tekst: string; accent: string };
 }> = [
-  { key: "optimaal", label: "Optimaal", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]" } },
+  { key: "optimaal", label: "Huidig budget", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]" } },
   { key: "plus20", label: "+20% (sneller)", kleur: { banner: "bg-green-800", tekst: "text-green-100", accent: "text-green-800" } },
   { key: "min20", label: "−20% (langzamer)", kleur: { banner: "bg-amber-800", tekst: "text-amber-100", accent: "text-amber-800" } },
+  { key: "advies", label: "Optimaal (advies)", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800" } },
 ];
 
 type PerScenarioTotaal = {
@@ -85,6 +86,7 @@ export default function StapTotaaloverzicht({
       optimaal: combineScenario("optimaal"),
       plus20: combineScenario("plus20"),
       min20: combineScenario("min20"),
+      advies: combineScenario("advies"),
     };
   }, [begroting, interneUren]);
 
@@ -117,7 +119,7 @@ export default function StapTotaaloverzicht({
 
       {/* Scenario-vergelijkingsbanner — altijd 3 kaarten */}
       <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-[#003366] mb-3">Totaaloverzicht — 3 scenario&apos;s</h4>
+        <h4 className="text-sm font-semibold text-[#003366] mb-3">Totaaloverzicht — 4 scenario&apos;s</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SCENARIO_META.map((sv) => {
             const t = totalen[sv.key];
