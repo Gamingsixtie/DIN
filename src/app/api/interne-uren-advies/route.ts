@@ -131,9 +131,16 @@ function scenarioPrompt(
   vastgesteldeUrenPerInspanning?: VastgesteldeUrenInspanning[],
   aantalJarenOptimaal?: number
 ): string {
-  // Schaal vastgestelde uren (totaal over optimaal-scenario) naar dit scenario obv jaar-ratio
-  const ratioVoorDitScenario =
-    aantalJarenOptimaal && aantalJarenOptimaal > 0 ? scenarioData.aantalJaren / aantalJarenOptimaal : 1;
+  // Werklast-benadering: totaal vastgestelde uren is GELIJK voor elk scenario.
+  // De werklast (CRM-bouw, curriculumontwerp, training, cultuurinterventie) is
+  // eenmalig en niet evenredig met looptijd. Korter scenario = intensiever per
+  // jaar, langer scenario = uitgesmeerder per jaar — totaal blijft hetzelfde.
+  // Dit sluit aan bij stap 6 begrotings-totalen waar eenmalige posten ook
+  // niet schalen met aantalJaren (alleen structurele kosten doen dat).
+  const ratioVoorDitScenario = 1;
+  // Behoud `aantalJarenOptimaal` parameter voor signature-compat; ratio is
+  // nu altijd 1, dus de oorspronkelijke berekening is uitgeschakeld.
+  void aantalJarenOptimaal;
   const heeftVastgestelde = vastgesteldeUrenPerInspanning && vastgesteldeUrenPerInspanning.length > 0;
   const tag =
     scenarioLabel === "optimaal"
@@ -187,8 +194,11 @@ ${
 
 ${
   heeftVastgestelde
-    ? `**VASTGESTELDE UREN PER ROL PER INSPANNING (HARD INPUT VAN GEBRUIKER) — gebruik dit als BUDGET; verdeel het over de jaren obv fasering uit stap 6.**
-De gebruiker heeft via een vragen-flow per inspanning per rol een uren-totaal vastgesteld voor het OPTIMAAL scenario (${aantalJarenOptimaal ?? scenarioData.aantalJaren} jaar). Voor DIT scenario (${scenarioData.aantalJaren} jaar) schaal je proportioneel met factor ${ratioVoorDitScenario.toFixed(3)} (= dit_scenario_jaren / optimaal_jaren). De totaaluren per rol per inspanning over alle jaren in DIT scenario MOET gelijk zijn aan vastgesteldUrenTotaal × ${ratioVoorDitScenario.toFixed(3)} (afgerond).
+    ? `**VASTGESTELDE UREN PER ROL PER INSPANNING (HARD INPUT VAN GEBRUIKER) — werklast-benadering: het TOTAAL is gelijk voor elk scenario, alleen de verdeling over jaren verschilt.**
+
+**Logica:** de werklast (CRM-bouw, curriculumontwerp, leiderschapsworkshops, gespreksvaardigheidstraining) is grotendeels eenmalig en niet evenredig met looptijd. Dit scenario heeft ${scenarioData.aantalJaren} jaar; bij minder jaren werk je intensiever per jaar, bij meer jaren verspreidt het werk zich. Dit sluit aan bij stap 6 begroting waar eenmalige out-of-pocket-kosten ook niet schalen met aantalJaren.
+
+**Verplicht:** totaal-uren per rol per inspanning over alle ${scenarioData.aantalJaren} jaren MOET exact gelijk zijn aan het door de gebruiker vastgestelde \`urenTotaal\` (ongeacht aantalJaren).
 
 ${vastgesteldeUrenPerInspanning!
         .map(
@@ -196,15 +206,15 @@ ${vastgesteldeUrenPerInspanning!
             `[${i.groepId}] ${i.inspanningTitel} (${i.domein}):\n${i.rollen
               .map(
                 (r) =>
-                  `  - ${r.functieNaam} (id: ${r.functieId}): ${r.urenTotaal}u optimaal → ${Math.round(
-                    r.urenTotaal * ratioVoorDitScenario
-                  )}u in dit scenario | onderbouwing: ${r.onderbouwing}`
+                  `  - ${r.functieNaam} (id: ${r.functieId}): ${r.urenTotaal}u totaal (verdeel over ${scenarioData.aantalJaren} jaar) | onderbouwing: ${r.onderbouwing}`
               )
               .join("\n")}`
         )
         .join("\n\n")}
 
-**Verdeel deze uren OVER DE JAREN per rol obv de fasering** (voorbereiding lager, uitrol hoger, borging matig). Geen rollen toevoegen die NIET in deze lijst staan voor die inspanning. Geen rollen weglaten. Activiteit-tekst per jaar mag je zelf maken obv stap 6.
+**Verdeel deze uren OVER DE JAREN per rol obv de stap-6 fasering** (voorbereiding lager, uitrol hoger, borging matig). Bij korter scenario (bv. 4 jaar): zwaardere middenjaren. Bij langer scenario (bv. 10 jaar): geleidelijker uitgesmeerd. Geen rollen toevoegen die NIET in deze lijst staan voor die inspanning. Geen rollen weglaten. Activiteit-tekst per jaar mag je zelf maken obv stap 6.
+
+**In je motivatie per domein BENOEM expliciet:** "totaal X uren werklast (gelijk in elk scenario), verdeeld over ${scenarioData.aantalJaren} jaar conform stap-6 fasering — bij dit scenario [intensiever/uitgesmeerder] dan andere scenarios omdat de looptijd [korter/langer] is."
 `
     : ""
 }**Taak — lever EXACT dit JSON-object voor dit ene scenario:**
@@ -459,7 +469,7 @@ export async function POST(request: NextRequest) {
         totalenPerJaar,
         totaalUren,
         totaalKosten,
-        samenvatting: `${totaalUren.toLocaleString("nl-NL")} interne uren × ~€${startTarief}/u = € ${totaalKosten.toLocaleString("nl-NL")} over ${ctx.aantalJaren} jaar.`,
+        samenvatting: `${totaalUren.toLocaleString("nl-NL")} interne uren × ~€${startTarief}/u = € ${totaalKosten.toLocaleString("nl-NL")} over ${ctx.aantalJaren} jaar. Het totaal is werklast-gebaseerd en daarom gelijk aan dat van de andere scenarios — alleen de jaarlijkse verdeling verschilt: korter scenario = intensiever per jaar, langer scenario = uitgesmeerder per jaar. Dit sluit aan bij stap 6 begroting waar eenmalige posten (CRM-bouw, curriculum-ontwerp, leiderschapsworkshops) ook niet schalen met aantalJaren.`,
       };
     }
 
