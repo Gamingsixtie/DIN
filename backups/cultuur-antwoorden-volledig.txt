@@ -1,0 +1,229 @@
+CULTUUR — Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren
+================================================================================
+
+VRAAG 1 (key: deelnemende_leidinggevenden, eenheid: personen per sector)
+Hoeveel leidinggevenden en sectormanagers nemen deel aan het programma — per sector een schatting of range?
+Toelichting: Denk aan: sectormanagers PO, VO en Zakelijk, teamleiders, MT-leden als rolmodel/sponsor. Een indicatie per sector helpt om de totale programmaomvang te ramen. Antwoord zoals 'circa 5 PO, 4 VO, 3 Zakelijk + 3 MT' werkt prima.
+
+---ANTWOORD---
+9 leidinggevenden totaal — bewust een kleine, hoogwaardige groep om
+diepgang en intervisie-kwaliteit mogelijk te maken. Cross-sectorale
+leerkringen vereisen overzichtelijke groepsgrootte.
+
+  • Directie / cross-sectoraal MT (2):
+    – Directeur BV
+    – Manager Klantcontact
+
+  • Sectormanagement + IT-vertegenwoordiging (4):
+    – Sectormanager PO
+    – Sectormanager VO
+    – Sectormanager Professionals
+    – Manager Data & Technologie
+
+  • Teamleiders met klantcontact-verantwoordelijkheid (3):
+    – Teamleider Trainingen
+    – Teamleider Klantenservice
+    – Teamleider Multimedia Support
+
+Plus 2 HR-medewerkers in een uitvoerende/coördinerende rol — Yara als
+inspanningsleider en een tweede HR-medewerker voor competentieprofielen
+en HR-cyclus. Totale betrokkenheid: 11 personen waarvan 9 als deelnemer
+in het programma.
+
+--------------------------------------------------------------------------------
+
+VRAAG 2 (key: programma_looptijd, eenheid: maanden / kwartalen)
+Wat is de verwachte looptijd van het leiderschapsprogramma — een schatting in maanden of kwartalen?
+Toelichting: Denk aan: een intensief traject van 3 maanden, een jaarprogramma met terugkomdata, of een doorlopend intervisiemodel. De looptijd bepaalt hoeveel sessiedagen, reiskosten en externe begeleiding worden ingepland.
+
+---ANTWOORD---
+Doorlopend traject met afnemende intensiteit, niet één compact blok.
+Reden: managers hebben een drukke agenda, en cultuurverandering is een
+van de meest complexe maar minst tastbare onderdelen van een programma —
+juist omdat het ongrijpbaar is, vraagt het langdurige aandacht en herhaling.
+
+Houd de Kotter/ADKAR-fasering aan, met logische sessie-aantallen per fase
+om effectiviteit te waarborgen zonder de agenda's te overbelasten:
+
+  FASE 1 — Urgentiebesef & Coalitievorming (2026, 4 contactmomenten)
+    1× kick-off plenaire sessie (3u) — gedeeld waardenkader vaststellen
+    1× nulmeting outside-in gedrag (vragenlijst + observatie, 1u per
+        deelnemer + 360°-input medewerkers)
+    1× MT-commitment-sessie + opstellen gedragscontract (3u)
+    1× plenaire sessie 1 — urgentie en coalitievorming (3u)
+
+  FASE 2 — Waardenverankering & Rolmodel-gedrag (2027, 8 contactmomenten)
+    4× plenaire leiderschapssessies à 3u — bewustwording → acceptatie →
+        adoptie → verankering
+    4× intervisie-/klantbezoek-bijeenkomsten à 3u — cross-sectorale
+        leerkringen PO–VO–Zakelijk waarin leidinggevenden in elkaars
+        klantpraktijk meelopen
+    Parallel: HR-aanpassing competentieprofielen (outside-in als formeel
+        criterium in beoordelings- en functioneringscyclus)
+
+  FASE 3 — Adoptie & Borging HR-cyclus (2028, 1–2 contactmomenten)
+    1× jaarlijkse intervisiesessie (3u) — borgings-check + bijstelling
+    Continu: 360°-feedbackcyclus, monitoring outside-in indicatoren in
+        leren-en-presteren-gesprekken, evaluatie-terugkoppeling MT
+
+  FASE 4 — Continu verbeteren (2029, lichte borging)
+    1× jaarlijkse evaluatie + 360°-meting versus nulmeting 2026
+    Bijstelling competentieprofielen waar nodig + onboarding nieuwe
+        leidinggevenden
+
+--------------------------------------------------------------------------------
+
+VRAAG 3 (key: sessiedagen_en_format, eenheid: dagen / type sessies)
+Hoeveel sessiedagen zijn er voorzien (minimaal 5 zijn al benoemd als randvoorwaarde) — en hoe zien die er globaal uit? Denk aan plenaire programmadag, klantbezoek, intervisie, aparte VO/PO/Zakelijk-leerkringen.
+Toelichting: Het format bepaalt zowel de externe begeleidingskosten als de interne agenda-impact. Een omschrijving zoals 'mix van 3 plenaire dagen, 4 intervisies en 2 klantbezoeken per deelnemer' is voldoende.
+
+---ANTWOORD---
+zie vraag 2 voor de context 
+
+--------------------------------------------------------------------------------
+
+VRAAG 4 (key: externe_begeleider, eenheid: € dagprijs of totaalbudget)
+Is er al zicht op het type externe begeleider — en wat is een ruwe inschatting van de kosten of de dagprijs? Een range of 'weten we nog niet' is ook bruikbaar.
+Toelichting: De randvoorwaarden noemen een externe begeleider met ervaring in gedragsverandering en leiderschapsontwikkeling in multi-sector-context. Denk aan: één vaste bureau-partner voor het hele traject, losse coaches per sessie, of een combinatie. Dagprijzen voor dit type werk liggen doorgaans tussen €1.500 en €4.000.
+
+---ANTWOORD---
+Ja — externe begeleider met aantoonbare expertise in:
+
+  • Gedragsverandering (Kotter, ADKAR, of vergelijkbare methodiek)
+  • Leiderschapsontwikkeling in multi-sector context
+  • Outside-in cultuur / klantgerichtheid in B2B + onderwijs, met
+    specifieke ervaring in een bureaucratische structuur zoals Cito
+    (NPO/semipubliek karakter, hiërarchische besluitvorming, schaarse
+    capaciteit naast lopend werk)
+
+ 
+Inzet: circa 120 externe uren (≈ 15 dagen) verdeeld over plenaire
+sessies, intervisie-faciliteringen en gedragscontract-opstelling.
+
+RISICO: bij executive-niveau (gespecialiseerde leiderschapscoach) kan
+het tarief fors oplopen. Mitigatie:
+  • Vaste prijs per fase contracteren (geen uurtarief op nacalculatie)
+  • Eerst klein referentie-traject doorlopen met de partner voor
+    commitment over de volle 12–18 maanden wordt aangegaan
+
+Vereiste: partner moet aansluiten op de Cito-cultuurprioriteiten (lef,
+eigenaarschap, planmatig werken, reflectie) en niet alleen generieke
+leiderschapstools aanbieden.
+
+--------------------------------------------------------------------------------
+
+VRAAG 5 (key: klantbezoeken_en_reiskosten, eenheid: bezoeken per deelnemer + € schatting reis/locatie)
+Hoeveel klantbezoeken zijn er per deelnemer voorzien als onderdeel van het programma, en zijn er reiskosten of locatiekosten te verwachten?
+Toelichting: Klantbezoeken zijn expliciet benoemd als programma-element (ritualiseren eigenaarschap). Denk aan: reiskosten, eventuele externe locaties voor cross-sectorale leerkringen, of overnachtingen bij meerdaagse sessies.
+
+---ANTWOORD---
+klantbezoeken nader te bepalen.  Trainingen worden op Cito Arnhem gegevven 
+
+--------------------------------------------------------------------------------
+
+VRAAG 6 (key: verankering_hrm_cyclus, eenheid: € of uren HR-aanpassing)
+Zijn er kosten verbonden aan het verankeren van outside-in gedrag in de beoordelings- en functioneringscyclus — zoals aanpassen van HR-instrumenten, begeleiding bij implementatie of communicatie? Zo ja, een ruwe schatting of omschrijving?
+Toelichting: De randvoorwaarden stellen verankering in de HRM-cyclus als voorwaarde vóór programmastart, zowel voor leidinggevenden als medewerkers. Dit kan kosten meebrengen voor aanpassing van formulieren, communicatie, HR-advies of tooling.
+
+---ANTWOORD---
+utside-in gedrag wordt structureel verankerd via drie HR-instrumenten:
+
+  1. Competentieprofielen voor de 9 leidinggevenden bijgewerkt met
+     outside-in als formeel criterium (analyse + schrijven + afstemming
+     HR-cyclus + validatie met sectormanagers — ca. 40 uur per
+     HR-medewerker in 2027 = 80 uur totaal voor 2 HR-personen).
+
+  2. Outside-in als beoordelingscriterium in de jaarlijkse leren-en-
+     presteren-gesprekken (geen aparte cyclus — onderdeel van bestaande
+     gesprekkencyclus).
+
+  3. 360°-feedbackcyclus jaarlijks: medewerkers beoordelen hun
+     leidinggevende op outside-in gedrag (samenwerkingsdialoog, ruimte
+     voor klantgericht handelen, voorbeeldgedrag).
+HR-projectinzet + ontwerp instrumenten + integratie HR-systeem+ eventueel  integratie met bestaande Leiderschapsprogramma)  Structurele HR-beheerlast (onderhoud competentieprofielen, monitoring gedragsindicatoren in
+  leren-en-presteren-gesprekken, evaluatierapportage MT) Trekker: HR (Yara als inspanningsleider). Geen aparte FTE — past binnen
+bestaande formatie HR.
+
+--------------------------------------------------------------------------------
+
+VRAAG 7 (key: interne_rollen, eenheid: rol-namen)
+Welke Cito-rollen verwacht je nodig voor deze inspanning? Denk aan: HR Business Partner (Yara als inspanningsleider), Sectormanager PO/VO/Zakelijk, MT-leden als sponsor/rolmodel, Projectmanager, Procesmanager, Communicatieadviseur (voor verankering in HRM-cyclus), eventueel Trainer/Adviseur intern.
+Toelichting: Dit wordt gebruikt voor de interne-uren-planning. Een opsomming van rollen — ook als niet alle uren al bekend zijn — is voldoende als startpunt.
+
+---ANTWOORD---
+igenaar: Het MT
+Inspanningsleider: Programmamanager (Yara — HR — coördineert programma)
+
+Stuurgroep en plenaire deelnemers (9):
+  • Directeur BV heet een belagnrijke rol hierin 
+  • Manager Klantcontact
+  • Manager Data & Technologie
+  • Sectormanager PO
+  • Sectormanager VO
+  • Sectormanager Professionals
+  • Teamleider Trainingen
+  • Teamleider Klantenservice
+  • Teamleider Multimedia Support
+
+HR-uitvoering (2 personen):
+  • HR-medewerker 1 (Yara als inspanningsleider) — programma-coördinatie,
+    contractering externe begeleider, MT-rapportage, HR-cyclus
+  • HR-medewerker 2 — competentieprofielen, monitoring leren-en-presteren-
+    gesprekken, 360°-feedbackcyclus
+
+
+--------------------------------------------------------------------------------
+
+VRAAG 8 (key: interne_uren_per_rol, eenheid: uren/jaar per rol)
+Hoeveel interne uren per rol per jaar verwacht je — een range of ruwe schatting per rol mag? Denk aan: voorbereidingstijd per sessie, afstemming met externe begeleider, klantbezoekcoördinatie, MT-sponsorrol, HRM-aanpassing.
+Toelichting: Interne uren zijn naast externe kosten een belangrijke kostenpost, zeker bij een programma waar MT-deelname en HR Business Partner-regie centraal staan. Antwoorden zoals 'Yara circa 200 uur/jaar, MT-leden 40 uur/jaar per persoon' zijn prima.
+
+---ANTWOORD---
+
+Rol	Uren	€/u	Kosten
+HR(Custom)	120	€74	€ 8.880
+Directeur BV(Directie)	16	€74	€ 1.184
+Manager Klantcontact(Klantcontact)	16	€74	€ 1.184
+Sectormanager PO(Sector PO)	16	€74	€ 1.184
+Sectormanager VO(Sector VO)	16	€74	€ 1.184
+Sectormanager Professionals(Sector Professionals)	16	€74	€ 1.184
+Manager Data & Technologie(Data & Technologie)	16	€74	€ 1.184
+2027
+
+Uitvoering vier plenaire sessies en intervisie/klantbezoek-bijeenkomsten, cross-sectorale leerkringen PO-VO-Zakelijk faciliteren, outside-in gedrag integreren in HR-competentieprofielen en beoordelingscyclus.
+
+428 u
+
+€ 32.956
+
+Rol	Uren	€/u	Kosten
+HR(Custom)	200	€77	€ 15.400
+Directeur BV(Directie)	38	€77	€ 2.926
+Manager Klantcontact(Klantcontact)	38	€77	€ 2.926
+Sectormanager PO(Sector PO)	38	€77	€ 2.926
+Sectormanager VO(Sector VO)	38	€77	€ 2.926
+Sectormanager Professionals(Sector Professionals)	38	€77	€ 2.926
+Manager Data & Technologie(Data & Technologie)	38	€77	€ 2.926
+2028
+
+HR-beheerlast: onderhoud competentieprofielen, monitoring outside-in gedragsindicatoren in leren-en-presteren-gesprekken en evaluatie-terugkoppeling naar MT.
+
+60 u
+
+€ 4.860
+
+Rol	Uren	€/u	Kosten
+HR(Custom)	60	€81	€ 4.860
+2029
+
+Tweede HR-beheercyclus: bijstelling gedragsindicatoren op basis van programmametingen, borging in onboarding nieuwe leidinggevenden en afsluitende effectmeting.
+
+36 u
+
+€ 3.060
+
+Rol	Uren	€/u	Kosten
+HR(Custom)	36	€85	€ 3.060
+totaal aantal uur 740 uur 
+
+--------------------------------------------------------------------------------
