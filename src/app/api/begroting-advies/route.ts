@@ -216,13 +216,11 @@ HARDE REGELS:
      - **Uitrol** (middenjaren): typisch 50-65% van de totaalkosten — de zwaarste fase. Werk: trainingen aan volle breedte, CRM-bouw + integratie, proces-implementatie.
      - **Borging** (laatste jaar(en)): typisch 15-25% — verankering, evaluatie, doorlopende ondersteuning.
    - Outside-in geldt voor SPEND-zwaartepunt en RANKING (rank 1-4), NIET voor wanneer iets begint. Cultuur en mens hebben hun zwaartepunt vroeg (uitrol-fase eerder), data/systemen en processen midden-tot-laat (uitrol verder in tijd) — maar ze starten allemaal in jaar 1 met voorbereiding.
-6. **BUDGET-VERHOUDING & RANKING — gebaseerd op kosten-omvang én cruciale rol voor outside-in transformatie:**
-   - rank 1 = **Data/Systemen** (CRM, tooling — HOOGSTE budget-aandeel; technisch fundament en grootste eenmalige post)
-   - rank 2 = **Cultuur** (#2 budget-aandeel — draagvlak en leiderschap zijn cruciaal; zonder cultuurverandering wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip)
-   - rank 3 = **Mens** (#3 budget-aandeel — outside-in gespreksvaardigheid internaliseert wat cultuur en CRM mogelijk maken)
-   - rank 4 = **Processen** (#4 / kleinste budget-aandeel — borging als laatste fase: standaardiseren wat mens, data en cultuur al hebben opgebouwd)
-   **Rationale (in \`prioriteitAdvies\` expliciet uitleggen):** CRM is de duurste post (eenmalig + structureel) en het fundament; cultuur is de #2 grootste hefboom want zonder draagvlak verzaakt elke andere investering; mens komt daarna omdat gespreksvaardigheid de cultuurverandering naar de klant vertaalt; processen krijgen het minste omdat ze borgings-werk zijn.
-   De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Ranking ≠ "begint pas later" — alle 4 domeinen starten parallel in jaar 1. Volgorde van domeinen in de lijst (display): **Data/Systemen → Cultuur → Mens → Processen**.
+6. **RANKING — gebaseerd op totaalEuro descending; CRM altijd #1:**
+   - rank 1 = **Data/Systemen** ALTIJD (grootste budget — CRM is technisch fundament en grootste eenmalige post; zonder werkend CRM blijft outside-in onuitvoerbaar op schaal).
+   - rank 2-4 = de overige drie domeinen op basis van \`totaalEuro\` descending. In Cito-context betekent dit dat cultuur in € klein blijft (dossier-bedrag van 9 leidinggevenden + extern), terwijl mens en processen iets groter zijn — dus ranking volgt €.
+   - **In \`prioriteitAdvies\` MOET je expliciet uitleggen dat cultuur in EURO klein is (omdat de cultuur-Q&A 9 leidinggevenden bedient, 4-jarige cyclus) maar in BELANG #2 staat: zonder cultuurverandering en draagvlak wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.** Eurogrootte ≠ inhoudelijk belang — beide moeten in de motivatie staan, separaat.
+   - De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.
 7. **Realistische fasering per inspanning + activiteits-tekst per jaar — ALLE DOMEINEN STARTEN PARALLEL IN JAAR 1:**
    - Cultuur: START jaar 1 met piek (bewustwording, leiderschapsworkshops), afnemend (borging) → meest budget jaar 1-2
    - Mens: START jaar 1 (kick-off training + ontwerp curricula), piek middenjaren (training aan volle breedte), borging eind → over alle jaren verdeeld
@@ -498,6 +496,54 @@ export async function POST(request: NextRequest) {
         ...insp,
         verdelingPerJaar: insp.verdelingPerJaar.map((v) => ({ ...v })),
       }));
+
+      // SCALE-UP GUARD: schaal elke inspanning naar dossier-mid als AI
+      // eronder is gebleven. Voorkomt dossier-tekorten in scenarios met
+      // ruime aantalJaren (huidig budget, min20). Verspreidt het tekort
+      // proportioneel over de jaren zodat fasering behouden blijft.
+      // Voor 'advies'-scenario (vaste 4 jaar) waar mid-totaal exact in cap
+      // past, doet deze stap meestal niets — AI zit daar al op mid.
+      for (const insp of totalGuardedInsps) {
+        const ramingMatch = ramingenPerInsp.find(
+          (r) =>
+            r.titel === insp.inspanningTitel ||
+            r.titel.toLowerCase() === insp.inspanningTitel.toLowerCase()
+        );
+        if (!ramingMatch || ramingMatch.raming.unparsed) continue;
+        const huidigTotaal = insp.verdelingPerJaar.reduce(
+          (s, v) => s + (v.euro ?? 0),
+          0
+        );
+        const structureleJaren = Math.max(0, ai.aantalJaren - 1);
+        const doelTotaal =
+          ramingMatch.raming.eenmaligMid +
+          ramingMatch.raming.structureelMidPerJr * structureleJaren;
+        const minTotaal =
+          ramingMatch.raming.eenmaligLow +
+          ramingMatch.raming.structureelLowPerJr * structureleJaren;
+        if (doelTotaal === 0 || minTotaal === 0) continue;
+        // Acceptabele band: ≥ 95% × min, geen scale-up nodig
+        if (huidigTotaal >= minTotaal * 0.95) continue;
+        const factor = huidigTotaal > 0 ? doelTotaal / huidigTotaal : 0;
+        if (huidigTotaal > 0 && factor > 1) {
+          // Proportioneel ophogen, afronden op duizend
+          for (const v of insp.verdelingPerJaar) {
+            v.euro = Math.round(((v.euro ?? 0) * factor) / 1000) * 1000;
+          }
+          console.log(
+            `[begroting-advies] scale-up ${insp.inspanningTitel}: €${huidigTotaal.toLocaleString("nl-NL")} → ~€${doelTotaal.toLocaleString("nl-NL")} (factor ${factor.toFixed(2)})`
+          );
+        } else if (huidigTotaal === 0) {
+          // AI gaf alle jaren €0: verdeel mid evenredig
+          const perJaar = Math.round(doelTotaal / insp.verdelingPerJaar.length / 1000) * 1000;
+          for (const v of insp.verdelingPerJaar) {
+            v.euro = perJaar;
+          }
+          console.log(
+            `[begroting-advies] scale-up van €0 ${insp.inspanningTitel}: spread €${doelTotaal} over ${insp.verdelingPerJaar.length} jaar`
+          );
+        }
+      }
 
       // GUARD: overschrijding reduceren.
       // Als een jaar > jaarlijksBudget, shift het teveel naar het laatste jaar.
