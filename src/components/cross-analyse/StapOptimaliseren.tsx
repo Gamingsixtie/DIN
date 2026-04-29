@@ -145,7 +145,7 @@ export default function StapOptimaliseren({
   ];
 
   type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
-  type ScenarioLabel = "optimaal" | "plus20" | "min20";
+  type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
   type InspanningBegroting = {
     inspanningTitel: string;
     groepId?: string;
@@ -181,6 +181,12 @@ export default function StapOptimaliseren({
     uitlegMd: string;
     meestKostbareInspanning?: { titel: string; eenmaligLow: number; eenmaligHigh: number };
   };
+  type OptimaalOptie = {
+    jaren: number;
+    totaalEuro: number;
+    benodigdJaarlijks: number;
+    pctVerschilTovHuidig: number;
+  };
   type DrieScenarioAdvies = {
     jaarlijksBudgetBasis: number;
     startJaar: number;
@@ -189,6 +195,7 @@ export default function StapOptimaliseren({
       optimaal: Scenario | null;
       plus20: Scenario | null;
       min20: Scenario | null;
+      advies?: Scenario | null;
     };
     vergelijking: string;
     partialFailures?: string[];
@@ -197,6 +204,7 @@ export default function StapOptimaliseren({
       optimaal: DossierValidatieScenario;
       plus20: DossierValidatieScenario;
       min20: DossierValidatieScenario;
+      advies?: DossierValidatieScenario;
     };
     dossierTotalen?: {
       totaalLowOverGekozenJaren: number;
@@ -205,6 +213,8 @@ export default function StapOptimaliseren({
       minOptimaalJaren: number;
       minOptimaalCapped: boolean;
     };
+    adviesKeuze?: OptimaalOptie;
+    optimaalOpties?: OptimaalOptie[];
   };
   const [begrotingAdvies, setBegrotingAdvies] = useState<DrieScenarioAdvies | null>(null);
 
@@ -1461,6 +1471,16 @@ export default function StapOptimaliseren({
                 kaart: "border-amber-200 bg-amber-50",
               },
             },
+            {
+              key: "advies",
+              label: "Optimaal (advies)",
+              kleur: {
+                banner: "bg-purple-800",
+                tekst: "text-purple-100",
+                accent: "text-purple-800",
+                kaart: "border-purple-300 bg-purple-50",
+              },
+            },
           ];
           const partialFailures = begrotingAdvies.partialFailures ?? [];
           const advies = begrotingAdvies.budgetAdvies;
@@ -1529,7 +1549,7 @@ export default function StapOptimaliseren({
               {/* Vergelijkingsbanner — 3 compact-kaartjes */}
               <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-[#003366] mb-3">Scenario-vergelijking</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {scenarioVolgorde.map((sv) => {
                     const s = begrotingAdvies.scenarios[sv.key];
                     if (!s) {

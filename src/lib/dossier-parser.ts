@@ -173,6 +173,43 @@ export function berekenMinimumJaren(
 }
 
 /**
+ * Genereer voor [minJaren..maxJaren] een set opties met benodigd budget per
+ * jaar. Wordt gebruikt voor het 'Optimaal' scenario waar de AI kiest welke
+ * looptijd het meest realistisch is gegeven de aard van de inspanningen
+ * (cultuurverandering vraagt minimaal ~3 jaar, IT-bouw kan in 2-3, etc).
+ */
+export interface OptimaalOptie {
+  jaren: number;
+  totaalEuro: number;
+  benodigdJaarlijks: number;
+  pctVerschilTovHuidig: number;
+}
+
+export function berekenOptimaalOpties(
+  ramingen: ParsedDossierRaming[],
+  huidigJaarlijksBudget: number,
+  minJaren: number = 3,
+  maxJaren: number = 5
+): OptimaalOptie[] {
+  const opties: OptimaalOptie[] = [];
+  for (let n = minJaren; n <= maxJaren; n++) {
+    const totaal = totaalBenodigdBudget(ramingen, n - 1, "mid");
+    const benodigdJaarlijks = Math.ceil(totaal / n / 1000) * 1000;
+    const pct =
+      huidigJaarlijksBudget > 0
+        ? Math.round(((benodigdJaarlijks - huidigJaarlijksBudget) / huidigJaarlijksBudget) * 100)
+        : 0;
+    opties.push({
+      jaren: n,
+      totaalEuro: totaal,
+      benodigdJaarlijks,
+      pctVerschilTovHuidig: pct,
+    });
+  }
+  return opties;
+}
+
+/**
  * Genereer een bondige Nederlandstalige uitleg over budget-haalbaarheid.
  * Wordt getoond als banner als optimaal-scenario gecapt zou worden of als
  * jaarlijksBudget onvoldoende is om binnen redelijke termijn af te ronden.

@@ -6,7 +6,9 @@ import {
   berekenMinimumJaren,
   totaalBenodigdBudget,
   budgetAdvies as berekenBudgetAdvies,
+  berekenOptimaalOpties,
   type ParsedDossierRaming,
+  type OptimaalOptie,
 } from "@/lib/dossier-parser";
 import { z } from "zod";
 
@@ -61,7 +63,7 @@ const TotaalPerJaarSchema = z.object({
 
 // AI-output schema — alleen wat AI nodig heeft te leveren.
 const ScenarioAISchema = z.object({
-  label: z.enum(["optimaal", "plus20", "min20"]),
+  label: z.enum(["optimaal", "plus20", "min20", "advies"]),
   jaarlijksBudgetEuro: z.number().optional(),
   aantalJaren: z.number().int().min(1).max(15),
   inspanningen: z.array(InspanningBegrotingSchema),
@@ -73,7 +75,7 @@ type ScenarioAI = z.infer<typeof ScenarioAISchema>;
 
 // Volle Scenario-shape (na server-enrichment) — wat we naar de client sturen.
 type Scenario = {
-  label: "optimaal" | "plus20" | "min20";
+  label: "optimaal" | "plus20" | "min20" | "advies";
   jaarlijksBudgetEuro: number;
   aantalJaren: number;
   totaalGeraamdEuro: number;
@@ -99,7 +101,7 @@ type Scenario = {
 };
 
 function scenarioPrompt(
-  label: "optimaal" | "plus20" | "min20",
+  label: "optimaal" | "plus20" | "min20" | "advies",
   jaarlijksBudget: number,
   fixedAantalJaren: number,
   dossierMetaTekst: string,
@@ -107,10 +109,12 @@ function scenarioPrompt(
 ): string {
   const intro =
     label === "optimaal"
-      ? "SCENARIO OPTIMAAL — het jaarlijks budget van de gebruiker ongewijzigd."
+      ? "SCENARIO HUIDIG BUDGET — gebruiker's jaarlijks budget ongewijzigd; aantal jaren volgt uit de dossiers."
       : label === "plus20"
       ? "SCENARIO +20% — 20% méér budget per jaar; daardoor minder jaren nodig."
-      : "SCENARIO −20% — 20% mínder budget per jaar; daardoor meer jaren nodig.";
+      : label === "min20"
+      ? "SCENARIO −20% — 20% mínder budget per jaar; daardoor meer jaren nodig."
+      : "SCENARIO OPTIMAAL (ADVIES) — server koos het kortste haalbare aantal jaren binnen [3,5] dat nog bekostbaar is voor Cito (max ~+40% boven huidig budget). Dit is het AI-aanbevolen tempo: snel genoeg om momentum te houden, langzaam genoeg om verandering te laten landen.";
 
   const finetuneBlock = finetune
     ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie. **aantalJaren staat vast — pas die NIET aan.**\n`
@@ -239,19 +243,22 @@ const VergelijkingSchema = z.object({
 });
 
 function vergelijkingsPrompt(): string {
-  return `Je geeft een korte vergelijking (2-3 zinnen, Nederlands) van drie begrotingsscenario's die ALLEMAAL hetzelfde einddoel bereiken, maar verschillen in tempo.
+  return `Je geeft een korte vergelijking (3-4 zinnen, Nederlands) van VIER begrotingsscenario's die ALLEMAAL hetzelfde einddoel bereiken, maar verschillen in tempo en jaarlijks budget.
 
 Input JSON:
 {
-  "optimaal": { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro },
-  "plus20":   { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro },
-  "min20":    { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro }
+  "huidigBudget": { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro },
+  "plus20":       { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro },
+  "min20":        { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro },
+  "advies":       { aantalJaren, jaarlijksBudgetEuro, totaalGeraamdEuro }
 }
 
-Output:
-{ "vergelijking": "<2-3 zinnen die de 3 scenario's duiden: hoeveel jaar verschil, wat dat betekent voor tempo en organisatie-belasting. Benoem concrete jaartallen.>" }
+\`huidigBudget\` houdt jaarlijks budget gelijk en laat aantalJaren volgen uit dossier-totalen. \`plus20\` en \`min20\` schalen het jaarlijks budget. \`advies\` is het AI-aanbevolen scenario: kortste haalbare looptijd binnen [3,5] jaar dat nog bekostbaar is voor Cito.
 
-Regels: Nederlands, 2-3 zinnen, JSON only.`;
+Output:
+{ "vergelijking": "<3-4 zinnen die de 4 scenario's duiden: tempo-verschillen in jaartallen, wat dat betekent voor organisatie-belasting, en waarom \`advies\` het meest pragmatische scenario is.>" }
+
+Regels: Nederlands, 3-4 zinnen, JSON only.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -354,6 +361,29 @@ export async function POST(request: NextRequest) {
           doelJaren: 5,
         })
       : null;
+
+    // ADVIES-scenario: server kiest kortste haalbare aantal jaren binnen
+    // [3,5] dat nog bekostbaar is voor Cito (drempel: max +40% boven huidig
+    // budget). Bij geen haalbare keuze: pak het langste scenario (=5 jaar,
+    // laagste budget). AI doet vervolgens alleen de jaar-verdeling op de
+    // gekozen looptijd + budget.
+    const optimaalOpties: OptimaalOptie[] = berekenOptimaalOpties(
+      ramingenPerInsp.map((r) => r.raming),
+      budgetOptimaal,
+      3,
+      5
+    );
+    const ADVIES_BUDGET_DREMPEL_PCT = 40; // max +40% boven huidig budget = bekostbaar
+    function kiesAdviesScenario(opties: OptimaalOptie[]): OptimaalOptie {
+      // Sorteer kort→lang. Pak kortste die binnen drempel valt.
+      const haalbaar = opties
+        .filter((o) => o.pctVerschilTovHuidig <= ADVIES_BUDGET_DREMPEL_PCT)
+        .sort((a, b) => a.jaren - b.jaren);
+      if (haalbaar.length > 0) return haalbaar[0];
+      // Geen enkele optie binnen +40%: pak het langste (= laagste budget per jaar).
+      return [...opties].sort((a, b) => b.jaren - a.jaren)[0];
+    }
+    const adviesKeuze = kiesAdviesScenario(optimaalOpties);
 
     // Bouw dossier-meta tekst per scenario voor in de prompt
     function dossierMetaTekst(scenarioJaren: number): string {
@@ -576,13 +606,13 @@ export async function POST(request: NextRequest) {
     // Bij finetune: pak de vorige scenario uit previousAdvies om als context mee
     // te geven aan AI. Helpt om consistentie te bewaren met onveranderde delen.
     const prevScenarios = (previousAdvies as
-      | { scenarios?: { optimaal?: unknown; plus20?: unknown; min20?: unknown } }
+      | { scenarios?: { optimaal?: unknown; plus20?: unknown; min20?: unknown; advies?: unknown } }
       | undefined)?.scenarios;
     const trimmedInstructie = (finetuneInstructie ?? "").trim();
     const isFinetune = trimmedInstructie.length > 0 && !!prevScenarios;
 
     async function genereer(
-      label: "optimaal" | "plus20" | "min20",
+      label: "optimaal" | "plus20" | "min20" | "advies",
       jaarlijksBudget: number,
       fixedAantalJaren: number,
       staggerMs: number
@@ -629,10 +659,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const [optimaal, plus20, min20] = await Promise.all([
+    const [optimaal, plus20, min20, advies] = await Promise.all([
       genereer("optimaal", budgetOptimaal, minOptimaal.jaren, 0),
       genereer("plus20", budgetPlus20, minPlus20.jaren, 200),
       genereer("min20", budgetMin20, minMin20.jaren, 400),
+      genereer("advies", adviesKeuze.benodigdJaarlijks, adviesKeuze.jaren, 600),
     ]);
 
     // Server-side validatie per inspanning: totaalEuro moet ≥ 90% × dossier-
@@ -670,6 +701,7 @@ export async function POST(request: NextRequest) {
     const validatieOptimaal = validateAgainstDossier(optimaal);
     const validatiePlus20 = validateAgainstDossier(plus20);
     const validatieMin20 = validateAgainstDossier(min20);
+    const validatieAdvies = validateAgainstDossier(advies);
 
     // Bij minimaal 1 succesvolle scenario: stuur die terug; client kan
     // partial-result tonen met waarschuwing voor de gefaalde scenarios.
@@ -677,20 +709,21 @@ export async function POST(request: NextRequest) {
       !optimaal ? "optimaal" : null,
       !plus20 ? "plus20" : null,
       !min20 ? "min20" : null,
+      !advies ? "advies" : null,
     ].filter(Boolean) as string[];
 
-    if (!optimaal && !plus20 && !min20) {
+    if (!optimaal && !plus20 && !min20 && !advies) {
       return NextResponse.json(
         {
           success: false,
-          error: "Alle 3 scenario's faalden — controleer Vercel-logs voor details, of probeer opnieuw.",
+          error: "Alle 4 scenario's faalden — controleer Vercel-logs voor details, of probeer opnieuw.",
         },
         { status: 200 }
       );
     }
 
-    // Vergelijking in aparte korte call — alleen als alle 3 succesvol
-    const allOk = optimaal && plus20 && min20;
+    // Vergelijking in aparte korte call — alleen als alle 4 succesvol
+    const allOk = optimaal && plus20 && min20 && advies;
     let vergelijking = "";
     if (allOk) {
       const vergelijkingSystem = assembleSystemPrompt(
@@ -701,7 +734,7 @@ export async function POST(request: NextRequest) {
       );
       const vergelijkingUserMsg = JSON.stringify(
         {
-          optimaal: {
+          huidigBudget: {
             aantalJaren: optimaal.aantalJaren,
             jaarlijksBudgetEuro: optimaal.jaarlijksBudgetEuro,
             totaalGeraamdEuro: optimaal.totaalGeraamdEuro,
@@ -716,6 +749,11 @@ export async function POST(request: NextRequest) {
             jaarlijksBudgetEuro: min20.jaarlijksBudgetEuro,
             totaalGeraamdEuro: min20.totaalGeraamdEuro,
           },
+          advies: {
+            aantalJaren: advies.aantalJaren,
+            jaarlijksBudgetEuro: advies.jaarlijksBudgetEuro,
+            totaalGeraamdEuro: advies.totaalGeraamdEuro,
+          },
         },
         null,
         2
@@ -728,7 +766,7 @@ export async function POST(request: NextRequest) {
       );
       vergelijking = vergelijkingRes.success
         ? vergelijkingRes.data.vergelijking
-        : `Optimaal: ${optimaal.aantalJaren} jaar @ €${optimaal.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr. +20%: ${plus20.aantalJaren} jaar. −20%: ${min20.aantalJaren} jaar.`;
+        : `Huidig budget: ${optimaal.aantalJaren} jaar @ €${optimaal.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr. +20%: ${plus20.aantalJaren} jaar. −20%: ${min20.aantalJaren} jaar. Optimaal advies: ${advies.aantalJaren} jaar @ €${advies.jaarlijksBudgetEuro.toLocaleString("nl-NL")}/jr.`;
     } else {
       vergelijking = `Niet alle scenario's konden gegenereerd worden — gefaald: ${falend.join(", ")}.`;
     }
@@ -738,6 +776,7 @@ export async function POST(request: NextRequest) {
       optimaal: validatieOptimaal,
       plus20: validatiePlus20,
       min20: validatieMin20,
+      advies: validatieAdvies,
     };
 
     return NextResponse.json({
@@ -746,12 +785,16 @@ export async function POST(request: NextRequest) {
         jaarlijksBudgetBasis: jaarlijksBudgetEuro,
         startJaar: effectiefStartJaar,
         cyclusMaanden,
-        scenarios: { optimaal, plus20, min20 },
+        scenarios: { optimaal, plus20, min20, advies },
         vergelijking,
         partialFailures: falend.length > 0 ? falend : undefined,
         // Server-side gebruikersfeedback over budget-haalbaarheid
         budgetAdvies: budgetAdviesData,
         dossierValidatie,
+        // Optimaal-scenario keuze + alle 3 opties (3/4/5 jaar) zodat UI ze
+        // kan tonen in een 'waarom dit advies'-toelichting.
+        adviesKeuze,
+        optimaalOpties,
         // Totaal benodigd realistisch budget — voor transparantie in UI
         dossierTotalen: {
           totaalLowOverGekozenJaren: totaalBenodigdBudget(
