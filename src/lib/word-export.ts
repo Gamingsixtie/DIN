@@ -2061,67 +2061,6 @@ function sectorSection(session: DINSession, sector: SectorName, numState: Number
   return { properties: {}, children };
 }
 
-// --- Verantwoording methodiek "Werken aan Programma's" (Prevaas & Van Loon) ---
-function methodiekVerantwoordingSection(numState: NumberingState) {
-  const children: (Paragraph | Table)[] = [];
-
-  children.push(plainH1("Verantwoording — methodiek \"Werken aan Programma's\"", numState));
-  children.push(
-    methodiekIntro(
-      "Onderstaande tabel laat zien welke onderdelen van een programmaplan volgens \"Werken aan Programma's\" " +
-      "(Prevaas & Van Loon) in dit document zijn opgenomen, en welke onderdelen los van het programmaplan " +
-      "worden onderhouden."
-    )
-  );
-  children.push(emptyLine());
-
-  type Row = { onderdeel: string; hoofdstuk: string; status: "Gedekt" | "Extern" | "Los onderhouden"; toelichting?: string };
-  const rows: Row[] = [
-    { onderdeel: "Programmavisie", hoofdstuk: "1", status: "Gedekt" },
-    { onderdeel: "Scope (binnen / buiten cyclus)", hoofdstuk: "1", status: "Gedekt" },
-    { onderdeel: "Programmadoelstellingen", hoofdstuk: "2", status: "Gedekt" },
-    { onderdeel: "Werkvolgorde / fasering doelen", hoofdstuk: "2", status: "Gedekt" },
-    { onderdeel: "Baten (DIN: gewenste effecten)", hoofdstuk: "3", status: "Gedekt" },
-    { onderdeel: "Vermogens (DIN: wat de organisatie moet kunnen)", hoofdstuk: "3", status: "Gedekt" },
-    { onderdeel: "Inspanningen (DIN: projecten en activiteiten)", hoofdstuk: "3", status: "Gedekt" },
-    { onderdeel: "Programmabegroting (out-of-pocket + interne uren, scenario's)", hoofdstuk: "3", status: "Gedekt" },
-    { onderdeel: "Programma-organisatie en gremia", hoofdstuk: "4", status: "Gedekt" },
-    { onderdeel: "RASCI per hoofdthema", hoofdstuk: "4", status: "Gedekt" },
-    { onderdeel: "Planning op programmaniveau (mijlpalen)", hoofdstuk: "5", status: "Gedekt" },
-    { onderdeel: "Aanleiding / context vanuit KiB", hoofdstuk: "—", status: "Extern", toelichting: "Bron: vastgestelde visie en doelen uit Klant in Beeld" },
-    { onderdeel: "Risicomanagement op programmaniveau", hoofdstuk: "—", status: "Los onderhouden", toelichting: "Wordt los onderhouden in stuurgroep-rapportage; per inspanning zijn randvoorwaarden vastgelegd in het dossier (Hoofdstuk 3)" },
-    { onderdeel: "Communicatie- en stakeholder-aanpak", hoofdstuk: "—", status: "Los onderhouden", toelichting: "Wordt los onderhouden via de programmamanager; gremia en escalatiepad zijn vastgelegd in Hoofdstuk 4" },
-  ];
-
-  const headerRow = new TableRow({
-    children: [
-      headerCell("Onderdeel methodiek", 42),
-      headerCell("Hoofdstuk", 12),
-      headerCell("Status", 18),
-      headerCell("Toelichting", 28),
-    ],
-  });
-  const dataRows = rows.map((r, i) => {
-    const shadeStatus = r.status === "Gedekt" ? "DCFCE7" : r.status === "Extern" ? "DBEAFE" : "F3F4F6";
-    return new TableRow({
-      children: [
-        styledCell(r.onderdeel, { bold: i % 2 === 0, width: 42 }),
-        styledCell(r.hoofdstuk, { bold: true, width: 12, color: CITO_BLUE }),
-        styledCell(r.status, { bold: true, width: 18, shading: shadeStatus, size: 16 }),
-        styledCell(r.toelichting ?? "—", { width: 28, size: 16, color: TEXT_SECONDARY }),
-      ],
-    });
-  });
-  children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [headerRow, ...dataRows],
-    })
-  );
-  children.push(emptyLine());
-
-  return { properties: {}, children };
-}
 
 export function roadmapSection(session: DINSession, numState: NumberingState, _activeEfforts: DINEffort[]) {
   void _activeEfforts;
@@ -2752,9 +2691,6 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
 
   // Hoofdstuk 5 \u2014 Planning en roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
-
-  // Verantwoording methodiek (dekking 'Werken aan Programma's')
-  contentSections.push(methodiekVerantwoordingSection(numState));
 
   // Now build TOC from accumulated tocEntries
   const tocSection = tableOfContentsSection(numState);

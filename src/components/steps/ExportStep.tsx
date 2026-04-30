@@ -12,6 +12,7 @@ import {
   buildClusterBron,
 } from "@/components/steps/GovernanceStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
+import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -1293,13 +1294,11 @@ function Chapter({
   number,
   title,
   intro,
-  methodiek,
   children,
 }: {
   number: string;
   title: string;
   intro?: string;
-  methodiek?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -1313,15 +1312,7 @@ function Chapter({
         </div>
       </header>
       {intro && (
-        <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">{intro}</p>
-      )}
-      {methodiek && (
-        <div className="bg-amber-50/40 border-l-[3px] border-amber-400/60 px-4 py-2.5 mb-6 rounded-r">
-          <div className="text-[10px] uppercase tracking-wider text-amber-700 font-bold mb-1">
-            Methodiek &mdash; Werken aan Programma&apos;s
-          </div>
-          <p className="text-xs italic text-gray-700 leading-relaxed">{methodiek}</p>
-        </div>
+        <p className="text-sm text-gray-700 leading-relaxed mb-5 max-w-prose">{intro}</p>
       )}
       {children}
     </section>
@@ -1518,13 +1509,19 @@ function DINMappingPerSectorBlock({ session }: { session: DINSession }) {
   );
 }
 
-// --- Scenario-totaaloverzicht (4 scenarios + motivatie waarom optimaal) ---
+// --- Scenario-totaaloverzicht (4 scenarios + motivatie waarom actief scenario) ---
 type ScenarioKey = "optimaal" | "plus20" | "min20" | "advies";
 const SCENARIO_LABELS: Record<ScenarioKey, string> = {
   optimaal: "Huidig budget",
-  plus20: "+20% scenario",
-  min20: "−20% scenario",
+  plus20: "+20% (sneller)",
+  min20: "−20% (langzamer)",
   advies: "Optimaal (advies)",
+};
+const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: string }> = {
+  optimaal: { ring: "ring-cito-blue", bg: "bg-blue-50", accent: "text-cito-blue" },
+  plus20: { ring: "ring-emerald-700", bg: "bg-emerald-50", accent: "text-emerald-800" },
+  min20: { ring: "ring-amber-700", bg: "bg-amber-50", accent: "text-amber-800" },
+  advies: { ring: "ring-purple-700", bg: "bg-purple-50", accent: "text-purple-800" },
 };
 
 function ScenarioTotaalBlock({ session }: { session: DINSession }) {
@@ -1591,45 +1588,156 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
 
   return (
     <>
-      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
-        Vier scenario&apos;s zijn doorgerekend: het huidig jaarbudget, een +20%- en −20%-variant, en een optimaal
-        advies. Het actieve scenario vormt de basis voor de programmabegroting.
-      </p>
-      <div className="overflow-hidden border border-gray-200 rounded-lg mb-5">
-        <table className="w-full text-sm">
-          <thead className="bg-cito-blue/5">
-            <tr>
-              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Scenario</th>
-              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Out-of-pocket</th>
-              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Interne uren (kosten)</th>
-              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Totaal geraamd</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => {
-              const isActief = r.key === actief;
-              return (
-                <tr key={r.key} className={isActief ? "bg-cito-blue/10" : "hover:bg-gray-50"}>
-                  <td className="px-3 py-2 font-bold text-cito-blue">
-                    {SCENARIO_LABELS[r.key]}
-                    {isActief && <span className="ml-2 text-[10px] uppercase text-cito-blue/70">(actief)</span>}
-                  </td>
-                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(r.outOfPocket)}</td>
-                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">
-                    {euroFmt.format(r.interneKosten)}
-                    {r.interneUrenTotaal > 0 && (
-                      <span className="text-[10px] text-gray-400 ml-1">
-                        ({r.interneUrenTotaal.toLocaleString("nl-NL")} u)
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right text-cito-blue font-bold tabular-nums">{euroFmt.format(r.totaalGeraamd)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-prose">
+        <p className="text-sm text-gray-700 leading-relaxed">
+          De totale programmakosten zijn opgebouwd uit twee bronnen die in de cross-analyse apart zijn vastgesteld:
+        </p>
+        <ul className="text-sm text-gray-700 mt-2 space-y-1">
+          <li><strong>Out-of-pocket</strong> &mdash; externe kosten per inspanning, bepaald in <em>Stap 6 Optimaliseren</em>.</li>
+          <li><strong>Interne uren</strong> &mdash; Cito-medewerkers per domein, bepaald in <em>Stap 7 Interne uren</em> (uren × uurtarief).</li>
+        </ul>
+        <p className="text-sm text-gray-700 mt-2">
+          Hieronder staan vier doorgerekende scenario&apos;s. Het scenario met &ldquo;(actief)&rdquo; is de basis voor de programmabegroting.
+        </p>
       </div>
+
+      {/* 4-scenario kaarten */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {scenarioOrder.map((key) => {
+          const r = rows.find((x) => x.key === key);
+          const kleur = SCENARIO_KLEUR[key];
+          const isActief = key === actief;
+          if (!r) {
+            return (
+              <div key={key} className="border-2 border-gray-200 bg-gray-50 rounded-lg p-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{SCENARIO_LABELS[key]}</div>
+                <div className="text-sm text-gray-500 italic mt-2">— geen data —</div>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={key}
+              className={`border-2 rounded-lg p-3 ${isActief ? `${kleur.bg} ring-2 ring-offset-1 ${kleur.ring}` : "border-gray-200 bg-white"}`}
+            >
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${kleur.accent}`}>
+                {SCENARIO_LABELS[key]}
+                {isActief && <span className="ml-1 text-[9px]">(actief)</span>}
+              </div>
+              <div className="text-2xl font-bold text-gray-800 mt-1 tabular-nums">
+                € {(r.totaalGeraamd / 1_000_000).toFixed(2)}M
+              </div>
+              <div className="text-[11px] text-gray-500 mt-2 space-y-0.5 tabular-nums">
+                <div>Out-of-pocket: {euroFmt.format(r.outOfPocket)}</div>
+                <div>
+                  Interne uren: {euroFmt.format(r.interneKosten)}
+                  {r.interneUrenTotaal > 0 && (
+                    <span className="text-gray-400 ml-1">({r.interneUrenTotaal.toLocaleString("nl-NL")} u)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Detail-tabel per jaar voor actief scenario */}
+      {(() => {
+        type PerJaar = Array<{ jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number }>;
+        type Stap8DetailExt = { scenarios?: Partial<Record<ScenarioKey, { perJaar?: PerJaar } | null>> };
+        const stap8Ext = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8DetailExt } | undefined)?.stap8;
+        const perJaarStap8 = stap8Ext?.scenarios?.[actief]?.perJaar ?? [];
+
+        type BegrJaar = { jaar: number; euro: number };
+        type BegrScenarioExt = { totalenPerJaar?: BegrJaar[] };
+        type BegrAdvExt = { scenarios?: Partial<Record<ScenarioKey, BegrScenarioExt | null>> };
+        type Stap4Ext = { begrotingAdvies?: BegrAdvExt };
+        const begrotingExt = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Ext } | undefined)?.stap4?.begrotingAdvies;
+        const begrPerJaar: BegrJaar[] = begrotingExt?.scenarios?.[actief]?.totalenPerJaar ?? [];
+
+        type UrenJaar = { jaar: number; uren: number; kosten: number };
+        type UrenScenarioExt = { totalenPerJaar?: UrenJaar[] };
+        type Stap7Ext = { scenarios?: Partial<Record<ScenarioKey, UrenScenarioExt | null>> };
+        const stap7Ext = (session.crossAnalyseWizard?.stepResults as { stap4?: { stap7InterneUren?: Stap7Ext } } | undefined)?.stap4?.stap7InterneUren;
+        const urenPerJaar: UrenJaar[] = stap7Ext?.scenarios?.[actief]?.totalenPerJaar ?? [];
+
+        const jaren = perJaarStap8.length > 0
+          ? perJaarStap8
+          : begrPerJaar.map((b) => {
+              const u = urenPerJaar.find((j) => j.jaar === b.jaar);
+              return {
+                jaar: b.jaar,
+                outOfPocket: b.euro,
+                interneUren: u?.uren ?? 0,
+                interneKosten: u?.kosten ?? 0,
+                totaal: b.euro + (u?.kosten ?? 0),
+              };
+            });
+
+        if (jaren.length === 0) return null;
+
+        return (
+          <div className="overflow-hidden border border-gray-200 rounded-lg mb-5">
+            <div className="px-3 py-2 bg-cito-blue/5 border-b border-gray-200 text-xs font-semibold text-cito-blue">
+              Jaardetail — {SCENARIO_LABELS[actief]}
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Categorie</th>
+                  {jaren.map((j) => (
+                    <th key={j.jaar} className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                      {j.jaar}
+                    </th>
+                  ))}
+                  <th className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Totaal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-100">
+                  <td className="px-3 py-2">
+                    <div className="text-sm font-medium text-gray-700">Out-of-pocket</div>
+                    <div className="text-[10px] text-gray-500">Externe kosten (Stap 6 Optimaliseren)</div>
+                  </td>
+                  {jaren.map((j) => (
+                    <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">{euroFmt.format(j.outOfPocket)}</td>
+                  ))}
+                  <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">
+                    {euroFmt.format(jaren.reduce((s, j) => s + j.outOfPocket, 0))}
+                  </td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="px-3 py-2">
+                    <div className="text-sm font-medium text-gray-700">Interne uren</div>
+                    <div className="text-[10px] text-gray-500">Cito-medewerkers (Stap 7 Interne uren)</div>
+                  </td>
+                  {jaren.map((j) => (
+                    <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">
+                      <div>{euroFmt.format(j.interneKosten)}</div>
+                      <div className="text-[10px] text-gray-400">{j.interneUren.toLocaleString("nl-NL")} u</div>
+                    </td>
+                  ))}
+                  <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">
+                    <div>{euroFmt.format(jaren.reduce((s, j) => s + j.interneKosten, 0))}</div>
+                    <div className="text-[10px] text-gray-400">{jaren.reduce((s, j) => s + j.interneUren, 0).toLocaleString("nl-NL")} u</div>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-cito-blue bg-cito-blue/10">
+                  <td className="px-3 py-2 text-sm font-bold text-cito-blue">TOTAAL</td>
+                  {jaren.map((j) => (
+                    <td key={j.jaar} className="text-right px-3 py-2 font-bold text-cito-blue tabular-nums">{euroFmt.format(j.totaal)}</td>
+                  ))}
+                  <td className="text-right px-3 py-2 text-base font-bold text-cito-blue tabular-nums">
+                    {euroFmt.format(jaren.reduce((s, j) => s + j.totaal, 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        );
+      })()}
 
       {(actiefMotivatie || actiefAdvies) && (
         <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200/70">
@@ -1943,40 +2051,123 @@ function OptimalisatieBlock({ session }: { session: DINSession }) {
   const sorted = [...adviezen].sort((a, b) => outsideIn.indexOf(a.domein) - outsideIn.indexOf(b.domein));
 
   return (
-    <div className="space-y-3">
-      {sorted.map((se, i) => {
-        const dc = DOMAIN_COLORS[se.domein];
-        const itemLabels = resolveItemLabels(se.items, session);
-        const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
-        return (
-          <div key={i} className={`border ${dc.border} rounded-lg overflow-hidden`}>
-            <div className={`${dc.bg} px-3 py-2 flex items-center gap-2`}>
-              <span className={`text-[10px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[se.domein]}</span>
-              <span className="text-sm font-bold text-gray-800">{titel}</span>
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
-                {se.actie === "combineren" ? "combineren" : "apart houden"}
-              </span>
+    <div className="space-y-4">
+      {/* Compacte overzichtstabel — kosten, eigenaar, leider per inspanning */}
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Domein</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Inspanning</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Eigenaar</th>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Leider</th>
+              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Kosten</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {sorted.map((se, i) => {
+              const dc = DOMAIN_COLORS[se.domein];
+              const itemLabels = resolveItemLabels(se.items, session);
+              const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+              return (
+                <tr key={`row-${i}`} className="hover:bg-gray-50 align-top">
+                  <td className="px-3 py-2">
+                    <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5 whitespace-nowrap`}>
+                      {DOMAIN_LABELS[se.domein]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-gray-800 font-medium">{titel}</td>
+                  <td className="px-3 py-2 text-gray-600">{se.dossier?.eigenaar || "—"}</td>
+                  <td className="px-3 py-2 text-gray-600">{se.dossier?.inspanningsleider || "—"}</td>
+                  <td className="px-3 py-2 text-right text-cito-blue font-semibold tabular-nums whitespace-nowrap">
+                    {se.dossier?.kostenraming || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Per inspanning: uitvoerige toelichting */}
+      <div className="space-y-3">
+        {sorted.map((se, i) => {
+          const dc = DOMAIN_COLORS[se.domein];
+          const itemLabels = resolveItemLabels(se.items, session);
+          const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+          return (
+            <div key={`detail-${i}`} className={`border ${dc.border} rounded-lg overflow-hidden`}>
+              <div className={`${dc.bg} px-3 py-2 flex items-center gap-2 border-b ${dc.border}`}>
+                <span className={`text-[10px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[se.domein]}</span>
+                <span className="text-sm font-bold text-gray-800">{titel}</span>
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
+                  {se.actie === "combineren" ? "combineren" : "apart houden"}
+                </span>
+              </div>
+              <div className="p-3 space-y-3 text-xs">
+                {se.beschrijving && (
+                  <p className="text-gray-700 leading-relaxed">{se.beschrijving}</p>
+                )}
+                {se.beargumentatie && (
+                  <p className="text-gray-500 italic leading-relaxed">
+                    <span className="text-gray-400 not-italic font-medium">Beargumentatie:</span>{" "}
+                    {se.beargumentatie}
+                  </p>
+                )}
+                {itemLabels.length > 0 && (
+                  <p className="text-gray-500">
+                    <span className="text-gray-400 font-medium">Onderliggende inspanningen:</span>{" "}
+                    {itemLabels.join("; ")}
+                  </p>
+                )}
+                {se.dossier && (
+                  <div className="overflow-hidden border border-gray-100 rounded">
+                    <table className="w-full text-xs">
+                      <tbody className="divide-y divide-gray-50">
+                        {se.dossier.eigenaar && (
+                          <tr>
+                            <td className="px-2.5 py-1.5 bg-gray-50/50 font-medium text-gray-600 w-32">Eigenaar</td>
+                            <td className="px-2.5 py-1.5 text-gray-800">{se.dossier.eigenaar}</td>
+                          </tr>
+                        )}
+                        {se.dossier.inspanningsleider && (
+                          <tr>
+                            <td className="px-2.5 py-1.5 bg-gray-50/50 font-medium text-gray-600">Inspanningsleider</td>
+                            <td className="px-2.5 py-1.5 text-gray-800">{se.dossier.inspanningsleider}</td>
+                          </tr>
+                        )}
+                        {se.dossier.kostenraming && (
+                          <tr>
+                            <td className="px-2.5 py-1.5 bg-gray-50/50 font-medium text-gray-600">Kostenraming</td>
+                            <td className="px-2.5 py-1.5 text-cito-blue font-semibold tabular-nums">{se.dossier.kostenraming}</td>
+                          </tr>
+                        )}
+                        {se.dossier.verwachtResultaat && (
+                          <tr>
+                            <td className="px-2.5 py-1.5 bg-gray-50/50 font-medium text-gray-600">Verwacht resultaat</td>
+                            <td className="px-2.5 py-1.5 text-gray-800">{se.dossier.verwachtResultaat}</td>
+                          </tr>
+                        )}
+                        {se.dossier.randvoorwaarden && (
+                          <tr>
+                            <td className="px-2.5 py-1.5 bg-gray-50/50 font-medium text-gray-600">Randvoorwaarden</td>
+                            <td className="px-2.5 py-1.5 text-gray-800">{se.dossier.randvoorwaarden}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {se.reden && (
+                  <p className="text-gray-400 italic text-[11px]">
+                    <span className="not-italic font-medium">Reden consolidatie:</span> {se.reden}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="p-3 space-y-1.5 text-xs">
-              {se.beschrijving && <p className="text-gray-700 leading-relaxed">{se.beschrijving}</p>}
-              {se.beargumentatie && <p className="text-gray-500 italic">Beargumentatie: {se.beargumentatie}</p>}
-              {itemLabels.length > 0 && (
-                <p className="text-gray-500">Onderliggende inspanningen: {itemLabels.join("; ")}</p>
-              )}
-              {se.dossier && (
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
-                  {se.dossier.eigenaar && <div><span className="text-gray-400">Eigenaar:</span> {se.dossier.eigenaar}</div>}
-                  {se.dossier.inspanningsleider && <div><span className="text-gray-400">Leider:</span> {se.dossier.inspanningsleider}</div>}
-                  {se.dossier.kostenraming && <div><span className="text-gray-400">Kosten:</span> {se.dossier.kostenraming}</div>}
-                  {se.dossier.verwachtResultaat && <div><span className="text-gray-400">Resultaat:</span> {se.dossier.verwachtResultaat}</div>}
-                  {se.dossier.randvoorwaarden && <div className="col-span-2"><span className="text-gray-400">Randvoorwaarden:</span> {se.dossier.randvoorwaarden}</div>}
-                </div>
-              )}
-              {se.reden && <p className="text-gray-400 italic">Reden consolidatie: {se.reden}</p>}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2342,7 +2533,6 @@ export default function ExportStep() {
                 number="1."
                 title="Programmavisie en scope"
                 intro="De programmavisie geeft de richting van het geheel: waartoe is dit programma bedoeld en wat valt er binnen en buiten de cyclus."
-                methodiek="Volgens &ldquo;Werken aan Programma&apos;s&rdquo; (Prevaas &amp; Van Loon, Hfst. 2) opent een programmaplan met de visie en de scope. Beide vormen het fundament waartoe alle baten, vermogens en inspanningen worden opgebouwd."
               >
                 <VisionBlock session={session} />
                 <ScopeBlock session={session} />
@@ -2352,7 +2542,6 @@ export default function ExportStep() {
                 number="2."
                 title="Programmadoelen"
                 intro="De programmadoelen zijn de kernonderwerpen van het programma. Ze worden volgordelijk opgepakt zodat de organisatie focus en haalbaarheid behoudt."
-                methodiek="Doelen zijn binnen DIN het hoogste niveau van de keten (Prevaas &amp; Van Loon, Hfst. 3). Pas wanneer doel 1 zijn baten realiseert, schuift het programma door naar doel 2 en 3."
               >
                 <DoelenMetVolgordeBlock session={session} />
               </Chapter>
@@ -2361,20 +2550,30 @@ export default function ExportStep() {
                 number="3."
                 title="Cross-sectorale uitkomst — de kern"
                 intro="Vanuit de DIN-mapping is per sector (PO, VO, Zakelijk) een onafhankelijke keten van baten, vermogens en inspanningen opgesteld. Die sector-DIN's overlappen sterk: dezelfde vermogens komen op meerdere plekken terug. Hieronder is dat samengevoegd tot één cross-sectorale uitkomst — geconsolideerde inspanningen per domein, een doorgerekende begroting, en een uiteindelijke DIN die teruggebracht is naar elke sector."
-                methodiek="Een programma is meer dan de optelsom van projecten (Prevaas &amp; Van Loon, Hfst. 4). De onafhankelijke sector-baten blijven herkenbaar, maar de vermogens en inspanningen worden cross-sectoraal opgebouwd; daar zit de hefboom van het programma. De sector-vertaling onderaan toont hoe elke sector de gezamenlijke inspanningen vervolgens in eigen context inzet."
               >
+                <SubSection title="Het volledige DIN-netwerk in één oogopslag">
+                  <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
+                    Doelen → Baten → Vermogens → Inspanningen, gevisualiseerd als netwerk. De cijfers in de
+                    headers tonen de omvang per niveau; de pijlen tonen de redeneerrichting (van doel naar
+                    inspanning). Items met een &ldquo;gedeeld&rdquo;-markering komen in meerdere sectoren terug
+                    en zijn de hefbomen van het programma.
+                  </p>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <DINNetworkGraph session={session} />
+                  </div>
+                </SubSection>
                 <CrossAnalyseBlock session={session} />
                 <HefboomBlock session={session} />
                 <ExterneProjectenBlock session={session} />
                 <SubSection title="Geconsolideerde inspanningen — de optimalisatiestap">
                   <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
                     Sector-inspanningen die hetzelfde vermogen opbouwen zijn samengevoegd tot één
-                    cross-sectorale inspanning. Hieronder per inspanning de uitvoerige toelichting:
-                    eigenaar, leider, onderbouwing en randvoorwaarden.
+                    cross-sectorale inspanning. Per inspanning is een dossier opgesteld met eigenaar, leider,
+                    kostenraming, verwacht resultaat en randvoorwaarden — overzichtelijk in tabelvorm hieronder.
                   </p>
                   <OptimalisatieBlock session={session} />
                 </SubSection>
-                <SubSection title="Begroting — scenario-totaaloverzicht">
+                <SubSection title="Begroting — vier scenario's">
                   <ScenarioTotaalBlock session={session} />
                 </SubSection>
                 <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
@@ -2391,7 +2590,6 @@ export default function ExportStep() {
                 number="4."
                 title="Programma-organisatie en RASCI"
                 intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
-                methodiek="Volgens &ldquo;Werken aan Programma&apos;s&rdquo; (Hfst. 6) is de programma-organisatie geen lijnstructuur maar een tijdelijke configuratie van rollen en gremia, met een expliciete RASCI per hoofdthema."
               >
                 <GovernanceBlock session={session} />
               </Chapter>
@@ -2400,12 +2598,10 @@ export default function ExportStep() {
                 number="5."
                 title="Planning en roadmap"
                 intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
-                methodiek="Een programmaplan eindigt met de planning op programmaniveau (Prevaas &amp; Van Loon, Hfst. 8): niet de detailplanning per project, maar de cyclische bundels en mijlpalen waarop het programma wordt aangestuurd."
               >
                 <RoadmapBlock session={session} />
               </Chapter>
 
-              <MethodiekVerantwoordingBlock />
             </div>
           </div>
         </div>
@@ -2427,65 +2623,4 @@ export default function ExportStep() {
   );
 }
 
-// --- Methodiek-verantwoording: dekking volgens "Werken aan Programma's" (Prevaas & Van Loon) ---
-function MethodiekVerantwoordingBlock() {
-  const dekking = [
-    { onderdeel: "Programmavisie", hoofdstuk: "1", status: "gedekt" as const },
-    { onderdeel: "Scope (binnen / buiten cyclus)", hoofdstuk: "1", status: "gedekt" as const },
-    { onderdeel: "Programmadoelstellingen", hoofdstuk: "2", status: "gedekt" as const },
-    { onderdeel: "Werkvolgorde / fasering doelen", hoofdstuk: "2", status: "gedekt" as const },
-    { onderdeel: "Baten (DIN: gewenste effecten)", hoofdstuk: "3", status: "gedekt" as const },
-    { onderdeel: "Vermogens (DIN: wat de organisatie moet kunnen)", hoofdstuk: "3", status: "gedekt" as const },
-    { onderdeel: "Inspanningen (DIN: projecten en activiteiten)", hoofdstuk: "3", status: "gedekt" as const },
-    { onderdeel: "Programmabegroting (out-of-pocket + interne uren, scenario's)", hoofdstuk: "3", status: "gedekt" as const },
-    { onderdeel: "Programma-organisatie en gremia", hoofdstuk: "4", status: "gedekt" as const },
-    { onderdeel: "RASCI per hoofdthema", hoofdstuk: "4", status: "gedekt" as const },
-    { onderdeel: "Planning op programmaniveau (mijlpalen)", hoofdstuk: "5", status: "gedekt" as const },
-    { onderdeel: "Aanleiding / context vanuit KiB", hoofdstuk: "—", status: "extern" as const, toelichting: "Bron: vastgestelde visie en doelen uit Klant in Beeld" },
-    { onderdeel: "Risicomanagement op programmaniveau", hoofdstuk: "—", status: "los" as const, toelichting: "Wordt los onderhouden in stuurgroep-rapportage; per inspanning zijn randvoorwaarden vastgelegd in het dossier (Hoofdstuk 3)" },
-    { onderdeel: "Communicatie- en stakeholder-aanpak", hoofdstuk: "—", status: "los" as const, toelichting: "Wordt los onderhouden via de programmamanager; gremia en escalatiepad zijn vastgelegd in Hoofdstuk 4" },
-  ];
-
-  const statusBadge = (status: "gedekt" | "extern" | "los") => {
-    if (status === "gedekt")
-      return <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Gedekt</span>;
-    if (status === "extern")
-      return <span className="text-[10px] uppercase font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">Extern</span>;
-    return <span className="text-[10px] uppercase font-bold text-gray-600 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">Los onderhouden</span>;
-  };
-
-  return (
-    <section className="mb-8 mt-6 p-5 rounded-lg bg-cito-blue/5 border border-cito-blue/20">
-      <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">
-        Verantwoording &mdash; methodiek &ldquo;Werken aan Programma&apos;s&rdquo; (Prevaas &amp; Van Loon)
-      </div>
-      <p className="text-sm text-gray-700 leading-relaxed mb-4">
-        Onderstaande tabel laat zien welke onderdelen van een programmaplan volgens de methodiek in dit
-        document zijn opgenomen, en welke onderdelen los van het programmaplan worden onderhouden.
-      </p>
-      <div className="overflow-hidden border border-gray-200 rounded-lg">
-        <table className="w-full text-xs">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left px-3 py-2 font-bold text-gray-600">Onderdeel methodiek</th>
-              <th className="text-center px-3 py-2 font-bold text-gray-600 w-16">Hoofdstuk</th>
-              <th className="text-left px-3 py-2 font-bold text-gray-600 w-32">Status</th>
-              <th className="text-left px-3 py-2 font-bold text-gray-600">Toelichting</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {dekking.map((d, i) => (
-              <tr key={i} className={i % 2 === 1 ? "bg-gray-50/40" : ""}>
-                <td className="px-3 py-2 text-gray-700">{d.onderdeel}</td>
-                <td className="px-3 py-2 text-center font-bold text-cito-blue">{d.hoofdstuk}</td>
-                <td className="px-3 py-2">{statusBadge(d.status)}</td>
-                <td className="px-3 py-2 text-gray-500 italic">{d.toelichting ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
 
