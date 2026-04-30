@@ -522,8 +522,12 @@ export async function POST(request: NextRequest) {
           ramingMatch.raming.eenmaligLow +
           ramingMatch.raming.structureelLowPerJr * structureleJaren;
         if (doelTotaal === 0 || minTotaal === 0) continue;
-        // Acceptabele band: ≥ 95% × min, geen scale-up nodig
-        if (huidigTotaal >= minTotaal * 0.95) continue;
+        // Schaal altijd naar dossier-mid, tenzij AI al ≥ 98% van mid heeft.
+        // Voorkomt dat AI op min blijft hangen (en scenario kunstmatig
+        // goedkoper lijkt dan dossier-realistisch). Garandeert consistente
+        // mid-totalen tussen scenarios — verschillen komen dan ALLEEN uit
+        // structureel × jaren, niet uit AI-conservatisme.
+        if (huidigTotaal >= doelTotaal * 0.98) continue;
         const factor = huidigTotaal > 0 ? doelTotaal / huidigTotaal : 0;
         if (huidigTotaal > 0 && factor > 1) {
           // Proportioneel ophogen, afronden op duizend
