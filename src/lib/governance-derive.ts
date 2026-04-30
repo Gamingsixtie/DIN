@@ -34,7 +34,9 @@ import type {
 // Helpers
 // ============================================================
 
-const ROL_KERNGROEP_PREFIX = "Inspanningsleider";
+const ROL_INSPANNINGSLEIDER = "Inspanningsleider";
+const ROL_BATENEIGENAAR = "Bateneigenaar";
+const ROL_STUURGROEP = "Stuurgroep";
 const ROL_DOMEINEIGENAAR_PREFIX = "Domeineigenaar";
 
 function generateRolId(): string {
@@ -47,8 +49,52 @@ function normName(s: string | undefined | null): string {
   return (s ?? "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
+// Eerste woord (voornaam) — voor cross-bundel dedup ("Yara" == "Yara( HR business partner)")
+function firstNameKey(s: string | undefined | null): string {
+  const n = normName(s);
+  if (!n) return "";
+  // Strip leading parens/brackets, dan eerste woord
+  const m = n.replace(/^[(\[]/, "").match(/^[a-z]+/);
+  return m ? m[0] : n;
+}
+
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
+}
+
+// Split een komma-lijst (collectief eigenaar) naar individuele strings.
+// "Jasper, Bert Thijs, Leontine, Meryl" → 4 namen
+// "het MT" → 1 rol
+// "Manager Data & Technologie" → 1 rol
+function splitEigenaarCollectief(raw: string): string[] {
+  const s = raw.trim();
+  if (!s) return [];
+  if (!s.includes(",")) return [s];
+  return s.split(",").map((x) => x.trim()).filter((x) => x.length > 0);
+}
+
+// Split een inspanningsleider-string. Detecteert "per sector" / "per regio" → 3 sector-rollen.
+// "Procesconsultants ( per sector)" → ["Procesconsultant PO", "Procesconsultant VO", "Procesconsultant Zakelijk"]
+// "Yara( HR business partner)" → ["Yara"] met functie "HR business partner"
+// "Sven (SIO)" → ["Sven"] met functie "SIO"
+function parseInspanningsleider(raw: string): { naam: string; functie: string }[] {
+  const s = raw.trim();
+  if (!s) return [];
+  // Per-sector splitsing
+  if (/per\s+sector/i.test(s) || /per\s+regio/i.test(s)) {
+    const basis = s.replace(/\s*\(?\s*per\s+(sector|regio)\s*\)?/i, "").replace(/\s+/g, " ").trim();
+    // Maak enkelvoud van "Procesconsultants" → "Procesconsultant"
+    const enkelvoud = basis.replace(/s$/i, "");
+    return [
+      { naam: `${enkelvoud} PO`, functie: `${basis} (PO)` },
+      { naam: `${enkelvoud} VO`, functie: `${basis} (VO)` },
+      { naam: `${enkelvoud} Zakelijk`, functie: `${basis} (Zakelijk)` },
+    ];
+  }
+  // Naam met functie tussen haakjes: "Yara (HR business partner)" → naam=Yara, functie=HR..
+  const m = s.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+  if (m) return [{ naam: m[1].trim(), functie: m[2].trim() }];
+  return [{ naam: s, functie: "" }];
 }
 
 // ============================================================
@@ -58,112 +104,195 @@ function nonEmpty(s: string | undefined | null): boolean {
 export type DerivedProgrammaorganisatieResult = {
   next: Programmaorganisatie;
   toegevoegdKerngroep: number;
-  toegevoegdDomeineigenaren: number;
+  toegevoegdStuurgroep: number;
+  toegevoegdBateneigenaren: number;
+  verwijderdDuplicaten: number;
   ongewijzigd: boolean;
 };
 
 /**
- * Vult kerngroep + domeineigenaren aan op basis van cross-analyse stap 4.
+ * Vult programmaorganisatie deterministisch aan op basis van cross-analyse + DIN data.
  *
- * - Kerngroep: unieke `dossier.inspanningsleider`-namen (case-insensitive trim)
- * - Domeineigenaren: unieke `dossier.eigenaar` per `domein` — meest voorkomende
- *   eigenaar per domein wint, max 1 per domein
+ * Strategie:
+ *  - STUURGROEP ← `dossier.eigenaar` (collectief, gesplitst op komma's, "het MT" als 1 rol)
+ *  - KERNGROEP — INSPANNINGSLEIDERS ← `dossier.inspanningsleider` (per-sector splitsen,
+ *    voornaam-dedup zodat Yara 1 rol blijft over meerdere bundels)
+ *  - KERNGROEP — BATENEIGENAREN ← `benefit.profiel.bateneigenaar` (per baat, naam-dedup)
+ *  - DOMEINEIGENAREN-lijst ongewijzigd (handmatig)
+ *  - OPDRACHTGEVER, PROGRAMMAMANAGER, KLANKBORDGROEP ongewijzigd
  *
- * Bestaande handmatige rollen waarvan `naam` al matcht blijven staan
- * (geen overschrijven). Alleen ontbrekende rollen worden toegevoegd.
- *
- * Opdrachtgever, programmamanager, stuurgroep en klankbordgroep worden
- * NIET aangeraakt — die zijn Cito-niveau en staan niet in de cross-analyse.
+ * Cross-deduplicatie: dezelfde persoon (naam) wordt nooit 2x toegevoegd over de buckets heen.
+ * Domeineigenaar-duplicaten in kerngroep (oudere auto-fill bug) worden opgeschoond.
  */
 export function deriveProgrammaorganisatie(
   session: DINSession,
   current: Programmaorganisatie
 ): DerivedProgrammaorganisatieResult {
   const subEffort = session.crossAnalyseWizard?.stepResults?.stap4?.subEffortAnalysis ?? [];
-  const itemsMetDossier = subEffort.filter((s) => s.dossier && (nonEmpty(s.dossier.inspanningsleider) || nonEmpty(s.dossier.eigenaar)));
+  const bundels = subEffort.filter(
+    (s) => s.actie === "combineren" && s.dossier && (nonEmpty(s.dossier.eigenaar) || nonEmpty(s.dossier.inspanningsleider))
+  );
 
-  // --- Kerngroep: unieke inspanningsleiders ---
-  const inspanningsleiderNamen = new Set<string>();
-  for (const s of itemsMetDossier) {
-    const naam = (s.dossier?.inspanningsleider ?? "").trim();
-    if (naam) inspanningsleiderNamen.add(naam);
+  // Bestaande namen over ALLE buckets — voorkom dat dezelfde persoon 2x wordt toegevoegd
+  const bestaandePersonen = new Set<string>();
+  const allCurrent: ProgrammaRol[] = [
+    ...(current.opdrachtgever ? [current.opdrachtgever] : []),
+    ...(current.programmamanager ? [current.programmamanager] : []),
+    ...(current.kerngroep ?? []),
+    ...(current.stuurgroep ?? []),
+    ...(current.domeineigenaren ?? []),
+    ...(current.klankbordgroep ?? []),
+  ];
+  for (const r of allCurrent) {
+    const naam = normName(r.naam);
+    if (naam) bestaandePersonen.add(naam);
+    const fn = firstNameKey(r.naam);
+    if (fn) bestaandePersonen.add(`firstname:${fn}`);
   }
 
-  // Bestaande kerngroep-namen (case-insensitive)
-  const huidigeKerngroepNorm = new Set(
-    (current.kerngroep ?? []).map((r) => normName(r.naam) || normName(r.rol))
+  // ---- 1) STUURGROEP uit dossier.eigenaar (collectief) ----
+  const stuurgroepKandidaten = new Set<string>();
+  for (const s of bundels) {
+    const raw = (s.dossier?.eigenaar ?? "").trim();
+    if (!raw) continue;
+    for (const naam of splitEigenaarCollectief(raw)) stuurgroepKandidaten.add(naam);
+  }
+  const huidigeStuurgroepNorm = new Set(
+    (current.stuurgroep ?? []).map((r) => normName(r.naam) || normName(r.rol))
   );
+  const nieuweStuurgroep: ProgrammaRol[] = [...(current.stuurgroep ?? [])];
+  let toegevoegdStuurgroep = 0;
+  for (const naam of stuurgroepKandidaten) {
+    const sleutel = normName(naam);
+    if (huidigeStuurgroepNorm.has(sleutel)) continue;
+    if (bestaandePersonen.has(sleutel)) continue; // staat al elders (bv. opdrachtgever)
+    nieuweStuurgroep.push({
+      id: generateRolId(),
+      rol: ROL_STUURGROEP,
+      naam,
+      functie: "Senior management — collectief eindverantwoordelijk",
+      sector: "Programmabreed",
+      mandaat: "Stuurgroep-lid: keurt majeure scope/budget/mijlpaal-wijzigingen goed",
+      toelichting: "Afgeleid uit cross-analyse stap 4 (dossier.eigenaar collectief).",
+    });
+    toegevoegdStuurgroep++;
+    bestaandePersonen.add(sleutel);
+  }
+
+  // ---- 2) KERNGROEP — INSPANNINGSLEIDERS uit dossier.inspanningsleider ----
+  // Dedup op voornaam-key zodat "Yara" en "Yara( HR business partner)" 1 rol worden
+  type InspLeider = { naam: string; functie: string; bundels: string[] };
+  const inspLeiderMap = new Map<string, InspLeider>();
+  for (const s of bundels) {
+    const raw = (s.dossier?.inspanningsleider ?? "").trim();
+    if (!raw) continue;
+    const domLabel = DOMAIN_LABELS[s.domein] ?? s.domein;
+    for (const parsed of parseInspanningsleider(raw)) {
+      const key = firstNameKey(parsed.naam) || normName(parsed.naam);
+      const existing = inspLeiderMap.get(key);
+      if (existing) {
+        existing.bundels.push(domLabel);
+        if (!existing.functie && parsed.functie) existing.functie = parsed.functie;
+      } else {
+        inspLeiderMap.set(key, { naam: parsed.naam, functie: parsed.functie, bundels: [domLabel] });
+      }
+    }
+  }
 
   const nieuweKerngroep: ProgrammaRol[] = [...(current.kerngroep ?? [])];
   let toegevoegdKerngroep = 0;
-  for (const naam of inspanningsleiderNamen) {
-    if (huidigeKerngroepNorm.has(normName(naam))) continue;
+  for (const [key, leider] of inspLeiderMap) {
+    if (bestaandePersonen.has(`firstname:${key}`)) continue;
+    if (bestaandePersonen.has(normName(leider.naam))) continue;
+    const bundelsLabel = leider.bundels.join(" + ");
     nieuweKerngroep.push({
       id: generateRolId(),
-      rol: ROL_KERNGROEP_PREFIX,
-      naam,
-      functie: "Inspanningsleider (uit cross-analyse stap 4)",
+      rol: ROL_INSPANNINGSLEIDER,
+      naam: leider.naam,
+      functie: leider.functie || `Trekt bundel${leider.bundels.length > 1 ? "s" : ""} ${bundelsLabel}`,
       sector: "",
-      mandaat: "Trekt cross-sectorale inspanning, rapporteert aan domeineigenaar/programmamanager",
-      toelichting: "",
+      mandaat: `Trekt cross-sectorale bundel${leider.bundels.length > 1 ? "s" : ""}: ${bundelsLabel}`,
+      toelichting: "Afgeleid uit cross-analyse stap 4 (dossier.inspanningsleider).",
     });
     toegevoegdKerngroep++;
+    bestaandePersonen.add(`firstname:${key}`);
+    bestaandePersonen.add(normName(leider.naam));
   }
 
-  // --- Domeineigenaren: meest voorkomende eigenaar per domein ---
-  const eigenaarPerDomein = new Map<EffortDomain, Map<string, number>>();
-  for (const s of itemsMetDossier) {
-    const eigenaar = (s.dossier?.eigenaar ?? "").trim();
-    if (!eigenaar) continue;
-    const dom = s.domein;
-    if (!eigenaarPerDomein.has(dom)) eigenaarPerDomein.set(dom, new Map());
-    const counter = eigenaarPerDomein.get(dom)!;
-    counter.set(eigenaar, (counter.get(eigenaar) ?? 0) + 1);
-  }
-
-  const huidigeDomeinen = new Set(
-    (current.domeineigenaren ?? [])
-      .map((r) => r.rol)
-      .filter((r): r is string => typeof r === "string")
-      .map((r) => r.toLowerCase())
-  );
-
-  const nieuweDomeineigenaren: ProgrammaRol[] = [...(current.domeineigenaren ?? [])];
-  let toegevoegdDomeineigenaren = 0;
-  for (const [dom, counter] of eigenaarPerDomein) {
-    const domLabel = DOMAIN_LABELS[dom] ?? dom;
-    const rolLabel = `${ROL_DOMEINEIGENAAR_PREFIX} ${domLabel}`;
-    if (huidigeDomeinen.has(rolLabel.toLowerCase())) continue;
-    // Pak de meest voorkomende naam
-    let topNaam = "";
-    let topCount = 0;
-    for (const [naam, count] of counter) {
-      if (count > topCount) {
-        topNaam = naam;
-        topCount = count;
-      }
+  // ---- 3) KERNGROEP — BATENEIGENAREN uit benefit.profiel.bateneigenaar ----
+  // Per unieke bateneigenaar 1 kerngroep-rol; toelichting noemt voor welke baten
+  type BatenEig = { naam: string; baten: string[] };
+  const batenEigMap = new Map<string, BatenEig>();
+  for (const b of session.benefits ?? []) {
+    const raw = (b.profiel?.bateneigenaar ?? "").trim();
+    if (!raw) continue;
+    const titel = b.title || b.description?.slice(0, 60) || "";
+    const key = normName(raw);
+    const existing = batenEigMap.get(key);
+    if (existing) {
+      if (titel) existing.baten.push(titel);
+    } else {
+      batenEigMap.set(key, { naam: raw, baten: titel ? [titel] : [] });
     }
-    nieuweDomeineigenaren.push({
-      id: generateRolId(),
-      rol: rolLabel,
-      naam: topNaam,
-      functie: `Domeineigenaar ${domLabel}`,
-      sector: "Programmabreed",
-      mandaat: `Bewaakt samenhang van ${domLabel.toLowerCase()}-vermogens en -inspanningen over de sectoren`,
-      toelichting: `Afgeleid uit cross-analyse stap 4 (meest voorkomende eigenaar in domein ${domLabel}).`,
-    });
-    toegevoegdDomeineigenaren++;
   }
 
-  const ongewijzigd = toegevoegdKerngroep === 0 && toegevoegdDomeineigenaren === 0;
+  let toegevoegdBateneigenaren = 0;
+  for (const [key, eig] of batenEigMap) {
+    if (bestaandePersonen.has(key)) continue;
+    if (bestaandePersonen.has(`firstname:${firstNameKey(eig.naam)}`)) continue;
+    const batenList = eig.baten.length > 0 ? eig.baten.slice(0, 3).join(" · ") + (eig.baten.length > 3 ? ` +${eig.baten.length - 3}` : "") : "";
+    nieuweKerngroep.push({
+      id: generateRolId(),
+      rol: ROL_BATENEIGENAAR,
+      naam: eig.naam,
+      functie: "Eindverantwoordelijk batenrealisatie",
+      sector: "",
+      mandaat: `Bateneigenaar voor ${eig.baten.length} ba${eig.baten.length === 1 ? "at" : "ten"}`,
+      toelichting: batenList ? `Baten: ${batenList}` : "",
+    });
+    toegevoegdBateneigenaren++;
+    bestaandePersonen.add(key);
+  }
+
+  // ---- 4) Opschonen: verwijder Domeineigenaar-duplicaten in kerngroep ----
+  // Als er een rol staat met rol-prefix "Domeineigenaar" in kerngroep EN dezelfde rol-label
+  // in domeineigenaren-lijst → verwijder uit kerngroep.
+  const domeineigenarenLabels = new Set(
+    (current.domeineigenaren ?? [])
+      .map((r) => normName(r.rol))
+      .filter((s) => s.length > 0)
+  );
+  let verwijderdDuplicaten = 0;
+  const opgeschoondKerngroep = nieuweKerngroep.filter((r) => {
+    const rolNorm = normName(r.rol);
+    if (rolNorm.startsWith("domeineigenaar") && domeineigenarenLabels.has(rolNorm)) {
+      verwijderdDuplicaten++;
+      return false;
+    }
+    return true;
+  });
+
+  const ongewijzigd =
+    toegevoegdKerngroep === 0 &&
+    toegevoegdStuurgroep === 0 &&
+    toegevoegdBateneigenaren === 0 &&
+    verwijderdDuplicaten === 0;
 
   const next: Programmaorganisatie = {
     ...current,
-    kerngroep: nieuweKerngroep,
-    domeineigenaren: nieuweDomeineigenaren,
+    kerngroep: opgeschoondKerngroep,
+    stuurgroep: nieuweStuurgroep,
+    // domeineigenaren ongewijzigd — gebruiker beheert handmatig
   };
 
-  return { next, toegevoegdKerngroep, toegevoegdDomeineigenaren, ongewijzigd };
+  return {
+    next,
+    toegevoegdKerngroep,
+    toegevoegdStuurgroep,
+    toegevoegdBateneigenaren,
+    verwijderdDuplicaten,
+    ongewijzigd,
+  };
 }
 
 // ============================================================
@@ -182,11 +311,16 @@ export type DerivedRasciResult = {
 };
 
 type RolLookup = {
-  byNaam: Map<string, string>;          // norm naam → rolId
-  byRolLabel: Map<string, string>;      // norm rol-label → rolId
+  byNaam: Map<string, string>;            // norm naam → rolId
+  byFirstName: Map<string, string>;       // voornaam-key → rolId (Yara-match)
+  byRolLabel: Map<string, string>;        // norm rol-label → rolId
   opdrachtgeverId: string | null;
   programmamanagerId: string | null;
   domeineigenaarPerDomein: Map<EffortDomain, string>;
+  // Domeineigenaren staan typisch in de aparte `domeineigenaren`-lijst, maar
+  // kunnen ook in kerngroep zitten — we zoeken in álle rollen op rol-label.
+  bateneigenaarIds: Set<string>;          // rol-records met rol = "Bateneigenaar"
+  inspanningsleiderIds: Set<string>;      // rol-records met rol = "Inspanningsleider"
   stuurgroepIds: string[];
   kerngroepIds: string[];
   klankbordgroepIds: string[];
@@ -194,11 +328,20 @@ type RolLookup = {
 
 function buildRolLookup(po: Programmaorganisatie): RolLookup {
   const byNaam = new Map<string, string>();
+  const byFirstName = new Map<string, string>();
   const byRolLabel = new Map<string, string>();
+  const bateneigenaarIds = new Set<string>();
+  const inspanningsleiderIds = new Set<string>();
+
   const addRol = (r: ProgrammaRol | undefined) => {
     if (!r) return;
     if (nonEmpty(r.naam)) byNaam.set(normName(r.naam), r.id);
+    const fn = firstNameKey(r.naam);
+    if (fn) byFirstName.set(fn, r.id);
     if (nonEmpty(r.rol)) byRolLabel.set(normName(r.rol), r.id);
+    const rolNorm = normName(r.rol);
+    if (rolNorm === normName(ROL_BATENEIGENAAR)) bateneigenaarIds.add(r.id);
+    if (rolNorm === normName(ROL_INSPANNINGSLEIDER)) inspanningsleiderIds.add(r.id);
   };
   addRol(po.opdrachtgever);
   addRol(po.programmamanager);
@@ -207,22 +350,35 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
   for (const r of po.domeineigenaren ?? []) addRol(r);
   for (const r of po.klankbordgroep ?? []) addRol(r);
 
+  // Zoek domeineigenaren in álle rollen op rol-label, niet alleen in
+  // `domeineigenaren`-lijst (bestaande sessies hebben ze in kerngroep).
   const domeineigenaarPerDomein = new Map<EffortDomain, string>();
-  for (const r of po.domeineigenaren ?? []) {
+  const allRollen: ProgrammaRol[] = [
+    ...(po.opdrachtgever ? [po.opdrachtgever] : []),
+    ...(po.programmamanager ? [po.programmamanager] : []),
+    ...(po.kerngroep ?? []),
+    ...(po.stuurgroep ?? []),
+    ...(po.domeineigenaren ?? []),
+    ...(po.klankbordgroep ?? []),
+  ];
+  for (const r of allRollen) {
     const label = (r.rol ?? "").toLowerCase();
-    // Match "Domeineigenaar Mens", "Domeineigenaar Processen", etc.
-    if (label.includes("mens")) domeineigenaarPerDomein.set("mens", r.id);
-    else if (label.includes("processen")) domeineigenaarPerDomein.set("processen", r.id);
-    else if (label.includes("data") || label.includes("systemen")) domeineigenaarPerDomein.set("data_systemen", r.id);
-    else if (label.includes("cultuur")) domeineigenaarPerDomein.set("cultuur", r.id);
+    if (!label.startsWith("domeineigenaar")) continue;
+    if (label.includes("mens") && !domeineigenaarPerDomein.has("mens")) domeineigenaarPerDomein.set("mens", r.id);
+    else if (label.includes("processen") && !domeineigenaarPerDomein.has("processen")) domeineigenaarPerDomein.set("processen", r.id);
+    else if ((label.includes("data") || label.includes("systemen")) && !domeineigenaarPerDomein.has("data_systemen")) domeineigenaarPerDomein.set("data_systemen", r.id);
+    else if (label.includes("cultuur") && !domeineigenaarPerDomein.has("cultuur")) domeineigenaarPerDomein.set("cultuur", r.id);
   }
 
   return {
     byNaam,
+    byFirstName,
     byRolLabel,
     opdrachtgeverId: po.opdrachtgever?.id ?? null,
     programmamanagerId: po.programmamanager?.id ?? null,
     domeineigenaarPerDomein,
+    bateneigenaarIds,
+    inspanningsleiderIds,
     stuurgroepIds: (po.stuurgroep ?? []).map((r) => r.id),
     kerngroepIds: (po.kerngroep ?? []).map((r) => r.id),
     klankbordgroepIds: (po.klankbordgroep ?? []).map((r) => r.id),
@@ -232,7 +388,13 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
 function findRolByNaam(lookup: RolLookup, naam: string): string | null {
   const key = normName(naam);
   if (!key) return null;
-  return lookup.byNaam.get(key) ?? null;
+  // Eerst exacte match
+  const exact = lookup.byNaam.get(key);
+  if (exact) return exact;
+  // Fallback: voornaam-key (matcht "Yara" met "Yara( HR business partner)")
+  const fn = firstNameKey(naam);
+  if (fn) return lookup.byFirstName.get(fn) ?? null;
+  return null;
 }
 
 function derivedRij(rolId: string, letter: RasciLetter): RasciRij {
@@ -417,72 +579,97 @@ function deriveGezamenlijkeInspanningen(
   diagnostiek: DeriveDiagnostiek[]
 ): GezamenlijkRasciItem[] {
   const subEffort = session.crossAnalyseWizard?.stepResults?.stap4?.subEffortAnalysis ?? [];
-  const itemsMetDossier = subEffort.filter(
-    (s) => s.dossier && (nonEmpty(s.dossier.eigenaar) || nonEmpty(s.dossier.inspanningsleider))
+  // Filter: alleen `actie === "combineren"` — dezelfde filter die planning/begroting/uren
+  // gebruiken (StapOptimaliseren.tsx:712). Dit zijn de daadwerkelijke cross-sectorale
+  // bundels (typisch ~4, 1 per domein); de `apart_houden`-entries zijn geen gezamenlijke
+  // inspanningen en horen niet in de RASCI-matrix.
+  const bundels = subEffort.filter(
+    (s) => s.actie === "combineren" && s.dossier && (nonEmpty(s.dossier.eigenaar) || nonEmpty(s.dossier.inspanningsleider))
   );
+  // Dedup per domein: als er meerdere bundels per domein zijn (meerdere VermogenGelijkenisGroepen
+  // die op hetzelfde domein combineren), pak die met meest complete dossier per domein.
+  const perDomein = new Map<string, typeof bundels[number]>();
+  for (const b of bundels) {
+    const huidig = perDomein.get(b.domein);
+    if (!huidig) {
+      perDomein.set(b.domein, b);
+      continue;
+    }
+    // Pak die met beide eigenaar+inspanningsleider boven slechts één van de twee
+    const huidigVol = nonEmpty(huidig.dossier?.eigenaar) && nonEmpty(huidig.dossier?.inspanningsleider);
+    const nieuwVol = nonEmpty(b.dossier?.eigenaar) && nonEmpty(b.dossier?.inspanningsleider);
+    if (nieuwVol && !huidigVol) perDomein.set(b.domein, b);
+  }
+  const itemsMetDossier = Array.from(perDomein.values());
 
   const out: GezamenlijkRasciItem[] = [];
   for (const s of itemsMetDossier) {
     const itemId = `${s.groepId}:${s.domein}`;
     const titel = s.titel || s.voorgesteldeNaam || `${DOMAIN_LABELS[s.domein] ?? s.domein} bundel`;
     const rijen: RasciRij[] = [];
+    const usedIds = new Set<string>();
 
-    // A: dossier.eigenaar — direct
+    // A: STUURGROEP COLLECTIEF — alle stuurgroep-leden samen verantwoordelijk
+    // (= dossier.eigenaar collectief). User-keuze: eigenaar = senior management
+    // groep, niet 1 persoon. Meerdere A's geldt hier als 1 collectieve A.
     const eigNaam = (s.dossier?.eigenaar ?? "").trim();
-    const aId = eigNaam ? findRolByNaam(lookup, eigNaam) : null;
-    if (aId) rijen.push(derivedRij(aId, "A"));
-    else if (eigNaam) {
-      diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Eigenaar "${eigNaam}" niet in programmaorganisatie` });
+    if (lookup.stuurgroepIds.length > 0) {
+      for (const id of lookup.stuurgroepIds) {
+        rijen.push(derivedRij(id, "A"));
+        usedIds.add(id);
+      }
+    } else if (eigNaam) {
+      // Fallback: probeer match met naam in dossier.eigenaar
+      const aId = findRolByNaam(lookup, eigNaam);
+      if (aId) {
+        rijen.push(derivedRij(aId, "A"));
+        usedIds.add(aId);
+      } else {
+        diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Stuurgroep is leeg — vul eerst de stuurgroep (uit cross-analyse)` });
+      }
     } else if (lookup.domeineigenaarPerDomein.get(s.domein)) {
-      // Fallback: domeineigenaar als A als geen eigenaar in dossier
+      // Tweede fallback: domeineigenaar als A
       const id = lookup.domeineigenaarPerDomein.get(s.domein)!;
       rijen.push(derivedRij(id, "A"));
+      usedIds.add(id);
     }
 
-    // R: dossier.inspanningsleider — direct
-    const leiderNaam = (s.dossier?.inspanningsleider ?? "").trim();
-    const rId = leiderNaam ? findRolByNaam(lookup, leiderNaam) : null;
-    if (rId && rId !== aId) rijen.push(derivedRij(rId, "R"));
-    else if (leiderNaam && !rId) {
-      diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Inspanningsleider "${leiderNaam}" niet in programmaorganisatie` });
-    }
-
-    // C: sectortrekkers van betrokken sectoren — pak inspanningsleiders die in andere
-    // bundels dezelfde sector raken (uitgezonderd zelf en de A)
-    const betrokkenSectoren = new Set<string>(
-      (s.vermogenImpact ?? []).map((v) => v.sectorId).filter(nonEmpty)
-    );
-    if (betrokkenSectoren.size > 0) {
-      const sectortrekkerIdx = buildSectortrekkerIndex(subEffort, lookup);
-      const cIds = new Set<string>();
-      for (const sec of betrokkenSectoren) {
-        const trekkers = sectortrekkerIdx.get(sec);
-        if (!trekkers) continue;
-        for (const id of trekkers) {
-          if (id !== aId && id !== rId) cIds.add(id);
+    // R: dossier.inspanningsleider — kan meerdere personen zijn (Procesconsultants per sector)
+    // Vind alle rollen die matchen op voornaam-key (parseInspanningsleider levert ze al gesplitst op)
+    const leiderRaw = (s.dossier?.inspanningsleider ?? "").trim();
+    if (leiderRaw) {
+      const leiders = parseInspanningsleider(leiderRaw);
+      let matched = 0;
+      for (const l of leiders) {
+        const rId = findRolByNaam(lookup, l.naam);
+        if (rId && !usedIds.has(rId)) {
+          rijen.push(derivedRij(rId, "R"));
+          usedIds.add(rId);
+          matched++;
         }
       }
-      for (const id of cIds) rijen.push(derivedRij(id, "C"));
+      if (matched === 0) {
+        diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Inspanningsleider "${leiderRaw}" niet in programmaorganisatie` });
+      }
     }
 
-    // C: programmamanager (één keer, indien niet al elders)
-    if (
-      lookup.programmamanagerId &&
-      lookup.programmamanagerId !== aId &&
-      lookup.programmamanagerId !== rId &&
-      !rijen.some((r) => r.rolId === lookup.programmamanagerId)
-    ) {
+    // S: domeineigenaar van het domein (Support — bewaakt samenhang)
+    const domeineigenaarId = lookup.domeineigenaarPerDomein.get(s.domein);
+    if (domeineigenaarId && !usedIds.has(domeineigenaarId)) {
+      rijen.push(derivedRij(domeineigenaarId, "S"));
+      usedIds.add(domeineigenaarId);
+    }
+
+    // C: programmamanager
+    if (lookup.programmamanagerId && !usedIds.has(lookup.programmamanagerId)) {
       rijen.push(derivedRij(lookup.programmamanagerId, "C"));
+      usedIds.add(lookup.programmamanagerId);
     }
 
-    // I: opdrachtgever
-    if (
-      lookup.opdrachtgeverId &&
-      lookup.opdrachtgeverId !== aId &&
-      lookup.opdrachtgeverId !== rId &&
-      !rijen.some((r) => r.rolId === lookup.opdrachtgeverId)
-    ) {
+    // I: opdrachtgever (alleen als deze niet al in stuurgroep zit)
+    if (lookup.opdrachtgeverId && !usedIds.has(lookup.opdrachtgeverId)) {
       rijen.push(derivedRij(lookup.opdrachtgeverId, "I"));
+      usedIds.add(lookup.opdrachtgeverId);
     }
 
     out.push({
@@ -493,7 +680,7 @@ function deriveGezamenlijkeInspanningen(
         domein: s.domein,
         actie: s.actie,
         eigenaarNaam: eigNaam,
-        inspanningsleiderNaam: leiderNaam,
+        inspanningsleiderNaam: leiderRaw,
       },
       rijen,
       toelichting: s.beargumentatie || s.beschrijving || s.reden || "",
@@ -723,7 +910,11 @@ export function validateGezamenlijkeRasci(items: GezamenlijkRasciItem[]): RasciR
     const aCount = (item.rijen ?? []).filter((r) => r.letter === "A").length;
     const rCount = (item.rijen ?? []).filter((r) => r.letter === "R").length;
     if (aCount === 0) out.push({ itemId: item.itemId, sectie: item.sectie, reden: "geen_a" });
-    else if (aCount > 1) out.push({ itemId: item.itemId, sectie: item.sectie, reden: "meerdere_a" });
+    // Voor "gezamenlijke_inspanningen" is meerdere A toegestaan (stuurgroep collectief).
+    // Voor andere secties geldt nog steeds "exact 1 A".
+    else if (aCount > 1 && item.sectie !== "gezamenlijke_inspanningen") {
+      out.push({ itemId: item.itemId, sectie: item.sectie, reden: "meerdere_a" });
+    }
     if (rCount === 0) out.push({ itemId: item.itemId, sectie: item.sectie, reden: "geen_r" });
   }
   return out;

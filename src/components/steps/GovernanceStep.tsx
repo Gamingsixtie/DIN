@@ -268,7 +268,11 @@ export default function GovernanceStep() {
     updateSession(() => ({ programmaorganisatie: result.next }));
     // Niet-blokkerende flash via aiError-veld als info-bericht
     setAIError(
-      `Toegevoegd: ${result.toegevoegdKerngroep} kerngroep-rol(len), ${result.toegevoegdDomeineigenaren} domeineigenaar(s). Bestaande handmatige rollen zijn behouden.`
+      `Toegevoegd: ${result.toegevoegdKerngroep} inspanningsleider(s) + ${result.toegevoegdBateneigenaren} bateneigenaar(s) in kerngroep, ${result.toegevoegdStuurgroep} stuurgroep-lid(en).${
+        result.verwijderdDuplicaten > 0
+          ? ` Opgeschoond: ${result.verwijderdDuplicaten} domeineigenaar-duplicaat(en) uit kerngroep.`
+          : ""
+      } Bestaande handmatige rollen blijven staan.`
     );
   }
 
@@ -621,17 +625,20 @@ function OrganisatieTab({
       <div className="p-4 rounded border border-emerald-200 bg-emerald-50">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex-1 min-w-[260px]">
-            <p className="text-sm font-semibold text-emerald-900">Vul uit cross-analyse (aanbevolen)</p>
-            <p className="text-xs text-emerald-800 mt-0.5">
-              Kerngroep = unieke inspanningsleiders uit stap 4. Domeineigenaren = meest voorkomende eigenaar per domein.
-              Bestaande handmatige rollen blijven staan.
+            <p className="text-sm font-semibold text-emerald-900">Vul programmaorganisatie uit cross-analyse</p>
+            <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+              Vult drie buckets in één klik:<br />
+              • <b>Stuurgroep</b> ← <code>dossier.eigenaar</code> (collectief, gesplitst)<br />
+              • <b>Kerngroep — inspanningsleiders</b> ← <code>dossier.inspanningsleider</code> (per-sector splitsen, voornaam-dedup)<br />
+              • <b>Kerngroep — bateneigenaren</b> ← <code>benefit.profiel.bateneigenaar</code><br />
+              Domeineigenaren, opdrachtgever en programmamanager blijven handmatig. Dezelfde persoon wordt nooit dubbel toegevoegd. Bestaande domeineigenaar-duplicaten in kerngroep worden opgeschoond.
             </p>
           </div>
           <button
             onClick={onDerive}
-            className="px-4 py-2 rounded bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800"
+            className="px-4 py-2 rounded bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 shrink-0"
           >
-            Vul kerngroep + domeineigenaren
+            Vul programmaorganisatie
           </button>
         </div>
       </div>
@@ -2375,7 +2382,10 @@ function SectieMatrix({
               const rijMap = new Map((item.rijen ?? []).map((r) => [r.rolId, r] as const));
               const nA = (item.rijen ?? []).filter((r) => r.letter === "A").length;
               const nR = (item.rijen ?? []).filter((r) => r.letter === "R").length;
-              const valid = nA === 1 && nR >= 1;
+              // Bij "gezamenlijke_inspanningen" is meerdere A toegestaan (stuurgroep collectief)
+              const valid = sectie === "gezamenlijke_inspanningen"
+                ? nA >= 1 && nR >= 1
+                : nA === 1 && nR >= 1;
               return (
                 <tr key={item.itemId} className="hover:bg-gray-50/50">
                   <td className="border-b border-r border-gray-200 px-2 py-1.5 sticky left-0 bg-white z-10">
