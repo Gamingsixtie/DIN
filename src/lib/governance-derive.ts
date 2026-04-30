@@ -392,20 +392,34 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
   const bateneigenaarIds = new Set<string>();
   const inspanningsleiderIds = new Set<string>();
 
+  // first-write wint zodat eerder toegevoegde buckets (kerngroep) niet
+  // worden overschreven door later toegevoegde (stuurgroep). Dit is cruciaal
+  // voor inspanningsleider-matching: Yara staat én in kerngroep (Inspanningsleider)
+  // én in stuurgroep (HR-manager). Bij RASCI gezamenlijke inspanningen krijgt
+  // stuurgroep-Yara A, en kerngroep-Yara moet R krijgen — dus byNaam moet
+  // de kerngroep-id behouden, niet de stuurgroep-id.
   const addRol = (r: ProgrammaRol | undefined) => {
     if (!r) return;
     byId.set(r.id, r);
-    if (nonEmpty(r.naam)) byNaam.set(normName(r.naam), r.id);
+    if (nonEmpty(r.naam)) {
+      const k = normName(r.naam);
+      if (!byNaam.has(k)) byNaam.set(k, r.id);
+    }
     const fn = firstNameKey(r.naam);
-    if (fn) byFirstName.set(fn, r.id);
-    if (nonEmpty(r.rol)) byRolLabel.set(normName(r.rol), r.id);
+    if (fn && !byFirstName.has(fn)) byFirstName.set(fn, r.id);
+    if (nonEmpty(r.rol)) {
+      const rk = normName(r.rol);
+      if (!byRolLabel.has(rk)) byRolLabel.set(rk, r.id);
+    }
     const rolNorm = normName(r.rol);
     if (rolNorm === normName(ROL_BATENEIGENAAR)) bateneigenaarIds.add(r.id);
     if (rolNorm === normName(ROL_INSPANNINGSLEIDER)) inspanningsleiderIds.add(r.id);
   };
+  // Volgorde: kerngroep EERST, dan rest. Dit zorgt dat kerngroep-rollen
+  // (Inspanningsleider) prevaleren in byNaam-lookup voor RASCI-matching.
+  for (const r of po.kerngroep ?? []) addRol(r);
   addRol(po.opdrachtgever);
   addRol(po.programmamanager);
-  for (const r of po.kerngroep ?? []) addRol(r);
   for (const r of po.stuurgroep ?? []) addRol(r);
   for (const r of po.domeineigenaren ?? []) addRol(r);
   for (const r of po.klankbordgroep ?? []) addRol(r);
