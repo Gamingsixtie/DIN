@@ -121,10 +121,10 @@ function IntroPanel({ title, children }: { title: string; children: React.ReactN
 }
 
 // ScenarioPicker — knoppenrij in de inleiding van H4. Klikken opent het bijbehorende
-// scenario in 4.1 én 4.2 én scrollt erheen. Werkt door <details>-elementen op het
-// patroon `scenario-{4-1|4-2}-{key}` open te zetten.
-const SCENARIO_PICKER_SECTIONS = ["4-1", "4-2"] as const;
-type ScenarioPickerSection = "4-1" | "4-2";
+// scenario in 4.1, 4.2 én 4.3 en scrollt erheen. Werkt door <details>-elementen op het
+// patroon `scenario-{4-1|4-2|4-3}-{key}` open te zetten.
+const SCENARIO_PICKER_SECTIONS = ["4-1", "4-2", "4-3"] as const;
+type ScenarioPickerSection = "4-1" | "4-2" | "4-3";
 function ScenarioPicker({
   label,
   scrollTo,
@@ -137,7 +137,7 @@ function ScenarioPicker({
   return (
     <div className="my-4 p-4 rounded-lg bg-white border border-cito-blue/30 print:hidden max-w-3xl">
       <div className="text-xs text-gray-700 mb-3 font-medium">
-        {label ?? "Spring direct naar een scenario — klik en de bijbehorende tabellen in 4.1 en 4.2 worden uitgeklapt:"}
+        {label ?? "Spring direct naar een scenario — klik en de bijbehorende tabellen in 4.1, 4.2 en 4.3 worden uitgeklapt:"}
       </div>
       <div className="flex flex-wrap gap-2">
         {(["optimaal", "plus20", "min20", "advies"] as ScenarioKey[]).map((k) => {
@@ -2181,33 +2181,7 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
 
   return (
     <div className="mb-6 space-y-4">
-      {/* Aanbeveling-banner */}
-      {aanbevolenScen && (
-        <div className={`rounded-xl border-2 ${SCENARIO_KLEUR[echtAanbevolen].bg.replace("bg-", "border-").replace("-50", "-300")} ${SCENARIO_KLEUR[echtAanbevolen].bg} p-5`}>
-          <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-8 h-8 rounded-full ${SCENARIO_KLEUR[echtAanbevolen].banner} text-white flex items-center justify-center font-bold`}>
-              ✓
-            </div>
-            <div className="flex-1">
-              <div className={`text-[10px] uppercase tracking-wider font-bold ${SCENARIO_KLEUR[echtAanbevolen].accent} mb-0.5`}>
-                Advies aan de stuurgroep
-              </div>
-              <h3 className="text-base font-bold text-gray-800 mb-1">
-                Kies scenario &ldquo;{SCENARIO_LABELS[echtAanbevolen]}&rdquo; — totaal {euroFmt.format(totaalAanbevolen)}
-                {aanbevolenScen.aantalJaren ? ` over ${aanbevolenScen.aantalJaren} jaar` : ""}
-              </h3>
-              {aanbevolenScen.samenvatting && (
-                <p className="text-sm text-gray-800 leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
-              )}
-              {aanbevolenScen.prioriteitAdvies && (
-                <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Vergelijking AI-tekst (cross-scenario) */}
+      {/* 1. Eerst: vergelijking van de vier scenario's */}
       {begroting.vergelijking && (
         <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
           <div className="text-[10px] uppercase tracking-wider text-gray-600 font-bold mb-1">
@@ -2217,7 +2191,7 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
         </div>
       )}
 
-      {/* Per-scenario one-liner overzicht */}
+      {/* 2. Per-scenario kort overzicht — totalen + samenvatting volledig zichtbaar */}
       {beschikbareScenarios.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {scenarioOrder.map((k) => {
@@ -2241,13 +2215,39 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
                   {euroFmt.format(tot)}
                 </div>
                 {sc.samenvatting && (
-                  <p className="text-[11px] text-gray-600 leading-snug mt-1.5 line-clamp-3" title={sc.samenvatting}>
+                  <p className="text-[11px] text-gray-600 leading-snug mt-1.5 whitespace-pre-wrap">
                     {sc.samenvatting}
                   </p>
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 3. Aanbeveling — als afsluiting van het blok */}
+      {aanbevolenScen && (
+        <div className={`rounded-xl border-2 ${SCENARIO_KLEUR[echtAanbevolen].bg.replace("bg-", "border-").replace("-50", "-300")} ${SCENARIO_KLEUR[echtAanbevolen].bg} p-5`}>
+          <div className="flex items-start gap-3">
+            <div className={`shrink-0 w-8 h-8 rounded-full ${SCENARIO_KLEUR[echtAanbevolen].banner} text-white flex items-center justify-center font-bold`}>
+              ✓
+            </div>
+            <div className="flex-1">
+              <div className={`text-[10px] uppercase tracking-wider font-bold ${SCENARIO_KLEUR[echtAanbevolen].accent} mb-0.5`}>
+                Advies aan de stuurgroep
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">
+                Kies scenario &ldquo;{SCENARIO_LABELS[echtAanbevolen]}&rdquo; — totaal {euroFmt.format(totaalAanbevolen)}
+                {aanbevolenScen.aantalJaren ? ` over ${aanbevolenScen.aantalJaren} jaar` : ""}
+              </h3>
+              {aanbevolenScen.samenvatting && (
+                <p className="text-sm text-gray-800 leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
+              )}
+              {aanbevolenScen.prioriteitAdvies && (
+                <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -2870,27 +2870,16 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
           const totOop = jaren.reduce((s, j) => s + j.outOfPocket, 0);
           const totInt = jaren.reduce((s, j) => s + j.interneKosten, 0);
           const totUren = jaren.reduce((s, j) => s + j.interneUren, 0);
+          const metaText = `OOP ${euroFmt.format(r.outOfPocket)} · Int ${euroFmt.format(r.interneKosten)}${r.interneUrenTotaal > 0 ? ` (${r.interneUrenTotaal.toLocaleString("nl-NL")} u)` : ""}`;
           return (
-            <div key={key} className={`border-2 rounded-lg overflow-hidden ${kleur.bg.replace("bg-", "border-").replace("-50", "-200")}`}>
-              <div className={`${kleur.bg} px-4 py-3 flex items-baseline justify-between gap-3`}>
-                <div>
-                  <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.accent}`}>
-                    {SCENARIO_LABELS[key]}
-                  </div>
-                  <div className="text-2xl font-bold text-gray-800 mt-0.5 tabular-nums">
-                    {euroFmt.format(r.totaalGeraamd)}
-                  </div>
-                </div>
-                <div className="text-[11px] text-gray-700 text-right space-y-0.5 tabular-nums">
-                  <div>Out-of-pocket: <strong>{euroFmt.format(r.outOfPocket)}</strong></div>
-                  <div>
-                    Interne uren: <strong>{euroFmt.format(r.interneKosten)}</strong>
-                    {r.interneUrenTotaal > 0 && (
-                      <span className="text-gray-500 ml-1">({r.interneUrenTotaal.toLocaleString("nl-NL")} u)</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <ScenarioCollapse
+              key={key}
+              id={`scenario-4-3-${key}`}
+              scenario={key}
+              total={euroFmt.format(r.totaalGeraamd)}
+              meta={metaText}
+              summary={begroting?.scenarios?.[key]?.samenvatting}
+            >
               {jaren.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -3076,7 +3065,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                   {advies && <p className="text-xs text-gray-600 italic leading-relaxed whitespace-pre-wrap">{advies}</p>}
                 </div>
               )}
-            </div>
+            </ScenarioCollapse>
           );
         })}
       </div>
@@ -3840,10 +3829,11 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 begroten maar in capaciteit alsnog overvragen, of omgekeerd.
               </p>
               <p className="text-sm text-gray-800 leading-relaxed mb-2">
-                Cito is een relatief kleine, bureaucratische organisatie; de interne capaciteit is een schaars
-                goed dat zorgvuldig over de tijd verdeeld moet worden. Het advies-scenario houdt rekening met die
-                realiteit: de jaarlijkse uren-belasting blijft op een niveau dat naast het reguliere lijnwerk
-                gedragen kan worden, zonder dat het programma stilvalt zodra een sleutelrol uitvalt.
+                De interne capaciteit van Cito moet zorgvuldig over de programma&apos;s en het reguliere
+                lijnwerk worden verdeeld; sleutelrollen zijn schaars en zitten doorgaans op meerdere
+                trajecten tegelijk. Het advies-scenario houdt rekening met die realiteit: de jaarlijkse
+                uren-belasting blijft op een niveau dat naast het reguliere werk gedragen kan worden, zonder
+                dat het programma stilvalt zodra één sleutelrol uitvalt.
               </p>
               <p className="text-sm text-gray-800 leading-relaxed">
                 De doorlooptijd die hieruit volgt is geen vaststaand getal, maar het gevolg van die capaciteits-
@@ -3855,16 +3845,17 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           <SubSection title="4.3 Totaaloverzicht — vier scenario's" id="4-3-totaaloverzicht-vier-scenario-s">
             <IntroPanel title="Wat staat hieronder?">
               <p>
-                In dit overzicht zijn de vier scenario&apos;s naast elkaar gelegd: <strong>out-of-pocket plus
-                interne uren bij elkaar opgeteld</strong> geeft het totaal-investeringsbeeld dat de stuurgroep
-                nodig heeft om een keuze te maken.
+                In dit overzicht zijn dezelfde vier scenario&apos;s als in 4.1 en 4.2 nog eens samengebracht,
+                nu met de totalen — <strong>out-of-pocket plus interne uren opgeteld</strong> — als integraal
+                investeringsbeeld dat de stuurgroep nodig heeft om een keuze te maken.
               </p>
               <p>
-                Anders dan in 4.1 en 4.2 staat hier alles direct zichtbaar: één overzichts-tabel met de vier
-                scenario&apos;s en daaronder de aanbeveling. De keuze die hier wordt gemaakt vormt de basis voor
-                de detailbegroting van het eerstvolgende jaar.
+                De scenario-blokken hieronder zijn standaard ingeklapt; gebruik de knoppen om naar een
+                specifiek scenario te springen, of klik direct op een scenario-kop om het uit te vouwen. De
+                <strong> aanbeveling aan de stuurgroep</strong> volgt onderaan, na de vier scenario&apos;s.
               </p>
             </IntroPanel>
+            <ScenarioPicker label="Spring direct naar een totaal-scenario:" scrollTo="4-3" />
             <ScenarioTotaalBlock session={session} />
             <Aanbeveling>
               <p className="text-sm text-gray-800 leading-relaxed mb-3">

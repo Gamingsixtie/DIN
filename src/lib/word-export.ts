@@ -2576,10 +2576,11 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
-      "Cito is een relatief kleine, bureaucratische organisatie; de interne capaciteit is een schaars goed dat " +
-      "zorgvuldig over de tijd verdeeld moet worden. Het advies-scenario houdt rekening met die realiteit: de " +
-      "jaarlijkse uren-belasting blijft op een niveau dat naast het reguliere lijnwerk gedragen kan worden, " +
-      "zonder dat het programma stilvalt zodra een sleutelrol uitvalt.",
+      "De interne capaciteit van Cito moet zorgvuldig over de programma's en het reguliere lijnwerk worden " +
+      "verdeeld; sleutelrollen zijn schaars en zitten doorgaans op meerdere trajecten tegelijk. Het " +
+      "advies-scenario houdt rekening met die realiteit: de jaarlijkse uren-belasting blijft op een niveau " +
+      "dat naast het reguliere werk gedragen kan worden, zonder dat het programma stilvalt zodra één " +
+      "sleutelrol uitvalt.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
