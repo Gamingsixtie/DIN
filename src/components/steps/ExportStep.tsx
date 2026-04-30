@@ -124,7 +124,16 @@ function IntroPanel({ title, children }: { title: string; children: React.ReactN
 // scenario in 4.1 én 4.2 én scrollt erheen. Werkt door <details>-elementen op het
 // patroon `scenario-{4-1|4-2}-{key}` open te zetten.
 const SCENARIO_PICKER_SECTIONS = ["4-1", "4-2"] as const;
-function ScenarioPicker({ label }: { label?: string }) {
+type ScenarioPickerSection = "4-1" | "4-2";
+function ScenarioPicker({
+  label,
+  scrollTo,
+}: {
+  label?: string;
+  // Naar welke sectie scrollen we na het openen? Beide secties worden altijd opengeklapt,
+  // maar de scroll-target verschilt per locatie van de picker.
+  scrollTo?: ScenarioPickerSection;
+}) {
   return (
     <div className="my-4 p-4 rounded-lg bg-white border border-cito-blue/30 print:hidden max-w-3xl">
       <div className="text-xs text-gray-700 mb-3 font-medium">
@@ -138,16 +147,23 @@ function ScenarioPicker({ label }: { label?: string }) {
               key={k}
               type="button"
               onClick={() => {
-                let firstOpened: HTMLDetailsElement | null = null;
+                // Open alle scenario-collapses zodat de tabellen overal zichtbaar zijn
                 SCENARIO_PICKER_SECTIONS.forEach((sec) => {
                   const el = document.getElementById(`scenario-${sec}-${k}`) as HTMLDetailsElement | null;
-                  if (el) {
-                    el.open = true;
-                    if (!firstOpened) firstOpened = el;
-                  }
+                  if (el) el.open = true;
                 });
-                if (firstOpened) {
-                  (firstOpened as HTMLDetailsElement).scrollIntoView({ behavior: "smooth", block: "start" });
+                // Bepaal scroll-target: voorkeur uit prop, anders de eerste beschikbare
+                const preferred = scrollTo
+                  ? (document.getElementById(`scenario-${scrollTo}-${k}`) as HTMLDetailsElement | null)
+                  : null;
+                const fallback = !preferred
+                  ? SCENARIO_PICKER_SECTIONS
+                      .map((sec) => document.getElementById(`scenario-${sec}-${k}`) as HTMLDetailsElement | null)
+                      .find((el): el is HTMLDetailsElement => el !== null) ?? null
+                  : null;
+                const target = preferred ?? fallback;
+                if (target) {
+                  target.scrollIntoView({ behavior: "smooth", block: "start" });
                 }
               }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-full ${kleur.bg} ${kleur.accent} border border-current hover:bg-cito-blue hover:text-white hover:border-cito-blue transition-colors`}
@@ -2320,7 +2336,7 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
           </>
         )}
       </IntroPanel>
-      <ScenarioPicker label="Spring direct naar een out-of-pocket-scenario:" />
+      <ScenarioPicker label="Spring direct naar een out-of-pocket-scenario:" scrollTo="4-1" />
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-3xl">
         Per scenario hieronder de meerjarige verdeling per inspanning: bedrag per jaar, percentage, fase en
         activiteit. De ranking links is de aanbevolen volgorde van investeren — over alle scenario&apos;s gelijk;
@@ -2521,7 +2537,7 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
           </>
         )}
       </IntroPanel>
-      <ScenarioPicker label="Spring direct naar een interne-uren-scenario:" />
+      <ScenarioPicker label="Spring direct naar een interne-uren-scenario:" scrollTo="4-2" />
 
       {interneUren.uurtariefSettings && (
         <p className="text-xs text-gray-500 italic mb-4">
