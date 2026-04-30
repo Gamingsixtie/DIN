@@ -76,13 +76,131 @@ function slugify(text: string): string {
 
 function SubSection({ title, number, id, children }: { title: string; number?: string; id?: string; children: React.ReactNode }) {
   const anchor = id ?? slugify(title);
+  // Probeer "4.1 ..." op te splitsen in een nummerprefix + de rest van de titel
+  const numMatch = title.match(/^(\d+(?:\.\d+)*)\s+(.+)$/);
+  const splitNum = number ?? numMatch?.[1] ?? null;
+  const splitTitle = numMatch?.[2] ?? title;
   return (
-    <div className="mb-6" id={anchor}>
-      <h3 className="text-sm font-bold text-cito-blue/80 mb-3 uppercase tracking-wide scroll-mt-24">
-        {number ? `${number} ` : ""}{title}
-      </h3>
+    <section
+      id={anchor}
+      className="mb-12 mt-10 first:mt-0 scroll-mt-24 print:mt-6 print:mb-6"
+    >
+      <header className="mb-5 pb-3 border-b-2 border-cito-blue/30">
+        <div className="flex items-baseline gap-3">
+          {splitNum && (
+            <span className="text-3xl font-light text-cito-blue/55 tabular-nums leading-none">
+              {splitNum}
+            </span>
+          )}
+          <h3 className="text-lg font-bold text-cito-blue leading-tight">
+            {splitTitle}
+          </h3>
+        </div>
+      </header>
       {children}
+    </section>
+  );
+}
+
+// IntroPanel — gestileerd tekstvak voor inleidingen binnen een (sub)paragraaf.
+// Consistente max-width over heel hoofdstuk 4 zodat tekstkolommen even breed zijn.
+function IntroPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6 p-5 rounded-lg bg-cito-blue/5 border border-cito-blue/20 max-w-3xl">
+      <div className="text-[10px] uppercase tracking-[0.15em] text-cito-blue font-bold mb-2">
+        {title}
+      </div>
+      <div className="space-y-2 text-sm text-gray-800 leading-relaxed">
+        {children}
+      </div>
     </div>
+  );
+}
+
+// ScenarioPicker — knoppenrij in de inleiding van H4. Klikken opent het bijbehorende
+// scenario in 4.1 én 4.2 én scrollt erheen. Werkt door <details>-elementen op het
+// patroon `scenario-{4-1|4-2}-{key}` open te zetten.
+const SCENARIO_PICKER_SECTIONS = ["4-1", "4-2"] as const;
+function ScenarioPicker({ label }: { label?: string }) {
+  return (
+    <div className="my-4 p-4 rounded-lg bg-white border border-cito-blue/30 print:hidden max-w-3xl">
+      <div className="text-xs text-gray-700 mb-3 font-medium">
+        {label ?? "Spring direct naar een scenario — klik en de bijbehorende tabellen in 4.1 en 4.2 worden uitgeklapt:"}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(["optimaal", "plus20", "min20", "advies"] as ScenarioKey[]).map((k) => {
+          const kleur = SCENARIO_KLEUR[k];
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => {
+                let firstOpened: HTMLDetailsElement | null = null;
+                SCENARIO_PICKER_SECTIONS.forEach((sec) => {
+                  const el = document.getElementById(`scenario-${sec}-${k}`) as HTMLDetailsElement | null;
+                  if (el) {
+                    el.open = true;
+                    if (!firstOpened) firstOpened = el;
+                  }
+                });
+                if (firstOpened) {
+                  (firstOpened as HTMLDetailsElement).scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full ${kleur.bg} ${kleur.accent} border border-current hover:bg-cito-blue hover:text-white hover:border-cito-blue transition-colors`}
+            >
+              {SCENARIO_LABELS[k]}
+              <span className="ml-1.5 opacity-60">&rarr;</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ScenarioCollapse — wrap één scenario zodat het standaard ingeklapt is op scherm,
+// en automatisch open in print. Klikbare summary toont scenario-banner + totalen.
+function ScenarioCollapse({
+  id,
+  scenario,
+  total,
+  meta,
+  summary,
+  children,
+}: {
+  id: string;
+  scenario: ScenarioKey;
+  total?: string;
+  meta?: string;
+  summary?: string;
+  children: React.ReactNode;
+}) {
+  const kleur = SCENARIO_KLEUR[scenario];
+  return (
+    <details
+      id={id}
+      className={`group mb-5 rounded-lg border-2 overflow-hidden scroll-mt-24 print:open ${kleur.bg.replace("bg-", "border-").replace("-50", "-200")}`}
+    >
+      <summary
+        className={`${kleur.banner} text-white p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-white/80 transition-transform group-open:rotate-90 print:hidden">▸</span>
+          <div className="min-w-0">
+            <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst}`}>
+              Scenario &mdash; {SCENARIO_LABELS[scenario]}
+            </div>
+            {summary && <p className="text-sm leading-relaxed mt-0.5 truncate">{summary}</p>}
+          </div>
+        </div>
+        <div className={`text-right text-xs ${kleur.bannerTekst} shrink-0 tabular-nums`}>
+          {total && <div className="text-sm font-bold text-white">{total}</div>}
+          {meta && <div className="opacity-80">{meta}</div>}
+        </div>
+      </summary>
+      <div className="p-4 bg-white">{children}</div>
+    </details>
   );
 }
 
@@ -1905,20 +2023,19 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
 
   return (
     <>
-      <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
-        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Wat staat hieronder?</div>
-        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+      <IntroPanel title="Wat staat hieronder?">
+        <p>
           Voor elk van de cross-sectorale inspanningen is een out-of-pocket-bedrag bepaald — de externe kosten
           (licenties, inkoop, externe inhuur) — en uitgesmeerd over de programmaperiode met per jaar een fase
           (opzet, opbouw, verankeren) en een activiteit. Hieronder staan <strong>vier scenario&apos;s</strong> naast
           elkaar; in elk scenario verschillen het tempo, de spreiding en de mate van parallelle uitvoering.
         </p>
-        <p className="text-sm text-gray-800 leading-relaxed mb-3">
+        <p>
           <strong>Waarom vier scenario&apos;s?</strong> De stuurgroep krijgt zo één doorgerekend basisbeeld plus
           drie expliciete varianten daarop. Het verschil tussen de scenario&apos;s draait om <em>tempo</em> en
           <em> ambitieniveau</em>; de inhoud van de inspanningen blijft overal gelijk.
         </p>
-        <ul className="text-sm text-gray-800 leading-relaxed list-disc pl-5 space-y-1 mb-3">
+        <ul className="list-disc pl-5 space-y-1">
           <li><strong>{SCENARIO_LABELS.optimaal}</strong> — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.</li>
           <li><strong>{SCENARIO_LABELS.plus20}</strong> — sneller (+20%): meer parallelle uitvoering, hogere jaarlast aan out-of-pocket; baten worden eerder gerealiseerd.</li>
           <li><strong>{SCENARIO_LABELS.min20}</strong> — langzamer (−20%): uitgaven uitgesmeerd, lagere jaarlast, maar langere periode zonder volledige baten.</li>
@@ -1926,10 +2043,10 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
         </ul>
         {refInsp.length > 0 && refTotEur > 0 && (
           <>
-            <p className="text-sm text-gray-800 leading-relaxed mb-1">
+            <p className="mt-2">
               <strong>Volgorde van investeren</strong> (gelijk over alle scenario&apos;s):
             </p>
-            <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-800 leading-snug">
+            <ol className="list-decimal pl-5 space-y-1">
               {sortedInspByRank.slice(0, 4).map((insp) => (
                 <li key={`${insp.domein}-${insp.volgorde.rank}`}>
                   <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>:{" "}
@@ -1939,14 +2056,15 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
             </ol>
           </>
         )}
-      </div>
-      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+      </IntroPanel>
+      <ScenarioPicker label="Spring direct naar een out-of-pocket-scenario:" />
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-3xl">
         Per scenario hieronder de meerjarige verdeling per inspanning: bedrag per jaar, percentage, fase en
         activiteit. De ranking links is de aanbevolen volgorde van investeren — over alle scenario&apos;s gelijk;
-        het scenario bepaalt het <em>tempo</em>, niet de volgorde.
+        het scenario bepaalt het <em>tempo</em>, niet de volgorde. Klik een scenario open om de tabel te zien.
       </p>
 
-      <div className="space-y-6">
+      <div>
         {beschikbaar.map((key) => {
           const s = begroting.scenarios?.[key];
           if (!s) return null;
@@ -1955,20 +2073,27 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
           const eindJaar = startJaar + aantalJaren - 1;
           const inspanningen = [...(s.inspanningen ?? [])].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
           const totalenPerJaar = s.totalenPerJaar ?? [];
+          const totaalText = s.totaalGeraamdEuro !== undefined
+            ? euroFmt41.format(s.totaalGeraamdEuro)
+            : undefined;
+          const metaText = s.totaalGeraamdEuro !== undefined
+            ? `${euroFmt41.format(s.jaarlijksBudgetEuro ?? 0)} / jaar × ${aantalJaren} jaar`
+            : undefined;
 
           return (
-            <div key={key} className="space-y-3">
-              <div className={`${kleur.banner} text-white rounded-lg p-4`}>
-                <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst} mb-1`}>
-                  Scenario — {SCENARIO_LABELS[key]}
-                </div>
-                {s.samenvatting && <p className="text-sm leading-relaxed">{s.samenvatting}</p>}
-                {s.totaalGeraamdEuro !== undefined && (
-                  <p className={`text-xs ${kleur.bannerTekst} mt-2`}>
-                    € {(s.jaarlijksBudgetEuro ?? 0).toLocaleString("nl-NL")} / jaar × {aantalJaren} jaar ({startJaar}–{eindJaar}) = <strong>€ {s.totaalGeraamdEuro.toLocaleString("nl-NL")}</strong>
-                  </p>
-                )}
-              </div>
+            <ScenarioCollapse
+              key={key}
+              id={`scenario-4-1-${key}`}
+              scenario={key}
+              total={totaalText}
+              meta={metaText}
+              summary={s.samenvatting}
+            >
+              {s.totaalGeraamdEuro !== undefined && (
+                <p className="text-xs text-gray-500 mb-3">
+                  Periode: <strong>{startJaar}–{eindJaar}</strong> ({aantalJaren} jaar). Totaal {euroFmt41.format(s.totaalGeraamdEuro)}.
+                </p>
+              )}
 
               {inspanningen.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
@@ -2052,14 +2177,14 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
               )}
 
               {s.prioriteitAdvies && (
-                <div className={`p-3 rounded-lg ${kleur.bg} border border-gray-200`}>
+                <div className={`mt-3 p-3 rounded-lg ${kleur.bg} border border-gray-200`}>
                   <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
                     Prioriteitadvies (outside-in volgorde)
                   </div>
                   <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{s.prioriteitAdvies}</p>
                 </div>
               )}
-            </div>
+            </ScenarioCollapse>
           );
         })}
       </div>
@@ -2103,22 +2228,21 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
 
   return (
     <>
-      <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
-        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Wat staat hieronder?</div>
-        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+      <IntroPanel title="Wat staat hieronder?">
+        <p>
           Voor elk van de vier scenario&apos;s — dezelfde scenario&apos;s als in 4.1 — tonen we hieronder de inzet
           van Cito-medewerkers: per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en
           bijbehorende kosten. De volume- en spreidings-keuzes verschillen per scenario; het uurtarief geldt
           over alle scenario&apos;s gelijk.
         </p>
-        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+        <p>
           De doorlooptijd hangt af van het gekozen scenario: een hoger ambitieniveau verkort de looptijd,
           een lager niveau rekt hem uit. De keuze tussen scenario&apos;s — en de daaruit volgende doorlooptijd
           — komt aan bod in 4.2.1 en in het totaaloverzicht in 4.3.
         </p>
         {sortedDom.length > 0 && totUren42 > 0 && (
-          <div className="text-sm text-gray-800 leading-relaxed">
-            <p className="mb-1"><strong>Verhouding van inzet per domein</strong> (referentie: scenario {interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal}):</p>
+          <>
+            <p className="mt-2"><strong>Verhouding van inzet per domein</strong> (referentie: scenario {interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal}):</p>
             <ol className="list-decimal pl-5 space-y-1">
               {sortedDom.map((d) => {
                 const aandeel = totUren42 > 0 ? Math.round(((d.totaalUren ?? 0) / totUren42) * 100) : 0;
@@ -2131,9 +2255,10 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                 );
               })}
             </ol>
-          </div>
+          </>
         )}
-      </div>
+      </IntroPanel>
+      <ScenarioPicker label="Spring direct naar een interne-uren-scenario:" />
 
       {interneUren.uurtariefSettings && (
         <p className="text-xs text-gray-500 italic mb-4">
@@ -2142,11 +2267,10 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
         </p>
       )}
 
-      <div className="space-y-6">
+      <div>
         {beschikbaar.map((key) => {
           const s = interneUren.scenarios?.[key];
           if (!s) return null;
-          const kleur = SCENARIO_KLEUR[key];
 
           // Per scenario: bepaal laatste jaar met uren — voor "Programma eindigt in …"-notitie
           const jarenAlleDomeinen = s.domeinen.flatMap((d) => d.jaren);
@@ -2164,24 +2288,22 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
             laatsteJaarTotaal !== null &&
             laatsteJaarMetUren < laatsteJaarTotaal;
 
-          return (
-            <div key={key} className="space-y-3">
-              <div className={`${kleur.banner} text-white rounded-lg p-4`}>
-                <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst} mb-1`}>
-                  Scenario — {SCENARIO_LABELS[key]}
-                </div>
-                {s.samenvatting && <p className="text-sm leading-relaxed">{s.samenvatting}</p>}
-                {s.totaalUren !== undefined && s.totaalKosten !== undefined && (
-                  <p className={`text-xs ${kleur.bannerTekst} mt-2`}>
-                    Totaal: <strong>{s.totaalUren.toLocaleString("nl-NL")} u</strong> × € {s.uurtariefGebruikt ?? 0} ={" "}
-                    <strong>€ {s.totaalKosten.toLocaleString("nl-NL")}</strong>
-                    {laatsteJaarMetUren !== null && eersteJaar !== null && (
-                      <> &middot; doorlooptijd <strong>{eersteJaar}–{laatsteJaarMetUren}</strong></>
-                    )}
-                  </p>
-                )}
-              </div>
+          const totaalText = s.totaalUren !== undefined && s.totaalKosten !== undefined
+            ? `${s.totaalUren.toLocaleString("nl-NL")} u · € ${s.totaalKosten.toLocaleString("nl-NL")}`
+            : undefined;
+          const metaText = laatsteJaarMetUren !== null && eersteJaar !== null
+            ? `${eersteJaar}–${laatsteJaarMetUren}`
+            : undefined;
 
+          return (
+            <ScenarioCollapse
+              key={key}
+              id={`scenario-4-2-${key}`}
+              scenario={key}
+              total={totaalText}
+              meta={metaText}
+              summary={s.samenvatting}
+            >
               {/* Domein-overzicht (totalen per domein) */}
               <div className="overflow-hidden border border-gray-200 rounded-lg">
                 <table className="w-full text-sm">
@@ -2281,11 +2403,11 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
               })}
 
               {heeftLegeNa && laatsteJaarMetUren !== null && (
-                <p className="text-xs text-gray-500 italic">
+                <p className="text-xs text-gray-500 italic mt-3">
                   Het programma is in scenario &ldquo;{SCENARIO_LABELS[key]}&rdquo; afgerond na {laatsteJaarMetUren}; latere jaren tonen geen interne inzet meer.
                 </p>
               )}
-            </div>
+            </ScenarioCollapse>
           );
         })}
       </div>
@@ -3364,26 +3486,30 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
         {/* Hoofdstuk 4 — Raming */}
         <Chapter number="4." title="Raming">
           <Inleiding>
-            <p className="text-sm text-gray-700 leading-relaxed mb-2">
-              Dit is een <strong>raming</strong>, geen vastgestelde begroting. Het betreft een eerste aanzet en
-              een onderbouwde verwachting van de programmakosten — uitgesplitst in <strong>out-of-pocket-uitgaven</strong>
-              {" "}(externe kosten zoals licenties, inkoop en externe inhuur) en <strong>interne uren</strong>
-              {" "}(inzet van Cito-medewerkers, in uren én euro&apos;s).
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed mb-2">
-              Beide componenten zijn doorgerekend over <strong>vier scenario&apos;s</strong>, zodat de stuurgroep
-              de programmakosten kan afzetten tegen verschillende keuzes voor tempo en ambitieniveau. De
-              opbouw van dit hoofdstuk volgt die logica:
-            </p>
-            <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1">
-              <li><strong>4.1 Out-of-pocket kosten</strong> — vier scenario&apos;s naast elkaar, met conclusie en advies voor dit onderdeel.</li>
-              <li><strong>4.2 Interne uren</strong> — dezelfde vier scenario&apos;s in uren en kosten van Cito-medewerkers, met conclusie en advies.</li>
-              <li><strong>4.3 Totaaloverzicht</strong> — out-of-pocket plus interne uren samengevoegd, sluitend met de aanbeveling aan de stuurgroep.</li>
-            </ul>
-            <p className="text-sm text-gray-700 leading-relaxed mt-2">
-              De aanbeveling staat bewust aan het eind: de stuurgroep ziet eerst de onderbouwing per onderdeel
-              en pas daarna welk scenario op basis van die onderbouwing wordt aangeraden.
-            </p>
+            <div className="max-w-3xl space-y-2">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Dit is een <strong>raming</strong>, geen vastgestelde begroting. Het betreft een eerste aanzet en
+                een onderbouwde verwachting van de programmakosten — uitgesplitst in <strong>out-of-pocket-uitgaven</strong>
+                {" "}(externe kosten zoals licenties, inkoop en externe inhuur) en <strong>interne uren</strong>
+                {" "}(inzet van Cito-medewerkers, in uren én euro&apos;s).
+              </p>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Beide componenten zijn doorgerekend over <strong>vier scenario&apos;s</strong>, zodat de stuurgroep
+                de programmakosten kan afzetten tegen verschillende keuzes voor tempo en ambitieniveau. De
+                opbouw van dit hoofdstuk volgt die logica:
+              </p>
+              <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1">
+                <li><strong>4.1 Out-of-pocket kosten</strong> — vier scenario&apos;s naast elkaar, met conclusie en advies voor dit onderdeel.</li>
+                <li><strong>4.2 Interne uren</strong> — dezelfde vier scenario&apos;s in uren en kosten van Cito-medewerkers, met conclusie en advies.</li>
+                <li><strong>4.3 Totaaloverzicht</strong> — out-of-pocket plus interne uren samengevoegd, sluitend met de aanbeveling aan de stuurgroep.</li>
+              </ul>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                De aanbeveling staat bewust aan het eind: de stuurgroep ziet eerst de onderbouwing per onderdeel
+                en pas daarna welk scenario op basis van die onderbouwing wordt aangeraden. De scenario-tabellen
+                zijn standaard ingeklapt; gebruik onderstaande knoppen om direct naar één scenario te springen.
+              </p>
+            </div>
+            <ScenarioPicker />
           </Inleiding>
 
           <SubSection title="4.1 Raming out-of-pocket kosten" id="4-1-raming-out-of-pocket-kosten">
@@ -3431,11 +3557,18 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           </SubSection>
 
           <SubSection title="4.3 Totaaloverzicht — vier scenario's" id="4-3-totaaloverzicht-vier-scenario-s">
-            <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
-              In dit overzicht zijn de vier scenario&apos;s naast elkaar gelegd: <strong>out-of-pocket plus interne
-              uren bij elkaar opgeteld</strong> geeft het totaal-investeringsbeeld dat de stuurgroep nodig heeft om
-              een keuze te maken.
-            </p>
+            <IntroPanel title="Wat staat hieronder?">
+              <p>
+                In dit overzicht zijn de vier scenario&apos;s naast elkaar gelegd: <strong>out-of-pocket plus
+                interne uren bij elkaar opgeteld</strong> geeft het totaal-investeringsbeeld dat de stuurgroep
+                nodig heeft om een keuze te maken.
+              </p>
+              <p>
+                Anders dan in 4.1 en 4.2 staat hier alles direct zichtbaar: één overzichts-tabel met de vier
+                scenario&apos;s en daaronder de aanbeveling. De keuze die hier wordt gemaakt vormt de basis voor
+                de detailbegroting van het eerstvolgende jaar.
+              </p>
+            </IntroPanel>
             <ScenarioTotaalBlock session={session} />
             <Aanbeveling>
               <p className="text-sm text-gray-800 leading-relaxed mb-3">
