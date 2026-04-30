@@ -433,6 +433,40 @@ export async function POST(request: NextRequest) {
         return { ...d, jaren, totaalUren, totaalKosten };
       });
 
+      // VOL-WERKLAST GUARD: als er vastgestelde uren zijn (Q&A doorlopen),
+      // forceer dat het scenario-totaal exact gelijk is aan de som van
+      // vastgesteldeUrenTotaal. Schaal alle rollen proportioneel zodat
+      // werklast-benadering wiskundig klopt — onafhankelijk van AI-rounding.
+      if (vastgesteldeUrenPerInspanning && vastgesteldeUrenPerInspanning.length > 0) {
+        const verwachtTotaalUren = vastgesteldeUrenPerInspanning.reduce(
+          (s, i) => s + i.rollen.reduce((rs, r) => rs + r.urenTotaal, 0),
+          0
+        );
+        const huidigTotaalUren = domeinen.reduce((s, d) => s + d.totaalUren, 0);
+        if (
+          verwachtTotaalUren > 0 &&
+          huidigTotaalUren > 0 &&
+          Math.abs(huidigTotaalUren - verwachtTotaalUren) > 1
+        ) {
+          const factor = verwachtTotaalUren / huidigTotaalUren;
+          for (const d of domeinen) {
+            for (const jr of d.jaren) {
+              for (const r of jr.rollen) {
+                r.uren = Math.round(r.uren * factor);
+                r.kosten = Math.round(r.uren * r.uurtarief);
+              }
+              jr.totaalUren = jr.rollen.reduce((s, r) => s + r.uren, 0);
+              jr.totaalKosten = jr.rollen.reduce((s, r) => s + r.kosten, 0);
+            }
+            d.totaalUren = d.jaren.reduce((s, j) => s + j.totaalUren, 0);
+            d.totaalKosten = d.jaren.reduce((s, j) => s + j.totaalKosten, 0);
+          }
+          console.log(
+            `[interne-uren-advies] vol-werklast scale ${ai.scenarioLabel}: ${huidigTotaalUren}u → ${verwachtTotaalUren}u (factor ${factor.toFixed(3)})`
+          );
+        }
+      }
+
       // Totalen per jaar (over alle domeinen)
       const totalenPerJaar: Array<{ jaar: number; uren: number; kosten: number; urenBudget?: number; urenGap?: number }> = [];
       for (let i = 0; i < ctx.aantalJaren; i++) {
