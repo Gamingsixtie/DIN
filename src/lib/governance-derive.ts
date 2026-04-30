@@ -106,6 +106,7 @@ export type DerivedProgrammaorganisatieResult = {
   toegevoegdKerngroep: number;
   toegevoegdStuurgroep: number;
   toegevoegdBateneigenaren: number;
+  toegevoegdKlankbordgroep: number;
   verwijderdDuplicaten: number;
   ongewijzigd: boolean;
 };
@@ -254,7 +255,28 @@ export function deriveProgrammaorganisatie(
     bestaandePersonen.add(key);
   }
 
-  // ---- 4) Opschonen: verwijder Domeineigenaar-duplicaten in kerngroep ----
+  // ---- 4) Klankbordgroep — 3 lege klant-rollen (1 per sector) als bucket leeg is ----
+  let toegevoegdKlankbordgroep = 0;
+  let nieuweKlankbordgroep = current.klankbordgroep ?? [];
+  if (nieuweKlankbordgroep.length === 0) {
+    const sectoren: Array<{ sector: string; rolLabel: string }> = [
+      { sector: "PO", rolLabel: "Klantvertegenwoordiger PO" },
+      { sector: "VO", rolLabel: "Klantvertegenwoordiger VO" },
+      { sector: "Zakelijk", rolLabel: "Klantvertegenwoordiger Zakelijk" },
+    ];
+    nieuweKlankbordgroep = sectoren.map((s) => ({
+      id: generateRolId(),
+      rol: s.rolLabel,
+      naam: "",
+      functie: `Externe klantvertegenwoordiger sector ${s.sector}`,
+      sector: s.sector,
+      mandaat: "Reflectie en advies — geen besluitvormingsmandaat",
+      toelichting: "Vul de naam in van de klant die deze sector vertegenwoordigt.",
+    }));
+    toegevoegdKlankbordgroep = sectoren.length;
+  }
+
+  // ---- 5) Opschonen: verwijder Domeineigenaar-duplicaten in kerngroep ----
   // Als er een rol staat met rol-prefix "Domeineigenaar" in kerngroep EN dezelfde rol-label
   // in domeineigenaren-lijst → verwijder uit kerngroep.
   const domeineigenarenLabels = new Set(
@@ -276,12 +298,14 @@ export function deriveProgrammaorganisatie(
     toegevoegdKerngroep === 0 &&
     toegevoegdStuurgroep === 0 &&
     toegevoegdBateneigenaren === 0 &&
+    toegevoegdKlankbordgroep === 0 &&
     verwijderdDuplicaten === 0;
 
   const next: Programmaorganisatie = {
     ...current,
     kerngroep: opgeschoondKerngroep,
     stuurgroep: nieuweStuurgroep,
+    klankbordgroep: nieuweKlankbordgroep,
     // domeineigenaren ongewijzigd — gebruiker beheert handmatig
   };
 
@@ -290,6 +314,7 @@ export function deriveProgrammaorganisatie(
     toegevoegdKerngroep,
     toegevoegdStuurgroep,
     toegevoegdBateneigenaren,
+    toegevoegdKlankbordgroep,
     verwijderdDuplicaten,
     ongewijzigd,
   };
@@ -311,6 +336,7 @@ export type DerivedRasciResult = {
 };
 
 type RolLookup = {
+  byId: Map<string, ProgrammaRol>;        // rolId → rol-record (voor sector/functie lookup)
   byNaam: Map<string, string>;            // norm naam → rolId
   byFirstName: Map<string, string>;       // voornaam-key → rolId (Yara-match)
   byRolLabel: Map<string, string>;        // norm rol-label → rolId
@@ -327,6 +353,7 @@ type RolLookup = {
 };
 
 function buildRolLookup(po: Programmaorganisatie): RolLookup {
+  const byId = new Map<string, ProgrammaRol>();
   const byNaam = new Map<string, string>();
   const byFirstName = new Map<string, string>();
   const byRolLabel = new Map<string, string>();
@@ -335,6 +362,7 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
 
   const addRol = (r: ProgrammaRol | undefined) => {
     if (!r) return;
+    byId.set(r.id, r);
     if (nonEmpty(r.naam)) byNaam.set(normName(r.naam), r.id);
     const fn = firstNameKey(r.naam);
     if (fn) byFirstName.set(fn, r.id);
@@ -371,6 +399,7 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
   }
 
   return {
+    byId,
     byNaam,
     byFirstName,
     byRolLabel,
@@ -455,35 +484,62 @@ function deriveSectorBaten(
       const titel = baat.titel;
       const itemId = `bs:${sectorId}:${titel}`;
       const rijen: RasciRij[] = [];
+      const usedIds = new Set<string>();
 
-      // A: bateneigenaar
+      // A: bateneigenaar — zoek match. Fallback: opdrachtgever (Cito-realiteit:
+      // als bateneigenaar = "Commercieel Manager" valt dit samen met opdrachtgever).
       const eigNaam = bateneigenaarByTitel.get(normName(titel));
-      const eigRolId = eigNaam ? findRolByNaam(lookup, eigNaam) : null;
-      if (eigRolId) rijen.push(derivedRij(eigRolId, "A"));
-      else if (eigNaam) {
+      let aId: string | null = null;
+      if (eigNaam) aId = findRolByNaam(lookup, eigNaam);
+      if (!aId && lookup.opdrachtgeverId) aId = lookup.opdrachtgeverId;
+      if (aId) {
+        rijen.push(derivedRij(aId, "A"));
+        usedIds.add(aId);
+      } else if (eigNaam) {
         diagnostiek.push({ sectie: "sector_baten", itemId, reden: `Bateneigenaar "${eigNaam}" niet in programmaorganisatie` });
       }
 
-      // R: sectortrekkers van die sector
+      // R: sectortrekkers van die sector (inspanningsleiders die deze sector raken)
       const trekkers = sectortrekker.get(sectorId);
       if (trekkers) {
         for (const rolId of trekkers) {
-          if (rolId !== eigRolId) rijen.push(derivedRij(rolId, "R"));
+          if (!usedIds.has(rolId)) {
+            rijen.push(derivedRij(rolId, "R"));
+            usedIds.add(rolId);
+          }
         }
       }
-      // Als geen sectortrekker matched én geen A: signaleer
-      if (rijen.length === 0) {
-        diagnostiek.push({ sectie: "sector_baten", itemId, reden: `Geen rollen gematched voor sector ${sectorId}` });
+      // Aanvulling: stuurgroep-leden met sector === sectorId krijgen R (sectormanager
+      // is verantwoordelijk dat er in de operatie iets mee wordt gedaan)
+      for (const id of lookup.stuurgroepIds) {
+        const rol = lookup.byId.get(id);
+        if (!rol) continue;
+        if ((rol.sector ?? "").trim().toUpperCase() === sectorId.toUpperCase() && !usedIds.has(id)) {
+          rijen.push(derivedRij(id, "R"));
+          usedIds.add(id);
+        }
       }
 
       // C: programmamanager
-      if (lookup.programmamanagerId) {
+      if (lookup.programmamanagerId && !usedIds.has(lookup.programmamanagerId)) {
         rijen.push(derivedRij(lookup.programmamanagerId, "C"));
+        usedIds.add(lookup.programmamanagerId);
       }
 
-      // I: opdrachtgever
-      if (lookup.opdrachtgeverId) {
-        rijen.push(derivedRij(lookup.opdrachtgeverId, "I"));
+      // I: stuurgroep + klant uit klankbordgroep van die sector
+      for (const id of lookup.stuurgroepIds) {
+        if (!usedIds.has(id)) {
+          rijen.push(derivedRij(id, "I"));
+          usedIds.add(id);
+        }
+      }
+      for (const id of lookup.klankbordgroepIds) {
+        const rol = lookup.byId.get(id);
+        if (!rol) continue;
+        if ((rol.sector ?? "").trim().toUpperCase() === sectorId.toUpperCase() && !usedIds.has(id)) {
+          rijen.push(derivedRij(id, "I"));
+          usedIds.add(id);
+        }
       }
 
       out.push({
@@ -530,32 +586,49 @@ function deriveGezamenlijkeVermogens(
     }
 
     const rijen: RasciRij[] = [];
+    const usedIds = new Set<string>();
 
     // A: domeineigenaar van het overheersende domein
     const aRolId = topDom ? lookup.domeineigenaarPerDomein.get(topDom) ?? null : null;
-    if (aRolId) rijen.push(derivedRij(aRolId, "A"));
-    else if (topDom) {
+    if (aRolId) {
+      rijen.push(derivedRij(aRolId, "A"));
+      usedIds.add(aRolId);
+    } else if (topDom) {
       diagnostiek.push({ sectie: "gezamenlijke_vermogens", itemId, reden: `Geen domeineigenaar voor domein "${DOMAIN_LABELS[topDom] ?? topDom}"` });
     }
 
-    // R: inspanningsleiders van bijbehorende subEfforts (uniek)
-    const rIds = new Set<string>();
+    // R: inspanningsleider(s) van bijbehorende subEfforts (uniek, na voornaam-dedup
+    // matchen meerdere "Procesconsultant per sector"-items met aparte rol-records)
     for (const s of subsForGroep) {
-      const naam = (s.dossier?.inspanningsleider ?? "").trim();
-      if (!naam) continue;
-      const id = findRolByNaam(lookup, naam);
-      if (id && id !== aRolId) rIds.add(id);
+      const leiderRaw = (s.dossier?.inspanningsleider ?? "").trim();
+      if (!leiderRaw) continue;
+      for (const l of parseInspanningsleider(leiderRaw)) {
+        const id = findRolByNaam(lookup, l.naam);
+        if (id && !usedIds.has(id)) {
+          rijen.push(derivedRij(id, "R"));
+          usedIds.add(id);
+        }
+      }
     }
-    for (const id of rIds) rijen.push(derivedRij(id, "R"));
 
-    // C: programmamanager
-    if (lookup.programmamanagerId && lookup.programmamanagerId !== aRolId) {
-      rijen.push(derivedRij(lookup.programmamanagerId, "C"));
+    // S: programmamanager (hands-on betrokken)
+    if (lookup.programmamanagerId && !usedIds.has(lookup.programmamanagerId)) {
+      rijen.push(derivedRij(lookup.programmamanagerId, "S"));
+      usedIds.add(lookup.programmamanagerId);
     }
 
-    // I: opdrachtgever
-    if (lookup.opdrachtgeverId && lookup.opdrachtgeverId !== aRolId) {
-      rijen.push(derivedRij(lookup.opdrachtgeverId, "I"));
+    // I: stuurgroep + klankbordgroep (geïnformeerd via rapportage)
+    for (const id of lookup.stuurgroepIds) {
+      if (!usedIds.has(id)) {
+        rijen.push(derivedRij(id, "I"));
+        usedIds.add(id);
+      }
+    }
+    for (const id of lookup.klankbordgroepIds) {
+      if (!usedIds.has(id)) {
+        rijen.push(derivedRij(id, "I"));
+        usedIds.add(id);
+      }
     }
 
     out.push({
@@ -660,16 +733,25 @@ function deriveGezamenlijkeInspanningen(
       usedIds.add(domeineigenaarId);
     }
 
-    // C: programmamanager
+    // S: programmamanager (hands-on betrokken bij uitvoering, niet alleen consult)
     if (lookup.programmamanagerId && !usedIds.has(lookup.programmamanagerId)) {
-      rijen.push(derivedRij(lookup.programmamanagerId, "C"));
+      rijen.push(derivedRij(lookup.programmamanagerId, "S"));
       usedIds.add(lookup.programmamanagerId);
     }
 
-    // I: opdrachtgever (alleen als deze niet al in stuurgroep zit)
+    // C: opdrachtgever (geconsulteerd op majeure stappen — was al A via stuurgroep,
+    // maar als individuele rol: C voor consultatie buiten formele besluitvorming)
     if (lookup.opdrachtgeverId && !usedIds.has(lookup.opdrachtgeverId)) {
-      rijen.push(derivedRij(lookup.opdrachtgeverId, "I"));
+      rijen.push(derivedRij(lookup.opdrachtgeverId, "C"));
       usedIds.add(lookup.opdrachtgeverId);
+    }
+
+    // I: klankbordgroep (geïnformeerd, geen mandaat)
+    for (const id of lookup.klankbordgroepIds) {
+      if (!usedIds.has(id)) {
+        rijen.push(derivedRij(id, "I"));
+        usedIds.add(id);
+      }
     }
 
     out.push({
@@ -695,22 +777,28 @@ function deriveGezamenlijkeInspanningen(
 function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
   type GovRow = { itemId: string; titel: string; aId: string | null; rIds: (string | null)[]; cIds: (string | null)[]; iIds: (string | null)[] };
 
+  // Voor Baten-review: sectormanagers zijn stuurgroep-leden met sector-veld gevuld
+  const sectormanagerIds = lookup.stuurgroepIds.filter((id) => {
+    const r = lookup.byId.get(id);
+    return r && nonEmpty(r.sector) && (r.sector ?? "").toLowerCase() !== "programmabreed";
+  });
+
   const rows: GovRow[] = [
     {
       itemId: "gov:besluitvorming",
       titel: "Besluitvorming go/no-go (scope, budget, mijlpalen)",
       aId: lookup.opdrachtgeverId,
       rIds: [lookup.programmamanagerId],
-      cIds: lookup.stuurgroepIds.length > 0 ? lookup.stuurgroepIds : [],
-      iIds: lookup.kerngroepIds.length > 0 ? lookup.kerngroepIds : [],
+      cIds: lookup.stuurgroepIds,
+      iIds: [...lookup.kerngroepIds, ...lookup.klankbordgroepIds],
     },
     {
       itemId: "gov:rapportage",
       titel: "Voortgangsrapportage (kwartaal)",
       aId: lookup.programmamanagerId,
-      rIds: lookup.kerngroepIds.length > 0 ? lookup.kerngroepIds : [],
+      rIds: [...Array.from(lookup.domeineigenaarPerDomein.values()), ...lookup.inspanningsleiderIds],
       cIds: [lookup.opdrachtgeverId],
-      iIds: lookup.stuurgroepIds.length > 0 ? lookup.stuurgroepIds : [],
+      iIds: [...lookup.stuurgroepIds, ...lookup.klankbordgroepIds],
     },
     {
       itemId: "gov:escalatie",
@@ -718,15 +806,15 @@ function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
       aId: lookup.programmamanagerId,
       rIds: Array.from(lookup.domeineigenaarPerDomein.values()),
       cIds: [lookup.opdrachtgeverId],
-      iIds: lookup.stuurgroepIds.length > 0 ? lookup.stuurgroepIds : [],
+      iIds: lookup.stuurgroepIds,
     },
     {
       itemId: "gov:baten_review",
       titel: "Baten-realisatie review",
       aId: lookup.opdrachtgeverId,
       rIds: [lookup.programmamanagerId],
-      cIds: Array.from(lookup.domeineigenaarPerDomein.values()),
-      iIds: lookup.stuurgroepIds.length > 0 ? lookup.stuurgroepIds : [],
+      cIds: sectormanagerIds.length > 0 ? sectormanagerIds : Array.from(lookup.domeineigenaarPerDomein.values()),
+      iIds: [...lookup.stuurgroepIds, ...lookup.klankbordgroepIds],
     },
   ];
 

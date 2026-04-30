@@ -256,24 +256,79 @@ export default function GovernanceStep() {
     return true;
   }
 
-  // Deterministisch — geen AI: vul kerngroep + domeineigenaren uit cross-analyse stap 4
+  // Deterministisch — geen AI: vul programmaorganisatie compleet uit cross-analyse stap 4
+  // Resultaat-panel state (rijk feedback i.p.v. 1-regel banner)
+  const [derivePanel, setDerivePanel] = useState<{
+    toegevoegdKerngroep: number;
+    toegevoegdBateneigenaren: number;
+    toegevoegdStuurgroep: number;
+    toegevoegdKlankbordgroep: number;
+    verwijderdDuplicaten: number;
+    rasciItems: number;
+    rasciDiagnostiek: number;
+    opdrachtgeverGevuld: boolean;
+    pmGevuld: boolean;
+    domeineigenarenZonderNaam: number;
+    timestamp: number;
+  } | null>(null);
+
   function handleDeriveOrganisatie() {
     if (!session) return;
     setAIError(null);
     const result = deriveProgrammaorganisatie(session, po);
-    if (result.ongewijzigd) {
-      setAIError("Geen nieuwe rollen om af te leiden. Cross-analyse stap 4 leverde niets buiten wat al staat.");
-      return;
-    }
     updateSession(() => ({ programmaorganisatie: result.next }));
-    // Niet-blokkerende flash via aiError-veld als info-bericht
-    setAIError(
-      `Toegevoegd: ${result.toegevoegdKerngroep} inspanningsleider(s) + ${result.toegevoegdBateneigenaren} bateneigenaar(s) in kerngroep, ${result.toegevoegdStuurgroep} stuurgroep-lid(en).${
-        result.verwijderdDuplicaten > 0
-          ? ` Opgeschoond: ${result.verwijderdDuplicaten} domeineigenaar-duplicaat(en) uit kerngroep.`
-          : ""
-      } Bestaande handmatige rollen blijven staan.`
-    );
+
+    const next = result.next;
+    const domeinZonderNaam = (next.domeineigenaren ?? []).filter((r) => !r.naam || !r.naam.trim()).length;
+    setDerivePanel({
+      toegevoegdKerngroep: result.toegevoegdKerngroep,
+      toegevoegdBateneigenaren: result.toegevoegdBateneigenaren,
+      toegevoegdStuurgroep: result.toegevoegdStuurgroep,
+      toegevoegdKlankbordgroep: result.toegevoegdKlankbordgroep,
+      verwijderdDuplicaten: result.verwijderdDuplicaten,
+      rasciItems: 0,
+      rasciDiagnostiek: 0,
+      opdrachtgeverGevuld: !!next.opdrachtgever?.naam?.trim(),
+      pmGevuld: !!next.programmamanager?.naam?.trim(),
+      domeineigenarenZonderNaam: domeinZonderNaam,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Master-knop: vul programmaorganisatie + RASCI in 1 klik (zoals afgesproken in chat)
+  function handleVulAllesCompleet() {
+    if (!session) return;
+    setAIError(null);
+
+    // Stap 1: programmaorganisatie afleiden
+    const orgResult = deriveProgrammaorganisatie(session, po);
+
+    // Stap 2: RASCI afleiden op basis van NIEUWE programmaorganisatie
+    const sessionMetNieuwePo: typeof session = { ...session, programmaorganisatie: orgResult.next };
+    const { items: derived, diagnostiek } = deriveGezamenlijkeRasci(sessionMetNieuwePo);
+    const merged = mergeGezamenlijkeRasci(session.gezamenlijkeRasci ?? [], derived);
+
+    // Stap 3: beide updates samen committen
+    updateSession(() => ({
+      programmaorganisatie: orgResult.next,
+      gezamenlijkeRasci: merged,
+    }));
+
+    const next = orgResult.next;
+    const domeinZonderNaam = (next.domeineigenaren ?? []).filter((r) => !r.naam || !r.naam.trim()).length;
+    setDerivePanel({
+      toegevoegdKerngroep: orgResult.toegevoegdKerngroep,
+      toegevoegdBateneigenaren: orgResult.toegevoegdBateneigenaren,
+      toegevoegdStuurgroep: orgResult.toegevoegdStuurgroep,
+      toegevoegdKlankbordgroep: orgResult.toegevoegdKlankbordgroep,
+      verwijderdDuplicaten: orgResult.verwijderdDuplicaten,
+      rasciItems: merged.length,
+      rasciDiagnostiek: diagnostiek.length,
+      opdrachtgeverGevuld: !!next.opdrachtgever?.naam?.trim(),
+      pmGevuld: !!next.programmamanager?.naam?.trim(),
+      domeineigenarenZonderNaam: domeinZonderNaam,
+      timestamp: Date.now(),
+    });
   }
 
   // Sync de "Gezamenlijk"-RASCI met cross-analyse — bewaart manual-overrides
@@ -483,8 +538,7 @@ export default function GovernanceStep() {
           <div>
             <h2 className="text-2xl font-bold text-cito-blue mb-2">Stap 5 — Programmaorganisatie & RASCI</h2>
             <p className="text-gray-600">
-              Leg vast wie het programma stuurt en wie op elk cross-sectoraal cluster welke rol heeft.
-              Gebaseerd op &quot;Werken aan Programma&apos;s&quot; (Wijnen &amp; Van der Tak, Hoofdstuk 6).
+              Leg vast wie het programma stuurt en wie op elke gezamenlijke inspanning, baat en vermogen welke rol heeft.
             </p>
           </div>
           <div className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
@@ -493,6 +547,86 @@ export default function GovernanceStep() {
           </div>
         </div>
       </div>
+
+      {/* Master-knop: vul programmaorganisatie + RASCI in 1 klik */}
+      <div className="mb-6 p-5 rounded-lg border-2 border-cito-blue/30 bg-gradient-to-br from-cito-blue/5 to-emerald-50">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-[280px]">
+            <h3 className="text-base font-bold text-cito-blue mb-1">Vul programmaorganisatie + RASCI compleet</h3>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Eén klik vult: <b>stuurgroep</b> (uit dossier.eigenaar), <b>kerngroep</b> (inspanningsleiders + bateneigenaren),
+              <b> klankbordgroep</b> (3 lege klant-rollen per sector) én de complete <b>RASCI-matrix</b> voor de 4 secties.
+              Opdrachtgever, programmamanager en domeineigenaren blijven handmatig (jouw input). Bestaande handmatige cellen blijven behouden.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Vul programmaorganisatie + RASCI compleet zoals afgesproken? Bestaande rollen blijven, ontbrekende worden toegevoegd. Handmatige RASCI-cellen blijven bewaard."
+                )
+              ) {
+                handleVulAllesCompleet();
+              }
+            }}
+            className="px-5 py-2.5 rounded-lg bg-cito-blue text-white text-sm font-bold hover:bg-cito-blue/90 shadow-sm shrink-0"
+          >
+            Vul alles in 1 klik
+          </button>
+        </div>
+      </div>
+
+      {/* Resultaat-panel na klik op master-knop */}
+      {derivePanel && (
+        <div className="mb-6 p-4 rounded-lg border border-emerald-300 bg-emerald-50">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h4 className="text-sm font-bold text-emerald-900">Resultaat van invulling</h4>
+            <button onClick={() => setDerivePanel(null)} className="text-xs text-emerald-700 hover:text-emerald-900">
+              Sluiten ×
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-emerald-900">
+            <div>
+              ✓ Opdrachtgever: {derivePanel.opdrachtgeverGevuld ? "ingevuld" : <span className="text-rose-700">leeg — vul handmatig</span>}
+            </div>
+            <div>
+              ✓ Programmamanager: {derivePanel.pmGevuld ? "ingevuld" : <span className="text-rose-700">leeg — vul handmatig</span>}
+            </div>
+            <div>
+              ✓ Stuurgroep: <b>{derivePanel.toegevoegdStuurgroep}</b> nieuwe leden toegevoegd
+            </div>
+            <div>
+              ✓ Kerngroep · inspanningsleiders: <b>{derivePanel.toegevoegdKerngroep}</b> toegevoegd
+            </div>
+            <div>
+              ✓ Kerngroep · bateneigenaren: <b>{derivePanel.toegevoegdBateneigenaren}</b> toegevoegd
+            </div>
+            <div>
+              ✓ Klankbordgroep: <b>{derivePanel.toegevoegdKlankbordgroep}</b> klant-rollen (vul namen handmatig)
+            </div>
+            {derivePanel.verwijderdDuplicaten > 0 && (
+              <div className="md:col-span-2 text-amber-900">
+                ⚠ Opgeschoond: {derivePanel.verwijderdDuplicaten} domeineigenaar-duplicaat(en) uit kerngroep
+              </div>
+            )}
+            {derivePanel.domeineigenarenZonderNaam > 0 && (
+              <div className="md:col-span-2 text-amber-900">
+                ⚠ {derivePanel.domeineigenarenZonderNaam} domeineigenaar(s) zonder naam — vul namen handmatig
+              </div>
+            )}
+            {derivePanel.rasciItems > 0 && (
+              <div className="md:col-span-2 pt-2 border-t border-emerald-200">
+                ✓ RASCI-matrix: <b>{derivePanel.rasciItems}</b> rijen ingevuld
+                {derivePanel.rasciDiagnostiek > 0 && (
+                  <span className="ml-2 text-amber-900">
+                    ({derivePanel.rasciDiagnostiek} aandachtspunt{derivePanel.rasciDiagnostiek === 1 ? "" : "en"})
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
