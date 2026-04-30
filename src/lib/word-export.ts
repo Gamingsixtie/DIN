@@ -1205,6 +1205,200 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
+  // === 3.1 Batenprofielen ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Batenprofielen", "h2", numState));
+  children.push(bodyText(
+    "Per cross-sectorale baat leggen we hieronder vast wie er eindverantwoordelijk voor is, hoe we de " +
+    "realisatie meten (indicator) en op welk moment dat plaatsvindt. Zonder die drie elementen is een " +
+    "baat niet stuurbaar — er is dan niemand die wakker ligt van het resultaat, geen indicator om " +
+    "voortgang aan af te lezen, en geen moment waarop “klaar” is vastgesteld.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(emptyLine(60));
+  const sortedBaten = [...session.benefits].sort((a, b) => {
+    if (a.sectorId !== b.sectorId) return a.sectorId.localeCompare(b.sectorId);
+    return (a.title || a.description).localeCompare(b.title || b.description);
+  });
+  if (sortedBaten.length > 0) {
+    const baatRows = sortedBaten.map((b) => {
+      const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "— nog te benoemen";
+      const indicator = b.profiel.indicator?.trim() || "— nog te bepalen";
+      const cur = b.profiel.currentValue?.trim() || "?";
+      const tgt = b.profiel.targetValue?.trim() || "?";
+      const meet = b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "—";
+      return new TableRow({
+        children: [
+          styledCell(b.title || b.description, { bold: true, width: 28, size: 16 }),
+          styledCell(b.sectorId, { width: 10, size: 16 }),
+          styledCell(eigenaar, { width: 18, size: 16 }),
+          styledCell(indicator, { width: 22, size: 16 }),
+          styledCell(`${cur} → ${tgt}`, { width: 12, size: 16 }),
+          styledCell(meet, { width: 10, size: 16 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Baat", 28),
+              headerCell("Sector", 10),
+              headerCell("Eigenaar", 18),
+              headerCell("Indicator", 22),
+              headerCell("Huidig → Doel", 12),
+              headerCell("Meetmoment", 10),
+            ],
+          }),
+          ...baatRows,
+        ],
+      })
+    );
+  }
+
+  // === 3.2 Vermogensprofielen ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Vermogensprofielen", "h2", numState));
+  children.push(bodyText(
+    "De vermogens zijn samengebracht in cross-sectorale clusters. Per vermogen-cluster leggen we vast " +
+    "aan welke functionaris dit vermogen wordt toebedeeld om op te bouwen, op welk niveau het cluster " +
+    "nu staat en op welk niveau het moet uitkomen om de baten waar te maken.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(emptyLine(60));
+  const sortedVerm = [...(session.capabilities ?? [])]
+    .filter((c) => !c.consolidated)
+    .sort((a, b) => (a.title || a.description).localeCompare(b.title || b.description));
+  if (sortedVerm.length > 0) {
+    const vermRows = sortedVerm.map((c) => {
+      const verantw = c.profiel?.eigenaar?.trim() || "— nog te benoemen";
+      const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
+      const niveau =
+        c.currentLevel !== undefined && c.targetLevel !== undefined
+          ? `${c.currentLevel}/5 → ${c.targetLevel}/5`
+          : "—";
+      return new TableRow({
+        children: [
+          styledCell(c.title || c.description, { bold: true, width: 40, size: 16 }),
+          styledCell(sectoren, { width: 22, size: 16 }),
+          styledCell(verantw, { width: 22, size: 16 }),
+          styledCell(niveau, { width: 16, size: 16 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Vermogen", 40),
+              headerCell("Sectoren", 22),
+              headerCell("Verantwoordelijk", 22),
+              headerCell("Huidig → Doel", 16),
+            ],
+          }),
+          ...vermRows,
+        ],
+      })
+    );
+  }
+
+  // === 3.3 Inspanningsleiders per domein ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Inspanningsleiders per domein", "h2", numState));
+  children.push(bodyText(
+    "De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein is er één " +
+    "inspanningsleider die de samenhang van inspanningen binnen dat domein bewaakt — niet één " +
+    "leider per inspanning, maar één per domein, zodat de cultuur-, mens-, data & systemen- en " +
+    "processen-lijn consistent worden uitgevoerd.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(emptyLine(60));
+  const poVoorH33 = session.programmaorganisatie;
+  const effortsActief = (session.efforts ?? []).filter((e) => !e.consolidated);
+  const domeinenOrder: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const needlesH33: Record<EffortDomain, string[]> = {
+    cultuur: ["cultuur"],
+    mens: ["mens", "people", "competentie", "opleiding", "training"],
+    data_systemen: ["data", "systeem", "systemen", "tech", "it"],
+    processen: ["proces", "processen", "werkwijze", "governance"],
+  };
+  const findLeider = (domein: EffortDomain): string => {
+    const all = poVoorH33
+      ? [
+          ...(poVoorH33.domeineigenaren ?? []),
+          ...(poVoorH33.kerngroep ?? []),
+          ...(poVoorH33.stuurgroep ?? []),
+        ]
+      : [];
+    const lookFor = needlesH33[domein];
+    const match = all.find((r) => {
+      const haystack = `${r.rol ?? ""} ${r.functie ?? ""}`.toLowerCase();
+      return lookFor.some((n) => haystack.includes(n));
+    });
+    if (!match) return "— nog te benoemen";
+    return match.naam?.trim()
+      ? `${match.naam}${match.functie ? ` (${match.functie})` : match.rol ? ` (${match.rol})` : ""}`
+      : match.rol || match.functie || "— nog te benoemen";
+  };
+  const inspRows = domeinenOrder.map((d) => {
+    const aantal = effortsActief.filter((e) => e.domain === d).length;
+    return new TableRow({
+      children: [
+        styledCell(DOMAIN_LABELS[d], { bold: true, width: 30, shading: DOMAIN_COLORS[d], size: 16 }),
+        styledCell(findLeider(d), { width: 50, size: 16 }),
+        styledCell(`${aantal}`, { width: 20, size: 16 }),
+      ],
+    });
+  });
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            headerCell("Domein", 30),
+            headerCell("Inspanningsleider", 50),
+            headerCell("Aantal inspanningen", 20),
+          ],
+        }),
+        ...inspRows,
+      ],
+    })
+  );
+  children.push(bodyText(
+    "Een “— nog te benoemen” betekent dat in de programma-organisatie geen rol is gevonden " +
+    "wiens functie of rol-omschrijving aansluit bij dit domein. Dat is een actiepunt voor de stuurgroep.",
+    { italic: true, size: 18, color: TEXT_MUTED }
+  ));
+
+  // === 3.4 Veranderstrategie ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Veranderstrategie", "h2", numState));
+  children.push(bodyText(
+    "De inspanningen zijn niet willekeurig over de vier domeinen verdeeld. Het programma kiest bewust " +
+    "voor een dubbele aanpak: parallel werken aan de zachte kant — cultuur (waarden, gedrag, leiderschap) " +
+    "en mens (competenties, vakmanschap, opleiding) — én aan de harde kant — data & systemen " +
+    "(CRM, registratie, infrastructuur) en processen (werkwijzen, governance, samenwerking).",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "Die scheiding is geen kwestie van smaak. Wie alleen aan cultuur en gedrag werkt, ontwikkelt een " +
+    "klantgerichte mindset zonder de instrumenten om die mindset waar te maken — een doodlopende straat. " +
+    "Wie alleen aan systemen en processen sleutelt, krijgt een stelsel dat technisch klopt maar door " +
+    "medewerkers niet wordt gedragen — en zonder dragen geen blijvend resultaat. Pas wanneer beide kanten " +
+    "gelijktijdig opschuiven, ontstaat verandering die beklijft.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De roadmap in Hoofdstuk 6 plant deze zachte en harde inspanningen daarom expliciet parallel, niet " +
+    "sequentieel.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+
   // Conclusie — gezamenlijk DIN-netwerk
   type Stap4Conc = { subEffortAnalysis?: Array<{ actie: string }> };
   const stap4Conc = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Conc } | undefined)?.stap4;

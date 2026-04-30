@@ -1872,6 +1872,260 @@ const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: st
 
 const SCENARIO_ORDER_GLOBAL: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
 
+// --- H3.1 Batenprofielen — eigenaar, indicator, meetmoment ---
+function BatenprofielenBlock({ session }: { session: DINSession }) {
+  const benefits = session.benefits ?? [];
+  if (benefits.length === 0) {
+    return <p className="text-sm text-gray-400 italic">Geen baten beschikbaar.</p>;
+  }
+  // Sorteer: per sector, per goal, per omschrijving
+  const sorted = [...benefits].sort((a, b) => {
+    if (a.sectorId !== b.sectorId) return a.sectorId.localeCompare(b.sectorId);
+    return (a.title || a.description).localeCompare(b.title || b.description);
+  });
+  return (
+    <>
+      <IntroPanel title="Wat staat hieronder?">
+        <p>
+          Per cross-sectorale baat leggen we hieronder vast wie er <strong>eindverantwoordelijk</strong> voor
+          is, hoe we de realisatie <strong>meten</strong> (indicator) en op welk moment dat plaatsvindt.
+          Zonder die drie elementen is een baat niet stuurbaar — er is dan niemand die wakker ligt van het
+          resultaat, geen indicator om voortgang aan af te lezen, en geen moment waarop &ldquo;klaar&rdquo;
+          is vastgesteld.
+        </p>
+      </IntroPanel>
+      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Baat</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Sector</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Eigenaar</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Indicator</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Huidig → Doel</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Meetmoment</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {sorted.map((b) => {
+              const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "";
+              const indicator = b.profiel.indicator?.trim() || "";
+              const cur = b.profiel.currentValue?.trim() || "";
+              const tgt = b.profiel.targetValue?.trim() || "";
+              const meet = b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "";
+              return (
+                <tr key={b.id} className="hover:bg-gray-50 align-top">
+                  <td className="px-3 py-2">
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">{b.title || b.description}</p>
+                    {b.title && b.description && b.description !== b.title && (
+                      <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{b.description}</p>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700">{b.sectorId}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {eigenaar ? (
+                      <span className="text-gray-800">{eigenaar}</span>
+                    ) : (
+                      <span className="text-amber-700 italic">— nog te benoemen</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700">
+                    {indicator || <span className="text-amber-700 italic">— nog te bepalen</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700 tabular-nums">
+                    {cur || tgt ? <>{cur || "?"} <span className="text-gray-400">→</span> {tgt || "?"}</> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700">
+                    {meet || <span className="text-gray-400">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+// --- H3.2 Vermogensprofielen — verantwoordelijk + niveau ---
+function VermogensprofielenBlock({ session }: { session: DINSession }) {
+  const caps = (session.capabilities ?? []).filter((c) => !c.consolidated);
+  if (caps.length === 0) {
+    return <p className="text-sm text-gray-400 italic">Geen actieve vermogens beschikbaar.</p>;
+  }
+  const sorted = [...caps].sort((a, b) => (a.title || a.description).localeCompare(b.title || b.description));
+  return (
+    <>
+      <IntroPanel title="Wat staat hieronder?">
+        <p>
+          De vermogens zijn samengebracht in cross-sectorale clusters (zie het schema hierboven). Per
+          vermogen-cluster leggen we vast aan welke <strong>functionaris</strong> dit vermogen wordt
+          toebedeeld om op te bouwen, op welk <strong>niveau</strong> het cluster nu staat en op welk niveau
+          het moet uitkomen om de baten waar te maken.
+        </p>
+      </IntroPanel>
+      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Vermogen</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Sectoren</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Verantwoordelijk</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Huidig → Doel</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {sorted.map((c) => {
+              const verantw = c.profiel?.eigenaar?.trim() || "";
+              const cur = c.currentLevel;
+              const tgt = c.targetLevel;
+              const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
+              return (
+                <tr key={c.id} className="hover:bg-gray-50 align-top">
+                  <td className="px-3 py-2">
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">{c.title || c.description}</p>
+                    {c.title && c.description && c.description !== c.title && (
+                      <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{c.description}</p>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700">{sectoren}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {verantw ? (
+                      <span className="text-gray-800">{verantw}</span>
+                    ) : (
+                      <span className="text-amber-700 italic">— nog te benoemen</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-700 tabular-nums">
+                    {cur !== undefined && tgt !== undefined ? (
+                      <><strong>{cur}/5</strong> <span className="text-gray-400">→</span> <strong>{tgt}/5</strong></>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+// --- H3.3 Inspanningsleiders per domein — afgeleid uit programmaorganisatie.domeineigenaren ---
+function InspanningsleidersBlock({ session }: { session: DINSession }) {
+  const po = session.programmaorganisatie;
+  const efforts = (session.efforts ?? []).filter((e) => !e.consolidated);
+  const domeinen: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+
+  // Probeer een leider af te leiden uit programmaorganisatie.domeineigenaren door op rol-string te matchen.
+  // Een rol als "Domeineigenaar Cultuur" wordt gematcht op het woord "cultuur".
+  function findLeiderVoorDomein(domein: EffortDomain): string {
+    const all = po
+      ? [
+          ...(po.domeineigenaren ?? []),
+          ...(po.kerngroep ?? []),
+          ...(po.stuurgroep ?? []),
+        ]
+      : [];
+    const needles: Record<EffortDomain, string[]> = {
+      cultuur: ["cultuur"],
+      mens: ["mens", "people", "competentie", "opleiding", "training"],
+      data_systemen: ["data", "systeem", "systemen", "tech", "it"],
+      processen: ["proces", "processen", "werkwijze", "governance"],
+    };
+    const lookFor = needles[domein];
+    const match = all.find((r) => {
+      const haystack = `${r.rol ?? ""} ${r.functie ?? ""}`.toLowerCase();
+      return lookFor.some((n) => haystack.includes(n));
+    });
+    if (!match) return "";
+    return match.naam?.trim()
+      ? `${match.naam}${match.functie ? ` (${match.functie})` : match.rol ? ` (${match.rol})` : ""}`
+      : match.rol || match.functie || "";
+  }
+
+  return (
+    <>
+      <IntroPanel title="Wat staat hieronder?">
+        <p>
+          De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein is er één
+          <strong> inspanningsleider</strong> die de samenhang van inspanningen binnen dat domein bewaakt
+          — niet één leider per inspanning, maar één per domein, zodat de cultuur-, mens-,
+          data &amp; systemen- en processen-lijn consistent worden uitgevoerd.
+        </p>
+      </IntroPanel>
+      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Domein</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Inspanningsleider</th>
+              <th className="text-right px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Aantal inspanningen</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {domeinen.map((d) => {
+              const dc = DOMAIN_COLORS[d];
+              const leider = findLeiderVoorDomein(d);
+              const aantal = efforts.filter((e) => e.domain === d).length;
+              return (
+                <tr key={d} className="hover:bg-gray-50 align-top">
+                  <td className="px-3 py-2">
+                    <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-2 py-0.5`}>
+                      {DOMAIN_LABELS[d]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {leider ? (
+                      <span className="text-gray-800">{leider}</span>
+                    ) : (
+                      <span className="text-amber-700 italic">— nog te benoemen</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-right text-gray-700 tabular-nums">{aantal}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-gray-500 italic mt-2 max-w-3xl">
+        Een &ldquo;— nog te benoemen&rdquo; betekent dat in de programma-organisatie geen rol is gevonden
+        wiens functie of rol-omschrijving aansluit bij dit domein. Dat is een actiepunt voor de stuurgroep.
+      </p>
+    </>
+  );
+}
+
+// --- H3.4 Veranderstrategie — zachte versus harde kant, parallel uitgevoerd ---
+function VeranderstrategieBlock() {
+  return (
+    <>
+      <p className="text-sm text-gray-800 leading-relaxed mb-3 max-w-3xl">
+        De inspanningen zijn niet willekeurig over de vier domeinen verdeeld. Het programma kiest bewust
+        voor een dubbele aanpak: parallel werken aan de <strong>zachte kant</strong> — <em>cultuur</em>
+        {" "}(waarden, gedrag, leiderschap) en <em>mens</em> (competenties, vakmanschap, opleiding) — én
+        aan de <strong>harde kant</strong> — <em>data &amp; systemen</em> (CRM, registratie, infrastructuur)
+        en <em>processen</em> (werkwijzen, governance, samenwerking).
+      </p>
+      <p className="text-sm text-gray-800 leading-relaxed mb-3 max-w-3xl">
+        Die scheiding is geen kwestie van smaak. Wie alleen aan cultuur en gedrag werkt, ontwikkelt een
+        klantgerichte mindset zonder de instrumenten om die mindset waar te maken — een doodlopende straat.
+        Wie alleen aan systemen en processen sleutelt, krijgt een stelsel dat technisch klopt maar door
+        medewerkers niet wordt gedragen — en zonder dragen geen blijvend resultaat. Pas wanneer beide
+        kanten gelijktijdig opschuiven, ontstaat verandering die beklijft.
+      </p>
+      <p className="text-sm text-gray-800 leading-relaxed max-w-3xl">
+        De roadmap in Hoofdstuk 6 plant deze zachte en harde inspanningen daarom expliciet
+        <strong> parallel</strong>, niet sequentieel.
+      </p>
+    </>
+  );
+}
+
 // --- Raming out-of-pocket kosten — meerjarige verdeling per scenario per inspanning ---
 // --- Raming-advies & vergelijking — hoogteafspraak voor de stuurgroep ---
 function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) {
@@ -3464,6 +3718,23 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               />
             </div>
           </Kern>
+
+          <SubSection title="3.1 Batenprofielen" id="3-1-batenprofielen">
+            <BatenprofielenBlock session={session} />
+          </SubSection>
+
+          <SubSection title="3.2 Vermogensprofielen" id="3-2-vermogensprofielen">
+            <VermogensprofielenBlock session={session} />
+          </SubSection>
+
+          <SubSection title="3.3 Inspanningsleiders per domein" id="3-3-inspanningsleiders-per-domein">
+            <InspanningsleidersBlock session={session} />
+          </SubSection>
+
+          <SubSection title="3.4 Veranderstrategie" id="3-4-veranderstrategie">
+            <VeranderstrategieBlock />
+          </SubSection>
+
           <Conclusie>
             <p className="text-sm text-gray-800 leading-relaxed mb-2">
               De baten zijn bewust per sector onafhankelijk gehouden, zodat iedere sector zijn eigen baat
