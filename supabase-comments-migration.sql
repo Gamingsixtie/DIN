@@ -1,8 +1,12 @@
 -- Migration: Programmaplan-comments — Word-style aanmerkingen op de leesversie
 -- Lezers (stuurgroep, baten-eigenaren) plaatsen comments op hoofdstuk- of paragraaf-niveau.
 -- Comments kunnen via AI worden vertaald naar tekstvoorstellen.
+--
+-- Deze migration is IDEMPOTENT: je kunt het meermaals draaien zonder fout.
+-- Als de tabel al bestaat (bv. eerdere run) wordt alleen het nieuwe deel
+-- (RLS + policies) toegevoegd / vernieuwd.
 
-CREATE TABLE programmaplan_comments (
+CREATE TABLE IF NOT EXISTS programmaplan_comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id TEXT NOT NULL,
   scope_type TEXT NOT NULL CHECK (scope_type IN ('chapter', 'paragraph')),
@@ -17,9 +21,9 @@ CREATE TABLE programmaplan_comments (
   resolved_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_comments_session ON programmaplan_comments(session_id);
-CREATE INDEX idx_comments_status ON programmaplan_comments(session_id, status);
-CREATE INDEX idx_comments_scope ON programmaplan_comments(session_id, scope_id);
+CREATE INDEX IF NOT EXISTS idx_comments_session ON programmaplan_comments(session_id);
+CREATE INDEX IF NOT EXISTS idx_comments_status ON programmaplan_comments(session_id, status);
+CREATE INDEX IF NOT EXISTS idx_comments_scope ON programmaplan_comments(session_id, scope_id);
 
 -- RLS-toegang: anon-clients (alle lezers van /programmaplan/[id]) mogen
 -- alle comments lezen, plaatsen, bijwerken en verwijderen op deze gedeelde
@@ -29,7 +33,12 @@ CREATE INDEX idx_comments_scope ON programmaplan_comments(session_id, scope_id);
 
 ALTER TABLE programmaplan_comments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "comments_read_all"  ON programmaplan_comments FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "comments_read_all"   ON programmaplan_comments;
+DROP POLICY IF EXISTS "comments_insert_all" ON programmaplan_comments;
+DROP POLICY IF EXISTS "comments_update_all" ON programmaplan_comments;
+DROP POLICY IF EXISTS "comments_delete_all" ON programmaplan_comments;
+
+CREATE POLICY "comments_read_all"   ON programmaplan_comments FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "comments_insert_all" ON programmaplan_comments FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "comments_update_all" ON programmaplan_comments FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "comments_delete_all" ON programmaplan_comments FOR DELETE TO anon, authenticated USING (true);

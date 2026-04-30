@@ -57,7 +57,7 @@ function buildPrompt(
   return `Je bent programma-controller bij Cito BV. Je helpt de programma-eigenaar om realistische interne uren-schattingen te maken voor de inspanningen in een DIN-programma.
 
 **ORGANISATIE-CONTEXT (Cito BV) — gebruik dit voor je aanbevolen schattingen:**
-- Cito heeft circa 124 FTE en kent een gelaagde besluitvormingsstructuur: beslissingen vergen meerdere afstemmings- en goedkeuringsrondes.
+- Cito kent een gelaagde besluitvormingsstructuur: beslissingen vergen meerdere afstemmings- en goedkeuringsrondes.
 - **Capaciteit is schaars**: programma's concurreren onderling om dezelfde mensen. Wees realistisch en zuinig met uren-aanvragen.
 - Drie sectoren: PO (basisonderwijs), VO (voortgezet), Professionals (zakelijk). Elke sector heeft een eigen sectormanager + productmanagers + toetsdeskundigen — typisch slechts 1-3 senior toetsdeskundigen per sector.
 - **Vergader-cultuur**: stuurgroepen komen typisch 1× per kwartaal bijeen (2-3u), werkgroepen 2× per maand (1.5-2u), kick-offs 0.5-1 dag (zelden 2 dagen), reviews 0.5 dag.
