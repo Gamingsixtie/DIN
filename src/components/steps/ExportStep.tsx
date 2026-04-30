@@ -1527,6 +1527,17 @@ function Aanbeveling({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Lichtere conclusie-binnen-subparagraaf (voor 4.1.1 en 4.2.1)
+function SubConclusieBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  const anchor = slugify(title);
+  return (
+    <div id={anchor} className="mt-5 rounded-lg border border-cito-blue/20 bg-cito-blue/5 px-4 py-3 scroll-mt-24">
+      <div className="text-[11px] uppercase tracking-wider text-cito-blue font-bold mb-2">{title}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
 // --- Programmadoelen met werkvolgorde-toelichting ---
 function DoelenMetVolgordeBlock({ session }: { session: DINSession }) {
   const sortedGoals = [...session.goals].sort((a, b) => a.rank - b.rank);
@@ -1885,59 +1896,54 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het begrotingsadvies.</p>;
   }
 
-  // --- Auto-bevindingen voor 4.1: substantiële, business-plan-stijl uitleg ---
-  const advScen = begroting.scenarios?.advies ?? begroting.scenarios?.optimaal ?? null;
-  const refInsp = advScen?.inspanningen ?? [];
+  // --- Inleiding 4.1: neutraal, niet vooruitlopen op scenario-keuze ---
+  const refScen = begroting.scenarios?.advies ?? begroting.scenarios?.optimaal ?? null;
+  const refInsp = refScen?.inspanningen ?? [];
   const refTotEur = refInsp.reduce((s, i) => s + i.totaalEuro, 0);
-  const aantalJaren41 = advScen?.aantalJaren ?? 0;
   const sortedInspByRank = [...refInsp].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
-  const sortedInspByEur = [...refInsp].sort((a, b) => b.totaalEuro - a.totaalEuro);
-  const duurste = sortedInspByEur[0];
-  const domeinTotalen: Record<EffortDomain, number> = { cultuur: 0, mens: 0, processen: 0, data_systemen: 0 };
-  refInsp.forEach((i) => {
-    domeinTotalen[i.domein] += i.totaalEuro;
-  });
   const euroFmt41 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const refLabel = begroting.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal;
 
   return (
     <>
-      {refInsp.length > 0 && refTotEur > 0 && (
-        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
-          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
-          <p className="text-sm text-gray-800 leading-relaxed mb-2">
-            De out-of-pocket-raming volgt uit het begrotingsadvies van de cross-analyse-stap &ldquo;Optimaliseren&rdquo;. Per
-            geconsolideerde inspanning is een totaalbedrag bepaald, vervolgens uitgesmeerd over {aantalJaren41} jaar
-            ({begroting.startJaar ?? "—"}–{(begroting.startJaar ?? new Date().getFullYear()) + aantalJaren41 - 1}) met een fase-aanduiding (bv. opzet, opbouw,
-            verankeren) en een activiteit per jaar. Het totaal voor het scenario &ldquo;{refLabel}&rdquo; bedraagt {euroFmt41.format(refTotEur)}.
-          </p>
-          {duurste && (
-            <p className="text-sm text-gray-800 leading-relaxed mb-2">
-              <strong>Grootste post:</strong> {duurste.inspanningTitel} ({euroFmt41.format(duurste.totaalEuro)},{" "}
-              {Math.round((duurste.totaalEuro / refTotEur) * 100)}% van het out-of-pocket-budget).{" "}
-              {duurste.motivatie}
+      <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Wat staat hieronder?</div>
+        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+          Voor elk van de cross-sectorale inspanningen is een out-of-pocket-bedrag bepaald — de externe kosten
+          (licenties, inkoop, externe inhuur) — en uitgesmeerd over de programmaperiode met per jaar een fase
+          (opzet, opbouw, verankeren) en een activiteit. Hieronder staan <strong>vier scenario&apos;s</strong> naast
+          elkaar; in elk scenario verschillen het tempo, de spreiding en de mate van parallelle uitvoering.
+        </p>
+        <p className="text-sm text-gray-800 leading-relaxed mb-3">
+          <strong>Waarom vier scenario&apos;s?</strong> De stuurgroep krijgt zo één doorgerekend basisbeeld plus
+          drie expliciete varianten daarop. Het verschil tussen de scenario&apos;s draait om <em>tempo</em> en
+          <em> ambitieniveau</em>; de inhoud van de inspanningen blijft overal gelijk.
+        </p>
+        <ul className="text-sm text-gray-800 leading-relaxed list-disc pl-5 space-y-1 mb-3">
+          <li><strong>{SCENARIO_LABELS.optimaal}</strong> — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.</li>
+          <li><strong>{SCENARIO_LABELS.plus20}</strong> — sneller (+20%): meer parallelle uitvoering, hogere jaarlast aan out-of-pocket; baten worden eerder gerealiseerd.</li>
+          <li><strong>{SCENARIO_LABELS.min20}</strong> — langzamer (−20%): uitgaven uitgesmeerd, lagere jaarlast, maar langere periode zonder volledige baten.</li>
+          <li><strong>{SCENARIO_LABELS.advies}</strong> — gewogen advies: combineren waar inhoudelijk verantwoord, faseren waar de organisatie het anders niet kan dragen.</li>
+        </ul>
+        {refInsp.length > 0 && refTotEur > 0 && (
+          <>
+            <p className="text-sm text-gray-800 leading-relaxed mb-1">
+              <strong>Volgorde van investeren</strong> (gelijk over alle scenario&apos;s):
             </p>
-          )}
-          {sortedInspByRank.length > 0 && (
-            <div className="text-sm text-gray-800 leading-relaxed">
-              <p className="mb-1"><strong>Volgorde van investeren (rationale uit het begrotingsadvies):</strong></p>
-              <ol className="list-decimal pl-5 space-y-1">
-                {sortedInspByRank.slice(0, 4).map((insp) => (
-                  <li key={`${insp.domein}-${insp.volgorde.rank}`} className="leading-snug">
-                    <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>{" "}
-                    ({euroFmt41.format(insp.totaalEuro)}, {insp.percentageTotaal}%):{" "}
-                    <span className="text-gray-700">{insp.volgorde.reden}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
+            <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-800 leading-snug">
+              {sortedInspByRank.slice(0, 4).map((insp) => (
+                <li key={`${insp.domein}-${insp.volgorde.rank}`}>
+                  <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>:{" "}
+                  <span className="text-gray-700">{insp.volgorde.reden}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </div>
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
         Per scenario hieronder de meerjarige verdeling per inspanning: bedrag per jaar, percentage, fase en
-        activiteit. De ranking links is de aanbevolen volgorde van investeren — de motivaties hierboven leggen uit
-        waarom precies in die volgorde.
+        activiteit. De ranking links is de aanbevolen volgorde van investeren — over alle scenario&apos;s gelijk;
+        het scenario bepaalt het <em>tempo</em>, niet de volgorde.
       </p>
 
       <div className="space-y-6">
@@ -2087,61 +2093,47 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het interne-uren-advies.</p>;
   }
 
-  // --- Auto-bevindingen voor 4.2: substantieel + per domein ---
+  // --- Bevindingen voor 4.2: neutraal, geen voorgekauwde scenario-keuze ---
   const refUrenScen = interneUren.scenarios?.advies ?? interneUren.scenarios?.optimaal ?? null;
   const totUren42 = refUrenScen?.totaalUren ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0) ?? 0;
-  const totKost42 = refUrenScen?.totaalKosten ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0) ?? 0;
-  const aantalJaren42 = refUrenScen?.aantalJaren ?? 0;
-  const startJaar42 = refUrenScen?.startJaar ?? new Date().getFullYear();
   const euroFmt42 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const fteFmt = (uren: number) => (uren / 1320); // ~1320 productieve uur per FTE per jaar
-  const refLabel42 = interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal;
   const sortedDom = refUrenScen?.domeinen
     ? [...refUrenScen.domeinen].sort((a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0))
     : [];
 
   return (
     <>
-      {totUren42 > 0 && refUrenScen && (
-        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
-          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
-          <p className="text-sm text-gray-800 leading-relaxed mb-2">
-            De interne-uren-raming volgt uit cross-analyse-stap &ldquo;Interne uren&rdquo; en is voor dezelfde {aantalJaren42}
-            -jarige programmaperiode opgesteld als de out-of-pocket-raming hierboven ({startJaar42}–{startJaar42 + aantalJaren42 - 1}). Voor het scenario
-            &ldquo;{refLabel42}&rdquo; vraagt het programma in totaal <strong>{totUren42.toLocaleString("nl-NL")} uur</strong> Cito-inzet
-            ({euroFmt42.format(totKost42)}). Verspreid over {aantalJaren42} jaar staat dit gelijk aan ongeveer{" "}
-            <strong>{fteFmt(totUren42 / aantalJaren42).toFixed(1)} FTE structureel</strong> bovenop de reguliere lijn (uitgaand
-            van 1320 productieve uur per FTE per jaar).
-          </p>
-          <p className="text-sm text-gray-800 leading-relaxed mb-2">
-            <strong>Waarom {aantalJaren42} jaar?</strong> Hetzelfde tijdsbestek als de out-of-pocket-raming, omdat interne
-            uren en externe kosten dezelfde realisatieperiode bedienen. Cultuurverankering en CRM-adoptie vragen die
-            doorlooptijd; sneller (drie jaar) zou tot minder oefenmomenten leiden, langzamer (vijf jaar) zou momentum
-            verliezen.
-          </p>
-          {sortedDom.length > 0 && (
-            <div className="text-sm text-gray-800 leading-relaxed">
-              <p className="mb-1"><strong>Wat zit er in de uren per domein?</strong></p>
-              <ol className="list-decimal pl-5 space-y-1">
-                {sortedDom.map((d) => {
-                  const aandeel = totUren42 > 0 ? Math.round(((d.totaalUren ?? 0) / totUren42) * 100) : 0;
-                  return (
-                    <li key={d.domein} className="leading-snug">
-                      <strong>{DOMAIN_LABELS[d.domein]}</strong> — {(d.totaalUren ?? 0).toLocaleString("nl-NL")} u (
-                      {aandeel}%, {euroFmt42.format(d.totaalKosten ?? 0)}):{" "}
-                      <span className="text-gray-700">{d.motivatie || "geen motivatie beschikbaar"}</span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
-      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
-        Inzet van Cito-medewerkers per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en
-        bijbehorende kosten. Het uurtarief geldt over alle scenario&apos;s; de verdeling verschilt per scenario.
-      </p>
+      <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Wat staat hieronder?</div>
+        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+          Voor elk van de vier scenario&apos;s — dezelfde scenario&apos;s als in 4.1 — tonen we hieronder de inzet
+          van Cito-medewerkers: per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en
+          bijbehorende kosten. De volume- en spreidings-keuzes verschillen per scenario; het uurtarief geldt
+          over alle scenario&apos;s gelijk.
+        </p>
+        <p className="text-sm text-gray-800 leading-relaxed mb-2">
+          De doorlooptijd hangt af van het gekozen scenario: een hoger ambitieniveau verkort de looptijd,
+          een lager niveau rekt hem uit. De keuze tussen scenario&apos;s — en de daaruit volgende doorlooptijd
+          — komt aan bod in 4.2.1 en in het totaaloverzicht in 4.3.
+        </p>
+        {sortedDom.length > 0 && totUren42 > 0 && (
+          <div className="text-sm text-gray-800 leading-relaxed">
+            <p className="mb-1"><strong>Verhouding van inzet per domein</strong> (referentie: scenario {interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal}):</p>
+            <ol className="list-decimal pl-5 space-y-1">
+              {sortedDom.map((d) => {
+                const aandeel = totUren42 > 0 ? Math.round(((d.totaalUren ?? 0) / totUren42) * 100) : 0;
+                return (
+                  <li key={d.domein} className="leading-snug">
+                    <strong>{DOMAIN_LABELS[d.domein]}</strong> — {(d.totaalUren ?? 0).toLocaleString("nl-NL")} u (
+                    {aandeel}%, {euroFmt42.format(d.totaalKosten ?? 0)})
+                    {d.motivatie ? <>: <span className="text-gray-700">{d.motivatie}</span></> : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+      </div>
 
       {interneUren.uurtariefSettings && (
         <p className="text-xs text-gray-500 italic mb-4">
@@ -2156,6 +2148,22 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
           if (!s) return null;
           const kleur = SCENARIO_KLEUR[key];
 
+          // Per scenario: bepaal laatste jaar met uren — voor "Programma eindigt in …"-notitie
+          const jarenAlleDomeinen = s.domeinen.flatMap((d) => d.jaren);
+          const jaarMetUren = (jr: JaarBlok) =>
+            (jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0)) > 0;
+          const jarenAangelegd = jarenAlleDomeinen.map((j) => j.jaar);
+          const eersteJaar = jarenAangelegd.length > 0 ? Math.min(...jarenAangelegd) : null;
+          const laatsteJaarTotaal = jarenAangelegd.length > 0 ? Math.max(...jarenAangelegd) : null;
+          const laatsteJaarMetUren = jarenAlleDomeinen.filter(jaarMetUren).reduce<number | null>(
+            (acc, jr) => (acc === null || jr.jaar > acc ? jr.jaar : acc),
+            null
+          );
+          const heeftLegeNa =
+            laatsteJaarMetUren !== null &&
+            laatsteJaarTotaal !== null &&
+            laatsteJaarMetUren < laatsteJaarTotaal;
+
           return (
             <div key={key} className="space-y-3">
               <div className={`${kleur.banner} text-white rounded-lg p-4`}>
@@ -2167,6 +2175,9 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                   <p className={`text-xs ${kleur.bannerTekst} mt-2`}>
                     Totaal: <strong>{s.totaalUren.toLocaleString("nl-NL")} u</strong> × € {s.uurtariefGebruikt ?? 0} ={" "}
                     <strong>€ {s.totaalKosten.toLocaleString("nl-NL")}</strong>
+                    {laatsteJaarMetUren !== null && eersteJaar !== null && (
+                      <> &middot; doorlooptijd <strong>{eersteJaar}–{laatsteJaarMetUren}</strong></>
+                    )}
                   </p>
                 )}
               </div>
@@ -2200,25 +2211,34 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                 </table>
               </div>
 
-              {/* Per domein: per jaar de rol-tabel */}
+              {/* Per domein: per jaar de rol-tabel — standaard ingeklapt voor compactheid; in print volledig open via print:open */}
               {s.domeinen.map((d) => {
                 const dc = DOMAIN_COLORS[d.domein];
+                const jarenMetUren = d.jaren.filter(jaarMetUren);
+                if ((d.totaalUren ?? 0) === 0 && jarenMetUren.length === 0) return null;
                 return (
-                  <div key={d.domein} className={`border ${dc.border} ${dc.bg} rounded-lg p-3`}>
-                    <div className="flex items-baseline justify-between gap-3 mb-2">
-                      <div>
-                        <span className={`text-[11px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[d.domein]}</span>
-                        {d.motivatie && (
-                          <p className="text-xs text-gray-600 italic leading-relaxed mt-0.5 max-w-prose">{d.motivatie}</p>
-                        )}
+                  <details
+                    key={d.domein}
+                    className={`group border ${dc.border} ${dc.bg} rounded-lg p-3 print:open`}
+                  >
+                    <summary className="flex items-baseline justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-gray-400 text-xs print:hidden transition-transform group-open:rotate-90">▸</span>
+                        <div>
+                          <span className={`text-[11px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[d.domein]}</span>
+                          <span className="ml-2 text-[11px] text-gray-500">{jarenMetUren.length} jaar met inzet</span>
+                          {d.motivatie && (
+                            <p className="text-xs text-gray-600 italic leading-relaxed mt-0.5 max-w-prose">{d.motivatie}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right text-xs tabular-nums">
+                      <div className="text-right text-xs tabular-nums shrink-0">
                         <div className="font-semibold text-gray-800">{(d.totaalUren ?? 0).toLocaleString("nl-NL")} u</div>
                         <div className="text-gray-500">€ {(d.totaalKosten ?? 0).toLocaleString("nl-NL")}</div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      {d.jaren.map((jr) => (
+                    </summary>
+                    <div className="space-y-2 mt-3">
+                      {jarenMetUren.map((jr) => (
                         <div key={jr.jaar} className="bg-white border border-gray-100 rounded p-2.5">
                           <div className="flex items-baseline justify-between gap-2 mb-2">
                             <div>
@@ -2226,8 +2246,8 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                               {jr.activiteit && <span className="text-xs text-gray-700 ml-2">{jr.activiteit}</span>}
                             </div>
                             <div className="text-right text-[11px] tabular-nums">
-                              <div className="font-semibold text-gray-800">{(jr.totaalUren ?? jr.rollen.reduce((s, r) => s + r.uren, 0)).toLocaleString("nl-NL")} u</div>
-                              <div className="text-gray-500">€ {(jr.totaalKosten ?? jr.rollen.reduce((s, r) => s + r.kosten, 0)).toLocaleString("nl-NL")}</div>
+                              <div className="font-semibold text-gray-800">{(jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0)).toLocaleString("nl-NL")} u</div>
+                              <div className="text-gray-500">€ {(jr.totaalKosten ?? jr.rollen.reduce((sum, r) => sum + r.kosten, 0)).toLocaleString("nl-NL")}</div>
                             </div>
                           </div>
                           <table className="w-full text-xs">
@@ -2256,9 +2276,15 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </details>
                 );
               })}
+
+              {heeftLegeNa && laatsteJaarMetUren !== null && (
+                <p className="text-xs text-gray-500 italic">
+                  Het programma is in scenario &ldquo;{SCENARIO_LABELS[key]}&rdquo; afgerond na {laatsteJaarMetUren}; latere jaren tonen geen interne inzet meer.
+                </p>
+              )}
             </div>
           );
         })}
@@ -3226,44 +3252,10 @@ function GapDetectionModal({
 
 // --- Programmaplan-document (herbruikbaar voor in-app preview én publieke deel-pagina) ---
 export function ProgrammaplanDocument({ session }: { session: DINSession }) {
-  // Auto-conclusie data
-  const aantalDoelen = session.goals.length;
-  const focusGoal = session.goals.find((g) => g.id === (session.crossAnalyseWizard?.stepResults?.stap5 as { focusDoelId?: string } | undefined)?.focusDoelId) ?? [...session.goals].sort((a, b) => a.rank - b.rank)[0];
-  const inScopeCount = session.scope?.inScope.length ?? 0;
-  const buitenCount = (session.scope?.outScope.length ?? 0) + (categorizeGaps(session).volgendeCyclus.length);
-
-  // Cross-sectoraal: aantal vermogengroepen + aantal cross-sectorale inspanningen
-  type Stap2 = { vermogenGelijkenisGroepen?: Array<{ id: string }> };
+  // Cross-sectoraal: aantal cross-sectorale inspanningen — gebruikt in H3-conclusie
   type Stap4 = { subEffortAnalysis?: Array<{ actie: string }> };
-  const stap2 = (session.crossAnalyseWizard?.stepResults as { stap2?: Stap2 } | undefined)?.stap2;
   const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4 } | undefined)?.stap4;
-  const aantalGroepen = stap2?.vermogenGelijkenisGroepen?.length ?? 0;
   const aantalGezamenlijke = stap4?.subEffortAnalysis?.filter((s) => s.actie === "combineren").length ?? 0;
-
-  // Governance: aantal gremia/rollen + RASCI-clusters
-  const po = session.programmaorganisatie;
-  const totaalRollen = po
-    ? (po.opdrachtgever ? 1 : 0) +
-      (po.programmamanager ? 1 : 0) +
-      (po.kerngroep?.length ?? 0) +
-      (po.stuurgroep?.length ?? 0) +
-      (po.domeineigenaren?.length ?? 0) +
-      (po.klankbordgroep?.length ?? 0)
-    : 0;
-  const aantalRasciClusters = (session.clusterRasci ?? []).length;
-
-  // Planning: aantal bundels + cycli + doorlooptijd
-  const planning = session.planningVoorstel;
-  const aantalBundels = planning?.bundelPlanning?.length ?? 0;
-  const cycli = new Set((planning?.bundelPlanning ?? []).map((b) => b.cyclusLabel)).size;
-  const sortedB = [...(planning?.bundelPlanning ?? [])].sort(
-    (a, b) => quarterIndexFromString(a.startKwartaal) - quarterIndexFromString(b.startKwartaal)
-  );
-  const startQ = sortedB[0]?.startKwartaal;
-  const eindB = [...(planning?.bundelPlanning ?? [])].sort(
-    (a, b) => quarterIndexFromString(b.eindKwartaal) - quarterIndexFromString(a.eindKwartaal)
-  )[0];
-  const eindQ = eindB?.eindKwartaal;
 
   return (
     <div className="p-8 max-w-none">
@@ -3278,17 +3270,10 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               Samen vormen ze het kader waaraan alle baten, vermogens en inspanningen later worden gerelateerd.
             </p>
           </Inleiding>
-          <Kern>
+          <div className="mb-5 px-4 space-y-4">
             <VisionBlock session={session} />
             <ScopeBlock session={session} />
-          </Kern>
-          <Conclusie>
-            <p className="text-sm text-gray-800 leading-relaxed">
-              Het programma kent {inScopeCount > 0 ? `${inScopeCount} expliciete scope-onderwerp${inScopeCount === 1 ? "" : "en"}` : "een afgebakende scope"}
-              {buitenCount > 0 ? ` en ${buitenCount} item${buitenCount === 1 ? "" : "s"} die buiten deze cyclus vallen` : ""}.
-              {aantalDoelen > 0 ? ` Op deze basis zijn ${aantalDoelen} programmadoel${aantalDoelen === 1 ? "" : "en"} opgesteld; die volgen in Hoofdstuk 2.` : ""}
-            </p>
-          </Conclusie>
+          </div>
         </Chapter>
 
         {/* Hoofdstuk 2 — Programmadoelen */}
@@ -3300,34 +3285,44 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               naar het volgende doel.
             </p>
           </Inleiding>
-          <Kern>
+          <div className="mb-5 px-4 space-y-4">
             <DoelenMetVolgordeBlock session={session} />
-          </Kern>
-          <Conclusie>
-            <p className="text-sm text-gray-800 leading-relaxed">
-              {aantalDoelen} programmadoel{aantalDoelen === 1 ? "" : "en"}
-              {focusGoal ? <> met <strong>&ldquo;{focusGoal.name}&rdquo;</strong> (doel {focusGoal.rank}) als focusdoel waarmee gestart wordt</> : ""}.
-              {aantalDoelen > 1 ? ` De overige ${aantalDoelen - 1} doel${aantalDoelen - 1 === 1 ? "" : "en"} volg${aantalDoelen - 1 === 1 ? "t" : "en"} na realisatie hiervan.` : ""}
-            </p>
-          </Conclusie>
+          </div>
         </Chapter>
 
         {/* Hoofdstuk 3 — Cross-sectorale uitkomst */}
         <Chapter number="3." title="Cross-sectorale uitkomst — de kern">
           <Inleiding>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Per sector (PO/VO/Zakelijk) is een eigen DIN-keten opgesteld. Die overlappen sterk: dezelfde
-              vermogens komen op meerdere plekken terug. In dit hoofdstuk is dat samengebracht tot één
-              cross-sectorale uitkomst: de <strong>geconsolideerde inspanningen per domein</strong> en de
-              <strong> hefboomgroepen</strong> die meerdere sectoren tegelijk bedienen. Zo voorkomt het
-              programma dat elk domein drie keer apart wordt opgebouwd.
+              Per sector (PO/VO/Zakelijk) is een eigen DIN-keten opgesteld — een keten van doelen, baten,
+              vermogens en inspanningen. Dit hoofdstuk laat zien hoe die afzonderlijke ketens zijn
+              samengebracht tot één samenhangend cross-sectoraal beeld, en welke inspanningen daaruit
+              gezamenlijk worden opgepakt.
             </p>
           </Inleiding>
           <Kern>
-            <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
-              Focusdoel → Baten per sector → Drieluik van gelijkende vermogens → Hefboomlaag per domein.
-              Dit is exact de visualisatie en data uit de laatste stap van de cross-analyse-wizard.
-            </p>
+            <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+              <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">
+                Hoe is het DIN opgebouwd?
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                Een DIN-keten — Doelen-Inspanningennetwerk — verbindt vier niveaus in een logische volgorde:
+                <strong> doelen</strong> (waartoe), <strong>baten</strong> (welk effect we nastreven),
+                <strong> vermogens</strong> (wat de organisatie moet kunnen) en <strong>inspanningen</strong>
+                {" "}(wat we concreet doen). Per sector — PO, VO en Zakelijk — is zo&apos;n keten apart opgesteld,
+                vanuit het sectorperspectief.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                In de cross-analyse zijn de drie sector-ketens naast elkaar gelegd. Vermogens die per sector op
+                hetzelfde neerkomen zijn samengebracht in <strong>vermogen-gelijkenisgroepen</strong>; sector-baten
+                blijven daarbij apart staan, zodat iedere sector zijn eigen klant-erkenning behoudt.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                Wat dat oplevert is een hefboomlaag van <strong>cross-sectorale inspanningen</strong>, verdeeld over
+                de vier domeinen <strong>cultuur, mens, data &amp; systemen en processen</strong> — niet drie keer
+                hetzelfde, maar één keer goed.
+              </p>
+            </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <StapSectorVertaling
                 session={session}
@@ -3339,67 +3334,152 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             </div>
           </Kern>
           <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed mb-2">
+              De baten zijn bewust per sector onafhankelijk gehouden, zodat iedere sector zijn eigen baat
+              herkent en vasthoudt aan zijn eigen klant-erkenning. Tegelijk dragen die sector-baten gezamenlijk
+              bij aan dezelfde overkoepelende programmadoelstelling.
+            </p>
+            <p className="text-sm text-gray-800 leading-relaxed mb-2">
+              De vermogens zijn samengevoegd in cross-sectorale clusters, maar binnen het schema blijft per
+              sector zichtbaar welk vermogen waar vandaan komt. Daardoor wordt zowel bij baten als bij
+              vermogens duidelijk waar de overlap tussen sectoren zit — en daar konden de inspanningen
+              cross-sectoraal worden opgepakt.
+            </p>
             <p className="text-sm text-gray-800 leading-relaxed">
-              Het programma kent {aantalGroepen} groep{aantalGroepen === 1 ? "" : "en"} van vergelijkbare sector-vermogens
-              {aantalGezamenlijke > 0 ? ` waaruit ${aantalGezamenlijke} cross-sectorale inspanning${aantalGezamenlijke === 1 ? "" : "en"} zijn gedestilleerd, verdeeld over de vier domeinen cultuur, mens, data &amp; systemen en processen.` : "."}
-              {" "}De financiële vertaling van deze inspanningen volgt in Hoofdstuk 4.
+              De uitkomst is{" "}
+              {aantalGezamenlijke > 0 ? (
+                <><strong>{aantalGezamenlijke} cross-sectorale inspanning{aantalGezamenlijke === 1 ? "" : "en"}</strong></>
+              ) : (
+                <>een set cross-sectorale inspanningen</>
+              )}
+              , parallel uit te voeren over de vier domeinen <strong>cultuur, mens, data &amp; systemen en processen</strong>.
+              Deze vier domeinen zijn essentieel om de vermogens daadwerkelijk te verbeteren; pas wanneer de
+              vermogens groeien, worden de baten gerealiseerd, en pas wanneer de baten landen, wordt de
+              gezamenlijke programmadoelstelling waargemaakt. De financiële vertaling van deze uitkomst volgt
+              in Hoofdstuk 4.
             </p>
           </Conclusie>
         </Chapter>
 
-        {/* Hoofdstuk 4 — Raming (met expliciete Aanbeveling) */}
+        {/* Hoofdstuk 4 — Raming */}
         <Chapter number="4." title="Raming">
           <Inleiding>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              De programmaraming bestaat uit twee componenten: <strong>out-of-pocket-uitgaven</strong> (externe kosten
-              per inspanning, zoals licenties, inkoop en externe inhuur) en <strong>interne uren</strong> (Cito-medewerkers,
-              in uren én euro&apos;s). Beide zijn doorgerekend over <strong>vier scenario&apos;s</strong>. Hieronder eerst de
-              aanbeveling aan de stuurgroep met een vergelijking van de scenario&apos;s; daarna de detailuitwerking
-              (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht).
+            <p className="text-sm text-gray-700 leading-relaxed mb-2">
+              Dit is een <strong>raming</strong>, geen vastgestelde begroting. Het betreft een eerste aanzet en
+              een onderbouwde verwachting van de programmakosten — uitgesplitst in <strong>out-of-pocket-uitgaven</strong>
+              {" "}(externe kosten zoals licenties, inkoop en externe inhuur) en <strong>interne uren</strong>
+              {" "}(inzet van Cito-medewerkers, in uren én euro&apos;s).
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed mb-2">
+              Beide componenten zijn doorgerekend over <strong>vier scenario&apos;s</strong>, zodat de stuurgroep
+              de programmakosten kan afzetten tegen verschillende keuzes voor tempo en ambitieniveau. De
+              opbouw van dit hoofdstuk volgt die logica:
+            </p>
+            <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1">
+              <li><strong>4.1 Out-of-pocket kosten</strong> — vier scenario&apos;s naast elkaar, met conclusie en advies voor dit onderdeel.</li>
+              <li><strong>4.2 Interne uren</strong> — dezelfde vier scenario&apos;s in uren en kosten van Cito-medewerkers, met conclusie en advies.</li>
+              <li><strong>4.3 Totaaloverzicht</strong> — out-of-pocket plus interne uren samengevoegd, sluitend met de aanbeveling aan de stuurgroep.</li>
+            </ul>
+            <p className="text-sm text-gray-700 leading-relaxed mt-2">
+              De aanbeveling staat bewust aan het eind: de stuurgroep ziet eerst de onderbouwing per onderdeel
+              en pas daarna welk scenario op basis van die onderbouwing wordt aangeraden.
             </p>
           </Inleiding>
-          <Aanbeveling>
-            <BegrotingAdviesSamenvattingBlock session={session} />
-          </Aanbeveling>
-          <Kern>
-            <SubSection title="4.1 Raming out-of-pocket kosten">
-              <BegrotingAdviesBlock session={session} />
-            </SubSection>
-            <SubSection title="4.2 Interne uren">
-              <InterneUrenBlock session={session} />
-            </SubSection>
-            <SubSection title="4.3 Totaaloverzicht — vier scenario's">
-              <ScenarioTotaalBlock session={session} />
-            </SubSection>
-          </Kern>
-          <Conclusie>
-            <p className="text-sm text-gray-800 leading-relaxed">
-              De vier doorgerekende scenario&apos;s geven de stuurgroep een onderbouwde keuze in tempo en
-              ambitieniveau. Met de aanbeveling bovenaan dit hoofdstuk en het totaaloverzicht in 4.3 kan de
-              stuurgroep het scenario vaststellen waarmee de programmabegroting verder wordt vastgezet.
+
+          <SubSection title="4.1 Raming out-of-pocket kosten" id="4-1-raming-out-of-pocket-kosten">
+            <BegrotingAdviesBlock session={session} />
+            <SubConclusieBlock title="4.1.1 Conclusie en advies — Out-of-pocket">
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                De vier scenario&apos;s laten zien dat de out-of-pocket-uitgaven sterk afhangen van het tempo
+                waarin het programma wordt uitgevoerd: sneller leidt tot meer parallelle inkoop en hogere
+                jaarlasten, langzamer rekt de uitgaven uit maar verlengt de doorlooptijd waarin baten nog niet
+                worden gerealiseerd.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                Voor de out-of-pocket-component verdient het <strong>advies-scenario</strong> de voorkeur. Dit
+                scenario combineert inspanningen waar de inhoud dat toelaat en faseert waar parallelle uitvoering
+                de organisatie zou overbelasten. De jaarlast blijft daarmee binnen wat in een Cito-jaarbudget
+                realistisch is op te nemen, zonder dat momentum verloren gaat doordat zaken te ver naar achteren
+                schuiven.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                Het advies voor 4.1 is daarmee een gewogen midden tussen ambitie en uitvoerbaarheid; het is geen
+                voorgeprogrammeerde keuze, maar de uitkomst van combineren-waar-het-kan en faseren-waar-het-moet.
+              </p>
+            </SubConclusieBlock>
+          </SubSection>
+
+          <SubSection title="4.2 Interne uren" id="4-2-interne-uren">
+            <InterneUrenBlock session={session} />
+            <SubConclusieBlock title="4.2.1 Conclusie en advies — Interne uren">
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                Voor de interne uren — de inzet van Cito-medewerkers — sluit het advies aan op de keuze in 4.1.
+                Een consistent scenario over out-of-pocket en interne uren voorkomt dat we in geld realistisch
+                begroten maar in capaciteit alsnog overvragen, of omgekeerd.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                Cito is een relatief kleine, bureaucratische organisatie; de interne capaciteit is een schaars
+                goed dat zorgvuldig over de tijd verdeeld moet worden. Het advies-scenario houdt rekening met die
+                realiteit: de jaarlijkse uren-belasting blijft op een niveau dat naast het reguliere lijnwerk
+                gedragen kan worden, zonder dat het programma stilvalt zodra een sleutelrol uitvalt.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                De doorlooptijd die hieruit volgt is geen vaststaand getal, maar het gevolg van die capaciteits-
+                en consistentiekeuze; per scenario verschuift hij navenant.
+              </p>
+            </SubConclusieBlock>
+          </SubSection>
+
+          <SubSection title="4.3 Totaaloverzicht — vier scenario's" id="4-3-totaaloverzicht-vier-scenario-s">
+            <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+              In dit overzicht zijn de vier scenario&apos;s naast elkaar gelegd: <strong>out-of-pocket plus interne
+              uren bij elkaar opgeteld</strong> geeft het totaal-investeringsbeeld dat de stuurgroep nodig heeft om
+              een keuze te maken.
             </p>
-          </Conclusie>
+            <ScenarioTotaalBlock session={session} />
+            <Aanbeveling>
+              <p className="text-sm text-gray-800 leading-relaxed mb-3">
+                Op basis van out-of-pocket plus interne uren samengeteld komt het advies-scenario uit als de
+                gewogen voorkeur — consistent met de adviezen in 4.1 en 4.2, en passend bij de jaarlijkse
+                budget- en capaciteitsrealiteit van Cito.
+              </p>
+              <BegrotingAdviesSamenvattingBlock session={session} />
+              <p className="text-sm text-gray-800 leading-relaxed mt-3">
+                Met deze aanbeveling kan de stuurgroep het scenario vaststellen waarmee het programma definitief
+                wordt vastgezet en waarop de detailbegroting voor het eerstvolgende jaar wordt opgebouwd.
+              </p>
+            </Aanbeveling>
+          </SubSection>
         </Chapter>
 
         {/* Hoofdstuk 5 — Programma-organisatie en RASCI */}
         <Chapter number="5." title="Programma-organisatie en RASCI">
           <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed mb-2">
+              De programma-organisatie bepaalt de veranderkracht. Hoe goed de inhoud van het DIN ook is — pas
+              wanneer expliciet is wie waarover beslist, wie meedenkt en wie wordt geïnformeerd, kan de
+              organisatie de baten daadwerkelijk realiseren.
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed mb-2">
+              Drie elementen worden hieronder vastgelegd: het <strong>baten-eigenaarschap</strong> (welke
+              functionaris is per baat eindverantwoordelijk voor de realisatie), de <strong>RASCI-matrix</strong>
+              {" "}per hoofdthema (wie is responsible, accountable, supportive, consulted en informed) en het
+              <strong> escalatieritme</strong> waarop besluitvorming en bijsturing plaatsvinden.
+            </p>
             <p className="text-sm text-gray-700 leading-relaxed">
-              De programma-organisatie bepaalt de veranderkracht: <strong>wie beslist, wie draagt bij, wie wordt
-              geïnformeerd</strong>. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) de
-              verantwoordelijkheidsverdeling expliciet vast.
+              Samen vormen deze elementen de basis voor de stuurgroep om het programma te besturen — en voor
+              de uitvoerende rollen om te weten op wie ze terug kunnen vallen wanneer een keuze gemaakt moet
+              worden.
             </p>
           </Inleiding>
           <Kern>
             <GovernanceBlock session={session} />
+            <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-700 leading-relaxed">
+              Verdere uitwerking van besluitvorming en escalatiepad — inclusief een schematische weergave van
+              de programma-organisatie — wordt toegevoegd zodra de stuurgroep akkoord heeft gegeven op het
+              organigram.
+            </div>
           </Kern>
-          <Conclusie>
-            <p className="text-sm text-gray-800 leading-relaxed">
-              {totaalRollen > 0 ? <>{totaalRollen} rol{totaalRollen === 1 ? "" : "len"} in de programma-organisatie ingericht</> : "De programma-organisatie is ingericht"}
-              {aantalRasciClusters > 0 ? <>, met een RASCI-matrix over {aantalRasciClusters} hoofdthema{aantalRasciClusters === 1 ? "" : "'s"}</> : ""}.
-              {" "}Beslissings- en escalatieritme zijn vastgelegd, zodat de uitvoering kan starten.
-            </p>
-          </Conclusie>
         </Chapter>
 
         {/* Hoofdstuk 6 — Planning en roadmap */}
@@ -3409,25 +3489,13 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               De roadmap groepeert de cross-sectorale inspanningen in <strong>bundels en cycli</strong>, maakt
               afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het
               ritmische kompas van het programma — niet de detailplanning per project, maar de cyclische
-              bundels op programmaniveau.
+              bundels op programmaniveau. De getoonde doorlooptijd is gebaseerd op het advies-scenario uit
+              Hoofdstuk 4; bij een andere scenario-keuze schuift de planning navenant.
             </p>
           </Inleiding>
           <Kern>
             <RoadmapBlock session={session} />
           </Kern>
-          <Conclusie>
-            <p className="text-sm text-gray-800 leading-relaxed">
-              {aantalBundels > 0 ? (
-                <>
-                  {aantalBundels} bundel{aantalBundels === 1 ? "" : "s"} verdeeld over {cycli} cyclus{cycli === 1 ? "" : "sen"}
-                  {startQ && eindQ ? <>, met een doorlooptijd van <strong>{startQ}</strong> tot <strong>{eindQ}</strong></> : ""}.
-                  {" "}Per bundel zijn mijlpalen en risico&apos;s vastgelegd, zodat de stuurgroep kan sturen op tempo én op opbrengst.
-                </>
-              ) : (
-                "Roadmap is nog niet vastgesteld."
-              )}
-            </p>
-          </Conclusie>
         </Chapter>
       </div>
     </div>
