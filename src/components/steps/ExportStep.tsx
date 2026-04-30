@@ -1674,6 +1674,117 @@ const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: st
 const SCENARIO_ORDER_GLOBAL: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
 
 // --- Raming out-of-pocket kosten — meerjarige verdeling per scenario per inspanning ---
+// --- Raming-advies & vergelijking — hoogteafspraak voor de stuurgroep ---
+function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) {
+  type BegrScenario = {
+    totaalGeraamdEuro?: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    aantalJaren?: number;
+  };
+  type BegrAdv = {
+    startJaar?: number;
+    scenarios?: Partial<Record<ScenarioKey, BegrScenario | null>>;
+    vergelijking?: string;
+  };
+  type UrenScenario = { totaalKosten?: number; totaalUren?: number };
+  type Stap4 = { begrotingAdvies?: BegrAdv; stap7InterneUren?: { scenarios?: Partial<Record<ScenarioKey, UrenScenario | null>> } };
+  type Stap8 = { actiefScenario?: ScenarioKey };
+
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4 } | undefined)?.stap4;
+  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8 } | undefined)?.stap8;
+  const begroting = stap4?.begrotingAdvies;
+  const interneUren = stap4?.stap7InterneUren;
+
+  if (!begroting?.scenarios) return null;
+
+  const scenarioOrder: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
+  const aanbevolen: ScenarioKey = stap8?.actiefScenario ?? "advies";
+  const heeftAdvies = !!begroting.scenarios[aanbevolen];
+  const echtAanbevolen: ScenarioKey = heeftAdvies ? aanbevolen : "optimaal";
+  const aanbevolenScen = begroting.scenarios[echtAanbevolen] ?? null;
+  const aanbevolenInt = interneUren?.scenarios?.[echtAanbevolen] ?? null;
+
+  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const totaalAanbevolen = (aanbevolenScen?.totaalGeraamdEuro ?? 0) + (aanbevolenInt?.totaalKosten ?? 0);
+
+  const beschikbareScenarios = scenarioOrder.filter((k) => begroting.scenarios?.[k]);
+
+  return (
+    <div className="mb-6 space-y-4">
+      {/* Aanbeveling-banner */}
+      {aanbevolenScen && (
+        <div className={`rounded-xl border-2 ${SCENARIO_KLEUR[echtAanbevolen].bg.replace("bg-", "border-").replace("-50", "-300")} ${SCENARIO_KLEUR[echtAanbevolen].bg} p-5`}>
+          <div className="flex items-start gap-3">
+            <div className={`shrink-0 w-8 h-8 rounded-full ${SCENARIO_KLEUR[echtAanbevolen].banner} text-white flex items-center justify-center font-bold`}>
+              ✓
+            </div>
+            <div className="flex-1">
+              <div className={`text-[10px] uppercase tracking-wider font-bold ${SCENARIO_KLEUR[echtAanbevolen].accent} mb-0.5`}>
+                Advies aan de stuurgroep
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">
+                Kies scenario &ldquo;{SCENARIO_LABELS[echtAanbevolen]}&rdquo; — totaal {euroFmt.format(totaalAanbevolen)}
+                {aanbevolenScen.aantalJaren ? ` over ${aanbevolenScen.aantalJaren} jaar` : ""}
+              </h3>
+              {aanbevolenScen.samenvatting && (
+                <p className="text-sm text-gray-700 leading-relaxed mt-1 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
+              )}
+              {aanbevolenScen.prioriteitAdvies && (
+                <p className="text-sm text-gray-600 italic leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vergelijking AI-tekst (cross-scenario) */}
+      {begroting.vergelijking && (
+        <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
+          <div className="text-[10px] uppercase tracking-wider text-gray-600 font-bold mb-1">
+            Vergelijking van de vier scenario&apos;s
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{begroting.vergelijking}</p>
+        </div>
+      )}
+
+      {/* Per-scenario one-liner overzicht */}
+      {beschikbareScenarios.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {scenarioOrder.map((k) => {
+            const sc = begroting.scenarios?.[k];
+            const isAanbevolen = k === echtAanbevolen;
+            const oop = sc?.totaalGeraamdEuro ?? 0;
+            const intK = interneUren?.scenarios?.[k]?.totaalKosten ?? 0;
+            const tot = oop + intK;
+            const kleur = SCENARIO_KLEUR[k];
+            if (!sc) return null;
+            return (
+              <div
+                key={k}
+                className={`p-3 rounded-lg border ${isAanbevolen ? `${kleur.bg} border-2 ${kleur.bg.replace("bg-", "border-").replace("-50", "-300")}` : "bg-white border-gray-200"}`}
+              >
+                <div className={`text-[10px] uppercase font-bold tracking-wider ${kleur.accent} mb-1 flex items-center gap-1.5`}>
+                  {SCENARIO_LABELS[k]}
+                  {isAanbevolen && <span className="text-[9px] bg-white px-1 py-0.5 rounded border border-current">✓ advies</span>}
+                </div>
+                <div className="text-xl font-bold text-gray-800 tabular-nums">
+                  {euroFmt.format(tot)}
+                </div>
+                {sc.samenvatting && (
+                  <p className="text-[11px] text-gray-600 leading-snug mt-1.5 line-clamp-3" title={sc.samenvatting}>
+                    {sc.samenvatting}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BegrotingAdviesBlock({ session }: { session: DINSession }) {
   type InspBegr = {
     inspanningTitel: string;
@@ -2943,7 +3054,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
         <Chapter
           number="3."
           title="Cross-sectorale uitkomst — de kern"
-          intro="Het uiteindelijke DIN-netwerk uit de cross-analyse, één-op-één opgenomen. Per VermogenGelijkenisGroep zie je drie parallelle sector-vermogens (PO/VO/Zakelijk) en daaronder de hefboomlaag: welke gezamenlijke inspanningen per domein worden opgepakt — met titel, beschrijving, beargumentatie, vermogenImpact per sector en het volledige inspannings-dossier."
+          intro="Dit is het uiteindelijke DIN-netwerk zoals het uit de cross-analyse komt. Bovenaan staat het focusdoel; daaronder de baten per sector (PO/VO/Zakelijk). Vervolgens zie je per groep van vergelijkbare sector-vermogens drie parallelle kaarten — één per sector — en daaronder de hefboomlaag met de gezamenlijke inspanningen per domein: wat er wordt gedaan, waarom cross-sectoraal, met welke impact per sector, en met een volledig dossier (eigenaar, leider, kosten, resultaat, randvoorwaarden)."
         >
           <SubSection title="Uiteindelijke DIN-netwerk (uit cross-analyse stap 9)">
             <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
@@ -2965,8 +3076,9 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
         <Chapter
           number="4."
           title="Raming"
-          intro="De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide componenten zijn doorgerekend over vier scenario&apos;s. De gedetailleerde uitwerking volgt in subparagraaf 4.1 en 4.2; subparagraaf 4.3 telt alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
+          intro="De programmaraming bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide zijn doorgerekend over vier scenario&apos;s. Hieronder eerst het advies aan de stuurgroep met een korte vergelijking van de vier scenario&apos;s; daaronder de detailuitwerking (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht)."
         >
+          <BegrotingAdviesSamenvattingBlock session={session} />
           <SubSection title="4.1 Raming out-of-pocket kosten">
             <BegrotingAdviesBlock session={session} />
           </SubSection>

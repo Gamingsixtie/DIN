@@ -2015,13 +2015,87 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
   children.push(numberedHeading("Raming", "h1", numState));
   children.push(
     methodiekIntro(
-      "De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per " +
-      "inspanning) en interne uren (Cito-medewerkers, in uren én euro's). Beide componenten zijn " +
-      "doorgerekend over vier scenario's. De gedetailleerde uitwerking volgt in 4.1 en 4.2; 4.3 telt " +
-      "alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
+      "De programmaraming bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per " +
+      "inspanning) en interne uren (Cito-medewerkers, in uren én euro's). Beide zijn doorgerekend over " +
+      "vier scenario's. Hieronder eerst het advies aan de stuurgroep met een korte vergelijking van de " +
+      "vier scenario's; daaronder de detailuitwerking (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaal)."
     )
   );
   children.push(emptyLine());
+
+  // === Advies aan de stuurgroep ===
+  if (begroting?.scenarios) {
+    type Stap8K = { actiefScenario?: ScenarioK };
+    const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8K } | undefined)?.stap8;
+    const aanbev: ScenarioK = (stap8?.actiefScenario && begroting.scenarios?.[stap8.actiefScenario])
+      ? stap8.actiefScenario
+      : (begroting.scenarios?.advies ? "advies" : "optimaal");
+    const aanbevScen = begroting.scenarios?.[aanbev];
+    const aanbevInt = interneUren?.scenarios?.[aanbev];
+    if (aanbevScen) {
+      const totaal = (aanbevScen.totaalGeraamdEuro ?? 0) + (aanbevInt?.totaalKosten ?? 0);
+      children.push(bodyText(
+        `Advies aan de stuurgroep — kies scenario "${SCENARIO_LABELS[aanbev]}"`,
+        { bold: true, size: 24, color: CITO_BLUE }
+      ));
+      children.push(bodyText(
+        `Totaal: ${formatEuro(totaal)}${aanbevScen.aantalJaren ? ` over ${aanbevScen.aantalJaren} jaar` : ""}.`,
+        { size: 22, color: TEXT_PRIMARY, bold: true }
+      ));
+      if (aanbevScen.samenvatting) {
+        children.push(bodyText(aanbevScen.samenvatting, { size: 22, color: TEXT_PRIMARY }));
+      }
+      if (aanbevScen.prioriteitAdvies) {
+        children.push(bodyText(aanbevScen.prioriteitAdvies, { italic: true, size: 20, color: TEXT_SECONDARY }));
+      }
+      children.push(emptyLine());
+    }
+
+    // Vergelijking-tekst (cross-scenario)
+    if (begroting.vergelijking) {
+      children.push(bodyText("Vergelijking van de vier scenario's", { bold: true, size: 22, color: CITO_BLUE }));
+      children.push(bodyText(begroting.vergelijking, { size: 20, color: TEXT_PRIMARY }));
+      children.push(emptyLine(60));
+    }
+
+    // Per-scenario one-liner overzicht
+    const beschikbaar = scenarioOrder.filter((k) => begroting.scenarios?.[k]);
+    if (beschikbaar.length > 0) {
+      children.push(bodyText("Vier scenario's in één oogopslag", { bold: true, size: 22, color: CITO_BLUE }));
+      const oneLinerRows = beschikbaar.map((k) => {
+        const sc = begroting.scenarios?.[k];
+        const oop = sc?.totaalGeraamdEuro ?? 0;
+        const intK = interneUren?.scenarios?.[k]?.totaalKosten ?? 0;
+        const tot = oop + intK;
+        const isAanbev = k === aanbev;
+        return new TableRow({
+          children: [
+            styledCell(SCENARIO_LABELS[k] + (isAanbev ? "  ✓ advies" : ""), {
+              bold: true,
+              width: 22,
+              shading: isAanbev ? CITO_BLUE_LIGHT : undefined,
+              color: CITO_BLUE,
+              size: 18,
+            }),
+            styledCell(formatEuro(tot), { bold: true, width: 18, size: 18 }),
+            styledCell(sc?.samenvatting?.trim() || "—", { width: 60, size: 16, color: TEXT_SECONDARY }),
+          ],
+        });
+      });
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [headerCell("Scenario", 22), headerCell("Totaal", 18), headerCell("Wat dit scenario betekent", 60)],
+            }),
+            ...oneLinerRows,
+          ],
+        })
+      );
+      children.push(emptyLine());
+    }
+  }
 
   // === 4.1 Raming out-of-pocket kosten ===
   children.push(numberedHeading("Raming out-of-pocket kosten", "h2", numState));
@@ -2033,9 +2107,6 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       "inspanning, doorgerekend over de programma-jaren.",
       { color: TEXT_SECONDARY, size: 20 }
     ));
-    if (begroting.vergelijking) {
-      children.push(bodyText(`Vergelijking: ${begroting.vergelijking}`, { italic: true, color: TEXT_SECONDARY, size: 20 }));
-    }
     children.push(emptyLine(60));
 
     const startJaar = begroting.startJaar ?? new Date().getFullYear();
