@@ -233,7 +233,7 @@ HARDE REGELS:
      - **Data/Systemen** (IT-lifecycle — PRINCE2 / BiSL): Analyse → Ontwerp (architectuur) → Leverancier-selectie → Realisatie (bouw) → Acceptatie (tests/pilot) → In beheer → Optimalisatie.
      - **Processen** (BPM-lifecycle): Inventarisatie (as-is) → Herontwerp (to-be) → Pilot → Uitrol → Standaardisatie → Continu verbeteren.
    - Kies het fase-label dat beste past bij de concrete activiteit van dat jaar, niet willekeurig. Elk jaar mag een ander label hebben binnen dezelfde inspanning — het sjabloon-effect ("Voorbereiding/Uitrol/Borging" telkens) is expliciet verboden.
-8. Alle euros als integers (75000, niet "€75K").
+8. Alle euros als integers (75000, niet "€75K"). In activiteit-teksten en samenvattingen: schrijf bedragen voluit ("€ 63.000") of voorgevoegd met "circa" wanneer benaderend ("circa € 63.000"). Gebruik **GEEN** tilde "~" als afkorting voor "circa", **GEEN** afkortingen als "€63K", en **GEEN** voorgaand minteken. Bedragen zijn altijd positief; uitgaven worden zonder minteken weergegeven.
 9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
 }
 
