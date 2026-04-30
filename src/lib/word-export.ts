@@ -1442,13 +1442,11 @@ function governanceSection(session: DINSession, numState: NumberingState, active
   children.push(numberedHeading("Programma-organisatie en RASCI", "h1", numState));
   children.push(
     methodiekIntro(
-      "De programma-organisatie bepaalt de veranderkracht. Hoe goed de inhoud van het DIN ook is \u2014 pas wanneer " +
-      "expliciet is wie waarover beslist, wie meedenkt en wie wordt ge\u00efnformeerd, kan de organisatie de " +
-      "baten daadwerkelijk realiseren. Drie elementen worden hieronder vastgelegd: het baten-eigenaarschap " +
-      "(welke functionaris is per baat eindverantwoordelijk voor de realisatie), de RASCI-matrix per hoofdthema " +
-      "(wie is responsible, accountable, supportive, consulted en informed) en het escalatieritme waarop " +
-      "besluitvorming en bijsturing plaatsvinden. Samen vormen deze elementen de basis voor de stuurgroep om " +
-      "het programma te besturen."
+      "Hieronder staan de onderdelen die samen de programma-organisatie en sturing vormen: het organigram " +
+      "met de gremia (opdrachtgever, programmamanager, kerngroep, stuurgroep, domeineigenaren, " +
+      "klankbordgroep), het besluitvormings- en escalatieritme, de RASCI-matrix per hoofdthema (responsible, " +
+      "accountable, supportive, consulted, informed) en het bateneigenaarschap \u2014 welke functionaris is per " +
+      "baat eindverantwoordelijk voor realisatie en monitoring."
     )
   );
   children.push(emptyLine());

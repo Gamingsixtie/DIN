@@ -849,11 +849,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
 
   return (
     <Section title="Governance & Monitoring" number={number}>
-      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        Programmaorganisatie, RASCI-verantwoordelijkheden per hoofdthema, bateneigenaarschap en
-        monitoring. Conform &quot;Werken aan Programma&apos;s&quot;, Hfst 6.
-      </p>
-
       {/* Programmaorganisatie */}
       {po && allRollen.length > 0 && (
         <SubSection title="Programmaorganisatie">
@@ -3875,31 +3870,23 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
         {/* Hoofdstuk 5 — Programma-organisatie en RASCI */}
         <Chapter number="5." title="Programma-organisatie en RASCI">
           <Inleiding>
-            <p className="text-sm text-gray-700 leading-relaxed mb-2">
-              De programma-organisatie bepaalt de veranderkracht. Hoe goed de inhoud van het DIN ook is — pas
-              wanneer expliciet is wie waarover beslist, wie meedenkt en wie wordt geïnformeerd, kan de
-              organisatie de baten daadwerkelijk realiseren.
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed mb-2">
-              Drie elementen worden hieronder vastgelegd: het <strong>baten-eigenaarschap</strong> (welke
-              functionaris is per baat eindverantwoordelijk voor de realisatie), de <strong>RASCI-matrix</strong>
-              {" "}per hoofdthema (wie is responsible, accountable, supportive, consulted en informed) en het
-              <strong> escalatieritme</strong> waarop besluitvorming en bijsturing plaatsvinden.
-            </p>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Samen vormen deze elementen de basis voor de stuurgroep om het programma te besturen — en voor
-              de uitvoerende rollen om te weten op wie ze terug kunnen vallen wanneer een keuze gemaakt moet
-              worden.
+              Hieronder staan de onderdelen die samen de programma-organisatie en sturing vormen: het
+              <strong> organigram</strong> met de gremia (opdrachtgever, programmamanager, kerngroep,
+              stuurgroep, domeineigenaren, klankbordgroep), het <strong>besluitvormings- en escalatieritme</strong>,
+              de <strong>RASCI-matrix per hoofdthema</strong> (responsible, accountable, supportive,
+              consulted, informed) en het <strong>bateneigenaarschap</strong> — welke functionaris is per
+              baat eindverantwoordelijk voor realisatie en monitoring.
             </p>
           </Inleiding>
-          <Kern>
+          <div className="mb-5 px-4 space-y-4">
             <GovernanceBlock session={session} />
             <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-700 leading-relaxed">
               Verdere uitwerking van besluitvorming en escalatiepad — inclusief een schematische weergave van
               de programma-organisatie — wordt toegevoegd zodra de stuurgroep akkoord heeft gegeven op het
               organigram.
             </div>
-          </Kern>
+          </div>
         </Chapter>
 
         {/* Hoofdstuk 6 — Planning en roadmap */}

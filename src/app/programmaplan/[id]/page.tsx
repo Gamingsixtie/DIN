@@ -96,11 +96,26 @@ export default function PubliekProgrammaplanPage() {
     };
   }, [id]);
 
-  // Comments laden zodra sessie binnen is
+  // Comments laden zodra sessie binnen is — plus periodieke polling zodat
+  // aanmerkingen van andere lezers automatisch verschijnen zonder pagina-refresh.
   useEffect(() => {
-    if (session && id) {
+    if (!session || !id) return;
+    refreshComments();
+    const interval = setInterval(() => {
       refreshComments();
-    }
+    }, 15000); // 15 sec polling
+    return () => clearInterval(interval);
+  }, [session, id, refreshComments]);
+
+  // Refresh ook bij focus/visibility-change — zodat de gebruiker direct de
+  // laatste stand ziet wanneer hij van tab terugschakelt.
+  useEffect(() => {
+    if (!session || !id) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshComments();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [session, id, refreshComments]);
 
   // Aantal open comments per scope-id (voor markers naast hoofdstukken/paragrafen)

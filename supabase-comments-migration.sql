@@ -20,3 +20,16 @@ CREATE TABLE programmaplan_comments (
 CREATE INDEX idx_comments_session ON programmaplan_comments(session_id);
 CREATE INDEX idx_comments_status ON programmaplan_comments(session_id, status);
 CREATE INDEX idx_comments_scope ON programmaplan_comments(session_id, scope_id);
+
+-- RLS-toegang: anon-clients (alle lezers van /programmaplan/[id]) mogen
+-- alle comments lezen, plaatsen, bijwerken en verwijderen op deze gedeelde
+-- leesversie. Daarmee kunnen meerdere stuurgroep-leden onafhankelijk
+-- aanmerkingen toevoegen op dezelfde sessie, en zien zij elkaars
+-- aanmerkingen na een polling-refresh of pagina-herlaad.
+
+ALTER TABLE programmaplan_comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "comments_read_all"  ON programmaplan_comments FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "comments_insert_all" ON programmaplan_comments FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "comments_update_all" ON programmaplan_comments FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "comments_delete_all" ON programmaplan_comments FOR DELETE TO anon, authenticated USING (true);
