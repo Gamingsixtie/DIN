@@ -152,21 +152,52 @@ export function deriveProgrammaorganisatie(
   }
 
   // ---- 1) STUURGROEP uit dossier.eigenaar (collectief) ----
+  // Filter PM en IT-VT-directeur uit eventuele bestaande stuurgroep — die horen er niet in.
+  const pmNaamNorm = normName(current.programmamanager?.naam);
+  const pmFirstName = firstNameKey(current.programmamanager?.naam);
+  const isItVtDirecteur = (r: ProgrammaRol) => {
+    const fn = (r.functie ?? "").toLowerCase();
+    const rolL = (r.rol ?? "").toLowerCase();
+    return rolL.includes("it-vt") || rolL.includes("iv/it") || rolL.includes("iv-it") ||
+      fn.includes("it-vt") || fn.includes("iv/it") || fn.includes("iv-it") ||
+      (rolL.includes("directeur") && (rolL.includes("it") || rolL.includes("iv")));
+  };
+  const stuurgroepGefilterd = (current.stuurgroep ?? []).filter((r) => {
+    const naam = normName(r.naam);
+    const fn = firstNameKey(r.naam);
+    if (pmNaamNorm && naam === pmNaamNorm) return false;
+    if (pmFirstName && fn === pmFirstName) return false;
+    if (isItVtDirecteur(r)) return false;
+    return true;
+  });
+
   const stuurgroepKandidaten = new Set<string>();
   for (const s of bundels) {
     const raw = (s.dossier?.eigenaar ?? "").trim();
     if (!raw) continue;
-    for (const naam of splitEigenaarCollectief(raw)) stuurgroepKandidaten.add(naam);
+    for (const naam of splitEigenaarCollectief(raw)) {
+      // Filter "het MT" en collectieve aanduidingen — geen aparte rol
+      const norm = normName(naam);
+      if (norm === "het mt" || norm === "mt" || norm.startsWith("het management")) continue;
+      stuurgroepKandidaten.add(naam);
+    }
   }
   const huidigeStuurgroepNorm = new Set(
-    (current.stuurgroep ?? []).map((r) => normName(r.naam) || normName(r.rol))
+    stuurgroepGefilterd.map((r) => normName(r.naam) || normName(r.rol))
   );
-  const nieuweStuurgroep: ProgrammaRol[] = [...(current.stuurgroep ?? [])];
+  const huidigeStuurgroepFirstNames = new Set(
+    stuurgroepGefilterd.map((r) => firstNameKey(r.naam)).filter(Boolean)
+  );
+  const nieuweStuurgroep: ProgrammaRol[] = [...stuurgroepGefilterd];
   let toegevoegdStuurgroep = 0;
   for (const naam of stuurgroepKandidaten) {
     const sleutel = normName(naam);
+    const fnSleutel = firstNameKey(naam);
     if (huidigeStuurgroepNorm.has(sleutel)) continue;
-    if (bestaandePersonen.has(sleutel)) continue; // staat al elders (bv. opdrachtgever)
+    if (fnSleutel && huidigeStuurgroepFirstNames.has(fnSleutel)) continue;
+    // Cross-bucket dedup: als deze persoon al opdrachtgever / PM / kerngroep / domein-eigenaar is — skip
+    if (bestaandePersonen.has(sleutel)) continue;
+    if (fnSleutel && bestaandePersonen.has(`firstname:${fnSleutel}`)) continue;
     nieuweStuurgroep.push({
       id: generateRolId(),
       rol: ROL_STUURGROEP,
@@ -178,6 +209,7 @@ export function deriveProgrammaorganisatie(
     });
     toegevoegdStuurgroep++;
     bestaandePersonen.add(sleutel);
+    if (fnSleutel) bestaandePersonen.add(`firstname:${fnSleutel}`);
   }
 
   // ---- 2) KERNGROEP — INSPANNINGSLEIDERS uit dossier.inspanningsleider ----
@@ -682,29 +714,39 @@ function deriveGezamenlijkeInspanningen(
     const rijen: RasciRij[] = [];
     const usedIds = new Set<string>();
 
-    // A: STUURGROEP COLLECTIEF — alle stuurgroep-leden samen verantwoordelijk
-    // (= dossier.eigenaar collectief). User-keuze: eigenaar = senior management
-    // groep, niet 1 persoon. Meerdere A's geldt hier als 1 collectieve A.
+    // A: OPDRACHTGEVER + STUURGROEP COLLECTIEF — samen eindverantwoordelijk
+    // Opdrachtgever (Commercieel Manager / bateneigenaar) krijgt A op gezamenlijke
+    // inspanningen omdat zij ook eindverantwoordelijk is voor batenrealisatie.
+    // Stuurgroep-leden krijgen óók A (collectief). Meerdere A's geldt hier als 1
+    // collectieve A — voor "gezamenlijke_inspanningen" sectie wordt dit niet als
+    // RASCI-overtreding gezien (zie validateGezamenlijkeRasci).
     const eigNaam = (s.dossier?.eigenaar ?? "").trim();
+    if (lookup.opdrachtgeverId && !usedIds.has(lookup.opdrachtgeverId)) {
+      rijen.push(derivedRij(lookup.opdrachtgeverId, "A"));
+      usedIds.add(lookup.opdrachtgeverId);
+    }
     if (lookup.stuurgroepIds.length > 0) {
       for (const id of lookup.stuurgroepIds) {
+        if (!usedIds.has(id)) {
+          rijen.push(derivedRij(id, "A"));
+          usedIds.add(id);
+        }
+      }
+    } else if (!lookup.opdrachtgeverId) {
+      // Fallback alleen als geen opdrachtgever én geen stuurgroep
+      if (eigNaam) {
+        const aId = findRolByNaam(lookup, eigNaam);
+        if (aId) {
+          rijen.push(derivedRij(aId, "A"));
+          usedIds.add(aId);
+        } else {
+          diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Geen opdrachtgever / stuurgroep — vul eerst programmaorganisatie` });
+        }
+      } else if (lookup.domeineigenaarPerDomein.get(s.domein)) {
+        const id = lookup.domeineigenaarPerDomein.get(s.domein)!;
         rijen.push(derivedRij(id, "A"));
         usedIds.add(id);
       }
-    } else if (eigNaam) {
-      // Fallback: probeer match met naam in dossier.eigenaar
-      const aId = findRolByNaam(lookup, eigNaam);
-      if (aId) {
-        rijen.push(derivedRij(aId, "A"));
-        usedIds.add(aId);
-      } else {
-        diagnostiek.push({ sectie: "gezamenlijke_inspanningen", itemId, reden: `Stuurgroep is leeg — vul eerst de stuurgroep (uit cross-analyse)` });
-      }
-    } else if (lookup.domeineigenaarPerDomein.get(s.domein)) {
-      // Tweede fallback: domeineigenaar als A
-      const id = lookup.domeineigenaarPerDomein.get(s.domein)!;
-      rijen.push(derivedRij(id, "A"));
-      usedIds.add(id);
     }
 
     // R: dossier.inspanningsleider — kan meerdere personen zijn (Procesconsultants per sector)
@@ -739,12 +781,7 @@ function deriveGezamenlijkeInspanningen(
       usedIds.add(lookup.programmamanagerId);
     }
 
-    // C: opdrachtgever (geconsulteerd op majeure stappen — was al A via stuurgroep,
-    // maar als individuele rol: C voor consultatie buiten formele besluitvorming)
-    if (lookup.opdrachtgeverId && !usedIds.has(lookup.opdrachtgeverId)) {
-      rijen.push(derivedRij(lookup.opdrachtgeverId, "C"));
-      usedIds.add(lookup.opdrachtgeverId);
-    }
+    // (Opdrachtgever heeft al A — niet extra C)
 
     // I: klankbordgroep (geïnformeerd, geen mandaat)
     for (const id of lookup.klankbordgroepIds) {

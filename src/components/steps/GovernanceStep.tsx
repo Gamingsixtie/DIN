@@ -553,17 +553,19 @@ export default function GovernanceStep() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-[280px]">
             <h3 className="text-base font-bold text-cito-blue mb-1">Vul programmaorganisatie + RASCI compleet</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
+            <p className="text-sm text-gray-700 leading-relaxed mb-2">
               Eén klik vult: <b>stuurgroep</b> (uit dossier.eigenaar), <b>kerngroep</b> (inspanningsleiders + bateneigenaren),
               <b> klankbordgroep</b> (3 lege klant-rollen per sector) én de complete <b>RASCI-matrix</b> voor de 4 secties.
-              Opdrachtgever, programmamanager en domeineigenaren blijven handmatig (jouw input). Bestaande handmatige cellen blijven behouden.
+            </p>
+            <p className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded px-2 py-1 inline-block">
+              ⚠ De knop raakt <b>opdrachtgever / programma-eigenaar</b> en <b>programmamanager</b> NIET aan — die blijven zoals jij ze hebt ingevuld. Domeineigenaren idem.
             </p>
           </div>
           <button
             onClick={() => {
               if (
                 window.confirm(
-                  "Vul programmaorganisatie + RASCI compleet zoals afgesproken? Bestaande rollen blijven, ontbrekende worden toegevoegd. Handmatige RASCI-cellen blijven bewaard."
+                  "Vul stuurgroep, kerngroep, klankbordgroep + RASCI?\n\nOpdrachtgever, programmamanager en domeineigenaren blijven onaangeroerd. Handmatige RASCI-cellen blijven bewaard."
                 )
               ) {
                 handleVulAllesCompleet();
@@ -586,12 +588,6 @@ export default function GovernanceStep() {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-emerald-900">
-            <div>
-              ✓ Opdrachtgever: {derivePanel.opdrachtgeverGevuld ? "ingevuld" : <span className="text-rose-700">leeg — vul handmatig</span>}
-            </div>
-            <div>
-              ✓ Programmamanager: {derivePanel.pmGevuld ? "ingevuld" : <span className="text-rose-700">leeg — vul handmatig</span>}
-            </div>
             <div>
               ✓ Stuurgroep: <b>{derivePanel.toegevoegdStuurgroep}</b> nieuwe leden toegevoegd
             </div>
@@ -624,6 +620,9 @@ export default function GovernanceStep() {
                 )}
               </div>
             )}
+            <div className="md:col-span-2 pt-2 border-t border-emerald-200 text-emerald-800 italic">
+              Opdrachtgever, programmamanager en domeineigenaren zijn niet aangeraakt — die blijven zoals jij ze hebt ingevuld.
+            </div>
           </div>
         </div>
       )}
