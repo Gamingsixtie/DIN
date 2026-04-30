@@ -1622,16 +1622,16 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
   return (
     <>
       <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-prose">
-        <p className="text-sm text-gray-700 leading-relaxed">
-          De totale programmakosten zijn opgebouwd uit twee bronnen die in de cross-analyse apart zijn vastgesteld:
+        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+          De totale programmakosten kennen twee componenten:
         </p>
-        <ul className="text-sm text-gray-700 mt-2 space-y-1">
-          <li><strong>Out-of-pocket</strong> &mdash; externe kosten per inspanning, bepaald in <em>Stap 6 Optimaliseren</em>.</li>
-          <li><strong>Interne uren</strong> &mdash; Cito-medewerkers per domein, bepaald in <em>Stap 7 Interne uren</em> (uren × uurtarief).</li>
+        <ul className="text-sm text-gray-700 space-y-1">
+          <li><strong>Out-of-pocket</strong> &mdash; externe uitgaven per inspanning (licenties, inkoop, externe inhuur).</li>
+          <li><strong>Interne uren</strong> &mdash; tijd van Cito-medewerkers, vermenigvuldigd met het interne uurtarief tot interne kosten.</li>
         </ul>
         <p className="text-sm text-gray-700 mt-2">
-          Hieronder staan alle vier de doorgerekende scenario&apos;s, elk met een eigen jaardetail-tabel. De
-          stuurgroep kiest hieruit het scenario voor de programmabegroting.
+          Onderstaande vier scenario&apos;s zijn gelijkwaardig doorgerekend. De stuurgroep kiest hieruit het
+          scenario waarmee de programmabegroting verder wordt vastgezet.
         </p>
       </div>
 
@@ -1695,7 +1695,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                       <tr className="border-b border-gray-100">
                         <td className="px-3 py-2">
                           <div className="text-sm font-medium text-gray-700">Out-of-pocket</div>
-                          <div className="text-[10px] text-gray-500">Externe kosten (Stap 6)</div>
+                          <div className="text-[10px] text-gray-500">Externe uitgaven</div>
                         </td>
                         {jaren.map((j) => (
                           <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">{euroFmt.format(j.outOfPocket)}</td>
@@ -1705,7 +1705,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                       <tr className="border-b border-gray-100">
                         <td className="px-3 py-2">
                           <div className="text-sm font-medium text-gray-700">Interne uren</div>
-                          <div className="text-[10px] text-gray-500">Cito-medewerkers (Stap 7)</div>
+                          <div className="text-[10px] text-gray-500">Cito-medewerkers (uren × uurtarief)</div>
                         </td>
                         {jaren.map((j) => (
                           <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">
@@ -1794,25 +1794,6 @@ function ManagementSamenvattingBlock({ session }: { session: DINSession }) {
       {session.vision?.beknopt && (
         <p className="text-sm italic text-gray-700 mb-4 leading-relaxed">{session.vision.beknopt}</p>
       )}
-
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
-          <div className="text-xl font-bold text-cito-blue">{session.goals.length}</div>
-          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Doelen</div>
-        </div>
-        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
-          <div className="text-xl font-bold text-cito-blue">{session.benefits.length}</div>
-          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Baten</div>
-        </div>
-        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
-          <div className="text-xl font-bold text-cito-blue">{activeCaps.length}</div>
-          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Vermogens</div>
-        </div>
-        <div className="bg-white rounded-lg p-3 text-center border border-cito-blue/10">
-          <div className="text-xl font-bold text-cito-blue">{activeEfforts.length}</div>
-          <div className="text-[10px] uppercase text-gray-500 mt-0.5">Inspanningen</div>
-        </div>
-      </div>
 
       <div className="space-y-2 mb-4">
         <div className="text-xs uppercase tracking-wide text-cito-blue/80 font-bold">Drie cross-sectorale kernboodschappen</div>
@@ -2554,21 +2535,22 @@ export default function ExportStep() {
                       result={(session.crossAnalyseWizard?.stepResults as { stap5?: Stap5Result } | undefined)?.stap5}
                       stap2Result={(session.crossAnalyseWizard?.stepResults as { stap2?: Stap2Result } | undefined)?.stap2}
                       stap4Result={(session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Result } | undefined)?.stap4}
+                      compact
                     />
                   </div>
-                </SubSection>
-                <SubSection title="Synergie en hefboomwerking — overzicht">
-                  <CrossAnalyseBlock session={session} />
-                  <HefboomBlock session={session} />
-                </SubSection>
-                <ExterneProjectenBlock session={session} />
-                <SubSection title="Begroting — vier scenario's">
-                  <ScenarioTotaalBlock session={session} />
                 </SubSection>
               </Chapter>
 
               <Chapter
                 number="4."
+                title="Begroting en raming"
+                intro="De programmabegroting is opgebouwd uit twee bronnen: out-of-pocket-kosten (externe uitgaven per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide zijn doorgerekend over vier scenario&apos;s, zodat de stuurgroep een onderbouwde keuze kan maken voor het tempo en het ambitieniveau van het programma."
+              >
+                <ScenarioTotaalBlock session={session} />
+              </Chapter>
+
+              <Chapter
+                number="5."
                 title="Programma-organisatie en RASCI"
                 intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
               >
@@ -2576,7 +2558,7 @@ export default function ExportStep() {
               </Chapter>
 
               <Chapter
-                number="5."
+                number="6."
                 title="Planning en roadmap"
                 intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
               >

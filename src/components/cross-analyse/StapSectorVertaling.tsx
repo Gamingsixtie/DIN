@@ -26,6 +26,11 @@ interface StapSectorVertalingProps {
   result?: Stap5Result;
   stap2Result?: Stap2Result;
   stap4Result?: Stap4Result;
+  // Compact mode voor inbedding in het programmaplan-export.
+  // Toont alleen: focusdoel, baten per sector, drieluik per VermogenGelijkenisGroep.
+  // Verbergt: sector-impact tabel, AI-samenvatting, buiten-scope details,
+  // overeenkomsten-analyse, vermogens-per-sector overzicht.
+  compact?: boolean;
 }
 
 const SECTORS_ORDER: readonly SectorName[] = ["PO", "VO", "Zakelijk"] as const;
@@ -278,6 +283,7 @@ export default function StapSectorVertaling({
   result,
   stap2Result,
   stap4Result,
+  compact = false,
 }: StapSectorVertalingProps) {
   const [buitenScopeOpen, setBuitenScopeOpen] = useState(false);
 
@@ -631,6 +637,9 @@ export default function StapSectorVertaling({
         </div>
       )}
 
+      {/* ====== Onderstaande secties zijn alleen voor de wizard, niet voor het programmaplan-export ====== */}
+      {!compact && (
+        <>
       {/* ===== SECTOR-IMPACT TABEL ===== */}
       {batenBySector.length > 0 && (
         <section className="mt-8">
@@ -780,6 +789,8 @@ export default function StapSectorVertaling({
         focusCaps={focusCaps}
         vermogenGelijkenisGroepen={vermogenGelijkenisGroepen}
       />
+        </>
+      )}
     </div>
   );
 }
