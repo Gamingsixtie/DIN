@@ -2917,6 +2917,87 @@ function GapDetectionModal({
   );
 }
 
+// --- Programmaplan-document (herbruikbaar voor in-app preview én publieke deel-pagina) ---
+export function ProgrammaplanDocument({ session }: { session: DINSession }) {
+  return (
+    <div className="p-8 max-w-none">
+      <DocumentTitlePage session={session} />
+      <div className="mt-10">
+        <Chapter
+          number="1."
+          title="Programmavisie en scope"
+          intro="De programmavisie geeft de richting van het geheel: waartoe is dit programma bedoeld en wat valt er binnen en buiten de cyclus."
+        >
+          <VisionBlock session={session} />
+          <ScopeBlock session={session} />
+        </Chapter>
+
+        <Chapter
+          number="2."
+          title="Programmadoelen"
+          intro="De programmadoelen zijn de kernonderwerpen van het programma. Ze worden volgordelijk opgepakt zodat de organisatie focus en haalbaarheid behoudt."
+        >
+          <DoelenMetVolgordeBlock session={session} />
+        </Chapter>
+
+        <Chapter
+          number="3."
+          title="Cross-sectorale uitkomst — de kern"
+          intro="Het uiteindelijke DIN-netwerk uit de cross-analyse, één-op-één opgenomen. Per VermogenGelijkenisGroep zie je drie parallelle sector-vermogens (PO/VO/Zakelijk) en daaronder de hefboomlaag: welke gezamenlijke inspanningen per domein worden opgepakt — met titel, beschrijving, beargumentatie, vermogenImpact per sector en het volledige inspannings-dossier."
+        >
+          <SubSection title="Uiteindelijke DIN-netwerk (uit cross-analyse stap 9)">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
+              Focusdoel → Baten per sector → Drieluik van gelijkende vermogens → Hefboomlaag per domein.
+              Dit is exact de visualisatie en data uit de laatste stap van de cross-analyse-wizard.
+            </p>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <StapSectorVertaling
+                session={session}
+                result={(session.crossAnalyseWizard?.stepResults as { stap5?: Stap5Result } | undefined)?.stap5}
+                stap2Result={(session.crossAnalyseWizard?.stepResults as { stap2?: Stap2Result } | undefined)?.stap2}
+                stap4Result={(session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Result } | undefined)?.stap4}
+                compact
+              />
+            </div>
+          </SubSection>
+        </Chapter>
+
+        <Chapter
+          number="4."
+          title="Begroting en raming"
+          intro="De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide componenten zijn doorgerekend over vier scenario&apos;s. De gedetailleerde uitwerking volgt in subparagraaf 4.1 en 4.2; subparagraaf 4.3 telt alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
+        >
+          <SubSection title="4.1 Raming out-of-pocket kosten">
+            <BegrotingAdviesBlock session={session} />
+          </SubSection>
+          <SubSection title="4.2 Interne uren">
+            <InterneUrenBlock session={session} />
+          </SubSection>
+          <SubSection title="4.3 Totaaloverzicht — vier scenario's">
+            <ScenarioTotaalBlock session={session} />
+          </SubSection>
+        </Chapter>
+
+        <Chapter
+          number="5."
+          title="Programma-organisatie en RASCI"
+          intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
+        >
+          <GovernanceBlock session={session} />
+        </Chapter>
+
+        <Chapter
+          number="6."
+          title="Planning en roadmap"
+          intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
+        >
+          <RoadmapBlock session={session} />
+        </Chapter>
+      </div>
+    </div>
+  );
+}
+
 // --- Hoofd ExportStep ---
 
 export default function ExportStep() {
@@ -3042,17 +3123,36 @@ export default function ExportStep() {
       )}
 
       {/* Export actie-balk */}
-      <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-5">
+      <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-5 gap-4 flex-wrap">
         <div>
-          <h3 className="text-base font-bold text-cito-blue mb-1">Programmaplan exporteren</h3>
+          <h3 className="text-base font-bold text-cito-blue mb-1">Programmaplan delen of downloaden</h3>
           <p className="text-xs text-gray-500">
-            Volledig programmaplan als professioneel Word document — alle DIN-methodiek informatie
+            Deel een leesversie via een link, of download als Word-bestand voor offline gebruik.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {exportSuccess && (
-            <span className="text-xs text-emerald-600 font-medium">Document gedownload</span>
+            <span className="text-xs text-emerald-600 font-medium">Klaar</span>
           )}
+          <button
+            onClick={() => {
+              if (!session) return;
+              const url = `${window.location.origin}/programmaplan/${session.id}`;
+              navigator.clipboard
+                .writeText(url)
+                .then(() => addToast("Deel-link gekopieerd naar klembord", "success"))
+                .catch(() => addToast("Kopiëren mislukt — open de link handmatig", "error"));
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
+            disabled={!hasContent}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Open een leesversie in een nieuw tabblad en kopieer de link voor stakeholders"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+            Open leesversie + kopieer link
+          </button>
           <button
             onClick={handleExportClick}
             disabled={isExportingWord || !hasContent}
@@ -3099,82 +3199,7 @@ export default function ExportStep() {
               Het Word document bevat dezelfde inhoud met professionele opmaak
             </span>
           </div>
-          <div className="p-8 max-w-none">
-            <DocumentTitlePage session={session} />
-            <div className="mt-10">
-              <Chapter
-                number="1."
-                title="Programmavisie en scope"
-                intro="De programmavisie geeft de richting van het geheel: waartoe is dit programma bedoeld en wat valt er binnen en buiten de cyclus."
-              >
-                <VisionBlock session={session} />
-                <ScopeBlock session={session} />
-              </Chapter>
-
-              <Chapter
-                number="2."
-                title="Programmadoelen"
-                intro="De programmadoelen zijn de kernonderwerpen van het programma. Ze worden volgordelijk opgepakt zodat de organisatie focus en haalbaarheid behoudt."
-              >
-                <DoelenMetVolgordeBlock session={session} />
-              </Chapter>
-
-              <Chapter
-                number="3."
-                title="Cross-sectorale uitkomst — de kern"
-                intro="Het uiteindelijke DIN-netwerk uit de cross-analyse, één-op-één opgenomen. Per VermogenGelijkenisGroep zie je drie parallelle sector-vermogens (PO/VO/Zakelijk) en daaronder de hefboomlaag: welke gezamenlijke inspanningen per domein worden opgepakt — met titel, beschrijving, beargumentatie, vermogenImpact per sector en het volledige inspannings-dossier (eigenaar, leider, kostenraming, verwacht resultaat, randvoorwaarden)."
-              >
-                <SubSection title="Uiteindelijke DIN-netwerk (uit cross-analyse stap 9)">
-                  <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
-                    Focusdoel → Baten per sector → Drieluik van gelijkende vermogens → Hefboomlaag per domein.
-                    Dit is exact de visualisatie en data uit de laatste stap van de cross-analyse-wizard.
-                  </p>
-                  <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <StapSectorVertaling
-                      session={session}
-                      result={(session.crossAnalyseWizard?.stepResults as { stap5?: Stap5Result } | undefined)?.stap5}
-                      stap2Result={(session.crossAnalyseWizard?.stepResults as { stap2?: Stap2Result } | undefined)?.stap2}
-                      stap4Result={(session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Result } | undefined)?.stap4}
-                      compact
-                    />
-                  </div>
-                </SubSection>
-              </Chapter>
-
-              <Chapter
-                number="4."
-                title="Begroting en raming"
-                intro="De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide componenten zijn doorgerekend over vier scenario&apos;s. De gedetailleerde uitwerking volgt in subparagraaf 4.1 en 4.2; subparagraaf 4.3 telt alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
-              >
-                <SubSection title="4.1 Raming out-of-pocket kosten">
-                  <BegrotingAdviesBlock session={session} />
-                </SubSection>
-                <SubSection title="4.2 Interne uren">
-                  <InterneUrenBlock session={session} />
-                </SubSection>
-                <SubSection title="4.3 Totaaloverzicht — vier scenario's">
-                  <ScenarioTotaalBlock session={session} />
-                </SubSection>
-              </Chapter>
-
-              <Chapter
-                number="5."
-                title="Programma-organisatie en RASCI"
-                intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
-              >
-                <GovernanceBlock session={session} />
-              </Chapter>
-
-              <Chapter
-                number="6."
-                title="Planning en roadmap"
-                intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
-              >
-                <RoadmapBlock session={session} />
-              </Chapter>
-
-            </div>
-          </div>
+          <ProgrammaplanDocument session={session} />
         </div>
       )}
 
