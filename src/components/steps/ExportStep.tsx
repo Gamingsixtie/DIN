@@ -1528,37 +1528,72 @@ const SCENARIO_LABELS: Record<ScenarioKey, string> = {
 };
 
 function ScenarioTotaalBlock({ session }: { session: DINSession }) {
+  // Datasources (zelfde aanpak als StapTotaaloverzicht.tsx in de wizard):
+  // - stap4.begrotingAdvies.scenarios[key]   → out-of-pocket (totaalGeraamdEuro) + samenvatting + prioriteitAdvies
+  // - stap4.stap7InterneUren.scenarios[key]  → interne uren + interne kosten
+  // - stap8 (optioneel): expliciet opgeslagen totaaloverzicht — fallback indien aanwezig
+  type BegrotingScenario = {
+    totaalGeraamdEuro?: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+  };
+  type BegrotingAdv = {
+    scenarios?: Partial<Record<ScenarioKey, BegrotingScenario | null>>;
+  };
+  type InterneUrenScenario = { totaalUren?: number; totaalKosten?: number };
+  type Stap7Internt = {
+    scenarios?: Partial<Record<ScenarioKey, InterneUrenScenario | null>>;
+  };
+  type Stap4 = { begrotingAdvies?: BegrotingAdv; stap7InterneUren?: Stap7Internt };
   type ScenarioTot = { totaalOutOfPocket: number; totaalInterneUren: number; totaalGeraamd: number };
-  type Stap8 = { actiefScenario?: ScenarioKey; scenarios: Record<ScenarioKey, ScenarioTot | null> };
-  type BegrotingScenario = { samenvatting?: string; prioriteitAdvies?: string };
-  type BegrotingAdv = { scenarios: Partial<Record<ScenarioKey, BegrotingScenario | null>> };
-  type Stap4 = { begrotingAdvies?: BegrotingAdv };
+  type Stap8 = { actiefScenario?: ScenarioKey; scenarios?: Partial<Record<ScenarioKey, ScenarioTot | null>> };
 
-  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8 } | undefined)?.stap8;
   const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4 } | undefined)?.stap4;
+  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8 } | undefined)?.stap8;
   const begroting = stap4?.begrotingAdvies;
+  const interneUren = stap4?.stap7InterneUren;
 
-  if (!stap8 || !stap8.scenarios) {
+  const scenarioOrder: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
+  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+  // Bereken totals per scenario uit primaire bronnen, met stap8 als fallback
+  const rows = scenarioOrder
+    .map((key) => {
+      const b = begroting?.scenarios?.[key] ?? null;
+      const i = interneUren?.scenarios?.[key] ?? null;
+      const fromStap8 = stap8?.scenarios?.[key] ?? null;
+
+      const outOfPocket = b?.totaalGeraamdEuro ?? fromStap8?.totaalOutOfPocket ?? 0;
+      const interneKosten = i?.totaalKosten ?? fromStap8?.totaalInterneUren ?? 0;
+      const totaalGeraamd = outOfPocket + interneKosten || fromStap8?.totaalGeraamd || 0;
+      const interneUrenTotaal = i?.totaalUren ?? 0;
+
+      // Skip lege rijen
+      if (outOfPocket === 0 && interneKosten === 0 && totaalGeraamd === 0 && !b && !i && !fromStap8) {
+        return null;
+      }
+      return { key, outOfPocket, interneKosten, interneUrenTotaal, totaalGeraamd };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  if (rows.length === 0) {
     return (
       <p className="text-sm text-gray-400 italic">
-        Het scenario-totaaloverzicht is nog niet beschikbaar. Doorloop stap 8 in de cross-analyse om de begroting te
-        consolideren.
+        De begroting is nog niet beschikbaar. Genereer in de cross-analyse stap 6 (Optimaliseren) een
+        begrotingsadvies en stap 7 (Interne uren) een uren-raming.
       </p>
     );
   }
 
-  const actief: ScenarioKey = stap8.actiefScenario ?? "optimaal";
-  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const scenarioOrder: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
-
+  const actief: ScenarioKey = stap8?.actiefScenario ?? "optimaal";
   const actiefMotivatie = begroting?.scenarios?.[actief]?.samenvatting ?? "";
   const actiefAdvies = begroting?.scenarios?.[actief]?.prioriteitAdvies ?? "";
 
   return (
     <>
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
-        Vier scenario&apos;s zijn doorgerekend: het huidig jaarbudget, een +20% en −20% variatie, en een optimaal
-        advies. Het actieve scenario is de basis voor de programmabegroting.
+        Vier scenario&apos;s zijn doorgerekend: het huidig jaarbudget, een +20%- en −20%-variant, en een optimaal
+        advies. Het actieve scenario vormt de basis voor de programmabegroting.
       </p>
       <div className="overflow-hidden border border-gray-200 rounded-lg mb-5">
         <table className="w-full text-sm">
@@ -1571,19 +1606,24 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {scenarioOrder.map((key) => {
-              const sc = stap8.scenarios[key];
-              if (!sc) return null;
-              const isActief = key === actief;
+            {rows.map((r) => {
+              const isActief = r.key === actief;
               return (
-                <tr key={key} className={isActief ? "bg-cito-blue/10" : "hover:bg-gray-50"}>
+                <tr key={r.key} className={isActief ? "bg-cito-blue/10" : "hover:bg-gray-50"}>
                   <td className="px-3 py-2 font-bold text-cito-blue">
-                    {SCENARIO_LABELS[key]}
+                    {SCENARIO_LABELS[r.key]}
                     {isActief && <span className="ml-2 text-[10px] uppercase text-cito-blue/70">(actief)</span>}
                   </td>
-                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalOutOfPocket)}</td>
-                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalInterneUren)}</td>
-                  <td className="px-3 py-2 text-right text-cito-blue font-bold tabular-nums">{euroFmt.format(sc.totaalGeraamd)}</td>
+                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(r.outOfPocket)}</td>
+                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">
+                    {euroFmt.format(r.interneKosten)}
+                    {r.interneUrenTotaal > 0 && (
+                      <span className="text-[10px] text-gray-400 ml-1">
+                        ({r.interneUrenTotaal.toLocaleString("nl-NL")} u)
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right text-cito-blue font-bold tabular-nums">{euroFmt.format(r.totaalGeraamd)}</td>
                 </tr>
               );
             })}
@@ -2300,27 +2340,18 @@ export default function ExportStep() {
 
               <Chapter
                 number="3."
-                title="DIN-mapping per sector"
-                intro="De kern van het programma zit in de DIN-mapping. Per sector (PO, VO, Zakelijk) zijn de doelen vertaald naar baten, vermogens en inspanningen vanuit de eigen context."
-                methodiek="DIN (Doelen-Inspanningennetwerk) verbindt elk programmadoel via baten en vermogens aan concrete inspanningen. Per sector ontstaat een eigen DIN-keten — de cross-sectorale samenhang volgt in hoofdstuk 4."
-              >
-                <DINMappingPerSectorBlock session={session} />
-              </Chapter>
-
-              <Chapter
-                number="4."
                 title="Cross-sectorale uitkomst — de kern"
-                intro="Hier ontstaat het werkelijke programma. De drie sectorale DIN-netwerken worden samengevoegd tot geconsolideerde inspanningen per domein, doorgerekend in scenario&apos;s, en daarna teruggebracht naar elke sector als uiteindelijk DIN-netwerk."
-                methodiek="Een programma is meer dan de optelsom van projecten (Prevaas &amp; Van Loon, Hfst. 4). Daarom worden gelijksoortige inspanningen geconsolideerd, wordt de begroting integraal opgesteld en wordt de keten teruggebracht per sector."
+                intro="Vanuit de DIN-mapping is per sector (PO, VO, Zakelijk) een onafhankelijke keten van baten, vermogens en inspanningen opgesteld. Die sector-DIN's overlappen sterk: dezelfde vermogens komen op meerdere plekken terug. Hieronder is dat samengevoegd tot één cross-sectorale uitkomst — geconsolideerde inspanningen per domein, een doorgerekende begroting, en een uiteindelijke DIN die teruggebracht is naar elke sector."
+                methodiek="Een programma is meer dan de optelsom van projecten (Prevaas &amp; Van Loon, Hfst. 4). De onafhankelijke sector-baten blijven herkenbaar, maar de vermogens en inspanningen worden cross-sectoraal opgebouwd; daar zit de hefboom van het programma. De sector-vertaling onderaan toont hoe elke sector de gezamenlijke inspanningen vervolgens in eigen context inzet."
               >
                 <CrossAnalyseBlock session={session} />
                 <HefboomBlock session={session} />
                 <ExterneProjectenBlock session={session} />
                 <SubSection title="Geconsolideerde inspanningen — de optimalisatiestap">
                   <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
-                    Sector-inspanningen die hetzelfde vermogen opbouwen worden samengevoegd tot één
-                    cross-sectorale inspanning. Hieronder per inspanning de uitvoerige toelichting: eigenaar,
-                    leider, onderbouwing en randvoorwaarden.
+                    Sector-inspanningen die hetzelfde vermogen opbouwen zijn samengevoegd tot één
+                    cross-sectorale inspanning. Hieronder per inspanning de uitvoerige toelichting:
+                    eigenaar, leider, onderbouwing en randvoorwaarden.
                   </p>
                   <OptimalisatieBlock session={session} />
                 </SubSection>
@@ -2330,15 +2361,15 @@ export default function ExportStep() {
                 <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
                   <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
                     De cross-sectorale uitkomst teruggebracht naar elke sector: aansluiting op de KiB-doelen,
-                    verrijking, aanvullingen, quick wins en aandachtspunten. Dit is het DIN-netwerk dat de
-                    sectoren in de uitvoering hanteren.
+                    verrijking, aanvullingen, quick wins en aandachtspunten. Dit is het DIN dat de sectoren in
+                    de uitvoering hanteren.
                   </p>
                   <UiteindelijkDINBlock session={session} />
                 </SubSection>
               </Chapter>
 
               <Chapter
-                number="5."
+                number="4."
                 title="Programma-organisatie en RASCI"
                 intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
                 methodiek="Volgens &ldquo;Werken aan Programma&apos;s&rdquo; (Hfst. 6) is de programma-organisatie geen lijnstructuur maar een tijdelijke configuratie van rollen en gremia, met een expliciete RASCI per hoofdthema."
@@ -2347,13 +2378,15 @@ export default function ExportStep() {
               </Chapter>
 
               <Chapter
-                number="6."
+                number="5."
                 title="Planning en roadmap"
-                intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Hij is het ritmische kompas van het programma."
-                methodiek="Een programmaplan eindigt met de planning op programmaniveau (Prevaas &amp; Van Loon, Hfst. 8). Niet de detailplanning per project, maar de cyclische bundels en mijlpalen waarop het programma wordt aangestuurd."
+                intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
+                methodiek="Een programmaplan eindigt met de planning op programmaniveau (Prevaas &amp; Van Loon, Hfst. 8): niet de detailplanning per project, maar de cyclische bundels en mijlpalen waarop het programma wordt aangestuurd."
               >
                 <RoadmapBlock session={session} />
               </Chapter>
+
+              <MethodiekVerantwoordingBlock />
             </div>
           </div>
         </div>
@@ -2374,3 +2407,66 @@ export default function ExportStep() {
     </div>
   );
 }
+
+// --- Methodiek-verantwoording: dekking volgens "Werken aan Programma's" (Prevaas & Van Loon) ---
+function MethodiekVerantwoordingBlock() {
+  const dekking = [
+    { onderdeel: "Programmavisie", hoofdstuk: "1", status: "gedekt" as const },
+    { onderdeel: "Scope (binnen / buiten cyclus)", hoofdstuk: "1", status: "gedekt" as const },
+    { onderdeel: "Programmadoelstellingen", hoofdstuk: "2", status: "gedekt" as const },
+    { onderdeel: "Werkvolgorde / fasering doelen", hoofdstuk: "2", status: "gedekt" as const },
+    { onderdeel: "Baten (DIN: gewenste effecten)", hoofdstuk: "3", status: "gedekt" as const },
+    { onderdeel: "Vermogens (DIN: wat de organisatie moet kunnen)", hoofdstuk: "3", status: "gedekt" as const },
+    { onderdeel: "Inspanningen (DIN: projecten en activiteiten)", hoofdstuk: "3", status: "gedekt" as const },
+    { onderdeel: "Programmabegroting (out-of-pocket + interne uren, scenario's)", hoofdstuk: "3", status: "gedekt" as const },
+    { onderdeel: "Programma-organisatie en gremia", hoofdstuk: "4", status: "gedekt" as const },
+    { onderdeel: "RASCI per hoofdthema", hoofdstuk: "4", status: "gedekt" as const },
+    { onderdeel: "Planning op programmaniveau (mijlpalen)", hoofdstuk: "5", status: "gedekt" as const },
+    { onderdeel: "Aanleiding / context vanuit KiB", hoofdstuk: "—", status: "extern" as const, toelichting: "Bron: vastgestelde visie en doelen uit Klant in Beeld" },
+    { onderdeel: "Risicomanagement op programmaniveau", hoofdstuk: "—", status: "los" as const, toelichting: "Wordt los onderhouden in stuurgroep-rapportage; per inspanning zijn randvoorwaarden vastgelegd in het dossier (Hoofdstuk 3)" },
+    { onderdeel: "Communicatie- en stakeholder-aanpak", hoofdstuk: "—", status: "los" as const, toelichting: "Wordt los onderhouden via de programmamanager; gremia en escalatiepad zijn vastgelegd in Hoofdstuk 4" },
+  ];
+
+  const statusBadge = (status: "gedekt" | "extern" | "los") => {
+    if (status === "gedekt")
+      return <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Gedekt</span>;
+    if (status === "extern")
+      return <span className="text-[10px] uppercase font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">Extern</span>;
+    return <span className="text-[10px] uppercase font-bold text-gray-600 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">Los onderhouden</span>;
+  };
+
+  return (
+    <section className="mb-8 mt-6 p-5 rounded-lg bg-cito-blue/5 border border-cito-blue/20">
+      <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">
+        Verantwoording &mdash; methodiek &ldquo;Werken aan Programma&apos;s&rdquo; (Prevaas &amp; Van Loon)
+      </div>
+      <p className="text-sm text-gray-700 leading-relaxed mb-4">
+        Onderstaande tabel laat zien welke onderdelen van een programmaplan volgens de methodiek in dit
+        document zijn opgenomen, en welke onderdelen los van het programmaplan worden onderhouden.
+      </p>
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
+        <table className="w-full text-xs">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-3 py-2 font-bold text-gray-600">Onderdeel methodiek</th>
+              <th className="text-center px-3 py-2 font-bold text-gray-600 w-16">Hoofdstuk</th>
+              <th className="text-left px-3 py-2 font-bold text-gray-600 w-32">Status</th>
+              <th className="text-left px-3 py-2 font-bold text-gray-600">Toelichting</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {dekking.map((d, i) => (
+              <tr key={i} className={i % 2 === 1 ? "bg-gray-50/40" : ""}>
+                <td className="px-3 py-2 text-gray-700">{d.onderdeel}</td>
+                <td className="px-3 py-2 text-center font-bold text-cito-blue">{d.hoofdstuk}</td>
+                <td className="px-3 py-2">{statusBadge(d.status)}</td>
+                <td className="px-3 py-2 text-gray-500 italic">{d.toelichting ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
