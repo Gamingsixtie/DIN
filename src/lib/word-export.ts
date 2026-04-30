@@ -1263,8 +1263,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
   children.push(numberedHeading("Vermogensprofielen", "h2", numState));
   children.push(bodyText(
     "De vermogens zijn samengebracht in cross-sectorale clusters. Per vermogen-cluster leggen we vast " +
-    "aan welke functionaris dit vermogen wordt toebedeeld om op te bouwen, op welk niveau het cluster " +
-    "nu staat en op welk niveau het moet uitkomen om de baten waar te maken.",
+    "aan welke functionaris dit vermogen wordt toebedeeld om op te bouwen.",
     { color: TEXT_PRIMARY, size: 20 }
   ));
   children.push(emptyLine(60));
@@ -1275,16 +1274,11 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     const vermRows = sortedVerm.map((c) => {
       const verantw = c.profiel?.eigenaar?.trim() || "— nog te benoemen";
       const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
-      const niveau =
-        c.currentLevel !== undefined && c.targetLevel !== undefined
-          ? `${c.currentLevel}/5 → ${c.targetLevel}/5`
-          : "—";
       return new TableRow({
         children: [
-          styledCell(c.title || c.description, { bold: true, width: 40, size: 16 }),
-          styledCell(sectoren, { width: 22, size: 16 }),
-          styledCell(verantw, { width: 22, size: 16 }),
-          styledCell(niveau, { width: 16, size: 16 }),
+          styledCell(c.title || c.description, { bold: true, width: 50, size: 16 }),
+          styledCell(sectoren, { width: 25, size: 16 }),
+          styledCell(verantw, { width: 25, size: 16 }),
         ],
       });
     });
@@ -1294,10 +1288,9 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
         rows: [
           new TableRow({
             children: [
-              headerCell("Vermogen", 40),
-              headerCell("Sectoren", 22),
-              headerCell("Verantwoordelijk", 22),
-              headerCell("Huidig → Doel", 16),
+              headerCell("Vermogen", 50),
+              headerCell("Sectoren", 25),
+              headerCell("Verantwoordelijk", 25),
             ],
           }),
           ...vermRows,
@@ -1443,15 +1436,30 @@ function governanceSection(session: DINSession, numState: NumberingState, active
   const children: (Paragraph | Table)[] = [];
 
   children.push(numberedHeading("Programma-organisatie en RASCI", "h1", numState));
-  children.push(
-    methodiekIntro(
-      "Hieronder staan de onderdelen die samen de programma-organisatie en sturing vormen: het organigram " +
-      "met de gremia (opdrachtgever, programmamanager, kerngroep, stuurgroep, domeineigenaren, " +
-      "klankbordgroep), het besluitvormings- en escalatieritme, de RASCI-matrix per hoofdthema (responsible, " +
-      "accountable, supportive, consulted, informed) en het bateneigenaarschap \u2014 welke functionaris is per " +
-      "baat eindverantwoordelijk voor realisatie en monitoring."
-    )
-  );
+  children.push(bodyText("Governance & Monitoring", { bold: true, size: 22, color: CITO_BLUE }));
+  children.push(bodyText(
+    "De besturing en monitoring van het programma zijn geregeld in drie samenhangende blokken die hieronder volgen.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De programma-organisatie opent met het organigram en de tabel van gremia (opdrachtgever, programmamanager, " +
+    "kerngroep, stuurgroep, domeineigenaren en klankbordgroep) \u2014 per rol met sector en mandaat. Daarbij " +
+    "horen het besluitvormings- en escalatieritme: met welke frequentie wordt besloten en langs welke weg " +
+    "loopt opschaling als een knelpunt niet op uitvoeringsniveau wordt opgelost.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De RASCI-matrix per hoofdthema legt vervolgens per cross-sectoraal cluster vast wie er responsible, " +
+    "accountable, supportive, consulted en informed is \u2014 geldig voor alle onderliggende baten, vermogens en " +
+    "inspanningen binnen dat cluster.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "Het bateneigenaarschap sluit af: per baat is \u00e9\u00e9n functionaris eindverantwoordelijk voor zowel de " +
+    "realisatie als de monitoring van de bijbehorende indicator-waarden. Dat verbindt de governance terug aan " +
+    "de baten in Hoofdstuk 3 \u2014 waar geen eigenaar is, kan geen baat worden gemonitord.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
   children.push(emptyLine());
 
   // Programmaorganisatie

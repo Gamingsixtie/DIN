@@ -849,13 +849,31 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
 
   return (
     <Section title="Governance & Monitoring" number={number}>
-      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-3xl">
-        De besturing en monitoring van het programma zijn geregeld in drie samenhangende blokken: de
-        <strong> programma-organisatie</strong> met gremia, mandaten en besluitritme; de
-        <strong> RASCI-matrix per hoofdthema</strong> die per cluster vastlegt wie verantwoordelijk en
-        accountable is; en het <strong>bateneigenaarschap</strong> dat per baat een functionaris benoemt
-        voor realisatie én voor de monitoring van de gewenste indicator-waarden.
-      </p>
+      <div className="mb-5 max-w-3xl space-y-2">
+        <p className="text-sm text-gray-700 leading-relaxed">
+          De besturing en monitoring van het programma zijn geregeld in drie samenhangende blokken die
+          hieronder volgen.
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          De <strong>programma-organisatie</strong> opent met het organigram en de tabel van gremia
+          (opdrachtgever, programmamanager, kerngroep, stuurgroep, domeineigenaren en klankbordgroep) —
+          per rol met sector en mandaat. Daarbij horen het <strong>besluitvormings- en escalatieritme</strong>:
+          met welke frequentie wordt besloten en langs welke weg loopt opschaling als een knelpunt niet op
+          uitvoeringsniveau wordt opgelost.
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          De <strong>RASCI-matrix per hoofdthema</strong> legt vervolgens per cross-sectoraal cluster vast
+          wie er <em>responsible</em>, <em>accountable</em>, <em>supportive</em>, <em>consulted</em> en
+          <em> informed</em> is — geldig voor alle onderliggende baten, vermogens en inspanningen binnen
+          dat cluster.
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          Het <strong>bateneigenaarschap</strong> sluit af: per baat is één functionaris eindverantwoordelijk
+          voor zowel de realisatie als de monitoring van de bijbehorende indicator-waarden. Dat verbindt de
+          governance terug aan de baten in Hoofdstuk 3 — waar geen eigenaar is, kan geen baat worden
+          gemonitord.
+        </p>
+      </div>
 
       {/* Programmaorganisatie */}
       {po && allRollen.length > 0 && (
@@ -1998,8 +2016,7 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
         <p>
           De vermogens zijn samengebracht in cross-sectorale clusters (zie het schema hierboven). Per
           vermogen-cluster leggen we vast aan welke <strong>functionaris</strong> dit vermogen wordt
-          toebedeeld om op te bouwen, op welk <strong>niveau</strong> het cluster nu staat en op welk niveau
-          het moet uitkomen om de baten waar te maken.
+          toebedeeld om op te bouwen.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -2009,14 +2026,11 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
               <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Vermogen</th>
               <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Sectoren</th>
               <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Verantwoordelijk</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Huidig → Doel</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {sorted.map((c) => {
               const verantw = c.profiel?.eigenaar?.trim() || "";
-              const cur = c.currentLevel;
-              const tgt = c.targetLevel;
               const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
               return (
                 <tr key={c.id} className="hover:bg-gray-50 align-top">
@@ -2032,13 +2046,6 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
                       <span className="text-gray-800">{verantw}</span>
                     ) : (
                       <span className="text-amber-700 italic">— nog te benoemen</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-700 tabular-nums">
-                    {cur !== undefined && tgt !== undefined ? (
-                      <><strong>{cur}/5</strong> <span className="text-gray-400">→</span> <strong>{tgt}/5</strong></>
-                    ) : (
-                      <span className="text-gray-400">—</span>
                     )}
                   </td>
                 </tr>
@@ -3915,16 +3922,6 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
 
         {/* Hoofdstuk 5 — Programma-organisatie en RASCI */}
         <Chapter number="5." title="Programma-organisatie en RASCI">
-          <Inleiding>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Hieronder staan de onderdelen die samen de programma-organisatie en sturing vormen: het
-              <strong> organigram</strong> met de gremia (opdrachtgever, programmamanager, kerngroep,
-              stuurgroep, domeineigenaren, klankbordgroep), het <strong>besluitvormings- en escalatieritme</strong>,
-              de <strong>RASCI-matrix per hoofdthema</strong> (responsible, accountable, supportive,
-              consulted, informed) en het <strong>bateneigenaarschap</strong> — welke functionaris is per
-              baat eindverantwoordelijk voor realisatie en monitoring.
-            </p>
-          </Inleiding>
           <div className="mb-5 px-4 space-y-4">
             <GovernanceBlock session={session} />
             <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-700 leading-relaxed">
