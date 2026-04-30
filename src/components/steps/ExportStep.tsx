@@ -491,23 +491,11 @@ function DINFlowTable({ session, number }: { session: DINSession; number?: strin
   );
 }
 
-// --- Cross-analyse ---
+// --- Cross-analyse: synergieën (gedeelde vermogens) ---
 
 function CrossAnalyseBlock({ session, number }: { session: DINSession; number?: string }) {
-  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
   const activeCaps = useMemo(() => getActiveCaps(session), [session]);
 
-  const balance = getDomainBalance(activeEfforts);
-  const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
-
-  const domainCounts = (Object.keys(DOMAIN_LABELS) as EffortDomain[]).map((domain) => ({
-    domain,
-    label: DOMAIN_LABELS[domain],
-    count: balance[domain],
-    pct: Math.round((balance[domain] / total) * 100),
-  }));
-
-  // Gedeelde vermogens (using active caps only)
   const capBySector: Record<string, Set<string>> = {};
   activeCaps.forEach((c) => {
     const key = (c.title || c.description || "").toLowerCase().trim();
@@ -516,58 +504,25 @@ function CrossAnalyseBlock({ session, number }: { session: DINSession; number?: 
   });
   const sharedCaps = Object.entries(capBySector).filter(([, s]) => s.size > 1);
 
-  if (activeEfforts.length === 0 && sharedCaps.length === 0) return null;
+  if (sharedCaps.length === 0) return null;
 
   return (
-    <Section title="Cross-analyse" number={number}>
+    <Section title="Synergieën tussen sectoren" number={number}>
       <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        Analyse over alle sectoren heen: verdeling over inspanningsdomeinen,
-        synergieen tussen sectoren, en mogelijke hefboomwerking.
+        Vermogens die in meerdere sectoren tegelijk nodig zijn. Daar zit de cross-sectorale hefboom — gezamenlijk
+        opbouwen levert breder effect dan per sector apart.
       </p>
-
-      {/* Domeinbalans */}
-      <SubSection title="Domeinbalans inspanningen">
-        <div className="space-y-2">
-          {domainCounts.map(({ domain, label, count, pct }) => {
-            const dc = DOMAIN_COLORS[domain];
-            return (
-              <div key={domain} className="flex items-center gap-3">
-                <div className="w-28 text-xs font-medium text-gray-600">{label}</div>
-                <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${dc.bg} border ${dc.border} rounded-full`} style={{ width: `${Math.max(pct, 2)}%` }} />
-                </div>
-                <div className="w-20 text-xs text-gray-500 text-right">{count} ({pct}%)</div>
-                <div className="w-32 text-xs">
-                  {pct < 10 ? (
-                    <span className="text-amber-600">Aandacht nodig</span>
-                  ) : pct > 40 ? (
-                    <span className="text-amber-600">Relatief dominant</span>
-                  ) : (
-                    <span className="text-emerald-600">Evenwichtig</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </SubSection>
-
-      {/* Synergieeen */}
-      {sharedCaps.length > 0 && (
-        <SubSection title="Synergieeen (gedeelde vermogens)">
-          <div className="space-y-1.5">
-            {sharedCaps.map(([cap, sectors], i) => (
-              <div key={i} className="flex items-start gap-2 text-xs">
-                <span className="text-cito-blue mt-0.5 shrink-0">&bull;</span>
-                <span className="text-gray-700">
-                  {cap}
-                  <span className="text-gray-400 ml-1">— Sectoren: {Array.from(sectors).join(", ")}</span>
-                </span>
-              </div>
-            ))}
+      <div className="space-y-1.5">
+        {sharedCaps.map(([cap, sectors], i) => (
+          <div key={i} className="flex items-start gap-2 text-xs">
+            <span className="text-cito-blue mt-0.5 shrink-0">&bull;</span>
+            <span className="text-gray-700">
+              {cap}
+              <span className="text-gray-400 ml-1">— Sectoren: {Array.from(sectors).join(", ")}</span>
+            </span>
           </div>
-        </SubSection>
-      )}
+        ))}
+      </div>
     </Section>
   );
 }
@@ -726,11 +681,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
     eigenaarMap[eigenaar].baten.push(b.title || b.description || "(naamloos)");
     eigenaarMap[eigenaar].sectors.add(b.sectorId);
   });
-
-  // Monitoring-kalender: baten met meetmoment
-  const meetplanItems = session.benefits.filter(
-    (b) => b.profiel.measurementMoment || b.profiel.meetmethode
-  );
 
   const po = session.programmaorganisatie;
   const clusterRasci = session.clusterRasci ?? [];
@@ -976,36 +926,6 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
           </table>
         </div>
       </SubSection>
-
-      {/* Monitoring-kalender */}
-      {meetplanItems.length > 0 && (
-        <SubSection title="Monitoring-kalender">
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left font-bold text-gray-600">Baat</th>
-                  <th className="px-3 py-2 text-left font-bold text-gray-600">Indicator</th>
-                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmethode</th>
-                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetmoment</th>
-                  <th className="px-3 py-2 text-left font-bold text-gray-600">Meetverantw.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetplanItems.map((b, i) => (
-                  <tr key={b.id} className={i % 2 === 1 ? "bg-gray-50/50" : ""}>
-                    <td className="px-3 py-2 font-medium text-gray-800">{b.title || b.description}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicator || "\u2014"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.meetmethode || "\u2014"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.measurementMoment || "\u2014"}</td>
-                    <td className="px-3 py-2 text-gray-600">{b.profiel.indicatorOwner || "\u2014"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SubSection>
-      )}
 
     </Section>
   );
@@ -2071,27 +1991,23 @@ export default function ExportStep() {
               </StepBanner>
 
               <StepBanner
-                step={3}
-                title="DIN-netwerk per doel"
-                intro="Per programmadoel de DIN-keten per sector in beknopte vorm: welke baten, welke vermogens, welke inspanningen. Het cross-sectorale totaalbeeld volgt in Stap 4."
+                step={2}
+                title="Cross-sectorale uitkomst — de kern"
+                intro="Het oorspronkelijke DIN-netwerk is per sector opgesteld (zie kort overzicht hieronder). De werkelijke programmasturing volgt echter uit de cross-analyse: synergieën tussen sectoren, hefboomwerking, geconsolideerde inspanningen per domein en de uiteindelijke sector-vertaling. Daar zit de samenhang waarop dit programma draait."
               >
-                <DINKetenBlock session={session} />
-              </StepBanner>
-
-              <StepBanner
-                step={4}
-                title="Cross-sectorale uitkomst"
-                intro="Dit is de kern van het programma: synergie en hefboomwerking tussen sectoren, geconsolideerde inspanningen per domein, de integrale raming, en het uiteindelijke DIN-netwerk vertaald terug naar elke sector."
-              >
+                <SubSection title="DIN-netwerk per sector — beknopt overzicht">
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                    Per sector zijn de programmadoelen vertaald naar baten, vermogens en inspanningen. Onderstaand
+                    overzicht toont de oorspronkelijke verdeling — de cross-sectorale uitkomst hieronder is leidend
+                    voor het programma.
+                  </p>
+                  <SectorwerkKaderBlock session={session} />
+                </SubSection>
                 <CrossAnalyseBlock session={session} />
                 <HefboomBlock session={session} />
-                <GapAnalyseBlock session={session} />
                 <ExterneProjectenBlock session={session} />
                 <SubSection title="Stap-optimalisatie — geconsolideerde inspanningen">
                   <OptimalisatieBlock session={session} />
-                </SubSection>
-                <SubSection title="Raming — interne uren, kosten en scenario's">
-                  <RamingBlock session={session} />
                 </SubSection>
                 <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
                   <UiteindelijkDINBlock session={session} />
@@ -2099,7 +2015,7 @@ export default function ExportStep() {
               </StepBanner>
 
               <StepBanner
-                step={5}
+                step={3}
                 title="Programma-organisatie en RASCI"
                 intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) de verantwoordelijkheidsverdeling vast."
               >
@@ -2107,7 +2023,7 @@ export default function ExportStep() {
               </StepBanner>
 
               <StepBanner
-                step={6}
+                step={4}
                 title="Planning en roadmap"
                 intro="De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop we voortgang meten. Hij is het ritmische kompas van het programma."
               >

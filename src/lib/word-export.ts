@@ -491,7 +491,7 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
     methodiekIntro(
       "Deze samenvatting bundelt de kern van het programma: de visie, de omvang van het DIN-netwerk, " +
       "en de drie cross-sectorale bevindingen die de richting bepalen. Gedetailleerde onderbouwing " +
-      "volgt in de Stap 1 t/m Stap 6 hoofdstukken."
+      "volgt in de Stap 1 t/m Stap 4 hoofdstukken."
     )
   );
 
@@ -683,7 +683,7 @@ export function overviewSection(session: DINSession, numState: NumberingState) {
     if (buitenItems.length > 0) {
       children.push(subHeading("Buiten deze cyclus"));
       children.push(bodyText(
-        "Onderstaande items vallen buiten de huidige programmacyclus \u2014 afgeleid uit de cross-sectorale analyse (Stap 4) en expliciete scope-uitsluitingen.",
+        "Onderstaande items vallen buiten de huidige programmacyclus \u2014 afgeleid uit de cross-sectorale uitkomst (Stap 2) en expliciete scope-uitsluitingen.",
         { color: TEXT_SECONDARY, size: 20 }
       ));
       buitenItems.forEach((item) => children.push(bullet(item)));
@@ -893,17 +893,66 @@ function goalDINSections(session: DINSession, numState: NumberingState, activeCa
 function crossAnalysisSection(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(4, "Cross-sectorale analyse: synergie, hefboomwerking en gaps", numState));
+  children.push(stepHeading(2, "Cross-sectorale uitkomst — de kern", numState));
   children.push(
     methodiekIntro(
-      "Het hart van een programma is niet de optelsom van sectorinitiatieven, maar de synergie ertussen. " +
-      "Deze analyse toont waar sectoren dezelfde vermogens nodig hebben, welke inspanningen hefboomwerking " +
-      "hebben over sectoren heen, en waar onbalans of gaps de realisatie in gevaar brengen."
+      "Het hart van het programma. Het oorspronkelijke DIN-netwerk is per sector opgesteld — onderstaand een kort " +
+      "overzicht. De werkelijke programmasturing volgt echter uit de cross-analyse: synergieën tussen sectoren, " +
+      "hefboomwerking, geconsolideerde inspanningen per domein en de uiteindelijke sector-vertaling."
     )
   );
   children.push(emptyLine());
 
-  // 4.1 Synergieën — gedeelde vermogens (use active caps only)
+  // Kort DIN-overzicht: oorspronkelijke verdeling per sector (counts B / V / I)
+  const overviewSectors = SECTORS.filter(
+    (s) =>
+      session.benefits.some((b) => b.sectorId === s) ||
+      activeCaps.some((c) => c.sectorId === s) ||
+      activeEfforts.some((e) => e.sectorId === s)
+  );
+  if (overviewSectors.length > 0) {
+    children.push(numberedHeading("DIN-netwerk per sector — beknopt overzicht", "h2", numState));
+    children.push(bodyText(
+      "Per sector zijn de programmadoelen vertaald naar baten, vermogens en inspanningen. Deze tabel toont de " +
+      "oorspronkelijke verdeling — de cross-sectorale uitkomst hieronder is leidend.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    const overviewRows = overviewSectors.map((sector) => {
+      const goalIds = new Set(session.benefits.filter((b) => b.sectorId === sector).map((b) => b.goalId));
+      const baten = session.benefits.filter((b) => b.sectorId === sector).length;
+      const vermogens = activeCaps.filter((c) => c.sectorId === sector).length;
+      const inspanningen = activeEfforts.filter((e) => e.sectorId === sector).length;
+      return new TableRow({
+        children: [
+          styledCell(sector, { bold: true, width: 25, color: CITO_BLUE }),
+          styledCell(`${goalIds.size}`, { width: 15 }),
+          styledCell(`${baten}`, { width: 20 }),
+          styledCell(`${vermogens}`, { width: 20 }),
+          styledCell(`${inspanningen}`, { width: 20 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Sector", 25),
+              headerCell("Doelen", 15),
+              headerCell("Baten", 20),
+              headerCell("Vermogens", 20),
+              headerCell("Inspanningen", 20),
+            ],
+          }),
+          ...overviewRows,
+        ],
+      })
+    );
+    children.push(emptyLine());
+  }
+
+  // Synergieën — gedeelde vermogens (use active caps only)
   const shared = findSharedCapabilities(activeCaps);
   if (shared.size > 0) {
     children.push(numberedHeading("Synergie\u00ebn \u2014 Gedeelde vermogens", "h2", numState));
@@ -974,54 +1023,9 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
-  // 4.3 Domeinbalans (Cito outside-in: cultuur → mens → data/systemen → processen)
-  const balance = getDomainBalance(activeEfforts);
-  const total = Object.values(balance).reduce((a, b) => a + b, 0) || 1;
+  // (Domeinbalans verwijderd — komt al terug in stap-optimalisatie en managementsamenvatting.)
 
-  children.push(numberedHeading("Domeinbalans (Cito outside-in)", "h2", numState));
-  children.push(bodyText(
-    "Verdeling van inspanningen over de vier DIN-domeinen in Cito outside-in volgorde: " +
-    "cultuur \u2192 mens \u2192 data & systemen \u2192 processen. Een evenwichtige verdeling is essentieel voor duurzame verandering.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
-
-  const balanceEntries: [EffortDomain, number][] = DOMEIN_OUTSIDE_IN_ORDER.map((d) => [d, balance[d] ?? 0]);
-  const balanceRows = balanceEntries.map(([domain, count]) => {
-    const pct = Math.round((count / total) * 100);
-    return new TableRow({
-      children: [
-        styledCell(DOMAIN_LABELS[domain], { bold: true, width: 30, shading: DOMAIN_COLORS[domain] }),
-        styledCell(`${count}`, { width: 20 }),
-        styledCell(`${pct}%`, { width: 20 }),
-        styledCell(
-          pct < 10 ? "Aandacht: ondervertegenwoordigd" :
-          pct > 40 ? "Aandacht: relatief dominant" :
-          "Evenwichtig",
-          { width: 30, color: pct < 10 || pct > 40 ? "CC6600" : "2E7D32" }
-        ),
-      ],
-    });
-  });
-
-  children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            headerCell("Domein", 30),
-            headerCell("Aantal", 20),
-            headerCell("Aandeel", 20),
-            headerCell("Beoordeling", 30),
-          ],
-        }),
-        ...balanceRows,
-      ],
-    })
-  );
-  children.push(emptyLine());
-
-  // 4.4 Sector-overlap & integratieadvies (samenvatting — volle versie in Bijlage A)
+  // Sector-overlap & integratieadvies (samenvatting — volledige sector-vertaling volgt onderaan deze stap)
   const integratieRecord = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
   const adviesEntries = integratieRecord
     ? Object.entries(integratieRecord).filter(([, v]) => v && typeof v === "object")
@@ -1030,7 +1034,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     children.push(numberedHeading("Sector-overlap en integratieadvies", "h2", numState));
     children.push(bodyText(
       "Per sector is een integratieadvies beschikbaar dat het cross-sectorale programma vertaalt naar de sectorcontext. " +
-      "De volledige teksten zijn opgenomen in Bijlage A.",
+      "De volledige teksten staan onderaan deze stap onder \"Uiteindelijke DIN-netwerk — sector-vertaling\".",
       { color: TEXT_SECONDARY, size: 20 }
     ));
     adviesEntries.forEach(([sectorKey, rawAdv]) => {
@@ -1050,63 +1054,6 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     children.push(emptyLine());
   }
 
-  // 4.5 Gaps
-  const categorized = categorizeGaps(session);
-  const hasGaps =
-    categorized.volgendeCyclus.length > 0 ||
-    categorized.echteGapsGoals.length > 0 ||
-    categorized.benefitsWithoutCaps.length > 0 ||
-    categorized.capsWithoutEfforts.length > 0;
-  if (hasGaps) {
-    children.push(numberedHeading("Gaps in de DIN-keten", "h2", numState));
-    children.push(bodyText(
-      "Onderstaande breuken in de DIN-keten vragen aandacht. Een compleet netwerk verbindt elk doel " +
-      "via baten en vermogens aan concrete inspanningen.",
-      { color: TEXT_SECONDARY, size: 20 }
-    ));
-
-    if (categorized.volgendeCyclus.length > 0) {
-      children.push(subHeading("Volgende cyclus"));
-      children.push(bodyText(
-        "Deze doelen worden in een volgende cyclus uitgewerkt.",
-        { color: TEXT_SECONDARY, size: 20 }
-      ));
-      categorized.volgendeCyclus.forEach((g) => {
-        children.push(bodyText(
-          `${g.name} \u2014 uitwerking volgt in volgende cyclus`,
-          { italic: true, color: TEXT_MUTED }
-        ));
-      });
-      children.push(emptyLine(80));
-    }
-
-    const hasEchteGaps =
-      categorized.echteGapsGoals.length > 0 ||
-      categorized.benefitsWithoutCaps.length > 0 ||
-      categorized.capsWithoutEfforts.length > 0;
-    if (hasEchteGaps) {
-      children.push(subHeading("Onvolledige ketens"));
-      if (categorized.echteGapsGoals.length > 0) {
-        children.push(bodyText(`Doelen zonder baten (${categorized.echteGapsGoals.length})`, { bold: true, size: 20 }));
-        categorized.echteGapsGoals.forEach((g) => children.push(bullet(g.name)));
-        children.push(emptyLine(60));
-      }
-      if (categorized.benefitsWithoutCaps.length > 0) {
-        children.push(bodyText(`Baten zonder vermogens (${categorized.benefitsWithoutCaps.length})`, { bold: true, size: 20 }));
-        categorized.benefitsWithoutCaps.forEach((b) => {
-          if (b) children.push(bullet(`[${b.sectorId}] ${b.title || b.description}`));
-        });
-        children.push(emptyLine(60));
-      }
-      if (categorized.capsWithoutEfforts.length > 0) {
-        children.push(bodyText(`Vermogens zonder inspanningen (${categorized.capsWithoutEfforts.length})`, { bold: true, size: 20 }));
-        categorized.capsWithoutEfforts.forEach((c) => {
-          if (c) children.push(bullet(`[${c.sectorId}] ${c.title || c.description}`));
-        });
-        children.push(emptyLine(60));
-      }
-    }
-  }
 
   // 4.6 Externe projecten
   if (session.externalProjects && session.externalProjects.length > 0) {
@@ -1200,10 +1147,10 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
-  // 4.8 Raming — stap 7 interne uren + stap 8 totaaloverzicht
-  children.push(...buildRamingContent(session, numState));
+  // (Raming interne uren is opzettelijk niet in het programmaplan — wordt los vastgesteld
+  //  en in de begroting bijgehouden. Het scenario-totaal staat in de managementsamenvatting.)
 
-  // 4.9 Uiteindelijke DIN-netwerk — integratieadvies per sector (sector-vertaling uit wizard-stap 9)
+  // Uiteindelijke DIN-netwerk — integratieadvies per sector (sector-vertaling uit wizard-stap 9)
   const integratieRecord2 = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
   const adviesItems = integratieRecord2
     ? Object.entries(integratieRecord2).filter(([, v]) => v && typeof v === "object")
@@ -1258,7 +1205,7 @@ function governanceSection(session: DINSession, numState: NumberingState, active
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(5, "Programma-organisatie en RASCI", numState));
+  children.push(stepHeading(3, "Programma-organisatie en RASCI", numState));
   children.push(
     methodiekIntro(
       "De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt " +
@@ -1528,46 +1475,6 @@ function governanceSection(session: DINSession, numState: NumberingState, active
   );
   children.push(emptyLine());
 
-  // Monitoring-kalender
-  const meetplanItems = session.benefits.filter(
-    (b) => b.profiel.measurementMoment || b.profiel.meetmethode
-  );
-
-  if (meetplanItems.length > 0) {
-    children.push(subHeading("Monitoring-kalender"));
-
-    const meetRows = meetplanItems.map(
-      (b) =>
-        new TableRow({
-          children: [
-            styledCell(b.title || b.description || "\u2014", { bold: true, width: 22 }),
-            styledCell(b.profiel.indicator || "\u2014", { width: 18 }),
-            styledCell(b.profiel.meetmethode || "\u2014", { width: 22 }),
-            styledCell(b.profiel.measurementMoment || "\u2014", { width: 18 }),
-            styledCell(b.profiel.indicatorOwner || "\u2014", { width: 20 }),
-          ],
-        })
-    );
-
-    children.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              headerCell("Baat", 22),
-              headerCell("Indicator", 18),
-              headerCell("Meetmethode", 22),
-              headerCell("Meetmoment", 18),
-              headerCell("Meetverantw.", 20),
-            ],
-          }),
-          ...meetRows,
-        ],
-      })
-    );
-    children.push(emptyLine());
-  }
 
   return { properties: {}, children };
 }
@@ -2067,7 +1974,7 @@ export function roadmapSection(session: DINSession, numState: NumberingState, _a
   void _activeEfforts;
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(6, "Roadmap: van bundels naar uitvoering", numState));
+  children.push(stepHeading(4, "Roadmap: van bundels naar uitvoering", numState));
   children.push(
     methodiekIntro(
       "De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en " +
@@ -2662,31 +2569,27 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
 
   // Build all content sections first (advancing numState), then build TOC from tocEntries.
   // Methodische opbouw (DIN/Prevaas & Van Loon):
-  //   Managementsamenvatting \u2192 Stap 1 programmakader (visie, kernonderwerpen, scope) \u2192
-  //   Stap 3 DIN-keten per doel (beknopt) \u2192
-  //   Stap 4 cross-sectorale uitkomst (synergie, hefboom, gaps, externe projecten,
-  //     stap-optimalisatie/subEffortAdvies, raming stap7+8, uiteindelijke DIN-netwerk) \u2192
-  //   Stap 5 programma-organisatie en RASCI \u2192 Stap 6 roadmap.
+  //   Managementsamenvatting \u2192 Stap 1 programmakader (visie, kernonderwerpen, scope, doelen) \u2192
+  //   Stap 2 cross-sectorale uitkomst (kort DIN-overzicht per sector, synergie\u00ebn, hefboom,
+  //     externe projecten, stap-optimalisatie/subEffortAdvies, uiteindelijke DIN-netwerk) \u2192
+  //   Stap 3 programma-organisatie en RASCI \u2192 Stap 4 roadmap.
   const contentSections: SectionType[] = [];
 
   // 0. Managementsamenvatting (cross-sectorale nadruk)
   contentSections.push(executiveSummarySection(session, numState, activeEfforts, activeCaps));
 
-  // Stap 1 \u2014 Programmakader (visie, kernonderwerpen, scope)
+  // Stap 1 \u2014 Programmakader (visie, kernonderwerpen, scope, doelen)
   contentSections.push(overviewSection(session, numState));
 
-  // Stap 3 \u2014 DIN-keten per doel (beknopt, zonder flowtabel)
-  contentSections.push(goalDINSections(session, numState, activeCaps, activeEfforts));
-
-  // Stap 4 \u2014 Cross-sectorale analyse (incl. gaps/hefbomen/externe projecten,
-  //                 stap-optimalisatie, raming, uiteindelijke DIN-netwerk)
+  // Stap 2 \u2014 Cross-sectorale uitkomst (de kern). Begint met kort DIN-overzicht per sector,
+  // dan synergie\u00ebn/hefbomen/externe projecten, stap-optimalisatie, uiteindelijke DIN-netwerk.
   contentSections.push(crossAnalysisSection(session, numState, activeCaps, activeEfforts));
 
-  // Stap 5 \u2014 Programma-organisatie en RASCI
+  // Stap 3 \u2014 Programma-organisatie en RASCI
   const governance = governanceSection(session, numState, activeEfforts);
   if (governance) contentSections.push(governance);
 
-  // Stap 6 \u2014 Roadmap
+  // Stap 4 \u2014 Roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
 
   // Now build TOC from accumulated tocEntries
