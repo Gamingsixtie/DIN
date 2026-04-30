@@ -2964,7 +2964,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
 
         <Chapter
           number="4."
-          title="Begroting en raming"
+          title="Raming"
           intro="De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide componenten zijn doorgerekend over vier scenario&apos;s. De gedetailleerde uitwerking volgt in subparagraaf 4.1 en 4.2; subparagraaf 4.3 telt alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
         >
           <SubSection title="4.1 Raming out-of-pocket kosten">

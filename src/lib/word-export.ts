@@ -2012,7 +2012,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(numberedHeading("Begroting en raming", "h1", numState));
+  children.push(numberedHeading("Raming", "h1", numState));
   children.push(
     methodiekIntro(
       "De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per " +
