@@ -1892,6 +1892,24 @@ function RamingBlock({ session }: { session: DINSession }) {
   );
 }
 
+// Resolveer een lijst items (kunnen effort-IDs OF titels zijn) naar leesbare titels.
+// IDs zonder match worden gefilterd; we tonen liever niets dan een UUID.
+function resolveItemLabels(items: string[], session: DINSession): string[] {
+  const isUuidLike = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  return items
+    .map((item) => {
+      const effort = session.efforts.find((e) => e.id === item);
+      if (effort) return effort.title || effort.description || "";
+      const cap = session.capabilities.find((c) => c.id === item);
+      if (cap) return cap.title || cap.description || "";
+      const benefit = session.benefits.find((b) => b.id === item);
+      if (benefit) return benefit.title || benefit.description || "";
+      // Geen match: als het op een UUID lijkt, weglaten — anders is het al een titel
+      return isUuidLike(item) ? "" : item;
+    })
+    .filter((s) => s.trim().length > 0);
+}
+
 function OptimalisatieBlock({ session }: { session: DINSession }) {
   type SubEffort = {
     groepId: string;
@@ -1928,7 +1946,8 @@ function OptimalisatieBlock({ session }: { session: DINSession }) {
     <div className="space-y-3">
       {sorted.map((se, i) => {
         const dc = DOMAIN_COLORS[se.domein];
-        const titel = se.titel || se.voorgesteldeNaam || se.items.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+        const itemLabels = resolveItemLabels(se.items, session);
+        const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
         return (
           <div key={i} className={`border ${dc.border} rounded-lg overflow-hidden`}>
             <div className={`${dc.bg} px-3 py-2 flex items-center gap-2`}>
@@ -1941,8 +1960,8 @@ function OptimalisatieBlock({ session }: { session: DINSession }) {
             <div className="p-3 space-y-1.5 text-xs">
               {se.beschrijving && <p className="text-gray-700 leading-relaxed">{se.beschrijving}</p>}
               {se.beargumentatie && <p className="text-gray-500 italic">Beargumentatie: {se.beargumentatie}</p>}
-              {se.items.length > 0 && (
-                <p className="text-gray-500">Onderliggende inspanningen: {se.items.join("; ")}</p>
+              {itemLabels.length > 0 && (
+                <p className="text-gray-500">Onderliggende inspanningen: {itemLabels.join("; ")}</p>
               )}
               {se.dossier && (
                 <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">

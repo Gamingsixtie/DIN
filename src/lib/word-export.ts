@@ -38,6 +38,23 @@ import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSecto
 // NIET de klassieke Prevaas-volgorde. Zie memory: "Cito-outside-in volgorde".
 const DOMEIN_OUTSIDE_IN_ORDER: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
 
+// Resolveer een lijst items (kunnen effort-IDs OF al titels zijn) naar leesbare titels.
+// IDs zonder match worden gefilterd; we tonen liever niets dan een UUID.
+function resolveItemLabels(items: string[], session: DINSession): string[] {
+  const isUuidLike = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  return items
+    .map((item) => {
+      const effort = session.efforts.find((e) => e.id === item);
+      if (effort) return effort.title || effort.description || "";
+      const cap = session.capabilities.find((c) => c.id === item);
+      if (cap) return cap.title || cap.description || "";
+      const benefit = session.benefits.find((b) => b.id === item);
+      if (benefit) return benefit.title || benefit.description || "";
+      return isUuidLike(item) ? "" : item;
+    })
+    .filter((s) => s.trim().length > 0);
+}
+
 function sortDomeinenOutsideIn<T extends { domein: EffortDomain }>(items: T[]): T[] {
   return [...items].sort(
     (a, b) => DOMEIN_OUTSIDE_IN_ORDER.indexOf(a.domein) - DOMEIN_OUTSIDE_IN_ORDER.indexOf(b.domein)
@@ -49,12 +66,13 @@ function resolveBundelDependencies(bundelId: string, all: BundelPlanning[]): str
   if (!bundel) return "\u2014";
   const deps = bundel.afhankelijkVan ?? [];
   if (deps.length === 0) return "\u2014";
-  return deps
+  const labels = deps
     .map((depId) => {
       const dep = all.find((b) => b.bundelId === depId);
-      return dep ? dep.titel : depId;
+      return dep ? dep.titel : "";
     })
-    .join("; ");
+    .filter((s) => s.length > 0);
+  return labels.length > 0 ? labels.join("; ") : "—";
 }
 
 function formatEuro(amount: number): string {
@@ -1086,7 +1104,8 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     ));
     const sorted = sortDomeinenOutsideIn(subEffortAdvies);
     sorted.forEach((se) => {
-      const titel = se.titel || se.voorgesteldeNaam || se.items.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+      const itemLabels = resolveItemLabels(se.items, session);
+      const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
       children.push(
         new Paragraph({
           spacing: { before: 160, after: 40 },
@@ -1103,8 +1122,8 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       if (se.beargumentatie) {
         children.push(bodyText(`Beargumentatie: ${se.beargumentatie}`, { italic: true, size: 20, color: TEXT_SECONDARY }));
       }
-      if (se.items.length > 0) {
-        children.push(bodyText(`Onderliggende sector-inspanningen: ${se.items.join("; ")}`, { size: 18, color: TEXT_MUTED }));
+      if (itemLabels.length > 0) {
+        children.push(bodyText(`Onderliggende sector-inspanningen: ${itemLabels.join("; ")}`, { size: 18, color: TEXT_MUTED }));
       }
       if (se.dossier) {
         const d = se.dossier;
