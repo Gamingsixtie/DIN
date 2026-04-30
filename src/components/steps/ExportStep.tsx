@@ -849,6 +849,14 @@ function GovernanceBlock({ session, number }: { session: DINSession; number?: st
 
   return (
     <Section title="Governance & Monitoring" number={number}>
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-3xl">
+        De besturing en monitoring van het programma zijn geregeld in drie samenhangende blokken: de
+        <strong> programma-organisatie</strong> met gremia, mandaten en besluitritme; de
+        <strong> RASCI-matrix per hoofdthema</strong> die per cluster vastlegt wie verantwoordelijk en
+        accountable is; en het <strong>bateneigenaarschap</strong> dat per baat een functionaris benoemt
+        voor realisatie én voor de monitoring van de gewenste indicator-waarden.
+      </p>
+
       {/* Programmaorganisatie */}
       {po && allRollen.length > 0 && (
         <SubSection title="Programmaorganisatie">
@@ -1866,6 +1874,24 @@ function DINMappingPerSectorBlock({ session }: { session: DINSession }) {
   );
 }
 
+// Sanitizer voor AI-gegenereerde advies/samenvatting-teksten.
+// Verwijdert hele zinnen die ongewenste framings bevatten (Finance / formatie-
+// kader / "+30-40% acceptabele groei" / "kleine bureaucratisch" etc.) zodat
+// bestaande sessies niet langer die formuleringen tonen, ook al staan ze nog
+// in de DB. Voor nieuwe generaties zorgt de prompt-update zelf voor schone tekst.
+function sanitizeAdviesText(text: string | null | undefined): string {
+  if (!text) return "";
+  const banned = /(?:acceptabele groei|formatie[-\s]?kader|Finance\s+(?:gedragen|gedragen worden|gedragen kan worden)|door\s+Finance|kleine\s+bureaucrat|kleine\s+schaal|\bbureaucratisch[ae]?\b|~?\+?\s?30\s?[-–]\s?40\s?%|2027\s?[-–]\s?2028\s+stabiel|circa\s+124\s+FTE|~?\s?124\s+FTE)/i;
+  // Split op zin-grenzen (punt/uitroep/vraag gevolgd door whitespace).
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  const cleaned = sentences
+    .filter((s) => !banned.test(s))
+    .join(" ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return cleaned;
+}
+
 // --- Scenario-totaaloverzicht (4 scenarios + motivatie waarom actief scenario) ---
 type ScenarioKey = "optimaal" | "plus20" | "min20" | "advies";
 const SCENARIO_LABELS: Record<ScenarioKey, string> = {
@@ -2214,11 +2240,14 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
                 <div className="text-xl font-bold text-gray-800 tabular-nums">
                   {euroFmt.format(tot)}
                 </div>
-                {sc.samenvatting && (
-                  <p className="text-[11px] text-gray-600 leading-snug mt-1.5 whitespace-pre-wrap">
-                    {sc.samenvatting}
-                  </p>
-                )}
+                {(() => {
+                  const cleaned = sanitizeAdviesText(sc.samenvatting);
+                  return cleaned ? (
+                    <p className="text-[11px] text-gray-600 leading-snug mt-1.5 whitespace-pre-wrap">
+                      {cleaned}
+                    </p>
+                  ) : null;
+                })()}
               </div>
             );
           })}
@@ -2240,12 +2269,18 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
                 Kies scenario &ldquo;{SCENARIO_LABELS[echtAanbevolen]}&rdquo; — totaal {euroFmt.format(totaalAanbevolen)}
                 {aanbevolenScen.aantalJaren ? ` over ${aanbevolenScen.aantalJaren} jaar` : ""}
               </h3>
-              {aanbevolenScen.samenvatting && (
-                <p className="text-sm text-gray-800 leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
-              )}
-              {aanbevolenScen.prioriteitAdvies && (
-                <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
-              )}
+              {(() => {
+                const samen = sanitizeAdviesText(aanbevolenScen.samenvatting);
+                return samen ? (
+                  <p className="text-sm text-gray-800 leading-relaxed mt-2 whitespace-pre-wrap">{samen}</p>
+                ) : null;
+              })()}
+              {(() => {
+                const adv = sanitizeAdviesText(aanbevolenScen.prioriteitAdvies);
+                return adv ? (
+                  <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{adv}</p>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
@@ -2366,7 +2401,7 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
               scenario={key}
               total={totaalText}
               meta={metaText}
-              summary={s.samenvatting}
+              summary={sanitizeAdviesText(s.samenvatting) || undefined}
             >
               {s.totaalGeraamdEuro !== undefined && (
                 <p className="text-xs text-gray-500 mb-3">
@@ -2455,14 +2490,18 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
                 </div>
               )}
 
-              {s.prioriteitAdvies && (
-                <div className={`mt-3 p-3 rounded-lg ${kleur.bg} border border-gray-200`}>
-                  <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
-                    Prioriteitadvies (outside-in volgorde)
+              {(() => {
+                const cleanedAdv = sanitizeAdviesText(s.prioriteitAdvies);
+                if (!cleanedAdv) return null;
+                return (
+                  <div className={`mt-3 p-3 rounded-lg ${kleur.bg} border border-gray-200`}>
+                    <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
+                      Prioriteitadvies (outside-in volgorde)
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{cleanedAdv}</p>
                   </div>
-                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{s.prioriteitAdvies}</p>
-                </div>
-              )}
+                );
+              })()}
             </ScenarioCollapse>
           );
         })}
@@ -2581,7 +2620,7 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
               scenario={key}
               total={totaalText}
               meta={metaText}
-              summary={s.samenvatting}
+              summary={sanitizeAdviesText(s.samenvatting) || undefined}
             >
               {/* Domein-overzicht (totalen per domein) */}
               <div className="overflow-hidden border border-gray-200 rounded-lg">
@@ -2799,8 +2838,24 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
 
   return (
     <>
+      {/* Component-uitleg — kort, dient als opmaat voor de bevindingen daaronder */}
+      <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-3xl">
+        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+          De totale programmakosten kennen twee componenten:
+        </p>
+        <ul className="text-sm text-gray-700 space-y-1">
+          <li><strong>Out-of-pocket</strong> &mdash; externe uitgaven per inspanning (licenties, inkoop, externe inhuur).</li>
+          <li><strong>Interne uren</strong> &mdash; tijd van Cito-medewerkers, vermenigvuldigd met het interne uurtarief tot interne kosten.</li>
+        </ul>
+        <p className="text-sm text-gray-700 mt-2">
+          Onderstaande vier scenario&apos;s zijn gelijkwaardig doorgerekend. De stuurgroep kiest hieruit het
+          scenario waarmee de programmabegroting verder wordt vastgezet.
+        </p>
+      </div>
+
+      {/* Bevindingen — vergelijking tussen de scenario's en de aanbeveling */}
       {rows.length > 0 && minRij && maxRij && advRij && (
-        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-3xl">
           <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
           <p className="text-sm text-gray-800 leading-relaxed mb-2">
             Het totaaloverzicht voegt de out-of-pocket-raming (4.1) en de interne-uren-raming (4.2) samen tot
@@ -2824,8 +2879,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
             {euroFmt.format(advRij.interneKosten)} interne uren). Dit is het scenario dat de stuurgroep is
             geadviseerd, omdat het de inhoudelijke randvoorwaarden van het programma respecteert
             (cultuurverankering vraagt minimaal drie jaar adoptietijd, CRM-implementatie vraagt vier jaar
-            voor implementatie + adoptie + datakwaliteit-borging) zonder het Cito-jaarbudget onnodig te
-            laag te belasten of momentum te verliezen.
+            voor implementatie + adoptie + datakwaliteit-borging) zonder dat momentum verloren gaat.
           </p>
           <p className="text-sm text-gray-800 leading-relaxed">
             <strong>Waar zit het verschil tussen de scenario&apos;s in?</strong> Sneller (+20%) betekent meer
@@ -2835,27 +2889,14 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
           </p>
         </div>
       )}
-      <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-prose">
-        <p className="text-sm text-gray-700 leading-relaxed mb-2">
-          De totale programmakosten kennen twee componenten:
-        </p>
-        <ul className="text-sm text-gray-700 space-y-1">
-          <li><strong>Out-of-pocket</strong> &mdash; externe uitgaven per inspanning (licenties, inkoop, externe inhuur).</li>
-          <li><strong>Interne uren</strong> &mdash; tijd van Cito-medewerkers, vermenigvuldigd met het interne uurtarief tot interne kosten.</li>
-        </ul>
-        <p className="text-sm text-gray-700 mt-2">
-          Onderstaande vier scenario&apos;s zijn gelijkwaardig doorgerekend. De stuurgroep kiest hieruit het
-          scenario waarmee de programmabegroting verder wordt vastgezet.
-        </p>
-      </div>
 
       {/* 4 scenario-tabellen onder elkaar — geen 'actief' state */}
       <div className="space-y-5">
         {scenarioOrder.map((key) => {
           const r = rows.find((x) => x.key === key);
           const kleur = SCENARIO_KLEUR[key];
-          const motivatie = begroting?.scenarios?.[key]?.samenvatting?.trim() ?? "";
-          const advies = begroting?.scenarios?.[key]?.prioriteitAdvies?.trim() ?? "";
+          const motivatie = sanitizeAdviesText(begroting?.scenarios?.[key]?.samenvatting);
+          const advies = sanitizeAdviesText(begroting?.scenarios?.[key]?.prioriteitAdvies);
           if (!r) {
             return (
               <div key={key} className="border border-gray-200 bg-gray-50 rounded-lg p-4">
