@@ -210,7 +210,6 @@ function ScenarioCollapse({
             <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst}`}>
               Scenario &mdash; {SCENARIO_LABELS[scenario]}
             </div>
-            {summary && <p className="text-sm leading-relaxed mt-0.5 truncate">{summary}</p>}
           </div>
         </div>
         <div className={`text-right text-xs ${kleur.bannerTekst} shrink-0 tabular-nums`}>
@@ -218,7 +217,15 @@ function ScenarioCollapse({
           {meta && <div className="opacity-80">{meta}</div>}
         </div>
       </summary>
-      <div className="p-4 bg-white">{children}</div>
+      <div className="p-4 bg-white">
+        {/* Volledige samenvatting komt mee bij uitklappen — niet meer truncated in de banner */}
+        {summary && (
+          <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap max-w-3xl">
+            {summary}
+          </p>
+        )}
+        {children}
+      </div>
     </details>
   );
 }
