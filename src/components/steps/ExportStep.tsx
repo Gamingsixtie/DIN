@@ -1731,7 +1731,129 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                   </table>
                 </div>
               )}
-              {(motivatie || advies) && (
+              {/* Domein-breakdown + duurste inspanningen + automatische toelichting */}
+              {(() => {
+                type Insp = {
+                  inspanningTitel: string;
+                  domein: EffortDomain;
+                  totaalEuro: number;
+                  percentageTotaal: number;
+                  motivatie: string;
+                };
+                type BegrScenarioRich = { inspanningen?: Insp[] };
+                type BegrAdvRich = { scenarios?: Partial<Record<ScenarioKey, BegrScenarioRich | null>> };
+                type Stap4Rich = { begrotingAdvies?: BegrAdvRich };
+                const stap4Rich = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Rich } | undefined)?.stap4;
+                const inspanningen: Insp[] = stap4Rich?.begrotingAdvies?.scenarios?.[key]?.inspanningen ?? [];
+                if (inspanningen.length === 0) return null;
+
+                const domeinen: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+                const perDomein = domeinen.map((d) => {
+                  const items = inspanningen.filter((i) => i.domein === d);
+                  const totaal = items.reduce((s, i) => s + i.totaalEuro, 0);
+                  return { domein: d, totaal, count: items.length };
+                });
+                const grandTotalOop = perDomein.reduce((s, d) => s + d.totaal, 0) || 1;
+
+                const sortedInsp = [...inspanningen].sort((a, b) => b.totaalEuro - a.totaalEuro);
+                const top = sortedInsp.slice(0, Math.min(3, sortedInsp.length));
+                const topDuurste = top[0];
+                const topDomein = [...perDomein].sort((a, b) => b.totaal - a.totaal)[0];
+
+                const autoToelichting = topDuurste && topDomein
+                  ? `Het grootste kostendrijver is "${topDuurste.inspanningTitel}" (${euroFmt.format(topDuurste.totaalEuro)}, ${Math.round((topDuurste.totaalEuro / grandTotalOop) * 100)}% van de out-of-pocket-uitgaven). Het domein ${DOMAIN_LABELS[topDomein.domein]} trekt het grootste deel van de externe budgetten (${euroFmt.format(topDomein.totaal)}, ${Math.round((topDomein.totaal / grandTotalOop) * 100)}%).`
+                  : "";
+
+                return (
+                  <>
+                    {/* Domein-verdeling */}
+                    <div className="px-4 py-3 bg-white border-t border-gray-100">
+                      <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-2`}>
+                        Verdeling over de vier inspanningsdomeinen
+                      </div>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-100">
+                            <th className="text-left px-2 py-1 font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Domein</th>
+                            <th className="text-right px-2 py-1 font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Inspanningen</th>
+                            <th className="text-right px-2 py-1 font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Out-of-pocket</th>
+                            <th className="text-right px-2 py-1 font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Aandeel</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {perDomein.map((d) => {
+                            const dc = DOMAIN_COLORS[d.domein];
+                            const pct = Math.round((d.totaal / grandTotalOop) * 100);
+                            return (
+                              <tr key={d.domein} className="border-b border-gray-50 last:border-b-0">
+                                <td className="px-2 py-1.5">
+                                  <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5 whitespace-nowrap`}>
+                                    {DOMAIN_LABELS[d.domein]}
+                                  </span>
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-700 tabular-nums">{d.count}</td>
+                                <td className="px-2 py-1.5 text-right text-gray-800 font-medium tabular-nums">{euroFmt.format(d.totaal)}</td>
+                                <td className="px-2 py-1.5 text-right text-gray-600 tabular-nums">{pct}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Top duurste inspanningen */}
+                    {top.length > 0 && (
+                      <div className="px-4 py-3 bg-white border-t border-gray-100">
+                        <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-2`}>
+                          Grootste kostendrijvers in dit scenario
+                        </div>
+                        <ol className="space-y-2">
+                          {top.map((insp, i) => {
+                            const dc = DOMAIN_COLORS[insp.domein];
+                            return (
+                              <li key={i} className="flex items-start gap-3">
+                                <span className="text-sm font-bold text-cito-blue/70 tabular-nums w-5 shrink-0">{i + 1}.</span>
+                                <div className="flex-1">
+                                  <div className="flex items-baseline gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-800">{insp.inspanningTitel}</span>
+                                    <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5`}>
+                                      {DOMAIN_LABELS[insp.domein]}
+                                    </span>
+                                    <span className="text-sm text-cito-blue font-semibold tabular-nums">
+                                      {euroFmt.format(insp.totaalEuro)}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500 tabular-nums">
+                                      ({Math.round((insp.totaalEuro / grandTotalOop) * 100)}% van out-of-pocket)
+                                    </span>
+                                  </div>
+                                  {insp.motivatie && (
+                                    <p className="text-xs text-gray-600 leading-relaxed mt-0.5 italic">{insp.motivatie}</p>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* Toelichting */}
+                    <div className="px-4 py-3 bg-white border-t border-gray-100">
+                      <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
+                        Toelichting bij dit scenario
+                      </div>
+                      {autoToelichting && (
+                        <p className="text-xs text-gray-700 leading-relaxed mb-2">{autoToelichting}</p>
+                      )}
+                      {motivatie && <p className="text-xs text-gray-700 leading-relaxed mb-1 whitespace-pre-wrap">{motivatie}</p>}
+                      {advies && <p className="text-xs text-gray-600 italic leading-relaxed whitespace-pre-wrap">{advies}</p>}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Fallback: alleen statische motivatie als er geen inspanningen-data is */}
+              {(motivatie || advies) && !((session.crossAnalyseWizard?.stepResults as { stap4?: { begrotingAdvies?: { scenarios?: Partial<Record<ScenarioKey, { inspanningen?: unknown[] } | null>> } } } | undefined)?.stap4?.begrotingAdvies?.scenarios?.[key]?.inspanningen?.length) && (
                 <div className="px-4 py-3 bg-white border-t border-gray-100">
                   <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
                     Toelichting bij dit scenario
