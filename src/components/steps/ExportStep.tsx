@@ -2658,33 +2658,34 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                 </table>
               </div>
 
-              {/* Per domein: per jaar de rol-tabel — standaard ingeklapt voor compactheid; in print volledig open via print:open */}
+              {/* Per domein: per jaar de rol-tabel — direct zichtbaar wanneer het scenario uitklapt
+                  (geen extra geneste collapse meer). De motivatie staat onder de domein-header zodat
+                  hij automatisch meekomt met de scenario-uitklap. */}
               {s.domeinen.map((d) => {
                 const dc = DOMAIN_COLORS[d.domein];
                 const jarenMetUren = d.jaren.filter(jaarMetUren);
                 if ((d.totaalUren ?? 0) === 0 && jarenMetUren.length === 0) return null;
                 return (
-                  <details
+                  <div
                     key={d.domein}
-                    className={`group border ${dc.border} ${dc.bg} rounded-lg p-3 print:open`}
+                    className={`border ${dc.border} ${dc.bg} rounded-lg p-3`}
                   >
-                    <summary className="flex items-baseline justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-gray-400 text-xs print:hidden transition-transform group-open:rotate-90">▸</span>
-                        <div>
+                    <div className="flex items-baseline justify-between gap-3 mb-3">
+                      <div className="min-w-0">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span className={`text-[11px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[d.domein]}</span>
-                          <span className="ml-2 text-[11px] text-gray-500">{jarenMetUren.length} jaar met inzet</span>
-                          {d.motivatie && (
-                            <p className="text-xs text-gray-600 italic leading-relaxed mt-0.5 max-w-prose">{d.motivatie}</p>
-                          )}
+                          <span className="text-[11px] text-gray-500">{jarenMetUren.length} jaar met inzet</span>
                         </div>
+                        {d.motivatie && (
+                          <p className="text-xs text-gray-600 italic leading-relaxed mt-0.5 max-w-prose">{d.motivatie}</p>
+                        )}
                       </div>
                       <div className="text-right text-xs tabular-nums shrink-0">
                         <div className="font-semibold text-gray-800">{(d.totaalUren ?? 0).toLocaleString("nl-NL")} u</div>
                         <div className="text-gray-500">€ {(d.totaalKosten ?? 0).toLocaleString("nl-NL")}</div>
                       </div>
-                    </summary>
-                    <div className="space-y-2 mt-3">
+                    </div>
+                    <div className="space-y-2">
                       {jarenMetUren.map((jr) => (
                         <div key={jr.jaar} className="bg-white border border-gray-100 rounded p-2.5">
                           <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -2723,7 +2724,7 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                         </div>
                       ))}
                     </div>
-                  </details>
+                  </div>
                 );
               })}
 
