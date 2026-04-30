@@ -1824,38 +1824,59 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het begrotingsadvies.</p>;
   }
 
-  // --- Auto-bevindingen voor 4.1 ---
+  // --- Auto-bevindingen voor 4.1: substantiële, business-plan-stijl uitleg ---
   const advScen = begroting.scenarios?.advies ?? begroting.scenarios?.optimaal ?? null;
   const refInsp = advScen?.inspanningen ?? [];
   const refTotEur = refInsp.reduce((s, i) => s + i.totaalEuro, 0);
-  const sortedInsp = [...refInsp].sort((a, b) => b.totaalEuro - a.totaalEuro);
-  const top3 = sortedInsp.slice(0, 3);
+  const aantalJaren41 = advScen?.aantalJaren ?? 0;
+  const sortedInspByRank = [...refInsp].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
+  const sortedInspByEur = [...refInsp].sort((a, b) => b.totaalEuro - a.totaalEuro);
+  const duurste = sortedInspByEur[0];
   const domeinTotalen: Record<EffortDomain, number> = { cultuur: 0, mens: 0, processen: 0, data_systemen: 0 };
   refInsp.forEach((i) => {
     domeinTotalen[i.domein] += i.totaalEuro;
   });
-  const dominantDomein = (Object.entries(domeinTotalen) as [EffortDomain, number][])
-    .sort((a, b) => b[1] - a[1])[0];
   const euroFmt41 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-
-  const bevindingen41 = refInsp.length > 0 && refTotEur > 0
-    ? `Het out-of-pocket-budget wordt grotendeels gedragen door drie inspanningen: ${top3
-        .map((i) => `${i.inspanningTitel} (${euroFmt41.format(i.totaalEuro)}, ${Math.round((i.totaalEuro / refTotEur) * 100)}%)`)
-        .join("; ")}. Het domein ${DOMAIN_LABELS[dominantDomein[0]]} trekt het grootste deel van de externe budgetten (${Math.round((dominantDomein[1] / refTotEur) * 100)}%). De jaartabellen per scenario hieronder tonen welke fase wanneer wordt gefinancierd.`
-    : "";
+  const refLabel = begroting.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal;
 
   return (
     <>
-      {bevindingen41 && (
-        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
-          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
-          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen41}</p>
+      {refInsp.length > 0 && refTotEur > 0 && (
+        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            De out-of-pocket-raming volgt uit het begrotingsadvies van de cross-analyse-stap &ldquo;Optimaliseren&rdquo;. Per
+            geconsolideerde inspanning is een totaalbedrag bepaald, vervolgens uitgesmeerd over {aantalJaren41} jaar
+            ({begroting.startJaar ?? "—"}–{(begroting.startJaar ?? new Date().getFullYear()) + aantalJaren41 - 1}) met een fase-aanduiding (bv. opzet, opbouw,
+            verankeren) en een activiteit per jaar. Het totaal voor het scenario &ldquo;{refLabel}&rdquo; bedraagt {euroFmt41.format(refTotEur)}.
+          </p>
+          {duurste && (
+            <p className="text-sm text-gray-800 leading-relaxed mb-2">
+              <strong>Grootste post:</strong> {duurste.inspanningTitel} ({euroFmt41.format(duurste.totaalEuro)},{" "}
+              {Math.round((duurste.totaalEuro / refTotEur) * 100)}% van het out-of-pocket-budget).{" "}
+              {duurste.motivatie}
+            </p>
+          )}
+          {sortedInspByRank.length > 0 && (
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <p className="mb-1"><strong>Volgorde van investeren (rationale uit het begrotingsadvies):</strong></p>
+              <ol className="list-decimal pl-5 space-y-1">
+                {sortedInspByRank.slice(0, 4).map((insp) => (
+                  <li key={`${insp.domein}-${insp.volgorde.rank}`} className="leading-snug">
+                    <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>{" "}
+                    ({euroFmt41.format(insp.totaalEuro)}, {insp.percentageTotaal}%):{" "}
+                    <span className="text-gray-700">{insp.volgorde.reden}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       )}
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
-        Out-of-pocket-uitgaven (externe kosten zoals licenties, inkoop en externe inhuur) per cross-sectorale
-        inspanning, doorgerekend over de programma-jaren. Per scenario zie je de meerjarige verdeling met
-        fase-aanduiding en activiteit per jaar.
+        Per scenario hieronder de meerjarige verdeling per inspanning: bedrag per jaar, percentage, fase en
+        activiteit. De ranking links is de aanbevolen volgorde van investeren — de motivaties hierboven leggen uit
+        waarom precies in die volgorde.
       </p>
 
       <div className="space-y-6">
@@ -2005,27 +2026,55 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het interne-uren-advies.</p>;
   }
 
-  // --- Auto-bevindingen voor 4.2 ---
+  // --- Auto-bevindingen voor 4.2: substantieel + per domein ---
   const refUrenScen = interneUren.scenarios?.advies ?? interneUren.scenarios?.optimaal ?? null;
   const totUren42 = refUrenScen?.totaalUren ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0) ?? 0;
   const totKost42 = refUrenScen?.totaalKosten ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0) ?? 0;
-  const dominantUrenDom = refUrenScen?.domeinen
-    .slice()
-    .sort((a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0))[0];
   const aantalJaren42 = refUrenScen?.aantalJaren ?? 0;
+  const startJaar42 = refUrenScen?.startJaar ?? new Date().getFullYear();
   const euroFmt42 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const fteFmt = (uren: number) => Math.round(uren / 1320); // ~1320 productieve uur per FTE per jaar
-
-  const bevindingen42 = totUren42 > 0 && refUrenScen
-    ? `Over ${aantalJaren42} jaar vraagt het programma in totaal ${totUren42.toLocaleString("nl-NL")} uur Cito-inzet (${euroFmt42.format(totKost42)}). Dat staat — verspreid over ${aantalJaren42} jaar — gelijk aan ongeveer ${fteFmt(totUren42 / aantalJaren42)} FTE structureel naast de reguliere lijn. Het domein ${dominantUrenDom ? DOMAIN_LABELS[dominantUrenDom.domein] : "—"} vraagt de hoogste interne inzet (${dominantUrenDom?.totaalUren?.toLocaleString("nl-NL") ?? 0} u, ${euroFmt42.format(dominantUrenDom?.totaalKosten ?? 0)}). Per domein is hieronder uitgewerkt welke functierollen wanneer worden ingezet.`
-    : "";
+  const fteFmt = (uren: number) => (uren / 1320); // ~1320 productieve uur per FTE per jaar
+  const refLabel42 = interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal;
+  const sortedDom = refUrenScen?.domeinen
+    ? [...refUrenScen.domeinen].sort((a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0))
+    : [];
 
   return (
     <>
-      {bevindingen42 && (
-        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
-          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
-          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen42}</p>
+      {totUren42 > 0 && refUrenScen && (
+        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            De interne-uren-raming volgt uit cross-analyse-stap &ldquo;Interne uren&rdquo; en is voor dezelfde {aantalJaren42}
+            -jarige programmaperiode opgesteld als de out-of-pocket-raming hierboven ({startJaar42}–{startJaar42 + aantalJaren42 - 1}). Voor het scenario
+            &ldquo;{refLabel42}&rdquo; vraagt het programma in totaal <strong>{totUren42.toLocaleString("nl-NL")} uur</strong> Cito-inzet
+            ({euroFmt42.format(totKost42)}). Verspreid over {aantalJaren42} jaar staat dit gelijk aan ongeveer{" "}
+            <strong>{fteFmt(totUren42 / aantalJaren42).toFixed(1)} FTE structureel</strong> bovenop de reguliere lijn (uitgaand
+            van 1320 productieve uur per FTE per jaar).
+          </p>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            <strong>Waarom {aantalJaren42} jaar?</strong> Hetzelfde tijdsbestek als de out-of-pocket-raming, omdat interne
+            uren en externe kosten dezelfde realisatieperiode bedienen. Cultuurverankering en CRM-adoptie vragen die
+            doorlooptijd; sneller (drie jaar) zou tot minder oefenmomenten leiden, langzamer (vijf jaar) zou momentum
+            verliezen.
+          </p>
+          {sortedDom.length > 0 && (
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <p className="mb-1"><strong>Wat zit er in de uren per domein?</strong></p>
+              <ol className="list-decimal pl-5 space-y-1">
+                {sortedDom.map((d) => {
+                  const aandeel = totUren42 > 0 ? Math.round(((d.totaalUren ?? 0) / totUren42) * 100) : 0;
+                  return (
+                    <li key={d.domein} className="leading-snug">
+                      <strong>{DOMAIN_LABELS[d.domein]}</strong> — {(d.totaalUren ?? 0).toLocaleString("nl-NL")} u (
+                      {aandeel}%, {euroFmt42.format(d.totaalKosten ?? 0)}):{" "}
+                      <span className="text-gray-700">{d.motivatie || "geen motivatie beschikbaar"}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
         </div>
       )}
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
@@ -2250,25 +2299,52 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
     });
   }
 
-  // --- Auto-bevindingen voor 4.3 ---
+  // --- Auto-bevindingen voor 4.3: scherpe conclusie ---
   const totalen43 = rows.map((r) => r.totaalGeraamd);
   const minTot = Math.min(...totalen43);
   const maxTot = Math.max(...totalen43);
   const minRij = rows.find((r) => r.totaalGeraamd === minTot);
   const maxRij = rows.find((r) => r.totaalGeraamd === maxTot);
   const advRij = rows.find((r) => r.key === "advies") ?? rows.find((r) => r.key === "optimaal");
-  const spread = maxTot > 0 ? Math.round(((maxTot - minTot) / minTot) * 100) : 0;
-
-  const bevindingen43 = rows.length > 0 && minRij && maxRij
-    ? `De vier scenario's verschillen ${euroFmt.format(maxTot - minTot)} (${spread}%) van elkaar — van ${euroFmt.format(minTot)} (${SCENARIO_LABELS[minRij.key]}) tot ${euroFmt.format(maxTot)} (${SCENARIO_LABELS[maxRij.key]}). ${advRij ? `Het geadviseerde scenario "${SCENARIO_LABELS[advRij.key]}" komt uit op ${euroFmt.format(advRij.totaalGeraamd)} (${euroFmt.format(advRij.outOfPocket)} out-of-pocket + ${euroFmt.format(advRij.interneKosten)} interne uren). ` : ""}Het verschil tussen sneller en langzamer wordt vooral verklaard door de adoptie- en doorlooptijd: meer tempo betekent meer parallelle inzet (extra interne uren) plus snellere licentie-ramp-up (extra out-of-pocket).`
-    : "";
+  const spread = maxTot > 0 && minTot > 0 ? Math.round(((maxTot - minTot) / minTot) * 100) : 0;
+  const advLabel = advRij ? SCENARIO_LABELS[advRij.key] : "—";
 
   return (
     <>
-      {bevindingen43 && (
-        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
-          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
-          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen43}</p>
+      {rows.length > 0 && minRij && maxRij && advRij && (
+        <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15 max-w-prose">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            Het totaaloverzicht voegt de out-of-pocket-raming (4.1) en de interne-uren-raming (4.2) samen tot
+            de integrale programmakosten per scenario. Ieder scenario rekent met dezelfde programma-inhoud,
+            maar verschilt in tempo, fasering en jaarbudget.
+          </p>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            <strong>De vier scenario&apos;s in cijfers:</strong>{" "}
+            {rows
+              .map(
+                (r) =>
+                  `${SCENARIO_LABELS[r.key]} ${euroFmt.format(r.totaalGeraamd)}`
+              )
+              .join(" · ")}
+            . De spread tussen het goedkoopste ({SCENARIO_LABELS[minRij.key]}) en duurste ({SCENARIO_LABELS[maxRij.key]})
+            scenario is {euroFmt.format(maxTot - minTot)} ({spread}%).
+          </p>
+          <p className="text-sm text-gray-800 leading-relaxed mb-2">
+            <strong>Conclusie en aanbeveling:</strong> Het scenario &ldquo;{advLabel}&rdquo; komt uit op{" "}
+            {euroFmt.format(advRij.totaalGeraamd)} ({euroFmt.format(advRij.outOfPocket)} out-of-pocket +{" "}
+            {euroFmt.format(advRij.interneKosten)} interne uren). Dit is het scenario dat de stuurgroep is
+            geadviseerd, omdat het de inhoudelijke randvoorwaarden van het programma respecteert
+            (cultuurverankering vraagt minimaal drie jaar adoptietijd, CRM-implementatie vraagt vier jaar
+            voor implementatie + adoptie + datakwaliteit-borging) zonder het Cito-jaarbudget onnodig te
+            laag te belasten of momentum te verliezen.
+          </p>
+          <p className="text-sm text-gray-800 leading-relaxed">
+            <strong>Waar zit het verschil tussen de scenario&apos;s in?</strong> Sneller (+20%) betekent meer
+            parallelle inzet en kortere doorlooptijd, dus extra interne uren én snellere out-of-pocket-ramp-up;
+            langzamer (−20%) rekt de doorlooptijd op met minder uren-piek per jaar maar meer dubbele
+            licentie-jaren. Het scenario &ldquo;{advLabel}&rdquo; balanceert tempo, capaciteit en risico.
+          </p>
         </div>
       )}
       <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-prose">
