@@ -152,22 +152,16 @@ export function deriveProgrammaorganisatie(
   }
 
   // ---- 1) STUURGROEP uit dossier.eigenaar (collectief) ----
-  // Filter PM en IT-VT-directeur uit eventuele bestaande stuurgroep — die horen er niet in.
+  // Filter PM uit eventuele bestaande stuurgroep — programmamanager hoort niet
+  // formeel in de stuurgroep (geen stemrecht, eigen rol-bucket).
+  // Directeur Cito en Directeur IV/IT BLIJVEN als ze er staan — die horen erin.
   const pmNaamNorm = normName(current.programmamanager?.naam);
   const pmFirstName = firstNameKey(current.programmamanager?.naam);
-  const isItVtDirecteur = (r: ProgrammaRol) => {
-    const fn = (r.functie ?? "").toLowerCase();
-    const rolL = (r.rol ?? "").toLowerCase();
-    return rolL.includes("it-vt") || rolL.includes("iv/it") || rolL.includes("iv-it") ||
-      fn.includes("it-vt") || fn.includes("iv/it") || fn.includes("iv-it") ||
-      (rolL.includes("directeur") && (rolL.includes("it") || rolL.includes("iv")));
-  };
   const stuurgroepGefilterd = (current.stuurgroep ?? []).filter((r) => {
     const naam = normName(r.naam);
     const fn = firstNameKey(r.naam);
     if (pmNaamNorm && naam === pmNaamNorm) return false;
-    if (pmFirstName && fn === pmFirstName) return false;
-    if (isItVtDirecteur(r)) return false;
+    if (pmFirstName && fn && fn === pmFirstName) return false;
     return true;
   });
 
