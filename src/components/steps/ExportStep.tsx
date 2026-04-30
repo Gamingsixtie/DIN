@@ -13,6 +13,8 @@ import {
 } from "@/components/steps/GovernanceStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
+import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
+import type { Stap2Result, Stap4Result, Stap5Result } from "@/lib/types";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -1582,9 +1584,40 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
     );
   }
 
-  const actief: ScenarioKey = stap8?.actiefScenario ?? "optimaal";
-  const actiefMotivatie = begroting?.scenarios?.[actief]?.samenvatting ?? "";
-  const actiefAdvies = begroting?.scenarios?.[actief]?.prioriteitAdvies ?? "";
+  // Helper: bouw per-jaar regels op voor een scenario uit beschikbare bronnen
+  type PerJaar = { jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number };
+  type Stap8DetailExt = { scenarios?: Partial<Record<ScenarioKey, { perJaar?: PerJaar[] } | null>> };
+  type BegrJaar = { jaar: number; euro: number };
+  type BegrScenarioExt = { totalenPerJaar?: BegrJaar[] };
+  type BegrAdvExt = { scenarios?: Partial<Record<ScenarioKey, BegrScenarioExt | null>> };
+  type Stap4Ext = { begrotingAdvies?: BegrAdvExt; stap7InterneUren?: { scenarios?: Partial<Record<ScenarioKey, { totalenPerJaar?: { jaar: number; uren: number; kosten: number }[] } | null>> } };
+
+  const stap8Detail = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8DetailExt } | undefined)?.stap8;
+  const stap4Ext = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Ext } | undefined)?.stap4;
+
+  function jarenForScenario(key: ScenarioKey): PerJaar[] {
+    const fromStap8 = stap8Detail?.scenarios?.[key]?.perJaar ?? [];
+    if (fromStap8.length > 0) return fromStap8;
+    const begrPerJaar = stap4Ext?.begrotingAdvies?.scenarios?.[key]?.totalenPerJaar ?? [];
+    const urenPerJaar = stap4Ext?.stap7InterneUren?.scenarios?.[key]?.totalenPerJaar ?? [];
+    if (begrPerJaar.length === 0 && urenPerJaar.length === 0) return [];
+    const alleJaren = Array.from(
+      new Set([...begrPerJaar.map((b) => b.jaar), ...urenPerJaar.map((u) => u.jaar)])
+    ).sort();
+    return alleJaren.map((jaar) => {
+      const b = begrPerJaar.find((x) => x.jaar === jaar);
+      const u = urenPerJaar.find((x) => x.jaar === jaar);
+      const outOfPocket = b?.euro ?? 0;
+      const interneKosten = u?.kosten ?? 0;
+      return {
+        jaar,
+        outOfPocket,
+        interneUren: u?.uren ?? 0,
+        interneKosten,
+        totaal: outOfPocket + interneKosten,
+      };
+    });
+  }
 
   return (
     <>
@@ -1597,161 +1630,120 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
           <li><strong>Interne uren</strong> &mdash; Cito-medewerkers per domein, bepaald in <em>Stap 7 Interne uren</em> (uren × uurtarief).</li>
         </ul>
         <p className="text-sm text-gray-700 mt-2">
-          Hieronder staan vier doorgerekende scenario&apos;s. Het scenario met &ldquo;(actief)&rdquo; is de basis voor de programmabegroting.
+          Hieronder staan alle vier de doorgerekende scenario&apos;s, elk met een eigen jaardetail-tabel. De
+          stuurgroep kiest hieruit het scenario voor de programmabegroting.
         </p>
       </div>
 
-      {/* 4-scenario kaarten */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      {/* 4 scenario-tabellen onder elkaar — geen 'actief' state */}
+      <div className="space-y-5">
         {scenarioOrder.map((key) => {
           const r = rows.find((x) => x.key === key);
           const kleur = SCENARIO_KLEUR[key];
-          const isActief = key === actief;
+          const motivatie = begroting?.scenarios?.[key]?.samenvatting?.trim() ?? "";
+          const advies = begroting?.scenarios?.[key]?.prioriteitAdvies?.trim() ?? "";
           if (!r) {
             return (
-              <div key={key} className="border-2 border-gray-200 bg-gray-50 rounded-lg p-3">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{SCENARIO_LABELS[key]}</div>
-                <div className="text-sm text-gray-500 italic mt-2">— geen data —</div>
+              <div key={key} className="border border-gray-200 bg-gray-50 rounded-lg p-4">
+                <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.accent} mb-1`}>
+                  {SCENARIO_LABELS[key]}
+                </div>
+                <p className="text-sm text-gray-500 italic">Geen data beschikbaar voor dit scenario.</p>
               </div>
             );
           }
+          const jaren = jarenForScenario(key);
+          const totOop = jaren.reduce((s, j) => s + j.outOfPocket, 0);
+          const totInt = jaren.reduce((s, j) => s + j.interneKosten, 0);
+          const totUren = jaren.reduce((s, j) => s + j.interneUren, 0);
           return (
-            <div
-              key={key}
-              className={`border-2 rounded-lg p-3 ${isActief ? `${kleur.bg} ring-2 ring-offset-1 ${kleur.ring}` : "border-gray-200 bg-white"}`}
-            >
-              <div className={`text-[10px] font-bold uppercase tracking-wider ${kleur.accent}`}>
-                {SCENARIO_LABELS[key]}
-                {isActief && <span className="ml-1 text-[9px]">(actief)</span>}
-              </div>
-              <div className="text-2xl font-bold text-gray-800 mt-1 tabular-nums">
-                € {(r.totaalGeraamd / 1_000_000).toFixed(2)}M
-              </div>
-              <div className="text-[11px] text-gray-500 mt-2 space-y-0.5 tabular-nums">
-                <div>Out-of-pocket: {euroFmt.format(r.outOfPocket)}</div>
+            <div key={key} className={`border-2 rounded-lg overflow-hidden ${kleur.bg.replace("bg-", "border-").replace("-50", "-200")}`}>
+              <div className={`${kleur.bg} px-4 py-3 flex items-baseline justify-between gap-3`}>
                 <div>
-                  Interne uren: {euroFmt.format(r.interneKosten)}
-                  {r.interneUrenTotaal > 0 && (
-                    <span className="text-gray-400 ml-1">({r.interneUrenTotaal.toLocaleString("nl-NL")} u)</span>
-                  )}
+                  <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.accent}`}>
+                    {SCENARIO_LABELS[key]}
+                  </div>
+                  <div className="text-2xl font-bold text-gray-800 mt-0.5 tabular-nums">
+                    {euroFmt.format(r.totaalGeraamd)}
+                  </div>
+                </div>
+                <div className="text-[11px] text-gray-700 text-right space-y-0.5 tabular-nums">
+                  <div>Out-of-pocket: <strong>{euroFmt.format(r.outOfPocket)}</strong></div>
+                  <div>
+                    Interne uren: <strong>{euroFmt.format(r.interneKosten)}</strong>
+                    {r.interneUrenTotaal > 0 && (
+                      <span className="text-gray-500 ml-1">({r.interneUrenTotaal.toLocaleString("nl-NL")} u)</span>
+                    )}
+                  </div>
                 </div>
               </div>
+              {jaren.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-white">
+                        <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Categorie</th>
+                        {jaren.map((j) => (
+                          <th key={j.jaar} className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                            {j.jaar}
+                          </th>
+                        ))}
+                        <th className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Totaal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                      <tr className="border-b border-gray-100">
+                        <td className="px-3 py-2">
+                          <div className="text-sm font-medium text-gray-700">Out-of-pocket</div>
+                          <div className="text-[10px] text-gray-500">Externe kosten (Stap 6)</div>
+                        </td>
+                        {jaren.map((j) => (
+                          <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">{euroFmt.format(j.outOfPocket)}</td>
+                        ))}
+                        <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">{euroFmt.format(totOop)}</td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="px-3 py-2">
+                          <div className="text-sm font-medium text-gray-700">Interne uren</div>
+                          <div className="text-[10px] text-gray-500">Cito-medewerkers (Stap 7)</div>
+                        </td>
+                        {jaren.map((j) => (
+                          <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">
+                            <div>{euroFmt.format(j.interneKosten)}</div>
+                            <div className="text-[10px] text-gray-400">{j.interneUren.toLocaleString("nl-NL")} u</div>
+                          </td>
+                        ))}
+                        <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">
+                          <div>{euroFmt.format(totInt)}</div>
+                          <div className="text-[10px] text-gray-400">{totUren.toLocaleString("nl-NL")} u</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-cito-blue bg-cito-blue/10">
+                        <td className="px-3 py-2 text-sm font-bold text-cito-blue">TOTAAL</td>
+                        {jaren.map((j) => (
+                          <td key={j.jaar} className="text-right px-3 py-2 font-bold text-cito-blue tabular-nums">{euroFmt.format(j.totaal)}</td>
+                        ))}
+                        <td className="text-right px-3 py-2 text-base font-bold text-cito-blue tabular-nums">{euroFmt.format(r.totaalGeraamd)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+              {(motivatie || advies) && (
+                <div className="px-4 py-3 bg-white border-t border-gray-100">
+                  <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
+                    Toelichting bij dit scenario
+                  </div>
+                  {motivatie && <p className="text-xs text-gray-700 leading-relaxed mb-1 whitespace-pre-wrap">{motivatie}</p>}
+                  {advies && <p className="text-xs text-gray-600 italic leading-relaxed whitespace-pre-wrap">{advies}</p>}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-
-      {/* Detail-tabel per jaar voor actief scenario */}
-      {(() => {
-        type PerJaar = Array<{ jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number }>;
-        type Stap8DetailExt = { scenarios?: Partial<Record<ScenarioKey, { perJaar?: PerJaar } | null>> };
-        const stap8Ext = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8DetailExt } | undefined)?.stap8;
-        const perJaarStap8 = stap8Ext?.scenarios?.[actief]?.perJaar ?? [];
-
-        type BegrJaar = { jaar: number; euro: number };
-        type BegrScenarioExt = { totalenPerJaar?: BegrJaar[] };
-        type BegrAdvExt = { scenarios?: Partial<Record<ScenarioKey, BegrScenarioExt | null>> };
-        type Stap4Ext = { begrotingAdvies?: BegrAdvExt };
-        const begrotingExt = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Ext } | undefined)?.stap4?.begrotingAdvies;
-        const begrPerJaar: BegrJaar[] = begrotingExt?.scenarios?.[actief]?.totalenPerJaar ?? [];
-
-        type UrenJaar = { jaar: number; uren: number; kosten: number };
-        type UrenScenarioExt = { totalenPerJaar?: UrenJaar[] };
-        type Stap7Ext = { scenarios?: Partial<Record<ScenarioKey, UrenScenarioExt | null>> };
-        const stap7Ext = (session.crossAnalyseWizard?.stepResults as { stap4?: { stap7InterneUren?: Stap7Ext } } | undefined)?.stap4?.stap7InterneUren;
-        const urenPerJaar: UrenJaar[] = stap7Ext?.scenarios?.[actief]?.totalenPerJaar ?? [];
-
-        const jaren = perJaarStap8.length > 0
-          ? perJaarStap8
-          : begrPerJaar.map((b) => {
-              const u = urenPerJaar.find((j) => j.jaar === b.jaar);
-              return {
-                jaar: b.jaar,
-                outOfPocket: b.euro,
-                interneUren: u?.uren ?? 0,
-                interneKosten: u?.kosten ?? 0,
-                totaal: b.euro + (u?.kosten ?? 0),
-              };
-            });
-
-        if (jaren.length === 0) return null;
-
-        return (
-          <div className="overflow-hidden border border-gray-200 rounded-lg mb-5">
-            <div className="px-3 py-2 bg-cito-blue/5 border-b border-gray-200 text-xs font-semibold text-cito-blue">
-              Jaardetail — {SCENARIO_LABELS[actief]}
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Categorie</th>
-                  {jaren.map((j) => (
-                    <th key={j.jaar} className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                      {j.jaar}
-                    </th>
-                  ))}
-                  <th className="text-right px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Totaal</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-gray-100">
-                  <td className="px-3 py-2">
-                    <div className="text-sm font-medium text-gray-700">Out-of-pocket</div>
-                    <div className="text-[10px] text-gray-500">Externe kosten (Stap 6 Optimaliseren)</div>
-                  </td>
-                  {jaren.map((j) => (
-                    <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">{euroFmt.format(j.outOfPocket)}</td>
-                  ))}
-                  <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">
-                    {euroFmt.format(jaren.reduce((s, j) => s + j.outOfPocket, 0))}
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-100">
-                  <td className="px-3 py-2">
-                    <div className="text-sm font-medium text-gray-700">Interne uren</div>
-                    <div className="text-[10px] text-gray-500">Cito-medewerkers (Stap 7 Interne uren)</div>
-                  </td>
-                  {jaren.map((j) => (
-                    <td key={j.jaar} className="text-right px-3 py-2 text-gray-800 tabular-nums">
-                      <div>{euroFmt.format(j.interneKosten)}</div>
-                      <div className="text-[10px] text-gray-400">{j.interneUren.toLocaleString("nl-NL")} u</div>
-                    </td>
-                  ))}
-                  <td className="text-right px-3 py-2 font-semibold text-cito-blue tabular-nums">
-                    <div>{euroFmt.format(jaren.reduce((s, j) => s + j.interneKosten, 0))}</div>
-                    <div className="text-[10px] text-gray-400">{jaren.reduce((s, j) => s + j.interneUren, 0).toLocaleString("nl-NL")} u</div>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-cito-blue bg-cito-blue/10">
-                  <td className="px-3 py-2 text-sm font-bold text-cito-blue">TOTAAL</td>
-                  {jaren.map((j) => (
-                    <td key={j.jaar} className="text-right px-3 py-2 font-bold text-cito-blue tabular-nums">{euroFmt.format(j.totaal)}</td>
-                  ))}
-                  <td className="text-right px-3 py-2 text-base font-bold text-cito-blue tabular-nums">
-                    {euroFmt.format(jaren.reduce((s, j) => s + j.totaal, 0))}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        );
-      })()}
-
-      {(actiefMotivatie || actiefAdvies) && (
-        <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200/70">
-          <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold mb-2">
-            Motivatie &mdash; waarom &ldquo;{SCENARIO_LABELS[actief]}&rdquo;?
-          </div>
-          {actiefMotivatie && (
-            <p className="text-sm text-gray-700 leading-relaxed mb-2 whitespace-pre-wrap">{actiefMotivatie}</p>
-          )}
-          {actiefAdvies && (
-            <p className="text-sm text-gray-700 leading-relaxed italic whitespace-pre-wrap">{actiefAdvies}</p>
-          )}
-        </div>
-      )}
     </>
   );
 }
@@ -2549,40 +2541,29 @@ export default function ExportStep() {
               <Chapter
                 number="3."
                 title="Cross-sectorale uitkomst — de kern"
-                intro="Vanuit de DIN-mapping is per sector (PO, VO, Zakelijk) een onafhankelijke keten van baten, vermogens en inspanningen opgesteld. Die sector-DIN's overlappen sterk: dezelfde vermogens komen op meerdere plekken terug. Hieronder is dat samengevoegd tot één cross-sectorale uitkomst — geconsolideerde inspanningen per domein, een doorgerekende begroting, en een uiteindelijke DIN die teruggebracht is naar elke sector."
+                intro="Het uiteindelijke DIN-netwerk uit de cross-analyse, één-op-één opgenomen. Per VermogenGelijkenisGroep zie je drie parallelle sector-vermogens (PO/VO/Zakelijk) en daaronder de hefboomlaag: welke gezamenlijke inspanningen per domein worden opgepakt — met titel, beschrijving, beargumentatie, vermogenImpact per sector en het volledige inspannings-dossier (eigenaar, leider, kostenraming, verwacht resultaat, randvoorwaarden)."
               >
-                <SubSection title="Het volledige DIN-netwerk in één oogopslag">
+                <SubSection title="Uiteindelijke DIN-netwerk (uit cross-analyse stap 9)">
                   <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
-                    Doelen → Baten → Vermogens → Inspanningen, gevisualiseerd als netwerk. De cijfers in de
-                    headers tonen de omvang per niveau; de pijlen tonen de redeneerrichting (van doel naar
-                    inspanning). Items met een &ldquo;gedeeld&rdquo;-markering komen in meerdere sectoren terug
-                    en zijn de hefbomen van het programma.
+                    Focusdoel → Baten per sector → Drieluik van gelijkende vermogens → Hefboomlaag per domein.
+                    Dit is exact de visualisatie en data uit de laatste stap van de cross-analyse-wizard.
                   </p>
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <DINNetworkGraph session={session} />
+                    <StapSectorVertaling
+                      session={session}
+                      result={(session.crossAnalyseWizard?.stepResults as { stap5?: Stap5Result } | undefined)?.stap5}
+                      stap2Result={(session.crossAnalyseWizard?.stepResults as { stap2?: Stap2Result } | undefined)?.stap2}
+                      stap4Result={(session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Result } | undefined)?.stap4}
+                    />
                   </div>
                 </SubSection>
-                <CrossAnalyseBlock session={session} />
-                <HefboomBlock session={session} />
-                <ExterneProjectenBlock session={session} />
-                <SubSection title="Geconsolideerde inspanningen — de optimalisatiestap">
-                  <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
-                    Sector-inspanningen die hetzelfde vermogen opbouwen zijn samengevoegd tot één
-                    cross-sectorale inspanning. Per inspanning is een dossier opgesteld met eigenaar, leider,
-                    kostenraming, verwacht resultaat en randvoorwaarden — overzichtelijk in tabelvorm hieronder.
-                  </p>
-                  <OptimalisatieBlock session={session} />
+                <SubSection title="Synergie en hefboomwerking — overzicht">
+                  <CrossAnalyseBlock session={session} />
+                  <HefboomBlock session={session} />
                 </SubSection>
+                <ExterneProjectenBlock session={session} />
                 <SubSection title="Begroting — vier scenario's">
                   <ScenarioTotaalBlock session={session} />
-                </SubSection>
-                <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
-                  <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
-                    De cross-sectorale uitkomst teruggebracht naar elke sector: aansluiting op de KiB-doelen,
-                    verrijking, aanvullingen, quick wins en aandachtspunten. Dit is het DIN dat de sectoren in
-                    de uitvoering hanteren.
-                  </p>
-                  <UiteindelijkDINBlock session={session} />
                 </SubSection>
               </Chapter>
 
