@@ -1197,34 +1197,126 @@ function SectorBlocks({ session, sectionNumbers }: { session: DINSession; sectio
 
 // --- Roadmap ---
 
+// Helper: maak een lijst kwartalen van de planning op (bv "Q2 2026" → numeric index)
+function quarterIndexFromString(q: string): number {
+  const m = q.match(/Q(\d)\s*(\d{4})/);
+  if (!m) return 0;
+  return parseInt(m[2], 10) * 4 + parseInt(m[1], 10);
+}
+function quartersBetween(start: string, end: string): string[] {
+  const result: string[] = [];
+  const sM = start.match(/Q(\d)\s*(\d{4})/);
+  const eM = end.match(/Q(\d)\s*(\d{4})/);
+  if (!sM || !eM) return result;
+  let q = parseInt(sM[1], 10);
+  let y = parseInt(sM[2], 10);
+  const eQ = parseInt(eM[1], 10);
+  const eY = parseInt(eM[2], 10);
+  while (y < eY || (y === eY && q <= eQ)) {
+    result.push(`Q${q} ${y}`);
+    q++;
+    if (q > 4) { q = 1; y++; }
+    if (result.length > 40) break;
+  }
+  return result;
+}
+
 function RoadmapBlock({ session, number }: { session: DINSession; number?: string }) {
   const planning = session.planningVoorstel;
 
   const sortedBundels = useMemo(() => {
     if (!planning?.bundelPlanning) return [];
-    return [...planning.bundelPlanning].sort((a, b) =>
-      a.startKwartaal.localeCompare(b.startKwartaal)
+    return [...planning.bundelPlanning].sort(
+      (a, b) => quarterIndexFromString(a.startKwartaal) - quarterIndexFromString(b.startKwartaal)
     );
   }, [planning]);
 
+  // Bouw de kolommen van de gantt-tabel: alle unieke kwartalen tussen vroegste start en laatste eind
+  const allQuarters = useMemo(() => {
+    if (sortedBundels.length === 0) return [] as string[];
+    const minStart = sortedBundels.reduce(
+      (acc, b) => (quarterIndexFromString(b.startKwartaal) < quarterIndexFromString(acc) ? b.startKwartaal : acc),
+      sortedBundels[0].startKwartaal
+    );
+    const maxEnd = sortedBundels.reduce(
+      (acc, b) => (quarterIndexFromString(b.eindKwartaal) > quarterIndexFromString(acc) ? b.eindKwartaal : acc),
+      sortedBundels[0].eindKwartaal
+    );
+    return quartersBetween(minStart, maxEnd);
+  }, [sortedBundels]);
+
+  // Bundels per domein in outside-in volgorde voor consistente weergave
+  const outsideIn: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const bundelsByDomein = useMemo(() => {
+    return outsideIn
+      .map((d) => sortedBundels.find((b) => b.domein === d))
+      .filter((b): b is NonNullable<typeof b> => b !== undefined);
+  }, [sortedBundels]);
+
+  // Auto-gegenereerde samenvatting van de planning
+  const autoSamenvatting = useMemo(() => {
+    if (sortedBundels.length === 0) return "";
+    const eersteKwartaal = sortedBundels[0].startKwartaal;
+    const laatsteKwartaal = [...sortedBundels].sort(
+      (a, b) => quarterIndexFromString(b.eindKwartaal) - quarterIndexFromString(a.eindKwartaal)
+    )[0].eindKwartaal;
+
+    // Parallelle starters: bundels met dezelfde startKwartaal als eerste
+    const parallelStart = sortedBundels.filter((b) => b.startKwartaal === eersteKwartaal);
+    const parallelDomeinen = parallelStart.map((b) => DOMAIN_LABELS[b.domein]);
+
+    // Cyclus-overzicht
+    const cycli = new Map<string, typeof sortedBundels>();
+    sortedBundels.forEach((b) => {
+      const lst = cycli.get(b.cyclusLabel) ?? [];
+      lst.push(b);
+      cycli.set(b.cyclusLabel, lst);
+    });
+
+    const cyclusBeschrijving = Array.from(cycli.entries())
+      .map(([label, items]) => {
+        const start = [...items].sort(
+          (a, b) => quarterIndexFromString(a.startKwartaal) - quarterIndexFromString(b.startKwartaal)
+        )[0].startKwartaal;
+        const eind = [...items].sort(
+          (a, b) => quarterIndexFromString(b.eindKwartaal) - quarterIndexFromString(a.eindKwartaal)
+        )[0].eindKwartaal;
+        return `${label} (${start} → ${eind}, ${items.length} bundel${items.length === 1 ? "" : "s"})`;
+      })
+      .join("; ");
+
+    let zin1: string;
+    if (parallelStart.length >= 2) {
+      zin1 = `Het programma start parallel in ${eersteKwartaal} met ${parallelStart.length} domeinen tegelijk: ${parallelDomeinen.join(", ")}. Daarmee kunnen meerdere lijnen direct van wal en wachten ze niet op elkaar.`;
+    } else {
+      zin1 = `Het programma start in ${eersteKwartaal} met ${parallelDomeinen[0]} als eerste lijn; de overige domeinen volgen daarna.`;
+    }
+    const zin2 = `De totale doorlooptijd loopt van ${eersteKwartaal} tot ${laatsteKwartaal}, verdeeld over ${cycli.size} cyclus${cycli.size === 1 ? "" : "sen"}: ${cyclusBeschrijving}.`;
+    const zin3 = `Elke cyclus duurt 6 tot 9 maanden, zodat per fase resultaten geleverd én geëvalueerd worden voordat de volgende fase begint.`;
+    return `${zin1} ${zin2} ${zin3}`;
+  }, [sortedBundels]);
+
   return (
     <Section title="Roadmap" number={number}>
-      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-        De 4 gezamenlijke cross-sectorale inspanningen (één per domein), gepland in cycli van 6-9 maanden.
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+        De vier cross-sectorale inspanningen (één per domein) zijn ingedeeld in cycli van 6 tot 9 maanden.
+        Onderstaande planning-tabel toont per bundel de doorlooptijd in kwartalen; daaronder volgen
+        mijlpalen en risico&apos;s per bundel.
       </p>
 
       {!planning || sortedBundels.length === 0 ? (
         <p className="text-sm text-gray-400 italic">
-          Roadmap wordt in stap 6 gegenereerd via AI-voorstel en vervolgens handmatig bijgesteld.
+          Roadmap wordt in de planning-stap gegenereerd via AI-voorstel en vervolgens handmatig bijgesteld.
         </p>
       ) : (
         <>
-          {planning.samenvatting && (
+          {/* Samenvatting — auto-gegenereerd uit data */}
+          {autoSamenvatting && (
             <div className="mb-4 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
               <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
                 Samenvatting planning
               </div>
-              <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{planning.samenvatting}</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{autoSamenvatting}</p>
             </div>
           )}
 
@@ -1237,51 +1329,104 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
             </div>
           )}
 
+          {/* Planning-tabel: bundels (rijen) × kwartalen (kolommen) */}
+          {allQuarters.length > 0 && bundelsByDomein.length > 0 && (
+            <div className="mb-5 overflow-x-auto border border-gray-200 rounded-lg bg-white">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-cito-blue/5 border-b-2 border-gray-200">
+                    <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider sticky left-0 bg-cito-blue/5 min-w-[200px]">
+                      Bundel
+                    </th>
+                    {allQuarters.map((q) => (
+                      <th key={q} className="text-center px-2 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider min-w-[70px]">
+                        {q}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bundelsByDomein.map((bp) => {
+                    const dc = DOMAIN_COLORS[bp.domein];
+                    const startIdx = allQuarters.indexOf(bp.startKwartaal);
+                    const endIdx = allQuarters.indexOf(bp.eindKwartaal);
+                    return (
+                      <tr key={bp.bundelId} className="border-b border-gray-100 last:border-b-0 align-middle">
+                        <td className={`px-3 py-3 sticky left-0 ${dc.bg} border-l-4 ${dc.border}`}>
+                          <span className={`text-[10px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[bp.domein]}</span>
+                          <p className="text-sm font-medium text-gray-800 leading-snug">{bp.titel}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">{bp.cyclusLabel}</p>
+                        </td>
+                        {allQuarters.map((q, qi) => {
+                          const isInRange = startIdx <= qi && qi <= endIdx;
+                          const isStart = qi === startIdx;
+                          const isEnd = qi === endIdx;
+                          return (
+                            <td key={q} className="px-1 py-3 align-middle">
+                              {isInRange ? (
+                                <div
+                                  className={`h-5 ${dc.bg} border ${dc.border} ${isStart ? "rounded-l-md" : ""} ${isEnd ? "rounded-r-md" : ""}`}
+                                />
+                              ) : (
+                                <div className="h-5 bg-gray-50/40" />
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Mijlpalen + risico's per bundel */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {sortedBundels.map((bp) => (
-              <div
-                key={bp.bundelId}
-                className="border border-gray-200 rounded-lg bg-white overflow-hidden"
-              >
-                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">
-                    {DOMAIN_LABELS[bp.domein] || bp.domein}
-                  </span>
-                  <span className="text-sm font-medium text-gray-800 flex-1 truncate" title={bp.titel}>
-                    {bp.titel}
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600 font-medium shrink-0">
-                    {bp.cyclusLabel}
-                  </span>
-                </div>
-                <div className="p-3 space-y-2">
-                  <div className="text-[11px] text-gray-500">
-                    {bp.startKwartaal} → {bp.eindKwartaal}
+            {sortedBundels.map((bp) => {
+              const dc = DOMAIN_COLORS[bp.domein];
+              return (
+                <div key={bp.bundelId} className={`border ${dc.border} rounded-lg bg-white overflow-hidden`}>
+                  <div className={`px-3 py-2 ${dc.bg} border-b ${dc.border} flex items-center gap-2`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${dc.text}`}>
+                      {DOMAIN_LABELS[bp.domein] || bp.domein}
+                    </span>
+                    <span className="text-sm font-medium text-gray-800 flex-1 truncate" title={bp.titel}>
+                      {bp.titel}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600 font-medium shrink-0">
+                      {bp.cyclusLabel}
+                    </span>
                   </div>
-                  {bp.beargumentatie && (
-                    <p className="text-xs text-gray-600 italic leading-relaxed">{bp.beargumentatie}</p>
-                  )}
-                  {bp.mijlpalen && bp.mijlpalen.length > 0 && (
-                    <ol className="space-y-1 pt-1">
-                      {bp.mijlpalen.map((m, idx) => (
-                        <li key={idx} className="text-xs flex gap-2">
-                          <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
-                            {m.periode}
-                          </span>
-                          <span className="text-gray-700">{m.mijlpaal}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                  {bp.risico && (
-                    <p className="text-[11px] text-amber-700 italic pt-2 border-t border-gray-100">
-                      <span className="font-medium not-italic">Risico: </span>
-                      {bp.risico}
-                    </p>
-                  )}
+                  <div className="p-3 space-y-2">
+                    <div className="text-[11px] text-gray-500">
+                      {bp.startKwartaal} → {bp.eindKwartaal}
+                    </div>
+                    {bp.beargumentatie && (
+                      <p className="text-xs text-gray-600 italic leading-relaxed">{bp.beargumentatie}</p>
+                    )}
+                    {bp.mijlpalen && bp.mijlpalen.length > 0 && (
+                      <ol className="space-y-1 pt-1">
+                        {bp.mijlpalen.map((m, idx) => (
+                          <li key={idx} className="text-xs flex gap-2">
+                            <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                              {m.periode}
+                            </span>
+                            <span className="text-gray-700">{m.mijlpaal}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    {bp.risico && (
+                      <p className="text-[11px] text-amber-700 italic pt-2 border-t border-gray-100">
+                        <span className="font-medium not-italic">Risico: </span>
+                        {bp.risico}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -1519,12 +1664,347 @@ const SCENARIO_LABELS: Record<ScenarioKey, string> = {
   min20: "−20% (langzamer)",
   advies: "Optimaal (advies)",
 };
-const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: string }> = {
-  optimaal: { ring: "ring-cito-blue", bg: "bg-blue-50", accent: "text-cito-blue" },
-  plus20: { ring: "ring-emerald-700", bg: "bg-emerald-50", accent: "text-emerald-800" },
-  min20: { ring: "ring-amber-700", bg: "bg-amber-50", accent: "text-amber-800" },
-  advies: { ring: "ring-purple-700", bg: "bg-purple-50", accent: "text-purple-800" },
+const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: string; banner: string; bannerTekst: string }> = {
+  optimaal: { ring: "ring-cito-blue", bg: "bg-blue-50", accent: "text-cito-blue", banner: "bg-cito-blue", bannerTekst: "text-blue-100" },
+  plus20: { ring: "ring-emerald-700", bg: "bg-emerald-50", accent: "text-emerald-800", banner: "bg-emerald-800", bannerTekst: "text-emerald-100" },
+  min20: { ring: "ring-amber-700", bg: "bg-amber-50", accent: "text-amber-800", banner: "bg-amber-800", bannerTekst: "text-amber-100" },
+  advies: { ring: "ring-purple-700", bg: "bg-purple-50", accent: "text-purple-800", banner: "bg-purple-800", bannerTekst: "text-purple-100" },
 };
+
+const SCENARIO_ORDER_GLOBAL: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
+
+// --- Raming out-of-pocket kosten — meerjarige verdeling per scenario per inspanning ---
+function BegrotingAdviesBlock({ session }: { session: DINSession }) {
+  type InspBegr = {
+    inspanningTitel: string;
+    domein: EffortDomain;
+    totaalEuro: number;
+    percentageTotaal: number;
+    motivatie: string;
+    verdelingPerJaar: Array<{ jaar: number; percentage: number; euro: number; fase: string; activiteit?: string }>;
+    volgorde: { rank: number; reden: string };
+  };
+  type BegrScenario = {
+    jaarlijksBudgetEuro?: number;
+    aantalJaren?: number;
+    totaalGeraamdEuro?: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    inspanningen?: InspBegr[];
+    totalenPerJaar?: Array<{ jaar: number; euro: number; percentage: number }>;
+  };
+  type BegrAdv = {
+    startJaar?: number;
+    scenarios?: Partial<Record<ScenarioKey, BegrScenario | null>>;
+    vergelijking?: string;
+  };
+  const begroting = (session.crossAnalyseWizard?.stepResults as { stap4?: { begrotingAdvies?: BegrAdv } } | undefined)?.stap4?.begrotingAdvies;
+  if (!begroting?.scenarios) {
+    return (
+      <p className="text-sm text-gray-400 italic">
+        Het begrotingsadvies (out-of-pocket) is nog niet beschikbaar.
+      </p>
+    );
+  }
+
+  const startJaar = begroting.startJaar ?? new Date().getFullYear();
+  const beschikbaar = SCENARIO_ORDER_GLOBAL.filter((k) => begroting.scenarios?.[k]);
+  if (beschikbaar.length === 0) {
+    return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het begrotingsadvies.</p>;
+  }
+
+  return (
+    <>
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+        Out-of-pocket-uitgaven (externe kosten zoals licenties, inkoop en externe inhuur) per cross-sectorale
+        inspanning, doorgerekend over de programma-jaren. Per scenario zie je de meerjarige verdeling met
+        fase-aanduiding en activiteit per jaar.
+      </p>
+
+      {begroting.vergelijking && (
+        <div className="mb-5 p-3 rounded-lg bg-gray-50 border border-gray-200">
+          <div className="text-[10px] uppercase tracking-wider text-gray-600 font-bold mb-1">Vergelijking scenario&apos;s</div>
+          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{begroting.vergelijking}</p>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {beschikbaar.map((key) => {
+          const s = begroting.scenarios?.[key];
+          if (!s) return null;
+          const kleur = SCENARIO_KLEUR[key];
+          const aantalJaren = s.aantalJaren ?? 1;
+          const eindJaar = startJaar + aantalJaren - 1;
+          const inspanningen = [...(s.inspanningen ?? [])].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
+          const totalenPerJaar = s.totalenPerJaar ?? [];
+
+          return (
+            <div key={key} className="space-y-3">
+              <div className={`${kleur.banner} text-white rounded-lg p-4`}>
+                <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst} mb-1`}>
+                  Scenario — {SCENARIO_LABELS[key]}
+                </div>
+                {s.samenvatting && <p className="text-sm leading-relaxed">{s.samenvatting}</p>}
+                {s.totaalGeraamdEuro !== undefined && (
+                  <p className={`text-xs ${kleur.bannerTekst} mt-2`}>
+                    € {(s.jaarlijksBudgetEuro ?? 0).toLocaleString("nl-NL")} / jaar × {aantalJaren} jaar ({startJaar}–{eindJaar}) = <strong>€ {s.totaalGeraamdEuro.toLocaleString("nl-NL")}</strong>
+                  </p>
+                )}
+              </div>
+
+              {inspanningen.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
+                        <th className="text-left py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Inspanning</th>
+                        {Array.from({ length: aantalJaren }, (_, i) => startJaar + i).map((jr) => (
+                          <th key={jr} className="text-right py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{jr}</th>
+                        ))}
+                        <th className="text-right py-2 px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Totaal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inspanningen.map((insp, i) => {
+                        const dc = DOMAIN_COLORS[insp.domein];
+                        return (
+                          <tr key={i} className="border-b border-gray-100 align-top">
+                            <td className="py-2 px-2">
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${kleur.banner} text-white text-[11px] font-bold`}>
+                                {insp.volgorde.rank}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2">
+                              <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5 mb-1 inline-block`}>
+                                {DOMAIN_LABELS[insp.domein]}
+                              </span>
+                              <p className="text-sm font-semibold text-gray-800 leading-snug">{insp.inspanningTitel}</p>
+                              {insp.volgorde.reden && (
+                                <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">Positie: {insp.volgorde.reden}</p>
+                              )}
+                              {insp.motivatie && (
+                                <p className="text-[11px] text-gray-600 mt-1 leading-snug">{insp.motivatie}</p>
+                              )}
+                            </td>
+                            {Array.from({ length: aantalJaren }, (_, k) => startJaar + k).map((jr) => {
+                              const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
+                              if (!cell || cell.euro === 0) {
+                                return <td key={jr} className="text-right py-2 px-2 text-[11px] text-gray-300">—</td>;
+                              }
+                              return (
+                                <td key={jr} className="py-2 px-2 align-top min-w-[140px]">
+                                  <p className="text-sm font-semibold text-gray-800 text-right tabular-nums">€ {cell.euro.toLocaleString("nl-NL")}</p>
+                                  <p className="text-[10px] text-gray-500 text-right">{cell.percentage}%</p>
+                                  {cell.fase && <p className="text-[10px] text-gray-500 italic mt-0.5 text-right">{cell.fase}</p>}
+                                  {cell.activiteit && (
+                                    <p className="text-[10px] text-gray-700 mt-1 leading-snug border-t border-gray-100 pt-1">{cell.activiteit}</p>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td className="text-right py-2 px-2">
+                              <p className={`text-sm font-bold ${kleur.accent} tabular-nums`}>€ {insp.totaalEuro.toLocaleString("nl-NL")}</p>
+                              <p className="text-[10px] text-gray-500">{insp.percentageTotaal}%</p>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-300 bg-gray-50">
+                        <td className="py-2 px-2"></td>
+                        <td className="py-2 px-2 text-[11px] font-semibold text-gray-700 uppercase tracking-wider">Totaal per jaar</td>
+                        {Array.from({ length: aantalJaren }, (_, k) => startJaar + k).map((jr) => {
+                          const t = totalenPerJaar.find((x) => x.jaar === jr);
+                          return (
+                            <td key={jr} className="text-right py-2 px-2">
+                              <p className={`text-sm font-bold ${kleur.accent} tabular-nums`}>€ {(t?.euro ?? 0).toLocaleString("nl-NL")}</p>
+                              <p className="text-[10px] text-gray-500">{t?.percentage ?? 0}%</p>
+                            </td>
+                          );
+                        })}
+                        <td className="text-right py-2 px-2">
+                          <p className={`text-sm font-bold ${kleur.accent} tabular-nums`}>€ {(s.totaalGeraamdEuro ?? 0).toLocaleString("nl-NL")}</p>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+
+              {s.prioriteitAdvies && (
+                <div className={`p-3 rounded-lg ${kleur.bg} border border-gray-200`}>
+                  <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
+                    Prioriteitadvies (outside-in volgorde)
+                  </div>
+                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{s.prioriteitAdvies}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// --- Interne uren — Cito-medewerkers per scenario per domein per jaar per rol ---
+function InterneUrenBlock({ session }: { session: DINSession }) {
+  type Rol = { functieId: string; functieNaam: string; afdeling?: string; uren: number; uurtarief: number; kosten: number };
+  type JaarBlok = { jaar: number; activiteit: string; rollen: Rol[]; totaalUren?: number; totaalKosten?: number };
+  type Domein = { domein: EffortDomain; motivatie?: string; jaren: JaarBlok[]; totaalUren?: number; totaalKosten?: number };
+  type UrenScenario = {
+    scenarioLabel?: ScenarioKey;
+    aantalJaren?: number;
+    startJaar?: number;
+    uurtariefGebruikt?: number;
+    domeinen: Domein[];
+    totalenPerJaar?: Array<{ jaar: number; uren: number; kosten: number }>;
+    totaalUren?: number;
+    totaalKosten?: number;
+    samenvatting?: string;
+  };
+  type UrenAdv = { uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number }; scenarios?: Partial<Record<ScenarioKey, UrenScenario | null>> };
+  const interneUren = (session.crossAnalyseWizard?.stepResults as { stap4?: { stap7InterneUren?: UrenAdv } } | undefined)?.stap4?.stap7InterneUren;
+  if (!interneUren?.scenarios) {
+    return <p className="text-sm text-gray-400 italic">Interne-uren-advies is nog niet beschikbaar.</p>;
+  }
+  const beschikbaar = SCENARIO_ORDER_GLOBAL.filter((k) => interneUren.scenarios?.[k]);
+  if (beschikbaar.length === 0) {
+    return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het interne-uren-advies.</p>;
+  }
+
+  return (
+    <>
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+        Inzet van Cito-medewerkers per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en
+        bijbehorende kosten. Het uurtarief geldt over alle scenario&apos;s; de verdeling verschilt per scenario.
+      </p>
+
+      {interneUren.uurtariefSettings && (
+        <p className="text-xs text-gray-500 italic mb-4">
+          Basisuurtarief: € {interneUren.uurtariefSettings.basisTarief.toLocaleString("nl-NL")} (referentiejaar{" "}
+          {interneUren.uurtariefSettings.referentiejaar}, indexatie {interneUren.uurtariefSettings.indexatiePercentage}%/jaar).
+        </p>
+      )}
+
+      <div className="space-y-6">
+        {beschikbaar.map((key) => {
+          const s = interneUren.scenarios?.[key];
+          if (!s) return null;
+          const kleur = SCENARIO_KLEUR[key];
+
+          return (
+            <div key={key} className="space-y-3">
+              <div className={`${kleur.banner} text-white rounded-lg p-4`}>
+                <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.bannerTekst} mb-1`}>
+                  Scenario — {SCENARIO_LABELS[key]}
+                </div>
+                {s.samenvatting && <p className="text-sm leading-relaxed">{s.samenvatting}</p>}
+                {s.totaalUren !== undefined && s.totaalKosten !== undefined && (
+                  <p className={`text-xs ${kleur.bannerTekst} mt-2`}>
+                    Totaal: <strong>{s.totaalUren.toLocaleString("nl-NL")} u</strong> × € {s.uurtariefGebruikt ?? 0} ={" "}
+                    <strong>€ {s.totaalKosten.toLocaleString("nl-NL")}</strong>
+                  </p>
+                )}
+              </div>
+
+              {/* Domein-overzicht (totalen per domein) */}
+              <div className="overflow-hidden border border-gray-200 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-cito-blue/5">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Domein</th>
+                      <th className="text-right px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Uren</th>
+                      <th className="text-right px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Kosten</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {s.domeinen.map((d) => {
+                      const dc = DOMAIN_COLORS[d.domein];
+                      return (
+                        <tr key={d.domein} className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <span className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5`}>
+                              {DOMAIN_LABELS[d.domein]}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-800 tabular-nums">{(d.totaalUren ?? 0).toLocaleString("nl-NL")} u</td>
+                          <td className="px-3 py-2 text-right text-gray-800 font-semibold tabular-nums">€ {(d.totaalKosten ?? 0).toLocaleString("nl-NL")}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Per domein: per jaar de rol-tabel */}
+              {s.domeinen.map((d) => {
+                const dc = DOMAIN_COLORS[d.domein];
+                return (
+                  <div key={d.domein} className={`border ${dc.border} ${dc.bg} rounded-lg p-3`}>
+                    <div className="flex items-baseline justify-between gap-3 mb-2">
+                      <div>
+                        <span className={`text-[11px] uppercase font-bold ${dc.text}`}>{DOMAIN_LABELS[d.domein]}</span>
+                        {d.motivatie && (
+                          <p className="text-xs text-gray-600 italic leading-relaxed mt-0.5 max-w-prose">{d.motivatie}</p>
+                        )}
+                      </div>
+                      <div className="text-right text-xs tabular-nums">
+                        <div className="font-semibold text-gray-800">{(d.totaalUren ?? 0).toLocaleString("nl-NL")} u</div>
+                        <div className="text-gray-500">€ {(d.totaalKosten ?? 0).toLocaleString("nl-NL")}</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {d.jaren.map((jr) => (
+                        <div key={jr.jaar} className="bg-white border border-gray-100 rounded p-2.5">
+                          <div className="flex items-baseline justify-between gap-2 mb-2">
+                            <div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{jr.jaar}</span>
+                              {jr.activiteit && <span className="text-xs text-gray-700 ml-2">{jr.activiteit}</span>}
+                            </div>
+                            <div className="text-right text-[11px] tabular-nums">
+                              <div className="font-semibold text-gray-800">{(jr.totaalUren ?? jr.rollen.reduce((s, r) => s + r.uren, 0)).toLocaleString("nl-NL")} u</div>
+                              <div className="text-gray-500">€ {(jr.totaalKosten ?? jr.rollen.reduce((s, r) => s + r.kosten, 0)).toLocaleString("nl-NL")}</div>
+                            </div>
+                          </div>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left border-b border-gray-100">
+                                <th className="py-1 font-semibold text-gray-500">Rol</th>
+                                <th className="py-1 font-semibold text-gray-500 text-right">Uren</th>
+                                <th className="py-1 font-semibold text-gray-500 text-right">€ / u</th>
+                                <th className="py-1 font-semibold text-gray-500 text-right">Kosten</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {jr.rollen.map((r, i) => (
+                                <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
+                                  <td className="py-1">
+                                    <span className="text-gray-800">{r.functieNaam}</span>
+                                    {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
+                                  </td>
+                                  <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren.toLocaleString("nl-NL")}</td>
+                                  <td className="py-1 text-right text-gray-500 tabular-nums">€ {r.uurtarief}</td>
+                                  <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
 
 function ScenarioTotaalBlock({ session }: { session: DINSession }) {
   // Datasources (zelfde aanpak als StapTotaaloverzicht.tsx in de wizard):
@@ -2664,9 +3144,17 @@ export default function ExportStep() {
               <Chapter
                 number="4."
                 title="Begroting en raming"
-                intro="De programmabegroting is opgebouwd uit twee bronnen: out-of-pocket-kosten (externe uitgaven per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide zijn doorgerekend over vier scenario&apos;s, zodat de stuurgroep een onderbouwde keuze kan maken voor het tempo en het ambitieniveau van het programma."
+                intro="De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide componenten zijn doorgerekend over vier scenario&apos;s. De gedetailleerde uitwerking volgt in subparagraaf 4.1 en 4.2; subparagraaf 4.3 telt alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
               >
-                <ScenarioTotaalBlock session={session} />
+                <SubSection title="4.1 Raming out-of-pocket kosten">
+                  <BegrotingAdviesBlock session={session} />
+                </SubSection>
+                <SubSection title="4.2 Interne uren">
+                  <InterneUrenBlock session={session} />
+                </SubSection>
+                <SubSection title="4.3 Totaaloverzicht — vier scenario's">
+                  <ScenarioTotaalBlock session={session} />
+                </SubSection>
               </Chapter>
 
               <Chapter

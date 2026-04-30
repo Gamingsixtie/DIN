@@ -22,6 +22,8 @@ npx vercel --prod    # Deploy naar productie
 5. **Geen stille failures**: Altijd gebruikersfeedback tonen bij acties (loading states, success/error meldingen)
 6. **Direct committen en pushen** na elke werkende wijziging
 7. **UX design voor alle output**: Alle AI-output, documenten en gegenereerde content MOET visueel aantrekkelijk en overzichtelijk zijn. Nooit platte tekst of raw markdown tonen — altijd renderen met gestructureerde opmaak (headings, kleuren, kaarten, bullet points). Dit geldt voor zowel de in-app weergave als de Word-export. Behandel elke output als een professioneel document.
+8. **Tabellen in de export — letterlijk overnemen, niet zelf maken**: Als de wizard al een tabel of visualisatie heeft voor data (planning-gantt, begroting-advies, interne uren, sector-vertaling, etc.), neem die layout LETTERLIJK over in de export-componenten. Niet zelf een eigen variant bouwen. Pas hooguit een `compact`-prop toe om interactieve elementen te verbergen. De wizard is de bron van waarheid voor weergave; de export volgt.
+9. **Geen UUIDs in user-facing tekst**: Verwijs nooit naar effort-IDs, capability-IDs of bundel-IDs in tekst die de gebruiker leest. Resolve altijd naar `title || description` via `session.efforts/capabilities/benefits`. Als geen match: weglaten of "—" tonen, nooit een raw UUID.
 
 ## Methodiek — DIN Framework
 
