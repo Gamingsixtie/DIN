@@ -1728,10 +1728,10 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
                 {aanbevolenScen.aantalJaren ? ` over ${aanbevolenScen.aantalJaren} jaar` : ""}
               </h3>
               {aanbevolenScen.samenvatting && (
-                <p className="text-sm text-gray-700 leading-relaxed mt-1 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
+                <p className="text-sm text-gray-800 leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.samenvatting}</p>
               )}
               {aanbevolenScen.prioriteitAdvies && (
-                <p className="text-sm text-gray-600 italic leading-relaxed mt-2 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
+                <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{aanbevolenScen.prioriteitAdvies}</p>
               )}
             </div>
           </div>
@@ -1824,20 +1824,39 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het begrotingsadvies.</p>;
   }
 
+  // --- Auto-bevindingen voor 4.1 ---
+  const advScen = begroting.scenarios?.advies ?? begroting.scenarios?.optimaal ?? null;
+  const refInsp = advScen?.inspanningen ?? [];
+  const refTotEur = refInsp.reduce((s, i) => s + i.totaalEuro, 0);
+  const sortedInsp = [...refInsp].sort((a, b) => b.totaalEuro - a.totaalEuro);
+  const top3 = sortedInsp.slice(0, 3);
+  const domeinTotalen: Record<EffortDomain, number> = { cultuur: 0, mens: 0, processen: 0, data_systemen: 0 };
+  refInsp.forEach((i) => {
+    domeinTotalen[i.domein] += i.totaalEuro;
+  });
+  const dominantDomein = (Object.entries(domeinTotalen) as [EffortDomain, number][])
+    .sort((a, b) => b[1] - a[1])[0];
+  const euroFmt41 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+  const bevindingen41 = refInsp.length > 0 && refTotEur > 0
+    ? `Het out-of-pocket-budget wordt grotendeels gedragen door drie inspanningen: ${top3
+        .map((i) => `${i.inspanningTitel} (${euroFmt41.format(i.totaalEuro)}, ${Math.round((i.totaalEuro / refTotEur) * 100)}%)`)
+        .join("; ")}. Het domein ${DOMAIN_LABELS[dominantDomein[0]]} trekt het grootste deel van de externe budgetten (${Math.round((dominantDomein[1] / refTotEur) * 100)}%). De jaartabellen per scenario hieronder tonen welke fase wanneer wordt gefinancierd.`
+    : "";
+
   return (
     <>
+      {bevindingen41 && (
+        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen41}</p>
+        </div>
+      )}
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
         Out-of-pocket-uitgaven (externe kosten zoals licenties, inkoop en externe inhuur) per cross-sectorale
         inspanning, doorgerekend over de programma-jaren. Per scenario zie je de meerjarige verdeling met
         fase-aanduiding en activiteit per jaar.
       </p>
-
-      {begroting.vergelijking && (
-        <div className="mb-5 p-3 rounded-lg bg-gray-50 border border-gray-200">
-          <div className="text-[10px] uppercase tracking-wider text-gray-600 font-bold mb-1">Vergelijking scenario&apos;s</div>
-          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{begroting.vergelijking}</p>
-        </div>
-      )}
 
       <div className="space-y-6">
         {beschikbaar.map((key) => {
@@ -1986,8 +2005,29 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het interne-uren-advies.</p>;
   }
 
+  // --- Auto-bevindingen voor 4.2 ---
+  const refUrenScen = interneUren.scenarios?.advies ?? interneUren.scenarios?.optimaal ?? null;
+  const totUren42 = refUrenScen?.totaalUren ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0) ?? 0;
+  const totKost42 = refUrenScen?.totaalKosten ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0) ?? 0;
+  const dominantUrenDom = refUrenScen?.domeinen
+    .slice()
+    .sort((a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0))[0];
+  const aantalJaren42 = refUrenScen?.aantalJaren ?? 0;
+  const euroFmt42 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const fteFmt = (uren: number) => Math.round(uren / 1320); // ~1320 productieve uur per FTE per jaar
+
+  const bevindingen42 = totUren42 > 0 && refUrenScen
+    ? `Over ${aantalJaren42} jaar vraagt het programma in totaal ${totUren42.toLocaleString("nl-NL")} uur Cito-inzet (${euroFmt42.format(totKost42)}). Dat staat — verspreid over ${aantalJaren42} jaar — gelijk aan ongeveer ${fteFmt(totUren42 / aantalJaren42)} FTE structureel naast de reguliere lijn. Het domein ${dominantUrenDom ? DOMAIN_LABELS[dominantUrenDom.domein] : "—"} vraagt de hoogste interne inzet (${dominantUrenDom?.totaalUren?.toLocaleString("nl-NL") ?? 0} u, ${euroFmt42.format(dominantUrenDom?.totaalKosten ?? 0)}). Per domein is hieronder uitgewerkt welke functierollen wanneer worden ingezet.`
+    : "";
+
   return (
     <>
+      {bevindingen42 && (
+        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen42}</p>
+        </div>
+      )}
       <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
         Inzet van Cito-medewerkers per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en
         bijbehorende kosten. Het uurtarief geldt over alle scenario&apos;s; de verdeling verschilt per scenario.
@@ -2210,8 +2250,27 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
     });
   }
 
+  // --- Auto-bevindingen voor 4.3 ---
+  const totalen43 = rows.map((r) => r.totaalGeraamd);
+  const minTot = Math.min(...totalen43);
+  const maxTot = Math.max(...totalen43);
+  const minRij = rows.find((r) => r.totaalGeraamd === minTot);
+  const maxRij = rows.find((r) => r.totaalGeraamd === maxTot);
+  const advRij = rows.find((r) => r.key === "advies") ?? rows.find((r) => r.key === "optimaal");
+  const spread = maxTot > 0 ? Math.round(((maxTot - minTot) / minTot) * 100) : 0;
+
+  const bevindingen43 = rows.length > 0 && minRij && maxRij
+    ? `De vier scenario's verschillen ${euroFmt.format(maxTot - minTot)} (${spread}%) van elkaar — van ${euroFmt.format(minTot)} (${SCENARIO_LABELS[minRij.key]}) tot ${euroFmt.format(maxTot)} (${SCENARIO_LABELS[maxRij.key]}). ${advRij ? `Het geadviseerde scenario "${SCENARIO_LABELS[advRij.key]}" komt uit op ${euroFmt.format(advRij.totaalGeraamd)} (${euroFmt.format(advRij.outOfPocket)} out-of-pocket + ${euroFmt.format(advRij.interneKosten)} interne uren). ` : ""}Het verschil tussen sneller en langzamer wordt vooral verklaard door de adoptie- en doorlooptijd: meer tempo betekent meer parallelle inzet (extra interne uren) plus snellere licentie-ramp-up (extra out-of-pocket).`
+    : "";
+
   return (
     <>
+      {bevindingen43 && (
+        <div className="mb-4 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
+          <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1">Bevindingen</div>
+          <p className="text-sm text-gray-800 leading-relaxed">{bevindingen43}</p>
+        </div>
+      )}
       <div className="mb-5 p-4 rounded-lg bg-blue-50/60 border border-blue-200/70 max-w-prose">
         <p className="text-sm text-gray-700 leading-relaxed mb-2">
           De totale programmakosten kennen twee componenten:
