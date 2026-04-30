@@ -1318,7 +1318,10 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
   ));
   children.push(emptyLine(60));
   const poVoorH33 = session.programmaorganisatie;
-  const effortsActief = (session.efforts ?? []).filter((e) => !e.consolidated);
+  // Tel CROSS-SECTORALE inspanningen — niet de raw sector-inspanningen.
+  type SubEffortItem33 = { domein: EffortDomain; actie: string };
+  const stap4SE33 = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffortItem33[] } } | undefined)?.stap4;
+  const crossSectoraleH33 = stap4SE33?.subEffortAnalysis?.filter((s) => s.actie === "combineren") ?? [];
   const domeinenOrder: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
   const needlesH33: Record<EffortDomain, string[]> = {
     cultuur: ["cultuur"],
@@ -1345,7 +1348,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       : match.rol || match.functie || "— nog te benoemen";
   };
   const inspRows = domeinenOrder.map((d) => {
-    const aantal = effortsActief.filter((e) => e.domain === d).length;
+    const aantal = crossSectoraleH33.filter((s) => s.domein === d).length;
     return new TableRow({
       children: [
         styledCell(DOMAIN_LABELS[d], { bold: true, width: 30, shading: DOMAIN_COLORS[d], size: 16 }),

@@ -2028,7 +2028,12 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
 // --- H3.3 Inspanningsleiders per domein — afgeleid uit programmaorganisatie.domeineigenaren ---
 function InspanningsleidersBlock({ session }: { session: DINSession }) {
   const po = session.programmaorganisatie;
-  const efforts = (session.efforts ?? []).filter((e) => !e.consolidated);
+  // 3.3 toont CROSS-SECTORALE inspanningen — niet de raw sector-inspanningen.
+  // Bron: stap4.subEffortAnalysis met actie === "combineren" (de geconsolideerde
+  // bundels die in H3-Kern via StapSectorVertaling worden getoond).
+  type SubEffortItem = { domein: EffortDomain; actie: string };
+  const stap4SE = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffortItem[] } } | undefined)?.stap4;
+  const crossSectoraleInspanningen = stap4SE?.subEffortAnalysis?.filter((s) => s.actie === "combineren") ?? [];
   const domeinen: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
 
   // Probeer een leider af te leiden uit programmaorganisatie.domeineigenaren door op rol-string te matchen.
@@ -2081,7 +2086,7 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
             {domeinen.map((d) => {
               const dc = DOMAIN_COLORS[d];
               const leider = findLeiderVoorDomein(d);
-              const aantal = efforts.filter((e) => e.domain === d).length;
+              const aantal = crossSectoraleInspanningen.filter((s) => s.domein === d).length;
               return (
                 <tr key={d} className="hover:bg-gray-50 align-top">
                   <td className="px-3 py-2">
