@@ -1451,13 +1451,11 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
 function Chapter({
   number,
   title,
-  intro,
   id,
   children,
 }: {
   number: string;
   title: string;
-  intro?: string;
   id?: string;
   children: React.ReactNode;
 }) {
@@ -1473,11 +1471,59 @@ function Chapter({
           <h1 className="text-2xl font-bold text-cito-blue leading-tight">{title}</h1>
         </div>
       </header>
-      {intro && (
-        <p className="text-sm text-gray-700 leading-relaxed mb-5 max-w-prose">{intro}</p>
-      )}
       {children}
     </section>
+  );
+}
+
+// --- Vier vaste segmenten per hoofdstuk: Inleiding / Kern / Conclusie / Aanbeveling ---
+function Segment({
+  label,
+  variant,
+  children,
+}: {
+  label: "Inleiding" | "Kern" | "Conclusie" | "Aanbeveling";
+  variant?: "neutral" | "highlight";
+  children: React.ReactNode;
+}) {
+  const styles =
+    variant === "highlight"
+      ? "border-l-4 border-cito-blue bg-cito-blue/5 px-4 py-3"
+      : "border-l-4 border-cito-blue/20 bg-white px-4 py-3";
+  return (
+    <div className={`mb-5 rounded-r-lg ${styles}`}>
+      <div className="text-[10px] uppercase tracking-[0.15em] text-cito-blue font-bold mb-2">
+        {label}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function Inleiding({ children }: { children: React.ReactNode }) {
+  return <Segment label="Inleiding">{children}</Segment>;
+}
+function Kern({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-5 px-4">
+      <div className="text-[10px] uppercase tracking-[0.15em] text-cito-blue font-bold mb-3">
+        Kern
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+function Conclusie({ children }: { children: React.ReactNode }) {
+  return <Segment label="Conclusie" variant="highlight">{children}</Segment>;
+}
+function Aanbeveling({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-5 rounded-r-lg border-l-4 border-emerald-600 bg-emerald-50/60 px-4 py-3">
+      <div className="text-[10px] uppercase tracking-[0.15em] text-emerald-800 font-bold mb-2">
+        Aanbeveling aan de stuurgroep
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
   );
 }
 
@@ -3180,34 +3226,105 @@ function GapDetectionModal({
 
 // --- Programmaplan-document (herbruikbaar voor in-app preview én publieke deel-pagina) ---
 export function ProgrammaplanDocument({ session }: { session: DINSession }) {
+  // Auto-conclusie data
+  const aantalDoelen = session.goals.length;
+  const focusGoal = session.goals.find((g) => g.id === (session.crossAnalyseWizard?.stepResults?.stap5 as { focusDoelId?: string } | undefined)?.focusDoelId) ?? [...session.goals].sort((a, b) => a.rank - b.rank)[0];
+  const inScopeCount = session.scope?.inScope.length ?? 0;
+  const buitenCount = (session.scope?.outScope.length ?? 0) + (categorizeGaps(session).volgendeCyclus.length);
+
+  // Cross-sectoraal: aantal vermogengroepen + aantal cross-sectorale inspanningen
+  type Stap2 = { vermogenGelijkenisGroepen?: Array<{ id: string }> };
+  type Stap4 = { subEffortAnalysis?: Array<{ actie: string }> };
+  const stap2 = (session.crossAnalyseWizard?.stepResults as { stap2?: Stap2 } | undefined)?.stap2;
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4 } | undefined)?.stap4;
+  const aantalGroepen = stap2?.vermogenGelijkenisGroepen?.length ?? 0;
+  const aantalGezamenlijke = stap4?.subEffortAnalysis?.filter((s) => s.actie === "combineren").length ?? 0;
+
+  // Governance: aantal gremia/rollen + RASCI-clusters
+  const po = session.programmaorganisatie;
+  const totaalRollen = po
+    ? (po.opdrachtgever ? 1 : 0) +
+      (po.programmamanager ? 1 : 0) +
+      (po.kerngroep?.length ?? 0) +
+      (po.stuurgroep?.length ?? 0) +
+      (po.domeineigenaren?.length ?? 0) +
+      (po.klankbordgroep?.length ?? 0)
+    : 0;
+  const aantalRasciClusters = (session.clusterRasci ?? []).length;
+
+  // Planning: aantal bundels + cycli + doorlooptijd
+  const planning = session.planningVoorstel;
+  const aantalBundels = planning?.bundelPlanning?.length ?? 0;
+  const cycli = new Set((planning?.bundelPlanning ?? []).map((b) => b.cyclusLabel)).size;
+  const sortedB = [...(planning?.bundelPlanning ?? [])].sort(
+    (a, b) => quarterIndexFromString(a.startKwartaal) - quarterIndexFromString(b.startKwartaal)
+  );
+  const startQ = sortedB[0]?.startKwartaal;
+  const eindB = [...(planning?.bundelPlanning ?? [])].sort(
+    (a, b) => quarterIndexFromString(b.eindKwartaal) - quarterIndexFromString(a.eindKwartaal)
+  )[0];
+  const eindQ = eindB?.eindKwartaal;
+
   return (
     <div className="p-8 max-w-none">
       <DocumentTitlePage session={session} />
       <div className="mt-10">
-        <Chapter
-          number="1."
-          title="Programmavisie en scope"
-          intro="De programmavisie geeft de richting van het geheel: waartoe is dit programma bedoeld en wat valt er binnen en buiten de cyclus."
-        >
-          <VisionBlock session={session} />
-          <ScopeBlock session={session} />
+        {/* Hoofdstuk 1 — Programmavisie en scope */}
+        <Chapter number="1." title="Programmavisie en scope">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Dit hoofdstuk legt vast <strong>waartoe</strong> het programma bestaat en <strong>wat er wel en niet binnen de cyclus valt</strong>.
+              De visie geeft de richting; de scope grenst af welke onderwerpen nu worden opgepakt en welke later.
+              Samen vormen ze het kader waaraan alle baten, vermogens en inspanningen later worden gerelateerd.
+            </p>
+          </Inleiding>
+          <Kern>
+            <VisionBlock session={session} />
+            <ScopeBlock session={session} />
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              Het programma kent {inScopeCount > 0 ? `${inScopeCount} expliciete scope-onderwerp${inScopeCount === 1 ? "" : "en"}` : "een afgebakende scope"}
+              {buitenCount > 0 ? ` en ${buitenCount} item${buitenCount === 1 ? "" : "s"} die buiten deze cyclus vallen` : ""}.
+              {aantalDoelen > 0 ? ` Op deze basis zijn ${aantalDoelen} programmadoel${aantalDoelen === 1 ? "" : "en"} opgesteld; die volgen in Hoofdstuk 2.` : ""}
+            </p>
+          </Conclusie>
         </Chapter>
 
-        <Chapter
-          number="2."
-          title="Programmadoelen"
-          intro="De programmadoelen zijn de kernonderwerpen van het programma. Ze worden volgordelijk opgepakt zodat de organisatie focus en haalbaarheid behoudt."
-        >
-          <DoelenMetVolgordeBlock session={session} />
+        {/* Hoofdstuk 2 — Programmadoelen */}
+        <Chapter number="2." title="Programmadoelen">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              De programmadoelen zijn de <strong>kernonderwerpen</strong> die het programma realiseert.
+              Ze worden volgordelijk opgepakt zodat de organisatie focus houdt en geleerde lessen meeneemt
+              naar het volgende doel.
+            </p>
+          </Inleiding>
+          <Kern>
+            <DoelenMetVolgordeBlock session={session} />
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              {aantalDoelen} programmadoel{aantalDoelen === 1 ? "" : "en"}
+              {focusGoal ? <> met <strong>&ldquo;{focusGoal.name}&rdquo;</strong> (doel {focusGoal.rank}) als focusdoel waarmee gestart wordt</> : ""}.
+              {aantalDoelen > 1 ? ` De overige ${aantalDoelen - 1} doel${aantalDoelen - 1 === 1 ? "" : "en"} volg${aantalDoelen - 1 === 1 ? "t" : "en"} na realisatie hiervan.` : ""}
+            </p>
+          </Conclusie>
         </Chapter>
 
-        <Chapter
-          number="3."
-          title="Cross-sectorale uitkomst — de kern"
-          intro="Dit is het uiteindelijke DIN-netwerk zoals het uit de cross-analyse komt. Bovenaan staat het focusdoel; daaronder de baten per sector (PO/VO/Zakelijk). Vervolgens zie je per groep van vergelijkbare sector-vermogens drie parallelle kaarten — één per sector — en daaronder de hefboomlaag met de gezamenlijke inspanningen per domein: wat er wordt gedaan, waarom cross-sectoraal, met welke impact per sector, en met een volledig dossier (eigenaar, leider, kosten, resultaat, randvoorwaarden)."
-        >
-          <SubSection title="Uiteindelijke DIN-netwerk (uit cross-analyse stap 9)">
-            <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-prose">
+        {/* Hoofdstuk 3 — Cross-sectorale uitkomst */}
+        <Chapter number="3." title="Cross-sectorale uitkomst — de kern">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Per sector (PO/VO/Zakelijk) is een eigen DIN-keten opgesteld. Die overlappen sterk: dezelfde
+              vermogens komen op meerdere plekken terug. In dit hoofdstuk is dat samengebracht tot één
+              cross-sectorale uitkomst: de <strong>geconsolideerde inspanningen per domein</strong> en de
+              <strong> hefboomgroepen</strong> die meerdere sectoren tegelijk bedienen. Zo voorkomt het
+              programma dat elk domein drie keer apart wordt opgebouwd.
+            </p>
+          </Inleiding>
+          <Kern>
+            <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
               Focusdoel → Baten per sector → Drieluik van gelijkende vermogens → Hefboomlaag per domein.
               Dit is exact de visualisatie en data uit de laatste stap van de cross-analyse-wizard.
             </p>
@@ -3220,40 +3337,97 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 compact
               />
             </div>
-          </SubSection>
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              Het programma kent {aantalGroepen} groep{aantalGroepen === 1 ? "" : "en"} van vergelijkbare sector-vermogens
+              {aantalGezamenlijke > 0 ? ` waaruit ${aantalGezamenlijke} cross-sectorale inspanning${aantalGezamenlijke === 1 ? "" : "en"} zijn gedestilleerd, verdeeld over de vier domeinen cultuur, mens, data &amp; systemen en processen.` : "."}
+              {" "}De financiële vertaling van deze inspanningen volgt in Hoofdstuk 4.
+            </p>
+          </Conclusie>
         </Chapter>
 
-        <Chapter
-          number="4."
-          title="Raming"
-          intro="De programmaraming bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per inspanning) en interne uren (Cito-medewerkers, in uren én euro&apos;s). Beide zijn doorgerekend over vier scenario&apos;s. Hieronder eerst het advies aan de stuurgroep met een korte vergelijking van de vier scenario&apos;s; daaronder de detailuitwerking (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht)."
-        >
-          <BegrotingAdviesSamenvattingBlock session={session} />
-          <SubSection title="4.1 Raming out-of-pocket kosten">
-            <BegrotingAdviesBlock session={session} />
-          </SubSection>
-          <SubSection title="4.2 Interne uren">
-            <InterneUrenBlock session={session} />
-          </SubSection>
-          <SubSection title="4.3 Totaaloverzicht — vier scenario's">
-            <ScenarioTotaalBlock session={session} />
-          </SubSection>
+        {/* Hoofdstuk 4 — Raming (met expliciete Aanbeveling) */}
+        <Chapter number="4." title="Raming">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              De programmaraming bestaat uit twee componenten: <strong>out-of-pocket-uitgaven</strong> (externe kosten
+              per inspanning, zoals licenties, inkoop en externe inhuur) en <strong>interne uren</strong> (Cito-medewerkers,
+              in uren én euro&apos;s). Beide zijn doorgerekend over <strong>vier scenario&apos;s</strong>. Hieronder eerst de
+              aanbeveling aan de stuurgroep met een vergelijking van de scenario&apos;s; daarna de detailuitwerking
+              (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht).
+            </p>
+          </Inleiding>
+          <Aanbeveling>
+            <BegrotingAdviesSamenvattingBlock session={session} />
+          </Aanbeveling>
+          <Kern>
+            <SubSection title="4.1 Raming out-of-pocket kosten">
+              <BegrotingAdviesBlock session={session} />
+            </SubSection>
+            <SubSection title="4.2 Interne uren">
+              <InterneUrenBlock session={session} />
+            </SubSection>
+            <SubSection title="4.3 Totaaloverzicht — vier scenario's">
+              <ScenarioTotaalBlock session={session} />
+            </SubSection>
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              De vier doorgerekende scenario&apos;s geven de stuurgroep een onderbouwde keuze in tempo en
+              ambitieniveau. Met de aanbeveling bovenaan dit hoofdstuk en het totaaloverzicht in 4.3 kan de
+              stuurgroep het scenario vaststellen waarmee de programmabegroting verder wordt vastgezet.
+            </p>
+          </Conclusie>
         </Chapter>
 
-        <Chapter
-          number="5."
-          title="Programma-organisatie en RASCI"
-          intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
-        >
-          <GovernanceBlock session={session} />
+        {/* Hoofdstuk 5 — Programma-organisatie en RASCI */}
+        <Chapter number="5." title="Programma-organisatie en RASCI">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              De programma-organisatie bepaalt de veranderkracht: <strong>wie beslist, wie draagt bij, wie wordt
+              geïnformeerd</strong>. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) de
+              verantwoordelijkheidsverdeling expliciet vast.
+            </p>
+          </Inleiding>
+          <Kern>
+            <GovernanceBlock session={session} />
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              {totaalRollen > 0 ? <>{totaalRollen} rol{totaalRollen === 1 ? "" : "len"} in de programma-organisatie ingericht</> : "De programma-organisatie is ingericht"}
+              {aantalRasciClusters > 0 ? <>, met een RASCI-matrix over {aantalRasciClusters} hoofdthema{aantalRasciClusters === 1 ? "" : "'s"}</> : ""}.
+              {" "}Beslissings- en escalatieritme zijn vastgelegd, zodat de uitvoering kan starten.
+            </p>
+          </Conclusie>
         </Chapter>
 
-        <Chapter
-          number="6."
-          title="Planning en roadmap"
-          intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het ritmische kompas van het programma."
-        >
-          <RoadmapBlock session={session} />
+        {/* Hoofdstuk 6 — Planning en roadmap */}
+        <Chapter number="6." title="Planning en roadmap">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              De roadmap groepeert de cross-sectorale inspanningen in <strong>bundels en cycli</strong>, maakt
+              afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Het is het
+              ritmische kompas van het programma — niet de detailplanning per project, maar de cyclische
+              bundels op programmaniveau.
+            </p>
+          </Inleiding>
+          <Kern>
+            <RoadmapBlock session={session} />
+          </Kern>
+          <Conclusie>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              {aantalBundels > 0 ? (
+                <>
+                  {aantalBundels} bundel{aantalBundels === 1 ? "" : "s"} verdeeld over {cycli} cyclus{cycli === 1 ? "" : "sen"}
+                  {startQ && eindQ ? <>, met een doorlooptijd van <strong>{startQ}</strong> tot <strong>{eindQ}</strong></> : ""}.
+                  {" "}Per bundel zijn mijlpalen en risico&apos;s vastgelegd, zodat de stuurgroep kan sturen op tempo én op opbrengst.
+                </>
+              ) : (
+                "Roadmap is nog niet vastgesteld."
+              )}
+            </p>
+          </Conclusie>
         </Chapter>
       </div>
     </div>
