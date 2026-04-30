@@ -83,9 +83,12 @@ function SubSection({ title, number, id, children }: { title: string; number?: s
   return (
     <section
       id={anchor}
+      data-scope-type="paragraph"
+      data-scope-id={anchor}
+      data-scope-label={splitNum ? `${splitNum} ${splitTitle}` : title}
       className="mb-12 mt-10 first:mt-0 scroll-mt-24 print:mt-6 print:mb-6"
     >
-      <header className="mb-5 pb-3 border-b-2 border-cito-blue/30">
+      <header className="mb-5 pb-3 border-b-2 border-cito-blue/30 print:break-after-avoid">
         <div className="flex items-baseline gap-3">
           {splitNum && (
             <span className="text-3xl font-light text-cito-blue/55 tabular-nums leading-none">
@@ -1580,8 +1583,14 @@ function Chapter({
   // Auto-slug: "1." → "hoofdstuk-1"
   const anchor = id ?? `hoofdstuk-${number.replace(/[^0-9]/g, "")}`;
   return (
-    <section id={anchor} className="mb-14 scroll-mt-24">
-      <header className="mb-5">
+    <section
+      id={anchor}
+      data-scope-type="chapter"
+      data-scope-id={anchor}
+      data-scope-label={`${number} ${title}`}
+      className="mb-14 scroll-mt-24 print:break-before-page print:first-of-type:break-before-auto"
+    >
+      <header className="mb-5 print:break-after-avoid">
         <div className="flex items-baseline gap-4 pb-2 border-b-[3px] border-cito-blue">
           <span className="text-4xl font-light text-cito-blue/50 tabular-nums leading-none">
             {number}
