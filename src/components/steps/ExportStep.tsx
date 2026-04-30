@@ -64,10 +64,21 @@ function Section({ title, number, children }: { title: string; number?: string; 
   );
 }
 
-function SubSection({ title, number, children }: { title: string; number?: string; children: React.ReactNode }) {
+// Slugify een tekst tot een ankerwaarde voor anchor-links (a-z, 0-9, -)
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function SubSection({ title, number, id, children }: { title: string; number?: string; id?: string; children: React.ReactNode }) {
+  const anchor = id ?? slugify(title);
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-bold text-cito-blue/80 mb-3 uppercase tracking-wide">
+    <div className="mb-6" id={anchor}>
+      <h3 className="text-sm font-bold text-cito-blue/80 mb-3 uppercase tracking-wide scroll-mt-24">
         {number ? `${number} ` : ""}{title}
       </h3>
       {children}
@@ -1441,15 +1452,19 @@ function Chapter({
   number,
   title,
   intro,
+  id,
   children,
 }: {
   number: string;
   title: string;
   intro?: string;
+  id?: string;
   children: React.ReactNode;
 }) {
+  // Auto-slug: "1." → "hoofdstuk-1"
+  const anchor = id ?? `hoofdstuk-${number.replace(/[^0-9]/g, "")}`;
   return (
-    <section className="mb-14">
+    <section id={anchor} className="mb-14 scroll-mt-24">
       <header className="mb-5">
         <div className="flex items-baseline gap-4 pb-2 border-b-[3px] border-cito-blue">
           <span className="text-4xl font-light text-cito-blue/50 tabular-nums leading-none">

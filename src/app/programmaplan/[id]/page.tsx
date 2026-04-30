@@ -6,6 +6,25 @@ import { loadSessionFromSupabase } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
 import { ProgrammaplanDocument } from "@/components/steps/ExportStep";
 
+// Inhoudsopgave-structuur — synchroon met ProgrammaplanDocument hoofdstukken
+const TOC: Array<{ id: string; nummer: string; titel: string; sub?: Array<{ id: string; titel: string }> }> = [
+  { id: "hoofdstuk-1", nummer: "1.", titel: "Programmavisie en scope" },
+  { id: "hoofdstuk-2", nummer: "2.", titel: "Programmadoelen" },
+  { id: "hoofdstuk-3", nummer: "3.", titel: "Cross-sectorale uitkomst — de kern" },
+  {
+    id: "hoofdstuk-4",
+    nummer: "4.",
+    titel: "Raming",
+    sub: [
+      { id: "4-1-raming-out-of-pocket-kosten", titel: "4.1 Out-of-pocket kosten" },
+      { id: "4-2-interne-uren", titel: "4.2 Interne uren" },
+      { id: "4-3-totaaloverzicht-vier-scenario-s", titel: "4.3 Totaaloverzicht — vier scenario's" },
+    ],
+  },
+  { id: "hoofdstuk-5", nummer: "5.", titel: "Programma-organisatie en RASCI" },
+  { id: "hoofdstuk-6", nummer: "6.", titel: "Planning en roadmap" },
+];
+
 export default function PubliekProgrammaplanPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<DINSession | null>(null);
@@ -65,7 +84,7 @@ export default function PubliekProgrammaplanPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 print:bg-white print:py-0">
-      <div className="max-w-5xl mx-auto px-4 print:max-w-none print:px-0">
+      <div className="max-w-7xl mx-auto px-4 print:max-w-none print:px-0">
         {/* Read-only header — verbergen bij print */}
         <header className="bg-white border border-gray-200 rounded-xl p-5 mb-6 flex items-center justify-between print:hidden">
           <div>
@@ -84,9 +103,51 @@ export default function PubliekProgrammaplanPage() {
           </div>
         </header>
 
-        {/* Document zelf */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden print:border-0 print:rounded-none print:shadow-none">
-          <ProgrammaplanDocument session={session} />
+        {/* Layout met sticky inhoudsopgave-zijbalk */}
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 print:block print:gap-0">
+          {/* Inhoudsopgave — verbergen bij print */}
+          <aside className="print:hidden lg:sticky lg:top-6 lg:self-start">
+            <nav className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="text-[10px] uppercase tracking-wider text-cito-blue/70 font-bold mb-3">
+                Inhoudsopgave
+              </div>
+              <ol className="space-y-1.5">
+                {TOC.map((item) => (
+                  <li key={item.id}>
+                    <a
+                      href={`#${item.id}`}
+                      className="block text-sm text-gray-700 hover:text-cito-blue hover:bg-cito-blue/5 -mx-2 px-2 py-1 rounded transition-colors"
+                    >
+                      <span className="font-semibold text-cito-blue tabular-nums mr-1">{item.nummer}</span>
+                      {item.titel}
+                    </a>
+                    {item.sub && (
+                      <ol className="mt-1 ml-3 space-y-0.5 border-l border-cito-blue/15 pl-2">
+                        {item.sub.map((s) => (
+                          <li key={s.id}>
+                            <a
+                              href={`#${s.id}`}
+                              className="block text-xs text-gray-600 hover:text-cito-blue hover:bg-cito-blue/5 -mx-1 px-1 py-0.5 rounded transition-colors"
+                            >
+                              {s.titel}
+                            </a>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-400 leading-snug">
+                Klik een hoofdstuk aan om er direct heen te springen.
+              </div>
+            </nav>
+          </aside>
+
+          {/* Document zelf */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden print:border-0 print:rounded-none print:shadow-none min-w-0">
+            <ProgrammaplanDocument session={session} />
+          </div>
         </div>
 
         {/* Footer — verbergen bij print */}
