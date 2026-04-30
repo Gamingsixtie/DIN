@@ -31,6 +31,7 @@ export function createDemoSession(): DINSession {
     completedGoals: snapshot.completedGoals,
     clusterRasci: (snapshot as { clusterRasci?: unknown[] }).clusterRasci ?? [],
     itemRasci: (snapshot as { itemRasci?: unknown[] }).itemRasci ?? [],
+    gezamenlijkeRasci: (snapshot as { gezamenlijkeRasci?: unknown[] }).gezamenlijkeRasci ?? [],
     crossAnalyseWizard: (snapshot as { crossAnalyseWizard?: unknown }).crossAnalyseWizard,
   } as DINSession;
 }

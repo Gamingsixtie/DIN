@@ -63,6 +63,8 @@ export type {
   ItemRasci,
   AIItemRasci,
   AIGovernanceItemRasciResponse,
+  GezamenlijkeRasciSectie,
+  GezamenlijkRasciItem,
   Stap7InterneUren,
   Stap8Totaaloverzicht,
   DomeinInterneUren,

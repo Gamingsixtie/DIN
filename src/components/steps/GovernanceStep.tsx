@@ -19,9 +19,22 @@ import type {
   AIProgrammaorganisatie,
   AIGovernanceRasciResponse,
   AIGovernanceItemRasciResponse,
+  GezamenlijkRasciItem,
+  GezamenlijkeRasciSectie,
 } from "@/lib/types";
+import {
+  deriveProgrammaorganisatie,
+  deriveGezamenlijkeRasci,
+  mergeGezamenlijkeRasci,
+  setGezamenlijkRasciCell,
+  computeRolOverloadGezamenlijk,
+  validateGezamenlijkeRasci,
+  SECTIE_LABELS,
+  SECTIE_TOELICHTING,
+  SECTIE_VOLGORDE,
+} from "@/lib/governance-derive";
 
-type Tab = "organisatie" | "rasci";
+type Tab = "organisatie" | "gezamenlijk" | "rasci";
 type RasciSubTab = "clusters" | "benefits" | "capabilities";
 
 export type ClusterBron = {
@@ -165,6 +178,7 @@ export default function GovernanceStep() {
   const po: Programmaorganisatie = session.programmaorganisatie ?? emptyOrganisatie();
   const rasci: ClusterRasci[] = session.clusterRasci ?? [];
   const itemRasci: ItemRasci[] = session.itemRasci ?? [];
+  const gezamenlijkeRasci: GezamenlijkRasciItem[] = session.gezamenlijkeRasci ?? [];
   const rollen = collectRollen(po);
 
   // Items voor RASCI-uitbreiding (filter geconsolideerde uit)
@@ -240,6 +254,56 @@ export default function GovernanceStep() {
       return false;
     }
     return true;
+  }
+
+  // Deterministisch — geen AI: vul kerngroep + domeineigenaren uit cross-analyse stap 4
+  function handleDeriveOrganisatie() {
+    if (!session) return;
+    setAIError(null);
+    const result = deriveProgrammaorganisatie(session, po);
+    if (result.ongewijzigd) {
+      setAIError("Geen nieuwe rollen om af te leiden. Cross-analyse stap 4 leverde niets buiten wat al staat.");
+      return;
+    }
+    updateSession(() => ({ programmaorganisatie: result.next }));
+    // Niet-blokkerende flash via aiError-veld als info-bericht
+    setAIError(
+      `Toegevoegd: ${result.toegevoegdKerngroep} kerngroep-rol(len), ${result.toegevoegdDomeineigenaren} domeineigenaar(s). Bestaande handmatige rollen zijn behouden.`
+    );
+  }
+
+  // Sync de "Gezamenlijk"-RASCI met cross-analyse — bewaart manual-overrides
+  function handleSyncGezamenlijkeRasci() {
+    if (!session) return;
+    if (!checkPoIngevuld()) return;
+    setAIError(null);
+    const { items: derived, diagnostiek } = deriveGezamenlijkeRasci(session);
+    const merged = mergeGezamenlijkeRasci(session.gezamenlijkeRasci ?? [], derived);
+    updateSession(() => ({ gezamenlijkeRasci: merged }));
+    if (diagnostiek.length > 0) {
+      setAIError(
+        `Gesynchroniseerd. ${diagnostiek.length} aandachtspunt(en): ` +
+          diagnostiek.slice(0, 3).map((d) => d.reden).join(" · ") +
+          (diagnostiek.length > 3 ? ` · +${diagnostiek.length - 3} meer` : "")
+      );
+    }
+  }
+
+  function setGezamenlijkCell(
+    sectie: GezamenlijkeRasciSectie,
+    itemId: string,
+    rolId: string,
+    letter: RasciLetter | null
+  ) {
+    updateSession((prev) => ({
+      gezamenlijkeRasci: setGezamenlijkRasciCell(
+        prev.gezamenlijkeRasci ?? [],
+        sectie,
+        itemId,
+        rolId,
+        letter
+      ),
+    }));
   }
 
   async function handleAIRasciClusters(skipConfirm = false) {
@@ -431,10 +495,18 @@ export default function GovernanceStep() {
         <TabButton active={tab === "organisatie"} onClick={() => setTab("organisatie")}>
           Programmaorganisatie
         </TabButton>
-        <TabButton active={tab === "rasci"} onClick={() => setTab("rasci")}>
-          RASCI-matrix
-          {rasci.length > 0 && (
+        <TabButton active={tab === "gezamenlijk"} onClick={() => setTab("gezamenlijk")}>
+          Gezamenlijk (uit cross-analyse)
+          {gezamenlijkeRasci.length > 0 && (
             <span className="ml-2 text-xs bg-cito-blue text-white px-2 py-0.5 rounded-full">
+              {gezamenlijkeRasci.length}
+            </span>
+          )}
+        </TabButton>
+        <TabButton active={tab === "rasci"} onClick={() => setTab("rasci")}>
+          Geavanceerd: oude RASCI-tabs
+          {rasci.length > 0 && (
+            <span className="ml-2 text-xs bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full">
               {rasci.length}
             </span>
           )}
@@ -452,7 +524,21 @@ export default function GovernanceStep() {
           po={po}
           onUpdate={updatePo}
           onAI={handleAIOrganisatie}
+          onDerive={handleDeriveOrganisatie}
           aiLoading={aiLoading === "organisatie"}
+        />
+      )}
+
+      {tab === "gezamenlijk" && (
+        <GezamenlijkTab
+          items={gezamenlijkeRasci}
+          rollen={rollen}
+          onSync={handleSyncGezamenlijkeRasci}
+          onSetCell={setGezamenlijkCell}
+          hasSession={true}
+          hasCrossAnalyse={
+            (session.crossAnalyseWizard?.stepResults?.stap4?.subEffortAnalysis ?? []).length > 0
+          }
         />
       )}
 
@@ -510,11 +596,13 @@ function OrganisatieTab({
   po,
   onUpdate,
   onAI,
+  onDerive,
   aiLoading,
 }: {
   po: Programmaorganisatie;
   onUpdate: (updater: (prev: Programmaorganisatie) => Programmaorganisatie) => void;
   onAI: () => void;
+  onDerive: () => void;
   aiLoading: boolean;
 }) {
   function setSingle(field: "opdrachtgever" | "programmamanager", rol: ProgrammaRol | undefined) {
@@ -530,11 +618,29 @@ function OrganisatieTab({
 
   return (
     <div className="space-y-6">
+      <div className="p-4 rounded border border-emerald-200 bg-emerald-50">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-[260px]">
+            <p className="text-sm font-semibold text-emerald-900">Vul uit cross-analyse (aanbevolen)</p>
+            <p className="text-xs text-emerald-800 mt-0.5">
+              Kerngroep = unieke inspanningsleiders uit stap 4. Domeineigenaren = meest voorkomende eigenaar per domein.
+              Bestaande handmatige rollen blijven staan.
+            </p>
+          </div>
+          <button
+            onClick={onDerive}
+            className="px-4 py-2 rounded bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800"
+          >
+            Vul kerngroep + domeineigenaren
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between p-4 rounded border border-cito-blue/20 bg-cito-blue/5">
         <div>
-          <p className="text-sm font-semibold text-cito-blue">AI-voorstel programmaorganisatie</p>
+          <p className="text-sm font-semibold text-cito-blue">Of: AI-voorstel volledige programmaorganisatie</p>
           <p className="text-xs text-gray-600 mt-0.5">
-            Op basis van de ingevulde DIN-structuur en het Cito strategisch fundament.
+            Vervangt de COMPLETE organisatie. Gebruik alleen als je opnieuw wil beginnen.
           </p>
         </div>
         <button
@@ -2048,6 +2154,316 @@ export function RasciFullMatrix({
           🟢 valide (1 A + ≥1 R) · 🟡 ongeldig
         </span>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Gezamenlijk Tab — 4-secties RASCI uit cross-analyse
+// ============================================================
+
+function GezamenlijkTab({
+  items,
+  rollen,
+  onSync,
+  onSetCell,
+  hasCrossAnalyse,
+}: {
+  items: GezamenlijkRasciItem[];
+  rollen: ProgrammaRol[];
+  onSync: () => void;
+  onSetCell: (
+    sectie: GezamenlijkeRasciSectie,
+    itemId: string,
+    rolId: string,
+    letter: RasciLetter | null
+  ) => void;
+  hasSession: boolean;
+  hasCrossAnalyse: boolean;
+}) {
+  if (rollen.length === 0) {
+    return (
+      <div className="p-8 text-center bg-gray-50 rounded border border-gray-200">
+        <p className="text-gray-600 font-medium mb-1">Geen rollen gedefinieerd.</p>
+        <p className="text-sm text-gray-500">
+          Vul eerst de programmaorganisatie in. Tip: gebruik de knop &quot;Vul kerngroep + domeineigenaren uit cross-analyse&quot; in de Programmaorganisatie-tab.
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasCrossAnalyse) {
+    return (
+      <div className="p-8 text-center bg-amber-50 rounded border border-amber-200">
+        <p className="text-amber-900 font-medium mb-1">Geen cross-analyse data.</p>
+        <p className="text-sm text-amber-800">
+          Voltooi eerst stap 4 (Cross-analyse — Optimaliseren) zodat de gezamenlijke inspanningen, eigenaren en inspanningsleiders bekend zijn.
+        </p>
+      </div>
+    );
+  }
+
+  const overload = computeRolOverloadGezamenlijk(items);
+  const rollenMetOverload = rollen.filter((r) => (overload.get(r.id) ?? 0) > 4);
+  const problemen = validateGezamenlijkeRasci(items);
+
+  return (
+    <div className="space-y-6">
+      {/* Sync-knop + uitleg */}
+      <div className="p-4 rounded border border-cito-blue/20 bg-cito-blue/5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-[260px]">
+            <p className="text-sm font-semibold text-cito-blue">Synchroniseer met cross-analyse</p>
+            <p className="text-xs text-gray-700 mt-1">
+              Genereert vier secties: <b>sector-baten</b>, <b>gezamenlijke vermogens</b>, <b>gezamenlijke inspanningen</b> en <b>programmagovernance</b> —
+              afgeleid uit cross-analyse stap 1, 2 en 4. Handmatig overschreven cellen blijven staan.
+            </p>
+          </div>
+          <button
+            onClick={onSync}
+            className="px-4 py-2 rounded bg-cito-blue text-white text-sm font-medium hover:bg-cito-blue/90"
+          >
+            {items.length === 0 ? "Vul matrix" : "Synchroniseer"}
+          </button>
+        </div>
+      </div>
+
+      {/* RASCI-legenda */}
+      <div className="p-3 rounded bg-gray-50 border border-gray-200 text-xs text-gray-700">
+        <p className="font-semibold mb-2">RASCI-regels: exact 1 A + minstens 1 R per rij. V is optioneel.</p>
+        <div className="flex flex-wrap gap-3">
+          {(["R", "A", "S", "C", "I", "V"] as RasciLetter[]).map((l) => (
+            <span key={l} className="inline-flex items-center gap-1">
+              <span className={`inline-block w-5 text-center text-[11px] border rounded ${RASCI_KLEUREN[l]}`}>
+                {l}
+              </span>
+              <span className="text-gray-600">
+                <b>{RASCI_LABELS[l]}</b> — {RASCI_TOELICHTING[l]}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Diagnostiek */}
+      {rollenMetOverload.length > 0 && (
+        <div className="p-3 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900">
+          <p className="font-semibold mb-1">⚠ Rol-overload: deze rollen hebben &gt;4 A&apos;s</p>
+          <ul className="list-disc ml-5 space-y-0.5">
+            {rollenMetOverload.map((r) => (
+              <li key={r.id}>
+                <b>{r.rol}</b>{r.naam ? ` (${r.naam})` : ""} — {overload.get(r.id)} A&apos;s
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {problemen.length > 0 && (
+        <div className="p-3 rounded bg-rose-50 border border-rose-200 text-xs text-rose-900">
+          <p className="font-semibold mb-1">⚠ {problemen.length} regel(s) niet aan RASCI-norm</p>
+          <ul className="list-disc ml-5 space-y-0.5">
+            {problemen.slice(0, 6).map((p, i) => (
+              <li key={i}>
+                {SECTIE_LABELS[p.sectie]} → <code className="text-[10px]">{p.itemId}</code>:{" "}
+                {p.reden === "geen_a" && "Geen A toegekend"}
+                {p.reden === "meerdere_a" && "Meerdere A's (mag 1)"}
+                {p.reden === "geen_r" && "Geen R toegekend"}
+              </li>
+            ))}
+            {problemen.length > 6 && <li className="text-rose-700">+{problemen.length - 6} meer</li>}
+          </ul>
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="p-6 text-center bg-gray-50 rounded border border-gray-200 text-sm text-gray-600">
+          Nog geen matrix gegenereerd. Klik &quot;Vul matrix&quot; om af te leiden uit de cross-analyse.
+        </div>
+      ) : (
+        SECTIE_VOLGORDE.map((sectie) => {
+          const sectieItems = items.filter((i) => i.sectie === sectie);
+          if (sectieItems.length === 0) return null;
+          return (
+            <SectieMatrix
+              key={sectie}
+              sectie={sectie}
+              titel={SECTIE_LABELS[sectie]}
+              toelichting={SECTIE_TOELICHTING[sectie]}
+              items={sectieItems}
+              rollen={rollen}
+              onSetCell={onSetCell}
+            />
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function SectieMatrix({
+  sectie,
+  titel,
+  toelichting,
+  items,
+  rollen,
+  onSetCell,
+}: {
+  sectie: GezamenlijkeRasciSectie;
+  titel: string;
+  toelichting: string;
+  items: GezamenlijkRasciItem[];
+  rollen: ProgrammaRol[];
+  onSetCell: (
+    sectie: GezamenlijkeRasciSectie,
+    itemId: string,
+    rolId: string,
+    letter: RasciLetter | null
+  ) => void;
+}) {
+  const sectieKleur = {
+    sector_baten: "bg-blue-50 border-blue-200 text-blue-900",
+    gezamenlijke_vermogens: "bg-indigo-50 border-indigo-200 text-indigo-900",
+    gezamenlijke_inspanningen: "bg-teal-50 border-teal-200 text-teal-900",
+    programmagovernance: "bg-amber-50 border-amber-200 text-amber-900",
+  }[sectie];
+
+  return (
+    <div className="rounded border border-gray-200 overflow-hidden">
+      <div className={`px-4 py-3 border-b ${sectieKleur}`}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-bold">{titel}</h3>
+            <p className="text-[11px] mt-0.5 opacity-80">{toelichting}</p>
+          </div>
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/60">
+            {items.length} {items.length === 1 ? "rij" : "rijen"}
+          </span>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th className="bg-gray-100 border-b border-r border-gray-200 px-2 py-2 text-left font-bold text-gray-700 sticky left-0 z-20 min-w-[260px]">
+                Item
+              </th>
+              {rollen.map((rol) => (
+                <th
+                  key={rol.id}
+                  className="bg-gray-100 border-b border-r border-gray-200 px-1.5 py-2 text-center font-bold text-gray-700 align-bottom"
+                  style={{ minWidth: 56 }}
+                >
+                  <div
+                    className="text-[10px] leading-tight whitespace-normal"
+                    style={{
+                      writingMode: "vertical-rl",
+                      transform: "rotate(180deg)",
+                      maxHeight: 110,
+                      margin: "0 auto",
+                    }}
+                  >
+                    <div className="font-semibold">{rol.rol}</div>
+                    {rol.naam && <div className="font-normal text-gray-500 text-[9px]">{rol.naam}</div>}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const rijMap = new Map((item.rijen ?? []).map((r) => [r.rolId, r] as const));
+              const nA = (item.rijen ?? []).filter((r) => r.letter === "A").length;
+              const nR = (item.rijen ?? []).filter((r) => r.letter === "R").length;
+              const valid = nA === 1 && nR >= 1;
+              return (
+                <tr key={item.itemId} className="hover:bg-gray-50/50">
+                  <td className="border-b border-r border-gray-200 px-2 py-1.5 sticky left-0 bg-white z-10">
+                    <div className="flex items-start gap-1.5">
+                      <span
+                        className={`shrink-0 mt-0.5 w-2 h-2 rounded-full ${
+                          valid ? "bg-green-500" : "bg-amber-400"
+                        }`}
+                        title={valid ? "Geldig (1 A + ≥1 R)" : `${nA} A, ${nR} R`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-800 text-[11px] leading-snug">
+                          {item.itemTitel}
+                        </div>
+                        {(item.meta?.eigenaarNaam || item.meta?.inspanningsleiderNaam) && (
+                          <div className="mt-0.5 text-[10px] text-gray-500 truncate">
+                            {item.meta.eigenaarNaam && (
+                              <span>Eig: {item.meta.eigenaarNaam}</span>
+                            )}
+                            {item.meta.eigenaarNaam && item.meta.inspanningsleiderNaam && " · "}
+                            {item.meta.inspanningsleiderNaam && (
+                              <span>Leider: {item.meta.inspanningsleiderNaam}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  {rollen.map((rol) => {
+                    const rij = rijMap.get(rol.id);
+                    const letter = rij?.letter;
+                    const isManual = rij?.bron === "manual";
+                    return (
+                      <td
+                        key={rol.id}
+                        className="border-b border-r border-gray-200 text-center p-0"
+                        style={{ minWidth: 56 }}
+                      >
+                        <RasciCellPicker
+                          letter={letter}
+                          isManual={isManual}
+                          onChange={(next) => onSetCell(sectie, item.itemId, rol.id, next)}
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RasciCellPicker({
+  letter,
+  isManual,
+  onChange,
+}: {
+  letter?: RasciLetter;
+  isManual?: boolean;
+  onChange: (next: RasciLetter | null) => void;
+}) {
+  const letters: (RasciLetter | "")[] = ["", "R", "A", "S", "C", "I", "V"];
+  return (
+    <div className="relative inline-block">
+      <select
+        value={letter ?? ""}
+        onChange={(e) => onChange((e.target.value || null) as RasciLetter | null)}
+        className={`w-12 h-7 text-center text-[11px] font-bold rounded border cursor-pointer appearance-none ${
+          letter ? RASCI_KLEUREN[letter] : "bg-white border-gray-200 text-gray-300"
+        }`}
+        title={isManual ? "Handmatig gewijzigd — blijft bewaard bij synchroniseren" : letter ? "Afgeleid uit cross-analyse" : "Leeg"}
+      >
+        {letters.map((l) => (
+          <option key={l || "leeg"} value={l}>
+            {l || "·"}
+          </option>
+        ))}
+      </select>
+      {letter && isManual && (
+        <span
+          className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-rose-500 border border-white"
+          title="Handmatig"
+        />
+      )}
     </div>
   );
 }

@@ -84,6 +84,7 @@ export default function Home() {
       completedGoals: [],
       clusterRasci: [],
       itemRasci: [],
+      gezamenlijkeRasci: [],
     };
     saveLocal(`session_${id}`, session);
     // D-06: sync new session to Supabase for backup/recovery

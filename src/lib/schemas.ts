@@ -779,9 +779,14 @@ export const ProgrammaorganisatieSchema = z.object({
 // V toegevoegd: optionele Verifier (onafhankelijke verificatie van baten/leverables)
 export const RasciLetterSchema = z.enum(["R", "A", "S", "C", "I", "V"]);
 
+// `bron` (optional, no default) tracks of de cel uit cross-analyse is afgeleid
+// of door de gebruiker handmatig is gezet. Afwezig = behandelen als "manual"
+// (backward compat met bestaande sessies). Sync-knop ververst alleen cellen
+// met expliciete bron === "derived".
 export const RasciRijSchema = z.object({
   rolId: z.string(),
   letter: RasciLetterSchema,
+  bron: z.enum(["derived", "manual"]).optional(),
 });
 
 export const RasciOnderdeelTypeSchema = z.enum(["benefit", "capability", "effort"]);
@@ -862,6 +867,34 @@ export const AIGovernanceItemRasciResponseSchema = z.object({
 });
 
 // ============================================================
+// "Gezamenlijke" RASCI — primaire view voor stap 5, afgeleid uit cross-analyse
+// stap 4 (Optimaliseren). Eigen veld zodat legacy clusterRasci/itemRasci data
+// 100% intact blijft. Vier vaste secties:
+//   - sector_baten             (per sector × baat uit stap 1.batenPerSector)
+//   - gezamenlijke_vermogens   (per VermogenGelijkenisGroep uit stap 2)
+//   - gezamenlijke_inspanningen (per subEffortAnalysis met ingevuld dossier)
+//   - programmagovernance      (vaste rijen: besluitvorming/rapportage/escalatie/baten-realisatie)
+// ============================================================
+
+export const GezamenlijkeRasciSectieSchema = z.enum([
+  "sector_baten",
+  "gezamenlijke_vermogens",
+  "gezamenlijke_inspanningen",
+  "programmagovernance",
+]);
+
+export const GezamenlijkRasciItemSchema = z.object({
+  sectie: GezamenlijkeRasciSectieSchema,
+  itemId: z.string(), // stabiele unieke key binnen sectie
+  itemTitel: z.string(),
+  // Vrije meta voor weergave (sectorId, domein, groepId, ...). Geen vaste keys
+  // zodat we backward compatible blijven bij uitbreidingen.
+  meta: z.record(z.string(), z.string()).optional().default({}),
+  rijen: z.array(RasciRijSchema).optional().default([]),
+  toelichting: z.string().optional().default(""),
+});
+
+// ============================================================
 // DINSession schema
 // ============================================================
 
@@ -899,6 +932,9 @@ export const DINSessionSchema = z.object({
   programmaorganisatie: ProgrammaorganisatieSchema.optional(),
   clusterRasci: z.array(ClusterRasciSchema).optional().default([]),
   itemRasci: z.array(ItemRasciSchema).optional().default([]),
+  // "Gezamenlijke" RASCI — primaire view stap 5, afgeleid uit cross-analyse.
+  // Aparte field zodat legacy clusterRasci/itemRasci onaangeroerd blijven.
+  gezamenlijkeRasci: z.array(GezamenlijkRasciItemSchema).optional().default([]),
   // Phase 20: AI-planning-voorstel (roadmap obv cross-analyse stap 6+7)
   planningVoorstel: PlanningVoorstelSchema.optional(),
 });
@@ -1316,3 +1352,5 @@ export type RasciItemType = z.infer<typeof RasciItemTypeSchema>;
 export type ItemRasci = z.infer<typeof ItemRasciSchema>;
 export type AIItemRasci = z.infer<typeof AIItemRasciSchema>;
 export type AIGovernanceItemRasciResponse = z.infer<typeof AIGovernanceItemRasciResponseSchema>;
+export type GezamenlijkeRasciSectie = z.infer<typeof GezamenlijkeRasciSectieSchema>;
+export type GezamenlijkRasciItem = z.infer<typeof GezamenlijkRasciItemSchema>;
