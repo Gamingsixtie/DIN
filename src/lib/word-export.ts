@@ -941,9 +941,10 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     methodiekIntro(
       "Vanuit de DIN-mapping is per sector (PO, VO, Zakelijk) een onafhankelijke keten van baten, vermogens en " +
       "inspanningen opgesteld. Die sector-DIN's overlappen sterk: dezelfde vermogens komen op meerdere plekken " +
-      "terug. Hieronder is dat samengevoegd tot één cross-sectorale uitkomst — geconsolideerde inspanningen per " +
-      "domein, een doorgerekende begroting, en een uiteindelijke DIN die teruggebracht is naar elke sector. Een " +
-      "programma is meer dan de optelsom van sectorinitiatieven (Prevaas & Van Loon, Hfst. 4)."
+      "terug. Hieronder is dat samengevoegd tot één cross-sectorale uitkomst: synergieën en hefboomwerking, " +
+      "geconsolideerde inspanningen per domein, en een uiteindelijke DIN die teruggebracht is naar elke sector. " +
+      "De integrale begroting (out-of-pocket + interne uren) volgt in Hoofdstuk 4. Een programma is meer dan de " +
+      "optelsom van sectorinitiatieven (Prevaas & Van Loon, Hfst. 4)."
     )
   );
   children.push(emptyLine());
@@ -1144,102 +1145,6 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
-  // Begroting — scenario-totaaloverzicht (4 scenarios + motivatie waarom actief scenario)
-  // Datasources (zelfde als StapTotaaloverzicht.tsx):
-  // - stap4.begrotingAdvies   → out-of-pocket (totaalGeraamdEuro) + samenvatting + prioriteitAdvies
-  // - stap4.stap7InterneUren  → interne uren + interne kosten
-  // - stap8 (optioneel)       → fallback indien expliciet opgeslagen
-  type ScenarioKeyLocal = "optimaal" | "plus20" | "min20" | "advies";
-  type BegrotingScenarioLocal = { totaalGeraamdEuro?: number; samenvatting?: string; prioriteitAdvies?: string };
-  type BegrotingAdvLocal = { scenarios?: Partial<Record<ScenarioKeyLocal, BegrotingScenarioLocal | null>> };
-  type InterneUrenScenarioLocal = { totaalUren?: number; totaalKosten?: number };
-  type Stap7InterneLocal = { scenarios?: Partial<Record<ScenarioKeyLocal, InterneUrenScenarioLocal | null>> };
-  type Stap4ResLocal = { begrotingAdvies?: BegrotingAdvLocal; stap7InterneUren?: Stap7InterneLocal };
-  type ScenarioTot = { totaalOutOfPocket: number; totaalInterneUren: number; totaalGeraamd: number };
-  type Stap8Local = { actiefScenario?: ScenarioKeyLocal; scenarios?: Partial<Record<ScenarioKeyLocal, ScenarioTot | null>> };
-
-  const stap4Tot = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4ResLocal } | undefined)?.stap4;
-  const stap8Tot = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8Local } | undefined)?.stap8;
-  const begrotingTot = stap4Tot?.begrotingAdvies;
-  const interneUrenTot = stap4Tot?.stap7InterneUren;
-
-  const scenarioOrder: ScenarioKeyLocal[] = ["optimaal", "plus20", "min20", "advies"];
-  const computedRows = scenarioOrder
-    .map((key) => {
-      const b = begrotingTot?.scenarios?.[key] ?? null;
-      const i = interneUrenTot?.scenarios?.[key] ?? null;
-      const fromStap8 = stap8Tot?.scenarios?.[key] ?? null;
-
-      const outOfPocket = b?.totaalGeraamdEuro ?? fromStap8?.totaalOutOfPocket ?? 0;
-      const interneKosten = i?.totaalKosten ?? fromStap8?.totaalInterneUren ?? 0;
-      const totaalGeraamd = (outOfPocket + interneKosten) || fromStap8?.totaalGeraamd || 0;
-      const interneUrenAantal = i?.totaalUren ?? 0;
-
-      if (outOfPocket === 0 && interneKosten === 0 && totaalGeraamd === 0 && !b && !i && !fromStap8) {
-        return null;
-      }
-      return { key, outOfPocket, interneKosten, interneUrenAantal, totaalGeraamd };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
-
-  if (computedRows.length > 0) {
-    children.push(numberedHeading("Begroting — scenario-totaaloverzicht", "h2", numState));
-    children.push(bodyText(
-      "Vier scenario's zijn doorgerekend: het huidig jaarbudget, een +20%- en −20%-variant, en een optimaal " +
-      "advies. Het actieve scenario vormt de basis voor de programmabegroting.",
-      { color: TEXT_SECONDARY, size: 20 }
-    ));
-
-    const actiefKey: ScenarioKeyLocal = stap8Tot?.actiefScenario ?? "optimaal";
-    const totRows = computedRows.map((r) => {
-      const isActief = r.key === actiefKey;
-      const interneCellTekst = r.interneUrenAantal > 0
-        ? `${formatEuro(r.interneKosten)} (${formatGetal(r.interneUrenAantal)} u)`
-        : formatEuro(r.interneKosten);
-      return new TableRow({
-        children: [
-          styledCell(SCENARIO_LABELS[r.key] + (isActief ? " (actief)" : ""), { bold: true, width: 28, shading: isActief ? CITO_BLUE_LIGHT : undefined }),
-          styledCell(formatEuro(r.outOfPocket), { width: 24 }),
-          styledCell(interneCellTekst, { width: 24 }),
-          styledCell(formatEuro(r.totaalGeraamd), { width: 24, bold: true }),
-        ],
-      });
-    });
-    children.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              headerCell("Scenario", 28),
-              headerCell("Out-of-pocket", 24),
-              headerCell("Interne uren (kosten)", 24),
-              headerCell("Totaal geraamd", 24),
-            ],
-          }),
-          ...totRows,
-        ],
-      })
-    );
-    children.push(emptyLine());
-
-    // Motivatie waarom dit actieve scenario gekozen is
-    const actiefMotivatie = begrotingTot?.scenarios?.[actiefKey]?.samenvatting?.trim() || "";
-    const actiefAdvies = begrotingTot?.scenarios?.[actiefKey]?.prioriteitAdvies?.trim() || "";
-    if (actiefMotivatie || actiefAdvies) {
-      children.push(bodyText(
-        `Motivatie — waarom "${SCENARIO_LABELS[actiefKey]}"?`,
-        { bold: true, size: 22, color: CITO_BLUE }
-      ));
-      if (actiefMotivatie) {
-        children.push(bodyText(actiefMotivatie, { size: 22, color: TEXT_PRIMARY }));
-      }
-      if (actiefAdvies) {
-        children.push(bodyText(actiefAdvies, { italic: true, size: 22, color: TEXT_SECONDARY }));
-      }
-      children.push(emptyLine());
-    }
-  }
 
   // Uiteindelijke DIN-netwerk — integratieadvies per sector (sector-vertaling uit wizard-stap 9)
   const integratieRecord2 = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
@@ -2062,6 +1967,321 @@ function sectorSection(session: DINSession, sector: SectorName, numState: Number
 }
 
 
+// --- Hoofdstuk 4 — Begroting en raming (3 subparagrafen) ---
+function begrotingEnRamingSection(session: DINSession, numState: NumberingState) {
+  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
+  type InspBegr = {
+    inspanningTitel: string;
+    domein: EffortDomain;
+    totaalEuro: number;
+    percentageTotaal: number;
+    motivatie: string;
+    verdelingPerJaar: Array<{ jaar: number; percentage: number; euro: number; fase: string; activiteit?: string }>;
+    volgorde: { rank: number; reden: string };
+  };
+  type BegrScenario = {
+    jaarlijksBudgetEuro?: number;
+    aantalJaren?: number;
+    totaalGeraamdEuro?: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    inspanningen?: InspBegr[];
+    totalenPerJaar?: Array<{ jaar: number; euro: number; percentage: number }>;
+  };
+  type BegrAdv = { startJaar?: number; scenarios?: Partial<Record<ScenarioK, BegrScenario | null>>; vergelijking?: string };
+
+  type Rol = { functieId: string; functieNaam: string; afdeling?: string; uren: number; uurtarief: number; kosten: number };
+  type JaarBlok = { jaar: number; activiteit: string; rollen: Rol[]; totaalUren?: number; totaalKosten?: number };
+  type DomeinBlok = { domein: EffortDomain; motivatie?: string; jaren: JaarBlok[]; totaalUren?: number; totaalKosten?: number };
+  type UrenScenario = {
+    aantalJaren?: number;
+    startJaar?: number;
+    uurtariefGebruikt?: number;
+    domeinen: DomeinBlok[];
+    totalenPerJaar?: Array<{ jaar: number; uren: number; kosten: number }>;
+    totaalUren?: number;
+    totaalKosten?: number;
+    samenvatting?: string;
+  };
+  type UrenAdv = { uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number }; scenarios?: Partial<Record<ScenarioK, UrenScenario | null>> };
+
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: { begrotingAdvies?: BegrAdv; stap7InterneUren?: UrenAdv } } | undefined)?.stap4;
+  const begroting = stap4?.begrotingAdvies;
+  const interneUren = stap4?.stap7InterneUren;
+  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
+
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(numberedHeading("Begroting en raming", "h1", numState));
+  children.push(
+    methodiekIntro(
+      "De programmabegroting bestaat uit twee componenten: out-of-pocket-uitgaven (externe kosten per " +
+      "inspanning) en interne uren (Cito-medewerkers, in uren én euro's). Beide componenten zijn " +
+      "doorgerekend over vier scenario's. De gedetailleerde uitwerking volgt in 4.1 en 4.2; 4.3 telt " +
+      "alles samen tot het integrale totaaloverzicht waarop de stuurgroep een keuze kan baseren."
+    )
+  );
+  children.push(emptyLine());
+
+  // === 4.1 Raming out-of-pocket kosten ===
+  children.push(numberedHeading("Raming out-of-pocket kosten", "h2", numState));
+  if (!begroting?.scenarios || scenarioOrder.every((k) => !begroting.scenarios?.[k])) {
+    children.push(bodyText("Het begrotingsadvies (out-of-pocket) is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "Out-of-pocket-uitgaven (externe kosten zoals licenties, inkoop en externe inhuur) per cross-sectorale " +
+      "inspanning, doorgerekend over de programma-jaren.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    if (begroting.vergelijking) {
+      children.push(bodyText(`Vergelijking: ${begroting.vergelijking}`, { italic: true, color: TEXT_SECONDARY, size: 20 }));
+    }
+    children.push(emptyLine(60));
+
+    const startJaar = begroting.startJaar ?? new Date().getFullYear();
+    scenarioOrder.forEach((key) => {
+      const s = begroting.scenarios?.[key];
+      if (!s) return;
+      const aantalJaren = s.aantalJaren ?? 1;
+      const eindJaar = startJaar + aantalJaren - 1;
+      const inspanningen = [...(s.inspanningen ?? [])].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
+
+      // Scenario banner
+      children.push(bodyText(
+        `Scenario — ${SCENARIO_LABELS[key]}`,
+        { bold: true, size: 22, color: CITO_BLUE }
+      ));
+      if (s.samenvatting) {
+        children.push(bodyText(s.samenvatting, { size: 20, color: TEXT_PRIMARY }));
+      }
+      if (s.totaalGeraamdEuro !== undefined) {
+        children.push(bodyText(
+          `${formatEuro(s.jaarlijksBudgetEuro ?? 0)} / jaar × ${aantalJaren} jaar (${startJaar}–${eindJaar}) = ${formatEuro(s.totaalGeraamdEuro)}`,
+          { size: 18, color: TEXT_MUTED, italic: true }
+        ));
+      }
+      children.push(emptyLine(40));
+
+      // Inspanningen-tabel
+      if (inspanningen.length > 0) {
+        const headerCells = [
+          headerCell("#", 5),
+          headerCell("Inspanning (domein + motivatie)", 35),
+        ];
+        for (let y = 0; y < aantalJaren; y++) {
+          headerCells.push(headerCell(`${startJaar + y}`, Math.floor(50 / aantalJaren)));
+        }
+        headerCells.push(headerCell("Totaal", 10));
+
+        const dataRows = inspanningen.map((insp) => {
+          const cells = [
+            styledCell(`${insp.volgorde.rank}`, { bold: true, width: 5, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 16 }),
+            styledCell(
+              `[${DOMAIN_LABELS[insp.domein]}] ${insp.inspanningTitel}\n${insp.motivatie}`,
+              { width: 35, size: 16 }
+            ),
+          ];
+          for (let y = 0; y < aantalJaren; y++) {
+            const jr = startJaar + y;
+            const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
+            const txt = cell && cell.euro > 0
+              ? `${formatEuro(cell.euro)} (${cell.percentage}%)${cell.fase ? ` — ${cell.fase}` : ""}${cell.activiteit ? `\n${cell.activiteit}` : ""}`
+              : "—";
+            cells.push(styledCell(txt, { width: Math.floor(50 / aantalJaren), size: 14 }));
+          }
+          cells.push(styledCell(`${formatEuro(insp.totaalEuro)}\n${insp.percentageTotaal}%`, { width: 10, bold: true, size: 16, color: CITO_BLUE }));
+          return new TableRow({ children: cells });
+        });
+
+        // Totaal-rij
+        const totalCells = [
+          styledCell("", { width: 5, shading: "F3F4F6" }),
+          styledCell("Totaal per jaar", { width: 35, bold: true, shading: "F3F4F6", size: 16 }),
+        ];
+        for (let y = 0; y < aantalJaren; y++) {
+          const jr = startJaar + y;
+          const t = s.totalenPerJaar?.find((x) => x.jaar === jr);
+          totalCells.push(styledCell(
+            t ? `${formatEuro(t.euro)} (${t.percentage}%)` : "—",
+            { width: Math.floor(50 / aantalJaren), bold: true, shading: "F3F4F6", size: 16, color: CITO_BLUE }
+          ));
+        }
+        totalCells.push(styledCell(formatEuro(s.totaalGeraamdEuro ?? 0), { width: 10, bold: true, shading: "F3F4F6", size: 16, color: CITO_BLUE }));
+
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [new TableRow({ children: headerCells }), ...dataRows, new TableRow({ children: totalCells })],
+          })
+        );
+        children.push(emptyLine());
+      }
+
+      if (s.prioriteitAdvies) {
+        children.push(bodyText("Prioriteitadvies (outside-in volgorde):", { bold: true, size: 20, color: CITO_BLUE }));
+        children.push(bodyText(s.prioriteitAdvies, { size: 20, color: TEXT_PRIMARY }));
+        children.push(emptyLine());
+      }
+    });
+  }
+
+  // === 4.2 Interne uren ===
+  children.push(numberedHeading("Interne uren", "h2", numState));
+  if (!interneUren?.scenarios || scenarioOrder.every((k) => !interneUren.scenarios?.[k])) {
+    children.push(bodyText("Interne-uren-advies is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "Inzet van Cito-medewerkers per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en " +
+      "bijbehorende kosten.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    if (interneUren.uurtariefSettings) {
+      children.push(bodyText(
+        `Basisuurtarief: ${formatEuro(interneUren.uurtariefSettings.basisTarief)} (referentiejaar ${interneUren.uurtariefSettings.referentiejaar}, indexatie ${interneUren.uurtariefSettings.indexatiePercentage}%/jaar).`,
+        { italic: true, color: TEXT_SECONDARY, size: 18 }
+      ));
+    }
+    children.push(emptyLine(60));
+
+    scenarioOrder.forEach((key) => {
+      const s = interneUren.scenarios?.[key];
+      if (!s) return;
+
+      children.push(bodyText(`Scenario — ${SCENARIO_LABELS[key]}`, { bold: true, size: 22, color: CITO_BLUE }));
+      if (s.samenvatting) {
+        children.push(bodyText(s.samenvatting, { size: 20, color: TEXT_PRIMARY }));
+      }
+      if (s.totaalUren !== undefined && s.totaalKosten !== undefined) {
+        children.push(bodyText(
+          `Totaal: ${formatGetal(s.totaalUren)} u × ${formatEuro(s.uurtariefGebruikt ?? 0)} = ${formatEuro(s.totaalKosten)}`,
+          { italic: true, size: 18, color: TEXT_MUTED }
+        ));
+      }
+      children.push(emptyLine(40));
+
+      // Domein-overzicht
+      const domeinRows = s.domeinen.map((d) =>
+        new TableRow({
+          children: [
+            styledCell(DOMAIN_LABELS[d.domein], { bold: true, width: 30, shading: DOMAIN_COLORS[d.domein], size: 16 }),
+            styledCell(`${formatGetal(d.totaalUren ?? 0)} u`, { width: 30, size: 16 }),
+            styledCell(formatEuro(d.totaalKosten ?? 0), { width: 40, bold: true, size: 16, color: CITO_BLUE }),
+          ],
+        })
+      );
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [headerCell("Domein", 30), headerCell("Uren", 30), headerCell("Kosten", 40)],
+            }),
+            ...domeinRows,
+          ],
+        })
+      );
+      children.push(emptyLine(60));
+
+      // Per domein per jaar de rol-tabel
+      s.domeinen.forEach((d) => {
+        children.push(bodyText(
+          `${DOMAIN_LABELS[d.domein]} — ${formatGetal(d.totaalUren ?? 0)} u, ${formatEuro(d.totaalKosten ?? 0)}`,
+          { bold: true, size: 20, color: CITO_BLUE }
+        ));
+        if (d.motivatie) {
+          children.push(bodyText(d.motivatie, { italic: true, size: 18, color: TEXT_SECONDARY }));
+        }
+
+        d.jaren.forEach((jr) => {
+          const totU = jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0);
+          const totK = jr.totaalKosten ?? jr.rollen.reduce((sum, r) => sum + r.kosten, 0);
+          children.push(bodyText(
+            `${jr.jaar} — ${jr.activiteit}  (${formatGetal(totU)} u, ${formatEuro(totK)})`,
+            { bold: true, size: 18, color: TEXT_PRIMARY }
+          ));
+
+          const rolRows = jr.rollen.map((r) =>
+            new TableRow({
+              children: [
+                styledCell(`${r.functieNaam}${r.afdeling ? ` (${r.afdeling})` : ""}`, { width: 50, size: 14 }),
+                styledCell(formatGetal(r.uren), { width: 15, size: 14 }),
+                styledCell(formatEuro(r.uurtarief), { width: 15, size: 14, color: TEXT_SECONDARY }),
+                styledCell(formatEuro(r.kosten), { width: 20, bold: true, size: 14 }),
+              ],
+            })
+          );
+          children.push(
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [headerCell("Rol", 50), headerCell("Uren", 15), headerCell("€/u", 15), headerCell("Kosten", 20)],
+                }),
+                ...rolRows,
+              ],
+            })
+          );
+          children.push(emptyLine(40));
+        });
+        children.push(emptyLine());
+      });
+    });
+  }
+
+  // === 4.3 Totaaloverzicht ===
+  children.push(numberedHeading("Totaaloverzicht — vier scenario's", "h2", numState));
+
+  const scenarioRows: TableRow[] = [];
+  scenarioOrder.forEach((key) => {
+    const b = begroting?.scenarios?.[key];
+    const i = interneUren?.scenarios?.[key];
+    const oop = b?.totaalGeraamdEuro ?? 0;
+    const intK = i?.totaalKosten ?? 0;
+    const intU = i?.totaalUren ?? 0;
+    const tot = oop + intK;
+    if (oop === 0 && intK === 0 && tot === 0) return;
+    scenarioRows.push(
+      new TableRow({
+        children: [
+          styledCell(SCENARIO_LABELS[key], { bold: true, width: 28, size: 18 }),
+          styledCell(formatEuro(oop), { width: 24, size: 18 }),
+          styledCell(intU > 0 ? `${formatEuro(intK)} (${formatGetal(intU)} u)` : formatEuro(intK), { width: 24, size: 18 }),
+          styledCell(formatEuro(tot), { width: 24, bold: true, color: CITO_BLUE, size: 18 }),
+        ],
+      })
+    );
+  });
+
+  if (scenarioRows.length === 0) {
+    children.push(bodyText("Totaaloverzicht is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "Onderstaande tabel telt out-of-pocket en interne uren bij elkaar op tot het integrale totaal per scenario. " +
+      "De stuurgroep kiest hieruit het scenario voor de programmabegroting.",
+      { color: TEXT_SECONDARY, size: 20 }
+    ));
+    children.push(emptyLine(60));
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Scenario", 28),
+              headerCell("Out-of-pocket", 24),
+              headerCell("Interne uren (kosten)", 24),
+              headerCell("Totaal geraamd", 24),
+            ],
+          }),
+          ...scenarioRows,
+        ],
+      })
+    );
+  }
+
+  return { properties: {}, children };
+}
+
 export function roadmapSection(session: DINSession, numState: NumberingState, _activeEfforts: DINEffort[]) {
   void _activeEfforts;
   const children: (Paragraph | Table)[] = [];
@@ -2682,14 +2902,17 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
   // Hoofdstuk 2 \u2014 Programmadoelen (met werkvolgorde 1\u21922\u21923)
   contentSections.push(programmaDoelenSection(session, numState));
 
-  // Hoofdstuk 3 \u2014 Cross-sectorale uitkomst (de kern; bevat ook de consolidatie van per-sector DIN's)
+  // Hoofdstuk 3 \u2014 Cross-sectorale uitkomst (synergie, hefboom, optimalisatie, uiteindelijke DIN)
   contentSections.push(crossAnalysisSection(session, numState, activeCaps, activeEfforts));
 
-  // Hoofdstuk 4 \u2014 Programma-organisatie en RASCI
+  // Hoofdstuk 4 \u2014 Begroting en raming (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht)
+  contentSections.push(begrotingEnRamingSection(session, numState));
+
+  // Hoofdstuk 5 \u2014 Programma-organisatie en RASCI
   const governance = governanceSection(session, numState, activeEfforts);
   if (governance) contentSections.push(governance);
 
-  // Hoofdstuk 5 \u2014 Planning en roadmap
+  // Hoofdstuk 6 \u2014 Planning en roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
 
   // Now build TOC from accumulated tocEntries
