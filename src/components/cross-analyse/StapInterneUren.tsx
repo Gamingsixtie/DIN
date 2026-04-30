@@ -475,6 +475,141 @@ export default function StapInterneUren({
     }
   }
 
+  // Conservatief voorstel: reduceer breed-uitgerolde training en zwaar belaste
+  // rollen tot realistischere niveaus. Houdt key-rollen + cultuur intact.
+  // Onderbouwing per regel komt uit Cito-context (as-is procesinventarisatie
+  // al gedaan; outside-in basistraining 3 dagen voor frontline genoeg).
+  function bouwConservatiefVoorstel(): Array<{
+    groepId: string;
+    functieId: string;
+    huidig: number;
+    voorgesteld: number;
+    reden: string;
+  }> {
+    const wijzigingen: Array<{ groepId: string; functieId: string; huidig: number; voorgesteld: number; reden: string }> = [];
+    for (const insp of vastgesteldeUrenPerInspanning) {
+      for (const r of insp.rollen) {
+        const aantal = selectiePerDomein[insp.domein]?.[r.functieId]?.aantal ?? 1;
+        const urenPP = aantal > 0 ? r.urenTotaal / aantal : r.urenTotaal;
+        let voorgesteld = r.urenTotaal;
+        let reden = "";
+
+        // Mens-training: brede frontline-groepen → 24u basistraining/persoon
+        if (
+          insp.domein === "mens" &&
+          (r.functieId.startsWith("klantenservice_") ||
+            r.functieId.startsWith("accountmanager_") ||
+            r.functieId.startsWith("mdw_binnendienst_") ||
+            r.functieId === "campagne_marketeer_a" ||
+            r.functieId === "campagne_marketeer_b") &&
+          aantal >= 2
+        ) {
+          const nieuw = aantal * 24;
+          if (nieuw < r.urenTotaal) {
+            voorgesteld = nieuw;
+            reden = `${aantal} pers × 24u basistraining (was ${urenPP.toFixed(0)}u/p) — outside-in basis = 3 dagen voor frontline`;
+          }
+        }
+        // Trainer/Adviseur A: trainers leveren training, geen 120u meedraaien
+        else if (r.functieId === "trainer_adviseur_a" && aantal >= 8) {
+          const nieuwPP = insp.domein === "mens" ? 80 : 30;
+          const nieuw = aantal * nieuwPP;
+          if (nieuw < r.urenTotaal) {
+            voorgesteld = nieuw;
+            reden = `${aantal} trainers × ${nieuwPP}u (was ${urenPP.toFixed(0)}u/p) — trainers leveren training, draaien niet 120u mee`;
+          }
+        }
+        // Procesondersteuner: as-is al in kaart → 240u (was 462u)
+        else if (r.functieId.startsWith("procesondersteuner_") && r.urenTotaal > 350) {
+          voorgesteld = 240;
+          reden = `As-is procesinventarisatie al gedaan; resteert herontwerp + pilot + uitrol = 4-5u/maand × 4 jaar`;
+        }
+        // Procesmanager processen: 280u (was 518u)
+        else if (
+          r.functieId === "procesmanager_data" &&
+          insp.domein === "processen" &&
+          r.urenTotaal > 400
+        ) {
+          voorgesteld = 280;
+          reden = `As-is al uitgevoerd; focus op to-be ontwerp + governance, 6u/maand realistisch`;
+        }
+        // Sectormanagers in CRM: strategisch, niet operationeel meebouwen
+        else if (
+          r.functieId.startsWith("sectormanager_") &&
+          insp.domein === "data_systemen"
+        ) {
+          if (r.urenTotaal > 60) {
+            voorgesteld = 60;
+            reden = `Strategische input op CRM-mijlpalen, niet operationeel meebouwen`;
+          }
+        }
+        // Productmanagers in mens: 80u content-validatie
+        else if (
+          r.functieId.startsWith("productmanager_") &&
+          insp.domein === "mens" &&
+          r.urenTotaal > 80
+        ) {
+          voorgesteld = 80;
+          reden = `Content-validatie op outside-in materiaal, 80u over looptijd voldoende`;
+        }
+
+        if (voorgesteld !== r.urenTotaal) {
+          wijzigingen.push({
+            groepId: insp.groepId,
+            functieId: r.functieId,
+            huidig: r.urenTotaal,
+            voorgesteld,
+            reden,
+          });
+        }
+      }
+    }
+    return wijzigingen;
+  }
+
+  function pasConservatiefVoorstelToe() {
+    const wijzigingen = bouwConservatiefVoorstel();
+    if (wijzigingen.length === 0) {
+      addToast("Geen aanpassingen nodig — uren zijn al conservatief.", "info");
+      return;
+    }
+    const huidigTotaal = vastgesteldeUrenPerInspanning.reduce(
+      (s, i) => s + i.rollen.reduce((rs, r) => rs + r.urenTotaal, 0),
+      0
+    );
+    const besparing = wijzigingen.reduce((s, w) => s + (w.huidig - w.voorgesteld), 0);
+    const nieuwTotaal = huidigTotaal - besparing;
+    const akkoord = window.confirm(
+      `Conservatief voorstel:\n\n` +
+        `${wijzigingen.length} rollen worden aangepast.\n` +
+        `Totaal: ${huidigTotaal.toLocaleString("nl-NL")}u → ${nieuwTotaal.toLocaleString("nl-NL")}u (−${besparing.toLocaleString("nl-NL")}u, ${Math.round((besparing / huidigTotaal) * 100)}%)\n\n` +
+        `Toepassen? (Klik daarna op 'Genereer interne-uren-advies' om scenarios opnieuw te berekenen.)`
+    );
+    if (!akkoord) return;
+    setVastgesteldeUrenPerInspanning((prev) =>
+      prev.map((insp) => ({
+        ...insp,
+        rollen: insp.rollen.map((r) => {
+          const w = wijzigingen.find(
+            (x) => x.groepId === insp.groepId && x.functieId === r.functieId
+          );
+          if (!w) return r;
+          return {
+            ...r,
+            urenTotaal: w.voorgesteld,
+            onderbouwing: r.onderbouwing
+              ? `${r.onderbouwing} | Conservatief voorstel: ${w.reden}`
+              : `Conservatief voorstel: ${w.reden}`,
+          };
+        }),
+      }))
+    );
+    addToast(
+      `${wijzigingen.length} aanpassingen toegepast: ${huidigTotaal.toLocaleString("nl-NL")}u → ${nieuwTotaal.toLocaleString("nl-NL")}u`,
+      "success"
+    );
+  }
+
   // Handmatig per rol uren aanpassen
   function pasUrenAan(groepId: string, functieId: string, urenTotaal: number) {
     setVastgesteldeUrenPerInspanning((prev) =>
@@ -1615,12 +1750,21 @@ export default function StapInterneUren({
                     Pas waar nodig handmatig aan. Deze uren worden als <strong>hard input</strong> gebruikt door stap 3 — AI verdeelt ze over de jaren per scenario.
                   </p>
                 </div>
-                <button
-                  onClick={() => setUrenTabelOpen(false)}
-                  className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={pasConservatiefVoorstelToe}
+                    className="text-xs px-3 py-1.5 rounded bg-purple-100 hover:bg-purple-200 text-purple-900 font-medium border border-purple-300 transition-colors"
+                    title="Pas een conservatief voorstel toe dat het totaal terugbrengt naar realistische niveaus (basistraining 24u/persoon voor frontline, as-is procesinventarisatie meegerekend, etc.)"
+                  >
+                    ✨ Conservatief voorstel
+                  </button>
+                  <button
+                    onClick={() => setUrenTabelOpen(false)}
+                    className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-5 space-y-4">
