@@ -359,6 +359,14 @@ export default function CommentSidebar({
                         >
                           Afwijzen
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(c.id)}
+                          className="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 rounded ml-auto"
+                          title="Definitief verwijderen — niet meer terug te halen"
+                        >
+                          🗑 Verwijder
+                        </button>
                       </div>
                     )}
                     {c.status !== "open" && (
