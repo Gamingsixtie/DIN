@@ -1288,23 +1288,323 @@ function RoadmapBlock({ session, number }: { session: DINSession; number?: strin
 
 // --- Gap Detection Modal ---
 
-// --- Stap-wrapper met methodiek-intro (live preview, spiegelt Word export) ---
-function StepBanner({ step, title, intro, children }: { step: number; title: string; intro?: string; children: React.ReactNode }) {
+// --- Hoofdstuk-wrapper voor programmaplan (live preview, spiegelt Word export) ---
+function Chapter({
+  number,
+  title,
+  intro,
+  methodiek,
+  children,
+}: {
+  number: string;
+  title: string;
+  intro?: string;
+  methodiek?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mb-12">
-      <div className="flex items-center gap-3 mb-3 pb-2 border-b-2 border-cito-blue/30">
-        <span className="inline-flex items-center justify-center min-w-[70px] px-3 py-1 rounded-full bg-cito-blue text-white text-xs font-bold uppercase tracking-wide">
-          Stap {step}
-        </span>
-        <h2 className="text-lg font-bold text-cito-blue">{title}</h2>
-      </div>
+    <section className="mb-14">
+      <header className="mb-5">
+        <div className="flex items-baseline gap-4 pb-2 border-b-[3px] border-cito-blue">
+          <span className="text-4xl font-light text-cito-blue/50 tabular-nums leading-none">
+            {number}
+          </span>
+          <h1 className="text-2xl font-bold text-cito-blue leading-tight">{title}</h1>
+        </div>
+      </header>
       {intro && (
-        <div className="bg-cito-blue/5 border-l-4 border-cito-blue/60 px-4 py-3 mb-6 text-sm italic text-gray-700 leading-relaxed">
-          {intro}
+        <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">{intro}</p>
+      )}
+      {methodiek && (
+        <div className="bg-amber-50/40 border-l-[3px] border-amber-400/60 px-4 py-2.5 mb-6 rounded-r">
+          <div className="text-[10px] uppercase tracking-wider text-amber-700 font-bold mb-1">
+            Methodiek &mdash; Werken aan Programma&apos;s
+          </div>
+          <p className="text-xs italic text-gray-700 leading-relaxed">{methodiek}</p>
         </div>
       )}
       {children}
-    </div>
+    </section>
+  );
+}
+
+// --- Programmadoelen met werkvolgorde-toelichting ---
+function DoelenMetVolgordeBlock({ session }: { session: DINSession }) {
+  const sortedGoals = [...session.goals].sort((a, b) => a.rank - b.rank);
+  const focusDoelId = (session.crossAnalyseWizard?.stepResults?.stap5 as { focusDoelId?: string } | undefined)?.focusDoelId;
+  const focusDoel = focusDoelId ? sortedGoals.find((g) => g.id === focusDoelId) : sortedGoals[0];
+  const overigeDoelen = focusDoel ? sortedGoals.filter((g) => g.id !== focusDoel.id) : sortedGoals.slice(1);
+
+  if (sortedGoals.length === 0) return null;
+
+  return (
+    <>
+      <div className="mb-5 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
+        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2">
+          Werkvolgorde
+        </div>
+        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+          De programmadoelen worden volgordelijk opgepakt. We werken{" "}
+          {focusDoel ? <strong>doel {focusDoel.rank} (&ldquo;{focusDoel.name}&rdquo;)</strong> : <strong>doel 1</strong>}{" "}
+          eerst volledig af voordat de overige doelen{" "}
+          {overigeDoelen.length > 0 && (
+            <>
+              (
+              {overigeDoelen.map((g, i) => (
+                <span key={g.id}>
+                  {i > 0 && ", "}doel {g.rank}
+                </span>
+              ))}
+              ){" "}
+            </>
+          )}
+          aan de beurt komen. Dit borgt focus, haalbaarheid en de mogelijkheid om geleerde lessen mee te nemen
+          naar de volgende doelcyclus.
+        </p>
+      </div>
+      <div className="space-y-3">
+        {sortedGoals.map((goal) => (
+          <div key={goal.id} className="flex items-start gap-4">
+            <div
+              className={`w-9 h-9 rounded-full text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5 ${
+                goal.id === focusDoel?.id ? "bg-cito-blue ring-4 ring-cito-blue/20" : "bg-cito-blue/60"
+              }`}
+            >
+              {goal.rank}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2">
+                <div className="text-sm font-bold text-gray-800">{goal.name}</div>
+                {goal.id === focusDoel?.id && (
+                  <span className="text-[10px] uppercase tracking-wider text-cito-blue font-bold">Focus</span>
+                )}
+              </div>
+              {goal.description && (
+                <div className="text-xs text-gray-600 mt-0.5 leading-relaxed">{goal.description}</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// --- DIN-mapping per sector (sector-first view, met cross-sectoraal outro) ---
+function DINMappingPerSectorBlock({ session }: { session: DINSession }) {
+  const activeCaps = useMemo(() => getActiveCaps(session), [session]);
+  const activeEfforts = useMemo(() => getActiveEfforts(session), [session]);
+
+  const activeSession = useMemo(
+    () => ({ ...session, capabilities: activeCaps, efforts: activeEfforts }),
+    [session, activeCaps, activeEfforts]
+  );
+
+  const goalsWithData = session.goals
+    .sort((a, b) => a.rank - b.rank)
+    .filter((g) => session.benefits.some((b) => b.goalId === g.id));
+
+  const activeSectors = SECTORS.filter((s) => session.benefits.some((b) => b.sectorId === s));
+
+  if (goalsWithData.length === 0 || activeSectors.length === 0) return null;
+
+  return (
+    <>
+      <p className="text-sm text-gray-700 leading-relaxed mb-5 max-w-prose">
+        Per sector (PO, VO, Zakelijk) is de DIN-keten opgesteld: van programmadoel via baten en vermogens naar
+        concrete inspanningen. Hieronder per sector een korte toelichting en de uitwerking per doel.
+      </p>
+      {activeSectors.map((sector) => {
+        const sectorBenefitsCount = session.benefits.filter((b) => b.sectorId === sector).length;
+        const sectorCapsCount = activeCaps.filter((c) => c.sectorId === sector).length;
+        const sectorEffortsCount = activeEfforts.filter((e) => e.sectorId === sector).length;
+
+        return (
+          <div key={sector} className={`mb-10 last:mb-0 border-l-4 ${SECTOR_ACCENT[sector]} pl-5`}>
+            <div className="flex items-baseline gap-3 mb-2">
+              <h2 className="text-base font-bold text-cito-blue">Sector {sector}</h2>
+              <span className="text-xs text-gray-500">
+                {sectorBenefitsCount} baten · {sectorCapsCount} vermogens · {sectorEffortsCount} inspanningen
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 italic mb-4 leading-relaxed">
+              De DIN-keten van sector {sector} verbindt de programmadoelen aan baten, vermogens en inspanningen die
+              vanuit de eigen sectorcontext gerealiseerd worden.
+            </p>
+
+            {goalsWithData.map((goal) => {
+              const chainResult = buildChainsForSector(activeSession as DINSession, goal.id, sector);
+              if (chainResult.chains.length === 0 && chainResult.unlinkedCaps.length === 0) return null;
+
+              return (
+                <div key={goal.id} className="mb-5 last:mb-0">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                    Doel {goal.rank}: {goal.name}
+                  </h3>
+                  {chainResult.chains.map((chain) => (
+                    <div key={chain.benefit.id} className="mb-3 last:mb-1 ml-3">
+                      <div className="flex items-start gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold text-white bg-cito-blue rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                          BAAT
+                        </span>
+                        <div className="text-xs">
+                          <span className="font-bold text-gray-800">
+                            {chain.benefit.title || chain.benefit.description}
+                          </span>
+                          {chain.benefit.profiel.indicator && (
+                            <span className="text-gray-500 ml-1">
+                              ({chain.benefit.profiel.indicator}: {chain.benefit.profiel.currentValue || "?"} &rarr;{" "}
+                              {chain.benefit.profiel.targetValue || "?"})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {chain.links.map((link) => {
+                        const isShared = link.capability.relatedSectors && link.capability.relatedSectors.length > 1;
+                        return (
+                          <div key={link.capability.id} className="ml-5 mb-1.5">
+                            <div className="flex items-start gap-2 mb-0.5">
+                              <span className="text-[10px] font-bold text-cito-blue bg-cito-blue/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                                VERM
+                              </span>
+                              <div className="text-xs">
+                                <span className={`font-medium text-gray-700${isShared ? " italic" : ""}`}>
+                                  {link.capability.title || link.capability.description}
+                                  {isShared && <span className="text-cito-blue/60 ml-1">(gedeeld)</span>}
+                                </span>
+                              </div>
+                            </div>
+                            {link.efforts.map((effort) => {
+                              const dc = DOMAIN_COLORS[effort.domain];
+                              return (
+                                <div key={effort.id} className="ml-5 flex items-start gap-2 mb-0.5">
+                                  <span
+                                    className={`text-[10px] font-bold ${dc.text} ${dc.bg} rounded px-1.5 py-0.5 shrink-0 mt-0.5 border ${dc.border}`}
+                                  >
+                                    {DOMAIN_LABELS[effort.domain].slice(0, 4).toUpperCase()}
+                                  </span>
+                                  <div className="text-xs text-gray-600">
+                                    {effort.title || effort.description}
+                                    {effort.quarter && (
+                                      <span className="text-gray-400 ml-1">({effort.quarter})</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <div className="mt-6 p-4 rounded-lg bg-cito-blue/5 border border-cito-blue/15">
+        <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-1.5">
+          Naar de cross-sectorale uitkomst
+        </div>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          De drie sectorale DIN-mappings overlappen op meerdere vermogens. Daar zit de hefboom van het programma:
+          gezamenlijk opbouwen levert breder effect dan apart per sector. Hoofdstuk 4 toont de cross-sectorale
+          uitkomst &mdash; de geconsolideerde inspanningen, de begroting en het uiteindelijke DIN-netwerk dat per
+          sector wordt teruggebracht.
+        </p>
+      </div>
+    </>
+  );
+}
+
+// --- Scenario-totaaloverzicht (4 scenarios + motivatie waarom optimaal) ---
+type ScenarioKey = "optimaal" | "plus20" | "min20" | "advies";
+const SCENARIO_LABELS: Record<ScenarioKey, string> = {
+  optimaal: "Huidig budget",
+  plus20: "+20% scenario",
+  min20: "−20% scenario",
+  advies: "Optimaal (advies)",
+};
+
+function ScenarioTotaalBlock({ session }: { session: DINSession }) {
+  type ScenarioTot = { totaalOutOfPocket: number; totaalInterneUren: number; totaalGeraamd: number };
+  type Stap8 = { actiefScenario?: ScenarioKey; scenarios: Record<ScenarioKey, ScenarioTot | null> };
+  type BegrotingScenario = { samenvatting?: string; prioriteitAdvies?: string };
+  type BegrotingAdv = { scenarios: Partial<Record<ScenarioKey, BegrotingScenario | null>> };
+  type Stap4 = { begrotingAdvies?: BegrotingAdv };
+
+  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8 } | undefined)?.stap8;
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4 } | undefined)?.stap4;
+  const begroting = stap4?.begrotingAdvies;
+
+  if (!stap8 || !stap8.scenarios) {
+    return (
+      <p className="text-sm text-gray-400 italic">
+        Het scenario-totaaloverzicht is nog niet beschikbaar. Doorloop stap 8 in de cross-analyse om de begroting te
+        consolideren.
+      </p>
+    );
+  }
+
+  const actief: ScenarioKey = stap8.actiefScenario ?? "optimaal";
+  const euroFmt = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const scenarioOrder: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
+
+  const actiefMotivatie = begroting?.scenarios?.[actief]?.samenvatting ?? "";
+  const actiefAdvies = begroting?.scenarios?.[actief]?.prioriteitAdvies ?? "";
+
+  return (
+    <>
+      <p className="text-sm text-gray-700 leading-relaxed mb-4 max-w-prose">
+        Vier scenario&apos;s zijn doorgerekend: het huidig jaarbudget, een +20% en −20% variatie, en een optimaal
+        advies. Het actieve scenario is de basis voor de programmabegroting.
+      </p>
+      <div className="overflow-hidden border border-gray-200 rounded-lg mb-5">
+        <table className="w-full text-sm">
+          <thead className="bg-cito-blue/5">
+            <tr>
+              <th className="text-left px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Scenario</th>
+              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Out-of-pocket</th>
+              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Interne uren (kosten)</th>
+              <th className="text-right px-3 py-2 font-semibold text-cito-blue text-xs uppercase tracking-wide">Totaal geraamd</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {scenarioOrder.map((key) => {
+              const sc = stap8.scenarios[key];
+              if (!sc) return null;
+              const isActief = key === actief;
+              return (
+                <tr key={key} className={isActief ? "bg-cito-blue/10" : "hover:bg-gray-50"}>
+                  <td className="px-3 py-2 font-bold text-cito-blue">
+                    {SCENARIO_LABELS[key]}
+                    {isActief && <span className="ml-2 text-[10px] uppercase text-cito-blue/70">(actief)</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalOutOfPocket)}</td>
+                  <td className="px-3 py-2 text-right text-gray-700 tabular-nums">{euroFmt.format(sc.totaalInterneUren)}</td>
+                  <td className="px-3 py-2 text-right text-cito-blue font-bold tabular-nums">{euroFmt.format(sc.totaalGeraamd)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {(actiefMotivatie || actiefAdvies) && (
+        <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200/70">
+          <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold mb-2">
+            Motivatie &mdash; waarom &ldquo;{SCENARIO_LABELS[actief]}&rdquo;?
+          </div>
+          {actiefMotivatie && (
+            <p className="text-sm text-gray-700 leading-relaxed mb-2 whitespace-pre-wrap">{actiefMotivatie}</p>
+          )}
+          {actiefAdvies && (
+            <p className="text-sm text-gray-700 leading-relaxed italic whitespace-pre-wrap">{actiefAdvies}</p>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1979,56 +2279,81 @@ export default function ExportStep() {
             <div className="mt-10">
               <ManagementSamenvattingBlock session={session} />
 
-              <StepBanner
-                step={1}
-                title="Programmakader"
-                intro="Visie, kernonderwerpen en scope vormen het fundament van het programma. Conform Prevaas & Van Loon (Hfst 2) bepalen zij de richting waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
+              <Chapter
+                number="1."
+                title="Programmavisie en scope"
+                intro="De programmavisie geeft de richting van het geheel: waartoe is dit programma bedoeld en wat valt er binnen en buiten de cyclus."
+                methodiek="Volgens &ldquo;Werken aan Programma&apos;s&rdquo; (Prevaas &amp; Van Loon, Hfst. 2) opent een programmaplan met de visie en de scope. Beide vormen het fundament waartoe alle baten, vermogens en inspanningen worden opgebouwd."
               >
                 <VisionBlock session={session} />
-                <KernonderwerpenBlock session={session} />
                 <ScopeBlock session={session} />
-                <GoalsBlock session={session} />
-              </StepBanner>
+              </Chapter>
 
-              <StepBanner
-                step={2}
-                title="Cross-sectorale uitkomst — de kern"
-                intro="Het oorspronkelijke DIN-netwerk is per sector opgesteld (zie kort overzicht hieronder). De werkelijke programmasturing volgt echter uit de cross-analyse: synergieën tussen sectoren, hefboomwerking, geconsolideerde inspanningen per domein en de uiteindelijke sector-vertaling. Daar zit de samenhang waarop dit programma draait."
+              <Chapter
+                number="2."
+                title="Programmadoelen"
+                intro="De programmadoelen zijn de kernonderwerpen van het programma. Ze worden volgordelijk opgepakt zodat de organisatie focus en haalbaarheid behoudt."
+                methodiek="Doelen zijn binnen DIN het hoogste niveau van de keten (Prevaas &amp; Van Loon, Hfst. 3). Pas wanneer doel 1 zijn baten realiseert, schuift het programma door naar doel 2 en 3."
               >
-                <SubSection title="DIN-netwerk per sector — beknopt overzicht">
-                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                    Per sector zijn de programmadoelen vertaald naar baten, vermogens en inspanningen. Onderstaand
-                    overzicht toont de oorspronkelijke verdeling — de cross-sectorale uitkomst hieronder is leidend
-                    voor het programma.
-                  </p>
-                  <SectorwerkKaderBlock session={session} />
-                </SubSection>
+                <DoelenMetVolgordeBlock session={session} />
+              </Chapter>
+
+              <Chapter
+                number="3."
+                title="DIN-mapping per sector"
+                intro="De kern van het programma zit in de DIN-mapping. Per sector (PO, VO, Zakelijk) zijn de doelen vertaald naar baten, vermogens en inspanningen vanuit de eigen context."
+                methodiek="DIN (Doelen-Inspanningennetwerk) verbindt elk programmadoel via baten en vermogens aan concrete inspanningen. Per sector ontstaat een eigen DIN-keten — de cross-sectorale samenhang volgt in hoofdstuk 4."
+              >
+                <DINMappingPerSectorBlock session={session} />
+              </Chapter>
+
+              <Chapter
+                number="4."
+                title="Cross-sectorale uitkomst — de kern"
+                intro="Hier ontstaat het werkelijke programma. De drie sectorale DIN-netwerken worden samengevoegd tot geconsolideerde inspanningen per domein, doorgerekend in scenario&apos;s, en daarna teruggebracht naar elke sector als uiteindelijk DIN-netwerk."
+                methodiek="Een programma is meer dan de optelsom van projecten (Prevaas &amp; Van Loon, Hfst. 4). Daarom worden gelijksoortige inspanningen geconsolideerd, wordt de begroting integraal opgesteld en wordt de keten teruggebracht per sector."
+              >
                 <CrossAnalyseBlock session={session} />
                 <HefboomBlock session={session} />
                 <ExterneProjectenBlock session={session} />
-                <SubSection title="Stap-optimalisatie — geconsolideerde inspanningen">
+                <SubSection title="Geconsolideerde inspanningen — de optimalisatiestap">
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
+                    Sector-inspanningen die hetzelfde vermogen opbouwen worden samengevoegd tot één
+                    cross-sectorale inspanning. Hieronder per inspanning de uitvoerige toelichting: eigenaar,
+                    leider, onderbouwing en randvoorwaarden.
+                  </p>
                   <OptimalisatieBlock session={session} />
                 </SubSection>
+                <SubSection title="Begroting — scenario-totaaloverzicht">
+                  <ScenarioTotaalBlock session={session} />
+                </SubSection>
                 <SubSection title="Uiteindelijke DIN-netwerk — sector-vertaling">
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed max-w-prose">
+                    De cross-sectorale uitkomst teruggebracht naar elke sector: aansluiting op de KiB-doelen,
+                    verrijking, aanvullingen, quick wins en aandachtspunten. Dit is het DIN-netwerk dat de
+                    sectoren in de uitvoering hanteren.
+                  </p>
                   <UiteindelijkDINBlock session={session} />
                 </SubSection>
-              </StepBanner>
+              </Chapter>
 
-              <StepBanner
-                step={3}
+              <Chapter
+                number="5."
                 title="Programma-organisatie en RASCI"
-                intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) de verantwoordelijkheidsverdeling vast."
+                intro="De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt geïnformeerd. De RASCI-matrix legt per hoofdthema de verantwoordelijkheidsverdeling vast."
+                methodiek="Volgens &ldquo;Werken aan Programma&apos;s&rdquo; (Hfst. 6) is de programma-organisatie geen lijnstructuur maar een tijdelijke configuratie van rollen en gremia, met een expliciete RASCI per hoofdthema."
               >
                 <GovernanceBlock session={session} />
-              </StepBanner>
+              </Chapter>
 
-              <StepBanner
-                step={4}
+              <Chapter
+                number="6."
                 title="Planning en roadmap"
-                intro="De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop we voortgang meten. Hij is het ritmische kompas van het programma."
+                intro="De roadmap groepeert inspanningen in bundels en cycli, maakt afhankelijkheden zichtbaar en markeert de mijlpalen waarop voortgang wordt gemeten. Hij is het ritmische kompas van het programma."
+                methodiek="Een programmaplan eindigt met de planning op programmaniveau (Prevaas &amp; Van Loon, Hfst. 8). Niet de detailplanning per project, maar de cyclische bundels en mijlpalen waarop het programma wordt aangestuurd."
               >
                 <RoadmapBlock session={session} />
-              </StepBanner>
+              </Chapter>
             </div>
           </div>
         </div>
