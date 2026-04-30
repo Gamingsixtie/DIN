@@ -2622,8 +2622,6 @@ export default function ExportStep() {
           <div className="p-8 max-w-none">
             <DocumentTitlePage session={session} />
             <div className="mt-10">
-              <ManagementSamenvattingBlock session={session} />
-
               <Chapter
                 number="1."
                 title="Programmavisie en scope"

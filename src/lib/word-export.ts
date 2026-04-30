@@ -2673,8 +2673,8 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
   //   Verantwoording methodiek (dekking 'Werken aan Programma's')
   const contentSections: SectionType[] = [];
 
-  // Managementsamenvatting (cross-sectorale nadruk)
-  contentSections.push(executiveSummarySection(session, numState, activeEfforts, activeCaps));
+  // Geen managementsamenvatting \u2014 die droeg op programmaplan-niveau te weinig signaal
+  // (hardcoded counts en domeinbalans gaven verwarrende 25%-verdeling bij ontbrekende data).
 
   // Hoofdstuk 1 \u2014 Programmavisie en scope
   contentSections.push(overviewSection(session, numState));
