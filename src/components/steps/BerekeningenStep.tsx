@@ -461,6 +461,15 @@ function ScenarioBerekeningKaart({
 
       {open && (
         <div className="p-5 space-y-6">
+          <Sectie0VolledigeBerekening
+            inspanningen={inspanningen}
+            jaren={jaren}
+            aantalJaren={aantalJaren}
+            startJaar={startJaar}
+            cap={cap}
+            totaalScenario={totaalScenario}
+            scenarioLabel={meta.label}
+          />
           <SectieA cap={cap} aantalJaren={aantalJaren} startJaar={startJaar} totaalScenario={totaalScenario} />
           <SectieB
             inspanningen={inspanningen}
@@ -487,6 +496,254 @@ function ScenarioBerekeningKaart({
         </div>
       )}
     </div>
+  );
+}
+
+// --- Sectie 0 — Volledige berekening (vanaf nul) ----------------------------
+
+function Sectie0VolledigeBerekening({
+  inspanningen,
+  jaren,
+  aantalJaren,
+  startJaar,
+  cap,
+  totaalScenario,
+  scenarioLabel,
+}: {
+  inspanningen: InspanningRow[];
+  jaren: number[];
+  aantalJaren: number;
+  startJaar: number;
+  cap: number;
+  totaalScenario: number;
+  scenarioLabel: string;
+}) {
+  // Stap 1+2: dossier-derivation per inspanning
+  const derivations = inspanningen.map((insp) => {
+    const d = findDossier(insp.inspanningTitel);
+    const eenmaligMin = d?.eenmaligMin ?? 0;
+    const eenmaligMax = d?.eenmaligMax ?? 0;
+    const eenmaligMid = d?.eenmaligMid ?? 0;
+    const structJr = d?.structureelPerJaar ?? 0;
+    const structTotaal = structJr * aantalJaren;
+    const berekend = d ? eenmaligMid + structTotaal : insp.totaalEuro ?? 0;
+    return {
+      titel: insp.inspanningTitel,
+      domein: insp.domein,
+      heeftDossier: !!d,
+      eenmaligMin,
+      eenmaligMax,
+      eenmaligMid,
+      structJr,
+      structTotaal,
+      berekend,
+      werkelijk: insp.totaalEuro ?? 0,
+      verdelingPerJaar: insp.verdelingPerJaar ?? [],
+      toelichting: d?.toelichting ?? "",
+    };
+  });
+  const sumBerekend = derivations.reduce((s, r) => s + r.berekend, 0);
+  const sumWerkelijk = derivations.reduce((s, r) => s + r.werkelijk, 0);
+
+  // Stap 3: theoretische curve-toepassing per inspanning op totaalEuro
+  const theoretischePerJaar: Record<number, number> = {};
+  for (const j of jaren) theoretischePerJaar[j] = 0;
+  const theoretischePerInsp = derivations.map((r) => {
+    const curve = CURVES[r.domein]?.[aantalJaren];
+    const cells: Record<number, number> = {};
+    if (curve && curve.length === aantalJaren) {
+      jaren.forEach((j, idx) => {
+        const v = Math.round((curve[idx] / 100) * r.werkelijk);
+        cells[j] = v;
+        theoretischePerJaar[j] += v;
+      });
+    } else {
+      // fallback lineair
+      const perJaar = Math.round(r.werkelijk / aantalJaren);
+      jaren.forEach((j) => {
+        cells[j] = perJaar;
+        theoretischePerJaar[j] += perJaar;
+      });
+    }
+    return {
+      titel: r.titel,
+      domein: r.domein,
+      curve,
+      cells,
+      werkelijk: r.werkelijk,
+    };
+  });
+
+  // Stap 5: werkelijke jaartotalen uit Supabase
+  const werkelijkPerJaar: Record<number, number> = {};
+  for (const j of jaren) werkelijkPerJaar[j] = 0;
+  for (const r of derivations) {
+    for (const v of r.verdelingPerJaar) {
+      werkelijkPerJaar[v.jaar] = (werkelijkPerJaar[v.jaar] ?? 0) + (v.euro ?? 0);
+    }
+  }
+  const sumWerkelijkPerJaar = jaren.reduce((s, j) => s + (werkelijkPerJaar[j] ?? 0), 0);
+
+  return (
+    <details className="rounded-lg border-2 border-[#003366]/20 bg-gradient-to-br from-[#003366]/5 to-white">
+      <summary className="cursor-pointer px-4 py-3 select-none hover:bg-[#003366]/5 rounded-t-lg">
+        <span className="text-sm font-semibold text-[#003366]">
+          📋 Volledige berekening — vanaf nul
+        </span>
+        <span className="text-xs text-gray-500 ml-2">
+          (klik om alle 5 stappen te zien — van dossier-input tot eindgetal)
+        </span>
+      </summary>
+      <div className="space-y-5 px-5 pt-2 pb-5 text-sm">
+        {/* Stap 1: Dossier-input */}
+        <div>
+          <h4 className="font-semibold text-[#003366]">
+            Stap 1 — Dossier-input (uit Stap 4 business-case)
+          </h4>
+          <p className="text-xs text-gray-500 ml-4 mt-0.5 mb-1">
+            Voor elke inspanning gebruiken we de eenmalige investering (range: min · mid · max) en
+            de structurele jaarlast uit het business-case dossier.
+          </p>
+          <ul className="font-mono text-xs ml-4 mt-1 space-y-0.5 text-gray-700">
+            {derivations.map((r, i) => (
+              <li key={i}>
+                <span className={`inline-block w-2 h-2 rounded-full mr-1.5 align-middle ${DOMAIN_DOT[r.domein] ?? "bg-gray-400"}`} />
+                <span className="font-semibold">{r.titel}:</span>{" "}
+                {r.heeftDossier ? (
+                  <>
+                    eenmalig {formatEurK(r.eenmaligMin)}–{formatEurK(r.eenmaligMax)} (mid{" "}
+                    {formatEurK(r.eenmaligMid)})
+                    {r.structJr > 0 ? (
+                      <> + {formatEur(r.structJr)}/jaar structureel</>
+                    ) : (
+                      <> · geen structureel</>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-gray-400">
+                    geen dossier — gebruikt scenario-totaal direct ({formatEurK(r.werkelijk)})
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Stap 2: Inspanning-totaal formule */}
+        <div>
+          <h4 className="font-semibold text-[#003366]">
+            Stap 2 — Inspanning-totaal = eenmalig + structureel × {aantalJaren} jaar
+          </h4>
+          <pre className="text-xs bg-gray-50 border border-gray-200 p-3 rounded ml-4 mt-1 overflow-x-auto whitespace-pre">
+{derivations
+  .map((r) => {
+    const naam = r.titel.length > 28 ? r.titel.slice(0, 27) + "…" : r.titel;
+    const naamPad = naam.padEnd(30, " ");
+    if (!r.heeftDossier) {
+      return `${naamPad}  ${formatEur(r.werkelijk).padStart(10, " ")}  (geen dossier — direct overgenomen)`;
+    }
+    if (r.structJr === 0) {
+      return `${naamPad}  ${formatEur(r.eenmaligMid).padStart(10, " ")} mid + 0  =  ${formatEur(r.berekend).padStart(10, " ")}`;
+    }
+    return `${naamPad}  ${formatEur(r.eenmaligMid).padStart(10, " ")} mid + ${aantalJaren} × ${formatEur(r.structJr).padStart(8, " ")} = ${formatEur(r.berekend).padStart(10, " ")}`;
+  })
+  .join("\n")}
+{`\n${"─".repeat(72)}`}
+{`\nΣ scenario-totaal (theoretisch):  ${formatEur(sumBerekend).padStart(12, " ")}`}
+{`\nWerkelijk scenario-totaal:        ${formatEur(sumWerkelijk).padStart(12, " ")}`}
+{sumBerekend !== sumWerkelijk && `\nΔ verschil:                       ${formatEur(sumWerkelijk - sumBerekend).padStart(12, " ")}  (scenario heeft geschoven; zie Stap 4)`}
+          </pre>
+        </div>
+
+        {/* Stap 3: Lifecycle-curve theoretisch */}
+        <div>
+          <h4 className="font-semibold text-[#003366]">
+            Stap 3 — Lifecycle-curve toepassen (theoretisch)
+          </h4>
+          <p className="text-xs text-gray-600 ml-4 mt-0.5">
+            Curves uit <code className="bg-gray-100 px-1 rounded text-[10px]">FASE_CHAINS</code> per
+            domein × {aantalJaren} jaar. Per cel: curve-% × inspanning-totaal.
+          </p>
+          <pre className="text-xs bg-gray-50 border border-gray-200 p-3 rounded ml-4 mt-1 overflow-x-auto whitespace-pre">
+{theoretischePerInsp
+  .map((r) => {
+    const naam = r.titel.length > 24 ? r.titel.slice(0, 23) + "…" : r.titel;
+    const curveStr = r.curve ? r.curve.join("/") + "%" : "lineair";
+    const cellsStr = jaren
+      .map((j) => formatEurK(r.cells[j] ?? 0).padStart(8, " "))
+      .join(" / ");
+    return `${naam.padEnd(26, " ")} (${(DOMAIN_LABEL[r.domein] ?? r.domein).padEnd(15, " ")} ${curveStr.padEnd(20, " ")}):  ${cellsStr}`;
+  })
+  .join("\n")}
+{`\n${"─".repeat(72)}`}
+{`\nΣ theoretisch jaar-totalen:${" ".repeat(48)}${jaren.map((j) => formatEurK(theoretischePerJaar[j] ?? 0).padStart(8, " ")).join(" / ")}`}
+          </pre>
+        </div>
+
+        {/* Stap 4: Aanpassingen */}
+        <div>
+          <h4 className="font-semibold text-[#003366]">Stap 4 — Aanpassingen toegepast</h4>
+          <ul className="text-xs ml-4 mt-1 space-y-1.5 text-gray-700">
+            <li>
+              <strong>A. {startJaar} Cito-eis:</strong> jaartotaal in {startJaar} moet exact passen
+              binnen het Cito-norm-budget (de start-cap). Als de theoretische curve in {startJaar}{" "}
+              eronder zit, wordt het verschil proportioneel opgehoogd; overschot wordt getrokken
+              uit latere jaren met capaciteit. Theoretisch was{" "}
+              {formatEurK(theoretischePerJaar[startJaar] ?? 0)}, eindbedrag werd{" "}
+              {formatEurK(werkelijkPerJaar[startJaar] ?? 0)}.
+            </li>
+            <li>
+              <strong>B. Cap-respect:</strong> geen jaartotaal mag boven scenario-cap (
+              {scenarioLabel}: {formatEurK(cap)}/jaar) uitkomen. Bij overschrijding herverdeelt
+              water-fill het overschot proportioneel naar lichtere jaren.
+            </li>
+            <li>
+              <strong>C. Cultuur-ophoging:</strong> dossier-mid-totaal voor cultuur is bewust
+              opgehoogd naar realistisch verankeringsniveau (€100K–€130K afhankelijk van scenario)
+              omdat borgingslast in HR-cyclus een meerjarige tail vraagt. Cultuur-cellen zijn
+              herrekend met de afnemende curve.
+            </li>
+            <li>
+              <strong>D. Inspanning-totaal blijft leidend:</strong> per inspanning telt de
+              jaar-verdeling altijd op tot het inspanning-totaal (zie Sectie B+ en D voor de
+              som-checks).
+            </li>
+          </ul>
+        </div>
+
+        {/* Stap 5: Eindbedrag per cell */}
+        <div>
+          <h4 className="font-semibold text-[#003366]">
+            Stap 5 — Eindbedrag per cell (na alle aanpassingen)
+          </h4>
+          <pre className="text-xs bg-gray-50 border border-gray-200 p-3 rounded ml-4 mt-1 overflow-x-auto whitespace-pre">
+{jaren
+  .map((j) => {
+    const parts = derivations
+      .map((r) => {
+        const cell = r.verdelingPerJaar.find((v) => v.jaar === j)?.euro ?? 0;
+        if (cell === 0) return null;
+        const kort = r.titel.split(/[ \-—]/)[0].slice(0, 12);
+        return `${kort} ${formatEurK(cell)}`;
+      })
+      .filter((x): x is string => x !== null)
+      .join(" + ");
+    const totaal = werkelijkPerJaar[j] ?? 0;
+    const overcap = totaal > cap * 1.001;
+    const capMark = overcap ? "⚠ over cap" : totaal > cap * 0.99 ? "(≈cap)" : "";
+    return `${j}: ${parts}  =  ${formatEurK(totaal)}  ${capMark}`;
+  })
+  .join("\n")}
+{`\n${"─".repeat(72)}`}
+{`\nΣ scenario-totaal: ${formatEur(sumWerkelijkPerJaar)}  ${Math.abs(sumWerkelijkPerJaar - totaalScenario) <= tolerantie(totaalScenario) ? "✓" : "⚠"}`}
+          </pre>
+          <p className="text-xs text-gray-600 italic mt-1.5 ml-4">
+            Bovenstaande cijfers komen uit Supabase (scenario.inspanningen[].verdelingPerJaar).
+            Volledige som-checks staan in Sectie D onderaan.
+          </p>
+        </div>
+      </div>
+    </details>
   );
 }
 
