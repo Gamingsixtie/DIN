@@ -156,6 +156,7 @@ export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "governance", label: "Programmaorganisatie", nummer: 5 },
   { key: "prioritering", label: "Roadmap & Planning", nummer: 6 },
   { key: "export", label: "Export", nummer: 7 },
+  { key: "berekeningen", label: "Berekeningen", nummer: 8 },
 ];
 
 // --- Domein-kleuren voor roadmap-visualisatie ---

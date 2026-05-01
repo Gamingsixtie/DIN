@@ -13,6 +13,7 @@ import DINMappingStep from "@/components/steps/DINMappingStep";
 import GovernanceStep from "@/components/steps/GovernanceStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
+import BerekeningenStep from "@/components/steps/BerekeningenStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -30,6 +31,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <PrioriteringStep />;
     case "export":
       return <ExportStep />;
+    case "berekeningen":
+      return <BerekeningenStep />;
   }
 }
 

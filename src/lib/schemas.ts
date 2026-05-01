@@ -67,6 +67,7 @@ export const AppStepSchema = z.enum([
   "governance",
   "prioritering",
   "export",
+  "berekeningen",
 ]);
 
 // ============================================================

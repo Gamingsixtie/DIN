@@ -632,6 +632,11 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       percentage: 0,
       details: "Export wanneer gereed",
     },
+    {
+      step: "berekeningen",
+      percentage: 0,
+      details: "Audit van out-of-pocket berekeningen",
+    },
   ];
 }
 
