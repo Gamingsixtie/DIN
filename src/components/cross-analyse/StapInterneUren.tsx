@@ -1574,8 +1574,27 @@ export default function StapInterneUren({
                       // alleen samenvatting + motivatie per domein worden
                       // vervangen — alle uren, kosten, rollen en jaartabellen
                       // blijven letterlijk gelijk aan previousAdvies.
-                      finetuneInstructie:
-                        "TEKST_ONLY: Herschrijf de samenvatting (top-level) en motivatie per domein opnieuw met scenario-bewuste relatieve aanduidingen. GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik 'in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar'. Houd uren, rollen, kosten en jaar-cellen exact onveranderd.",
+                      finetuneInstructie: `TEKST_ONLY: Herschrijf de samenvatting (top-level) en motivatie per domein van dit scenario.
+
+DOEL: alleen jaartallen en looptijd-claims weghalen — alle andere onderbouwing behouden.
+
+REGEL A — VERWIJDER:
+- Absolute jaartallen ('2027', '2028', 'tot 2031').
+- Looptijd-aantallen ('over X jaar', '× N jaar', 'jaar 4').
+- Cyclus-claims ('4-jarige cyclus').
+Vervang door relatieve aanduidingen: 'in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar'.
+
+REGEL B — BEHOUD:
+- Dossier-aannames uit business-case Q&A (uurtarieven, FTE-percentages, aantal personen per rol). Die zijn universeel en MOETEN blijven.
+- Concrete onderbouwingen: rollen, afdelingen, redenen waarom een rol nodig is.
+
+REGEL C — UREN-TOTALEN MOETEN KLOPPEN:
+Als je een uren-totaal noemt, MOET dat exact gelijk zijn aan de som in de tabel voor dit scenario. Verzin GEEN getallen.
+
+REGEL D — LANGE LOOPTIJDEN:
+Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren uitgevoerd — geen 'aanloopfase', geen 'vervolgfinanciering' impliceren.
+
+Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                       previousAdvies: advies,
                     })
                   }

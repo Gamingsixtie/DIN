@@ -1658,9 +1658,31 @@ export default function StapOptimaliseren({
                           // dat alleen motivatie/samenvatting/prioriteitAdvies
                           // worden vervangen — alle cijfers, fase-labels en
                           // activiteit-teksten blijven letterlijk gelijk aan
-                          // previousAdvies.
-                          finetuneInstructie:
-                            "TEKST_ONLY: Herschrijf de motivatie, samenvatting en prioriteitAdvies van dit scenario opnieuw volgens harde regel 10 van de prompt: GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik uitsluitend relatieve aanduidingen ('in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar').",
+                          // previousAdvies. Server injecteert ook top-2
+                          // zwaartepunt-jaren per inspanning met exact positie-
+                          // label zodat AI niet hoeft te raden.
+                          finetuneInstructie: `TEKST_ONLY: Herschrijf de motivatie (per inspanning), samenvatting en prioriteitAdvies van dit scenario.
+
+DOEL: alleen jaartallen en looptijd-claims weghalen — alle andere onderbouwing behouden.
+
+REGEL A — VERWIJDER:
+- Absolute jaartallen ('2027', '2028', 'tot 2031', '2026-2029').
+- Looptijd-aantallen ('over 4 jaar', 'in 5 jaar', '× 9 jaar', 'jaar 4').
+- Cyclus-claims ('4-jarige cyclus', '3-jarige aanpak').
+Vervang door relatieve aanduidingen: 'in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar', 'tegen het einde'.
+
+REGEL B — BEHOUD:
+- Dossier-bedragen uit business-case Q&A (€650K eenmalig, €92.500/jaar structureel, €52K trainer, €37.500 begeleider, €87.500 procesinrichting, etc.). Die zijn dossier-feiten en MOETEN in de motivatie blijven.
+- Concrete onderbouwingen: aantallen consultanturen, bronsystemen, deelnemers, dagen externe begeleiding — die blijven staan zolang ze geen jaartal of looptijd noemen.
+
+REGEL C — SCENARIO-TOTALEN MOETEN KLOPPEN:
+Als je een scenario-totaal noemt, MOET dat exact gelijk zijn aan de som van verdelingPerJaar[].euro voor díe inspanning in dít scenario. Verzin GEEN bedragen die niet uit de tabel volgen.
+
+REGEL D — ZWAARTEPUNT-CLAIMS:
+Gebruik EXACT het positie-label dat de server bovenaan deze prompt heeft geïnjecteerd voor elke inspanning — niet zelf interpreteren.
+
+REGEL E — LANGE LOOPTIJDEN:
+Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren uitgevoerd. Geen 'aanloopfase', geen 'vervolgfinanciering' — alle dossier-bedragen en alle inspanningen zitten in de tabel.`,
                           previousAdvies: begrotingAdvies,
                         })
                       }
