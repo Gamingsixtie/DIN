@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
 import { useToast } from "@/components/ui/Toast";
+import { EditableText } from "@/components/ui/EditableText";
 import type { DINSession, Stap4Result } from "@/lib/types";
 import {
   DEFAULT_BASIS_TARIEF,
@@ -1139,6 +1140,79 @@ export default function StapInterneUren({
     }
   }
 
+  // Handmatige tekst-edit (geen AI-call) voor samenvatting per scenario
+  // en motivatie per domein. Bespaart tokens voor kleine afronding/formulering.
+  async function handleSamenvattingEdit(scenarioKey: ScenarioLabel, newValue: string): Promise<void> {
+    if (!advies) return;
+    const sc = advies.scenarios[scenarioKey];
+    if (!sc) return;
+    const updated: InterneUrenAdvies = {
+      ...advies,
+      scenarios: { ...advies.scenarios, [scenarioKey]: { ...sc, samenvatting: newValue } },
+    };
+    setAdvies(updated);
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+    const v = await saveNow();
+    if (v !== false) addToast("Samenvatting opgeslagen", "success");
+  }
+
+  async function handleDomeinMotivatieEdit(
+    scenarioKey: ScenarioLabel,
+    domeinIdx: number,
+    newValue: string,
+  ): Promise<void> {
+    if (!advies) return;
+    const sc = advies.scenarios[scenarioKey];
+    if (!sc) return;
+    const newDomeinen = sc.domeinen.map((d, i) => (i === domeinIdx ? { ...d, motivatie: newValue } : d));
+    const updated: InterneUrenAdvies = {
+      ...advies,
+      scenarios: { ...advies.scenarios, [scenarioKey]: { ...sc, domeinen: newDomeinen } },
+    };
+    setAdvies(updated);
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+    const v = await saveNow();
+    if (v !== false) addToast("Motivatie opgeslagen", "success");
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -1653,7 +1727,15 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
           {SCENARIO_META.map((sv) => {
             const s = advies.scenarios[sv.key];
             if (!s) return null;
-            return <ScenarioBlokView key={sv.key} s={s} sv={sv} />;
+            return (
+              <ScenarioBlokView
+                key={sv.key}
+                s={s}
+                sv={sv}
+                onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
+                onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
+              />
+            );
           })}
         </div>
       )}
@@ -1954,9 +2036,13 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
 function ScenarioBlokView({
   s,
   sv,
+  onSamenvattingEdit,
+  onDomeinMotivatieEdit,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
+  onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
+  onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
 }): React.ReactElement {
   const [openDomein, setOpenDomein] = useState<Domein | null>("cultuur");
   const eindJaar = s.startJaar + s.aantalJaren - 1;
@@ -1966,7 +2052,19 @@ function ScenarioBlokView({
       {/* Banner */}
       <div className={`${sv.kleur.banner} text-white rounded-lg p-4`}>
         <p className={`text-[11px] font-semibold uppercase tracking-wider ${sv.kleur.tekst} mb-1`}>Scenario — {sv.label}</p>
-        <p className="text-sm">{s.samenvatting}</p>
+        {onSamenvattingEdit ? (
+          <div className="bg-white/95 rounded p-2 -mx-1">
+            <EditableText
+              value={s.samenvatting ?? ""}
+              onSave={onSamenvattingEdit}
+              hint={`Scenario-totaal ${s.totaalUren.toLocaleString("nl-NL")} u over ${s.aantalJaren} jaar (${s.startJaar}–${eindJaar}). Geen absolute jaartallen — gebruik 'in het startjaar', 'rond het midden van de looptijd', etc.`}
+              rows={3}
+              textClassName="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap"
+            />
+          </div>
+        ) : (
+          <p className="text-sm">{s.samenvatting}</p>
+        )}
         <p className={`text-xs ${sv.kleur.tekst} mt-2`}>
           {s.aantalJaren} jaar ({s.startJaar}–{eindJaar}) • ~€{s.uurtariefGebruikt}/u basis • {s.totaalUren.toLocaleString("nl-NL")} uren totaal
         </p>
@@ -2017,13 +2115,25 @@ function ScenarioBlokView({
             );
           })}
         </div>
-        {s.domeinen.map((d) => {
+        {s.domeinen.map((d, dIdx) => {
           if (openDomein !== d.domein) return null;
           const col = DOMEIN_COLORS[d.domein];
           return (
             <div key={d.domein} className={`p-4 ${col.bg}`}>
               <p className={`text-sm font-semibold ${col.text} mb-1`}>{DOMEIN_LABELS[d.domein]}</p>
-              <p className="text-xs text-gray-700 italic leading-relaxed mb-3">{d.motivatie}</p>
+              {onDomeinMotivatieEdit ? (
+                <div className="mb-3">
+                  <EditableText
+                    value={d.motivatie ?? ""}
+                    onSave={(v) => onDomeinMotivatieEdit(dIdx, v)}
+                    hint={`${DOMEIN_LABELS[d.domein]} domein-totaal: ${d.totaalUren.toLocaleString("nl-NL")} u over ${s.aantalJaren} jaar. Geen absolute jaartallen — gebruik relatieve aanduidingen.`}
+                    rows={3}
+                    textClassName="text-xs text-gray-700 italic leading-relaxed whitespace-pre-wrap"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-gray-700 italic leading-relaxed mb-3">{d.motivatie}</p>
+              )}
               <div className="space-y-3">
                 {d.jaren.map((jr) => (
                   <div key={jr.jaar} className="bg-white border border-gray-200 rounded p-3">
