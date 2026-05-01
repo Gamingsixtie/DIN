@@ -929,6 +929,51 @@ export default function StapOptimaliseren({
     if (version !== false) addToast("Motivatie opgeslagen", "success");
   }
 
+  async function handleInspPositieEdit(
+    scenarioKey: ScenarioLabel,
+    inspIdx: number,
+    newValue: string,
+  ): Promise<void> {
+    if (!begrotingAdvies) return;
+    const sc = begrotingAdvies.scenarios[scenarioKey];
+    if (!sc) return;
+    const newInsps = sc.inspanningen.map((insp, i) =>
+      i === inspIdx
+        ? { ...insp, volgorde: { ...insp.volgorde, reden: newValue } }
+        : insp,
+    );
+    const updated: DrieScenarioAdvies = {
+      ...begrotingAdvies,
+      scenarios: {
+        ...begrotingAdvies.scenarios,
+        [scenarioKey]: { ...sc, inspanningen: newInsps },
+      },
+    };
+    setBegrotingAdvies(updated);
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 6,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              begrotingAdvies: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+    const version = await saveNow();
+    if (version !== false) addToast("Positie-tekst opgeslagen", "success");
+  }
+
   async function saveEntry(idx: number) {
     setSavingIndex(idx);
     const updated = entries[idx];
@@ -1892,9 +1937,16 @@ Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren
                                       {DOMAIN_LABELS[insp.domein]}
                                     </p>
                                     <p className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">{insp.inspanningTitel}</p>
-                                    <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">
-                                      Positie: {insp.volgorde.reden}
-                                    </p>
+                                    <div className="mt-1">
+                                      <span className="text-[11px] text-gray-600 italic">Positie: </span>
+                                      <EditableText
+                                        value={insp.volgorde.reden ?? ""}
+                                        onSave={(v) => handleInspPositieEdit(sv.key, inspIdx, v)}
+                                        hint={`Inspanning-totaal in dit scenario: € ${totaalInsp.toLocaleString("nl-NL")}. Dossier-mid eenmalig: ${insp.domein === "data_systemen" ? "€650.000" : insp.domein === "processen" ? "€87.500" : insp.domein === "mens" ? "€142.500" : "€122.500"}.`}
+                                        rows={2}
+                                        textClassName="text-[11px] text-gray-600 italic leading-snug whitespace-pre-wrap inline"
+                                      />
+                                    </div>
                                     <div className="mt-1">
                                       <EditableText
                                         value={insp.motivatie ?? ""}
