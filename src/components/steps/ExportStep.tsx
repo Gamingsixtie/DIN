@@ -3909,28 +3909,38 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           </Inleiding>
 
           <SubSection title="4.1 Raming out-of-pocket kosten" id="4-1-raming-out-of-pocket-kosten">
-            {/* Tekst-coherentie melding — herinnert programmamanager dat de
-                tekst-velden (motivatie, samenvatting, prioriteitAdvies) per
-                scenario nog hergeschreven moeten worden om absolute jaartallen
-                en looptijd-claims eruit te halen. Cijfers worden bij die
-                actie server-zijde gegarandeerd ongewijzigd gehouden. */}
-            <div className="mt-2 mb-4 max-w-3xl rounded-lg border border-blue-300 bg-blue-50 p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-blue-700 text-sm leading-none mt-0.5">ℹ️</span>
-                <div className="text-[12px] text-blue-900 leading-relaxed">
-                  <p className="font-semibold mb-0.5">Tekst-coherentie — éénmalig nog te corrigeren</p>
-                  <p>
-                    De motivatie- en samenvattingsteksten hieronder kunnen nog absolute jaartallen of
-                    looptijd-claims bevatten die niet exact aansluiten bij de tabel-bedragen per scenario.
-                    Klik in de wizard <strong>Cross-analyse → Stap 6 Optimaliseren</strong> op
-                    <span className="inline-block mx-1 px-1.5 py-0.5 rounded bg-white border border-blue-300 font-semibold">🔁 Herschrijf alleen teksten</span>
-                    om dit te corrigeren — alle bedragen, percentages en jaar-cellen blijven daarbij
-                    server-zijde gegarandeerd identiek (empirisch bewezen via dubbelcheck-script:
-                    104 cellen × 4 scenarios, 0 verschillen).
-                  </p>
+            {(() => {
+              // Banner verbergen zodra teksten zijn gegenereerd via huidige
+              // prompt (regel 10) — gesignaleerd door tekstenSchoon=true op
+              // het begrotingAdvies-object. Sessies van vóór deze vlag krijgen
+              // de banner; sessies na een nieuwe call (TEKST_ONLY of regulier)
+              // hebben tekstenSchoon=true en de banner verdwijnt automatisch.
+              const begroting = (
+                session.crossAnalyseWizard?.stepResults as
+                  | { stap4?: { begrotingAdvies?: { tekstenSchoon?: boolean } } }
+                  | undefined
+              )?.stap4?.begrotingAdvies;
+              if (begroting?.tekstenSchoon === true) return null;
+              return (
+                <div className="mt-2 mb-4 max-w-3xl rounded-lg border border-blue-300 bg-blue-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-700 text-sm leading-none mt-0.5">ℹ️</span>
+                    <div className="text-[12px] text-blue-900 leading-relaxed">
+                      <p className="font-semibold mb-0.5">Tekst-coherentie — éénmalig nog te corrigeren</p>
+                      <p>
+                        De motivatie- en samenvattingsteksten hieronder kunnen nog absolute jaartallen of
+                        looptijd-claims bevatten die niet exact aansluiten bij de tabel-bedragen per scenario.
+                        Klik in de wizard <strong>Cross-analyse → Stap 6 Optimaliseren</strong> op
+                        <span className="inline-block mx-1 px-1.5 py-0.5 rounded bg-white border border-blue-300 font-semibold">🔁 Herschrijf alleen teksten</span>
+                        om dit te corrigeren — alle bedragen, percentages en jaar-cellen blijven daarbij
+                        server-zijde gegarandeerd identiek (empirisch bewezen via dubbelcheck-script:
+                        104 cellen × 4 scenarios, 0 verschillen).
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
             <BegrotingAdviesBlock session={session} />
             <SubConclusieBlock title="4.1.1 Conclusie en advies — Out-of-pocket">
               <p className="text-sm text-gray-800 leading-relaxed mb-2">
@@ -3954,25 +3964,36 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           </SubSection>
 
           <SubSection title="4.2 Interne uren" id="4-2-interne-uren">
-            {/* Tekst-coherentie melding — zelfde principe als bij §4.1, maar
-                voor de interne-uren-knop in stap 7. */}
-            <div className="mt-2 mb-4 max-w-3xl rounded-lg border border-blue-300 bg-blue-50 p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-blue-700 text-sm leading-none mt-0.5">ℹ️</span>
-                <div className="text-[12px] text-blue-900 leading-relaxed">
-                  <p className="font-semibold mb-0.5">Tekst-coherentie — éénmalig nog te corrigeren</p>
-                  <p>
-                    De samenvatting (top-level) en motivatie per domein kunnen nog absolute jaartallen
-                    of looptijd-claims bevatten die niet aansluiten bij de tabel-uren per scenario.
-                    Klik in de wizard <strong>Cross-analyse → Stap 7 Interne uren</strong> op
-                    <span className="inline-block mx-1 px-1.5 py-0.5 rounded bg-white border border-blue-300 font-semibold">🔁 Herschrijf alleen teksten</span>
-                    om dit te corrigeren — alle uren, kosten, rollen en jaar-totalen blijven daarbij
-                    server-zijde gegarandeerd identiek (empirisch bewezen: 370 rollen × 104 jaren,
-                    0 verschillen).
-                  </p>
+            {(() => {
+              // Banner verbergen zodra teksten zijn gegenereerd via huidige
+              // prompt — gesignaleerd door tekstenSchoon=true op het
+              // stap7InterneUren-object.
+              const uren = (
+                session.crossAnalyseWizard?.stepResults as
+                  | { stap4?: { stap7InterneUren?: { tekstenSchoon?: boolean } } }
+                  | undefined
+              )?.stap4?.stap7InterneUren;
+              if (uren?.tekstenSchoon === true) return null;
+              return (
+                <div className="mt-2 mb-4 max-w-3xl rounded-lg border border-blue-300 bg-blue-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-700 text-sm leading-none mt-0.5">ℹ️</span>
+                    <div className="text-[12px] text-blue-900 leading-relaxed">
+                      <p className="font-semibold mb-0.5">Tekst-coherentie — éénmalig nog te corrigeren</p>
+                      <p>
+                        De samenvatting (top-level) en motivatie per domein kunnen nog absolute jaartallen
+                        of looptijd-claims bevatten die niet aansluiten bij de tabel-uren per scenario.
+                        Klik in de wizard <strong>Cross-analyse → Stap 7 Interne uren</strong> op
+                        <span className="inline-block mx-1 px-1.5 py-0.5 rounded bg-white border border-blue-300 font-semibold">🔁 Herschrijf alleen teksten</span>
+                        om dit te corrigeren — alle uren, kosten, rollen en jaar-totalen blijven daarbij
+                        server-zijde gegarandeerd identiek (empirisch bewezen: 370 rollen × 104 jaren,
+                        0 verschillen).
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
             <InterneUrenBlock session={session} />
             <SubConclusieBlock title="4.2.1 Conclusie en advies — Interne uren">
               <p className="text-sm text-gray-800 leading-relaxed mb-2">

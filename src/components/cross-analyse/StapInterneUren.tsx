@@ -961,6 +961,10 @@ export default function StapInterneUren({
           advies: adviesRes as InterneUrenAdvies["scenarios"]["advies"] | null,
         },
         partialFailures,
+        // Tekst-coherentie vlag: alle scenario's komen uit de huidige
+        // prompt (regel 10: geen absolute jaartallen). Verbergt de
+        // "tekst-coherentie"-banner in §4.2 van de export.
+        tekstenSchoon: true,
         urenBudgetStart,
         selectiePerDomein,
         customFunctiesPerDomein,

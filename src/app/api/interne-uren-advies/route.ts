@@ -599,6 +599,11 @@ export async function POST(request: NextRequest) {
         uurtariefSettings,
         scenarios: { optimaal, plus20, min20, advies },
         partialFailures,
+        // Tekst-coherentie vlag: signaleer dat samenvatting + motivatie
+        // per domein zijn gegenereerd via de huidige prompt (regel 10:
+        // geen absolute jaartallen). Hiermee verbergt de export de
+        // "tekst-coherentie"-banner in §4.2.
+        tekstenSchoon: true,
       },
     });
   } catch (err) {

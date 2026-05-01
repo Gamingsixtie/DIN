@@ -936,6 +936,11 @@ export async function POST(request: NextRequest) {
         scenarios: { optimaal, plus20, min20, advies },
         vergelijking,
         partialFailures: falend.length > 0 ? falend : undefined,
+        // Tekst-coherentie vlag: alle motivatie/samenvatting/prioriteitAdvies
+        // velden komen uit de huidige prompt (regel 10: geen absolute jaartallen
+        // of looptijd-claims). Dit signaleert aan de export dat de
+        // "tekst-coherentie"-banner in §4.1 verborgen mag worden.
+        tekstenSchoon: true,
         // Server-side gebruikersfeedback over budget-haalbaarheid
         budgetAdvies: budgetAdviesData,
         dossierValidatie,

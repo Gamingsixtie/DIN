@@ -651,6 +651,12 @@ export const BegrotingAdviesSchema = z.object({
   }),
   vergelijking: z.string().optional().default(""),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de begroting-advies route bij elke succesvolle
+  // generatie via de huidige prompt (regel 10: geen absolute jaartallen).
+  // Als true: motivatie/samenvatting/prioriteitAdvies zijn scenario-bewust
+  // hergeschreven en de "tekst-coherentie"-banner in §4.1 verdwijnt. Sessies
+  // van vóór deze flag krijgen geen vlag = banner blijft tonen.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Interne uren (stap 7) — per domein × jaar, gekoppeld aan stap 6 scenario's
@@ -709,6 +715,11 @@ export const Stap7InterneUrenSchema = z.object({
     advies: InterneUrenScenarioSchema.nullable().optional(),
   }),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de interne-uren-advies route bij elke
+  // succesvolle generatie via de huidige prompt. Als true: samenvatting
+  // (top-level) + motivatie (per domein) zijn scenario-bewust hergeschreven
+  // en de "tekst-coherentie"-banner in §4.2 verdwijnt.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Totaaloverzicht (stap 8) — combineert stap 6 + stap 7
