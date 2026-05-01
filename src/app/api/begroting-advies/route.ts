@@ -105,7 +105,8 @@ function scenarioPrompt(
   jaarlijksBudget: number,
   fixedAantalJaren: number,
   dossierMetaTekst: string,
-  finetune?: { instructie: string; vorigeScenario: unknown }
+  finetune?: { instructie: string; vorigeScenario: unknown },
+  zwaartepuntInjectie?: string
 ): string {
   const intro =
     label === "optimaal"
@@ -120,7 +121,15 @@ function scenarioPrompt(
     ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie. **aantalJaren staat vast — pas die NIET aan.**\n`
     : "";
 
-  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}
+  // Server-side berekend zwaartepunt per inspanning + relatieve positie-label.
+  // Voorkomt dat AI verkeerde zwaartepunt-claims maakt (bijv. "richting slotjaar"
+  // terwijl top-2 jaren in middenjaren liggen). AI hoeft niet te redeneren —
+  // de positie-label staat letterlijk in de prompt.
+  const zwaartepuntBlock = zwaartepuntInjectie
+    ? `\n\n**SERVER-BEREKEND ZWAARTEPUNT PER INSPANNING (gebruik exact deze positie-labels in motivatie/samenvatting):**\n${zwaartepuntInjectie}\n`
+    : "";
+
+  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}${zwaartepuntBlock}
 
 **MENTAL MODEL — DOSSIER IS HEILIG, JAREN ZIJN BEREKEND:**
 Het aantal jaren én de totaalkosten per inspanning zijn al SERVER-SIDE berekend uit \`dossierKostenraming\` + \`businessCaseAannames\`. Jouw taak is **alleen verdelen**: hoe loopt elke inspanning over de gegeven jaren? Je mag de dossier-totalen NOOIT verlagen om in een budget-cap te passen — als het krap is, is dat al verwerkt in het aantal jaren.
@@ -753,6 +762,65 @@ export async function POST(request: NextRequest) {
     const isTekstOnly =
       isFinetune && trimmedInstructie.startsWith(TEKST_ONLY_PREFIX);
 
+    // Bereken server-side zwaartepunt per inspanning vanuit previousAdvies.
+    // Wordt alleen geïnjecteerd in TEKST_ONLY-mode of bij finetune zodat
+    // AI de top-2 jaren niet hoeft te raden. Bij eerste generatie (geen
+    // previousAdvies) is er nog geen verdeling om uit te lezen.
+    type PrevInsp = {
+      inspanningTitel?: string;
+      verdelingPerJaar?: { jaar: number; euro: number }[];
+    };
+    type PrevScen = { aantalJaren?: number; startJaar?: number; inspanningen?: PrevInsp[] };
+    function zwaartepuntTekst(label: "optimaal" | "plus20" | "min20" | "advies"): string {
+      const prev = (prevScenarios?.[label] as PrevScen | null | undefined);
+      if (!prev?.inspanningen || !prev.aantalJaren) return "";
+      const aantalJaren = prev.aantalJaren;
+      const startJ = prev.startJaar ?? effectiefStartJaar;
+      const eindJ = startJ + aantalJaren - 1;
+
+      function positieLabel(top2Jaren: number[]): string {
+        // Sorteer en bepaal positie binnen 3 segmenten: vroeg / midden / laat.
+        const eersteDerde = startJ + Math.floor(aantalJaren / 3);
+        const tweedeDerde = startJ + Math.floor((2 * aantalJaren) / 3);
+        const inEerste = top2Jaren.filter((j) => j < eersteDerde).length;
+        const inMidden = top2Jaren.filter((j) => j >= eersteDerde && j < tweedeDerde).length;
+        const inLaatste = top2Jaren.filter((j) => j >= tweedeDerde).length;
+        if (inEerste === 2) return "vroeg in de looptijd (in de eerste twee jaren)";
+        if (inLaatste === 2) {
+          // Onderscheid 'achterste derde' vs 'in het slotjaar'
+          if (top2Jaren.every((j) => j === eindJ)) return "in het slotjaar";
+          return "in de achterste derde van de looptijd";
+        }
+        if (inMidden === 2) return "rond het midden van de looptijd";
+        if (inEerste === 1 && inLaatste === 1) return "zowel vroeg als laat in de looptijd (start-piek plus structurele uitloop)";
+        if (inEerste === 1 && inMidden === 1) return "in de eerste helft van de looptijd";
+        if (inMidden === 1 && inLaatste === 1) return "in de tweede helft van de looptijd";
+        return "verspreid over de looptijd";
+      }
+
+      const lijnen: string[] = [];
+      for (const insp of prev.inspanningen) {
+        if (!insp.verdelingPerJaar?.length || !insp.inspanningTitel) continue;
+        const sorted = [...insp.verdelingPerJaar].sort((a, b) => (b.euro ?? 0) - (a.euro ?? 0));
+        const top2 = sorted.slice(0, 2).filter((c) => (c.euro ?? 0) > 0);
+        if (top2.length === 0) continue;
+        const top2Jaren = top2.map((c) => c.jaar).sort((a, b) => a - b);
+        const totaal = insp.verdelingPerJaar.reduce((s, c) => s + (c.euro ?? 0), 0);
+        const top2Pct = top2.map((c) => (totaal > 0 ? Math.round(((c.euro ?? 0) / totaal) * 100) : 0));
+        const label2 = positieLabel(top2Jaren);
+        lijnen.push(
+          `- **${insp.inspanningTitel}**: top-2 jaren met hoogste bedrag = jaar ${top2Jaren.join(" + ")} (${top2Pct.join("% + ")}%). Positie-label: "${label2}". Beschrijf het zwaartepunt voor deze inspanning EXACT als "${label2}" — geen jaartallen, geen andere positie-bewoordingen.`
+        );
+      }
+      if (lijnen.length === 0) return "";
+      const looptijdLabel =
+        aantalJaren <= 4 ? "compact"
+        : aantalJaren <= 6 ? "evenwichtig"
+        : aantalJaren <= 8 ? "ruim"
+        : "lang uitgesmeerd";
+      return `Looptijd dit scenario: ${aantalJaren} jaar (${looptijdLabel}). VOLLEDIG programma loopt binnen deze jaren — GEEN aanloop-fase, GEEN vervolgfinanciering nodig.\n\n${lijnen.join("\n")}`;
+    }
+
     async function genereer(
       label: "optimaal" | "plus20" | "min20" | "advies",
       jaarlijksBudget: number,
@@ -766,8 +834,9 @@ export async function POST(request: NextRequest) {
           ? { instructie: trimmedInstructie, vorigeScenario: prevScenarios?.[label] ?? null }
           : undefined;
         const dossierMd = dossierMetaTekst(fixedAantalJaren);
+        const zwInj = isFinetune ? zwaartepuntTekst(label) : "";
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, jaarlijksBudget, fixedAantalJaren, dossierMd, finetuneArg),
+          scenarioPrompt(label, jaarlijksBudget, fixedAantalJaren, dossierMd, finetuneArg, zwInj),
           "cross-analyse",
           undefined,
           kibContext
