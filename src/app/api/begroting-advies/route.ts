@@ -268,7 +268,13 @@ HARDE REGELS:
     - **Cultuur (leiderschap)**: in elk scenario "Bewustwording + coalitievorming" → "Leiderschapsworkshops + kerngroep" → "Acceptatie + adoptie via rolmodel-gedrag" → "Verankering in HR-instrumenten".
     - **Processen (BPM)**: in elk scenario "Inventarisatie as-is" → "Herontwerp to-be + pilot" → "Uitrol cross-sectoraal" → "Standaardisatie + continu verbeteren".
     - REDEN: als de gebruiker advies-scenario en optimaal-scenario naast elkaar leest, ziet hij voor dezelfde inspanning dezelfde fase-keten — alleen versneld of uitgesmeerd. Verschillende activiteiten per scenario voor dezelfde inspanning = verwarring + ondermijnt geloofwaardigheid.
-    - Concreet: als advies-scenario voor CRM jaar 2 "Realisatie van CRM-platform + 7 bronsysteemintegraties" zegt, dan moet optimaal-scenario voor CRM-realisatie ook praten over hetzelfde aantal bronsysteemintegraties + dezelfde scope, alleen in een ander jaar.`;
+    - Concreet: als advies-scenario voor CRM jaar 2 "Realisatie van CRM-platform + 7 bronsysteemintegraties" zegt, dan moet optimaal-scenario voor CRM-realisatie ook praten over hetzelfde aantal bronsysteemintegraties + dezelfde scope, alleen in een ander jaar.
+13. **CONSISTENTE MOTIVATIE + POSITIE PER INSPANNING OVER SCENARIOS — geen scenario-noise.**
+    Per inspanning is \`motivatie\` en \`volgorde.reden\` (positie-label) IDENTIEK over alle scenarios. Dezelfde inspanning beschrijft hetzelfde dossier — waarom we dit doen, business case, scope. Dat staat los van scenario-tempo.
+    - **Wat WEL per scenario verschilt**: \`samenvatting\` (beschrijft dit scenario als geheel) en \`prioriteitAdvies\` (welke domein-volgorde gegeven dit budget-cap). Die mogen scenario-specifiek zijn.
+    - **Wat NIET per scenario verschilt**: \`motivatie\` per inspanning (= waarom doen we deze inspanning, dossier-onderbouwing) en \`volgorde.reden\` (= positie-label, waarom is deze rangorde).
+    - Concreet: schrijf de \`motivatie\` voor CRM één keer; gebruik EXACT dezelfde tekst in advies, plus20, optimaal en min20. Idem voor \`volgorde.reden\`. AI vertaalt scenario-context in samenvatting/prioriteitAdvies, NIET in motivatie/positie.
+    - REDEN: lezer vergelijkt scenarios kolom-voor-kolom. Als motivatie van CRM in advies "Het CRM is het technische fundament" zegt en in plus20 "Het dossier raamt €440K-€640K" → onverklaarbaar onderscheid → vragen over geloofwaardigheid.`;
 }
 
 const VergelijkingSchema = z.object({
@@ -942,6 +948,67 @@ export async function POST(request: NextRequest) {
       genereer("min20", budgetMin20, jMin20, 400),
       genereer("advies", adviesKeuze.benodigdJaarlijks, jAdvies, 600),
     ]);
+
+    // === Cross-scenario consistentie-enforcer ===
+    // Per inspanning: motivatie + volgorde.reden IDENTIEK over alle scenarios.
+    // Canonical = optimaal scenario (richtlijn HARDE REGEL 13).
+    // Beschermt tegen AI die regel 13 negeert.
+    {
+      const scenarios: Record<string, Scenario | null> = { optimaal, plus20, min20, advies };
+      const canonical = scenarios.optimaal;
+      if (canonical?.inspanningen) {
+        const motByInsp: Record<string, string> = {};
+        const posByInsp: Record<string, string> = {};
+        for (const i of canonical.inspanningen) {
+          if (i.motivatie) motByInsp[i.inspanningTitel] = i.motivatie;
+          if (i.volgorde?.reden) posByInsp[i.inspanningTitel] = i.volgorde.reden;
+        }
+        for (const [k, sc] of Object.entries(scenarios)) {
+          if (!sc || k === "optimaal") continue;
+          for (const ins of sc.inspanningen ?? []) {
+            const newMot = motByInsp[ins.inspanningTitel];
+            const newPos = posByInsp[ins.inspanningTitel];
+            if (newMot) ins.motivatie = newMot;
+            if (newPos && ins.volgorde) ins.volgorde.reden = newPos;
+          }
+        }
+      }
+    }
+
+    // Per fase: activiteit IDENTIEK per inspanning waar zelfde fase-naam voorkomt.
+    // Eerste cell met die fase is canonical voor die inspanning.
+    {
+      const scenarios: Record<string, Scenario | null> = { optimaal, plus20, min20, advies };
+      // Bouw per inspanning een map: fase-naam -> activiteit (uit eerste keer dat fase voorkomt)
+      // Dan in tweede pass: hervul activiteit per cell met die canonical
+      const activiteitPerInspFase: Record<string, Record<string, string>> = {};
+      for (const sc of Object.values(scenarios)) {
+        if (!sc?.inspanningen) continue;
+        for (const ins of sc.inspanningen) {
+          if (!activiteitPerInspFase[ins.inspanningTitel]) {
+            activiteitPerInspFase[ins.inspanningTitel] = {};
+          }
+          const lib = activiteitPerInspFase[ins.inspanningTitel];
+          for (const cell of ins.verdelingPerJaar ?? []) {
+            if (cell.fase && cell.activiteit && !lib[cell.fase]) {
+              lib[cell.fase] = cell.activiteit;
+            }
+          }
+        }
+      }
+      for (const sc of Object.values(scenarios)) {
+        if (!sc?.inspanningen) continue;
+        for (const ins of sc.inspanningen) {
+          const lib = activiteitPerInspFase[ins.inspanningTitel];
+          if (!lib) continue;
+          for (const cell of ins.verdelingPerJaar ?? []) {
+            if (cell.fase && lib[cell.fase]) {
+              cell.activiteit = lib[cell.fase];
+            }
+          }
+        }
+      }
+    }
 
     // Server-side validatie per inspanning: totaalEuro moet ≥ 90% × dossier-
     // ondergrens zijn. Onder die drempel is het scenario verdacht (AI heeft
