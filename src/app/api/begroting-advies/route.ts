@@ -175,7 +175,7 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "inspanningTitel": "...",
       "groepId": "...",
       "domein": "mens|processen|data_systemen|cultuur",
-      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames + dossier-totaal>",
+      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames + dossier-totaal. GEEN absolute jaartallen (geen '2027-2028'), GEEN looptijd-claims ('over X jaar', 'X-jarige cyclus'), GEEN claim over wanneer het zwaartepunt valt in jaartallen. Gebruik relatieve aanduidingen: 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar', 'tegen het einde'. Reden: jaartallen en looptijd worden door scenario bepaald, dus alleen relatieve aanduidingen blijven kloppen wanneer guards bedragen verschuiven.>",
       "verdelingPerJaar": [
         { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<domein-passende fase, zie regel 7>", "activiteit": "<1-2 ZINNEN concreet wat er DIT JAAR voor DEZE inspanning gebeurt — geen herhaling tussen jaren>" },
         ...één item per jaar tot en met startJaar+${fixedAantalJaren}−1 (= ${fixedAantalJaren} items totaal)
@@ -183,8 +183,8 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
     }
   ],
-  "prioriteitAdvies": "<4-6 zinnen: motiveer de BUDGET-VERHOUDING data/systemen > cultuur > mens > processen vanuit outside-in perspectief — leg uit waarom CRM het fundament is (grootste eenmalige post + technisch enabler), waarom cultuur #2 budget krijgt (zonder draagvlak geen adoptie van CRM en geen waarde uit outside-in), waarom mens #3 (gespreksvaardigheid vertaalt cultuur naar klant), en waarom processen het minst krijgen (borgings-werk in laatste fase). Sluit af met: alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.>",
-  "samenvatting": "<1-2 zinnen executive summary van dít scenario>"
+  "prioriteitAdvies": "<4-6 zinnen: motiveer de BUDGET-VERHOUDING data/systemen > cultuur > mens > processen vanuit outside-in perspectief — leg uit waarom CRM het fundament is (grootste eenmalige post + technisch enabler), waarom cultuur #2 budget krijgt (zonder draagvlak geen adoptie van CRM en geen waarde uit outside-in), waarom mens #3 (gespreksvaardigheid vertaalt cultuur naar klant), en waarom processen het minst krijgen (borgings-werk in laatste fase). Sluit af met: alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment. GEEN absolute jaartallen, GEEN looptijd-aantallen.>",
+  "samenvatting": "<1-2 zinnen executive summary van dít scenario. GEEN absolute jaartallen, GEEN looptijd-aantallen — gebruik relatieve aanduidingen.>"
 }
 
 **LET OP:**
@@ -219,7 +219,7 @@ HARDE REGELS:
 6. **RANKING — gebaseerd op totaalEuro descending; CRM altijd #1:**
    - rank 1 = **Data/Systemen** ALTIJD (grootste budget — CRM is technisch fundament en grootste eenmalige post; zonder werkend CRM blijft outside-in onuitvoerbaar op schaal).
    - rank 2-4 = de overige drie domeinen op basis van \`totaalEuro\` descending. In Cito-context betekent dit dat cultuur in € klein blijft (dossier-bedrag van 9 leidinggevenden + extern), terwijl mens en processen iets groter zijn — dus ranking volgt €.
-   - **In \`prioriteitAdvies\` MOET je expliciet uitleggen dat cultuur in EURO klein is (omdat de cultuur-Q&A 9 leidinggevenden bedient, 4-jarige cyclus) maar in BELANG #2 staat: zonder cultuurverandering en draagvlak wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.** Eurogrootte ≠ inhoudelijk belang — beide moeten in de motivatie staan, separaat.
+   - **In \`prioriteitAdvies\` MOET je expliciet uitleggen dat cultuur in EURO klein is (omdat de cultuur-Q&A een kleine doelgroep van leidinggevenden bedient) maar in BELANG #2 staat: zonder cultuurverandering en draagvlak wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.** Eurogrootte ≠ inhoudelijk belang — beide moeten in de motivatie staan, separaat.
    - De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.
 7. **Realistische fasering per inspanning + activiteits-tekst per jaar — ALLE DOMEINEN STARTEN PARALLEL IN JAAR 1:**
    - Cultuur: START jaar 1 met piek (bewustwording, leiderschapsworkshops), afnemend (borging) → meest budget jaar 1-2
@@ -234,7 +234,18 @@ HARDE REGELS:
      - **Processen** (BPM-lifecycle): Inventarisatie (as-is) → Herontwerp (to-be) → Pilot → Uitrol → Standaardisatie → Continu verbeteren.
    - Kies het fase-label dat beste past bij de concrete activiteit van dat jaar, niet willekeurig. Elk jaar mag een ander label hebben binnen dezelfde inspanning — het sjabloon-effect ("Voorbereiding/Uitrol/Borging" telkens) is expliciet verboden.
 8. Alle euros als integers (75000, niet "€75K"). In activiteit-teksten en samenvattingen: schrijf bedragen voluit ("€ 63.000") of voorgevoegd met "circa" wanneer benaderend ("circa € 63.000"). Gebruik **GEEN** tilde "~" als afkorting voor "circa", **GEEN** afkortingen als "€63K", en **GEEN** voorgaand minteken. Bedragen zijn altijd positief; uitgaven worden zonder minteken weergegeven.
-9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
+9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.
+10. **GEEN ABSOLUTE JAARTALLEN OF LOOPTIJD-CLAIMS in \`motivatie\`, \`prioriteitAdvies\` en \`samenvatting\`.**
+    Schrijf in deze drie velden NOOIT:
+    - Concrete jaartallen ("in 2027", "vanaf 2028", "zwaartepunt 2027–2028", "tot en met 2029").
+    - Looptijd-aantallen ("over 4 jaar", "in 5 jaar", "× 9 jaar", "in jaar 4").
+    - Cyclus-claims ("4-jarige cyclus", "3-jarige aanpak").
+    - Specifieke jaar-tot-jaar fasering ("in 2026 starten we, in 2028 piekt het").
+    Schrijf WEL relatief:
+    - "in het startjaar", "in het slotjaar", "in de bouwjaren", "in de uitrol-jaren", "rond het midden van de looptijd", "in de achterste derde", "tegen het einde", "in de eerste twee jaren", "in de laatste fase".
+    - Bij zwaartepunt: "het zwaartepunt valt in de bouw- en migratiefase" — niet "het zwaartepunt valt in 2027–2028".
+    REDEN: jaartallen en looptijd verschillen per scenario (4/5/7/10 jaar), en server-guards kunnen bedragen tussen jaren verschuiven NA jouw tekst. Absolute jaartallen worden dan onwaar. Relatieve aanduidingen blijven onder alle scenario's en alle guard-mutaties kloppen.
+    UITZONDERING: \`verdelingPerJaar[].activiteit\` (regel 7) is per definitie aan één specifiek jaar gebonden — daar mag je wel concreet over dat jaar schrijven, maar zonder andere jaartallen erin te noemen.`;
 }
 
 const VergelijkingSchema = z.object({

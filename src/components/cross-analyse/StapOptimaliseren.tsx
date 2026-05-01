@@ -1650,13 +1650,29 @@ export default function StapOptimaliseren({
                       Niet tevreden? Stuur AI een instructie om de scenario&apos;s aan te passen.
                     </p>
                   )}
-                  <button
-                    onClick={() => setFinetuneOpen(true)}
-                    disabled={begrotingLoading}
-                    className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
-                  >
-                    ✎ Fineut met AI
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        generateBegrotingsAdvies({
+                          finetuneInstructie:
+                            "Herschrijf de motivatie, samenvatting en prioriteitAdvies van dit scenario opnieuw volgens harde regel 10 van de prompt: GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik uitsluitend relatieve aanduidingen ('in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar'). Houd de bedragen, fase-labels per jaar en activiteit-teksten per jaar exact onveranderd — alleen de drie tekstvelden worden hergeschreven.",
+                          previousAdvies: begrotingAdvies,
+                        })
+                      }
+                      disabled={begrotingLoading}
+                      title="Herschrijft alleen de motivatie, samenvatting en prioriteitAdvies — bedragen en jaar-cellen blijven onveranderd."
+                      className="text-sm px-3 py-2 rounded bg-white text-[#003366] border-2 border-[#003366] hover:bg-blue-50 disabled:opacity-50 font-medium shadow-sm"
+                    >
+                      🔁 Herschrijf alleen teksten
+                    </button>
+                    <button
+                      onClick={() => setFinetuneOpen(true)}
+                      disabled={begrotingLoading}
+                      className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
+                    >
+                      ✎ Fineut met AI
+                    </button>
+                  </div>
                 </div>
               </div>
 
