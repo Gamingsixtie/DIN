@@ -29,7 +29,7 @@ type ScenarioKey = (typeof SCENARIO_KEYS)[number];
 const SCENARIO_META: Record<ScenarioKey, { label: string; band: string; ring: string; accent: string }> = {
   optimaal: { label: "Huidig budget", band: "bg-[#003366]", ring: "ring-[#003366]/30", accent: "text-[#003366]" },
   plus20: { label: "+20% (sneller)", band: "bg-emerald-700", ring: "ring-emerald-700/30", accent: "text-emerald-700" },
-  advies: { label: "Optimaal (advies)", band: "bg-purple-700", ring: "ring-purple-700/30", accent: "text-purple-700" },
+  advies: { label: "Snelste scenario", band: "bg-purple-700", ring: "ring-purple-700/30", accent: "text-purple-700" },
   min20: { label: "−20% (langzamer)", band: "bg-amber-700", ring: "ring-amber-700/30", accent: "text-amber-700" },
 };
 

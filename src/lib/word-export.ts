@@ -87,7 +87,7 @@ const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20" | "advies", string
   optimaal: "Huidig budget",
   plus20: "+20% scenario",
   min20: "\u221220% scenario",
-  advies: "Optimaal (advies)",
+  advies: "Snelste scenario",
 };
 
 // --- Numbering State ---

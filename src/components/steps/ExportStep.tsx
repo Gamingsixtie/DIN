@@ -1923,7 +1923,7 @@ const SCENARIO_LABELS: Record<ScenarioKey, string> = {
   optimaal: "Huidig budget",
   plus20: "+20% (sneller)",
   min20: "−20% (langzamer)",
-  advies: "Optimaal (advies)",
+  advies: "Snelste scenario",
 };
 const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: string; banner: string; bannerTekst: string }> = {
   optimaal: { ring: "ring-cito-blue", bg: "bg-blue-50", accent: "text-cito-blue", banner: "bg-cito-blue", bannerTekst: "text-blue-100" },

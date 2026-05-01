@@ -1518,7 +1518,7 @@ export default function StapOptimaliseren({
             },
             {
               key: "advies",
-              label: "Optimaal (advies)",
+              label: "Snelste scenario",
               kleur: {
                 banner: "bg-purple-800",
                 tekst: "text-purple-100",

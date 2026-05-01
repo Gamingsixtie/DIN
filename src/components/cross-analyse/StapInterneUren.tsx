@@ -106,7 +106,7 @@ const SCENARIO_META: Array<{
   { key: "optimaal", label: "Huidig budget", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]", kaart: "border-blue-200 bg-blue-50" } },
   { key: "plus20", label: "+20% budget (sneller)", kleur: { banner: "bg-green-800", tekst: "text-green-100", accent: "text-green-800", kaart: "border-green-200 bg-green-50" } },
   { key: "min20", label: "−20% budget (langzamer)", kleur: { banner: "bg-amber-800", tekst: "text-amber-100", accent: "text-amber-800", kaart: "border-amber-200 bg-amber-50" } },
-  { key: "advies", label: "Optimaal (advies)", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800", kaart: "border-purple-300 bg-purple-50" } },
+  { key: "advies", label: "Snelste scenario", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800", kaart: "border-purple-300 bg-purple-50" } },
 ];
 
 export default function StapInterneUren({

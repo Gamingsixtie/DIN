@@ -14,7 +14,7 @@ const SCENARIO_META: Array<{
   { key: "optimaal", label: "Huidig budget", kleur: { banner: "bg-[#003366]", tekst: "text-blue-100", accent: "text-[#003366]" } },
   { key: "plus20", label: "+20% (sneller)", kleur: { banner: "bg-green-800", tekst: "text-green-100", accent: "text-green-800" } },
   { key: "min20", label: "−20% (langzamer)", kleur: { banner: "bg-amber-800", tekst: "text-amber-100", accent: "text-amber-800" } },
-  { key: "advies", label: "Optimaal (advies)", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800" } },
+  { key: "advies", label: "Snelste scenario", kleur: { banner: "bg-purple-800", tekst: "text-purple-100", accent: "text-purple-800" } },
 ];
 
 type PerScenarioTotaal = {
