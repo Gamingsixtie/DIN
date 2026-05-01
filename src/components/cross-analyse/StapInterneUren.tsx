@@ -1562,13 +1562,34 @@ export default function StapInterneUren({
           <div className="bg-white border-2 border-[#003366] rounded-lg p-4">
             <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
               <h4 className="text-sm font-semibold text-[#003366]">Interne uren — scenario-vergelijking</h4>
-              <button
-                onClick={() => setFineutOpen(true)}
-                disabled={loading}
-                className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
-              >
-                ✎ Fineut met AI
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    generateAdvies({
+                      // TEKST_ONLY:-prefix triggert server-side garantie dat
+                      // alleen samenvatting + motivatie per domein worden
+                      // vervangen — alle uren, kosten, rollen en jaartabellen
+                      // blijven letterlijk gelijk aan previousAdvies.
+                      finetuneInstructie:
+                        "TEKST_ONLY: Herschrijf de samenvatting (top-level) en motivatie per domein opnieuw met scenario-bewuste relatieve aanduidingen. GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik 'in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar'. Houd uren, rollen, kosten en jaar-cellen exact onveranderd.",
+                      previousAdvies: advies,
+                    })
+                  }
+                  disabled={loading}
+                  title="Herschrijft alleen de samenvatting en motivatie per domein — uren, kosten, rollen en jaar-totalen blijven server-zijde gegarandeerd onveranderd."
+                  className="text-sm px-3 py-2 rounded bg-white text-[#003366] border-2 border-[#003366] hover:bg-blue-50 disabled:opacity-50 font-medium shadow-sm"
+                >
+                  🔁 Herschrijf alleen teksten
+                </button>
+                <button
+                  onClick={() => setFineutOpen(true)}
+                  disabled={loading}
+                  title="Pas de uren-verdeling aan op basis van stuurgroep-feedback (bv. 'minder uren in jaar 1, meer in jaar 3'). Cijfers + tekst worden samen herrekend."
+                  className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
+                >
+                  ⚖ Herrekenen op basis van stuurgroep-feedback
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {SCENARIO_META.map((sv) => {
@@ -1839,9 +1860,11 @@ export default function StapInterneUren({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-[#003366]">Interne uren fineuten met AI</h3>
+              <h3 className="text-lg font-semibold text-[#003366]">Herrekenen op basis van stuurgroep-feedback</h3>
               <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                Geef een instructie om rollen, uren of fasering aan te passen.
+                Beschrijf wat de stuurgroep heeft afgesproken of wat anders moet — rollen, uren,
+                fasering of capaciteits-verdeling. AI rekent door wat dat betekent voor uren-totalen
+                per scenario en past de tekst daarop aan zodat alles coherent blijft.
               </p>
             </div>
             <div className="p-5 space-y-4">
@@ -1866,10 +1889,14 @@ export default function StapInterneUren({
                 <textarea
                   value={fineutInstr}
                   onChange={(e) => setFineutInstr(e.target.value)}
-                  rows={5}
-                  placeholder="Bijv.: 'Voeg een Projectmanager D toe in elk domein voor programma-coördinatie (10% FTE per jaar).'"
+                  rows={6}
+                  placeholder={"Voorbeelden van stuurgroep-input die je hier kunt typen:\n\n• \"Uit stuurgroep-overleg: Cito-medewerkers kunnen pas vanaf juni 2026 voor 50–60% inzetbaar zijn. Reken de uren-verdeling jaar 1 daarop bij.\"\n\n• \"Voeg een Projectmanager D toe in elk domein voor programma-coördinatie (10% FTE per jaar).\"\n\n• \"Verlaag totale uren cultuur-domein met 20% — stuurgroep wil minder afhankelijkheid van externe begeleiding.\""}
                   className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Tip: wees specifiek over WAT (uren, jaar, scenario, rol) en WAAROM (stuurgroep-besluit,
+                  capaciteit, prioriteit). AI past zowel uren als tekst aan zodat alles consistent blijft.
+                </p>
               </div>
             </div>
             <div className="p-5 border-t border-gray-200 flex items-center justify-end gap-2">

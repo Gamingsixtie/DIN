@@ -3966,6 +3966,30 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 <strong> aanbeveling aan de stuurgroep</strong> volgt onderaan, na de vier scenario&apos;s.
               </p>
             </IntroPanel>
+            {(() => {
+              // Stuurgroep-notitie uit stap 8 totaaloverzicht — vrije tekst
+              // toegevoegd door de programmamanager. Wordt alleen getoond als
+              // er daadwerkelijk een notitie is opgeslagen.
+              const notitie = (
+                session.crossAnalyseWizard?.stepResults as
+                  | { stap8?: { stuurgroepNotitie?: string } }
+                  | undefined
+              )?.stap8?.stuurgroepNotitie?.trim();
+              if (!notitie) return null;
+              return (
+                <div className="mt-4 max-w-3xl rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-amber-700 text-base leading-none mt-0.5">📝</span>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                      Stuurgroep-notitie bij totaaloverzicht
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {notitie}
+                  </p>
+                </div>
+              );
+            })()}
             <ScenarioPicker label="Spring direct naar een totaal-scenario:" scrollTo="4-3" />
             <ScenarioTotaalBlock session={session} />
             <Aanbeveling>

@@ -326,6 +326,18 @@ export async function POST(request: NextRequest) {
 
     const kibContext = extractKiBContext(body);
 
+    // TEKST_ONLY-modus: prefix in finetuneInstructie betekent dat AI alleen
+    // samenvatting (top-level) en motivatie (per domein) mag herschrijven.
+    // Server kopieert ALLE cijfers (uren, uurtarief, kosten), totalen, jaren,
+    // rollen en activiteit-teksten LETTERLIJK terug uit previousAdvies — zodat
+    // de tabel-uitkomsten heilig blijven. Gebruikt door de "🔁 Herschrijf
+    // alleen teksten"-knop in de wizard interne uren.
+    const TEKST_ONLY_PREFIX = "TEKST_ONLY:";
+    const trimmedFinetune = (finetuneInstructie ?? "").trim();
+    const isTekstOnly =
+      trimmedFinetune.startsWith(TEKST_ONLY_PREFIX) &&
+      !!(previousAdvies as { scenarios?: Record<string, unknown> } | undefined)?.scenarios;
+
     // Merge business-case interne-uren antwoorden in de inspanningen
     function enrichInspanningen(
       inspanningen: Array<{
@@ -388,11 +400,36 @@ export async function POST(request: NextRequest) {
           );
           if (res.success) {
             console.log(`[interne-uren-advies] ✓ ${label} poging ${i + 1} OK (${pogingen[i].model})`);
-            return verrijkScenario(res.data, {
+            const enriched = verrijkScenario(res.data, {
               aantalJaren: scenario.aantalJaren,
               startJaar: scenario.startJaar,
               uurtariefSettings: uurtariefSettings!,
             });
+
+            // TEKST_ONLY-garantie: server kopieert alle cijfers uit
+            // previousAdvies en neemt alleen samenvatting + motivatie per
+            // domein over uit nieuwe AI-output. Bewijs dat uren/kosten heilig
+            // blijven, ongeacht wat AI of guards doen.
+            if (isTekstOnly) {
+              const prev = (previousAdvies as
+                | { scenarios?: Record<string, VerrijkteScenario | null | undefined> }
+                | undefined)?.scenarios?.[label];
+              if (prev) {
+                return {
+                  ...prev,
+                  samenvatting: enriched.samenvatting,
+                  domeinen: prev.domeinen.map((prevDom) => {
+                    const match = enriched.domeinen.find((d) => d.domein === prevDom.domein);
+                    return {
+                      ...prevDom,
+                      motivatie: match?.motivatie ?? prevDom.motivatie,
+                    };
+                  }),
+                };
+              }
+            }
+
+            return enriched;
           }
           console.error(`[interne-uren-advies] ✗ ${label} poging ${i + 1} (${pogingen[i].model}) validation failed: ${res.error}`);
         } catch (err) {

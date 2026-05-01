@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import type { DINSession, Stap4Result, BegrotingAdvies, Stap7InterneUren } from "@/lib/types";
+import { useSession } from "@/lib/session-context";
 
 type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
 
@@ -29,12 +30,58 @@ type PerScenarioTotaal = {
 };
 
 export default function StapTotaaloverzicht({
+  session,
   stap4Result,
 }: {
   session: DINSession;
   stap4Result?: Stap4Result;
 }): React.ReactElement {
+  const { updateSession, saveNow } = useSession();
   const [actiefScenario, setActiefScenario] = useState<ScenarioLabel>("optimaal");
+
+  // Stuurgroep-notitie — vrije tekst die de programmamanager toevoegt na een
+  // stuurgroep-overleg. Wordt boven §4.3 in de export getoond zodat
+  // discussie-context expliciet meeloopt zonder de getallen te raken.
+  const stap8 = (session.crossAnalyseWizard?.stepResults as
+    | { stap8?: { stuurgroepNotitie?: string } }
+    | undefined)?.stap8;
+  const [notitie, setNotitie] = useState<string>(stap8?.stuurgroepNotitie ?? "");
+  const [notitieSaving, setNotitieSaving] = useState(false);
+  const [notitieSaved, setNotitieSaved] = useState(false);
+
+  async function handleNotitieOpslaan() {
+    setNotitieSaving(true);
+    setNotitieSaved(false);
+    updateSession((prev) => {
+      const wiz = prev.crossAnalyseWizard;
+      const prevStepResults = wiz?.stepResults ?? {};
+      // stap8 schema vereist `scenarios` als top-level veld; geef een lege
+      // skeleton als die ontbreekt zodat de zod-validatie blijft slagen.
+      const prevStap8 = (prevStepResults as { stap8?: { scenarios?: unknown; actiefScenario?: unknown; stuurgroepNotitie?: string } }).stap8;
+      const newStap8 = {
+        scenarios: prevStap8?.scenarios ?? { optimaal: null, plus20: null, min20: null },
+        ...(prevStap8 ?? {}),
+        stuurgroepNotitie: notitie.trim(),
+      };
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: wiz?.currentStep ?? 8,
+          completedSteps: wiz?.completedSteps ?? [],
+          wizardVersion: wiz?.wizardVersion ?? 2,
+          ...wiz,
+          stepResults: {
+            ...prevStepResults,
+            stap8: newStap8,
+          },
+        } as NonNullable<typeof prev.crossAnalyseWizard>,
+      };
+    });
+    await saveNow();
+    setNotitieSaving(false);
+    setNotitieSaved(true);
+    setTimeout(() => setNotitieSaved(false), 2500);
+  }
 
   const begroting = stap4Result?.begrotingAdvies as BegrotingAdvies | undefined;
   const interneUren = stap4Result?.stap7InterneUren as Stap7InterneUren | undefined;
@@ -116,6 +163,35 @@ export default function StapTotaaloverzicht({
           </ul>
         </div>
       )}
+
+      {/* Stuurgroep-notitie — vrije tekst, geen AI. Wordt in de export
+          (§4.3) getoond zodat stuurgroep-context expliciet meeloopt. */}
+      <div className="bg-white border-2 border-amber-300 rounded-lg p-4">
+        <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+          <div>
+            <h4 className="text-sm font-semibold text-amber-900">📝 Stuurgroep-notitie bij totaaloverzicht</h4>
+            <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
+              Voeg context toe vanuit de stuurgroep — bijvoorbeeld een afspraak over fasering, een
+              voorbehoud of een verklaring waarom een scenario de voorkeur heeft. Wordt boven §4.3
+              in de export gerenderd. Geen AI — vrije tekst, getallen blijven heilig.
+            </p>
+          </div>
+          <button
+            onClick={handleNotitieOpslaan}
+            disabled={notitieSaving || notitie.trim() === (stap8?.stuurgroepNotitie ?? "").trim()}
+            className="text-sm px-4 py-2 rounded bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-50 font-medium shadow-sm whitespace-nowrap"
+          >
+            {notitieSaving ? "Opslaan..." : notitieSaved ? "✓ Opgeslagen" : "Opslaan"}
+          </button>
+        </div>
+        <textarea
+          value={notitie}
+          onChange={(e) => setNotitie(e.target.value)}
+          rows={5}
+          placeholder={"Voorbeeld:\n\n\"Stuurgroep heeft op [datum] gekozen voor het advies-scenario. Voorwaarden: (1) H2 2026 wordt gebruikt voor leveranciersselectie en MT-besluit, (2) doorschuiving naar Q1 2027 binnen scenario-totaal akkoord. Punt van zorg: capaciteitsdruk Cito-medewerkers in jaar 2 — afspraak gemaakt om in Q4 een herijking te doen.\""}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 resize-y leading-relaxed"
+        />
+      </div>
 
       {/* Scenario-vergelijkingsbanner — altijd 3 kaarten */}
       <div className="bg-white border-2 border-[#003366] rounded-lg p-4">

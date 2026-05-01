@@ -733,6 +733,10 @@ export const Stap8TotaaloverzichtSchema = z.object({
     advies: ScenarioTotaalSchema.nullable().optional(),
   }),
   actiefScenario: z.enum(["optimaal", "plus20", "min20", "advies"]).optional(),
+  // Vrije tekst-notitie van programmamanager na stuurgroep-overleg.
+  // Wordt boven §4.3 in de export gerenderd zodat stuurgroep-input
+  // expliciet meegenomen wordt zonder dat er getallen herrekend hoeven worden.
+  stuurgroepNotitie: z.string().optional(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({
