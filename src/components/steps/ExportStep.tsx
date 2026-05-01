@@ -2377,8 +2377,7 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
             <ol className="list-decimal pl-5 space-y-1">
               {sortedInspByRank.slice(0, 4).map((insp) => (
                 <li key={`${insp.domein}-${insp.volgorde.rank}`}>
-                  <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>:{" "}
-                  <span className="text-gray-700">{insp.volgorde.reden}</span>
+                  <strong>{DOMAIN_LABELS[insp.domein]} — {insp.inspanningTitel}</strong>
                 </li>
               ))}
             </ol>

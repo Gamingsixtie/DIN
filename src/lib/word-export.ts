@@ -2358,7 +2358,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       if (inspanningen.length > 0) {
         const headerCells = [
           headerCell("#", 5),
-          headerCell("Inspanning (domein + motivatie)", 35),
+          headerCell("Inspanning (domein)", 35),
         ];
         for (let y = 0; y < aantalJaren; y++) {
           headerCells.push(headerCell(`${startJaar + y}`, Math.floor(50 / aantalJaren)));
@@ -2369,7 +2369,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
           const cells = [
             styledCell(`${insp.volgorde.rank}`, { bold: true, width: 5, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 16 }),
             styledCell(
-              `[${DOMAIN_LABELS[insp.domein]}] ${insp.inspanningTitel}\n${insp.motivatie}`,
+              `[${DOMAIN_LABELS[insp.domein]}] ${insp.inspanningTitel}`,
               { width: 35, size: 16 }
             ),
           ];
