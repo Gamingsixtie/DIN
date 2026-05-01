@@ -2454,9 +2454,6 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
                               {insp.volgorde.reden && (
                                 <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">Positie: {insp.volgorde.reden}</p>
                               )}
-                              {insp.motivatie && (
-                                <p className="text-[11px] text-gray-600 mt-1 leading-snug">{insp.motivatie}</p>
-                              )}
                             </td>
                             {Array.from({ length: aantalJaren }, (_, k) => startJaar + k).map((jr) => {
                               const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
@@ -3085,9 +3082,6 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                                       ({Math.round((insp.totaalEuro / grandTotalOop) * 100)}% van out-of-pocket)
                                     </span>
                                   </div>
-                                  {insp.motivatie && (
-                                    <p className="text-xs text-gray-600 leading-relaxed mt-0.5 italic">{insp.motivatie}</p>
-                                  )}
                                 </div>
                               </li>
                             );
