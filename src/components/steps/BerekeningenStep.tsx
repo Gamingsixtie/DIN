@@ -943,6 +943,13 @@ function Sectie0VolledigeBerekening({
         </span>
       </summary>
       <div className="space-y-5 px-5 pt-2 pb-5 text-sm">
+        {/* Uitleg: wat betekent min/mid/max in deze berekening? */}
+        <MinMidMaxToelichting
+          aantalJaren={aantalJaren}
+          scenarioLabel={scenarioLabel}
+          totaalScenario={totaalScenario}
+        />
+
         {/* Stap 1: Component-derivation per inspanning */}
         <div>
           <h4 className="font-semibold text-[#003366]">
@@ -1086,6 +1093,97 @@ function Sectie0VolledigeBerekening({
         </div>
       </div>
     </details>
+  );
+}
+
+// --- Min/Mid/Max toelichting (zichtbaar boven Sectie 0) --------------------
+// Legt uit wat de drie waarden betekenen, welke gebruikt wordt in de
+// scenario-berekening en wat het verschil per scenario betekent.
+
+function MinMidMaxToelichting({
+  aantalJaren,
+  scenarioLabel,
+  totaalScenario,
+}: {
+  aantalJaren: number;
+  scenarioLabel: string;
+  totaalScenario: number;
+}) {
+  return (
+    <div className="rounded-lg border border-amber-300 bg-amber-50/70 p-4">
+      <p className="text-sm font-semibold text-amber-900">
+        Wat betekenen <span className="font-mono">Min</span> / <span className="font-mono">Mid</span> /{" "}
+        <span className="font-mono">Max</span>?
+      </p>
+      <p className="text-xs text-amber-900/80 mt-1">
+        Elke component (b.v. datamigratie, externe consultant-uren, licenties) heeft een{" "}
+        <strong>onzekerheidsbandbreedte</strong>: de uur-tarieven liggen vast (markt-conform), maar
+        het exacte aantal uren of gebruikers kan binnen een aannemelijke range vallen. Daarom tonen
+        we drie waarden:
+      </p>
+      <ul className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+        <li className="rounded bg-white border border-amber-200 px-3 py-2">
+          <span className="font-mono font-semibold text-emerald-700">Min</span>{" "}
+          <span className="text-gray-700">— gunstige aannames</span>
+          <p className="text-[11px] text-gray-600 mt-1">
+            Ondergrens: minimum aantal uren / kleinste schaling / scherpste cross-sectorale
+            schaalvoordelen volledig benut.
+          </p>
+        </li>
+        <li className="rounded bg-white border-2 border-[#003366] px-3 py-2">
+          <span className="font-mono font-semibold text-[#003366]">Mid</span>{" "}
+          <span className="text-gray-700">— middenpunt (gehanteerd)</span>
+          <p className="text-[11px] text-gray-600 mt-1">
+            <strong>Dit bedrag wordt gebruikt in alle scenario-berekeningen</strong> en in §4.1
+            begroting. Centrale schatting waarop de stuurgroep akkoord geeft.
+          </p>
+        </li>
+        <li className="rounded bg-white border border-amber-200 px-3 py-2">
+          <span className="font-mono font-semibold text-rose-700">Max</span>{" "}
+          <span className="text-gray-700">— ongunstige aannames</span>
+          <p className="text-[11px] text-gray-600 mt-1">
+            Bovengrens: ruimere uren / grotere schaling / minder schaalvoordeel. De delta{" "}
+            <span className="font-mono">Max−Mid</span> is wat de risico-buffer onvoorzien moet dekken.
+          </p>
+        </li>
+      </ul>
+      <div className="mt-3 pt-3 border-t border-amber-200">
+        <p className="text-sm font-semibold text-amber-900">
+          Wat betekent dit per scenario?
+        </p>
+        <p className="text-xs text-amber-900/80 mt-1">
+          Alle vier de scenario&apos;s gebruiken <strong>dezelfde Mid-bedragen per component</strong>
+          {" "}— de inspanning-inhoud verandert niet. Wat verschilt, is het{" "}
+          <strong>aantal jaren</strong> waarover je de structurele last spreidt en de{" "}
+          <strong>lifecycle-curve</strong> die bepaalt wanneer pieken vallen.
+        </p>
+        <ul className="mt-2 space-y-1 text-xs text-gray-800">
+          <li>
+            <span className="font-semibold">Snelste scenario (4 jaar)</span> — eenmalig Mid + 4 ×
+            structureel/jaar; kortste tail dus laagste cumulatief, maar hoogste piek per jaar in
+            2027–2028.
+          </li>
+          <li>
+            <span className="font-semibold">+20% (5 jaar)</span> — eenmalig Mid + 5 × structureel/jaar;
+            iets meer ruimte voor parallel testen en gefaseerde uitrol.
+          </li>
+          <li>
+            <span className="font-semibold">Huidig budget (7 jaar)</span> — eenmalig Mid + 7 ×
+            structureel/jaar; standaard-tempo, lagere jaarlijkse piek, langere borgingstail.
+          </li>
+          <li>
+            <span className="font-semibold">−20% (10 jaar)</span> — eenmalig Mid + 10 ×
+            structureel/jaar; hoogste cumulatief omdat je 10 jaar licentie + beheer betaalt.
+          </li>
+        </ul>
+        <p className="text-xs text-amber-900/80 mt-2 italic">
+          Huidig zichtbaar: <strong>{scenarioLabel}</strong> · {aantalJaren} jaar · totaal{" "}
+          <span className="font-mono">{formatEur(totaalScenario)}</span>. De scenario-keuze is dus
+          een <strong>tempo-keuze</strong>, geen scope-keuze. De Min↔Max-bandbreedte per component is
+          de inhoudelijke onzekerheid waarop de risico-buffer onvoorzien is geprijsd.
+        </p>
+      </div>
+    </div>
   );
 }
 
