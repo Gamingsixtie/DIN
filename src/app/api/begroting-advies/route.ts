@@ -260,7 +260,15 @@ HARDE REGELS:
     - Als de dossier-tekst dergelijke interne componenten noemt: TREK ZE AF van het eenmalig + structureel totaal voordat je verdelingPerJaar opstelt.
     - Voorbeelden van wel meenemen: externe partner, externe trainer, externe procesbegeleider, externe consultant (ook als ingehuurd voor "interne capaciteit"), licenties, software, hardware, dubbele licentielast tijdens transitie, externe materialen.
     - Voorbeelden van NIET meenemen: interne FTE-tarief × uren, interne werkgroepuren, intern projectleiderschap-uren, interne curricuulumontwikkeling, interne proceseigenaarschap-tijd.
-    - In je \`motivatie\`: noem de interne uren NIET als onderdeel van het out-of-pocket-totaal. Eventueel mag je opmerken "(interne uren staan in §4.2)" als duidelijkheidshalve toelichting, maar reken ze niet mee.`;
+    - In je \`motivatie\`: noem de interne uren NIET als onderdeel van het out-of-pocket-totaal. Eventueel mag je opmerken "(interne uren staan in §4.2)" als duidelijkheidshalve toelichting, maar reken ze niet mee.
+12. **CONSISTENTE FASE-ACTIVITEITEN PER INSPANNING OVER SCENARIOS — geen verwarring tussen scenarios.**
+    Dezelfde inspanning is in elk scenario hetzelfde project met dezelfde scope en dezelfde lifecycle-fases. Alleen het TEMPO verschilt per scenario (4 jr = sneller, 7 jr = uitgesmeerder). De ACTIVITEITEN PER FASE moeten daarom inhoudelijk consistent zijn over alle scenarios — alleen welk JAAR een fase landt verschilt.
+    - **CRM (data_systemen)**: in elk scenario start je met "Analyse + ontwerp + leverancier-selectie" (analyse-fase), gevolgd door "Realisatie + integratie van bronsystemen" (realisatie-fase), dan "Acceptatie + uitrol naar 85 gebruikers" (uitrol-fase), eindigend met "In beheer + optimalisatie" (beheer-fase). De volgorde + activiteiten-set is identiek; alleen welke jaren gepland staat schuift.
+    - **Mens (training)**: in elk scenario "Behoeftestelling + curriculumontwerp" → "Basistraining" → "Vaardigheidstraining + toepassing in praktijk" → "Borging via e-learning". Niet plotseling in 4-jarig "alleen training" en in 7-jarig "ontwerp + training + nazorg".
+    - **Cultuur (leiderschap)**: in elk scenario "Bewustwording + coalitievorming" → "Leiderschapsworkshops + kerngroep" → "Acceptatie + adoptie via rolmodel-gedrag" → "Verankering in HR-instrumenten".
+    - **Processen (BPM)**: in elk scenario "Inventarisatie as-is" → "Herontwerp to-be + pilot" → "Uitrol cross-sectoraal" → "Standaardisatie + continu verbeteren".
+    - REDEN: als de gebruiker advies-scenario en optimaal-scenario naast elkaar leest, ziet hij voor dezelfde inspanning dezelfde fase-keten — alleen versneld of uitgesmeerd. Verschillende activiteiten per scenario voor dezelfde inspanning = verwarring + ondermijnt geloofwaardigheid.
+    - Concreet: als advies-scenario voor CRM jaar 2 "Realisatie van CRM-platform + 7 bronsysteemintegraties" zegt, dan moet optimaal-scenario voor CRM-realisatie ook praten over hetzelfde aantal bronsysteemintegraties + dezelfde scope, alleen in een ander jaar.`;
 }
 
 const VergelijkingSchema = z.object({
