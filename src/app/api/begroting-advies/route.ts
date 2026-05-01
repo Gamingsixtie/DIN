@@ -254,7 +254,13 @@ HARDE REGELS:
     - "in het startjaar", "in het slotjaar", "in de bouwjaren", "in de uitrol-jaren", "rond het midden van de looptijd", "in de achterste derde", "tegen het einde", "in de eerste twee jaren", "in de laatste fase".
     - Bij zwaartepunt: "het zwaartepunt valt in de bouw- en migratiefase" — niet "het zwaartepunt valt in 2027–2028".
     REDEN: jaartallen en looptijd verschillen per scenario (4/5/7/10 jaar), en server-guards kunnen bedragen tussen jaren verschuiven NA jouw tekst. Absolute jaartallen worden dan onwaar. Relatieve aanduidingen blijven onder alle scenario's en alle guard-mutaties kloppen.
-    UITZONDERING: \`verdelingPerJaar[].activiteit\` (regel 7) is per definitie aan één specifiek jaar gebonden — daar mag je wel concreet over dat jaar schrijven, maar zonder andere jaartallen erin te noemen.`;
+    UITZONDERING: \`verdelingPerJaar[].activiteit\` (regel 7) is per definitie aan één specifiek jaar gebonden — daar mag je wel concreet over dat jaar schrijven, maar zonder andere jaartallen erin te noemen.
+11. **VANGNET — INTERNE UREN HOREN NIET IN DEZE OUT-OF-POCKET RAMING.**
+    De \`dossierKostenraming\`-tekst per inspanning kan in oudere data nog interne uren-componenten bevatten (bv. "interne capaciteitskosten 1.466 uur × €74/uur = €110K", "interne werkgroepuren €20K-€30K", "interne uren 740u à €77/u"). Deze posten zijn opportunity-kosten en horen in §4.2 Interne uren — NIET in de out-of-pocket-tabel die jij hier maakt.
+    - Als de dossier-tekst dergelijke interne componenten noemt: TREK ZE AF van het eenmalig + structureel totaal voordat je verdelingPerJaar opstelt.
+    - Voorbeelden van wel meenemen: externe partner, externe trainer, externe procesbegeleider, externe consultant (ook als ingehuurd voor "interne capaciteit"), licenties, software, hardware, dubbele licentielast tijdens transitie, externe materialen.
+    - Voorbeelden van NIET meenemen: interne FTE-tarief × uren, interne werkgroepuren, intern projectleiderschap-uren, interne curricuulumontwikkeling, interne proceseigenaarschap-tijd.
+    - In je \`motivatie\`: noem de interne uren NIET als onderdeel van het out-of-pocket-totaal. Eventueel mag je opmerken "(interne uren staan in §4.2)" als duidelijkheidshalve toelichting, maar reken ze niet mee.`;
 }
 
 const VergelijkingSchema = z.object({
