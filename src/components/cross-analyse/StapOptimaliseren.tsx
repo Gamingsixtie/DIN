@@ -1843,7 +1843,7 @@ Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren
                       title="Herschrijft alleen de motivatie, samenvatting en prioriteitAdvies — bedragen, percentages, fase-labels en jaar-totalen blijven server-zijde gegarandeerd onveranderd."
                       className="text-sm px-3 py-2 rounded bg-white text-[#003366] border-2 border-[#003366] hover:bg-blue-50 disabled:opacity-50 font-medium shadow-sm"
                     >
-                      🔁 Herschrijf alleen teksten
+                      {begrotingLoading ? "AI herschrijft teksten…" : "🔁 Herschrijf alleen teksten"}
                     </button>
                     <button
                       onClick={() => setFinetuneOpen(true)}
