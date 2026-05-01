@@ -8,28 +8,6 @@ import type { DINSession, Stap4Result, EffortDomain } from "@/lib/types";
 import type { SubEffortAdvies } from "@/lib/schemas";
 import { computeFieldDiff, type FieldDiff } from "@/lib/diff";
 
-// Hulpfunctie: bepaal positie-label voor top-2 jaren binnen looptijd.
-// Wordt gebruikt als hint onder de inline-edit textarea zodat de gebruiker
-// kan checken of zijn formulering klopt met de werkelijke spreiding.
-function positieLabel(top2Jaren: number[], startJ: number, aantalJaren: number): string {
-  const eersteDerde = startJ + Math.floor(aantalJaren / 3);
-  const tweedeDerde = startJ + Math.floor((2 * aantalJaren) / 3);
-  const eindJ = startJ + aantalJaren - 1;
-  const inEerste = top2Jaren.filter((j) => j < eersteDerde).length;
-  const inMidden = top2Jaren.filter((j) => j >= eersteDerde && j < tweedeDerde).length;
-  const inLaatste = top2Jaren.filter((j) => j >= tweedeDerde).length;
-  if (inEerste === 2) return "vroeg in de looptijd";
-  if (inLaatste === 2) {
-    if (top2Jaren.every((j) => j === eindJ)) return "in het slotjaar";
-    return "in de achterste derde van de looptijd";
-  }
-  if (inMidden === 2) return "rond het midden van de looptijd";
-  if (inEerste === 1 && inLaatste === 1) return "zowel vroeg als laat in de looptijd";
-  if (inEerste === 1 && inMidden === 1) return "in de eerste helft van de looptijd";
-  if (inMidden === 1 && inLaatste === 1) return "in de tweede helft van de looptijd";
-  return "verspreid over de looptijd";
-}
-
 const DOMAIN_LABELS: Record<EffortDomain, string> = {
   mens: "Mens",
   processen: "Processen",
@@ -886,51 +864,6 @@ export default function StapOptimaliseren({
     });
     const version = await saveNow();
     if (version !== false) addToast("Tekst opgeslagen", "success");
-  }
-
-  async function handleInspPositieEdit(
-    scenarioKey: ScenarioLabel,
-    inspIdx: number,
-    newValue: string,
-  ): Promise<void> {
-    if (!begrotingAdvies) return;
-    const sc = begrotingAdvies.scenarios[scenarioKey];
-    if (!sc) return;
-    const newInsps = sc.inspanningen.map((insp, i) =>
-      i === inspIdx
-        ? { ...insp, volgorde: { ...insp.volgorde, reden: newValue } }
-        : insp,
-    );
-    const updated: DrieScenarioAdvies = {
-      ...begrotingAdvies,
-      scenarios: {
-        ...begrotingAdvies.scenarios,
-        [scenarioKey]: { ...sc, inspanningen: newInsps },
-      },
-    };
-    setBegrotingAdvies(updated);
-    updateSession((prev) => {
-      const cw = prev.crossAnalyseWizard;
-      const cs = cw?.stepResults?.stap4;
-      return {
-        ...prev,
-        crossAnalyseWizard: {
-          currentStep: cw?.currentStep ?? 6,
-          completedSteps: cw?.completedSteps ?? [],
-          wizardVersion: cw?.wizardVersion ?? 2,
-          ...cw,
-          stepResults: {
-            ...(cw?.stepResults ?? {}),
-            stap4: {
-              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
-              begrotingAdvies: updated,
-            } as NonNullable<typeof cs>,
-          },
-        },
-      };
-    });
-    const version = await saveNow();
-    if (version !== false) addToast("Positie-tekst opgeslagen", "success");
   }
 
   async function saveEntry(idx: number) {
@@ -1869,21 +1802,11 @@ Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren
                             .sort((a, b) => a.volgorde.rank - b.volgorde.rank)
                             .map((insp) => {
                               const domColor = DOMAIN_COLORS[insp.domein];
-                              // Voor handmatige edit: vind de echte index in de
-                              // ongesorteerde inspanningen-lijst zodat we dezelfde
-                              // entry kunnen targeten in handleInspPositieEdit.
+                              // Voor key: vind de echte index in de ongesorteerde
+                              // inspanningen-lijst.
                               const inspIdx = s.inspanningen.findIndex(
                                 (x) => x === insp || x.inspanningTitel === insp.inspanningTitel,
                               );
-                              // Bereken top-2 zwaartepunt-jaren voor de hint
-                              const sortedByEuro = [...insp.verdelingPerJaar].sort((a, b) => b.euro - a.euro);
-                              const top2 = sortedByEuro.slice(0, 2).filter((c) => c.euro > 0);
-                              const top2Jaren = top2.map((c) => c.jaar).sort((a, b) => a - b);
-                              const totaalInsp = insp.verdelingPerJaar.reduce((acc, c) => acc + c.euro, 0);
-                              const top2Pct = top2.map((c) => (totaalInsp > 0 ? Math.round((c.euro / totaalInsp) * 100) : 0));
-                              const positie = top2Jaren.length === 2
-                                ? positieLabel(top2Jaren, begrotingAdvies.startJaar, s.aantalJaren)
-                                : "—";
                               return (
                                 <tr key={inspIdx} className="border-b border-gray-100 hover:bg-gray-50 align-top">
                                   <td className="py-3 px-2">
@@ -1896,16 +1819,6 @@ Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren
                                       {DOMAIN_LABELS[insp.domein]}
                                     </p>
                                     <p className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">{insp.inspanningTitel}</p>
-                                    <div className="mt-1">
-                                      <span className="text-[11px] text-gray-600 italic">Positie: </span>
-                                      <EditableText
-                                        value={insp.volgorde.reden ?? ""}
-                                        onSave={(v) => handleInspPositieEdit(sv.key, inspIdx, v)}
-                                        hint={`Inspanning-totaal in dit scenario: € ${totaalInsp.toLocaleString("nl-NL")}. Dossier-mid eenmalig: ${insp.domein === "data_systemen" ? "€650.000" : insp.domein === "processen" ? "€87.500" : insp.domein === "mens" ? "€142.500" : "€122.500"}.`}
-                                        rows={2}
-                                        textClassName="text-[11px] text-gray-600 italic leading-snug whitespace-pre-wrap inline"
-                                      />
-                                    </div>
                                   </td>
                                   {Array.from({ length: s.aantalJaren }, (_, k) => begrotingAdvies.startJaar + k).map((jr) => {
                                     const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);

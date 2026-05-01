@@ -2451,9 +2451,6 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
                                 {DOMAIN_LABELS[insp.domein]}
                               </span>
                               <p className="text-sm font-semibold text-gray-800 leading-snug">{insp.inspanningTitel}</p>
-                              {insp.volgorde.reden && (
-                                <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">Positie: {insp.volgorde.reden}</p>
-                              )}
                             </td>
                             {Array.from({ length: aantalJaren }, (_, k) => startJaar + k).map((jr) => {
                               const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
