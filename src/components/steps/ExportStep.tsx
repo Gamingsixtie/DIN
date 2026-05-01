@@ -3852,7 +3852,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             </div>
 
             {/* Aanlooppunt 2026 — bewust geadresseerd voor stuurgroep-discussie.
-                Programma start juni 2026 (feit). Budget €250K is in 2020 vastgesteld
+                Programma start juni 2026 (feit). Budget €250K voor 2026 is vastgesteld
                 en moet productief landen — bedrijfseconomisch kan onderbesteding niet
                 want vrijval drukt 2027 omlaag. Banner expliciet per scenario zodat
                 stuurgroep ziet dat we de doorschuiving naar 2027 onder ogen hebben gezien. */}
@@ -3864,10 +3864,10 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 </p>
               </div>
               <p className="text-sm text-gray-800 leading-relaxed">
-                Het programma start juni 2026 — dat staat vast. Het jaarbudget van € 250.000 voor 2026 is in 2020
-                vastgesteld en wordt volledig benut; bij Cito betekent onderbesteding vrijval plus een lager budget
-                in 2027, wat we willen voorkomen. De vraag is dus niet <em>of</em> we het opmaken, maar <em>hoe we het
-                in een half jaar productief laten landen</em>.
+                Het programma start juni 2026 — dat staat vast. Het jaarbudget van € 250.000 voor 2026 is vastgesteld
+                en wordt volledig benut; bij Cito betekent onderbesteding vrijval plus een lager budget in 2027, wat
+                we willen voorkomen. De vraag is dus niet <em>of</em> we het opmaken, maar <em>hoe we het in een half
+                jaar productief laten landen</em>.
               </p>
               <p className="text-sm text-gray-800 leading-relaxed">
                 <strong>Wat in zes maanden wél haalbaar is</strong> — en wat in alle scenario&apos;s de jaar-1-activiteiten
