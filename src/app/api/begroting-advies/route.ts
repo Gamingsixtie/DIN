@@ -744,6 +744,15 @@ export async function POST(request: NextRequest) {
     const trimmedInstructie = (finetuneInstructie ?? "").trim();
     const isFinetune = trimmedInstructie.length > 0 && !!prevScenarios;
 
+    // TEKST_ONLY-modus: prefix in finetune-instructie betekent dat AI alleen
+    // motivatie/prioriteitAdvies/samenvatting mag herschrijven. Server kopieert
+    // ALLE cijfers, fase-labels en activiteit-teksten LETTERLIJK terug uit
+    // previousAdvies — zodat bedragen heilig blijven ongeacht wat AI of guards
+    // doen. Gebruikt door de "🔁 Herschrijf alleen teksten"-knop in de wizard.
+    const TEKST_ONLY_PREFIX = "TEKST_ONLY:";
+    const isTekstOnly =
+      isFinetune && trimmedInstructie.startsWith(TEKST_ONLY_PREFIX);
+
     async function genereer(
       label: "optimaal" | "plus20" | "min20" | "advies",
       jaarlijksBudget: number,
@@ -789,7 +798,39 @@ export async function POST(request: NextRequest) {
           // Forceer aantalJaren naar de server-berekende waarde —
           // AI mag deze niet overrulen, ook al staat het in het schema.
           const overruled = { ...res.data, aantalJaren: fixedAantalJaren };
-          return enrichScenario(overruled, jaarlijksBudget);
+          const enriched = enrichScenario(overruled, jaarlijksBudget);
+
+          // TEKST_ONLY-garantie: in deze modus mag AI alleen de drie tekst-
+          // velden veranderen. Server kopieert ALLE cijfers, fase-labels en
+          // activiteit-teksten letterlijk terug uit previousAdvies.
+          if (isTekstOnly) {
+            const prev = (prevScenarios?.[label] ?? null) as Scenario | null;
+            if (prev) {
+              // Alleen samenvatting + prioriteitAdvies (top-level) en
+              // motivatie (per inspanning) uit de nieuwe AI-output overnemen.
+              // Alle cijfers, fase-labels, activiteit-teksten, totalen,
+              // percentages, looptijd: letterlijk uit previousAdvies.
+              return {
+                ...prev,
+                samenvatting: enriched.samenvatting,
+                prioriteitAdvies: enriched.prioriteitAdvies,
+                inspanningen: prev.inspanningen.map((prevInsp) => {
+                  const match = enriched.inspanningen.find(
+                    (i) =>
+                      i.inspanningTitel === prevInsp.inspanningTitel ||
+                      i.inspanningTitel.toLowerCase() ===
+                        prevInsp.inspanningTitel.toLowerCase()
+                  );
+                  return {
+                    ...prevInsp,
+                    motivatie: match?.motivatie ?? prevInsp.motivatie,
+                  };
+                }),
+              };
+            }
+          }
+
+          return enriched;
         }
         console.error(`[begroting-advies] ${label} validation failed:`, res.error);
         return null;

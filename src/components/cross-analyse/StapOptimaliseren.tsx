@@ -1654,13 +1654,18 @@ export default function StapOptimaliseren({
                     <button
                       onClick={() =>
                         generateBegrotingsAdvies({
+                          // TEKST_ONLY:-prefix triggert server-side garantie
+                          // dat alleen motivatie/samenvatting/prioriteitAdvies
+                          // worden vervangen — alle cijfers, fase-labels en
+                          // activiteit-teksten blijven letterlijk gelijk aan
+                          // previousAdvies.
                           finetuneInstructie:
-                            "Herschrijf de motivatie, samenvatting en prioriteitAdvies van dit scenario opnieuw volgens harde regel 10 van de prompt: GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik uitsluitend relatieve aanduidingen ('in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar'). Houd de bedragen, fase-labels per jaar en activiteit-teksten per jaar exact onveranderd — alleen de drie tekstvelden worden hergeschreven.",
+                            "TEKST_ONLY: Herschrijf de motivatie, samenvatting en prioriteitAdvies van dit scenario opnieuw volgens harde regel 10 van de prompt: GEEN absolute jaartallen, GEEN looptijd-aantallen ('over X jaar', 'X-jarige cyclus'), GEEN concrete jaar-tot-jaar fasering. Gebruik uitsluitend relatieve aanduidingen ('in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar').",
                           previousAdvies: begrotingAdvies,
                         })
                       }
                       disabled={begrotingLoading}
-                      title="Herschrijft alleen de motivatie, samenvatting en prioriteitAdvies — bedragen en jaar-cellen blijven onveranderd."
+                      title="Herschrijft alleen de motivatie, samenvatting en prioriteitAdvies — bedragen, percentages, fase-labels en jaar-totalen blijven server-zijde gegarandeerd onveranderd."
                       className="text-sm px-3 py-2 rounded bg-white text-[#003366] border-2 border-[#003366] hover:bg-blue-50 disabled:opacity-50 font-medium shadow-sm"
                     >
                       🔁 Herschrijf alleen teksten
@@ -1668,9 +1673,10 @@ export default function StapOptimaliseren({
                     <button
                       onClick={() => setFinetuneOpen(true)}
                       disabled={begrotingLoading}
+                      title="Pas het scenario aan op basis van stuurgroep-feedback (bv. 'voor 2026 €250K i.p.v. €330K — reken door wat dat betekent voor looptijd'). Bedragen + tekst worden samen herrekend."
                       className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
                     >
-                      ✎ Fineut met AI
+                      ⚖ Herrekenen op basis van stuurgroep-feedback
                     </button>
                   </div>
                 </div>
@@ -1822,10 +1828,12 @@ export default function StapOptimaliseren({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-[#003366]">Begroting fineuten met AI</h3>
+              <h3 className="text-lg font-semibold text-[#003366]">Herrekenen op basis van stuurgroep-feedback</h3>
               <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                Geef instructie hoe de scenario&apos;s anders moeten — een ander tempo, andere fasering,
-                of een specifiekere prioriteit-onderbouwing. Of klik op een voorbeeld hieronder om te starten.
+                Beschrijf wat de stuurgroep heeft afgesproken of wat anders moet — bedragen, tempo,
+                fasering, prioriteiten. AI rekent door wat dat betekent voor scenario-totalen, looptijd
+                en verdeling per jaar, en past de tekst daarop aan zodat alles coherent blijft. Klik
+                een voorbeeld om te starten of typ je eigen instructie.
               </p>
             </div>
             <div className="p-5 space-y-4">
@@ -1854,12 +1862,13 @@ export default function StapOptimaliseren({
                 <textarea
                   value={finetuneInstructie}
                   onChange={(e) => setFinetuneInstructie(e.target.value)}
-                  rows={5}
-                  placeholder="Bijvoorbeeld: 'Verleng huidig budget naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'Schuif data/systemen volledig naar de laatste 2 jaar'."
+                  rows={6}
+                  placeholder={"Voorbeelden van stuurgroep-input die je hier kunt typen:\n\n• \"Uit stuurgroep-overleg: voor 2026 is € 250.000 beschikbaar in plaats van € 330.000 (advies-scenario). Reken door wat dat betekent voor de looptijd en de verdeling.\"\n\n• \"Verleng huidig budget naar 7 jaar — cultuurverandering vraagt meer tijd voor verankering.\"\n\n• \"Schuif CRM-bouw naar de eerste twee jaren omdat de stuurgroep snelle datakwaliteit prioriteert.\""}
                   className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-gray-500 mt-1">
-                  Tip: wees specifiek over WAT en WAAROM. AI kent de huidige scenario&apos;s en past die aan op basis van je instructie.
+                  Tip: wees specifiek over WAT (bedrag, jaar, scenario) en WAAROM (stuurgroep-besluit, capaciteit, prioriteit).
+                  AI past zowel de bedragen, looptijd als tekst aan zodat alles consistent blijft.
                 </p>
               </div>
               {begrotingError && (
