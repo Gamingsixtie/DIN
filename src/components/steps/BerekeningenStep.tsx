@@ -169,17 +169,34 @@ function findDossier(titel: string): DossierEntry | null {
 // Component-derivation: per inspanning de individuele line-items die optellen
 // tot het eenmalige + structurele bedrag. Stuurgroep ziet HOE elk dossier-bedrag
 // is opgebouwd. Match via case-insensitive substring op inspanningTitel.
+//
+// Per component: formule (eenheid × tarief), berekening min/mid/max met
+// expliciete cijfers, tarief-onderbouwing (marktconform/benchmark/aanname),
+// en aantal-onderbouwing (uit dossier-input/business-case).
 type ComponentItem = {
   naam: string;
   rangeMin: number;
   rangeMax: number;
   toelichting: string;
+  formule?: string;
+  berekening?: string;        // shorthand wanneer min=mid=max (één regel)
+  berekeningMin?: string;
+  berekeningMid?: string;
+  berekeningMax?: string;
+  tariefOnderbouwing?: string;
+  aantalOnderbouwing?: string;
 };
 type ComponentItemPerJaar = {
   naam: string;
   perJaarMin: number;
   perJaarMax: number;
   toelichting: string;
+  formule?: string;
+  berekening?: string;
+  berekeningMin?: string;
+  berekeningMax?: string;
+  tariefOnderbouwing?: string;
+  aantalOnderbouwing?: string;
 };
 type ComponentBreakdown = {
   match: string;            // substring (lowercase) gezocht in titel
@@ -199,30 +216,60 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         rangeMin: 250_000,
         rangeMax: 375_000,
         toelichting: "1.500–2.500 consultanturen × € 150–170/uur",
+        formule: "consultanturen × tarief/uur (incl. PM-buffer + ceiling)",
+        berekeningMin: "1.500u × € 150/u = € 225.000 → afgerond € 250.000 (incl. ~10% PM-buffer)",
+        berekeningMid: "2.000u × € 160/u = € 320.000",
+        berekeningMax: "2.500u × € 170/u = € 425.000 → capped € 375.000 (realistisch plafond)",
+        tariefOnderbouwing: "Senior CRM-consultant Nederland markt 2025: € 150–170/u (marktconforme tarieven)",
+        aantalOnderbouwing: "Mid-size enterprise CRM-implementatie (85 gebruikers + 7-8 integraties): 1.500–2.500u (Gartner/Forrester benchmark voor MS Dynamics)",
       },
       {
         naam: "Datamigratie + 7-8 bronsysteemintegraties",
         rangeMin: 75_000,
         rangeMax: 125_000,
         toelichting: "ETL + datacleaning + koppelingen",
+        formule: "koppelingen × kost/koppeling + datacleaning",
+        berekeningMin: "7 koppelingen × € 8.000 + € 15.000 datacleaning = € 71.000 → afgerond € 75.000",
+        berekeningMid: "7-8 koppelingen × ~€ 11.500 + € 17.500 datacleaning = € 105.000",
+        berekeningMax: "8 koppelingen × € 15.000 + € 20.000 datacleaning = € 140.000 → capped € 125.000",
+        tariefOnderbouwing: "Per bronsysteem-koppeling 80–150 ontwikkeluren × € 100–130/u = € 8K–€ 20K",
+        aantalOnderbouwing: "7-8 bronsystemen geïdentificeerd in datakwaliteit-scan (uit dossier); datacleaning afhankelijk van scan-resultaat (gemiddeld € 15K–€ 20K)",
       },
       {
         naam: "Training + adoptie 85 medewerkers + externe schaduwbegeleiding",
         rangeMin: 40_000,
         rangeMax: 55_000,
         toelichting: "go-live ondersteuning + key-user-traject",
+        formule: "deelnemers × training-kost/persoon + schaduwbegeleiding",
+        berekeningMin: "85 × € 350 + € 10.000 schaduw = € 39.750 → afgerond € 40.000",
+        berekeningMid: "85 × € 425 + € 12.500 schaduw = € 48.625",
+        berekeningMax: "85 × € 500 + € 15.000 schaduw = € 57.500 → capped € 55.000",
+        tariefOnderbouwing: "1-2 dagen CRM-training per persoon door externe trainer: € 350–500 all-in",
+        aantalOnderbouwing: "85 te trainen medewerkers (uit dossier-scope); schaduwbegeleiding 2 weken on-the-floor à € 1.000–€ 1.500/dag",
       },
       {
         naam: "Dubbele licentielast transitie 6–12 mnd",
         rangeMin: 30_000,
         rangeMax: 60_000,
         toelichting: "oude + nieuwe omgeving parallel tijdens migratie",
+        formule: "transitiemaanden × (oude licentie + nieuwe licentie)/mnd",
+        berekeningMin: "6 mnd × € 5.000/mnd = € 30.000",
+        berekeningMid: "9 mnd × € 5.000/mnd = € 45.000",
+        berekeningMax: "12 mnd × € 5.000/mnd = € 60.000",
+        tariefOnderbouwing: "Oude omgeving ~€ 2.500/mnd + nieuwe MS Dynamics-licentie ~€ 2.500/mnd = € 5.000/mnd parallel",
+        aantalOnderbouwing: "Standaard transitieperiode 6–12 maanden om continuïteit te waarborgen tijdens overstap",
       },
       {
         naam: "Juridisch-technisch (Stichting Cito-ontvlechting) + PM-buffer",
         rangeMin: 25_000,
         rangeMax: 45_000,
         toelichting: "ontvlechting datacontracten + onvoorzien",
+        formule: "juridisch advies + 5% PM-buffer over eenmalig",
+        berekeningMin: "€ 15.000 juridisch + 5% × € 200K eenmalig = € 25.000",
+        berekeningMid: "€ 20.000 juridisch + 5% × € 320K eenmalig = € 36.000",
+        berekeningMax: "€ 25.000 juridisch + 5% × € 400K eenmalig = € 45.000",
+        tariefOnderbouwing: "Stichting Cito-afhankelijkheid vraagt juridisch advies: € 15K–€ 25K eenmalig (specialistische uren)",
+        aantalOnderbouwing: "5% PM-buffer is industry standard voor implementatie-projecten van deze omvang (PRINCE2/PMI)",
       },
     ],
     structureelComponents: [
@@ -231,12 +278,20 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         perJaarMin: 63_000,
         perJaarMax: 63_000,
         toelichting: "85 × ~€ 740/jaar",
+        formule: "gebruikers × licentie-tarief/jaar",
+        berekening: "85 × € 740/jaar = € 62.900 → afgerond € 63.000",
+        tariefOnderbouwing: "MS Dynamics 365 Customer Engagement Pro: € 55–€ 65/maand × 12 mnd = € 660–€ 780/jaar (gemiddeld € 740)",
+        aantalOnderbouwing: "85 gebruikers (uit dossier-scope, 3 sectoren samen)",
       },
       {
         naam: "Beheer + doorontwikkeling",
         perJaarMin: 30_000,
         perJaarMax: 30_000,
         toelichting: "interne CRM-beheerder, kleine functionele aanpassingen, 2nd-line support",
+        formule: "interne capaciteit × tarief OF 1 dag/week × 50 weken × dagprijs",
+        berekening: "0,3 FTE × € 100.000/jaar = € 30.000  /  alt: 1 dag/week × 50 weken × € 600/dag = € 30.000",
+        tariefOnderbouwing: "Interne FTE-kosten Cito ~€ 100.000/jaar (loaded cost) of dagprijs € 600 voor functioneel beheerder",
+        aantalOnderbouwing: "0,3 FTE voor 2nd-line support, kleine functionele aanpassingen, datakwaliteitsmonitoring",
       },
     ],
   },
@@ -249,30 +304,54 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         rangeMin: 16_000,
         rangeMax: 16_000,
         toelichting: "expert procesontwerp + facilitering",
+        formule: "begeleidingsdagen × dagtarief",
+        berekening: "20 dagen × € 800/dag = € 16.000",
+        tariefOnderbouwing: "Senior procesconsultant Nederland: € 750–€ 850/dag (marktconform niveau medior–senior)",
+        aantalOnderbouwing: "~20 dagen verspreid over 6–9 maanden voor procesontwerp + werksessie-facilitering (uit dossier)",
       },
       {
         naam: "9 multidisciplinaire werksessies (3 sectoren)",
         rangeMin: 20_000,
         rangeMax: 25_000,
         toelichting: "voorbereiding, facilitering, materialen per sectorraad",
+        formule: "sessies × kost/sessie (voorbereiding + facilitering + materialen)",
+        berekeningMin: "9 sessies × ~€ 2.200/sessie = € 19.800 → afgerond € 20.000",
+        berekeningMax: "9 sessies × ~€ 2.800/sessie = € 25.200 → afgerond € 25.000",
+        tariefOnderbouwing: "Per werksessie: 0,5 dag voorbereiding + 1 dag facilitering + materialen ≈ € 2.200–€ 2.800",
+        aantalOnderbouwing: "9 sessies = 3 sessies × 3 sectoren (PO, VO, Zakelijk) — zoals belegd in sectorraad-cyclus",
       },
       {
         naam: "Procesinventarisatie (Smartprocess setup)",
         rangeMin: 8_000,
         rangeMax: 12_000,
         toelichting: "tooling-configuratie + initiële procesbeschrijvingen",
+        formule: "tooling-setup + initiële proces-modellering",
+        berekeningMin: "€ 4.000 tooling-setup + € 4.000 modellering = € 8.000",
+        berekeningMax: "€ 5.000 tooling-setup + € 7.000 modellering = € 12.000",
+        tariefOnderbouwing: "Smartprocess setup-fee € 4K–€ 5K + procesbeschrijver dagprijs € 700/dag",
+        aantalOnderbouwing: "Initiële inventarisatie 6–10 dagen voor 8–12 kernprocessen (uit dossier-scope)",
       },
       {
         naam: "Externe materialen + methodiek",
         rangeMin: 5_000,
         rangeMax: 10_000,
         toelichting: "templates, casuïstiek, methodische ondersteuning",
+        formule: "licentie-methodiek + content-ontwikkeling",
+        berekeningMin: "€ 2.500 methodiek-licentie + € 2.500 content = € 5.000",
+        berekeningMax: "€ 5.000 methodiek-licentie + € 5.000 content = € 10.000",
+        tariefOnderbouwing: "Methodiek-licenties (BiSL/Lean) en gebruik commerciële templates: € 2,5K–€ 5K per traject",
+        aantalOnderbouwing: "Cito-specifieke aanpassingen casuïstiek + werkvormen: 4–7 dagen contentwerk",
       },
       {
         naam: "Pilot-coördinatie + sectorvalidatie",
         rangeMin: 6_000,
         rangeMax: 7_000,
         toelichting: "pilot-uitvoering + valideren met sectoren",
+        formule: "pilot-coördinatiedagen × dagprijs + validatie-sessies",
+        berekeningMin: "6 dagen × € 800 + € 1.200 validatie = € 6.000",
+        berekeningMax: "7 dagen × € 800 + € 1.400 validatie = € 7.000",
+        tariefOnderbouwing: "Pilot-coördinator dagprijs € 800; validatie-sessies € 1,2K–€ 1,4K all-in",
+        aantalOnderbouwing: "1 pilot per sector (3 sectoren) met 2 validatie-sessies elk",
       },
     ],
     structureelComponents: [
@@ -281,6 +360,10 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         perJaarMin: 12_500,
         perJaarMax: 12_500,
         toelichting: "tooling-licentie + lichte governance + jaarlijkse audits",
+        formule: "Smartprocess subscription + proceseigenaar-coördinatie + jaarlijkse audit",
+        berekening: "€ 6.000 tooling/jaar + € 4.500 coördinatie + € 2.000 audit = € 12.500/jaar",
+        tariefOnderbouwing: "Smartprocess SaaS-subscription ~€ 500/maand × 12 = € 6K; auditdagen € 800–€ 1.000/dag",
+        aantalOnderbouwing: "0,05 FTE proceseigenaar-coördinatie (~5 dagen/jaar × € 900) + 2 auditdagen/jaar",
       },
     ],
   },
@@ -293,36 +376,64 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         rangeMin: 52_000,
         rangeMax: 52_000,
         toelichting: "basistraining + vaardigheidstraining outside-in",
+        formule: "trainingsblokken × kost/blok",
+        berekening: "2 blokken × € 26.000/blok = € 52.000",
+        tariefOnderbouwing: "Per trainingsblok: ~10 trainingsdagen × € 2.500/dag (gespecialiseerde trainer outside-in) + materialen = € 26.000",
+        aantalOnderbouwing: "2 blokken: blok 1 = basistraining (alle 66 deelnemers), blok 2 = vaardigheidsverdieping (uit dossier-leerlijn)",
       },
       {
         naam: "Nulmeting + intake per sector",
         rangeMin: 10_000,
         rangeMax: 10_000,
         toelichting: "vaardigheidsmeting voorafgaand aan curriculum",
+        formule: "sectoren × kost/sector (assessment + intake-sessies)",
+        berekening: "3 sectoren × ~€ 3.300/sector = € 10.000",
+        tariefOnderbouwing: "Per sector: vaardigheids-assessment-tool € 1,5K + 2 intake-sessies à € 900 = € 3,3K",
+        aantalOnderbouwing: "Nulmeting 66 deelnemers × 30 min digitaal assessment + intake per sector (PO/VO/Zakelijk)",
       },
       {
         naam: "Curriculum-ontwikkeling (intern + gedeeltelijk extern)",
         rangeMin: 15_000,
         rangeMax: 30_000,
         toelichting: "leerlijn + Cito-specifieke casuïstiek",
+        formule: "ontwikkeluren × tarief (extern + interne tijd)",
+        berekeningMin: "20 dagen × € 750/dag = € 15.000 (gedeeltelijk uitbesteed)",
+        berekeningMax: "30 dagen × € 1.000/dag = € 30.000 (volledig extern)",
+        tariefOnderbouwing: "Curriculum-ontwerper dagprijs € 750–€ 1.000 (afhankelijk van seniority + Cito-context)",
+        aantalOnderbouwing: "Leerlijn-ontwerp + Cito-casuïstiek: 20–30 ontwikkeldagen voor 2 trainingsblokken",
       },
       {
         naam: "Materialen + casuïstiek",
         rangeMin: 10_000,
         rangeMax: 15_000,
         toelichting: "werkvormen, video, oefencases per sector",
+        formule: "video-productie + werkvormen + oefencases",
+        berekeningMin: "€ 5.000 video + € 3.000 werkvormen + € 2.000 cases = € 10.000",
+        berekeningMax: "€ 7.000 video + € 4.500 werkvormen + € 3.500 cases = € 15.000",
+        tariefOnderbouwing: "Korte training-video's € 1K–€ 1,5K/stuk; oefencase-ontwerp € 700/case",
+        aantalOnderbouwing: "5–7 trainingsvideo's, 3–4 werkvormen, 5–7 sector-specifieke cases (PO/VO/Zakelijk)",
       },
       {
         naam: "Adoptie + intervisie-begeleiding",
         rangeMin: 20_000,
         rangeMax: 30_000,
         toelichting: "intervisiekringen + on-the-job-coaching",
+        formule: "intervisiekringen × sessies × dagprijs + coaching-uren",
+        berekeningMin: "6 kringen × 4 sessies × € 750 + € 2.000 coaching = € 20.000",
+        berekeningMax: "6 kringen × 5 sessies × € 850 + € 4.500 coaching = € 30.000",
+        tariefOnderbouwing: "Intervisiekring-begeleider € 750–€ 850/sessie (halve dag); on-the-job-coaching € 100–€ 130/u",
+        aantalOnderbouwing: "6 intervisiekringen (66 deelnemers ÷ ~11 per kring) × 4–5 sessies à 2 uur",
       },
       {
         naam: "Cross-sectorale coördinatie",
         rangeMin: 8_000,
         rangeMax: 13_000,
-        toelichting: "66 deelnemers × 8u/maand × 6 maanden",
+        toelichting: "interne coördinatie-uren over 3 sectoren",
+        formule: "coördinator-uren × tarief",
+        berekeningMin: "100u × € 80/u = € 8.000",
+        berekeningMax: "130u × € 100/u = € 13.000",
+        tariefOnderbouwing: "Interne L&D-coördinator: € 80–€ 100/u (loaded cost intern tarief)",
+        aantalOnderbouwing: "100–130u over 6 maanden = ~4u/week × 26 weken voor planning, communicatie, evaluatie 3 sectoren",
       },
     ],
     structureelComponents: [],
@@ -338,18 +449,32 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         rangeMin: 37_500,
         rangeMax: 37_500,
         toelichting: "executive-niveau dagprijs",
+        formule: "begeleidingsdagen × dagprijs (executive-niveau)",
+        berekening: "15 dagen × € 2.500/dag = € 37.500",
+        tariefOnderbouwing: "Executive-coach/leiderschapsbegeleider Nederland: € 2.250–€ 2.750/dag (marktconform voor MT-niveau)",
+        aantalOnderbouwing: "~15 begeleidingsdagen verspreid over 9–12 maanden voor MT (ca. 12 leiders): kick-off + 4 sessies + reflectie",
       },
       {
         naam: "Programma-ontwerp + MT-commitment-sessie",
         rangeMin: 3_000,
         rangeMax: 5_000,
         toelichting: "kick-off + ontwerp leerlijn voor MT/leiders",
+        formule: "ontwerpdagen × dagprijs + kick-off-sessie",
+        berekeningMin: "2 dagen × € 1.000 + € 1.000 kick-off = € 3.000",
+        berekeningMax: "3 dagen × € 1.250 + € 1.250 kick-off = € 5.000",
+        tariefOnderbouwing: "Programma-ontwerper voor leiderschap: € 1.000–€ 1.250/dag",
+        aantalOnderbouwing: "2–3 ontwerpdagen + 1 commitment-sessie met MT (verplicht startpunt voor borging)",
       },
       {
         naam: "HR-instrumenten-aanpassing",
         rangeMin: 5_000,
         rangeMax: 10_000,
         toelichting: "360°-feedback + beoordelingscriteria outside-in",
+        formule: "HR-tooling-aanpassing + criteria-ontwerp",
+        berekeningMin: "€ 3.000 360°-tool config + € 2.000 criteria = € 5.000",
+        berekeningMax: "€ 6.000 360°-tool config + € 4.000 criteria = € 10.000",
+        tariefOnderbouwing: "360°-feedback-tool config € 3K–€ 6K eenmalig; criteria-ontwerp door HR-adviseur (€ 850/dag)",
+        aantalOnderbouwing: "Eenmalige aanpassing beoordelingsformulieren (3–5 outside-in-criteria) + tool-config voor MT-laag",
       },
     ],
     structureelComponents: [
@@ -358,12 +483,22 @@ const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
         perJaarMin: 5_000,
         perJaarMax: 8_000,
         toelichting: "jaar 2-3 hoog, afnemend in latere jaren",
+        formule: "begeleidingsdagen × dagprijs (afnemend per jaar)",
+        berekeningMin: "2 dagen × € 2.500 = € 5.000/jaar (latere jaren)",
+        berekeningMax: "3 dagen × € 2.750 = € 8.000/jaar (jaar 2-3)",
+        tariefOnderbouwing: "Executive-coach € 2.500–€ 2.750/dag (consistent met eenmalig-fase tarief)",
+        aantalOnderbouwing: "Jaar 2-3: 3 dagen/jaar (intervisie + verdieping); jaar 4+: 2 dagen/jaar (refresh)",
       },
       {
         naam: "Lichte HR-coördinatie + jaarlijkse cultuurmeting",
         perJaarMin: 2_000,
         perJaarMax: 3_000,
         toelichting: "borging in HR-cyclus + meting",
+        formule: "HR-coördinatie-uren + meting-tooling",
+        berekeningMin: "20u × € 80 + € 400 tool = € 2.000/jaar",
+        berekeningMax: "30u × € 85 + € 450 tool = € 3.000/jaar",
+        tariefOnderbouwing: "Interne HR-coördinator € 80–€ 85/u; cultuurmeting-tool ~€ 400–€ 450/jaar (SaaS)",
+        aantalOnderbouwing: "20–30u/jaar HR-coördinatie (verankering in beoordelingscyclus) + jaarlijkse pulse-meting",
       },
     ],
     structureelNote:
@@ -1040,54 +1175,75 @@ function Stap1ComponentDerivation({
           {/* EENMALIG */}
           {breakdown.eenmaligComponents.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1.5">
                 Eenmalig — componenten
               </p>
-              <pre className="text-[11px] font-mono bg-gray-50 border border-gray-200 p-2.5 rounded overflow-x-auto whitespace-pre leading-relaxed">
-{breakdown.eenmaligComponents
-  .map((c) => {
-    const naam = c.naam.length > 60 ? c.naam.slice(0, 59) + "…" : c.naam;
-    const naamPad = naam.padEnd(62, " ");
-    const range =
-      c.rangeMin === c.rangeMax
-        ? formatEur(c.rangeMin).padStart(20, " ")
-        : `${formatEur(c.rangeMin)} – ${formatEur(c.rangeMax)}`.padStart(28, " ");
-    const toel = c.toelichting ? `\n      (${c.toelichting})` : "";
-    return `• ${naamPad}${range}${toel}`;
-  })
-  .join("\n")}
-{`\n${"─".repeat(72)}`}
-{`\nΣ eenmalig:                                                  ${formatEur(sumEenmaligMin)} – ${formatEur(sumEenmaligMax)}`}
-{`\n                                                             (middenpunt circa ${formatEur(eenmaligMid)})`}
-              </pre>
+              <div className="space-y-2">
+                {breakdown.eenmaligComponents.map((c, idx) => (
+                  <ComponentDerivationCard
+                    key={idx}
+                    naam={c.naam}
+                    range={
+                      c.rangeMin === c.rangeMax
+                        ? formatEur(c.rangeMin)
+                        : `${formatEur(c.rangeMin)} – ${formatEur(c.rangeMax)}`
+                    }
+                    toelichting={c.toelichting}
+                    formule={c.formule}
+                    berekeningMin={c.berekeningMin ?? c.berekening}
+                    berekeningMid={c.berekeningMid}
+                    berekeningMax={c.berekeningMax}
+                    tariefOnderbouwing={c.tariefOnderbouwing}
+                    aantalOnderbouwing={c.aantalOnderbouwing}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 pt-2 border-t border-gray-200 text-[11px] font-mono text-gray-700 flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-semibold">Σ eenmalig</span>
+                <span>
+                  {formatEur(sumEenmaligMin)} – {formatEur(sumEenmaligMax)}
+                  <span className="text-gray-500"> (mid {formatEur(eenmaligMid)})</span>
+                </span>
+              </div>
             </div>
           )}
 
           {/* STRUCTUREEL */}
           {breakdown.structureelComponents.length > 0 ? (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1.5">
                 Structureel — componenten (per jaar)
               </p>
-              <pre className="text-[11px] font-mono bg-gray-50 border border-gray-200 p-2.5 rounded overflow-x-auto whitespace-pre leading-relaxed">
-{breakdown.structureelComponents
-  .map((c) => {
-    const naam = c.naam.length > 60 ? c.naam.slice(0, 59) + "…" : c.naam;
-    const naamPad = naam.padEnd(62, " ");
-    const range =
-      c.perJaarMin === c.perJaarMax
-        ? `${formatEur(c.perJaarMin)}/jaar`.padStart(20, " ")
-        : `${formatEur(c.perJaarMin)} – ${formatEur(c.perJaarMax)}/jaar`.padStart(32, " ");
-    const toel = c.toelichting ? `\n      (${c.toelichting})` : "";
-    return `• ${naamPad}${range}${toel}`;
-  })
-  .join("\n")}
-{`\n${"─".repeat(72)}`}
-{sumStructMin === sumStructMax
-  ? `\nΣ structureel:                                               ${formatEur(sumStructMin)}/jaar`
-  : `\nΣ structureel:                                               ${formatEur(sumStructMin)} – ${formatEur(sumStructMax)}/jaar`}
-{structJr > 0 ? `\n                                                             (gemiddeld ${formatEur(structJr)}/jaar)` : ""}
-              </pre>
+              <div className="space-y-2">
+                {breakdown.structureelComponents.map((c, idx) => (
+                  <ComponentDerivationCard
+                    key={idx}
+                    naam={c.naam}
+                    range={
+                      c.perJaarMin === c.perJaarMax
+                        ? `${formatEur(c.perJaarMin)}/jaar`
+                        : `${formatEur(c.perJaarMin)} – ${formatEur(c.perJaarMax)}/jaar`
+                    }
+                    toelichting={c.toelichting}
+                    formule={c.formule}
+                    berekeningMin={c.berekeningMin ?? c.berekening}
+                    berekeningMax={c.berekeningMax}
+                    tariefOnderbouwing={c.tariefOnderbouwing}
+                    aantalOnderbouwing={c.aantalOnderbouwing}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 pt-2 border-t border-gray-200 text-[11px] font-mono text-gray-700 flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-semibold">Σ structureel</span>
+                <span>
+                  {sumStructMin === sumStructMax
+                    ? `${formatEur(sumStructMin)}/jaar`
+                    : `${formatEur(sumStructMin)} – ${formatEur(sumStructMax)}/jaar`}
+                  {structJr > 0 && (
+                    <span className="text-gray-500"> (gemiddeld {formatEur(structJr)}/jaar)</span>
+                  )}
+                </span>
+              </div>
               {breakdown.structureelNote && (
                 <p className="text-[11px] text-gray-500 italic mt-1.5">
                   {breakdown.structureelNote}
@@ -1136,6 +1292,111 @@ function Stap1ComponentDerivation({
         </div>
       )}
     </details>
+  );
+}
+
+// --- Component derivation card — per component formule + berekening + onderbouwing
+// Toont voor elk component een eigen kaart: range-bedrag, formule, berekening
+// (min/mid/max waar beschikbaar), tarief-onderbouwing en aantal-onderbouwing.
+// Bedragen + formules in mono-font; onderbouwingen in italic gray. Stuurgroep
+// kan elk eindbedrag terug-rekenen tot uur-tarief × aantal-eenheden.
+
+function ComponentDerivationCard({
+  naam,
+  range,
+  toelichting,
+  formule,
+  berekeningMin,
+  berekeningMid,
+  berekeningMax,
+  tariefOnderbouwing,
+  aantalOnderbouwing,
+}: {
+  naam: string;
+  range: string;
+  toelichting?: string;
+  formule?: string;
+  berekeningMin?: string;
+  berekeningMid?: string;
+  berekeningMax?: string;
+  tariefOnderbouwing?: string;
+  aantalOnderbouwing?: string;
+}) {
+  const heeftBerekening = !!(berekeningMin || berekeningMid || berekeningMax);
+  const heeftOnderbouwing = !!(tariefOnderbouwing || aantalOnderbouwing);
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded p-2.5 text-[11px]">
+      {/* Header: naam + range */}
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div className="flex items-baseline gap-1.5 min-w-0">
+          <span className="text-[#003366] font-bold flex-shrink-0">▌</span>
+          <span className="font-semibold text-gray-800">{naam}</span>
+        </div>
+        <span className="font-mono font-semibold text-gray-900 flex-shrink-0">{range}</span>
+      </div>
+
+      {/* Formule */}
+      {formule && (
+        <div className="mt-1.5 ml-3.5">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500">
+            Formule:{" "}
+          </span>
+          <span className="font-mono text-gray-700">{formule}</span>
+        </div>
+      )}
+
+      {/* Berekening min/mid/max */}
+      {heeftBerekening && (
+        <div className="mt-1 ml-3.5">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-0.5">
+            Berekening
+          </p>
+          <ul className="font-mono text-gray-800 space-y-0.5">
+            {berekeningMin && (
+              <li>
+                <span className="text-gray-500 inline-block w-9">Min:</span>
+                {berekeningMin}
+              </li>
+            )}
+            {berekeningMid && (
+              <li>
+                <span className="text-gray-500 inline-block w-9">Mid:</span>
+                {berekeningMid}
+              </li>
+            )}
+            {berekeningMax && (
+              <li>
+                <span className="text-gray-500 inline-block w-9">Max:</span>
+                {berekeningMax}
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* Onderbouwingen */}
+      {heeftOnderbouwing && (
+        <div className="mt-1.5 ml-3.5 space-y-0.5">
+          {tariefOnderbouwing && (
+            <p className="italic text-gray-500">
+              <span className="not-italic font-semibold text-gray-600">Tarief:</span>{" "}
+              {tariefOnderbouwing}
+            </p>
+          )}
+          {aantalOnderbouwing && (
+            <p className="italic text-gray-500">
+              <span className="not-italic font-semibold text-gray-600">Aantal:</span>{" "}
+              {aantalOnderbouwing}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Korte toelichting (fallback wanneer er geen formule/berekening is) */}
+      {!formule && !heeftBerekening && toelichting && (
+        <p className="mt-1 ml-3.5 italic text-gray-500">{toelichting}</p>
+      )}
+    </div>
   );
 }
 
