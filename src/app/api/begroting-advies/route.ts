@@ -291,6 +291,7 @@ export async function POST(request: NextRequest) {
       inspanningen,
       finetuneInstructie,
       previousAdvies,
+      forceAantalJaren,
     } = body as {
       jaarlijksBudgetEuro?: number;
       cyclusMaanden?: number;
@@ -299,6 +300,11 @@ export async function POST(request: NextRequest) {
       inspanningen?: unknown;
       finetuneInstructie?: string;
       previousAdvies?: unknown;
+      // Optioneel: per scenario expliciet aantal jaren forceren. Wordt
+      // gebruikt voor de "A2"-flow waarbij dossier-correcties worden
+      // toegepast zonder dat de looptijden inkrimpen — methodische zuiverheid:
+      // de fysieke uitvoeringstijd verandert niet door een rekenkundige fix.
+      forceAantalJaren?: Partial<Record<"optimaal" | "plus20" | "min20" | "advies", number>>;
     };
 
     if (!jaarlijksBudgetEuro || typeof jaarlijksBudgetEuro !== "number" || jaarlijksBudgetEuro <= 0) {
@@ -909,11 +915,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Per scenario: gebruik geforceerde aantalJaren als opgegeven, anders
+    // server-berekend minimum. Geforceerde waarden komen uit de A2-flow
+    // (dossier-correctie zonder looptijd-verkorting).
+    const jOptimaal = forceAantalJaren?.optimaal ?? minOptimaal.jaren;
+    const jPlus20 = forceAantalJaren?.plus20 ?? minPlus20.jaren;
+    const jMin20 = forceAantalJaren?.min20 ?? minMin20.jaren;
+    const jAdvies = forceAantalJaren?.advies ?? adviesKeuze.jaren;
     const [optimaal, plus20, min20, advies] = await Promise.all([
-      genereer("optimaal", budgetOptimaal, minOptimaal.jaren, 0),
-      genereer("plus20", budgetPlus20, minPlus20.jaren, 200),
-      genereer("min20", budgetMin20, minMin20.jaren, 400),
-      genereer("advies", adviesKeuze.benodigdJaarlijks, adviesKeuze.jaren, 600),
+      genereer("optimaal", budgetOptimaal, jOptimaal, 0),
+      genereer("plus20", budgetPlus20, jPlus20, 200),
+      genereer("min20", budgetMin20, jMin20, 400),
+      genereer("advies", adviesKeuze.benodigdJaarlijks, jAdvies, 600),
     ]);
 
     // Server-side validatie per inspanning: totaalEuro moet ≥ 90% × dossier-
