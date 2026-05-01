@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
 import { useToast } from "@/components/ui/Toast";
 import { EditableText } from "@/components/ui/EditableText";
+import { applyHalfjaarShiftAlleScenarios } from "@/lib/halfjaar-shift";
 import type { DINSession, Stap4Result } from "@/lib/types";
 import {
   DEFAULT_BASIS_TARIEF,
@@ -1213,6 +1214,48 @@ export default function StapInterneUren({
     if (v !== false) addToast("Motivatie opgeslagen", "success");
   }
 
+  // Halfjaar-2026 correctie: Cito-medewerkers werken pas vanaf juni 2026,
+  // dus jaar 1 = ~55% van oorspronkelijke uren; rest schuift naar 2027.
+  // Toepassing op alle 4 scenarios tegelijk; cijfers blijven kloppend
+  // door de utility (zie src/lib/halfjaar-shift.ts).
+  async function handleHalfjaarShift(factor: number = 0.55): Promise<void> {
+    if (!advies) return;
+    const factorPct = Math.round(factor * 100);
+    const ok = window.confirm(
+      `Halfjaar-2026 correctie toepassen?\n\n` +
+        `• Jaar 1 (2026) uren worden verlaagd naar ${factorPct}% van de huidige waarde\n` +
+        `• Het verschil (${100 - factorPct}%) schuift naar jaar 2 (2027) per rol\n` +
+        `• Wordt toegepast op alle 4 scenarios\n` +
+        `• Totaal-uren per scenario blijft gelijk; alleen verschoven\n\n` +
+        `Klik OK om door te gaan.`,
+    );
+    if (!ok) return;
+    const updated = applyHalfjaarShiftAlleScenarios(advies, factor);
+    setAdvies(updated);
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+    const v = await saveNow();
+    if (v !== false) addToast(`Halfjaar-2026 correctie toegepast (${factorPct}%)`, "success");
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -1685,6 +1728,14 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                   className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
                 >
                   ⚖ Herrekenen op basis van stuurgroep-feedback
+                </button>
+                <button
+                  onClick={() => handleHalfjaarShift(0.55)}
+                  disabled={loading}
+                  title="Cito-medewerkers werken pas vanaf juni 2026 → jaar 1 wordt 55% van huidige uren, het verschil schuift per rol naar 2027. Geen AI-call, alle 4 scenarios in één klap. Totaal-uren per scenario blijft gelijk."
+                  className="text-sm px-3 py-2 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 font-medium shadow-sm"
+                >
+                  📅 Halfjaar-2026 toepassen (55%)
                 </button>
               </div>
             </div>
