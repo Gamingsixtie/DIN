@@ -47,6 +47,125 @@ const DOMAIN_DOT: Record<string, string> = {
   cultuur: "bg-amber-600",
 };
 
+// Lifecycle-curves per domein per aantalJaren (% per cell, som = 100).
+// Bron: scripts/rebalance-verdeling.ts. Wordt getoond als toelichting in Sectie C.
+const CURVES: Record<string, Record<number, number[]>> = {
+  data_systemen: {
+    4: [15, 35, 35, 15],
+    5: [12, 25, 30, 22, 11],
+    7: [10, 20, 25, 18, 12, 10, 5],
+    10: [5, 10, 14, 18, 18, 14, 10, 6, 3, 2],
+  },
+  mens: {
+    4: [15, 40, 35, 10],
+    5: [10, 30, 35, 18, 7],
+    7: [8, 20, 25, 20, 15, 8, 4],
+    10: [5, 15, 20, 18, 14, 10, 8, 5, 3, 2],
+  },
+  cultuur: {
+    4: [20, 35, 30, 15],
+    5: [15, 25, 25, 20, 15],
+    7: [10, 16, 20, 18, 15, 12, 9],
+    10: [8, 12, 14, 14, 12, 12, 10, 8, 6, 4],
+  },
+  processen: {
+    4: [25, 35, 25, 15],
+    5: [20, 30, 25, 15, 10],
+    7: [15, 22, 20, 15, 12, 10, 6],
+    10: [10, 18, 18, 15, 12, 8, 7, 5, 4, 3],
+  },
+};
+
+const CURVE_LABEL: Record<string, string> = {
+  data_systemen: "U-curve — piek in realisatie + acceptatie/uitrol (PRINCE2/BiSL)",
+  mens: "S-curve — opbouw via basistraining, piek in vaardigheidstraining + toepassing, tail voor borging",
+  cultuur: "Brede heuvel — geleidelijke opbouw, lange tail voor verankering in HR-cyclus",
+  processen: "Vroege piek — herontwerp + pilot + uitrol vroeg, daarna continu verbeteren",
+};
+
+// Dossier-bedragen per inspanning (uit scenario-agnostische motivatie).
+// Match via case-insensitive substring op inspanningTitel.
+type DossierEntry = {
+  match: string;            // substring (lowercase) gezocht in titel
+  label: string;            // weergave
+  eenmaligMin: number;
+  eenmaligMax: number;
+  eenmaligMid: number;
+  structureelPerJaar: number; // gemiddeld per jaar over scenario-jaren
+  toelichting: string;        // korte uitleg voor stuurgroep
+};
+
+const DOSSIERS: DossierEntry[] = [
+  {
+    match: "crm",
+    label: "CRM-platform",
+    eenmaligMin: 440_000,
+    eenmaligMax: 640_000,
+    eenmaligMid: 540_000,
+    structureelPerJaar: 92_500,
+    toelichting:
+      "Eenmalig €440K–€640K (selectie, implementatie, integraties). Structureel ~€92,5K/jr (licenties, beheer, doorontwikkeling).",
+  },
+  {
+    match: "uniforme",
+    label: "Uniforme klantbenadering",
+    eenmaligMin: 55_000,
+    eenmaligMax: 70_000,
+    eenmaligMid: 62_500,
+    structureelPerJaar: 12_500,
+    toelichting:
+      "Eenmalig €55K–€70K (procesontwerp, pilots, standaarden). Structureel ~€12,5K/jr (audits, doorontwikkeling).",
+  },
+  {
+    match: "gesprek",
+    label: "Gespreksvaardigheidstraining",
+    eenmaligMin: 125_000,
+    eenmaligMax: 160_000,
+    eenmaligMid: 142_500,
+    structureelPerJaar: 0,
+    toelichting:
+      "Eenmalig €125K–€160K (curriculum, basistraining, vaardigheidstraining, borging). Geen structurele kosten — kennis blijft in de organisatie.",
+  },
+  {
+    match: "leiderschap",
+    label: "Leiderschapsprogramma",
+    eenmaligMin: 33_000,
+    eenmaligMax: 43_000,
+    eenmaligMid: 38_000,
+    structureelPerJaar: 7_500,
+    toelichting:
+      "Eenmalig €33K–€43K (programma, coaching, intervisie). Structureel ~€7,5K/jr (verankering in HR-cyclus, jaarlijkse rolmodel-werking).",
+  },
+  {
+    match: "klantfeedback",
+    label: "Klantfeedback-systematiek",
+    eenmaligMin: 40_000,
+    eenmaligMax: 60_000,
+    eenmaligMid: 50_000,
+    structureelPerJaar: 10_000,
+    toelichting:
+      "Eenmalig €40K–€60K (NPS-tooling, dashboards, governance). Structureel ~€10K/jr (analyse-uren, doorontwikkeling).",
+  },
+  {
+    match: "data",
+    label: "Klantdata-platform",
+    eenmaligMin: 200_000,
+    eenmaligMax: 300_000,
+    eenmaligMid: 250_000,
+    structureelPerJaar: 50_000,
+    toelichting:
+      "Eenmalig €200K–€300K (data-architectuur, integraties, governance). Structureel ~€50K/jr (beheer, analyses).",
+  },
+];
+
+function findDossier(titel: string): DossierEntry | null {
+  const t = titel.toLowerCase();
+  for (const d of DOSSIERS) {
+    if (t.includes(d.match)) return d;
+  }
+  return null;
+}
+
 // Tolerantie voor som-controle (afronding op duizendtallen kan kleine
 // afwijking geven). 0,5% van het scenariototaal of €5.000, hoogste wint.
 function tolerantie(scenarioTotaal: number): number {
@@ -120,9 +239,10 @@ function Header() {
       </div>
       <h2 className="text-2xl font-bold mb-2">Berekeningen — out-of-pocket per scenario</h2>
       <p className="text-sm text-blue-100 leading-relaxed max-w-3xl">
-        Transparante audit-pagina: per scenario zie je exact hoe het bedrag uit §4.1 is opgebouwd.
-        Welke inspanningen, welke verdeling per jaar, en of de som klopt met het scenariototaal en
-        de jaarlijkse cap. Pure read-only — voor stuurgroep-verantwoording.
+        Transparante audit-pagina: per scenario zie je <strong>HOE</strong> elk bedrag is opgebouwd.
+        Eenmalige investering plus structurele jaarlast, lifecycle-curve per domein, en de som-checks
+        die garanderen dat alles aansluit op het scenariototaal en de jaarlijkse cap. Pure read-only —
+        voor stuurgroep-verantwoording.
       </p>
     </div>
   );
@@ -221,14 +341,15 @@ function ScenarioBerekeningKaart({
 }) {
   const scenario = begroting.scenarios?.[scenarioKey];
   const meta = SCENARIO_META[scenarioKey];
-  if (!scenario) return null;
 
   const startJaar = begroting.startJaar;
-  const aantalJaren = scenario.aantalJaren;
+  const aantalJaren = scenario?.aantalJaren ?? 0;
   const jaren = useMemo(
     () => Array.from({ length: aantalJaren }, (_, i) => startJaar + i),
     [startJaar, aantalJaren]
   );
+
+  if (!scenario) return null;
 
   const cap = scenario.jaarlijksBudgetEuro;
   const totaalScenario = scenario.totaalGeraamdEuro;
@@ -243,10 +364,18 @@ function ScenarioBerekeningKaart({
   // Bouw een matrix: rows = inspanning, cols = jaar
   const perJaarPerInspanning = inspanningen.map((insp) => {
     const cells: Record<number, number> = {};
+    const fases: Record<number, string> = {};
     for (const v of insp.verdelingPerJaar ?? []) {
       cells[v.jaar] = (cells[v.jaar] ?? 0) + (v.euro ?? 0);
+      if (v.fase) fases[v.jaar] = v.fase;
     }
-    return { titel: insp.inspanningTitel, domein: insp.domein, totaal: insp.totaalEuro, cells };
+    return {
+      titel: insp.inspanningTitel,
+      domein: insp.domein,
+      totaal: insp.totaalEuro,
+      cells,
+      fases,
+    };
   });
 
   // Per-jaar som over alle inspanningen
@@ -338,6 +467,12 @@ function ScenarioBerekeningKaart({
             sumInspanningen={sumInspanningen}
             totaalScenario={totaalScenario}
             tol={tol}
+            aantalJaren={aantalJaren}
+          />
+          <SectieScenarioTotaal
+            inspanningen={inspanningen}
+            aantalJaren={aantalJaren}
+            totaalScenario={totaalScenario}
           />
           <SectieC
             jaren={jaren}
@@ -345,6 +480,8 @@ function ScenarioBerekeningKaart({
             officieelPerJaar={officieelPerJaar}
             totalenPerJaarFromInsp={totalenPerJaarFromInsp}
             cap={cap}
+            startJaar={startJaar}
+            aantalJaren={aantalJaren}
           />
           <SectieD checks={checks} allOk={allOk} />
         </div>
@@ -386,25 +523,29 @@ function SectieA({
   );
 }
 
-// --- Sectie B — per inspanning ------------------------------------------------
+// --- Sectie B — per inspanning + derivation ------------------------------------
+
+type InspanningRow = NonNullable<NonNullable<BegrotingAdvies["scenarios"]["optimaal"]>>["inspanningen"][number];
 
 function SectieB({
   inspanningen,
   sumInspanningen,
   totaalScenario,
   tol,
+  aantalJaren,
 }: {
-  inspanningen: NonNullable<NonNullable<BegrotingAdvies["scenarios"]["optimaal"]>>["inspanningen"];
+  inspanningen: InspanningRow[];
   sumInspanningen: number;
   totaalScenario: number;
   tol: number;
+  aantalJaren: number;
 }) {
   return (
     <div>
       <SectieKop
         nummer="B"
-        titel="Berekening per inspanning"
-        hint="Verdeling-per-jaar wordt opgeteld; de som moet overeenkomen met het inspanning-totaal."
+        titel="Berekening per inspanning — eenmalig + structureel"
+        hint="Hoe komt het inspanning-totaal tot stand? Eenmalige investering (mid uit dossier-range) + structurele jaarlast × aantal jaren."
       />
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-sm">
@@ -412,53 +553,97 @@ function SectieB({
             <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
               <th className="px-3 py-2 font-semibold">Inspanning</th>
               <th className="px-3 py-2 font-semibold">Domein</th>
-              <th className="px-3 py-2 font-semibold text-right"># jaar-cellen</th>
-              <th className="px-3 py-2 font-semibold text-right">Σ verdeling</th>
+              <th className="px-3 py-2 font-semibold text-right">Eenmalig (mid)</th>
+              <th className="px-3 py-2 font-semibold text-right">+ Structureel × {aantalJaren} jr</th>
+              <th className="px-3 py-2 font-semibold text-right">= Berekend</th>
               <th className="px-3 py-2 font-semibold text-right">Inspanning-totaal</th>
-              <th className="px-3 py-2 font-semibold text-right">% van scenario</th>
+              <th className="px-3 py-2 font-semibold text-right">% v. scenario</th>
               <th className="px-3 py-2 font-semibold text-center">Match</th>
             </tr>
           </thead>
           <tbody>
             {inspanningen.map((insp, i) => {
+              const dossier = findDossier(insp.inspanningTitel);
               const sumVerdeling = (insp.verdelingPerJaar ?? []).reduce(
                 (s, v) => s + (v.euro ?? 0),
                 0
               );
               const localTol = tolerantie(insp.totaalEuro ?? 0);
-              const match = Math.abs(sumVerdeling - (insp.totaalEuro ?? 0)) <= localTol;
+              const sumMatch = Math.abs(sumVerdeling - (insp.totaalEuro ?? 0)) <= localTol;
+
+              const eenmalig = dossier?.eenmaligMid ?? null;
+              const structJr = dossier?.structureelPerJaar ?? null;
+              const structTotaal = structJr !== null ? structJr * aantalJaren : null;
+              const berekend = eenmalig !== null && structTotaal !== null ? eenmalig + structTotaal : null;
+              const derivTol = berekend !== null ? Math.max(50_000, Math.round(berekend * 0.15)) : 0; // ruime tolerantie — scenario kan ±20% schuiven
+              const derivMatch =
+                berekend !== null
+                  ? Math.abs(berekend - (insp.totaalEuro ?? 0)) <= derivTol
+                  : null;
+
               return (
-                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50">
-                  <td className="px-3 py-2 align-top">
+                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50 align-top">
+                  <td className="px-3 py-2">
                     <p className="font-medium text-gray-800">{insp.inspanningTitel}</p>
+                    {dossier && (
+                      <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                        {dossier.toelichting}
+                      </p>
+                    )}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 py-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-700">
                       <span className={`w-2 h-2 rounded-full ${DOMAIN_DOT[insp.domein] ?? "bg-gray-400"}`} />
                       {DOMAIN_LABEL[insp.domein] ?? insp.domein}
                     </span>
                   </td>
-                  <td className="px-3 py-2 align-top text-right text-gray-600 tabular-nums">
-                    {(insp.verdelingPerJaar ?? []).length}
+                  <td className="px-3 py-2 text-right font-mono text-gray-700">
+                    {eenmalig !== null ? (
+                      <>
+                        <div>{formatEur(eenmalig)}</div>
+                        <div className="text-[10px] text-gray-400">
+                          {formatEurK(dossier!.eenmaligMin)}–{formatEurK(dossier!.eenmaligMax)}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </td>
-                  <td className="px-3 py-2 align-top text-right font-mono text-gray-700">
-                    {formatEur(sumVerdeling)}
+                  <td className="px-3 py-2 text-right font-mono text-gray-700">
+                    {structTotaal !== null ? (
+                      <>
+                        <div>{formatEur(structTotaal)}</div>
+                        <div className="text-[10px] text-gray-400">
+                          {formatEur(structJr!)}/jr × {aantalJaren}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </td>
-                  <td className="px-3 py-2 align-top text-right font-mono font-semibold text-gray-900">
+                  <td className="px-3 py-2 text-right font-mono text-gray-800">
+                    {berekend !== null ? formatEur(berekend) : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold text-gray-900">
                     {formatEur(insp.totaalEuro)}
+                    <div className="text-[10px] text-gray-400 font-normal">
+                      Σ verd. {formatEur(sumVerdeling)} {sumMatch ? "✓" : "✗"}
+                    </div>
                   </td>
-                  <td className="px-3 py-2 align-top text-right text-gray-600 tabular-nums">
+                  <td className="px-3 py-2 text-right text-gray-600 tabular-nums">
                     {pct(insp.totaalEuro ?? 0, totaalScenario)}
                   </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    {match ? (
-                      <span className="text-emerald-600 font-bold">✓</span>
+                  <td className="px-3 py-2 text-center">
+                    {derivMatch === null ? (
+                      <span className="text-gray-300" title="Geen dossier-match">—</span>
+                    ) : derivMatch ? (
+                      <span className="text-emerald-600 font-bold" title="Berekend bedrag binnen tolerantie">✓</span>
                     ) : (
                       <span
-                        className="text-red-600 font-bold"
-                        title={`Verschil ${formatEur(Math.abs(sumVerdeling - (insp.totaalEuro ?? 0)))}`}
+                        className="text-amber-600 font-bold"
+                        title={`Verschil ${formatEur(Math.abs((berekend ?? 0) - (insp.totaalEuro ?? 0)))} — scenario kan ±20% schuiven`}
                       >
-                        ✗
+                        ≈
                       </span>
                     )}
                   </td>
@@ -468,7 +653,7 @@ function SectieB({
           </tbody>
           <tfoot>
             <tr className="bg-gray-50 border-t-2 border-gray-300">
-              <td colSpan={4} className="px-3 py-2 text-right font-semibold text-gray-700">
+              <td colSpan={5} className="px-3 py-2 text-right font-semibold text-gray-700">
                 Totaal inspanningen
               </td>
               <td className="px-3 py-2 text-right font-mono font-bold text-[#003366]">
@@ -486,7 +671,7 @@ function SectieB({
               </td>
             </tr>
             <tr className="bg-gray-50 border-t border-gray-200">
-              <td colSpan={4} className="px-3 py-2 text-right text-xs text-gray-500">
+              <td colSpan={5} className="px-3 py-2 text-right text-xs text-gray-500">
                 Scenario-totaal (referentie)
               </td>
               <td className="px-3 py-2 text-right font-mono text-xs text-gray-500">
@@ -497,11 +682,121 @@ function SectieB({
           </tfoot>
         </table>
       </div>
+      <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+        <strong>Legenda match-kolom:</strong> ✓ berekend bedrag (eenmalig + structureel × jaren) komt
+        overeen met inspanning-totaal. <span className="text-amber-600 font-bold">≈</span> wijkt af —
+        scenario heeft ±20% geschoven (bv. plus20 of min20). — geen dossier-match voor deze
+        inspanning.
+      </p>
     </div>
   );
 }
 
-// --- Sectie C — per jaar ------------------------------------------------------
+// --- Nieuwe sectie: Scenario-totaal derivation -------------------------------
+
+function SectieScenarioTotaal({
+  inspanningen,
+  aantalJaren,
+  totaalScenario,
+}: {
+  inspanningen: InspanningRow[];
+  aantalJaren: number;
+  totaalScenario: number;
+}) {
+  const rows = inspanningen.map((insp) => {
+    const d = findDossier(insp.inspanningTitel);
+    const eenmalig = d?.eenmaligMid ?? 0;
+    const structJr = d?.structureelPerJaar ?? 0;
+    const structTotaal = structJr * aantalJaren;
+    const berekend = d ? eenmalig + structTotaal : insp.totaalEuro ?? 0;
+    return {
+      titel: insp.inspanningTitel,
+      domein: insp.domein,
+      eenmalig,
+      structJr,
+      structTotaal,
+      berekend,
+      werkelijk: insp.totaalEuro ?? 0,
+      hasDossier: !!d,
+    };
+  });
+  const sumBerekend = rows.reduce((s, r) => s + r.berekend, 0);
+  const sumWerkelijk = rows.reduce((s, r) => s + r.werkelijk, 0);
+  const driftScenario = sumWerkelijk - sumBerekend;
+
+  return (
+    <div>
+      <SectieKop
+        nummer="B+"
+        titel="Scenario-totaal — bottom-up samenvatting"
+        hint="Top-level optelling: alle inspanning-derivations bij elkaar = scenariototaal."
+      />
+      <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50/30 to-white p-4">
+        <div className="font-mono text-[13px] leading-relaxed text-gray-800 space-y-1">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-baseline gap-2">
+              <span className="text-gray-400 w-3">{i === 0 ? " " : "+"}</span>
+              <span className={`w-2 h-2 rounded-full mt-1.5 ${DOMAIN_DOT[r.domein] ?? "bg-gray-400"}`} />
+              <span className="flex-1 truncate">
+                <span className="font-medium">{r.titel}</span>
+                {r.hasDossier ? (
+                  <span className="text-gray-500 text-xs ml-1">
+                    ({formatEurK(r.eenmalig)} eenmalig
+                    {r.structJr > 0 && (
+                      <>
+                        {" "}+ {aantalJaren} jr × {formatEurK(r.structJr)}
+                      </>
+                    )})
+                  </span>
+                ) : (
+                  <span className="text-gray-400 text-xs ml-1">(geen dossier)</span>
+                )}
+              </span>
+              <span className="font-semibold text-gray-900 tabular-nums">
+                = {formatEurK(r.berekend)}
+              </span>
+            </div>
+          ))}
+          <div className="border-t-2 border-gray-300 mt-2 pt-2 flex items-baseline gap-2">
+            <span className="text-gray-400 w-3" />
+            <span className="w-2" />
+            <span className="flex-1 font-bold text-[#003366]">
+              Σ Scenario-totaal (bottom-up)
+            </span>
+            <span className="font-bold text-[#003366] tabular-nums">
+              = {formatEurK(sumBerekend)}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 text-xs text-gray-500">
+            <span className="w-3" />
+            <span className="w-2" />
+            <span className="flex-1">Werkelijk scenario-totaal (uit Supabase)</span>
+            <span className="tabular-nums font-mono">{formatEurK(sumWerkelijk)}</span>
+          </div>
+          {Math.abs(driftScenario) > 5_000 && (
+            <div className="flex items-baseline gap-2 text-xs text-amber-700 mt-1">
+              <span className="w-3" />
+              <span className="w-2" />
+              <span className="flex-1">
+                Δ verschil — scenario is {driftScenario > 0 ? "opgehoogd" : "verlaagd"} t.o.v. dossier-mid
+              </span>
+              <span className="tabular-nums font-mono">{formatEurK(Math.abs(driftScenario))}</span>
+            </div>
+          )}
+        </div>
+        <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
+          De bottom-up sommering gebruikt de <strong>middenwaarde</strong> uit elke dossier-range.
+          Het werkelijke scenario-totaal kan ±20% afwijken doordat scenario&apos;s &quot;sneller&quot;
+          (plus20) of &quot;langzamer&quot; (min20) op dezelfde scope zijn afgesteld; voor het
+          referentie-scenario (huidig budget / advies) hoort het verschil klein te zijn.
+          Vergeleken met scenario-totaal: <strong>{formatEurK(totaalScenario)}</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// --- Sectie C — per jaar + lifecycle-toelichting ----------------------------
 
 function SectieC({
   jaren,
@@ -509,19 +804,23 @@ function SectieC({
   officieelPerJaar,
   totalenPerJaarFromInsp,
   cap,
+  startJaar,
+  aantalJaren,
 }: {
   jaren: number[];
-  perJaarPerInspanning: Array<{ titel: string; domein: string; totaal: number; cells: Record<number, number> }>;
+  perJaarPerInspanning: Array<{ titel: string; domein: string; totaal: number; cells: Record<number, number>; fases: Record<number, string> }>;
   officieelPerJaar: Record<number, number>;
   totalenPerJaarFromInsp: Record<number, number>;
   cap: number;
+  startJaar: number;
+  aantalJaren: number;
 }) {
   return (
     <div>
       <SectieKop
         nummer="C"
-        titel="Berekening per jaar"
-        hint="Som per jaar over alle inspanningen, vergeleken met de cap én met het officiële totalenPerJaar veld uit het scenario."
+        titel="Berekening per jaar — lifecycle-curve"
+        hint="Per cel: hoeveel procent van het inspanning-totaal valt in welke fase, en waarom (S-curve voor training, U-curve voor IT, etc.)."
       />
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-sm">
@@ -549,9 +848,17 @@ function SectieC({
                   </td>
                   {jaren.map((j) => {
                     const v = row.cells[j] ?? 0;
+                    const cellPct = row.totaal > 0 ? Math.round((v / row.totaal) * 100) : 0;
                     return (
                       <td key={j} className="px-3 py-2 text-right font-mono text-gray-700">
-                        {v > 0 ? formatEur(v) : <span className="text-gray-300">—</span>}
+                        {v > 0 ? (
+                          <>
+                            <div>{formatEur(v)}</div>
+                            <div className="text-[10px] text-gray-400 font-normal">{cellPct}%</div>
+                          </>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
                       </td>
                     );
                   })}
@@ -617,6 +924,68 @@ function SectieC({
           </tfoot>
         </table>
       </div>
+
+      {/* Per-inspanning lifecycle toelichting */}
+      <div className="mt-4 space-y-3">
+        <p className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
+          Lifecycle-curve per inspanning — waarom valt het bedrag in welk jaar?
+        </p>
+        {perJaarPerInspanning.map((row, i) => {
+          const curve = CURVES[row.domein]?.[aantalJaren];
+          const curveLabel = CURVE_LABEL[row.domein] ?? "Lineaire verdeling";
+          return (
+            <div
+              key={i}
+              className="rounded-lg border border-gray-200 bg-gray-50/40 p-3"
+            >
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className={`w-2 h-2 rounded-full ${DOMAIN_DOT[row.domein] ?? "bg-gray-400"}`} />
+                <span className="font-semibold text-sm text-gray-800">{row.titel}</span>
+                <span className="text-[11px] text-gray-500">
+                  ({DOMAIN_LABEL[row.domein] ?? row.domein})
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mb-2 italic">
+                <strong className="not-italic text-gray-700">Curve:</strong> {curveLabel}
+              </p>
+              <div className="font-mono text-[12px] space-y-0.5">
+                {jaren.map((j, idx) => {
+                  const v = row.cells[j] ?? 0;
+                  const cellPct = row.totaal > 0 ? Math.round((v / row.totaal) * 100) : 0;
+                  const curvePct = curve?.[idx] ?? null;
+                  const fase = row.fases[j] ?? "—";
+                  if (v === 0 && !fase) return null;
+                  return (
+                    <div key={j} className="flex items-baseline gap-2 text-gray-700">
+                      <span className="text-gray-500 w-12 tabular-nums">{j}</span>
+                      <span className="text-gray-800 tabular-nums w-20 text-right">
+                        {formatEurK(v)}
+                      </span>
+                      <span className="text-gray-500 tabular-nums w-10 text-right">
+                        {cellPct}%
+                      </span>
+                      {curvePct !== null && (
+                        <span className="text-gray-400 text-[10px] tabular-nums w-16">
+                          (curve {curvePct}%)
+                        </span>
+                      )}
+                      <span className="text-gray-600 flex-1 truncate">— {fase}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+        <p className="text-[11px] text-gray-500 leading-relaxed">
+          De cell-percentages in de tabel komen overeen met de gepubliceerde lifecycle-curve voor
+          dat domein × aantal jaren. Cap-respect kan kleine afwijkingen veroorzaken (water-fill
+          herverdeelt overschot proportioneel naar jaren met capaciteit). Bron-curves staan in{" "}
+          <code className="text-[10px] bg-gray-100 px-1 rounded">scripts/rebalance-verdeling.ts</code>
+          ; fase-namen in{" "}
+          <code className="text-[10px] bg-gray-100 px-1 rounded">scripts/normalize-fases.ts</code>.
+        </p>
+      </div>
     </div>
   );
 }
@@ -677,7 +1046,7 @@ function SectieKop({ nummer, titel, hint }: { nummer: string; titel: string; hin
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2">
-        <span className="w-6 h-6 rounded-md bg-[#003366] text-white text-xs font-bold flex items-center justify-center">
+        <span className="min-w-6 h-6 px-1.5 rounded-md bg-[#003366] text-white text-xs font-bold flex items-center justify-center">
           {nummer}
         </span>
         <h3 className="text-sm font-semibold text-[#003366]">{titel}</h3>
