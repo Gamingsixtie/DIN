@@ -166,6 +166,219 @@ function findDossier(titel: string): DossierEntry | null {
   return null;
 }
 
+// Component-derivation: per inspanning de individuele line-items die optellen
+// tot het eenmalige + structurele bedrag. Stuurgroep ziet HOE elk dossier-bedrag
+// is opgebouwd. Match via case-insensitive substring op inspanningTitel.
+type ComponentItem = {
+  naam: string;
+  rangeMin: number;
+  rangeMax: number;
+  toelichting: string;
+};
+type ComponentItemPerJaar = {
+  naam: string;
+  perJaarMin: number;
+  perJaarMax: number;
+  toelichting: string;
+};
+type ComponentBreakdown = {
+  match: string;            // substring (lowercase) gezocht in titel
+  label: string;            // korte titel
+  eenmaligComponents: ComponentItem[];
+  structureelComponents: ComponentItemPerJaar[];
+  structureelNote?: string; // optionele toelichting onder structureel-blok
+};
+
+const COMPONENT_BREAKDOWNS: ComponentBreakdown[] = [
+  {
+    match: "crm",
+    label: "CRM-platform",
+    eenmaligComponents: [
+      {
+        naam: "Externe implementatie + dashboardbouw",
+        rangeMin: 250_000,
+        rangeMax: 375_000,
+        toelichting: "1.500–2.500 consultanturen × € 150–170/uur",
+      },
+      {
+        naam: "Datamigratie + 7-8 bronsysteemintegraties",
+        rangeMin: 75_000,
+        rangeMax: 125_000,
+        toelichting: "ETL + datacleaning + koppelingen",
+      },
+      {
+        naam: "Training + adoptie 85 medewerkers + externe schaduwbegeleiding",
+        rangeMin: 40_000,
+        rangeMax: 55_000,
+        toelichting: "go-live ondersteuning + key-user-traject",
+      },
+      {
+        naam: "Dubbele licentielast transitie 6–12 mnd",
+        rangeMin: 30_000,
+        rangeMax: 60_000,
+        toelichting: "oude + nieuwe omgeving parallel tijdens migratie",
+      },
+      {
+        naam: "Juridisch-technisch (Stichting Cito-ontvlechting) + PM-buffer",
+        rangeMin: 25_000,
+        rangeMax: 45_000,
+        toelichting: "ontvlechting datacontracten + onvoorzien",
+      },
+    ],
+    structureelComponents: [
+      {
+        naam: "Licenties 85 gebruikers Microsoft Dynamics-equivalent",
+        perJaarMin: 63_000,
+        perJaarMax: 63_000,
+        toelichting: "85 × ~€ 740/jaar",
+      },
+      {
+        naam: "Beheer + doorontwikkeling",
+        perJaarMin: 30_000,
+        perJaarMax: 30_000,
+        toelichting: "interne CRM-beheerder, kleine functionele aanpassingen, 2nd-line support",
+      },
+    ],
+  },
+  {
+    match: "uniforme",
+    label: "Uniforme klantbenadering (processen)",
+    eenmaligComponents: [
+      {
+        naam: "Externe procesbegeleider (~20 dagen × € 800)",
+        rangeMin: 16_000,
+        rangeMax: 16_000,
+        toelichting: "expert procesontwerp + facilitering",
+      },
+      {
+        naam: "9 multidisciplinaire werksessies (3 sectoren)",
+        rangeMin: 20_000,
+        rangeMax: 25_000,
+        toelichting: "voorbereiding, facilitering, materialen per sectorraad",
+      },
+      {
+        naam: "Procesinventarisatie (Smartprocess setup)",
+        rangeMin: 8_000,
+        rangeMax: 12_000,
+        toelichting: "tooling-configuratie + initiële procesbeschrijvingen",
+      },
+      {
+        naam: "Externe materialen + methodiek",
+        rangeMin: 5_000,
+        rangeMax: 10_000,
+        toelichting: "templates, casuïstiek, methodische ondersteuning",
+      },
+      {
+        naam: "Pilot-coördinatie + sectorvalidatie",
+        rangeMin: 6_000,
+        rangeMax: 7_000,
+        toelichting: "pilot-uitvoering + valideren met sectoren",
+      },
+    ],
+    structureelComponents: [
+      {
+        naam: "Proceseigenaarschap-borging via Smartprocess",
+        perJaarMin: 12_500,
+        perJaarMax: 12_500,
+        toelichting: "tooling-licentie + lichte governance + jaarlijkse audits",
+      },
+    ],
+  },
+  {
+    match: "gesprek",
+    label: "Gespreksvaardigheidstraining (mens)",
+    eenmaligComponents: [
+      {
+        naam: "Externe trainingspartner (2 blokken × € 26.000)",
+        rangeMin: 52_000,
+        rangeMax: 52_000,
+        toelichting: "basistraining + vaardigheidstraining outside-in",
+      },
+      {
+        naam: "Nulmeting + intake per sector",
+        rangeMin: 10_000,
+        rangeMax: 10_000,
+        toelichting: "vaardigheidsmeting voorafgaand aan curriculum",
+      },
+      {
+        naam: "Curriculum-ontwikkeling (intern + gedeeltelijk extern)",
+        rangeMin: 15_000,
+        rangeMax: 30_000,
+        toelichting: "leerlijn + Cito-specifieke casuïstiek",
+      },
+      {
+        naam: "Materialen + casuïstiek",
+        rangeMin: 10_000,
+        rangeMax: 15_000,
+        toelichting: "werkvormen, video, oefencases per sector",
+      },
+      {
+        naam: "Adoptie + intervisie-begeleiding",
+        rangeMin: 20_000,
+        rangeMax: 30_000,
+        toelichting: "intervisiekringen + on-the-job-coaching",
+      },
+      {
+        naam: "Cross-sectorale coördinatie",
+        rangeMin: 8_000,
+        rangeMax: 13_000,
+        toelichting: "66 deelnemers × 8u/maand × 6 maanden",
+      },
+    ],
+    structureelComponents: [],
+    structureelNote:
+      "€ 0/jaar — borging via interne ambassadeurs + e-learning (kennis blijft in de organisatie)",
+  },
+  {
+    match: "leiderschap",
+    label: "Leiderschapsprogramma (cultuur)",
+    eenmaligComponents: [
+      {
+        naam: "Externe begeleider (~15 dagen × € 2.500)",
+        rangeMin: 37_500,
+        rangeMax: 37_500,
+        toelichting: "executive-niveau dagprijs",
+      },
+      {
+        naam: "Programma-ontwerp + MT-commitment-sessie",
+        rangeMin: 3_000,
+        rangeMax: 5_000,
+        toelichting: "kick-off + ontwerp leerlijn voor MT/leiders",
+      },
+      {
+        naam: "HR-instrumenten-aanpassing",
+        rangeMin: 5_000,
+        rangeMax: 10_000,
+        toelichting: "360°-feedback + beoordelingscriteria outside-in",
+      },
+    ],
+    structureelComponents: [
+      {
+        naam: "Doorlopende externe begeleiding (afnemend)",
+        perJaarMin: 5_000,
+        perJaarMax: 8_000,
+        toelichting: "jaar 2-3 hoog, afnemend in latere jaren",
+      },
+      {
+        naam: "Lichte HR-coördinatie + jaarlijkse cultuurmeting",
+        perJaarMin: 2_000,
+        perJaarMax: 3_000,
+        toelichting: "borging in HR-cyclus + meting",
+      },
+    ],
+    structureelNote:
+      "Cultuur-totaal varieert per scenario: structureel-budget is geconcentreerd in jaar 2-3, met afnemende trend in latere jaren. Voor langere looptijden komt er een extra borgings-tail bij.",
+  },
+];
+
+function findComponentBreakdown(titel: string): ComponentBreakdown | null {
+  const t = titel.toLowerCase();
+  for (const b of COMPONENT_BREAKDOWNS) {
+    if (t.includes(b.match)) return b;
+  }
+  return null;
+}
+
 // Tolerantie voor som-controle (afronding op duizendtallen kan kleine
 // afwijking geven). 0,5% van het scenariototaal of €5.000, hoogste wint.
 function tolerantie(scenarioTotaal: number): number {
@@ -595,38 +808,32 @@ function Sectie0VolledigeBerekening({
         </span>
       </summary>
       <div className="space-y-5 px-5 pt-2 pb-5 text-sm">
-        {/* Stap 1: Dossier-input */}
+        {/* Stap 1: Component-derivation per inspanning */}
         <div>
           <h4 className="font-semibold text-[#003366]">
-            Stap 1 — Dossier-input (uit Stap 4 business-case)
+            Stap 1 — Dossier-input · component-derivation per inspanning
           </h4>
-          <p className="text-xs text-gray-500 ml-4 mt-0.5 mb-1">
-            Voor elke inspanning gebruiken we de eenmalige investering (range: min · mid · max) en
-            de structurele jaarlast uit het business-case dossier.
+          <p className="text-xs text-gray-500 ml-4 mt-0.5 mb-2">
+            Voor elke inspanning is het eenmalige + structurele bedrag opgebouwd uit individuele
+            componenten met onderbouwing (uur-tarieven, aantal gebruikers, dagprijzen). Klik op een
+            inspanning om de breakdown te zien.
           </p>
-          <ul className="font-mono text-xs ml-4 mt-1 space-y-0.5 text-gray-700">
+          <div className="ml-4 space-y-2">
             {derivations.map((r, i) => (
-              <li key={i}>
-                <span className={`inline-block w-2 h-2 rounded-full mr-1.5 align-middle ${DOMAIN_DOT[r.domein] ?? "bg-gray-400"}`} />
-                <span className="font-semibold">{r.titel}:</span>{" "}
-                {r.heeftDossier ? (
-                  <>
-                    eenmalig {formatEurK(r.eenmaligMin)}–{formatEurK(r.eenmaligMax)} (mid{" "}
-                    {formatEurK(r.eenmaligMid)})
-                    {r.structJr > 0 ? (
-                      <> + {formatEur(r.structJr)}/jaar structureel</>
-                    ) : (
-                      <> · geen structureel</>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-gray-400">
-                    geen dossier — gebruikt scenario-totaal direct ({formatEurK(r.werkelijk)})
-                  </span>
-                )}
-              </li>
+              <Stap1ComponentDerivation
+                key={i}
+                titel={r.titel}
+                domein={r.domein}
+                heeftDossier={r.heeftDossier}
+                eenmaligMin={r.eenmaligMin}
+                eenmaligMax={r.eenmaligMax}
+                eenmaligMid={r.eenmaligMid}
+                structJr={r.structJr}
+                werkelijk={r.werkelijk}
+                aantalJaren={aantalJaren}
+              />
             ))}
-          </ul>
+          </div>
         </div>
 
         {/* Stap 2: Inspanning-totaal formule */}
@@ -743,6 +950,191 @@ function Sectie0VolledigeBerekening({
           </p>
         </div>
       </div>
+    </details>
+  );
+}
+
+// --- Stap 1 — Component-derivation per inspanning ---------------------------
+
+function Stap1ComponentDerivation({
+  titel,
+  domein,
+  heeftDossier,
+  eenmaligMin,
+  eenmaligMax,
+  eenmaligMid,
+  structJr,
+  werkelijk,
+  aantalJaren,
+}: {
+  titel: string;
+  domein: string;
+  heeftDossier: boolean;
+  eenmaligMin: number;
+  eenmaligMax: number;
+  eenmaligMid: number;
+  structJr: number;
+  werkelijk: number;
+  aantalJaren: number;
+}) {
+  const breakdown = findComponentBreakdown(titel);
+
+  // Header-samenvatting (altijd zichtbaar in <summary>)
+  let samenvatting: React.ReactNode;
+  if (heeftDossier) {
+    samenvatting = (
+      <>
+        eenmalig {formatEurK(eenmaligMin)}–{formatEurK(eenmaligMax)}
+        {structJr > 0 ? (
+          <>
+            {" "}+ {formatEur(structJr)}/jaar structureel
+          </>
+        ) : (
+          <> · geen structureel</>
+        )}
+      </>
+    );
+  } else {
+    samenvatting = (
+      <span className="text-gray-500">
+        geen dossier — gebruikt scenario-totaal direct ({formatEurK(werkelijk)})
+      </span>
+    );
+  }
+
+  // Tel componenten (om subtotalen te tonen)
+  const sumEenmaligMin = breakdown
+    ? breakdown.eenmaligComponents.reduce((s, c) => s + c.rangeMin, 0)
+    : 0;
+  const sumEenmaligMax = breakdown
+    ? breakdown.eenmaligComponents.reduce((s, c) => s + c.rangeMax, 0)
+    : 0;
+  const sumStructMin = breakdown
+    ? breakdown.structureelComponents.reduce((s, c) => s + c.perJaarMin, 0)
+    : 0;
+  const sumStructMax = breakdown
+    ? breakdown.structureelComponents.reduce((s, c) => s + c.perJaarMax, 0)
+    : 0;
+
+  return (
+    <details className="border-l-2 border-[#003366]/30 bg-white rounded-r-lg overflow-hidden group">
+      <summary className="cursor-pointer select-none px-3 py-2 hover:bg-[#003366]/5 list-none">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <svg
+            className="w-3 h-3 text-gray-400 transition-transform group-open:rotate-90 inline-block flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${DOMAIN_DOT[domein] ?? "bg-gray-400"}`}
+          />
+          <span className="font-semibold text-sm text-gray-800">{titel}</span>
+          <span className="text-xs text-gray-600">— {samenvatting}</span>
+        </div>
+      </summary>
+      {breakdown && (
+        <div className="px-4 pt-1 pb-3 space-y-3">
+          {/* EENMALIG */}
+          {breakdown.eenmaligComponents.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1">
+                Eenmalig — componenten
+              </p>
+              <pre className="text-[11px] font-mono bg-gray-50 border border-gray-200 p-2.5 rounded overflow-x-auto whitespace-pre leading-relaxed">
+{breakdown.eenmaligComponents
+  .map((c) => {
+    const naam = c.naam.length > 60 ? c.naam.slice(0, 59) + "…" : c.naam;
+    const naamPad = naam.padEnd(62, " ");
+    const range =
+      c.rangeMin === c.rangeMax
+        ? formatEur(c.rangeMin).padStart(20, " ")
+        : `${formatEur(c.rangeMin)} – ${formatEur(c.rangeMax)}`.padStart(28, " ");
+    const toel = c.toelichting ? `\n      (${c.toelichting})` : "";
+    return `• ${naamPad}${range}${toel}`;
+  })
+  .join("\n")}
+{`\n${"─".repeat(72)}`}
+{`\nΣ eenmalig:                                                  ${formatEur(sumEenmaligMin)} – ${formatEur(sumEenmaligMax)}`}
+{`\n                                                             (middenpunt circa ${formatEur(eenmaligMid)})`}
+              </pre>
+            </div>
+          )}
+
+          {/* STRUCTUREEL */}
+          {breakdown.structureelComponents.length > 0 ? (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1">
+                Structureel — componenten (per jaar)
+              </p>
+              <pre className="text-[11px] font-mono bg-gray-50 border border-gray-200 p-2.5 rounded overflow-x-auto whitespace-pre leading-relaxed">
+{breakdown.structureelComponents
+  .map((c) => {
+    const naam = c.naam.length > 60 ? c.naam.slice(0, 59) + "…" : c.naam;
+    const naamPad = naam.padEnd(62, " ");
+    const range =
+      c.perJaarMin === c.perJaarMax
+        ? `${formatEur(c.perJaarMin)}/jaar`.padStart(20, " ")
+        : `${formatEur(c.perJaarMin)} – ${formatEur(c.perJaarMax)}/jaar`.padStart(32, " ");
+    const toel = c.toelichting ? `\n      (${c.toelichting})` : "";
+    return `• ${naamPad}${range}${toel}`;
+  })
+  .join("\n")}
+{`\n${"─".repeat(72)}`}
+{sumStructMin === sumStructMax
+  ? `\nΣ structureel:                                               ${formatEur(sumStructMin)}/jaar`
+  : `\nΣ structureel:                                               ${formatEur(sumStructMin)} – ${formatEur(sumStructMax)}/jaar`}
+{structJr > 0 ? `\n                                                             (gemiddeld ${formatEur(structJr)}/jaar)` : ""}
+              </pre>
+              {breakdown.structureelNote && (
+                <p className="text-[11px] text-gray-500 italic mt-1.5">
+                  {breakdown.structureelNote}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1">
+                Structureel
+              </p>
+              <p className="text-[11px] text-gray-600 italic">
+                {breakdown.structureelNote ?? "€ 0/jaar — geen structurele kosten"}
+              </p>
+            </div>
+          )}
+
+          <p className="text-[10px] text-gray-500 leading-relaxed">
+            <strong>Inspanning-totaal:</strong> middenpunt eenmalig ({formatEur(eenmaligMid)})
+            {structJr > 0 && (
+              <>
+                {" "}+ {aantalJaren} jaar × {formatEur(structJr)} ={" "}
+                {formatEur(eenmaligMid + structJr * aantalJaren)}
+              </>
+            )}
+            . Werkelijk in scenario: <strong>{formatEur(werkelijk)}</strong>.
+          </p>
+        </div>
+      )}
+      {!breakdown && heeftDossier && (
+        <div className="px-4 pt-1 pb-3">
+          <p className="text-[11px] text-gray-500 italic">
+            Component-breakdown nog niet beschikbaar voor deze inspanning. Dossier-bedrag:{" "}
+            eenmalig {formatEurK(eenmaligMin)}–{formatEurK(eenmaligMax)} (mid{" "}
+            {formatEurK(eenmaligMid)})
+            {structJr > 0 && <> + {formatEur(structJr)}/jaar structureel</>}.
+          </p>
+        </div>
+      )}
+      {!breakdown && !heeftDossier && (
+        <div className="px-4 pt-1 pb-3">
+          <p className="text-[11px] text-gray-500 italic">
+            Geen dossier-match — scenario-totaal {formatEurK(werkelijk)} wordt direct overgenomen
+            uit de scenario-data.
+          </p>
+        </div>
+      )}
     </details>
   );
 }
