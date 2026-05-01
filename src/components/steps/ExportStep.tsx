@@ -3850,6 +3850,61 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 zijn standaard ingeklapt; gebruik onderstaande knoppen om direct naar één scenario te springen.
               </p>
             </div>
+
+            {/* Aanlooppunt 2026 — bewust geadresseerd voor stuurgroep-discussie.
+                Programma start juni 2026 (feit). Budget €250K is in 2020 vastgesteld
+                en moet productief landen — bedrijfseconomisch kan onderbesteding niet
+                want vrijval drukt 2027 omlaag. Banner expliciet per scenario zodat
+                stuurgroep ziet dat we de doorschuiving naar 2027 onder ogen hebben gezien. */}
+            <div className="mt-4 max-w-3xl rounded-lg border-2 border-amber-300 bg-amber-50 p-4 space-y-2.5">
+              <div className="flex items-start gap-2 mb-1">
+                <span className="text-amber-700 text-base leading-none mt-0.5">⚠</span>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  Aanlooppunt: programma start juni 2026
+                </p>
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                Het programma start juni 2026 — dat staat vast. Het jaarbudget van € 250.000 voor 2026 is in 2020
+                vastgesteld en wordt volledig benut; bij Cito betekent onderbesteding vrijval plus een lager budget
+                in 2027, wat we willen voorkomen. De vraag is dus niet <em>of</em> we het opmaken, maar <em>hoe we het
+                in een half jaar productief laten landen</em>.
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                <strong>Wat in zes maanden wél haalbaar is</strong> — en wat in alle scenario&apos;s de jaar-1-activiteiten
+                vormt: architectuurkeuze CRM, leveranciersselectie, MT-besluit cultuurprogramma, nulmeting
+                gespreksvaardigheid, eerste werkgroepsessies processen. Naar onze inschatting wordt circa
+                € 200.000–€ 220.000 productief in H2 2026 ingezet; de resterende € 30.000–€ 50.000 kantelt door
+                naar Q1 2027 binnen het meerjarige scenario-totaal — niet als vrijval, maar als planning-realiteit.
+              </p>
+              <div className="text-sm text-gray-800 leading-relaxed">
+                <p className="font-semibold mb-1">Per scenario verschilt de druk:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>
+                    <strong>Huidig budget</strong> en <strong>−20% (langzamer)</strong> — meeste flexibiliteit;
+                    de doorschuiving valt weg in de ruimere meerjarige spreiding (1–2% van het scenario-totaal).
+                  </li>
+                  <li>
+                    <strong>+20% (sneller)</strong> — krapst: jaar 2 vraagt al € 300.000 en heeft weinig ruimte om
+                    opgeschoven 2026-werk te absorberen. Halfjaars-2026 betekent vol tempo vanaf juni.
+                  </li>
+                  <li>
+                    <strong>Advies-scenario</strong> — krap maar haalbaar; doorschuiving wordt opgevangen binnen
+                    het 4-jarig scenario-totaal.
+                  </li>
+                </ul>
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                <strong>Hetzelfde geldt voor de interne uren in §4.2</strong>: Cito-medewerkers starten effectief
+                vanaf juni 2026, dus realistisch loopt H2 2026 op 50–60% van de jaar-1-uren, met de rest in Q1 2027.
+                Dit raakt de fasering, niet de meerjarige uren-totalen.
+              </p>
+              <p className="text-sm text-amber-900 leading-relaxed bg-amber-100/60 rounded px-3 py-2 mt-2 italic">
+                <strong className="not-italic">Te bespreken in stuurgroep:</strong> hoe organiseren we de productieve
+                landing in H2 2026 — welke opstart-activiteiten prioriteren we voor Q3–Q4, en welke onderdelen
+                kantelen we naar Q1 2027 binnen scenario-totaal?
+              </p>
+            </div>
+
             <ScenarioPicker />
           </Inleiding>
 
