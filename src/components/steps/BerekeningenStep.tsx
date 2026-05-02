@@ -6,7 +6,42 @@ import type { DINSession, BegrotingAdvies, Stap4Result, BegrotingScenario, Inspa
 import { parseDossierRaming, type ParsedDossierRaming } from "@/lib/dossier-parser";
 import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type ParsedBreakdown, type BreakdownSection } from "@/lib/motivatie-parser";
 import { vindRedenering } from "@/lib/component-redeneringen";
+import { vindKnownBreakdown, type KnownSection } from "@/lib/known-breakdowns";
 import { NotitieVoorClaude } from "./NotitieVoorClaude";
+
+// Map een hardcoded KnownSection naar de BreakdownSection-shape die
+// BreakdownTabel begrijpt. Gebruikt als fallback wanneer parseBreakdown geen
+// netjes-aansluitende uitsplitsing uit de tekst kan halen.
+function knownSectionAlsBreakdown(
+  k: KnownSection,
+  label: "eenmalig" | "structureel",
+): BreakdownSection {
+  const subComponenten = k.subComponenten.map((c) => ({
+    naam: c.naam,
+    bedragLow: c.bedragLow,
+    bedragHigh: c.bedragHigh,
+    bedragRaw: `€${c.bedragLow}–€${c.bedragHigh}`,
+    isPerJaar: c.isPerJaar,
+    vanafJaar: null,
+    formule: null,
+    rauwFragment: c.naam,
+  }));
+  const somSubsLow = subComponenten.reduce((s, c) => s + c.bedragLow, 0);
+  const somSubsHigh = subComponenten.reduce((s, c) => s + c.bedragHigh, 0);
+  return {
+    label,
+    hoofdtotaalLow: k.hoofdtotaalLow,
+    hoofdtotaalHigh: k.hoofdtotaalHigh,
+    subComponenten,
+    somSubsLow,
+    somSubsHigh,
+    bufferLow: k.hoofdtotaalLow - somSubsLow,
+    bufferHigh: k.hoofdtotaalHigh - somSubsHigh,
+    sluitNetjesAan: true,
+    rauwTekst: "",
+    bufferContext: null,
+  };
+}
 
 // ============================================================================
 // Helpers
@@ -746,6 +781,7 @@ function InspanningKeten({
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm leading-relaxed text-gray-700">
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
+                <PMBufferDisclaimer tekst={kostenramingTekst} />
                 <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" inspanningTitel={insp.inspanningTitel} />
                 <ParserOutputPaneel parsed={parsed} />
               </>
@@ -796,6 +832,34 @@ function InspanningKeten({
         </SubSectie>
       </div>
     </details>
+  );
+}
+
+function PMBufferDisclaimer({ tekst }: { tekst: string }) {
+  // Detecteert vermeldingen van een "PM-buffer" of "worst-case plafond" in
+  // de kostenraming-tekst. Het dossier benoemt soms een buffer (typisch
+  // 30%) als afhankelijkheids-disclaimer voor open vraagstukken (bv.
+  // platformkeuze, juridische ontvlechting). Dat is bewust GEEN onderdeel
+  // van de scenariobedragen — de programma-brede post onvoorzien vangt
+  // bandbreedte op. Hier maken we expliciet dat het puur informatief is.
+  const heeftPMBuffer = /pm.?buffer|worst.?case\s*plafond/i.test(tekst);
+  if (!heeftPMBuffer) return null;
+  return (
+    <div className="rounded-lg border-2 border-blue-300 bg-blue-50 p-3 text-xs text-blue-900 leading-relaxed">
+      <p className="font-semibold mb-1">
+        Let op — de PM-buffer en het worst-case plafond uit de tekst hierboven
+        zitten <em>niet</em> in de scenariobedragen.
+      </p>
+      <p>
+        De buffer is een afhankelijkheids-toelichting in het dossier voor
+        situaties waarin een externe factor (bv. juridisch-technische
+        ontvlechting van Stichting Cito of de definitieve platformkeuze) nog
+        open is. Eventuele bandbreedte wordt programma-breed opgevangen via
+        de aparte post onvoorzien (zie B). Als die externe factoren anders
+        uitvallen — bijvoorbeeld als de Stichting meebetaalt — verandert de
+        raming alsnog en wordt deze opnieuw opgesteld.
+      </p>
+    </div>
   );
 }
 
@@ -888,24 +952,45 @@ function BreakdownPaneel({
   inspanningTitel: string;
 }) {
   const parsed: ParsedBreakdown = useMemo(() => parseBreakdown(tekst), [tekst]);
-  if (parsed.unparsed) return null;
 
-  const eenmaligToon = parsed.eenmalig?.sluitNetjesAan && parsed.eenmalig.subComponenten.length >= 2;
-  const structureelToon = parsed.structureel?.sluitNetjesAan && parsed.structureel.subComponenten.length >= 2;
-  if (!eenmaligToon && !structureelToon) return null;
+  // Fallback: hardcoded known-breakdown wanneer de parser de motivatie-tekst
+  // niet als netjes-aansluitende uitsplitsing kan herkennen (bv. comma-
+  // gescheiden componenten binnen één haakjes-blok). Alleen toegepast op de
+  // motivatie — kostenraming-tekst proberen we letterlijk te tonen zoals
+  // hij staat.
+  const known = bron === "motivatie" ? vindKnownBreakdown(inspanningTitel) : null;
 
-  const bronLabel = bron === "kostenraming" ? "uit de kostenraming-tekst" : "uit de motivatie";
+  const parsedEenmaligToon = !parsed.unparsed && parsed.eenmalig?.sluitNetjesAan && parsed.eenmalig.subComponenten.length >= 2;
+  const parsedStructureelToon = !parsed.unparsed && parsed.structureel?.sluitNetjesAan && parsed.structureel.subComponenten.length >= 2;
+
+  const eenmaligSection: BreakdownSection | null =
+    parsedEenmaligToon && parsed.eenmalig
+      ? parsed.eenmalig
+      : known?.eenmalig
+      ? knownSectionAlsBreakdown(known.eenmalig, "eenmalig")
+      : null;
+
+  const structureelSection: BreakdownSection | null =
+    parsedStructureelToon && parsed.structureel
+      ? parsed.structureel
+      : known?.structureel
+      ? knownSectionAlsBreakdown(known.structureel, "structureel")
+      : null;
+
+  if (!eenmaligSection && !structureelSection) return null;
+
+  const bronLabel = bron === "kostenraming" ? "uit de kostenraming-tekst" : "uit de motivatie + plausibele uitsplitsing";
 
   return (
     <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50/40 p-4 space-y-3">
       <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-900">
         Uitsplitsing per component ({bronLabel})
       </p>
-      {eenmaligToon && parsed.eenmalig && (
-        <BreakdownTabel section={parsed.eenmalig} inspanningTitel={inspanningTitel} />
+      {eenmaligSection && (
+        <BreakdownTabel section={eenmaligSection} inspanningTitel={inspanningTitel} />
       )}
-      {structureelToon && parsed.structureel && (
-        <BreakdownTabel section={parsed.structureel} inspanningTitel={inspanningTitel} />
+      {structureelSection && (
+        <BreakdownTabel section={structureelSection} inspanningTitel={inspanningTitel} />
       )}
     </div>
   );

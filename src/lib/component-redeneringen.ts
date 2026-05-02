@@ -98,6 +98,30 @@ export const COMPONENT_REDENERINGEN: ComponentRedenering[] = [
     tariefBron: "Methodiek-licenties (BiSL Foundation, Lean Six Sigma): publieke prijslijst € 2,5K–5K per organisatie-licentie. Content-ontwerper NL: € 700/dag (ZZP-tarief medior)",
     aantalBron: "Cito-specifieke aanpassingen: casuïstiek + werkvormen voor 3 sectoren = 4–7 dagen contentwerk",
   },
+  // Structurele componenten Uniforme klantbenadering — uit motivatie-tekst:
+  // €12K proceseigenaarschap-borging + €10K governance-instrumentarium +
+  // €6K sectorvariatie-buffer per jaar.
+  {
+    inspanningMatch: "uniforme",
+    componentMatch: "proceseigenaarschap",
+    berekening: "Borging via bestaande Smartprocess-tooling (geen separate licentiekost) + 2–3 dagen/maand procesconsultant-ondersteuning × € 700–850/dag = € 10K–€ 15K/jaar",
+    tariefBron: "Smartprocess (BPM-tooling) zit al in Cito-stack — geen extra licentie. Procesconsultant senior NL: € 700–850/dag (Berenschot-benchmark)",
+    aantalBron: "Continuïteits-tijd voor 3 sectoren proceseigenaren bij elkaar: ~24–36 dagen/jaar externe ondersteuning",
+  },
+  {
+    inspanningMatch: "uniforme",
+    componentMatch: "governance",
+    berekening: "Onderhoud KPI-template + integratie-format CRM: 12–15 dagen/jaar × € 700–850/dag procesconsultant = € 8K–€ 12K/jaar",
+    tariefBron: "Procesconsultant senior NL: € 700–850/dag. Werk omvat KPI-rapportage-update, integratie-format met CRM-dashboard en governance-bijeenkomsten 4×/jaar.",
+    aantalBron: "Cross-sectorale governance-cyclus: kwartaal-evaluatie 4 dagen + jaarlijkse herijking 6 dagen + ad-hoc 4 dagen = 12–15 dagen/jr",
+  },
+  {
+    inspanningMatch: "uniforme",
+    componentMatch: "sectorvariatie",
+    berekening: "10% herbewerkingsrisico over € 60K/jr werkstroom = € 6K/jr buffer voor late funneldefinitie-besluiten",
+    tariefBron: "Standaard projectbuffer 10% bij processen waar definitie-besluiten gefaseerd worden vastgesteld (industry best-practice voor governance-implementaties)",
+    aantalBron: "Toepassing: per sector waar funneldefinitie nog kan wijzigen (PO, VO, Zakelijk) = 3 risicovelden",
+  },
   // ─────────────────────────────────────────────────────────────────────
   // GESPREKSVAARDIGHEIDSTRAINING — 80 deelnemers (uit Stap 7), 2 blokken,
   // 12 interne train-de-trainer-deelnemers, schaalvoordeel 30%
@@ -133,9 +157,30 @@ export const COMPONENT_REDENERINGEN: ComponentRedenering[] = [
   {
     inspanningMatch: "gesprek",
     componentMatch: "kerntraject",
-    berekening: "2 trainingsblokken × € 31,5K (10 dagen × € 2.500 per blok + materialen) + sessieondersteuning, locatie, materialen € 17K = € 80K voor 80 deelnemers",
-    tariefBron: "Externe trainingspartner gespecialiseerd outside-in: € 2.500/dag (NL-marktprijs voor B2B-training senior-trainer met onderwijs-context)",
+    berekening: "2 trainingsblokken × € 31,5K (10 dagen × € 2.500 per blok) = € 63K voor 80 deelnemers (basistraining + vaardigheidsverdieping)",
+    tariefBron: "Externe trainingspartner gespecialiseerd outside-in: € 2.500/dag (NL-marktprijs voor B2B-training senior-trainer met onderwijs-context, Berenschot/Pentapower-benchmark)",
     aantalBron: "2 blokken (basistraining + vaardigheidsverdieping); 80 deelnemers in groepen van ~10",
+  },
+  {
+    inspanningMatch: "gesprek",
+    componentMatch: "sessieondersteuning",
+    berekening: "Locatie € 5K (4–6 sessiedagen × € 800–1.000/dag) + materialen € 5K (workbooks, casuïstiek-kaarten 80 deelnemers × € 60) + interne coördinatie 8 dagen × € 850/dag = € 17K",
+    tariefBron: "Locatiehuur grote zaal Cito-omgeving of externe locatie: € 800–1.000/dag (TUF/Hotel Postillion/De Reehorst-tarieven 2026). Materialen: workbook + casuïstiek-set per deelnemer = € 50–70.",
+    aantalBron: "4–6 plenaire sessiedagen voor 80 deelnemers in groepen van 10 (twee blokken). Coördinatie: 8 dagen interne adviseur voor planning, opvang, evaluatie.",
+  },
+  {
+    inspanningMatch: "gesprek",
+    componentMatch: "refresh",
+    berekening: "Halfdaagse refresh-sessie 3–4×/jaar voor cohorten van 20 deelnemers × € 4K per sessie all-in = € 12K–€ 18K/jaar",
+    tariefBron: "Externe trainer halve dag inclusief reskilling-content + materialen + locatie: € 3.500–4.500 per sessie (NL-trainingsmarktprijs voor herhaalsessies)",
+    aantalBron: "Verzwaard inzetten vanaf jaar 4 (na de twee basis-blokken) om verworven gespreksvaardigheid te verankeren — 3–4 sessies/jaar verdeeld over 80 deelnemers",
+  },
+  {
+    inspanningMatch: "gesprek",
+    componentMatch: "onboarding",
+    berekening: "Geschatte instroom 8–12 nieuwe medewerkers/jaar × € 400–600 micro-leertraject (mix LMS + 1 dag begeleiding) = € 3K–€ 7K/jaar",
+    tariefBron: "Micro-leertraject: 4 LMS-modules (zit in licentie) + 1 begeleidingsdag externe trainer ÷ groep van 6–8 nieuwe medewerkers = € 400–600 per persoon",
+    aantalBron: "Cito jaarlijkse instroom in betrokken sectoren ~10% van 80 = 8 nieuwe medewerkers/jaar (HR-benchmark Cito-typische turnover)",
   },
   // ─────────────────────────────────────────────────────────────────────
   // LEIDERSCHAP — 9 leidinggevenden + 2 HR coördinerend, executive-tarief
