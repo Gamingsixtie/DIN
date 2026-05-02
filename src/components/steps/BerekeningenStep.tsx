@@ -5,6 +5,7 @@ import { useSession } from "@/lib/session-context";
 import type { DINSession, BegrotingAdvies, Stap4Result, BegrotingScenario, InspanningBegroting } from "@/lib/types";
 import { parseDossierRaming, type ParsedDossierRaming } from "@/lib/dossier-parser";
 import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type ParsedBreakdown, type BreakdownSection } from "@/lib/motivatie-parser";
+import { vindRedenering } from "@/lib/component-redeneringen";
 
 // ============================================================================
 // Helpers
@@ -739,7 +740,7 @@ function InspanningKeten({
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm leading-relaxed text-gray-700">
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
-                <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" />
+                <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" inspanningTitel={insp.inspanningTitel} />
                 <ParserOutputPaneel
                   parsed={parsed}
                   structureleJaren={structureleJaren}
@@ -761,7 +762,7 @@ function InspanningKeten({
           nummer={isOverig ? "C1" : "C2"}
           titel={isOverig ? "Onderbouwing van de post" : "Motivatie & onderbouwing — hoe komt het bedrag tot stand?"}
         >
-          <MotivatiePaneel motivatie={insp.motivatie} />
+          <MotivatiePaneel motivatie={insp.motivatie} inspanningTitel={insp.inspanningTitel} />
         </SubSectie>
 
         {/* C3: Berekening dossier-totaal voor dit scenario */}
@@ -902,7 +903,7 @@ function ParserOutputPaneel({
   );
 }
 
-function MotivatiePaneel({ motivatie }: { motivatie: string }) {
+function MotivatiePaneel({ motivatie, inspanningTitel }: { motivatie: string; inspanningTitel: string }) {
   if (!motivatie?.trim()) {
     return <p className="text-xs text-gray-500 italic">Geen motivatie beschikbaar.</p>;
   }
@@ -924,7 +925,7 @@ function MotivatiePaneel({ motivatie }: { motivatie: string }) {
               <TekstMetEuroHighlights tekst={onderbouwing} />
             </div>
           </div>
-          <BreakdownPaneel tekst={onderbouwing} bron="motivatie" />
+          <BreakdownPaneel tekst={onderbouwing} bron="motivatie" inspanningTitel={inspanningTitel} />
         </>
       )}
     </div>
@@ -940,7 +941,15 @@ function MotivatiePaneel({ motivatie }: { motivatie: string }) {
 // netjes-aansluitende uitsplitsing oplevert (zodat we geen verkeerde tabel
 // tonen wanneer de tekst geen duidelijke breakdown heeft).
 
-function BreakdownPaneel({ tekst, bron }: { tekst: string; bron: "kostenraming" | "motivatie" }) {
+function BreakdownPaneel({
+  tekst,
+  bron,
+  inspanningTitel,
+}: {
+  tekst: string;
+  bron: "kostenraming" | "motivatie";
+  inspanningTitel: string;
+}) {
   const parsed: ParsedBreakdown = useMemo(() => parseBreakdown(tekst), [tekst]);
   if (parsed.unparsed) return null;
 
@@ -956,16 +965,22 @@ function BreakdownPaneel({ tekst, bron }: { tekst: string; bron: "kostenraming" 
         Uitsplitsing per component ({bronLabel})
       </p>
       {eenmaligToon && parsed.eenmalig && (
-        <BreakdownTabel section={parsed.eenmalig} />
+        <BreakdownTabel section={parsed.eenmalig} inspanningTitel={inspanningTitel} />
       )}
       {structureelToon && parsed.structureel && (
-        <BreakdownTabel section={parsed.structureel} />
+        <BreakdownTabel section={parsed.structureel} inspanningTitel={inspanningTitel} />
       )}
     </div>
   );
 }
 
-function BreakdownTabel({ section }: { section: BreakdownSection }) {
+function BreakdownTabel({
+  section,
+  inspanningTitel,
+}: {
+  section: BreakdownSection;
+  inspanningTitel: string;
+}) {
   const eenheid = section.label === "structureel" ? "/jr" : "";
   const titel = section.label === "structureel" ? "Structureel per jaar" : "Eenmalig";
 
@@ -973,9 +988,6 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
     if (low === high) return formatEur(low);
     return `${formatEur(low)} – ${formatEur(high)}`;
   }
-
-  const bufferGroot = section.bufferLow > 0 || section.bufferHigh > 0;
-  const bufferKlein = Math.abs(section.bufferLow) < 5000 && Math.abs(section.bufferHigh) < 5000;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -993,73 +1005,54 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
           </tr>
         </thead>
         <tbody>
-          {section.subComponenten.map((c, i) => (
-            <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50 align-top">
-              <td className="px-3 py-1.5 text-gray-800">
-                <div>{c.naam}</div>
-                {c.formule && (
-                  <div className="text-[11px] text-blue-700 font-mono mt-0.5">
-                    Berekening: {c.formule}
-                  </div>
-                )}
-                {c.vanafJaar !== null && (
-                  <div className="text-[10px] text-gray-500 mt-0.5">
-                    Loopt vanaf jaar {c.vanafJaar}
-                  </div>
-                )}
-              </td>
-              <td className="px-3 py-1.5 text-right font-mono text-gray-700 whitespace-nowrap">
-                {fmtRange(c.bedragLow, c.bedragHigh)}{eenheid}
-              </td>
-            </tr>
-          ))}
+          {section.subComponenten.map((c, i) => {
+            const redenering = vindRedenering(inspanningTitel, c.naam);
+            const berekeningTekst = c.formule ?? redenering?.berekening ?? null;
+            return (
+              <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50 align-top">
+                <td className="px-3 py-2 text-gray-800">
+                  <div className="font-medium">{c.naam}</div>
+                  {berekeningTekst && (
+                    <div className="text-[11px] text-blue-700 mt-1 leading-relaxed">
+                      <span className="font-semibold">Berekening:</span> {berekeningTekst}
+                    </div>
+                  )}
+                  {redenering?.tariefBron && (
+                    <div className="text-[10px] text-gray-500 mt-0.5 italic leading-relaxed">
+                      <span className="not-italic font-semibold">Tarief-bron:</span> {redenering.tariefBron}
+                    </div>
+                  )}
+                  {redenering?.aantalBron && (
+                    <div className="text-[10px] text-gray-500 mt-0.5 italic leading-relaxed">
+                      <span className="not-italic font-semibold">Aantal-bron:</span> {redenering.aantalBron}
+                    </div>
+                  )}
+                  {c.vanafJaar !== null && (
+                    <div className="text-[10px] text-gray-500 mt-0.5">
+                      Loopt vanaf jaar {c.vanafJaar}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right font-mono text-gray-700 whitespace-nowrap">
+                  {fmtRange(c.bedragLow, c.bedragHigh)}{eenheid}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
-          <tr className="bg-gray-50 border-t-2 border-gray-300">
-            <td className="px-3 py-1.5 text-right font-semibold text-gray-700">Totaal onderdelen</td>
-            <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
-              {fmtRange(section.somSubsLow, section.somSubsHigh)}{eenheid}
-            </td>
-          </tr>
-          {!bufferKlein && bufferGroot && (
-            <tr className="bg-gray-50/60">
-              <td className="px-3 py-1.5 text-right text-gray-700 italic">
-                {section.bufferContext ? "+ buffer (uit bron-tekst)" : "+ afrondingsmarge bandbreedtes"}
-              </td>
-              <td className="px-3 py-1.5 text-right font-mono text-gray-700">
-                {fmtRange(section.bufferLow, section.bufferHigh)}{eenheid}
-              </td>
-            </tr>
-          )}
-          <tr className="bg-emerald-50/60 border-t border-emerald-200">
-            <td className="px-3 py-1.5 text-right font-bold text-emerald-900">= Hoofdtotaal</td>
+          <tr className="bg-emerald-50/60 border-t-2 border-emerald-200">
+            <td className="px-3 py-1.5 text-right font-bold text-emerald-900">Hoofdtotaal</td>
             <td className="px-3 py-1.5 text-right font-mono font-bold text-emerald-900">
               {fmtRange(section.hoofdtotaalLow, section.hoofdtotaalHigh)}{eenheid}
-              <span className="ml-1">✓</span>
             </td>
           </tr>
         </tfoot>
       </table>
-      {!bufferKlein && bufferGroot && (
-        <p className="text-[11px] text-gray-600 px-3 py-2 border-t border-gray-100 leading-relaxed">
-          {section.bufferContext ? (
-            <>
-              <strong>Letterlijk uit de bron-tekst:</strong>{" "}
-              <span className="italic">&ldquo;{section.bufferContext}&rdquo;</span>. Deze buffer is in
-              het hoofdtotaal opgenomen om onzekerheid op te vangen. De{" "}
-              <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
-              apart als <strong>Post onvoorzien (programma-breed)</strong> in de begroting.
-            </>
-          ) : (
-            <>
-              Het verschil tussen het totaal van de onderdelen en het hoofdtotaal komt door afronding
-              op de bandbreedtes per component (bv. €5K-€10K voor materialen). De{" "}
-              <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
-              apart als <strong>Post onvoorzien (programma-breed)</strong> in de begroting.
-            </>
-          )}
-        </p>
-      )}
+      {/* Buffer-/afrondingsmarge-rij + footnote zijn weggehaald op verzoek
+          (te verwarrend). De directeur ziet hoofdtotaal + componenten;
+          eventuele kleine afronding-verschillen tussen componenten en
+          hoofdtotaal hoeven hier niet expliciet zichtbaar te zijn. */}
     </div>
   );
 }

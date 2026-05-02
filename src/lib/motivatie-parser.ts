@@ -249,12 +249,8 @@ function knipContext(rawNaam: string): string {
     if (n === before) break;
   }
   n = n.replace(/[,;:.\s—–-]+$/, "").trim();
-  if (n.length > 80) {
-    // Knip op laatste woord-grens binnen 80 chars
-    const cut = n.slice(0, 80);
-    const lastSpace = cut.lastIndexOf(" ");
-    return (lastSpace > 40 ? cut.slice(0, lastSpace) : cut) + "…";
-  }
+  // Geen afkapping meer — directeur wil de hele naam zien, niet "training en
+  // adoptie-begeleiding voor 85 medewerkers inclusief externe…".
   return n;
 }
 
