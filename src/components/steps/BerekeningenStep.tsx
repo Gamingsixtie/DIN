@@ -165,18 +165,21 @@ function Header({ begroting }: { begroting?: BegrotingAdvies }) {
       <div className="text-[10px] uppercase tracking-[0.25em] text-blue-200 mb-2">
         Stap 8 — Audit van de begroting
       </div>
-      <h2 className="text-2xl font-bold mb-2">Hoe komen we aan de bedragen in §4.1?</h2>
+      <h2 className="text-2xl font-bold mb-2">Hoe komen we aan de bedragen in de begroting?</h2>
       <p className="text-sm text-blue-100 leading-relaxed max-w-3xl">
-        Deze pagina is een <strong>afspiegeling van het begrotingadvies in Stap 6</strong>. Voor elk
-        scenario zie je hoe het jaarbudget-plafond is bepaald, hoe het scenario-totaal is opgebouwd,
-        hoe het bedrag per inspanning ontstaat (vanuit de kostenraming uit het dossier en de motivatie),
-        hoe het over de jaren is verdeeld en welke automatische aanpassingen zijn toegepast om
-        binnen de jaargrenzen te passen.
+        Deze pagina laat per scenario zien hoe de begroting is opgebouwd:
       </p>
+      <ul className="text-sm text-blue-100 leading-relaxed list-disc ml-5 mt-2 space-y-0.5">
+        <li>hoe het jaarbudget-plafond is bepaald;</li>
+        <li>hoe het scenario-totaal is opgebouwd uit de afzonderlijke inspanningen;</li>
+        <li>hoe het bedrag per inspanning ontstaat (uit de kostenraming en motivatie in het dossier);</li>
+        <li>hoe het over de jaren is verdeeld;</li>
+        <li>welke automatische aanpassingen zijn toegepast om binnen de jaargrenzen te passen.</li>
+      </ul>
       {begroting && (
         <p className="text-xs text-blue-200/80 mt-3">
           Startjaar: <strong className="text-white">{begroting.startJaar}</strong> ·
-          Cito-norm jaarbudget (basis): <strong className="text-white">{formatEur(begroting.jaarlijksBudgetBasis)}</strong> ·
+          Jaarbudget volgens Cito-richtlijn: <strong className="text-white">{formatEur(begroting.jaarlijksBudgetBasis)}</strong> ·
           Cyclus: <strong className="text-white">{begroting.cyclusMaanden} maanden</strong>
         </p>
       )}
@@ -202,7 +205,7 @@ function GeenBegrotingPlaceholder() {
 
 function Begrippenlijst() {
   const items: Array<{ term: string; uitleg: string }> = [
-    { term: "Jaarbudget-plafond (cap)", uitleg: "Het maximale bedrag dat per jaar uitgegeven mag worden voor het programma." },
+    { term: "Jaarbudget-plafond", uitleg: "Het maximale bedrag dat per jaar uitgegeven mag worden voor het programma." },
     { term: "Eenmalig", uitleg: "Kosten die je één keer maakt: implementatie, opzet, opleiding, eerste licenties." },
     { term: "Structureel", uitleg: "Terugkerende jaarlijkse last: licenties, beheer, doorontwikkeling, borging." },
     { term: "Optelling", uitleg: "Bedragen van afzonderlijke componenten bij elkaar opgeteld om het hoofdtotaal te krijgen." },
@@ -210,7 +213,7 @@ function Begrippenlijst() {
     { term: "Lifecycle-curve", uitleg: "Hoe de uitgaven zich over de jaren verdelen. IT: piek in realisatie. Training: piek in vaardigheidstraining. Cultuur: lange staart voor verankering." },
     { term: "Scenario", uitleg: "Een keuze in tempo: hetzelfde programma over 4, 5, 7 of 10 jaar — andere doorlooptijd, andere piek per jaar, andere cumulatieve last." },
     { term: "Dossier-totaal", uitleg: "Het bedrag dat uit de oorspronkelijke kostenraming in het dossier volgt: eenmalige investering plus structurele last × aantal jaren." },
-    { term: "Aanpassing tijdens optimalisatie", uitleg: "Wanneer het werkelijke scenario-bedrag afwijkt van het dossier-totaal: meestal door aftrek van interne uren (die staan in §4.2) of door verfijningen in de motivatie van de business case." },
+    { term: "Aanpassing tijdens optimalisatie", uitleg: "Wanneer het werkelijke bedrag afwijkt van het dossier-bedrag — meestal omdat interne uren apart worden geboekt in de paragraaf interne uren." },
   ];
   return (
     <details className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -249,7 +252,7 @@ function MinMidMaxToelichting() {
             <span className="text-gray-700">— gunstige aannames</span>
           </p>
           <p className="text-[11px] text-gray-600 mt-1">
-            Ondergrens: minimum aantal uren / kleinste schaling / scherpste schaalvoordelen volledig benut.
+            Ondergrens: minimum aantal uren / kleinste schaling / maximale schaalvoordelen meegenomen.
           </p>
         </div>
         <div className="rounded bg-white border-2 border-[#003366] px-3 py-2">
@@ -258,7 +261,7 @@ function MinMidMaxToelichting() {
             <span className="text-gray-700">— middenwaarde (gehanteerd)</span>
           </p>
           <p className="text-[11px] text-gray-600 mt-1">
-            <strong>Dit bedrag wordt gebruikt in alle scenario&apos;s</strong> en in §4.1 begroting.
+            <strong>Dit bedrag wordt gebruikt in alle scenario&apos;s</strong> en in de begroting.
             De centrale schatting waarop de stuurgroep akkoord geeft.
           </p>
         </div>
@@ -268,7 +271,7 @@ function MinMidMaxToelichting() {
             <span className="text-gray-700">— ongunstige aannames</span>
           </p>
           <p className="text-[11px] text-gray-600 mt-1">
-            Bovengrens: ruimere uren / grotere schaling. Delta Max−Mid is wat de risico-buffer dekt.
+            Bovengrens: ruimere uren / grotere schaling. Het verschil tussen Max en Mid is wat de risico-buffer afdekt.
           </p>
         </div>
       </div>
@@ -324,7 +327,7 @@ function ScenarioPicker({
                 {formatEurMln(s?.totaalGeraamdEuro ?? 0)}
               </div>
               <div className="text-[11px] text-gray-500 mt-0.5">
-                {s?.aantalJaren ?? 0} jaar · max/jr {formatEurMln(s?.jaarlijksBudgetEuro ?? 0)}
+                {s?.aantalJaren ?? 0} jaar · max per jaar {formatEurMln(s?.jaarlijksBudgetEuro ?? 0)}
               </div>
             </button>
           );
@@ -494,7 +497,7 @@ function SectieA({
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Stat label="Jaarbudget-plafond (cap)" value={formatEur(cap)} sub="per jaar" mono />
+          <Stat label="Jaarbudget-plafond" value={formatEur(cap)} sub="per jaar" mono />
           <Stat
             label="Aantal jaren"
             value={`${aantalJaren} jaar`}
@@ -513,7 +516,7 @@ function SectieA({
               {scenarioKey === "advies" ? (
                 <>Het kortste haalbare scenario binnen 3 tot 5 jaar dat alle dossier-totalen kan dekken binnen het jaarbudget. De rekenkundige uitkomst kan een fractie zijn (bijvoorbeeld 3,5 jaar); deze wordt naar boven afgerond naar hele jaren omdat planning in hele jaren werkt. Resultaat voor dit scenario: <strong>{aantalJaren} jaar</strong>.</>
               ) : (
-                <>Berekend als minimum aantal jaren waarop alle dossier-totalen (eenmalig + structureel × jaren) passen binnen het jaarlijkse plafond. Hoe groter de dossier-mids en/of hoe kleiner de cap, des te meer jaren nodig. Resultaat: <strong>{aantalJaren} jaar</strong>.</>
+                <>Berekend als minimum aantal jaren waarop alle dossier-totalen (eenmalig + structureel × jaren) passen binnen het jaarlijkse plafond. Hoe groter de geraamde middenwaarden en/of hoe kleiner het plafond, des te meer jaren nodig. Resultaat: <strong>{aantalJaren} jaar</strong>.</>
               )}
             </p>
           </div>
@@ -568,7 +571,7 @@ function SectieB({
       <SectieKop
         nummer="B"
         titel="Optelling: scenario-totaal opbouw"
-        hint="Tel alle inspanningen op, gesorteerd op prioriteit (rank). Moet exact het scenario-totaal zijn."
+        hint="Tel alle inspanningen op, gesorteerd op prioriteit. Moet exact het scenario-totaal zijn."
       />
       <div className="space-y-2">
         {sortedByRank.map((insp, idx) => (
@@ -580,16 +583,16 @@ function SectieB({
           />
         ))}
         <div className="border-t-2 border-[#003366] pt-2 mt-3 flex items-center justify-between font-mono text-sm">
-          <span className="font-semibold text-gray-700">Σ alle inspanningen</span>
+          <span className="font-semibold text-gray-700">Totaal alle inspanningen</span>
           <span className="font-bold text-[#003366]">{formatEur(sumInspanningen)}</span>
         </div>
         <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Scenario-totaal (zoals opgeslagen)</span>
+          <span>Scenario-totaal (referentie)</span>
           <span className="font-mono">{formatEur(totaalScenario)}</span>
         </div>
         {!matchOk && (
           <div className="rounded bg-red-50 border border-red-200 p-2 text-xs text-red-800">
-            ⚠ Verschil van {formatEur(Math.abs(sumInspanningen - totaalScenario))} — buiten tolerantie ({formatEur(tol)}).
+            ⚠ Verschil van {formatEur(Math.abs(sumInspanningen - totaalScenario))} — groter dan de toegestane afwijking ({formatEur(tol)}).
           </div>
         )}
       </div>
@@ -826,7 +829,7 @@ function InspanningKeten({
             )}
             {isOverig && (
               <p className="text-xs text-gray-600 italic mt-1">
-                Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (~10% van basisraming, behalve bij min20 waar cap-headroom de buffer naar nul dwingt).
+                Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is).
               </p>
             )}
           </div>
@@ -836,7 +839,7 @@ function InspanningKeten({
         <SubSectie
           nummer={isOverig ? "C3" : "C5"}
           titel="Verdeling per jaar"
-          hint="Hoe is het inspanning-totaal over de jaren verdeeld? Per cell: bedrag, fase, percentage."
+          hint="Hoe is het inspanning-totaal over de jaren verdeeld? Per regel: bedrag, fase, percentage."
         >
           <VerdelingPerJaarTabel insp={insp} startJaar={startJaar} aantalJaren={aantalJaren} />
         </SubSectie>
@@ -867,7 +870,7 @@ function ParserOutputPaneel({
   }
   return (
     <div className="rounded border border-gray-200 bg-white p-3 text-xs">
-      <p className="font-semibold text-gray-700 mb-2">Wat de tekstparser eruit haalt (basis voor scenario-berekening):</p>
+      <p className="font-semibold text-gray-700 mb-2">Samenvatting van bovenstaande tekst (basis voor scenario-berekening):</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-gray-500">Eenmalig</p>
@@ -893,7 +896,7 @@ function ParserOutputPaneel({
       <p className="text-[11px] text-gray-500 mt-3 pt-2 border-t border-gray-100">
         Voor dit scenario van <strong>{aantalJaren} jaar</strong> ({structureleJaren} structurele jaren):
         Dossier-totaal <strong className="text-gray-700">{formatEur(doelTotaal)}</strong>,
-        Min-grens <strong className="text-gray-700">{formatEur(minTotaal)}</strong>.
+        Ondergrens <strong className="text-gray-700">{formatEur(minTotaal)}</strong>.
       </p>
     </div>
   );
@@ -1013,7 +1016,7 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
         </tbody>
         <tfoot>
           <tr className="bg-gray-50 border-t-2 border-gray-300">
-            <td className="px-3 py-1.5 text-right font-semibold text-gray-700">Σ componenten</td>
+            <td className="px-3 py-1.5 text-right font-semibold text-gray-700">Totaal onderdelen</td>
             <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
               {fmtRange(section.somSubsLow, section.somSubsHigh)}{eenheid}
             </td>
@@ -1045,14 +1048,14 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
               <span className="italic">&ldquo;{section.bufferContext}&rdquo;</span>. Deze buffer is in
               het hoofdtotaal opgenomen om onzekerheid op te vangen. De{" "}
               <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
-              apart als <strong>Post onvoorzien (programma-breed)</strong> in §4.1.
+              apart als <strong>Post onvoorzien (programma-breed)</strong> in de begroting.
             </>
           ) : (
             <>
-              Het verschil tussen Σ componenten en het hoofdtotaal komt door afronding op de
-              bandbreedtes per component (bv. €5K-€10K voor materialen). De{" "}
+              Het verschil tussen het totaal van de onderdelen en het hoofdtotaal komt door afronding
+              op de bandbreedtes per component (bv. €5K-€10K voor materialen). De{" "}
               <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
-              apart als <strong>Post onvoorzien (programma-breed)</strong> in §4.1.
+              apart als <strong>Post onvoorzien (programma-breed)</strong> in de begroting.
             </>
           )}
         </p>
@@ -1094,11 +1097,11 @@ function DriftVerklaring({ drift, domein }: { drift: number; domein: string }) {
   let uitleg: string;
   if (drift < 0) {
     if (domein === "data_systemen") {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Meest waarschijnlijke oorzaak: interne capaciteits­kosten (bijvoorbeeld CRM ~1.466 uur × €74) zijn afgetrokken — die staan in §4.2 Interne uren, niet in deze out-of-pocket-raming.";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Meest waarschijnlijke oorzaak: interne uren van eigen medewerkers zijn afgetrokken — die worden apart geboekt in de paragraaf interne uren, niet in deze raming van de externe kosten.";
     } else if (domein === "processen") {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Vermoedelijk afgetrokken: interne werkgroep- en proceseigenaarschap-uren — die staan in §4.2 Interne uren.";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Vermoedelijk afgetrokken: interne werkgroep- en proceseigenaarschap-uren — die staan apart in de paragraaf interne uren.";
     } else {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal — vermoedelijk door aftrek van interne uren (zie §4.2) of een aanpassing tijdens de scenario-optimalisatie.";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal — vermoedelijk door aftrek van interne uren (die staan apart in de paragraaf interne uren) of een aanpassing tijdens de scenario-optimalisatie.";
     }
   } else {
     if (domein === "cultuur") {
@@ -1133,7 +1136,7 @@ function VerdelingPerJaarTabel({
             <th className="px-3 py-2 font-semibold">Jaar</th>
             <th className="px-3 py-2 font-semibold">Fase</th>
             <th className="px-3 py-2 font-semibold text-right">Bedrag</th>
-            <th className="px-3 py-2 font-semibold text-right">% v. inspanning</th>
+            <th className="px-3 py-2 font-semibold text-right">Aandeel</th>
           </tr>
         </thead>
         <tbody>
@@ -1155,7 +1158,7 @@ function VerdelingPerJaarTabel({
         </tbody>
         <tfoot>
           <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold">
-            <td colSpan={2} className="px-3 py-1.5 text-right text-gray-700">Σ over alle jaren</td>
+            <td colSpan={2} className="px-3 py-1.5 text-right text-gray-700">Totaal over alle jaren</td>
             <td className="px-3 py-1.5 text-right font-mono text-[#003366]">{formatEur(sumCells)}</td>
             <td className="px-3 py-1.5 text-right">
               {matchOk ? (
@@ -1175,7 +1178,7 @@ function VerdelingPerJaarTabel({
       {heeftActiviteit && (
         <details className="border-t border-gray-200 px-3 py-2 bg-white">
           <summary className="cursor-pointer text-[11px] text-gray-500 hover:text-gray-700">
-            Activiteit per jaar (uit AI-motivatie)
+            Activiteit per jaar (uit dossier)
           </summary>
           <ul className="mt-1.5 space-y-0.5 text-xs text-gray-600">
             {insp.verdelingPerJaar.filter((v) => v.activiteit).map((v) => (
@@ -1286,7 +1289,7 @@ function SectieD({
                     className={`px-3 py-2 text-right text-xs tabular-nums ${
                       overcap ? "text-red-600 font-bold" : j1MetCitoNorm ? "text-amber-700" : "text-gray-500"
                     }`}
-                    title={j1MetCitoNorm ? "Jaar 1 op Cito-norm €250K (hard, mag boven scenario-cap uitkomen)" : undefined}
+                    title={j1MetCitoNorm ? "Jaar 1 staat vast op de Cito-richtlijn van €250.000 — dit kan in krappe scenario's hoger zijn dan het scenario-plafond." : undefined}
                   >
                     {pct(v, cap)}
                     {overcap && <span className="ml-0.5">⚠</span>}
@@ -1346,7 +1349,7 @@ function SectieE({
         const effectieveCap = t.jaar === startJaar ? Math.max(cap, 250_000) : cap;
         return t.euro <= effectieveCap * 1.001;
       }),
-      uitleg: `Hoogste jaarbedrag: ${formatEur(Math.max(0, ...totalenPerJaar.map((t) => t.euro)))} versus plafond ${formatEur(cap)}. Jaar 1 (${startJaar}) is uitgezonderd: dat staat hard op de Cito-norm van €250.000 — dat kan boven de scenario-cap uitkomen voor min20 (cap €200K).`,
+      uitleg: `Hoogste jaarbedrag: ${formatEur(Math.max(0, ...totalenPerJaar.map((t) => t.euro)))} versus plafond ${formatEur(cap)}. Jaar 1 (${startJaar}) is uitgezonderd: dat staat vast op de Cito-richtlijn van €250.000 — dit kan voor het krappe scenario (plafond €200K) hoger uitkomen dan het scenario-plafond.`,
     },
     {
       label: "Per inspanning klopt de jaarverdeling met het inspanning-totaal",
@@ -1354,7 +1357,7 @@ function SectieE({
         const sum = (insp.verdelingPerJaar ?? []).reduce((s, v) => s + (v.euro ?? 0), 0);
         return Math.abs(sum - (insp.totaalEuro ?? 0)) <= tolerantie(insp.totaalEuro ?? 0);
       }),
-      uitleg: "Voor elke inspanning telt de jaar-verdeling op tot het inspanning-totaal (binnen tolerantie van max(€5.000, 0,5%)).",
+      uitleg: "Voor elke inspanning telt de jaar-verdeling op tot het inspanning-totaal (binnen een afwijking van €5.000 of 0,5% van het bedrag — wat van de twee groter is).",
     },
   ];
   const allOk = checks.every((c) => c.ok);
@@ -1377,7 +1380,7 @@ function SectieE({
             {allOk ? "✓" : "!"}
           </span>
           <span className={`font-semibold ${allOk ? "text-emerald-900" : "text-red-900"}`}>
-            {allOk ? "Alle berekeningen kloppen" : "Discrepantie gevonden — zie details"}
+            {allOk ? "Alle berekeningen kloppen" : "Verschil gevonden — zie details"}
           </span>
         </div>
         <ul className="space-y-2">
