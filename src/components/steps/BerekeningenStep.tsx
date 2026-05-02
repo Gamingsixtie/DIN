@@ -205,11 +205,12 @@ function Begrippenlijst() {
     { term: "Jaarbudget-plafond (cap)", uitleg: "Het maximale bedrag dat per jaar uitgegeven mag worden voor het programma." },
     { term: "Eenmalig", uitleg: "Kosten die je één keer maakt: implementatie, opzet, opleiding, eerste licenties." },
     { term: "Structureel", uitleg: "Terugkerende jaarlijkse last: licenties, beheer, doorontwikkeling, borging." },
-    { term: "Bottom-up", uitleg: "Berekening van onderaf: tel alle componenten op om het totaal te vinden." },
+    { term: "Optelling", uitleg: "Bedragen van afzonderlijke componenten bij elkaar opgeteld om het hoofdtotaal te krijgen." },
     { term: "Min / Mid / Max", uitleg: "Bandbreedte van een raming. Min = gunstige aannames, Mid = middenwaarde (gehanteerd), Max = ongunstige aannames." },
     { term: "Lifecycle-curve", uitleg: "Hoe de uitgaven zich over de jaren verdelen. IT: piek in realisatie. Training: piek in vaardigheidstraining. Cultuur: lange staart voor verankering." },
     { term: "Scenario", uitleg: "Een keuze in tempo: hetzelfde programma over 4, 5, 7 of 10 jaar — andere doorlooptijd, andere piek per jaar, andere cumulatieve last." },
-    { term: "Drift", uitleg: "Verschil tussen wat je 'bottom-up' uit het dossier zou verwachten en het werkelijke scenario-bedrag. Vaak verklaarbaar door interne-uren-aftrek of motivatie-aanvullingen." },
+    { term: "Dossier-totaal", uitleg: "Het bedrag dat uit de oorspronkelijke kostenraming in het dossier volgt: eenmalige investering plus structurele last × aantal jaren." },
+    { term: "Aanpassing tijdens optimalisatie", uitleg: "Wanneer het werkelijke scenario-bedrag afwijkt van het dossier-totaal: meestal door aftrek van interne uren (die staan in §4.2) of door verfijningen in de motivatie van de business case." },
   ];
   return (
     <details className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -528,11 +529,12 @@ function SectieA({
         </div>
 
         <div className="rounded bg-blue-50/50 border border-blue-200 p-3 text-xs text-gray-700 leading-relaxed">
-          <strong className="text-blue-900">Belangrijk om te weten:</strong> het jaarbudget-plafond
-          ({formatEur(cap)}/jr) is geen toezegging dat dit bedrag elk jaar beschikbaar is. Het is een{" "}
-          <strong>maximum</strong>: je kunt niet méér dan dit per jaar uitgeven, en je krijgt alleen
-          wat in deze raming staat. Het scenario is zo opgesteld dat de jaartotalen niet boven dit
-          plafond uitkomen (zie Sectie D).
+          <strong className="text-blue-900">Waarom een uitloop:</strong> we plannen het scenario in
+          hele jaren omdat de praktijk leert dat er altijd onverwachte zaken bij komen — ziekte,
+          ad-hoc urgente prioriteiten, vertraging bij externe partners. Het rekenkundige minimum
+          (bijvoorbeeld 3,5 jaar) wordt daarom naar boven afgerond naar hele jaren ({aantalJaren}{" "}
+          jaar in dit scenario), zodat er ruimte is voor dit soort onvoorzienheden zonder dat het
+          eindresultaat in gevaar komt.
         </div>
       </div>
     </div>
@@ -540,7 +542,7 @@ function SectieA({
 }
 
 // ============================================================================
-// Sectie B — Bottom-up scenario-totaal
+// Sectie B — Optelling van inspanningen tot scenario-totaal
 // ============================================================================
 
 function SectieB({
@@ -565,7 +567,7 @@ function SectieB({
     <div>
       <SectieKop
         nummer="B"
-        titel="Bottom-up: scenario-totaal opbouw"
+        titel="Optelling: scenario-totaal opbouw"
         hint="Tel alle inspanningen op, gesorteerd op prioriteit (rank). Moet exact het scenario-totaal zijn."
       />
       <div className="space-y-2">
@@ -665,7 +667,7 @@ function SectieC({
       <SectieKop
         nummer="C"
         titel="Per inspanning — van dossier tot scenario-bedrag"
-        hint="Voor elke inspanning de complete keten: kostenraming uit dossier → motivatie met componenten → bottom-up berekening → werkelijk in scenario → verdeling per jaar."
+        hint="Voor elke inspanning de complete keten: kostenraming uit dossier → motivatie met componenten → berekening dossier-totaal → werkelijk in scenario → verdeling per jaar."
       />
       <div className="space-y-3">
         {inspanningen.map((insp) => (
@@ -759,12 +761,12 @@ function InspanningKeten({
           <MotivatiePaneel motivatie={insp.motivatie} />
         </SubSectie>
 
-        {/* C3: Bottom-up berekening */}
+        {/* C3: Berekening dossier-totaal voor dit scenario */}
         {!isOverig && parsed.eenmaligMid > 0 && (
           <SubSectie
             nummer="C3"
-            titel="Bottom-up berekening voor dit scenario"
-            hint={`Dossier-mid eenmalig + structureel-mid × ${structureleJaren} structurele jaren (= aantalJaren − 1, want jaar 1 telt als opstart)`}
+            titel="Berekening van het dossier-totaal voor dit scenario"
+            hint={`Eenmalig (mid) + structureel-mid × ${structureleJaren} structurele jaren (= aantal jaren − 1, want jaar 1 is opstart)`}
           >
             <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 font-mono text-sm space-y-1">
               <div className="flex items-baseline justify-between">
@@ -776,22 +778,22 @@ function InspanningKeten({
                 <span>{formatEur(parsed.structureelMidPerJr * structureleJaren)}</span>
               </div>
               <div className="border-t-2 border-gray-300 pt-1 mt-1 flex items-baseline justify-between font-bold text-[#003366]">
-                <span>= Doel-totaal (richtlijn voor AI)</span>
+                <span>= Dossier-totaal voor dit scenario</span>
                 <span>{formatEur(doelTotaalMid)}</span>
               </div>
               <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 font-sans">
                 <p>
-                  De AI moest binnen <strong>[Min {formatEur(minTotaal)}, Doel × 1,05 = {formatEur(doelTotaalMid * 1.05)}]</strong> blijven (uit de begroting-advies prompt).
+                  Het scenario-bedrag mocht binnen een marge van <strong>[Min {formatEur(minTotaal)}, dossier-totaal × 1,05 = {formatEur(doelTotaalMid * 1.05)}]</strong> blijven om dossier-realistisch te zijn.
                 </p>
               </div>
             </div>
           </SubSectie>
         )}
 
-        {/* C4: Werkelijk + drift */}
+        {/* C4: Werkelijk + verschil met dossier */}
         <SubSectie
           nummer={isOverig ? "C2" : "C4"}
-          titel="Werkelijk in dit scenario + drift-analyse"
+          titel="Werkelijk bedrag in dit scenario + uitleg verschil met dossier"
         >
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
             <div className="flex items-baseline justify-between">
@@ -801,7 +803,7 @@ function InspanningKeten({
             {!isOverig && parsed.eenmaligMid > 0 && (
               <>
                 <div className="flex items-baseline justify-between text-xs text-gray-500">
-                  <span>Doel-totaal bottom-up</span>
+                  <span>Dossier-totaal (uit C3)</span>
                   <span className="font-mono">{formatEur(doelTotaalMid)}</span>
                 </div>
                 <div
@@ -813,7 +815,7 @@ function InspanningKeten({
                       : "text-blue-700"
                   }`}
                 >
-                  <span>Δ drift</span>
+                  <span>Verschil met dossier-totaal</span>
                   <span className="font-mono">
                     {drift >= 0 ? "+" : ""}
                     {formatEur(drift)} ({driftPct >= 0 ? "+" : ""}{Math.round(driftPct)}%)
@@ -890,7 +892,7 @@ function ParserOutputPaneel({
       </div>
       <p className="text-[11px] text-gray-500 mt-3 pt-2 border-t border-gray-100">
         Voor dit scenario van <strong>{aantalJaren} jaar</strong> ({structureleJaren} structurele jaren):
-        Doel-totaal <strong className="text-gray-700">{formatEur(doelTotaal)}</strong>,
+        Dossier-totaal <strong className="text-gray-700">{formatEur(doelTotaal)}</strong>,
         Min-grens <strong className="text-gray-700">{formatEur(minTotaal)}</strong>.
       </p>
     </div>
@@ -989,14 +991,21 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
         </thead>
         <tbody>
           {section.subComponenten.map((c, i) => (
-            <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50">
+            <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50 align-top">
               <td className="px-3 py-1.5 text-gray-800">
-                {c.naam}
+                <div>{c.naam}</div>
+                {c.formule && (
+                  <div className="text-[11px] text-blue-700 font-mono mt-0.5">
+                    Berekening: {c.formule}
+                  </div>
+                )}
                 {c.vanafJaar !== null && (
-                  <span className="text-[10px] text-gray-500 ml-1">(vanaf jaar {c.vanafJaar})</span>
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    Loopt vanaf jaar {c.vanafJaar}
+                  </div>
                 )}
               </td>
-              <td className="px-3 py-1.5 text-right font-mono text-gray-700">
+              <td className="px-3 py-1.5 text-right font-mono text-gray-700 whitespace-nowrap">
                 {fmtRange(c.bedragLow, c.bedragHigh)}{eenheid}
               </td>
             </tr>
@@ -1010,11 +1019,11 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
             </td>
           </tr>
           {!bufferKlein && bufferGroot && (
-            <tr className="bg-blue-50/40">
-              <td className="px-3 py-1.5 text-right text-blue-900 italic" title="Verschil tussen hoofdtotaal en sub-componenten — typisch buffer of overhead">
-                + buffer / overhead
+            <tr className="bg-gray-50/60">
+              <td className="px-3 py-1.5 text-right text-gray-700 italic">
+                {section.bufferContext ? "+ buffer (uit bron-tekst)" : "+ afrondingsmarge bandbreedtes"}
               </td>
-              <td className="px-3 py-1.5 text-right font-mono text-blue-900">
+              <td className="px-3 py-1.5 text-right font-mono text-gray-700">
                 {fmtRange(section.bufferLow, section.bufferHigh)}{eenheid}
               </td>
             </tr>
@@ -1028,6 +1037,26 @@ function BreakdownTabel({ section }: { section: BreakdownSection }) {
           </tr>
         </tfoot>
       </table>
+      {!bufferKlein && bufferGroot && (
+        <p className="text-[11px] text-gray-600 px-3 py-2 border-t border-gray-100 leading-relaxed">
+          {section.bufferContext ? (
+            <>
+              <strong>Letterlijk uit de bron-tekst:</strong>{" "}
+              <span className="italic">&ldquo;{section.bufferContext}&rdquo;</span>. Deze buffer is in
+              het hoofdtotaal opgenomen om onzekerheid op te vangen. De{" "}
+              <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
+              apart als <strong>Post onvoorzien (programma-breed)</strong> in §4.1.
+            </>
+          ) : (
+            <>
+              Het verschil tussen Σ componenten en het hoofdtotaal komt door afronding op de
+              bandbreedtes per component (bv. €5K-€10K voor materialen). De{" "}
+              <strong>risico-buffer voor onvoorzienheden</strong> over alle inspanningen heen staat
+              apart als <strong>Post onvoorzien (programma-breed)</strong> in §4.1.
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -1060,22 +1089,22 @@ function TekstMetEuroHighlights({ tekst }: { tekst: string }) {
 
 function DriftVerklaring({ drift, domein }: { drift: number; domein: string }) {
   if (Math.abs(drift) < 5000) {
-    return <p className="text-xs text-gray-600 mt-1">Bedrag valt netjes binnen tolerantie van het bottom-up doel.</p>;
+    return <p className="text-xs text-gray-600 mt-1">Het werkelijke bedrag valt binnen de marge van het dossier-totaal.</p>;
   }
   let uitleg: string;
   if (drift < 0) {
     if (domein === "data_systemen") {
-      uitleg = "Scenario ligt onder het bottom-up doel. Meest waarschijnlijke oorzaak: interne capaciteits­kosten (bv. CRM ~1.466 uur × €74) zijn afgetrokken — die staan in §4.2 Interne uren, niet in deze out-of-pocket-raming.";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Meest waarschijnlijke oorzaak: interne capaciteits­kosten (bijvoorbeeld CRM ~1.466 uur × €74) zijn afgetrokken — die staan in §4.2 Interne uren, niet in deze out-of-pocket-raming.";
     } else if (domein === "processen") {
-      uitleg = "Scenario ligt onder het bottom-up doel. Vermoedelijk afgetrokken: interne werkgroep- en proceseigenaarschap-uren — die staan in §4.2.";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Vermoedelijk afgetrokken: interne werkgroep- en proceseigenaarschap-uren — die staan in §4.2 Interne uren.";
     } else {
-      uitleg = "Scenario ligt onder het bottom-up doel — vermoedelijk door interne-uren-aftrek of cap-respect (water-fill heeft jaartotalen verlaagd).";
+      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal — vermoedelijk door aftrek van interne uren (zie §4.2) of een aanpassing tijdens de scenario-optimalisatie.";
     }
   } else {
     if (domein === "cultuur") {
-      uitleg = "Scenario ligt boven het bottom-up doel. Reden: de motivatie hanteert aanvullende Cito-context (executive-tarief reservering, individuele coaching, HR-instrumentarium) bovenop het oorspronkelijke dossier-bedrag.";
+      uitleg = "Het werkelijke bedrag ligt boven het dossier-totaal. Reden: de motivatie hanteert aanvullende Cito-context (executive-tarief reservering, individuele coaching, HR-instrumentarium) bovenop het oorspronkelijke dossier-bedrag.";
     } else {
-      uitleg = "Scenario ligt boven het bottom-up doel — door scale-up guard die naar dossier-mid optilt, of door aanvullende componenten in de motivatie.";
+      uitleg = "Het werkelijke bedrag ligt boven het dossier-totaal — door aanvullende componenten in de motivatie of een ophoging tijdens de scenario-optimalisatie.";
     }
   }
   return <p className="text-xs text-gray-600 mt-1.5 italic leading-relaxed">{uitleg}</p>;
@@ -1187,7 +1216,7 @@ function SectieD({
     <div>
       <SectieKop
         nummer="D"
-        titel="Jaartotalen — verdeling, cap-respect en automatische aanpassingen"
+        titel="Jaartotalen — verdeling per jaar"
         hint="Per jaar: alle inspanningen + totaal + % van het jaarbudget-plafond benut."
       />
       <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -1271,86 +1300,7 @@ function SectieD({
         </table>
       </div>
 
-      <ServerGuardsUitleg scenario={scenario} startJaar={startJaar} cap={cap} aantalJaren={aantalJaren} />
     </div>
-  );
-}
-
-function ServerGuardsUitleg({
-  scenario,
-  startJaar,
-  cap,
-  aantalJaren,
-}: {
-  scenario: BegrotingScenario;
-  startJaar: number;
-  cap: number;
-  aantalJaren: number;
-}) {
-  const inspanningen = scenario.inspanningen ?? [];
-  const totalenPerJaar = scenario.totalenPerJaar ?? [];
-  const eindJaar = startJaar + aantalJaren - 1;
-
-  const startTotaal = totalenPerJaar.find((t) => t.jaar === startJaar)?.euro ?? 0;
-  const j1OpCitoNorm = Math.abs(startTotaal - 250_000) < 1000;
-  const eindOnderCap = (totalenPerJaar.find((t) => t.jaar === eindJaar)?.euro ?? 0) < cap * 0.95;
-  const allesParallelStart = inspanningen.every((insp) => {
-    const startCell = insp.verdelingPerJaar.find((v) => v.jaar === startJaar);
-    return (startCell?.euro ?? 0) > 0 || insp.domein === "overig"; // Post onvoorzien mag jaar 1 op €0
-  });
-  const middenJarenOpCap = totalenPerJaar
-    .filter((t) => t.jaar > startJaar && t.jaar < eindJaar)
-    .every((t) => Math.abs(t.euro - cap) < cap * 0.05);
-
-  return (
-    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-      <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-700 mb-2">
-        Automatische aanpassingen (na AI-generatie)
-      </p>
-      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-        Na de AI-generatie passen vier automatische regels het scenario aan zodat het binnen de
-        jaargrenzen past. Hier zie je welke regels vermoedelijk hebben gewerkt:
-      </p>
-      <ul className="space-y-2 text-xs">
-        <GuardItem
-          actief={allesParallelStart}
-          naam="Parallelle start in jaar 1"
-          uitleg={`Elke inspanning moet in ${startJaar} (jaar 1) een non-zero bedrag hebben — geen wachten. Als de AI €0 voorstelt, wordt automatisch €1.000 naar jaar 1 verschoven.`}
-        />
-        <GuardItem
-          actief={j1OpCitoNorm}
-          naam="Cito-norm in startjaar"
-          uitleg={`Het startjaar past exact op het Cito-norm-budget (${formatEur(250_000)}). Voor alle 4 scenario's (inclusief min20 en plus20) is jaar 1 gebonden aan deze hard-eis.`}
-        />
-        <GuardItem
-          actief={true}
-          naam="Ophogen tot dossier-middenwaarde"
-          uitleg="Als de AI onder de dossier-mid blijft, wordt elke inspanning proportioneel opgehoogd tot het mid-bedrag. Voorkomt dat het scenario kunstmatig goedkoper lijkt dan het dossier."
-        />
-        <GuardItem
-          actief={middenJarenOpCap}
-          naam="Vol-budget regel"
-          uitleg={`Niet-laatste jaren worden naar exact ${formatEur(cap)} (plafond) gevuld door bedragen uit latere jaren naar voren te schuiven. Het laatste jaar (${eindJaar}) mag onder het plafond komen — dat is het afrondingsjaar.`}
-        />
-        <GuardItem
-          actief={eindOnderCap}
-          naam="Cap-overschrijding voorkomen"
-          uitleg="Als een jaar boven het plafond komt, wordt het overschot naar het laatste jaar geschoven. Hierdoor blijft elk jaar ≤ plafond × 1,001 (kleine marge voor afronding)."
-        />
-      </ul>
-    </div>
-  );
-}
-
-function GuardItem({ actief, naam, uitleg }: { actief: boolean; naam: string; uitleg: string }) {
-  return (
-    <li className="flex items-start gap-2">
-      <span className={`mt-0.5 ${actief ? "text-emerald-600" : "text-gray-300"}`}>{actief ? "✓" : "○"}</span>
-      <div className="flex-1">
-        <span className={`font-semibold ${actief ? "text-gray-800" : "text-gray-400"}`}>{naam}</span>
-        <p className="text-gray-600 leading-relaxed">{uitleg}</p>
-      </div>
-    </li>
   );
 }
 

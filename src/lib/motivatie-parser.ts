@@ -166,6 +166,9 @@ export interface BreakdownComponent {
   isPerJaar: boolean;
   /** "Vanaf jaar N" als gevonden. */
   vanafJaar: number | null;
+  /** Berekening / formule indien herkenbaar uit de tekst — bijvoorbeeld
+   *  "20 dagen × € 800 (Cito-benchmark)" of "85 medewerkers". */
+  formule: string | null;
   /** Volledig fragment voor debug/UI-tooltip. */
   rauwFragment: string;
 }
@@ -188,6 +191,12 @@ export interface BreakdownSection {
   sluitNetjesAan: boolean;
   /** Tekst-fragment van dit deel. */
   rauwTekst: string;
+  /**
+   * Letterlijke buffer-context als de bron-tekst die noemt
+   * (bv. "PM-buffer van 30% (worst-case plafond circa €830K)" voor CRM).
+   * Null als de tekst geen expliciete buffer-vermelding bevat.
+   */
+  bufferContext: string | null;
 }
 
 export interface ParsedBreakdown {
@@ -259,6 +268,79 @@ function vindNaamVoorEuro(text: string, euroIdx: number, vorigEinde: number): st
   const last = splits[splits.length - 1];
   const naam = slice.slice((last.index ?? 0) + last[0].length);
   return knipContext(naam);
+}
+
+/**
+ * Extract een formule/berekening uit de tekst rondom een sub-component.
+ *
+ * Voorbeelden van patronen:
+ *   - "20 dagen × € 800 (Cito-benchmark)"   → expliciete formule
+ *   - "9 lg × € 4.000"                       → expliciete formule
+ *   - "twee blokken à circa € 31.500"        → à-variant
+ *   - "85 medewerkers"                       → alleen aantal-cue
+ *   - "1.500-2.500 consultanturen"           → alleen aantal-cue (range)
+ */
+function extractFormule(
+  naam: string,
+  haakInhoud: string,
+  omgeving: string,
+): string | null {
+  void omgeving; // omgeving niet meer gebruikt — voorkomt lekkage van formules tussen sub-componenten
+  const eenheden =
+    "dagen?|uur|uren|maanden|gebruikers?|medewerkers?|deelnemers?|leidinggevenden?|lg|personen|integraties?|sessies?|kringen|blokken|FTE|fte|stuks?|consultanturen|trainers?|sectoren?|klantgesprekken|klanten";
+  // Zoekgebieden in volgorde van prioriteit (alleen naam + haakInhoud,
+  // niet de bredere omgeving — anders lekken formules van naburige subs)
+  const bronnen = [naam, haakInhoud];
+
+  // Patroon 1: "X (range mogelijk) eenheid × € Y" — expliciete multiplicatie
+  const reMultExpliciet = new RegExp(
+    `(\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?)\\s+(${eenheden})\\b\\s*[×x]\\s*€\\s*([\\d.,Kk]+(?:\\s*[-–]\\s*€?\\s*[\\d.,Kk]+)?)`,
+    "i",
+  );
+  for (const tekst of bronnen) {
+    const m = tekst.match(reMultExpliciet);
+    if (m) return `${m[1]} ${m[2]} × € ${m[3]}`;
+  }
+
+  // Patroon 2: "X eenheid à € Y" / "X eenheid à circa € Y"
+  const reAVariant = new RegExp(
+    `(\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?|twee|drie|vier|vijf|zes|zeven|acht|negen|tien)\\s+(${eenheden})\\s+à\\s+(?:circa\\s+)?€\\s*([\\d.,Kk]+)`,
+    "i",
+  );
+  for (const tekst of bronnen) {
+    const m = tekst.match(reAVariant);
+    if (m) return `${m[1]} ${m[2]} à € ${m[3]}`;
+  }
+
+  // Patroon 3: alleen aantal-cue (bv. "85 medewerkers", "1.500-2.500 consultanturen")
+  const reAantal = new RegExp(
+    `(\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?)\\s+(${eenheden})\\b`,
+    "i",
+  );
+  for (const tekst of bronnen) {
+    const m = tekst.match(reAantal);
+    if (m) {
+      // Probeer ook een tarief-cue uit de omgeving op te pikken
+      const reTarief = new RegExp(
+        `€\\s*([\\d.,Kk]+(?:\\s*[-–]\\s*€?\\s*[\\d.,Kk]+)?)\\s*\\/\\s*(dag|uur|gebruiker|medewerker|maand|jaar|persoon|stuk|blok)`,
+        "i",
+      );
+      const tariefM = haakInhoud.match(reTarief) ?? omgeving.match(reTarief);
+      if (tariefM) {
+        return `${m[1]} ${m[2]} × € ${tariefM[1]}/${tariefM[2]}`;
+      }
+      return `${m[1]} ${m[2]}`;
+    }
+  }
+
+  // Patroon 4: "X maanden × € Y/maand" / "X tot Y maanden" met dagprijs
+  const reMaanden = /(\d+(?:[-–]\d+)?)\s*(?:tot\s+)?(\d+\s+)?maanden?/i;
+  for (const tekst of bronnen) {
+    const m = tekst.match(reMaanden);
+    if (m) return `${m[0]}`;
+  }
+
+  return null;
 }
 
 /** Splits tekst in eenmalig + structureel deel op marker-woord. */
@@ -380,6 +462,10 @@ function bouwSection(
     const vanafMatch = around.match(/vanaf\s+jaar\s+(\d+)/i);
     const vanafJaar = vanafMatch ? parseInt(vanafMatch[1], 10) : e.vanafJaar;
 
+    // Formule-detectie: zoek "X eenheid × € Y", "X eenheid à € Y", of
+    // alleen "X eenheid" (= aantal-cue) in de naam + haak-inhoud.
+    const formule = extractFormule(naam, haak.inhoud, around);
+
     subComponenten.push({
       naam,
       bedragLow: e.low,
@@ -387,6 +473,7 @@ function bouwSection(
       bedragRaw: e.raw,
       isPerJaar: e.isPerJaar || label === "structureel",
       vanafJaar,
+      formule,
       rauwFragment: blok.slice(Math.max(0, haak.start - 60), haak.end).trim(),
     });
   }
@@ -404,6 +491,24 @@ function bouwSection(
   const sluitNetjesAan =
     ref > 0 && subComponenten.length > 0 && grootste <= ref * 0.25 && bufferLow >= -ref * 0.05;
 
+  // Buffer-context detectie: zoek expliciete buffer-vermeldingen in de tekst.
+  // Bv. "met een PM-buffer van 30%" / "buffer van X%" / "worst-case plafond €Y"
+  let bufferContext: string | null = null;
+  const bufferRegexes: RegExp[] = [
+    /met\s+(?:een\s+)?PM[-\s]?buffer\s+van\s+(\d+(?:[.,]\d+)?)\s*%[^.]*\([^)]*€[^)]+\)/i,
+    /met\s+(?:een\s+)?PM[-\s]?buffer\s+van\s+(\d+(?:[.,]\d+)?)\s*%/i,
+    /met\s+(?:een\s+)?(?:risico[-\s]?)?buffer\s+van\s+(\d+(?:[.,]\d+)?)\s*%/i,
+    /(\d+(?:[.,]\d+)?)\s*%\s+(?:PM[-\s]?buffer|risicobuffer)/i,
+    /worst[-\s]case\s+plafond\s+(?:circa\s+)?€\s*[\d.,Kk]+/i,
+  ];
+  for (const re of bufferRegexes) {
+    const m = blok.match(re);
+    if (m) {
+      bufferContext = m[0].trim();
+      break;
+    }
+  }
+
   return {
     label,
     hoofdtotaalLow: hoofd.low,
@@ -415,6 +520,7 @@ function bouwSection(
     bufferHigh,
     sluitNetjesAan,
     rauwTekst: blok,
+    bufferContext,
   };
 }
 
