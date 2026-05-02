@@ -210,6 +210,7 @@ export function getDomainBalance(
     processen: efforts.filter((e) => e.domain === "processen").length,
     data_systemen: efforts.filter((e) => e.domain === "data_systemen").length,
     cultuur: efforts.filter((e) => e.domain === "cultuur").length,
+    overig: efforts.filter((e) => e.domain === "overig").length,
   };
 }
 
@@ -575,6 +576,7 @@ export function getEffortsByDomainAllSectors(
     processen: efforts.filter((e) => e.domain === "processen"),
     data_systemen: efforts.filter((e) => e.domain === "data_systemen"),
     cultuur: efforts.filter((e) => e.domain === "cultuur"),
+    overig: efforts.filter((e) => e.domain === "overig"),
   };
 }
 

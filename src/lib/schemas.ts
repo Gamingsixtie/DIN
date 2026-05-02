@@ -13,6 +13,7 @@ export const EffortDomainSchema = z.enum([
   "processen",
   "data_systemen",
   "cultuur",
+  "overig",
 ]);
 
 /** Normaliseert AI-varianten van domeinnamen naar de juiste enum waarde */
@@ -28,6 +29,10 @@ function normalizeDomain(val: unknown): string | undefined {
     data_en_systemen: "data_systemen",
     datasystemen: "data_systemen",
     cultuur: "cultuur",
+    overig: "overig",
+    overige: "overig",
+    onvoorzien: "overig",
+    programma_breed: "overig",
   };
   return map[lower] ?? undefined;
 }
@@ -377,7 +382,7 @@ export const BusinessCaseStateSchema = z.object({
 export const SubEffortAdviesSchema = z.object({
   // Phase 17 — bestaande velden (NIET wijzigen)
   groepId: z.string(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   actie: z.enum(["combineren", "apart_houden"]),
   items: z.array(z.string()),
   reden: z.string(),
@@ -536,7 +541,7 @@ export const Stap4ResultSchema = z.object({
     context: z.string().optional(),
   })).optional().default([]),
   citobreedInzicht: z.array(z.object({
-    domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+    domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
     titel: z.string(),
     beschrijving: z.string(),
     onderbouwing: z.string(),
@@ -608,7 +613,7 @@ export const PlanningVoorstelSchema = z.object({
 export const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   totaalEuro: z.number(),
   percentageTotaal: z.number(),
   motivatie: z.string(),

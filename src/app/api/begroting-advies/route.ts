@@ -44,7 +44,7 @@ const VerdelingPerJaarItemSchema = z.object({
 const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   totaalEuro: z.number().optional(),
   percentageTotaal: z.number().min(-5).max(110).optional(),
   motivatie: z.string(),
@@ -82,7 +82,7 @@ type Scenario = {
   inspanningen: Array<{
     inspanningTitel: string;
     groepId?: string;
-    domein: "mens" | "processen" | "data_systemen" | "cultuur";
+    domein: "mens" | "processen" | "data_systemen" | "cultuur" | "overig";
     totaalEuro: number;
     percentageTotaal: number;
     motivatie: string;

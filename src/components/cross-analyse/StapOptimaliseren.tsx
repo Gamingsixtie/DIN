@@ -13,6 +13,7 @@ const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+  overig: "Overig",
 };
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string }> = {
@@ -20,6 +21,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
   processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
   data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
   cultuur: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  overig: { bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700" },
 };
 
 export default function StapOptimaliseren({
@@ -145,7 +147,7 @@ export default function StapOptimaliseren({
     },
   ];
 
-  type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
+  type Domein = "mens" | "processen" | "data_systemen" | "cultuur" | "overig";
   type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
   type InspanningBegroting = {
     inspanningTitel: string;
@@ -1564,12 +1566,14 @@ export default function StapOptimaliseren({
                   mens: { dot: "bg-blue-500", tag: "text-blue-800 bg-blue-50 border-blue-200" },
                   data_systemen: { dot: "bg-purple-500", tag: "text-purple-800 bg-purple-50 border-purple-200" },
                   processen: { dot: "bg-emerald-500", tag: "text-emerald-800 bg-emerald-50 border-emerald-200" },
+                  overig: { dot: "bg-gray-500", tag: "text-gray-700 bg-gray-50 border-gray-300" },
                 };
                 const domeinLabel: Record<string, string> = {
                   cultuur: "Cultuur",
                   mens: "Mens",
                   data_systemen: "Data/Systemen",
                   processen: "Processen",
+                  overig: "Overig",
                 };
                 return (
                   <div className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4">

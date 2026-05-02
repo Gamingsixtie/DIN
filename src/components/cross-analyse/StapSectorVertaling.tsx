@@ -40,6 +40,7 @@ const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+  overig: "Overig",
 };
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string }> = {
@@ -47,6 +48,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
   processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
   data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
   cultuur: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  overig: { bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700" },
 };
 
 const DOMEIN_ORDER: readonly EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"] as const;

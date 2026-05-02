@@ -22,6 +22,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: st
   processen: { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
   data_systemen: { bg: "bg-purple-50", text: "text-purple-800", border: "border-purple-200" },
   cultuur: { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
+  overig: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-300" },
 };
 
 const SECTOR_ACCENT: Record<SectorName, string> = {
@@ -2091,6 +2092,7 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
       mens: ["mens", "people", "competentie", "opleiding", "training"],
       data_systemen: ["data", "systeem", "systemen", "tech", "it"],
       processen: ["proces", "processen", "werkwijze", "governance"],
+      overig: ["overig", "onvoorzien", "programma"],
     };
     const lookFor = needles[domein];
     const match = all.find((r) => {

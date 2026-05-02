@@ -207,6 +207,7 @@ const DOMAIN_COLORS: Record<EffortDomain, string> = {
   processen: "D1FAE5",  // groen
   data_systemen: "EDE9FE", // paars
   cultuur: "FEF3C7",    // amber
+  overig: "E5E7EB",     // grijs (programma-breed)
 };
 
 const THIN_BORDER = { style: BorderStyle.SINGLE, size: 1, color: BORDER_COLOR };
@@ -1321,6 +1322,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     mens: ["mens", "people", "competentie", "opleiding", "training"],
     data_systemen: ["data", "systeem", "systemen", "tech", "it"],
     processen: ["proces", "processen", "werkwijze", "governance"],
+    overig: ["overig", "onvoorzien", "programma"],
   };
   const findLeider = (domein: EffortDomain): string => {
     const all = poVoorH33

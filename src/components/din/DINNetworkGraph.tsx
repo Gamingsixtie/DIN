@@ -11,6 +11,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { border: string; bg: string; text: st
   processen: { border: "border-l-green-500", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
   data_systemen: { border: "border-l-purple-500", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
   cultuur: { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  overig: { border: "border-l-gray-500", bg: "bg-gray-50", text: "text-gray-700", dot: "bg-gray-500" },
 };
 
 
@@ -19,6 +20,7 @@ const DOMAIN_BAR_COLORS: Record<EffortDomain, string> = {
   processen: "#10b981",
   data_systemen: "#8b5cf6",
   cultuur: "#f59e0b",
+  overig: "#6b7280",
 };
 
 
