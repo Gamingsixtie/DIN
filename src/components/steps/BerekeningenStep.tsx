@@ -794,42 +794,18 @@ function InspanningKeten({
           </SubSectie>
         )}
 
-        {/* C4: Werkelijk + verschil met dossier */}
+        {/* C4: Werkelijk bedrag in dit scenario */}
         <SubSectie
           nummer={isOverig ? "C2" : "C4"}
-          titel="Werkelijk bedrag in dit scenario + uitleg verschil met dossier"
+          titel="Werkelijk bedrag in dit scenario"
         >
-          <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm text-gray-600">Werkelijk inspanning-totaal</span>
+              <span className="text-sm text-gray-600">Inspanning-totaal voor dit scenario</span>
               <span className="font-mono font-bold text-lg text-gray-900">{formatEur(insp.totaalEuro)}</span>
             </div>
-            {!isOverig && parsed.eenmaligMid > 0 && (
-              <>
-                <div className="flex items-baseline justify-between text-xs text-gray-500">
-                  <span>Dossier-totaal (uit C3)</span>
-                  <span className="font-mono">{formatEur(doelTotaalMid)}</span>
-                </div>
-                <div
-                  className={`flex items-baseline justify-between text-sm font-semibold ${
-                    Math.abs(drift) < tolerantie(insp.totaalEuro ?? 0)
-                      ? "text-emerald-700"
-                      : drift > 0
-                      ? "text-amber-700"
-                      : "text-blue-700"
-                  }`}
-                >
-                  <span>Verschil met dossier-totaal</span>
-                  <span className="font-mono">
-                    {drift >= 0 ? "+" : ""}
-                    {formatEur(drift)} ({driftPct >= 0 ? "+" : ""}{Math.round(driftPct)}%)
-                  </span>
-                </div>
-                <DriftVerklaring drift={drift} domein={insp.domein} />
-              </>
-            )}
             {isOverig && (
-              <p className="text-xs text-gray-600 italic mt-1">
+              <p className="text-xs text-gray-600 italic mt-2">
                 Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is).
               </p>
             )}
