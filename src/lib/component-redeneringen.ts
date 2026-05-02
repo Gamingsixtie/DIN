@@ -55,9 +55,9 @@ export const COMPONENT_REDENERINGEN: ComponentRedenering[] = [
   {
     inspanningMatch: "crm",
     componentMatch: "licentielast",
-    berekening: "6–12 transitiemaanden × € 5.000/maand parallelle licenties (oude omgeving + nieuwe MS Dynamics) = € 30K–€ 60K",
-    tariefBron: "Oude omgeving ~€ 2.500/maand + nieuwe MS Dynamics 365-licentie ~€ 2.500/maand = € 5.000/maand parallel (op basis van 85 gebruikers)",
-    aantalBron: "Standaard transitieperiode 6–12 maanden om continuïteit te waarborgen tijdens overstap (industry best-practice)",
+    berekening: "6–12 transitiemaanden × ~€ 5.000/maand nieuwe MS Dynamics-licenties (85 × € 55–65/m) = € 30K–€ 60K. Tijdens deze periode loopt het huidige klantsysteem parallel — die kosten zitten al in de bestaande exploitatie en worden hier niet dubbel geteld.",
+    tariefBron: "MS Dynamics 365 Customer Engagement Pro: € 55–65/maand per gebruiker × 85 gebruikers ≈ € 4.675–5.525/maand (Microsoft Pricing 2025, microsoft.com)",
+    aantalBron: "Transitieperiode 6–12 maanden: tijdsvenster waarin nieuwe omgeving al actief is terwijl oude nog niet is afgeschakeld (industry best-practice voor mid-size CRM-migratie)",
   },
   {
     inspanningMatch: "crm",
