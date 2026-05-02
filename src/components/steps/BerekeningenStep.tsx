@@ -50,7 +50,7 @@ const SCENARIO_META: Record<ScenarioKey, { label: string; band: string; ring: st
     band: "bg-purple-700",
     ring: "ring-purple-700/30",
     accent: "text-purple-700",
-    uitleg: "De server kiest het kortste haalbare scenario in [3,5] jaar dat binnen +40% van het Cito-budget blijft. Niet altijd 4 jaar — afhankelijk van de dossier-totalen.",
+    uitleg: "Het kortste haalbare scenario binnen 3 tot 5 jaar dat nog bekostbaar is voor Cito (jaarbudget ≤ Cito-norm × 1,40). De rekenkundige uitkomst kan een fractie zijn — bijvoorbeeld 3,5 jaar — en wordt naar boven afgerond naar hele jaren. Voor deze sessie: 4 jaar.",
   },
   min20: {
     label: "−20% (langzamer)",
@@ -170,8 +170,8 @@ function Header({ begroting }: { begroting?: BegrotingAdvies }) {
         Deze pagina is een <strong>afspiegeling van het begrotingadvies in Stap 6</strong>. Voor elk
         scenario zie je hoe het jaarbudget-plafond is bepaald, hoe het scenario-totaal is opgebouwd,
         hoe het bedrag per inspanning ontstaat (vanuit de kostenraming uit het dossier en de motivatie),
-        hoe het over de jaren is verdeeld en welke server-side aanpassingen zijn toegepast om binnen
-        de jaargrenzen te passen.
+        hoe het over de jaren is verdeeld en welke automatische aanpassingen zijn toegepast om
+        binnen de jaargrenzen te passen.
       </p>
       {begroting && (
         <p className="text-xs text-blue-200/80 mt-3">
@@ -472,8 +472,6 @@ function SectieA({
   const meta = SCENARIO_META[scenarioKey];
   const cap = scenario.jaarlijksBudgetEuro;
   const aantalJaren = scenario.aantalJaren;
-  const theoMax = cap * aantalJaren;
-  const benutting = theoMax > 0 ? scenario.totaalGeraamdEuro / theoMax : 0;
 
   let capFormule: string;
   if (scenarioKey === "optimaal") {
@@ -483,7 +481,7 @@ function SectieA({
   } else if (scenarioKey === "min20") {
     capFormule = `${formatEur(jaarlijksBudgetBasis)} × 0,80 = ${formatEur(jaarlijksBudgetBasis * 0.8)} → afgerond ${formatEur(cap)}`;
   } else {
-    capFormule = `Server kiest binnen [3,5] jaar het scenario waarvan jaarbudget ≤ Cito-norm × 1,40 (${formatEur(jaarlijksBudgetBasis * 1.4)}). Geselecteerd: ${formatEur(cap)}/jr × ${aantalJaren} jaar.`;
+    capFormule = `Het kortste scenario binnen 3 tot 5 jaar dat past met jaarbudget ≤ Cito-norm × 1,40 (${formatEur(jaarlijksBudgetBasis * 1.4)}). Berekend: ${formatEur(cap)}/jr × ${aantalJaren} jaar.`;
   }
 
   return (
@@ -512,7 +510,7 @@ function SectieA({
             <p className="font-semibold text-gray-700 mb-0.5">Hoe is het aantal jaren bepaald?</p>
             <p className="text-gray-600">
               {scenarioKey === "advies" ? (
-                <>De server zoekt het kortste haalbare scenario in [3,5] jaar dat alle dossier-totalen kan dekken binnen het jaarbudget. <strong>{aantalJaren} jaar</strong> is geselecteerd.</>
+                <>Het kortste haalbare scenario binnen 3 tot 5 jaar dat alle dossier-totalen kan dekken binnen het jaarbudget. De rekenkundige uitkomst kan een fractie zijn (bijvoorbeeld 3,5 jaar); deze wordt naar boven afgerond naar hele jaren omdat planning in hele jaren werkt. Resultaat voor dit scenario: <strong>{aantalJaren} jaar</strong>.</>
               ) : (
                 <>Berekend als minimum aantal jaren waarop alle dossier-totalen (eenmalig + structureel × jaren) passen binnen het jaarlijkse plafond. Hoe groter de dossier-mids en/of hoe kleiner de cap, des te meer jaren nodig. Resultaat: <strong>{aantalJaren} jaar</strong>.</>
               )}
@@ -520,47 +518,22 @@ function SectieA({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
           <Stat
-            label="Theoretisch maximum"
-            value={formatEur(theoMax)}
-            sub={`${formatEur(cap)} × ${aantalJaren} jr`}
-            mono
-          />
-          <Stat
-            label="Werkelijk geraamd"
+            label="Scenario-totaal (begroot)"
             value={formatEur(scenario.totaalGeraamdEuro)}
-            sub="som van alle inspanningen"
+            sub="dit is wat we aanvragen — som van alle inspanningen"
             mono
-          />
-          <Stat
-            label="% van plafond benut"
-            value={pct(scenario.totaalGeraamdEuro, theoMax)}
-            sub="100% = jaarbudget volledig gebruikt"
-            highlight={benutting > 1.001}
           />
         </div>
 
-        <BenuttingsBalk benutting={benutting} />
-      </div>
-    </div>
-  );
-}
-
-function BenuttingsBalk({ benutting }: { benutting: number }) {
-  const pctW = Math.min(100, benutting * 100);
-  const overcap = benutting > 1.001;
-  return (
-    <div>
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-gray-500 mb-1">
-        <span>Cap-benutting</span>
-        <span>{Math.round(benutting * 100)}%</span>
-      </div>
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full transition-all ${overcap ? "bg-red-500" : benutting > 0.95 ? "bg-amber-500" : "bg-emerald-500"}`}
-          style={{ width: `${pctW}%` }}
-        />
+        <div className="rounded bg-blue-50/50 border border-blue-200 p-3 text-xs text-gray-700 leading-relaxed">
+          <strong className="text-blue-900">Belangrijk om te weten:</strong> het jaarbudget-plafond
+          ({formatEur(cap)}/jr) is geen toezegging dat dit bedrag elk jaar beschikbaar is. Het is een{" "}
+          <strong>maximum</strong>: je kunt niet méér dan dit per jaar uitgeven, en je krijgt alleen
+          wat in deze raming staat. Het scenario is zo opgesteld dat de jaartotalen niet boven dit
+          plafond uitkomen (zie Sectie D).
+        </div>
       </div>
     </div>
   );
@@ -1079,7 +1052,7 @@ function VerdelingPerJaarTabel({
 }
 
 // ============================================================================
-// Sectie D — Jaartotalen + cap-respect + server-guards
+// Sectie D — Jaartotalen + cap-respect + automatische regels
 // ============================================================================
 
 function SectieD({
@@ -1104,7 +1077,7 @@ function SectieD({
     <div>
       <SectieKop
         nummer="D"
-        titel="Jaartotalen — verdeling, cap-respect en server-aanpassingen"
+        titel="Jaartotalen — verdeling, cap-respect en automatische aanpassingen"
         hint="Per jaar: alle inspanningen + totaal + % van het jaarbudget-plafond benut."
       />
       <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -1222,37 +1195,37 @@ function ServerGuardsUitleg({
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
       <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-700 mb-2">
-        Server-side aanpassingen (na AI-output)
+        Automatische aanpassingen (na AI-generatie)
       </p>
       <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-        Na de AI-generatie past de server vier &ldquo;guards&rdquo; toe die garanderen dat het scenario
-        binnen de jaargrenzen past. Hier zie je welke vermoedelijk hebben getriggerd:
+        Na de AI-generatie passen vier automatische regels het scenario aan zodat het binnen de
+        jaargrenzen past. Hier zie je welke regels vermoedelijk hebben gewerkt:
       </p>
       <ul className="space-y-2 text-xs">
         <GuardItem
           actief={allesParallelStart}
-          naam="Parallel-start guard"
-          uitleg={`Elke inspanning moet in ${startJaar} (jaar 1) een non-zero bedrag hebben — geen wachten. Als AI €0 voorstelt, schuift de guard €1.000 naar jaar 1.`}
+          naam="Parallelle start in jaar 1"
+          uitleg={`Elke inspanning moet in ${startJaar} (jaar 1) een non-zero bedrag hebben — geen wachten. Als de AI €0 voorstelt, wordt automatisch €1.000 naar jaar 1 verschoven.`}
         />
         <GuardItem
           actief={j1OpCitoNorm}
           naam="Cito-norm in startjaar"
-          uitleg={`Het startjaar past exact op het Cito-norm-budget (${formatEur(250_000)}). Voor alle 4 scenarios (incl. min20 en plus20) wordt jaar 1 gebonden aan deze hard-eis.`}
+          uitleg={`Het startjaar past exact op het Cito-norm-budget (${formatEur(250_000)}). Voor alle 4 scenario's (inclusief min20 en plus20) is jaar 1 gebonden aan deze hard-eis.`}
         />
         <GuardItem
           actief={true}
-          naam="Scale-up guard"
-          uitleg="Als de AI onder dossier-mid blijft, wordt elke inspanning proportioneel opgeschaald naar dossier-mid. Voorkomt dat het scenario kunstmatig goedkoper lijkt dan het dossier."
+          naam="Ophogen tot dossier-middenwaarde"
+          uitleg="Als de AI onder de dossier-mid blijft, wordt elke inspanning proportioneel opgehoogd tot het mid-bedrag. Voorkomt dat het scenario kunstmatig goedkoper lijkt dan het dossier."
         />
         <GuardItem
           actief={middenJarenOpCap}
-          naam="Vol-budget guard"
-          uitleg={`Niet-laatste jaren worden naar exact ${formatEur(cap)} (cap) gevuld door bedragen vanuit latere jaren naar voren te schuiven. Het laatste jaar (${eindJaar}) mag onder cap komen — afrondingsjaar.`}
+          naam="Vol-budget regel"
+          uitleg={`Niet-laatste jaren worden naar exact ${formatEur(cap)} (plafond) gevuld door bedragen uit latere jaren naar voren te schuiven. Het laatste jaar (${eindJaar}) mag onder het plafond komen — dat is het afrondingsjaar.`}
         />
         <GuardItem
           actief={eindOnderCap}
-          naam="Cap-overschrijding guard"
-          uitleg="Als een jaar boven het plafond komt, wordt het overschot naar het laatste jaar geschoven. Hierdoor blijft elk jaar ≤ cap × 1,001 (kleine tolerantie voor afronding)."
+          naam="Cap-overschrijding voorkomen"
+          uitleg="Als een jaar boven het plafond komt, wordt het overschot naar het laatste jaar geschoven. Hierdoor blijft elk jaar ≤ plafond × 1,001 (kleine marge voor afronding)."
         />
       </ul>
     </div>
