@@ -717,16 +717,10 @@ function InspanningKeten({
   startJaar: number;
 }) {
   const aantalJaren = scenario.aantalJaren;
-  const structureleJaren = Math.max(0, aantalJaren - 1);
   const parsed: ParsedDossierRaming = useMemo(
     () => parseDossierRaming(kostenramingTekst),
     [kostenramingTekst]
   );
-
-  const doelTotaalMid = parsed.eenmaligMid + parsed.structureelMidPerJr * structureleJaren;
-  const minTotaal = parsed.eenmaligLow + parsed.structureelLowPerJr * structureleJaren;
-  const drift = (insp.totaalEuro ?? 0) - doelTotaalMid;
-  const driftPct = doelTotaalMid > 0 ? (drift / doelTotaalMid) * 100 : 0;
 
   const isOverig = insp.domein === "overig";
 
@@ -753,13 +747,7 @@ function InspanningKeten({
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
                 <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" inspanningTitel={insp.inspanningTitel} />
-                <ParserOutputPaneel
-                  parsed={parsed}
-                  structureleJaren={structureleJaren}
-                  aantalJaren={aantalJaren}
-                  doelTotaal={doelTotaalMid}
-                  minTotaal={minTotaal}
-                />
+                <ParserOutputPaneel parsed={parsed} />
               </>
             ) : (
               <p className="text-xs text-gray-500 italic">
@@ -777,56 +765,30 @@ function InspanningKeten({
           <MotivatiePaneel motivatie={insp.motivatie} inspanningTitel={insp.inspanningTitel} />
         </SubSectie>
 
-        {/* C3: Berekening dossier-totaal voor dit scenario */}
-        {!isOverig && parsed.eenmaligMid > 0 && (
-          <SubSectie
-            nummer="C3"
-            titel="Berekening van het dossier-totaal voor dit scenario"
-            hint={`Eenmalig (mid) + structureel-mid × ${structureleJaren} structurele jaren (= aantal jaren − 1, want jaar 1 is opstart)`}
-          >
-            <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 font-mono text-sm space-y-1">
-              <div className="flex items-baseline justify-between">
-                <span>Eenmalig (mid)</span>
-                <span>{formatEur(parsed.eenmaligMid)}</span>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span>+ {structureleJaren} jaar × {formatEur(parsed.structureelMidPerJr)}/jr structureel</span>
-                <span>{formatEur(parsed.structureelMidPerJr * structureleJaren)}</span>
-              </div>
-              <div className="border-t-2 border-gray-300 pt-1 mt-1 flex items-baseline justify-between font-bold text-[#003366]">
-                <span>= Dossier-totaal voor dit scenario</span>
-                <span>{formatEur(doelTotaalMid)}</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 font-sans">
-                <p>
-                  Het scenario-bedrag mocht binnen een marge van <strong>[Min {formatEur(minTotaal)}, dossier-totaal × 1,05 = {formatEur(doelTotaalMid * 1.05)}]</strong> blijven om dossier-realistisch te zijn.
-                </p>
-              </div>
-            </div>
-          </SubSectie>
-        )}
-
-        {/* C4: Werkelijk bedrag in dit scenario */}
+        {/* C3 (was C4): Werkelijk bedrag in dit scenario — dit is wat ook in
+            de begroting zelf staat. We tonen geen apart "dossier-totaal voor
+            dit scenario" meer omdat het verschil (post onvoorzien vangt de
+            bandbreedte op) tot vragen leidt zonder toegevoegde waarde. */}
         <SubSectie
-          nummer={isOverig ? "C2" : "C4"}
-          titel="Werkelijk bedrag in dit scenario"
+          nummer={isOverig ? "C2" : "C3"}
+          titel="Bedrag in dit scenario"
         >
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-gray-600">Inspanning-totaal voor dit scenario</span>
               <span className="font-mono font-bold text-lg text-gray-900">{formatEur(insp.totaalEuro)}</span>
             </div>
-            {isOverig && (
-              <p className="text-xs text-gray-600 italic mt-2">
-                Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is).
-              </p>
-            )}
+            <p className="text-xs text-gray-500 italic mt-2">
+              {isOverig
+                ? "Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is)."
+                : "Dit is het bedrag dat ook in de begroting in §4.1 staat. Eventuele bandbreedte op de onderliggende ramingen wordt programma-breed opgevangen via de aparte post onvoorzien."}
+            </p>
           </div>
         </SubSectie>
 
-        {/* C5: Verdeling per jaar */}
+        {/* C4 (was C5): Verdeling per jaar */}
         <SubSectie
-          nummer={isOverig ? "C3" : "C5"}
+          nummer={isOverig ? "C3" : "C4"}
           titel="Verdeling per jaar"
           hint="Hoe is het inspanning-totaal over de jaren verdeeld? Per regel: bedrag, fase, percentage."
         >
@@ -839,16 +801,8 @@ function InspanningKeten({
 
 function ParserOutputPaneel({
   parsed,
-  structureleJaren,
-  aantalJaren,
-  doelTotaal,
-  minTotaal,
 }: {
   parsed: ParsedDossierRaming;
-  structureleJaren: number;
-  aantalJaren: number;
-  doelTotaal: number;
-  minTotaal: number;
 }) {
   if (parsed.unparsed) {
     return (
@@ -882,11 +836,6 @@ function ParserOutputPaneel({
           )}
         </div>
       </div>
-      <p className="text-[11px] text-gray-500 mt-3 pt-2 border-t border-gray-100">
-        Voor dit scenario van <strong>{aantalJaren} jaar</strong> ({structureleJaren} structurele jaren):
-        Dossier-totaal <strong className="text-gray-700">{formatEur(doelTotaal)}</strong>,
-        Ondergrens <strong className="text-gray-700">{formatEur(minTotaal)}</strong>.
-      </p>
     </div>
   );
 }
@@ -1069,29 +1018,6 @@ function TekstMetEuroHighlights({ tekst }: { tekst: string }) {
       })}
     </span>
   );
-}
-
-function DriftVerklaring({ drift, domein }: { drift: number; domein: string }) {
-  if (Math.abs(drift) < 5000) {
-    return <p className="text-xs text-gray-600 mt-1">Het werkelijke bedrag valt binnen de marge van het dossier-totaal.</p>;
-  }
-  let uitleg: string;
-  if (drift < 0) {
-    if (domein === "data_systemen") {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Meest waarschijnlijke oorzaak: interne uren van eigen medewerkers zijn afgetrokken — die worden apart geboekt in de paragraaf interne uren, niet in deze raming van de externe kosten.";
-    } else if (domein === "processen") {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal. Vermoedelijk afgetrokken: interne werkgroep- en proceseigenaarschap-uren — die staan apart in de paragraaf interne uren.";
-    } else {
-      uitleg = "Het werkelijke bedrag ligt onder het dossier-totaal — vermoedelijk door aftrek van interne uren (die staan apart in de paragraaf interne uren) of een aanpassing tijdens de scenario-optimalisatie.";
-    }
-  } else {
-    if (domein === "cultuur") {
-      uitleg = "Het werkelijke bedrag ligt boven het dossier-totaal. Reden: de motivatie hanteert aanvullende Cito-context (executive-tarief reservering, individuele coaching, HR-instrumentarium) bovenop het oorspronkelijke dossier-bedrag.";
-    } else {
-      uitleg = "Het werkelijke bedrag ligt boven het dossier-totaal — door aanvullende componenten in de motivatie of een ophoging tijdens de scenario-optimalisatie.";
-    }
-  }
-  return <p className="text-xs text-gray-600 mt-1.5 italic leading-relaxed">{uitleg}</p>;
 }
 
 function VerdelingPerJaarTabel({
