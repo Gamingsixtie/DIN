@@ -6,7 +6,7 @@ import type { DINSession, BegrotingAdvies, Stap4Result, BegrotingScenario, Inspa
 import { parseDossierRaming, type ParsedDossierRaming } from "@/lib/dossier-parser";
 import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type ParsedBreakdown, type BreakdownSection } from "@/lib/motivatie-parser";
 import { vindRedenering } from "@/lib/component-redeneringen";
-import { vindKnownBreakdown, type KnownSection } from "@/lib/known-breakdowns";
+import { vindKnownBreakdown, structureelCumulatiefMid, type KnownSection } from "@/lib/known-breakdowns";
 import { NotitieVoorClaude } from "./NotitieVoorClaude";
 
 // Map een hardcoded KnownSection naar de BreakdownSection-shape die
@@ -756,6 +756,10 @@ function InspanningKeten({
     () => parseDossierRaming(kostenramingTekst),
     [kostenramingTekst]
   );
+  const knownBreakdown = useMemo(
+    () => vindKnownBreakdown(insp.inspanningTitel),
+    [insp.inspanningTitel]
+  );
 
   const isOverig = insp.domein === "overig";
 
@@ -801,50 +805,24 @@ function InspanningKeten({
           <MotivatiePaneel motivatie={insp.motivatie} inspanningTitel={insp.inspanningTitel} />
         </SubSectie>
 
-        {/* C3 (was C4): Werkelijk bedrag in dit scenario — dit is wat ook in
-            de begroting zelf staat. We tonen ook hoe het is opgebouwd uit
-            eenmalig + structureel × structurele jaren, zodat de samenstelling
-            van het bedrag herleidbaar is naar de twee deel-componenten. */}
+        {/* C3: Bedrag in dit scenario — toon de optelsom die sluit op het
+            werkelijke scenariobedrag. Voor inspanningen met een known-
+            breakdown (mens, processen, leiderschap) gebruiken we die als
+            bron — eenmalig + per structurele component (bedrag × actieve
+            jaren, op basis van vanafJaar). Voor inspanningen zonder
+            known-breakdown (CRM) vallen we terug op parseDossierRaming uit
+            de kostenraming-tekst. */}
         <SubSectie
           nummer={isOverig ? "C2" : "C3"}
           titel="Bedrag in dit scenario"
         >
-          <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
-            {!isOverig && parsed.eenmaligMid > 0 && (
-              <div className="rounded bg-gray-50/70 border border-gray-200 p-3 font-mono text-xs space-y-1">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1.5">
-                  Hoe het bedrag is opgebouwd
-                </p>
-                <div className="flex items-baseline justify-between">
-                  <span>Eenmalig (uit kostenraming, mid)</span>
-                  <span>{formatEur(parsed.eenmaligMid)}</span>
-                </div>
-                {parsed.structureelMidPerJr > 0 && (
-                  <div className="flex items-baseline justify-between">
-                    <span>
-                      + Structureel: {formatEur(parsed.structureelMidPerJr)}/jr × {Math.max(0, aantalJaren - 1)} structurele jaren
-                    </span>
-                    <span>{formatEur(parsed.structureelMidPerJr * Math.max(0, aantalJaren - 1))}</span>
-                  </div>
-                )}
-                <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-600">
-                  <span>Som eenmalig + structureel × jaren (dossier-mid)</span>
-                  <span>{formatEur(parsed.eenmaligMid + parsed.structureelMidPerJr * Math.max(0, aantalJaren - 1))}</span>
-                </div>
-              </div>
-            )}
-            <div className="flex items-baseline justify-between border-t border-gray-200 pt-3">
-              <span className="text-sm text-gray-600">
-                {isOverig ? "Inspanning-totaal voor dit scenario" : "Inspanning-totaal in §4.1 begroting"}
-              </span>
-              <span className="font-mono font-bold text-lg text-gray-900">{formatEur(insp.totaalEuro)}</span>
-            </div>
-            <p className="text-xs text-gray-500 italic">
-              {isOverig
-                ? "Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is)."
-                : "Het bedrag in de begroting kan iets afwijken van de simpele optelsom hierboven door optimalisatie om binnen het jaarbudget-plafond te blijven. Eventuele bandbreedte wordt programma-breed opgevangen via de aparte post onvoorzien. Interne uren zijn niet in deze §4.1 begroting opgenomen — die worden in stap 7 (§4.2 Interne uren) apart berekend."}
-            </p>
-          </div>
+          <C3Samenstelling
+            insp={insp}
+            isOverig={isOverig}
+            parsed={parsed}
+            knownBreakdown={knownBreakdown}
+            aantalJaren={aantalJaren}
+          />
         </SubSectie>
 
         {/* C4 (was C5): Verdeling per jaar */}
@@ -857,6 +835,112 @@ function InspanningKeten({
         </SubSectie>
       </div>
     </details>
+  );
+}
+
+function C3Samenstelling({
+  insp,
+  isOverig,
+  parsed,
+  knownBreakdown,
+  aantalJaren,
+}: {
+  insp: InspanningBegroting;
+  isOverig: boolean;
+  parsed: ParsedDossierRaming;
+  knownBreakdown: ReturnType<typeof vindKnownBreakdown>;
+  aantalJaren: number;
+}) {
+  const werkelijk = insp.totaalEuro ?? 0;
+
+  // Bepaal eenmalig + structureel cumulatief.
+  // 1. Voor inspanningen met een known-breakdown gebruiken we die (sluit
+  //    typisch op de motivatie en daarmee op het werkelijke scenariobedrag).
+  // 2. Anders fallback op parseDossierRaming (eenmalig × structureleJaren).
+  let eenmaligMid = 0;
+  let structureelCumul = 0;
+  let structureelDetail: { naam: string; bedrag: number; jaren: number }[] = [];
+  let bron: "known" | "parsed" | "geen" = "geen";
+
+  if (knownBreakdown?.eenmalig) {
+    bron = "known";
+    eenmaligMid =
+      (knownBreakdown.eenmalig.hoofdtotaalLow + knownBreakdown.eenmalig.hoofdtotaalHigh) / 2;
+    if (knownBreakdown.structureel) {
+      structureelCumul = structureelCumulatiefMid(knownBreakdown, aantalJaren);
+      structureelDetail = knownBreakdown.structureel.subComponenten.map((c) => {
+        const start = c.vanafJaar ?? 1;
+        const jaren = Math.max(0, aantalJaren - start + 1);
+        return { naam: c.naam, bedrag: c.bedragMid, jaren };
+      });
+    }
+  } else if (parsed.eenmaligMid > 0 || parsed.structureelMidPerJr > 0) {
+    bron = "parsed";
+    eenmaligMid = parsed.eenmaligMid;
+    const sJ = Math.max(0, aantalJaren - 1);
+    structureelCumul = parsed.structureelMidPerJr * sJ;
+    if (parsed.structureelMidPerJr > 0) {
+      structureelDetail = [
+        { naam: "Structureel (gemiddeld per jaar)", bedrag: parsed.structureelMidPerJr, jaren: sJ },
+      ];
+    }
+  }
+
+  const som = eenmaligMid + structureelCumul;
+  const verschil = werkelijk - som;
+  const verschilPct = som > 0 ? Math.round((verschil / som) * 100) : 0;
+  const sluitGoed = som > 0 && Math.abs(verschilPct) <= 10;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      {!isOverig && bron !== "geen" && (
+        <div className="rounded bg-gray-50/70 border border-gray-200 p-3 font-mono text-xs space-y-1">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1.5">
+            Hoe het bedrag is opgebouwd
+          </p>
+          <div className="flex items-baseline justify-between">
+            <span>Eenmalig (mid)</span>
+            <span>{formatEur(eenmaligMid)}</span>
+          </div>
+          {structureelDetail.map((s, i) => (
+            <div key={i} className="flex items-baseline justify-between">
+              <span className="pr-2">
+                + {s.naam}: {formatEur(s.bedrag)}/jr × {s.jaren} {s.jaren === 1 ? "jaar" : "jaren"}
+              </span>
+              <span>{formatEur(s.bedrag * s.jaren)}</span>
+            </div>
+          ))}
+          <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-600">
+            <span>Som eenmalig + structureel cumulatief</span>
+            <span>{formatEur(som)}</span>
+          </div>
+        </div>
+      )}
+      <div className="flex items-baseline justify-between border-t border-gray-200 pt-3">
+        <span className="text-sm text-gray-600">
+          {isOverig ? "Inspanning-totaal voor dit scenario" : "Inspanning-totaal in §4.1 begroting"}
+        </span>
+        <span className="font-mono font-bold text-lg text-gray-900">{formatEur(werkelijk)}</span>
+      </div>
+      {!isOverig && bron !== "geen" && (
+        <div
+          className={`text-xs rounded px-2 py-1 inline-block ${
+            sluitGoed
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-amber-50 text-amber-900 border border-amber-200"
+          }`}
+        >
+          {sluitGoed
+            ? `✓ Som sluit aan op begroting (verschil ${formatEur(verschil)}, ${verschilPct}%) — kleine bijstelling door optimalisatie binnen jaarbudget-plafond.`
+            : `Verschil met begroting: ${formatEur(verschil)} (${verschilPct > 0 ? "+" : ""}${verschilPct}%) — wijst op optimalisatie of een afwijkende basis. Zie de motivatie hieronder voor de exacte samenstelling.`}
+        </div>
+      )}
+      <p className="text-xs text-gray-500 italic">
+        {isOverig
+          ? "Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is)."
+          : "Eventuele bandbreedte op de onderliggende ramingen wordt programma-breed opgevangen via de aparte post onvoorzien. Interne uren zijn niet in deze §4.1 begroting opgenomen — die worden in stap 7 (§4.2 Interne uren) apart berekend."}
+      </p>
+    </div>
   );
 }
 

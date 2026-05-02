@@ -18,6 +18,10 @@ export interface KnownSubComponent {
   bedragMid: number;
   bedragHigh: number;
   isPerJaar: boolean;
+  /** Voor structurele componenten: vanaf welk scenario-jaar (1-indexed)
+   *  is deze post actief. Default 1 (alle structurele jaren). Bv.
+   *  cultuurmeting "vanaf jaar 3" → vanafJaar: 3. */
+  vanafJaar?: number;
 }
 
 export interface KnownSection {
@@ -106,13 +110,15 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
           bedragMid: 15_000,
           bedragHigh: 18_000,
           isPerJaar: true,
+          vanafJaar: 4,
         },
         {
-          naam: "Onboarding nieuwe medewerkers",
+          naam: "Onboarding nieuwe medewerkers (vanaf jaar 4)",
           bedragLow: 3_000,
           bedragMid: 5_000,
           bedragHigh: 7_000,
           isPerJaar: true,
+          vanafJaar: 4,
         },
       ],
     },
@@ -195,15 +201,16 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
       ],
     },
     structureel: {
-      hoofdtotaalLow: 13_500,
-      hoofdtotaalHigh: 21_500,
+      hoofdtotaalLow: 7_500,
+      hoofdtotaalHigh: 11_500,
       subComponenten: [
         {
-          naam: "360°-feedback tool licentie",
+          naam: "360°-feedback tool licentie (vanaf jaar 1)",
           bedragLow: 4_000,
           bedragMid: 5_000,
           bedragHigh: 6_000,
           isPerJaar: true,
+          vanafJaar: 1,
         },
         {
           naam: "Jaarlijkse cultuurmeting (vanaf jaar 3)",
@@ -211,6 +218,7 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
           bedragMid: 2_500,
           bedragHigh: 3_000,
           isPerJaar: true,
+          vanafJaar: 3,
         },
         {
           naam: "Onboarding nieuwe leiders (vanaf jaar 5)",
@@ -218,13 +226,7 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
           bedragMid: 2_000,
           bedragHigh: 2_500,
           isPerJaar: true,
-        },
-        {
-          naam: "Borgings-/onderhoudsbegeleiding 12–18 mnd na slottraject (afnemend)",
-          bedragLow: 6_000,
-          bedragMid: 8_000,
-          bedragHigh: 10_000,
-          isPerJaar: true,
+          vanafJaar: 5,
         },
       ],
     },
@@ -240,4 +242,21 @@ export function vindKnownBreakdown(
     if (insp.includes(b.inspanningMatch)) return b;
   }
   return null;
+}
+
+/** Bereken cumulatief structureel bedrag (mid) over alle scenario-jaren,
+ *  rekening houdend met vanafJaar per component. Returns 0 als er geen
+ *  structurele section is. */
+export function structureelCumulatiefMid(
+  k: KnownBreakdown | null,
+  aantalJaren: number,
+): number {
+  if (!k?.structureel) return 0;
+  let som = 0;
+  for (const c of k.structureel.subComponenten) {
+    const start = c.vanafJaar ?? 1;
+    const actiefJaren = Math.max(0, aantalJaren - start + 1);
+    som += c.bedragMid * actiefJaren;
+  }
+  return som;
 }
