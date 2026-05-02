@@ -802,22 +802,47 @@ function InspanningKeten({
         </SubSectie>
 
         {/* C3 (was C4): Werkelijk bedrag in dit scenario — dit is wat ook in
-            de begroting zelf staat. We tonen geen apart "dossier-totaal voor
-            dit scenario" meer omdat het verschil (post onvoorzien vangt de
-            bandbreedte op) tot vragen leidt zonder toegevoegde waarde. */}
+            de begroting zelf staat. We tonen ook hoe het is opgebouwd uit
+            eenmalig + structureel × structurele jaren, zodat de samenstelling
+            van het bedrag herleidbaar is naar de twee deel-componenten. */}
         <SubSectie
           nummer={isOverig ? "C2" : "C3"}
           titel="Bedrag in dit scenario"
         >
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-gray-600">Inspanning-totaal voor dit scenario</span>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+            {!isOverig && parsed.eenmaligMid > 0 && (
+              <div className="rounded bg-gray-50/70 border border-gray-200 p-3 font-mono text-xs space-y-1">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1.5">
+                  Hoe het bedrag is opgebouwd
+                </p>
+                <div className="flex items-baseline justify-between">
+                  <span>Eenmalig (uit kostenraming, mid)</span>
+                  <span>{formatEur(parsed.eenmaligMid)}</span>
+                </div>
+                {parsed.structureelMidPerJr > 0 && (
+                  <div className="flex items-baseline justify-between">
+                    <span>
+                      + Structureel: {formatEur(parsed.structureelMidPerJr)}/jr × {Math.max(0, aantalJaren - 1)} structurele jaren
+                    </span>
+                    <span>{formatEur(parsed.structureelMidPerJr * Math.max(0, aantalJaren - 1))}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-600">
+                  <span>Som eenmalig + structureel × jaren (dossier-mid)</span>
+                  <span>{formatEur(parsed.eenmaligMid + parsed.structureelMidPerJr * Math.max(0, aantalJaren - 1))}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between border-t border-gray-200 pt-3">
+              <span className="text-sm text-gray-600">
+                {isOverig ? "Inspanning-totaal voor dit scenario" : "Inspanning-totaal in §4.1 begroting"}
+              </span>
               <span className="font-mono font-bold text-lg text-gray-900">{formatEur(insp.totaalEuro)}</span>
             </div>
-            <p className="text-xs text-gray-500 italic mt-2">
+            <p className="text-xs text-gray-500 italic">
               {isOverig
                 ? "Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is)."
-                : "Dit is het bedrag dat ook in de begroting in §4.1 staat. Eventuele bandbreedte op de onderliggende ramingen wordt programma-breed opgevangen via de aparte post onvoorzien."}
+                : "Het bedrag in de begroting kan iets afwijken van de simpele optelsom hierboven door interne uren-aftrek (apart geboekt in §4.2 Interne uren) of een lichte bijstelling om binnen het jaarbudget-plafond te blijven. Eventuele bandbreedte wordt programma-breed opgevangen via de aparte post onvoorzien."}
             </p>
           </div>
         </SubSectie>
