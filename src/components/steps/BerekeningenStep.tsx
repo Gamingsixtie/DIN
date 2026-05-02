@@ -486,7 +486,7 @@ function SectieA({
   } else if (scenarioKey === "min20") {
     capFormule = `${formatEur(jaarlijksBudgetBasis)} × 0,80 = ${formatEur(jaarlijksBudgetBasis * 0.8)} → afgerond ${formatEur(cap)}`;
   } else {
-    capFormule = `Het kortste scenario binnen 3 tot 5 jaar dat past met jaarbudget ≤ Cito-norm × 1,40 (${formatEur(jaarlijksBudgetBasis * 1.4)}). Berekend: ${formatEur(cap)}/jr × ${aantalJaren} jaar.`;
+    capFormule = `Het kortste scenario in 3 tot 5 jaar dat nog bekostbaar is voor Cito. Bekostbaar betekent: jaarbudget mag maximaal 40% bovenop de Cito-norm liggen — dus maximaal ${formatEur(jaarlijksBudgetBasis * 1.4)}/jaar (= ${formatEur(jaarlijksBudgetBasis)} × 1,40). Voor dit scenario: ${formatEur(cap)}/jr × ${aantalJaren} jaar = ${formatEur(cap * aantalJaren)} totaal.`;
   }
 
   return (
