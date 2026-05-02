@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useSession } from "@/lib/session-context";
 import type { DINSession, BegrotingAdvies, Stap4Result, BegrotingScenario, InspanningBegroting } from "@/lib/types";
 import { parseDossierRaming, type ParsedDossierRaming } from "@/lib/dossier-parser";
-import { splitMotivatie, segmentText, type EuroMatch } from "@/lib/motivatie-parser";
+import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type ParsedBreakdown, type BreakdownSection } from "@/lib/motivatie-parser";
 
 // ============================================================================
 // Helpers
@@ -734,6 +734,7 @@ function InspanningKeten({
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm leading-relaxed text-gray-700">
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
+                <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" />
                 <ParserOutputPaneel
                   parsed={parsed}
                   structureleJaren={structureleJaren}
@@ -909,15 +910,124 @@ function MotivatiePaneel({ motivatie }: { motivatie: string }) {
         </div>
       )}
       {onderbouwing && (
-        <div className="rounded bg-blue-50/50 border border-blue-200 p-3">
-          <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-900 mb-1.5">
-            Dossier-onderbouwing — componenten en bedragen
-          </p>
-          <div className="text-sm text-gray-800 leading-relaxed">
-            <TekstMetEuroHighlights tekst={onderbouwing} />
+        <>
+          <div className="rounded bg-blue-50/50 border border-blue-200 p-3">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-900 mb-1.5">
+              Dossier-onderbouwing — componenten en bedragen
+            </p>
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <TekstMetEuroHighlights tekst={onderbouwing} />
+            </div>
           </div>
-        </div>
+          <BreakdownPaneel tekst={onderbouwing} bron="motivatie" />
+        </>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// BreakdownPaneel — render een uitsplitsing-tabel uit een tekst
+// ============================================================================
+//
+// Pakt parseBreakdown(tekst) en toont per blok (eenmalig / structureel) een
+// tabel met sub-componenten en Σ-check. Toont ALLEEN wanneer de parser een
+// netjes-aansluitende uitsplitsing oplevert (zodat we geen verkeerde tabel
+// tonen wanneer de tekst geen duidelijke breakdown heeft).
+
+function BreakdownPaneel({ tekst, bron }: { tekst: string; bron: "kostenraming" | "motivatie" }) {
+  const parsed: ParsedBreakdown = useMemo(() => parseBreakdown(tekst), [tekst]);
+  if (parsed.unparsed) return null;
+
+  const eenmaligToon = parsed.eenmalig?.sluitNetjesAan && parsed.eenmalig.subComponenten.length >= 2;
+  const structureelToon = parsed.structureel?.sluitNetjesAan && parsed.structureel.subComponenten.length >= 2;
+  if (!eenmaligToon && !structureelToon) return null;
+
+  const bronLabel = bron === "kostenraming" ? "uit de kostenraming-tekst" : "uit de motivatie";
+
+  return (
+    <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50/40 p-4 space-y-3">
+      <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-900">
+        Uitsplitsing per component ({bronLabel})
+      </p>
+      {eenmaligToon && parsed.eenmalig && (
+        <BreakdownTabel section={parsed.eenmalig} />
+      )}
+      {structureelToon && parsed.structureel && (
+        <BreakdownTabel section={parsed.structureel} />
+      )}
+    </div>
+  );
+}
+
+function BreakdownTabel({ section }: { section: BreakdownSection }) {
+  const eenheid = section.label === "structureel" ? "/jr" : "";
+  const titel = section.label === "structureel" ? "Structureel per jaar" : "Eenmalig";
+
+  function fmtRange(low: number, high: number): string {
+    if (low === high) return formatEur(low);
+    return `${formatEur(low)} – ${formatEur(high)}`;
+  }
+
+  const bufferGroot = section.bufferLow > 0 || section.bufferHigh > 0;
+  const bufferKlein = Math.abs(section.bufferLow) < 5000 && Math.abs(section.bufferHigh) < 5000;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-gray-700">{titel}</p>
+        <p className="text-base font-bold text-gray-900 font-mono mt-0.5">
+          {fmtRange(section.hoofdtotaalLow, section.hoofdtotaalHigh)}{eenheid}
+        </p>
+      </div>
+      <table className="w-full text-xs">
+        <thead className="bg-gray-50/50">
+          <tr className="text-left uppercase tracking-wider text-[10px] text-gray-500 border-t border-gray-200">
+            <th className="px-3 py-1.5 font-semibold">Component</th>
+            <th className="px-3 py-1.5 font-semibold text-right">Bedrag</th>
+          </tr>
+        </thead>
+        <tbody>
+          {section.subComponenten.map((c, i) => (
+            <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50">
+              <td className="px-3 py-1.5 text-gray-800">
+                {c.naam}
+                {c.vanafJaar !== null && (
+                  <span className="text-[10px] text-gray-500 ml-1">(vanaf jaar {c.vanafJaar})</span>
+                )}
+              </td>
+              <td className="px-3 py-1.5 text-right font-mono text-gray-700">
+                {fmtRange(c.bedragLow, c.bedragHigh)}{eenheid}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="bg-gray-50 border-t-2 border-gray-300">
+            <td className="px-3 py-1.5 text-right font-semibold text-gray-700">Σ componenten</td>
+            <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+              {fmtRange(section.somSubsLow, section.somSubsHigh)}{eenheid}
+            </td>
+          </tr>
+          {!bufferKlein && bufferGroot && (
+            <tr className="bg-blue-50/40">
+              <td className="px-3 py-1.5 text-right text-blue-900 italic" title="Verschil tussen hoofdtotaal en sub-componenten — typisch buffer of overhead">
+                + buffer / overhead
+              </td>
+              <td className="px-3 py-1.5 text-right font-mono text-blue-900">
+                {fmtRange(section.bufferLow, section.bufferHigh)}{eenheid}
+              </td>
+            </tr>
+          )}
+          <tr className="bg-emerald-50/60 border-t border-emerald-200">
+            <td className="px-3 py-1.5 text-right font-bold text-emerald-900">= Hoofdtotaal</td>
+            <td className="px-3 py-1.5 text-right font-mono font-bold text-emerald-900">
+              {fmtRange(section.hoofdtotaalLow, section.hoofdtotaalHigh)}{eenheid}
+              <span className="ml-1">✓</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
