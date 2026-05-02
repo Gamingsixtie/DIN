@@ -55,9 +55,9 @@ export const COMPONENT_REDENERINGEN: ComponentRedenering[] = [
   {
     inspanningMatch: "crm",
     componentMatch: "licentielast",
-    berekening: "6–12 transitiemaanden × ~€ 5.000/maand nieuwe MS Dynamics-licenties (85 × € 55–65/m) = € 30K–€ 60K. Tijdens deze periode loopt het huidige klantsysteem parallel — die kosten zitten al in de bestaande exploitatie en worden hier niet dubbel geteld.",
-    tariefBron: "MS Dynamics 365 Customer Engagement Pro: € 55–65/maand per gebruiker × 85 gebruikers ≈ € 4.675–5.525/maand (Microsoft Pricing 2025, microsoft.com)",
-    aantalBron: "Transitieperiode 6–12 maanden: tijdsvenster waarin nieuwe omgeving al actief is terwijl oude nog niet is afgeschakeld (industry best-practice voor mid-size CRM-migratie)",
+    berekening: "Tijdens 6–12 transitiemaanden draaien twee Dynamics-instanties parallel: de huidige Cito-omgeving (nog niet uit te zetten) én de nieuwe geïntegreerde omgeving (al live met eerste gebruikers). Eenmalige overlap-kosten ≈ huidige Dynamics-licentielast × transitieperiode = € 30K–€ 60K. De licenties van de nieuwe omgeving zitten in de aparte structurele post (€ 50K–€ 75K/jr) — die twee posten kruisen elkaar alléén in het overlap-jaar, daarna blijft alleen de structurele post over.",
+    tariefBron: "Cito gebruikt op dit moment al MS Dynamics; tijdens migratie loopt die huidige instance 6–12 maanden door naast de nieuwe. Order van grootte: ~€ 4K–€ 5K/maand voor 85 gebruikers (Microsoft Pricing 2025, € 55–65/maand per gebruiker — toegepast op de huidige instance).",
+    aantalBron: "Transitieperiode 6–12 maanden: tijdsvenster waarin de huidige Dynamics nog niet afgeschakeld kan worden omdat data, processen en gebruikers gefaseerd overgaan (industry best-practice voor mid-size CRM-migratie).",
   },
   {
     inspanningMatch: "crm",
