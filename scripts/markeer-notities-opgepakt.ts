@@ -37,15 +37,16 @@ interface ClaudeNotitie {
 }
 
 async function main() {
+  const userArgs = process.argv.slice(2);
   const sessionId =
-    process.argv.find((a) => !a.startsWith("--") && a.includes("-")) ??
+    userArgs.find((a) => !a.startsWith("--") && /^[0-9a-f-]{36}$/i.test(a)) ??
     "d8b97442-ce8f-4134-b2c7-67dc8e3a3f93";
-  const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+  const onlyArg = userArgs.find((a) => a.startsWith("--only="));
   const onlyId = onlyArg?.split("=")[1];
 
   const { data: row, error: readErr } = await supa
     .from("din_sessions")
-    .select("data, version")
+    .select("data")
     .eq("id", sessionId)
     .maybeSingle();
   if (readErr || !row) {
@@ -54,6 +55,7 @@ async function main() {
   }
 
   const data = row.data as Record<string, unknown>;
+  const huidigeVersion = (data.version as number | undefined) ?? 0;
   const wiz = data.crossAnalyseWizard as
     | { stepResults?: Record<string, Record<string, unknown>> }
     | undefined;
@@ -95,19 +97,21 @@ async function main() {
   // Patch session.data
   ((wiz!.stepResults!.stap8 as Record<string, unknown>).claudeNotes as unknown) = nieuweNotes;
 
-  const newVersion = (row.version ?? 0) + 1;
+  const newVersion = huidigeVersion + 1;
+  data.version = newVersion;
+  data.updatedAt = new Date().toISOString();
+
   const { error: writeErr } = await supa
     .from("din_sessions")
-    .update({ data, version: newVersion, updated_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .eq("version", row.version ?? 0);
+    .update({ data, updated_at: new Date().toISOString() })
+    .eq("id", sessionId);
 
   if (writeErr) {
-    console.error("Schrijven mislukt — probeer opnieuw na een UI-refresh.", writeErr.message);
+    console.error("Schrijven mislukt:", writeErr.message);
     process.exit(1);
   }
 
-  console.log(`✓ ${aantalGewijzigd} notitie(s) gemarkeerd als opgepakt (version ${row.version ?? 0} → ${newVersion})`);
+  console.log(`✓ ${aantalGewijzigd} notitie(s) gemarkeerd als opgepakt (version ${huidigeVersion} → ${newVersion})`);
 }
 
 main().catch((e) => {
