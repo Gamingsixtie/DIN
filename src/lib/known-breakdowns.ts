@@ -31,6 +31,11 @@ export interface KnownBreakdown {
   inspanningMatch: string;
   eenmalig?: KnownSection;
   structureel?: KnownSection;
+  /** Optionele disclaimer-tekst die boven de breakdown wordt getoond. Voor
+   *  inspanningen waar de kostenraming-tekst en de scenariobedragen op
+   *  verschillende basissen werken (bv. out-of-pocket vs bruto incl.
+   *  interne uren). */
+  disclaimer?: string;
 }
 
 export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
@@ -121,8 +126,8 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
   {
     inspanningMatch: "uniforme",
     structureel: {
-      hoofdtotaalLow: 22_000,
-      hoofdtotaalHigh: 35_000,
+      hoofdtotaalLow: 18_000,
+      hoofdtotaalHigh: 27_000,
       subComponenten: [
         {
           naam: "Proceseigenaarschap-borging via bestaande Smartprocess-tooling",
@@ -138,58 +143,53 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
           bedragHigh: 12_000,
           isPerJaar: true,
         },
-        {
-          naam: "Sectorvariatie-buffer (10% herbewerkingsrisico)",
-          bedragLow: 4_000,
-          bedragMid: 6_000,
-          bedragHigh: 8_000,
-          isPerJaar: true,
-        },
       ],
     },
   },
 
   // ─────────────────────────────────────────────────────────────────────
   // LEIDERSCHAPSPROGRAMMA "Outside-in als gedeelde waarde" (cultuur) —
-  // 9 lg + 2 HR coördinerend. Bedragen uit motivatie-tekst. De motivatie
-  // noemt €108K aan eenmalige posten, maar de kostenraming stelt
-  // out-of-pocket eenmalig op €33–43K omdat coaching (€36K) en deel van
-  // de begeleiding intern verrekend zijn in §4.2 Interne uren (€57K, 740u
-  // × €77/u). Hieronder: out-of-pocket variant die aansluit bij €33–43K
-  // eenmalig + €25–30K structureel = €60–72K totaal.
+  // 9 lg + 2 HR coördinerend. We tonen BRUTO bedragen uit motivatie omdat
+  // het werkelijke scenario-totaal (€130K bij advies-scenario) ook op
+  // bruto-basis wordt berekend. De kostenraming-tekst noemt out-of-pocket
+  // €60–72K (na §4.2 interne uren-aftrek € 57K = 740u × € 77/u) — dat is
+  // een andere weergave van dezelfde inspanning. Disclaimer maakt dit
+  // expliciet zodat de gebruiker beide niet als tegenstrijdig leest.
   // ─────────────────────────────────────────────────────────────────────
   {
     inspanningMatch: "leiderschap",
+    disclaimer:
+      "Bedragen tonen bruto-kosten conform motivatie (incl. interne inzet die intern verrekend wordt). Het kostenraming-blok hierboven (out-of-pocket € 60–72K over 4 jaar) toont dezelfde inspanning ná aftrek van § 4.2 Interne uren (~€ 57K = 740u × € 77/u). De scenariobedragen in § 4.1 begroting (bv. € 130K voor advies, 4 jaar) zijn op bruto-basis berekend — daarom sluit deze breakdown daarop aan, niet op de out-of-pocket €60–72K.",
     eenmalig: {
-      hoofdtotaalLow: 33_000,
-      hoofdtotaalHigh: 43_000,
+      hoofdtotaalLow: 95_000,
+      hoofdtotaalHigh: 120_000,
       subComponenten: [
         {
-          naam: "Externe begeleider programma-ontwerp en uitvoering (15 dagen)",
+          naam: "Externe begeleider programma-ontwerp en uitvoering (15 dagen × €2.500)",
+          bedragLow: 33_000,
+          bedragMid: 37_500,
+          bedragHigh: 42_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Executive-tarief reservering MT-coaching (top-coaches tot €4K/dag)",
           bedragLow: 15_000,
           bedragMid: 20_000,
-          bedragHigh: 23_000,
+          bedragHigh: 25_000,
           isPerJaar: false,
         },
         {
-          naam: "Executive-tarief reservering MT-coaching (top-coaches tot € 4K/dag)",
-          bedragLow: 5_000,
-          bedragMid: 7_000,
-          bedragHigh: 10_000,
-          isPerJaar: false,
-        },
-        {
-          naam: "Individuele coaching 9 leidinggevenden (out-of-pocket fractie; restant via §4.2 interne uren)",
-          bedragLow: 8_000,
-          bedragMid: 10_000,
-          bedragHigh: 12_000,
+          naam: "Individuele coaching 9 leidinggevenden × €4.000/traject",
+          bedragLow: 32_000,
+          bedragMid: 36_000,
+          bedragHigh: 40_000,
           isPerJaar: false,
         },
         {
           naam: "HR-instrumentarium: functioneringscyclus + 360°-integratie",
-          bedragLow: 5_000,
-          bedragMid: 6_000,
-          bedragHigh: 8_000,
+          bedragLow: 13_000,
+          bedragMid: 15_000,
+          bedragHigh: 17_000,
           isPerJaar: false,
         },
       ],

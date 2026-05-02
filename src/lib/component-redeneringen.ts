@@ -115,13 +115,9 @@ export const COMPONENT_REDENERINGEN: ComponentRedenering[] = [
     tariefBron: "Procesconsultant senior NL: € 700–850/dag. Werk omvat KPI-rapportage-update, integratie-format met CRM-dashboard en governance-bijeenkomsten 4×/jaar.",
     aantalBron: "Cross-sectorale governance-cyclus: kwartaal-evaluatie 4 dagen + jaarlijkse herijking 6 dagen + ad-hoc 4 dagen = 12–15 dagen/jr",
   },
-  {
-    inspanningMatch: "uniforme",
-    componentMatch: "sectorvariatie",
-    berekening: "10% herbewerkingsrisico over € 60K/jr werkstroom = € 6K/jr buffer voor late funneldefinitie-besluiten",
-    tariefBron: "Standaard projectbuffer 10% bij processen waar definitie-besluiten gefaseerd worden vastgesteld (industry best-practice voor governance-implementaties)",
-    aantalBron: "Toepassing: per sector waar funneldefinitie nog kan wijzigen (PO, VO, Zakelijk) = 3 risicovelden",
-  },
+  // NB: Sectorvariatie-buffer is bewust NIET als component opgenomen —
+  // bandbreedte/risico op herbewerking wordt programma-breed afgevangen
+  // via de aparte post onvoorzien (5e inspanning), niet per inspanning.
   // ─────────────────────────────────────────────────────────────────────
   // GESPREKSVAARDIGHEIDSTRAINING — 80 deelnemers (uit Stap 7), 2 blokken,
   // 12 interne train-de-trainer-deelnemers, schaalvoordeel 30%

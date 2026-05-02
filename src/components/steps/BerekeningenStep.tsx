@@ -1011,6 +1011,12 @@ function BreakdownPaneel({
       <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-900">
         Uitsplitsing per component ({bronLabel})
       </p>
+      {known?.disclaimer && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 leading-relaxed">
+          <span className="font-semibold">Toelichting bij deze breakdown: </span>
+          {known.disclaimer}
+        </div>
+      )}
       {eenmaligSection && (
         <BreakdownTabel section={eenmaligSection} inspanningTitel={inspanningTitel} />
       )}
