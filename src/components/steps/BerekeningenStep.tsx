@@ -842,7 +842,7 @@ function InspanningKeten({
             <p className="text-xs text-gray-500 italic">
               {isOverig
                 ? "Deze post heeft geen dossier-raming; het bedrag volgt uit een vaste formule (ongeveer 10% van de basisraming als reserve voor onvoorziene zaken — bij het krappe scenario kan deze reserve op nul uitkomen omdat het jaarbudget al volledig benut is)."
-                : "Het bedrag in de begroting kan iets afwijken van de simpele optelsom hierboven door interne uren-aftrek (apart geboekt in §4.2 Interne uren) of een lichte bijstelling om binnen het jaarbudget-plafond te blijven. Eventuele bandbreedte wordt programma-breed opgevangen via de aparte post onvoorzien."}
+                : "Het bedrag in de begroting kan iets afwijken van de simpele optelsom hierboven door optimalisatie om binnen het jaarbudget-plafond te blijven. Eventuele bandbreedte wordt programma-breed opgevangen via de aparte post onvoorzien. Interne uren zijn niet in deze §4.1 begroting opgenomen — die worden in stap 7 (§4.2 Interne uren) apart berekend."}
             </p>
           </div>
         </SubSectie>

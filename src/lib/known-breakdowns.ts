@@ -159,7 +159,7 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
   {
     inspanningMatch: "leiderschap",
     disclaimer:
-      "Bedragen tonen bruto-kosten conform motivatie (incl. interne inzet die intern verrekend wordt). Het kostenraming-blok hierboven (out-of-pocket € 60–72K over 4 jaar) toont dezelfde inspanning ná aftrek van § 4.2 Interne uren (~€ 57K = 740u × € 77/u). De scenariobedragen in § 4.1 begroting (bv. € 130K voor advies, 4 jaar) zijn op bruto-basis berekend — daarom sluit deze breakdown daarop aan, niet op de out-of-pocket €60–72K.",
+      "De kostenraming-tekst hierboven onder 'Uit het dossier' noemt eenmalig € 33–43K en structureel € 25–30K cumulatief over 2 jaar. Dat is een onvolledige weergave — de motivatie eronder noemt vier eenmalige posten die opgeteld € 108.500 geven (externe begeleider 15 × € 2.500 = € 37.500 + executive-tarief € 20K + 9 lg × € 4.000 = € 36K + HR-instrumentarium € 15K). Het scenariobedrag in § 4.1 begroting (bv. € 130K voor advies, 4 jaar) is op de motivatie gebaseerd, niet op de samenvattende kostenraming-tekst. Daarom sluit deze breakdown op het scenariobedrag, en niet op de € 60–72K uit het dossier-blok.",
     eenmalig: {
       hoofdtotaalLow: 95_000,
       hoofdtotaalHigh: 120_000,
