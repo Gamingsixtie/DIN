@@ -742,6 +742,26 @@ export const ScenarioTotaalSchema = z.object({
   totaalGeraamd: z.number(),
 });
 
+// Notitie-velden in Stap 8 die de gebruiker (programmamanager) noteert
+// als feedback voor Claude tussen sessies door. Per scenario en globaal.
+// Niet bedoeld voor stakeholders — verschijnt niet in export.
+export const ClaudeNotitieSchema = z.object({
+  id: z.string(),
+  tekst: z.string(),
+  createdAt: z.string(),
+  status: z.enum(["open", "opgepakt"]).default("open"),
+});
+
+export const Stap8ClaudeNotesSchema = z.object({
+  globaal: z.array(ClaudeNotitieSchema).optional().default([]),
+  perScenario: z.object({
+    optimaal: z.array(ClaudeNotitieSchema).optional().default([]),
+    plus20: z.array(ClaudeNotitieSchema).optional().default([]),
+    min20: z.array(ClaudeNotitieSchema).optional().default([]),
+    advies: z.array(ClaudeNotitieSchema).optional().default([]),
+  }).optional(),
+});
+
 export const Stap8TotaaloverzichtSchema = z.object({
   scenarios: z.object({
     optimaal: ScenarioTotaalSchema.nullable(),
@@ -754,6 +774,9 @@ export const Stap8TotaaloverzichtSchema = z.object({
   // Wordt boven §4.3 in de export gerenderd zodat stuurgroep-input
   // expliciet meegenomen wordt zonder dat er getallen herrekend hoeven worden.
   stuurgroepNotitie: z.string().optional(),
+  // Privé feedback-notities van programmamanager voor Claude.
+  // Niet voor stakeholders, niet in export.
+  claudeNotes: Stap8ClaudeNotesSchema.optional(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({
@@ -1355,6 +1378,8 @@ export type BegrotingScenario = z.infer<typeof BegrotingScenarioSchema>;
 export type BegrotingAdvies = z.infer<typeof BegrotingAdviesSchema>;
 export type ScenarioTotaal = z.infer<typeof ScenarioTotaalSchema>;
 export type Stap8Totaaloverzicht = z.infer<typeof Stap8TotaaloverzichtSchema>;
+export type ClaudeNotitie = z.infer<typeof ClaudeNotitieSchema>;
+export type Stap8ClaudeNotes = z.infer<typeof Stap8ClaudeNotesSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
 export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
 export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;

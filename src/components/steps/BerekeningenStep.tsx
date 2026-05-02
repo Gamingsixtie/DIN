@@ -6,6 +6,7 @@ import type { DINSession, BegrotingAdvies, Stap4Result, BegrotingScenario, Inspa
 import { parseDossierRaming, type ParsedDossierRaming } from "@/lib/dossier-parser";
 import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type ParsedBreakdown, type BreakdownSection } from "@/lib/motivatie-parser";
 import { vindRedenering } from "@/lib/component-redeneringen";
+import { NotitieVoorClaude } from "./NotitieVoorClaude";
 
 // ============================================================================
 // Helpers
@@ -127,6 +128,11 @@ export default function BerekeningenStep() {
 
       {begroting && beschikbareScenarios.length > 0 && (
         <>
+          <NotitieVoorClaude
+            scope={{ kind: "globaal" }}
+            titel="Algemeen — geldt voor alle scenario's"
+            hint="Schrijf hier wat je wilt dat Claude leest bij de volgende ronde. Dingen die voor alle scenario's gelden (bv. een aanpassing in tarieven, een verkeerd label, structurele uitleg). Per scenario zit er onderaan elke kaart een eigen notitieblok."
+          />
           <Begrippenlijst />
           <MinMidMaxToelichting />
 
@@ -452,6 +458,12 @@ function ScenarioBerekeningKaart({
             tol={tol}
             inspanningen={inspanningen}
             startJaar={startJaar}
+          />
+
+          <NotitieVoorClaude
+            scope={{ kind: "scenario", scenarioKey }}
+            titel={`Scenario: ${meta.label}`}
+            hint="Notities die alleen voor dit scenario gelden. Bijvoorbeeld: een specifiek bedrag dat hier afwijkt, een berekening die alleen in dit tempo onlogisch wordt, of een sectie die alleen voor dit scenario aanpassing nodig heeft."
           />
         </div>
       )}

@@ -67,6 +67,8 @@ export type {
   GezamenlijkRasciItem,
   Stap7InterneUren,
   Stap8Totaaloverzicht,
+  ClaudeNotitie,
+  Stap8ClaudeNotes,
   DomeinInterneUren,
   InterneUrenScenario,
   InterneUrenRol,
