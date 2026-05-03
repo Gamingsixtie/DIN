@@ -33,6 +33,7 @@ import type {
 } from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
+import { getAantalForRol, type Domein as Domein4 } from "./uren-aantal";
 
 // --- Cito outside-in domeinvolgorde (cultuur → mens → data/systemen → processen) ---
 // NIET de klassieke Prevaas-volgorde. Zie memory: "Cito-outside-in volgorde".
@@ -2542,22 +2543,24 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
             { bold: true, size: 18, color: TEXT_PRIMARY }
           ));
 
-          const rolRows = jr.rollen.map((r) =>
-            new TableRow({
+          const rolRows = jr.rollen.map((r) => {
+            const aantal = getAantalForRol(session, d.domein as Domein4, r.functieId);
+            return new TableRow({
               children: [
-                styledCell(`${r.functieNaam}${r.afdeling ? ` (${r.afdeling})` : ""}`, { width: 50, size: 14 }),
+                styledCell(`${r.functieNaam}${r.afdeling ? ` (${r.afdeling})` : ""}`, { width: 45, size: 14 }),
+                styledCell(formatGetal(aantal), { width: 10, size: 14 }),
                 styledCell(formatGetal(r.uren), { width: 15, size: 14 }),
-                styledCell(formatEuro(r.uurtarief), { width: 15, size: 14, color: TEXT_SECONDARY }),
-                styledCell(formatEuro(r.kosten), { width: 20, bold: true, size: 14 }),
+                styledCell(formatEuro(r.uurtarief), { width: 13, size: 14, color: TEXT_SECONDARY }),
+                styledCell(formatEuro(r.kosten), { width: 17, bold: true, size: 14 }),
               ],
-            })
-          );
+            });
+          });
           children.push(
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
               rows: [
                 new TableRow({
-                  children: [headerCell("Rol", 50), headerCell("Uren", 15), headerCell("€/u", 15), headerCell("Kosten", 20)],
+                  children: [headerCell("Rol", 45), headerCell("Aantal", 10), headerCell("Uren", 15), headerCell("€/u", 13), headerCell("Kosten", 17)],
                 }),
                 ...rolRows,
               ],

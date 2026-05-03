@@ -15,6 +15,7 @@ import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } fro
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
 import type { Stap2Result, Stap4Result, Stap5Result } from "@/lib/types";
+import { getAantalForRol, type Domein as Domein4 } from "@/lib/uren-aantal";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -2704,23 +2705,28 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                             <thead>
                               <tr className="text-left border-b border-gray-100">
                                 <th className="py-1 font-semibold text-gray-500">Rol</th>
+                                <th className="py-1 font-semibold text-gray-500 text-right">Aantal</th>
                                 <th className="py-1 font-semibold text-gray-500 text-right">Uren</th>
                                 <th className="py-1 font-semibold text-gray-500 text-right">€ / u</th>
                                 <th className="py-1 font-semibold text-gray-500 text-right">Kosten</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {jr.rollen.map((r, i) => (
-                                <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
-                                  <td className="py-1">
-                                    <span className="text-gray-800">{r.functieNaam}</span>
-                                    {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
-                                  </td>
-                                  <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren.toLocaleString("nl-NL")}</td>
-                                  <td className="py-1 text-right text-gray-500 tabular-nums">€ {r.uurtarief}</td>
-                                  <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
-                                </tr>
-                              ))}
+                              {jr.rollen.map((r, i) => {
+                                const aantal = getAantalForRol(session, d.domein as Domein4, r.functieId);
+                                return (
+                                  <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
+                                    <td className="py-1">
+                                      <span className="text-gray-800">{r.functieNaam}</span>
+                                      {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
+                                    </td>
+                                    <td className="py-1 text-right text-gray-700 tabular-nums">{aantal}</td>
+                                    <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren.toLocaleString("nl-NL")}</td>
+                                    <td className="py-1 text-right text-gray-500 tabular-nums">€ {r.uurtarief}</td>
+                                    <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

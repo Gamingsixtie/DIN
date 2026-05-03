@@ -17,7 +17,16 @@ import { CITO_FUNCTIES, type CitoFunctie, type CitoAfdeling } from "@/lib/cito-f
 type CustomFunctie = { id: string; naam: string; schaal?: number };
 // Per geselecteerde functie: aantal personen + (optioneel) hard uren-budget per jaar per persoon
 // Als urenPerJaar leeg is → AI bepaalt; ingevuld → AI moet dit als jaarlijks budget per persoon respecteren
-type FunctieInput = { aantal: number; urenPerJaar?: number };
+// stakeholder: rol levert review/input (geen uren-belasting); UI toont label i.p.v. aantal
+// reviewVereist: handmatige beslissing nog open (cat-3 stille selecties)
+type FunctieInput = {
+  aantal: number;
+  urenPerJaar?: number;
+  stakeholder?: boolean;
+  stakeholderToelichting?: string;
+  reviewVereist?: boolean;
+  reviewVraag?: string;
+};
 
 type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
 type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
@@ -1783,6 +1792,7 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 key={sv.key}
                 s={s}
                 sv={sv}
+                selectiePerDomein={selectiePerDomein}
                 onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
               />
@@ -1963,30 +1973,35 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                       <thead>
                         <tr className="border-b border-gray-200">
                           <th className="text-left py-1 px-2 text-gray-500 font-semibold">Rol</th>
+                          <th className="text-right py-1 px-2 text-gray-500 font-semibold w-16">Aantal</th>
                           <th className="text-left py-1 px-2 text-gray-500 font-semibold">Onderbouwing (AI)</th>
                           <th className="text-right py-1 px-2 text-gray-500 font-semibold w-32">Uren totaal</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {iu.rollen.map((r) => (
-                          <tr key={r.functieId} className="border-b border-gray-100 last:border-b-0">
-                            <td className="py-1 px-2">
-                              <p className="text-gray-800 font-medium">{r.functieNaam}</p>
-                              {r.afdeling && <p className="text-[10px] text-gray-500">{r.afdeling}</p>}
-                            </td>
-                            <td className="py-1 px-2 text-[11px] text-gray-600 italic leading-snug">{r.onderbouwing}</td>
-                            <td className="py-1 px-2 text-right">
-                              <input
-                                type="number"
-                                min={0}
-                                value={r.urenTotaal}
-                                onChange={(e) => pasUrenAan(iu.groepId, r.functieId, Number(e.target.value))}
-                                className="w-24 px-2 py-1 text-xs border border-gray-300 rounded bg-white text-right focus:outline-none focus:ring-1 focus:ring-[#003366]"
-                              />
-                              <span className="text-[10px] text-gray-500 ml-1">u</span>
-                            </td>
-                          </tr>
-                        ))}
+                        {iu.rollen.map((r) => {
+                          const aantal = selectiePerDomein[iu.domein]?.[r.functieId]?.aantal ?? 1;
+                          return (
+                            <tr key={r.functieId} className="border-b border-gray-100 last:border-b-0">
+                              <td className="py-1 px-2">
+                                <p className="text-gray-800 font-medium">{r.functieNaam}</p>
+                                {r.afdeling && <p className="text-[10px] text-gray-500">{r.afdeling}</p>}
+                              </td>
+                              <td className="py-1 px-2 text-right text-gray-700 tabular-nums">{aantal}</td>
+                              <td className="py-1 px-2 text-[11px] text-gray-600 italic leading-snug">{r.onderbouwing}</td>
+                              <td className="py-1 px-2 text-right">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={r.urenTotaal}
+                                  onChange={(e) => pasUrenAan(iu.groepId, r.functieId, Number(e.target.value))}
+                                  className="w-24 px-2 py-1 text-xs border border-gray-300 rounded bg-white text-right focus:outline-none focus:ring-1 focus:ring-[#003366]"
+                                />
+                                <span className="text-[10px] text-gray-500 ml-1">u</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2087,11 +2102,13 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
 function ScenarioBlokView({
   s,
   sv,
+  selectiePerDomein,
   onSamenvattingEdit,
   onDomeinMotivatieEdit,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
+  selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
   onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
 }): React.ReactElement {
@@ -2149,6 +2166,32 @@ function ScenarioBlokView({
         })}
       </div>
 
+      {/* Toelichting: meerdere domeinen + stakeholder-label */}
+      <details className="rounded border border-blue-200 bg-blue-50 overflow-hidden">
+        <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-blue-900 hover:bg-blue-100">
+          Waarom kunnen personen in meerdere domeinen staan? En wat betekent &lsquo;Stakeholder&rsquo;?
+        </summary>
+        <div className="px-3 pb-3 pt-1 text-[11px] text-blue-900 leading-relaxed space-y-2 border-t border-blue-200">
+          <p>
+            Een persoon kan in twee of meer domeinen voorkomen omdat <strong>per domein een andere activiteit</strong> geldt — geen dubbeltelling. Het zijn verschillende werkpakketten in dezelfde rol.
+          </p>
+          <p>
+            <strong>Voorbeeld Manager Klantcontact:</strong>
+          </p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            <li>
+              <strong>Mens</strong>: trainings-coördinatie-uren (40u — roosters maken voor klantenservice-team).
+            </li>
+            <li>
+              <strong>Data &amp; Systemen</strong>: CRM-stuurgroep- en adoption-uren (28u — andere activiteit).
+            </li>
+          </ul>
+          <p>
+            <strong>Stakeholder-label</strong>: rollen met label <em>Stakeholder</em> in de Aantal-kolom hebben een review/input-rol bij de inspanning (bijv. productmanagers leveren acceptatietest-input voor het CRM) maar geen uren-belasting. Ze staan in de selectie omdat zij geraadpleegd worden, niet omdat ze uitvoerders zijn.
+          </p>
+        </div>
+      </details>
+
       {/* Domein-tabs */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="flex flex-wrap border-b border-gray-200">
@@ -2202,23 +2245,42 @@ function ScenarioBlokView({
                       <thead>
                         <tr className="text-left border-b border-gray-100">
                           <th className="py-1 font-semibold text-gray-500">Rol</th>
+                          <th className="py-1 font-semibold text-gray-500 text-right">Aantal</th>
                           <th className="py-1 font-semibold text-gray-500 text-right">Uren</th>
                           <th className="py-1 font-semibold text-gray-500 text-right">€/u</th>
                           <th className="py-1 font-semibold text-gray-500 text-right">Kosten</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {jr.rollen.map((r, i) => (
-                          <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
-                            <td className="py-1">
-                              <span className="text-gray-800">{r.functieNaam}</span>
-                              {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
-                            </td>
-                            <td className="py-1 text-right text-gray-800">{r.uren}</td>
-                            <td className="py-1 text-right text-gray-500">€{r.uurtarief}</td>
-                            <td className="py-1 text-right font-semibold text-gray-800">€ {r.kosten.toLocaleString("nl-NL")}</td>
-                          </tr>
-                        ))}
+                        {jr.rollen.map((r, i) => {
+                          const sel = selectiePerDomein?.[d.domein]?.[r.functieId];
+                          const aantal = sel?.aantal ?? 1;
+                          const isStakeholder = sel?.stakeholder === true;
+                          const stakeholderToel = sel?.stakeholderToelichting;
+                          return (
+                            <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
+                              <td className="py-1">
+                                <span className="text-gray-800">{r.functieNaam}</span>
+                                {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
+                              </td>
+                              <td className="py-1 text-right tabular-nums">
+                                {isStakeholder ? (
+                                  <span
+                                    className="inline-block text-[10px] font-semibold uppercase tracking-wider text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded"
+                                    title={stakeholderToel ?? "Stakeholder (review/input, geen uren-belasting)"}
+                                  >
+                                    Stakeholder
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-700">{aantal}</span>
+                                )}
+                              </td>
+                              <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren}</td>
+                              <td className="py-1 text-right text-gray-500 tabular-nums">€{r.uurtarief}</td>
+                              <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

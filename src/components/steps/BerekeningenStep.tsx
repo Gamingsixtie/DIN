@@ -186,6 +186,7 @@ export default function BerekeningenStep() {
                 scenarioKey={k}
                 begroting={begroting}
                 subEffortAnalysis={subEffortAnalysis}
+                session={session}
                 open={openScenario === k}
                 onToggle={() => setOpenScenario(openScenario === k ? null : k)}
               />
@@ -387,12 +388,14 @@ function ScenarioBerekeningKaart({
   scenarioKey,
   begroting,
   subEffortAnalysis,
+  session,
   open,
   onToggle,
 }: {
   scenarioKey: ScenarioKey;
   begroting: BegrotingAdvies;
   subEffortAnalysis: Array<{ titel?: string; domein?: string; dossier?: { kostenraming?: string } }>;
+  session: DINSession;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -492,6 +495,12 @@ function ScenarioBerekeningKaart({
             cap={cap}
             tol={tol}
             inspanningen={inspanningen}
+            startJaar={startJaar}
+          />
+
+          <SectieF
+            scenarioKey={scenarioKey}
+            session={session}
             startJaar={startJaar}
           />
 
@@ -1564,6 +1573,420 @@ function SectieE({
             );
           })}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Sectie F — Interne uren — capaciteitsbelasting eigen organisatie
+// ============================================================================
+//
+// Aparte zelfstandige sectie naast de OOP-rekenscheme. Toont per scenario:
+//   1. Hoofdgetal-kaart: totaal uren / programma-uren / lijn-uren
+//   2. Per-jaar curve met piekjaar-badge
+//   3. Per-domein bars (uren-aandeel binnen scenario)
+//   4. Programma/lijn-toelichting (collapsible)
+//   5. Capaciteitsdruk-context (informatief)
+//
+// Bron: stap4.stap7InterneUren.scenarios[scenarioKey]
+//   - totaalUren / totaalKosten
+//   - totalenPerJaar[]: { jaar, uren, kosten, urenBudget?, urenGap? }
+//   - domeinen[]: { domein, totaalUren, totaalKosten, motivatie, jaren[], programmaPct? }
+//
+// Programma-pct per domein: gebruik veld als aanwezig, anders fallback naar
+// vaste schattingen uit AUDIT-INTERNE-UREN-FASERING.md (data 85% / mens 70% /
+// cultuur 75% / processen 55% — gemiddeld ~72%). Spec spreekt van fallback
+// 0.75; we hanteren domein-specifiek default zodat de getoonde uitsplitsing
+// dichter bij de werkelijke audit-bevinding ligt.
+
+const PROGRAMMA_PCT_DEFAULT: Record<string, number> = {
+  data_systemen: 0.85,
+  mens: 0.70,
+  cultuur: 0.75,
+  processen: 0.55,
+};
+
+const DOMAIN_BAR_HEX: Record<string, string> = {
+  mens: "#2563eb",
+  processen: "#059669",
+  data_systemen: "#7c3aed",
+  cultuur: "#d97706",
+};
+
+const DOMAIN_LIJN_VOORBEELD: Record<string, string> = {
+  data_systemen:
+    "Stuurgroep-frequentie als governance + structureel CRM-beheer (~15% — vast in lijn).",
+  mens:
+    "Klantenservice-team krijgt sowieso jaarlijks gespreksvaardigheidsbijscholing (~30% deelnemertijd in standaard L&D-budget Klantcontact).",
+  cultuur:
+    "HRM-cyclus-borging en MT-discussies horen in de jaarcyclus van directie en HR (~25%).",
+  processen:
+    "Procesmanager-structureel-werk in functieprofiel zodra processen vastgesteld zijn (~45%).",
+};
+
+type UrenFTotalen = {
+  jaar: number;
+  uren: number;
+  kosten: number;
+  urenBudget?: number;
+  urenGap?: number;
+};
+type UrenFDomeinJaar = {
+  jaar: number;
+  totaalUren?: number;
+  rollen?: Array<{ uren: number }>;
+};
+type UrenFDomein = {
+  domein: string;
+  motivatie?: string;
+  totaalUren?: number;
+  totaalKosten?: number;
+  programmaPct?: number;
+  jaren?: UrenFDomeinJaar[];
+};
+type UrenFScenario = {
+  aantalJaren?: number;
+  startJaar?: number;
+  totaalUren?: number;
+  totaalKosten?: number;
+  domeinen?: UrenFDomein[];
+  totalenPerJaar?: UrenFTotalen[];
+};
+type UrenFAdvies = {
+  scenarios?: Partial<Record<ScenarioKey, UrenFScenario | null>>;
+};
+
+function SectieF({
+  scenarioKey,
+  session,
+  startJaar,
+}: {
+  scenarioKey: ScenarioKey;
+  session: DINSession;
+  startJaar: number;
+}) {
+  const stap4 = (session.crossAnalyseWizard?.stepResults as
+    | { stap4?: { stap7InterneUren?: UrenFAdvies } }
+    | undefined)?.stap4;
+  const interneUrenScen = stap4?.stap7InterneUren?.scenarios?.[scenarioKey] ?? null;
+
+  if (!interneUrenScen) {
+    return (
+      <div>
+        <SectieKop
+          nummer="F"
+          titel="Interne uren — capaciteitsbelasting eigen organisatie"
+          hint="Inzet van Cito-medewerkers naast de out-of-pocket-begroting. Niet ‘extra geld’, maar wel schaarse capaciteit."
+        />
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-xs text-gray-500 italic">
+          Geen interne-uren-advies beschikbaar voor scenario&nbsp;
+          <strong>{SCENARIO_META[scenarioKey].label}</strong>. Genereer in&nbsp;
+          <strong>Cross-analyse · Stap 7 (Interne uren)</strong> de scenario&apos;s.
+        </div>
+      </div>
+    );
+  }
+
+  const totaalUren = interneUrenScen.totaalUren ?? 0;
+  const domeinen = interneUrenScen.domeinen ?? [];
+  const totalenPerJaar: UrenFTotalen[] = interneUrenScen.totalenPerJaar ?? [];
+
+  // Programma vs lijn — per domein
+  let programmaUren = 0;
+  let lijnUren = 0;
+  for (const d of domeinen) {
+    const pct =
+      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+        ? d.programmaPct
+        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+    const dTot = d.totaalUren ?? 0;
+    programmaUren += Math.round(dTot * pct);
+    lijnUren += Math.round(dTot * (1 - pct));
+  }
+  const programmaAandeel = totaalUren > 0 ? Math.round((programmaUren / totaalUren) * 100) : 0;
+
+  // Piekjaar
+  let piekJaar: number | null = null;
+  let piekUren = 0;
+  for (const t of totalenPerJaar) {
+    if ((t.uren ?? 0) > piekUren) {
+      piekUren = t.uren ?? 0;
+      piekJaar = t.jaar;
+    }
+  }
+  const maxJaarUren = totalenPerJaar.reduce((m, t) => Math.max(m, t.uren ?? 0), 0);
+
+  // Per-domein-bar — uren-aandeel binnen scenario, gesorteerd descending
+  const sortedDomeinen = [...domeinen].sort(
+    (a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0),
+  );
+  const maxDomeinUren = sortedDomeinen.reduce((m, d) => Math.max(m, d.totaalUren ?? 0), 0);
+
+  // Capaciteitsdruk-context
+  const j1 = totalenPerJaar.find((t) => t.jaar === startJaar) ?? null;
+  const j1Cap = scenarioKey === "advies" || scenarioKey === "plus20" ? 290 : 250;
+  const j1Note =
+    j1 && j1.uren > 0
+      ? `2026 = half-jaar — start juni → J1 cap op ~${j1Cap}u. Werkelijk in dit scenario: ${j1.uren.toLocaleString("nl-NL")}u.`
+      : null;
+
+  // Mens-piek 2027 risico (klantcontact-belasting)
+  const mensJ2 =
+    domeinen.find((d) => d.domein === "mens")?.jaren?.find((jr) => jr.jaar === startJaar + 1)
+      ?.totaalUren ?? 0;
+  const mensRisico =
+    (scenarioKey === "advies" || scenarioKey === "plus20") && mensJ2 > 1000
+      ? `Capaciteitsbreuk-risico Klantcontact ${startJaar + 1}: mens-domein piekt op ${mensJ2.toLocaleString("nl-NL")}u in dat jaar — bij 28 klantenservice-medewerkers × ~24u programma is dat single-largest belasting.`
+      : null;
+
+  return (
+    <div>
+      <SectieKop
+        nummer="F"
+        titel="Interne uren — capaciteitsbelasting eigen organisatie"
+        hint="Inzet van Cito-medewerkers naast de out-of-pocket-begroting. Niet 'extra geld', maar wel schaarse capaciteit die over programma's en lijnwerk verdeeld moet worden."
+      />
+
+      <div className="space-y-4">
+        {/* 1. Hoofdgetal-kaart */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <KengetalKaart
+            label="Totaal uren"
+            waarde={totaalUren}
+            sub={`over de hele looptijd (${interneUrenScen.aantalJaren ?? 0} jaar)`}
+            accent="bg-[#003366]"
+            mono
+          />
+          <KengetalKaart
+            label="Programma-uren"
+            waarde={programmaUren}
+            sub={`écht extra te financieren capaciteit (${programmaAandeel}%)`}
+            accent="bg-emerald-700"
+            mono
+          />
+          <KengetalKaart
+            label="Lijn-uren"
+            waarde={lijnUren}
+            sub="valt in functieprofielen / bestaande budgetten"
+            accent="bg-amber-700"
+            mono
+          />
+        </div>
+
+        {/* 2. Per-jaar-curve */}
+        {totalenPerJaar.length > 0 && (
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-3">
+              Curve per jaar — wanneer valt de capaciteitsbelasting?
+            </p>
+            <div className="space-y-1.5">
+              {totalenPerJaar.map((t) => {
+                const isPiek = t.jaar === piekJaar && piekUren > 0;
+                const w = maxJaarUren > 0 ? (t.uren / maxJaarUren) * 100 : 0;
+                return (
+                  <div key={t.jaar} className="flex items-center gap-3 text-xs">
+                    <span className="font-mono text-gray-600 w-12 shrink-0">{t.jaar}</span>
+                    <div className="flex-1 h-5 rounded bg-gray-100 overflow-hidden relative">
+                      <div
+                        className={`h-full ${isPiek ? "bg-[#003366]" : "bg-[#003366]/60"}`}
+                        style={{ width: `${Math.max(0.5, w)}%` }}
+                      />
+                    </div>
+                    <span
+                      className={`font-mono tabular-nums w-20 text-right ${
+                        isPiek ? "text-[#003366] font-bold" : "text-gray-700"
+                      }`}
+                    >
+                      {(t.uren ?? 0).toLocaleString("nl-NL")} u
+                    </span>
+                    {isPiek ? (
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-white bg-[#003366] px-1.5 py-0.5 rounded shrink-0">
+                        Piek
+                      </span>
+                    ) : (
+                      <span className="w-12 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Per-domein-bar */}
+        {sortedDomeinen.length > 0 && (
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-3">
+              Verdeling over domeinen — waar zit de inspanning?
+            </p>
+            <div className="space-y-2">
+              {sortedDomeinen.map((d) => {
+                const dTot = d.totaalUren ?? 0;
+                const w = maxDomeinUren > 0 ? (dTot / maxDomeinUren) * 100 : 0;
+                const aandeel = totaalUren > 0 ? Math.round((dTot / totaalUren) * 100) : 0;
+                const hex = DOMAIN_BAR_HEX[d.domein] ?? "#6b7280";
+                return (
+                  <div key={d.domein} className="text-xs">
+                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                      <span className="font-semibold text-gray-800">
+                        {DOMAIN_LABEL[d.domein] ?? d.domein}
+                      </span>
+                      <span className="font-mono tabular-nums text-gray-700">
+                        {dTot.toLocaleString("nl-NL")} u
+                        <span className="text-gray-500 ml-1.5">({aandeel}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-3 rounded bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded"
+                        style={{ width: `${Math.max(0.5, w)}%`, backgroundColor: hex }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Toelichting: persoon kan in meerdere domeinen voorkomen */}
+            <details className="mt-3 rounded border border-blue-200 bg-blue-50 overflow-hidden">
+              <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-blue-900 hover:bg-blue-100">
+                Waarom kunnen personen in meerdere domeinen staan?
+              </summary>
+              <div className="px-3 pb-3 pt-1 text-[11px] text-blue-900 leading-relaxed space-y-2 border-t border-blue-200">
+                <p>
+                  Een persoon kan in twee of meer domeinen voorkomen omdat <strong>per domein een andere activiteit</strong> geldt — geen dubbeltelling. Het zijn verschillende werkpakketten in dezelfde rol.
+                </p>
+                <p>
+                  <strong>Voorbeeld Manager Klantcontact:</strong>
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>
+                    <strong>Mens</strong>: trainings-coördinatie-uren (40u — roosters maken voor klantenservice-team).
+                  </li>
+                  <li>
+                    <strong>Data &amp; Systemen</strong>: CRM-stuurgroep- en adoption-uren (28u — andere activiteit).
+                  </li>
+                </ul>
+                <p>
+                  Sommige rollen zijn <strong>stakeholder zonder uren-belasting</strong> (review/input-rol bij CRM): die zie je in Stap 7 onder &lsquo;Functies geselecteerd&rsquo; met label <em>Stakeholder</em> — zij leveren input maar krijgen geen uren toegewezen.
+                </p>
+              </div>
+            </details>
+          </div>
+        )}
+
+        {/* 4. Programma/lijn-toelichting — collapsible */}
+        <details className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+          <summary className="cursor-pointer px-4 py-2.5 hover:bg-gray-50 text-sm font-semibold text-[#003366] flex items-center justify-between">
+            <span>Programma vs. lijn — wat valt waar?</span>
+            <span className="text-[11px] text-gray-500 font-normal">
+              klik voor uitleg + per-domein
+            </span>
+          </summary>
+          <div className="px-4 pb-4 pt-1 space-y-3 border-t border-gray-100">
+            <div className="rounded bg-gray-50 border border-gray-200 p-3 text-xs text-gray-700 leading-relaxed">
+              <p className="font-semibold text-gray-800 mb-1">Lijn-criterium (3 voorwaarden):</p>
+              <ol className="list-decimal pl-5 space-y-0.5">
+                <li>Werk past binnen een bestaand <strong>functieprofiel</strong>;</li>
+                <li>Wordt gefinancierd uit een <strong>bestaand afdelingsbudget</strong>;</li>
+                <li>Volgt een <strong>bestaande jaarcyclus</strong> (HRM-cyclus, L&amp;D-plan, beheer-cyclus).</li>
+              </ol>
+              <p className="text-[11px] text-gray-500 italic mt-2">
+                Voldoet aan alle drie → lijn (geen extra capaciteit nodig). Anders → programma.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {sortedDomeinen.map((d) => {
+                const pct =
+                  typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+                    ? d.programmaPct
+                    : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+                const lijnPct = Math.round((1 - pct) * 100);
+                const progPct = Math.round(pct * 100);
+                const dTot = d.totaalUren ?? 0;
+                const progU = Math.round(dTot * pct);
+                const lijnU = Math.round(dTot * (1 - pct));
+                const hex = DOMAIN_BAR_HEX[d.domein] ?? "#6b7280";
+                return (
+                  <div key={d.domein} className="rounded border border-gray-200 p-3 text-xs">
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="font-semibold text-gray-800 flex items-center gap-1.5">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{ backgroundColor: hex }}
+                        />
+                        {DOMAIN_LABEL[d.domein] ?? d.domein}
+                      </span>
+                      <span className="text-[11px] text-gray-500 tabular-nums">
+                        {progPct}% prog · {lijnPct}% lijn
+                      </span>
+                    </div>
+                    <div className="flex h-2 rounded overflow-hidden mb-1.5">
+                      <div className="bg-emerald-600" style={{ width: `${progPct}%` }} />
+                      <div className="bg-amber-500" style={{ width: `${lijnPct}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[11px] tabular-nums mb-1">
+                      <span className="text-emerald-700">
+                        Programma: {progU.toLocaleString("nl-NL")} u
+                      </span>
+                      <span className="text-amber-700">
+                        Lijn: {lijnU.toLocaleString("nl-NL")} u
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 italic leading-snug">
+                      {DOMAIN_LIJN_VOORBEELD[d.domein] ?? "Lijn-aandeel wordt verklaard door bestaande functieprofielen."}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </details>
+
+        {/* 5. Capaciteitsdruk-context */}
+        {(j1Note || mensRisico) && (
+          <div
+            className={`rounded-lg border-l-4 p-3 text-xs leading-relaxed ${
+              mensRisico
+                ? "border-amber-500 bg-amber-50 text-amber-900"
+                : "border-blue-400 bg-blue-50 text-blue-900"
+            }`}
+          >
+            <p className="font-semibold mb-1">Capaciteitsdruk-context</p>
+            {j1Note && <p className="mb-1">{j1Note}</p>}
+            {mensRisico && <p>{mensRisico}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KengetalKaart({
+  label,
+  waarde,
+  sub,
+  accent,
+  mono,
+}: {
+  label: string;
+  waarde: number;
+  sub: string;
+  accent: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className={`${accent} text-white text-[10px] uppercase tracking-wider font-bold px-3 py-1.5`}>
+        {label}
+      </div>
+      <div className="px-3 py-3">
+        <p className={`text-2xl font-bold text-gray-900 ${mono ? "font-mono" : ""} tabular-nums`}>
+          {waarde.toLocaleString("nl-NL")}
+          <span className="text-sm font-normal text-gray-500 ml-1">u</span>
+        </p>
+        <p className="text-[11px] text-gray-600 mt-1 leading-snug">{sub}</p>
       </div>
     </div>
   );
