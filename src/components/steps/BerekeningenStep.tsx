@@ -777,9 +777,9 @@ function InspanningKeten({
       </summary>
 
       <div className="px-5 pb-5 pt-1 space-y-5 bg-white border-t border-current/20">
-        {/* C1: Dossier-bron — alleen tekst + range-samenvatting. Geen
-            breakdown-tabel meer (die staat in C2, en is daar leidend +
-            sluit op C3). Hierdoor één plek met componenten i.p.v. twee. */}
+        {/* C1: Letterlijke kostenraming-tekst uit het dossier. Geen
+            range-samenvatting of breakdown — die staan in C2, want één
+            plek waar bedragen worden opgebouwd voorkomt verwarring. */}
         {!isOverig && (
           <SubSectie nummer="C1" titel="Uit het dossier — wat zegt de kostenraming?">
             {kostenramingTekst ? (
@@ -788,9 +788,8 @@ function InspanningKeten({
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
                 <PMBufferDisclaimer tekst={kostenramingTekst} />
-                <ParserOutputPaneel parsed={parsed} />
                 <p className="text-[11px] text-gray-500 italic">
-                  Bovenstaande is de top-line samenvatting uit het dossier. De rekenkundige uitsplitsing per component (met berekening, tarief-bron en aantal-bron) staat in C2 hieronder.
+                  Dit is het letterlijke citaat uit het dossier. De uitsplitsing van de bedragen — eenmalig en structureel, per component, met berekening en bron — staat in <strong>C2</strong> hieronder.
                 </p>
               </>
             ) : (
@@ -1092,13 +1091,27 @@ function BreakdownPaneel({
 
   if (!eenmaligSection && !structureelSection) return null;
 
-  const bronLabel = bron === "kostenraming" ? "uit de kostenraming-tekst" : "uit de motivatie + plausibele uitsplitsing";
+  // Bouw header-tekst met expliciet hoofdtotaal voor zowel eenmalig als
+  // structureel, zodat direct duidelijk is wat we gaan opbouwen in de tabel.
+  const eenmaligLabel = eenmaligSection
+    ? `${formatEur(eenmaligSection.hoofdtotaalLow)}–${formatEur(eenmaligSection.hoofdtotaalHigh)} eenmalig`
+    : null;
+  const structureelLabel = structureelSection
+    ? `${formatEur(structureelSection.hoofdtotaalLow)}–${formatEur(structureelSection.hoofdtotaalHigh)}/jr structureel`
+    : null;
+  const headerSamenvatting = [eenmaligLabel, structureelLabel].filter(Boolean).join(" + ");
 
   return (
     <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50/40 p-4 space-y-3">
-      <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-900">
-        Uitsplitsing per component ({bronLabel})
-      </p>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-900">
+          Hoe komt het bedrag tot stand?
+        </p>
+        <p className="text-sm font-bold text-emerald-950 mt-0.5">{headerSamenvatting}</p>
+        <p className="text-[11px] text-emerald-900/70 italic mt-0.5">
+          Per component: bedrag uit motivatie, met formule, tarief-bron en aantal-bron. De optelsom hieronder is de input voor C3.
+        </p>
+      </div>
       {known?.disclaimer && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 leading-relaxed">
           <span className="font-semibold">Toelichting bij deze breakdown: </span>
