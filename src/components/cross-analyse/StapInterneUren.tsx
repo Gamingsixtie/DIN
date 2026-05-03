@@ -53,6 +53,10 @@ type DomeinBlok = {
   totaalUren: number;
   totaalKosten: number;
   motivatie: string;
+  // Programma- vs lijn-aandeel binnen dit domein (0..1). Optioneel; valt terug op default-pct.
+  programmaPct?: number;
+  programmaUren?: number;
+  lijnUren?: number;
 };
 type ScenarioBlok = {
   scenarioLabel: ScenarioLabel;
@@ -70,6 +74,9 @@ type ScenarioBlok = {
   totaalUren: number;
   totaalKosten: number;
   samenvatting: string;
+  // Top-niveau programma vs lijn-uitsplitsing (gezet door scenario-generator). Optioneel.
+  programmaUren?: number;
+  lijnUren?: number;
 };
 type InterneUrenAdvies = {
   uurtariefSettings: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
@@ -106,6 +113,33 @@ const DOMEIN_COLORS: Record<Domein, { bg: string; border: string; text: string }
   data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-800" },
   processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-800" },
 };
+
+// Programma vs lijn — defaults & visualisatie (consistent met SectieF in BerekeningenStep)
+const PROGRAMMA_PCT_DEFAULT: Record<Domein, number> = {
+  data_systemen: 0.85,
+  mens: 0.70,
+  cultuur: 0.75,
+  processen: 0.55,
+};
+const DOMAIN_BAR_HEX: Record<Domein, string> = {
+  mens: "#2563eb",
+  processen: "#059669",
+  data_systemen: "#7c3aed",
+  cultuur: "#d97706",
+};
+// Compacte per-domein-toelichting waarom lijn-aandeel zo is.
+const DOMAIN_LIJN_VOORBEELD: Record<Domein, string> = {
+  data_systemen:
+    "~15% lijn — Manager DT + Projectmanager D 4u/mnd stuurgroep is governance-tijd uit functieprofiel.",
+  mens:
+    "~30% lijn — 47 deelnemers × ~16u/jr standaard L&D zit in opleidingsplan Klantcontact.",
+  cultuur:
+    "~25% lijn — HRM-cyclus zelf + 50% MT-cyclus-tijd sectormanagers/directeur.",
+  processen:
+    "~45% lijn — schaalt met scenario-lengte; Procesmanager K&M structureel werk vanaf 2029 valt in functieprofiel.",
+};
+// Volgorde van de per-domein-bar: data_systemen, mens, cultuur, processen
+const PROGLIJN_DOMEIN_VOLGORDE: Domein[] = ["data_systemen", "mens", "cultuur", "processen"];
 
 const SCENARIO_META: Array<{
   key: ScenarioLabel;
@@ -2166,6 +2200,9 @@ function ScenarioBlokView({
         })}
       </div>
 
+      {/* Programma vs lijn — uitsplitsing per scenario (3 kaarten + per-domein-bar + collapsible uitleg) */}
+      <ProgrammaLijnBlok s={s} />
+
       {/* Toelichting: meerdere domeinen + stakeholder-label */}
       <details className="rounded border border-blue-200 bg-blue-50 overflow-hidden">
         <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-blue-900 hover:bg-blue-100">
@@ -2289,6 +2326,231 @@ function ScenarioBlokView({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// ProgrammaLijnBlok — programma vs lijn-uitsplitsing per scenario
+// Toont: 3 hoofdgetal-kaarten + per-domein gestapelde bar + collapsible uitleg.
+// Stijl-look-and-feel consistent met SectieF in BerekeningenStep.tsx.
+// ----------------------------------------------------------------------------
+function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
+  // Resolve programma/lijn per domein — gebruik AI-gezette waarden of val terug op default-pct.
+  const domeinUitsplitsing = s.domeinen.map((d) => {
+    const pct =
+      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+        ? d.programmaPct
+        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+    const programmaUren =
+      typeof d.programmaUren === "number" ? d.programmaUren : Math.round(d.totaalUren * pct);
+    const lijnUren =
+      typeof d.lijnUren === "number" ? d.lijnUren : Math.round(d.totaalUren * (1 - pct));
+    return {
+      domein: d.domein,
+      totaalUren: d.totaalUren,
+      programmaPct: pct,
+      programmaUren,
+      lijnUren,
+    };
+  });
+
+  // Top-niveau totalen — gebruik AI-getallen als beschikbaar, anders som van per-domein
+  const totaalUren = s.totaalUren;
+  const programmaTotaal =
+    typeof s.programmaUren === "number"
+      ? s.programmaUren
+      : domeinUitsplitsing.reduce((acc, d) => acc + d.programmaUren, 0);
+  const lijnTotaal =
+    typeof s.lijnUren === "number"
+      ? s.lijnUren
+      : domeinUitsplitsing.reduce((acc, d) => acc + d.lijnUren, 0);
+  const programmaPctTot =
+    totaalUren > 0 ? Math.round((programmaTotaal / totaalUren) * 100) : 0;
+  const lijnPctTot = totaalUren > 0 ? Math.round((lijnTotaal / totaalUren) * 100) : 0;
+
+  // Voor de bar: lengte-schaal = scenario-totaal (zo zie je dat data_systemen het grootst is, etc.)
+  const maxDomeinUren = domeinUitsplitsing.reduce((m, d) => Math.max(m, d.totaalUren), 0);
+
+  // Sorteer op vaste volgorde (data_systemen, mens, cultuur, processen)
+  const sortedDom = [...domeinUitsplitsing].sort(
+    (a, b) =>
+      PROGLIJN_DOMEIN_VOLGORDE.indexOf(a.domein) - PROGLIJN_DOMEIN_VOLGORDE.indexOf(b.domein),
+  );
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-gray-600">
+          Programma vs lijn — uitsplitsing van de capaciteitsbelasting
+        </p>
+        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+          Niet alle uren zijn programma-uren. Een deel valt al in functieprofielen, bestaande
+          budgetten of bestaande cycli — dat is &lsquo;lijn&rsquo;.
+        </p>
+      </div>
+
+      <div className="p-3 space-y-3">
+        {/* 1. Drie hoofdgetal-kaarten */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <ProgLijnKaart
+            label="Totaal interne uren"
+            waarde={totaalUren}
+            sub={`over ${s.aantalJaren} jaar`}
+            accent="bg-[#003366]"
+          />
+          <ProgLijnKaart
+            label="Programma — extra te financieren capaciteit"
+            waarde={programmaTotaal}
+            sub={`${programmaPctTot}% van totaal`}
+            accent="bg-emerald-700"
+          />
+          <ProgLijnKaart
+            label="Lijn — valt in functieprofielen / bestaande budgetten"
+            waarde={lijnTotaal}
+            sub={`${lijnPctTot}% van totaal`}
+            accent="bg-amber-700"
+          />
+        </div>
+
+        {/* 2. Per-domein gestapelde bar (programma in domein-kleur, lijn in lichte tint) */}
+        <div className="space-y-1.5">
+          {sortedDom.map((d) => {
+            const hex = DOMAIN_BAR_HEX[d.domein] ?? "#6b7280";
+            const w = maxDomeinUren > 0 ? (d.totaalUren / maxDomeinUren) * 100 : 0;
+            const programmaPct =
+              d.totaalUren > 0 ? Math.round((d.programmaUren / d.totaalUren) * 100) : 0;
+            // Binnen de bar: programma-deel breed = pct van bar-breedte
+            const programmaBarPct =
+              d.totaalUren > 0 ? (d.programmaUren / d.totaalUren) * 100 : 0;
+            return (
+              <div key={d.domein} className="flex items-center gap-2 text-[11px]">
+                <span className="w-28 shrink-0 font-semibold text-gray-800">
+                  {DOMEIN_LABELS[d.domein]}
+                </span>
+                <div
+                  className="flex-1 h-4 rounded bg-gray-100 overflow-hidden"
+                  style={{ maxWidth: `${Math.max(0.5, w)}%` }}
+                >
+                  <div className="flex h-full w-full">
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${programmaBarPct}%`,
+                        backgroundColor: hex,
+                      }}
+                    />
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${100 - programmaBarPct}%`,
+                        backgroundColor: hex,
+                        opacity: 0.25,
+                      }}
+                    />
+                  </div>
+                </div>
+                <span className="shrink-0 tabular-nums font-mono text-gray-700">
+                  {d.totaalUren.toLocaleString("nl-NL")}u
+                </span>
+                <span className="shrink-0 text-gray-500 w-24 text-right">
+                  ({programmaPct}% programma)
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 3. Collapsible toelichting "Wat is lijn vs programma?" */}
+        <details className="rounded border border-gray-200 bg-gray-50 overflow-hidden">
+          <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-[#003366] hover:bg-gray-100 flex items-center justify-between">
+            <span>Wat is lijn vs programma?</span>
+            <span className="text-[10px] text-gray-500 font-normal">
+              klik voor uitleg + per-domein-voorbeelden
+            </span>
+          </summary>
+          <div className="px-3 pb-3 pt-2 text-[11px] text-gray-700 leading-relaxed space-y-2 border-t border-gray-200">
+            <div>
+              <p className="font-semibold text-gray-800 mb-1">
+                Lijn-criterium — werk valt in lijn als het voldoet aan minstens één:
+              </p>
+              <ol className="list-decimal pl-5 space-y-0.5">
+                <li>
+                  <strong>Functieprofiel-werk</strong> — vaste taak in functiebeschrijving
+                  (bv. Procesmanager K&amp;M doet vanaf 2029 doorlopend proceseigenaarschap).
+                </li>
+                <li>
+                  <strong>Bestaand budget</strong> — al jaarlijks gereserveerd (bv. 47
+                  klantenservice-medewerkers × ~16u/jr L&amp;D-tijd zit in opleidingsplan
+                  Klantcontact).
+                </li>
+                <li>
+                  <strong>Bestaande cyclus</strong> — al ingeplande overleg-/governance-momenten
+                  (bv. MT-cyclus + stuurgroep).
+                </li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 mb-1">Programma-criterium:</p>
+              <p>
+                Werk dat <strong>eenmalig &amp; nieuw</strong> is, <strong>specifieke nieuwe
+                kennis</strong> vraagt, of <strong>bovenop</strong> bestaande tijd komt.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 mb-1">Per-domein — waarom dit lijn-aandeel:</p>
+              <ul className="space-y-0.5">
+                {sortedDom.map((d) => {
+                  const hex = DOMAIN_BAR_HEX[d.domein] ?? "#6b7280";
+                  return (
+                    <li key={d.domein} className="flex items-start gap-1.5">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full mt-1 shrink-0"
+                        style={{ backgroundColor: hex }}
+                      />
+                      <span>
+                        <strong>{DOMEIN_LABELS[d.domein]}</strong>:{" "}
+                        {DOMAIN_LIJN_VOORBEELD[d.domein] ??
+                          "lijn-aandeel volgt uit bestaande functieprofielen."}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+// Compacte 1-regel-kaart voor totaal/programma/lijn — same look-and-feel als KengetalKaart in SectieF
+function ProgLijnKaart({
+  label,
+  waarde,
+  sub,
+  accent,
+}: {
+  label: string;
+  waarde: number;
+  sub: string;
+  accent: string;
+}): React.ReactElement {
+  return (
+    <div className="rounded border border-gray-200 bg-white overflow-hidden">
+      <div
+        className={`${accent} text-white text-[9px] uppercase tracking-wider font-bold px-2 py-1 leading-tight`}
+      >
+        {label}
+      </div>
+      <div className="px-2 py-2">
+        <p className="text-lg font-bold text-gray-900 font-mono tabular-nums leading-tight">
+          {waarde.toLocaleString("nl-NL")}
+          <span className="text-xs font-normal text-gray-500 ml-1">u</span>
+        </p>
+        <p className="text-[10px] text-gray-600 mt-0.5 leading-snug">{sub}</p>
       </div>
     </div>
   );

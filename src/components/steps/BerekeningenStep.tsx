@@ -502,6 +502,7 @@ function ScenarioBerekeningKaart({
             scenarioKey={scenarioKey}
             session={session}
             startJaar={startJaar}
+            begrotingScenario={scenario}
           />
 
           <NotitieVoorClaude
@@ -1632,10 +1633,20 @@ type UrenFTotalen = {
   urenBudget?: number;
   urenGap?: number;
 };
+type UrenFRol = {
+  functieId?: string;
+  functieNaam?: string;
+  afdeling?: string;
+  uren: number;
+  uurtarief?: number;
+  kosten?: number;
+};
 type UrenFDomeinJaar = {
   jaar: number;
+  activiteit?: string;
   totaalUren?: number;
-  rollen?: Array<{ uren: number }>;
+  totaalKosten?: number;
+  rollen?: UrenFRol[];
 };
 type UrenFDomein = {
   domein: string;
@@ -1644,32 +1655,119 @@ type UrenFDomein = {
   totaalKosten?: number;
   programmaPct?: number;
   jaren?: UrenFDomeinJaar[];
+  koppeling?: string[];
 };
 type UrenFScenario = {
   aantalJaren?: number;
   startJaar?: number;
+  uurtariefGebruikt?: number;
   totaalUren?: number;
   totaalKosten?: number;
   domeinen?: UrenFDomein[];
   totalenPerJaar?: UrenFTotalen[];
 };
+type UrenFFunctieInput = { aantal: number; urenPerJaar?: number };
+type UrenFCustomFunctie = { id: string; naam: string; schaal?: number };
+type UrenFVastgesteldeRol = {
+  functieId: string;
+  functieNaam: string;
+  afdeling?: string;
+  urenTotaal: number;
+  onderbouwing: string;
+};
+type UrenFVastgesteldeInspanning = {
+  groepId: string;
+  inspanningTitel: string;
+  domein: string;
+  rollen: UrenFVastgesteldeRol[];
+};
 type UrenFAdvies = {
   scenarios?: Partial<Record<ScenarioKey, UrenFScenario | null>>;
+  uurtariefSettings?: {
+    basisTarief: number;
+    referentiejaar: number;
+    indexatiePercentage: number;
+  };
+  selectiePerDomein?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", Record<string, UrenFFunctieInput>>>;
+  customFunctiesPerDomein?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", UrenFCustomFunctie[]>>;
+  vastgesteldeUrenPerInspanning?: UrenFVastgesteldeInspanning[];
 };
+
+// Fase-zwaarte per domein. Voor data_systemen (CRM) is acceptatie zwaarder
+// gemaakt zodat de uren-piek samenvalt met het OOP-Acceptatie★-jaar uit de
+// begroting. De andere domeinen volgen een gelijkmatigere curve.
+const FASE_ZWAARTE: Record<string, Record<string, number>> = {
+  data_systemen: { analyse: 0.15, realisatie: 0.25, acceptatie: 0.35, beheer: 0.25 },
+  mens: { analyse: 0.20, realisatie: 0.30, acceptatie: 0.30, beheer: 0.20 },
+  processen: { analyse: 0.20, realisatie: 0.30, acceptatie: 0.25, beheer: 0.25 },
+  cultuur: { analyse: 0.20, realisatie: 0.25, acceptatie: 0.25, beheer: 0.30 },
+};
+
+// Mapt fase-tekst (zoals die in begrotingAdvies.inspanningen[].verdelingPerJaar[].fase
+// voorkomt) naar de canonieke bucket in FASE_ZWAARTE.
+function normaliseerFase(fase: string | undefined): string {
+  if (!fase) return "onbekend";
+  const f = fase.toLowerCase();
+  if (f.includes("analyse") || f.includes("voorbereid")) return "analyse";
+  if (f.includes("realisat") || f.includes("uitrol") || f.includes("bouw")) return "realisatie";
+  if (f.includes("acceptat") || f.includes("ingebruikna")) return "acceptatie";
+  if (f.includes("beheer") || f.includes("borging") || f.includes("nazorg")) return "beheer";
+  return "onbekend";
+}
+
+const FASE_LABEL: Record<string, string> = {
+  analyse: "Analyse",
+  realisatie: "Realisatie",
+  acceptatie: "Acceptatie",
+  beheer: "Beheer",
+  onbekend: "—",
+};
+
+// Stille selecties (cat-1) — rollen die in een ander domein zitten dan
+// hun primaire `inspanningRelevantie` voor stille adoption-/eindgebruiker-
+// dynamiek. Wordt in F5 toegelicht zodat lezer ziet waarom deze rol in dit
+// domein meedoet.
+const STILLE_SELECTIES: Array<{
+  functieId: string;
+  domein: string;
+  rolLabel: string;
+  uitleg: string;
+  defaultUrenPerJaar: number;
+}> = [
+  {
+    functieId: "manager_klantcontact",
+    domein: "data_systemen",
+    rolLabel: "CRM-stuurgroep + adoption-leiderschap",
+    uitleg:
+      "Manager Klantcontact is in mens al gelabeld voor trainings-coördinatie (~40u/jr — roosters voor klantenservice-team). In data_systemen gaat het om iets anders: stuurgroep-deelname en adoption-leiderschap voor het nieuwe CRM. Geen dubbeltelling: andere activiteit, andere uren.",
+    defaultUrenPerJaar: 7,
+  },
+  {
+    functieId: "accountmanager_c_prof",
+    domein: "data_systemen",
+    rolLabel: "CRM eindgebruiker + sectorconfiguratie + key-user-training",
+    uitleg:
+      "3× Accountmanager C (Professionals) als CRM-eindgebruiker, sectorconfiguratie-input en key-user-training. Stuurgroep-deel valt deels in functieprofiel — daarom ligt programma-aandeel hier op ~70%, niet op 85% zoals het domein-gemiddelde.",
+    defaultUrenPerJaar: 9,
+  },
+];
 
 function SectieF({
   scenarioKey,
   session,
   startJaar,
+  begrotingScenario,
 }: {
   scenarioKey: ScenarioKey;
   session: DINSession;
   startJaar: number;
+  begrotingScenario: BegrotingScenario;
 }) {
   const stap4 = (session.crossAnalyseWizard?.stepResults as
     | { stap4?: { stap7InterneUren?: UrenFAdvies } }
     | undefined)?.stap4;
-  const interneUrenScen = stap4?.stap7InterneUren?.scenarios?.[scenarioKey] ?? null;
+  const interneUren = stap4?.stap7InterneUren ?? null;
+  const interneUrenScen = interneUren?.scenarios?.[scenarioKey] ?? null;
 
   if (!interneUrenScen) {
     return (
@@ -1958,7 +2056,787 @@ function SectieF({
             {mensRisico && <p>{mensRisico}</p>}
           </div>
         )}
+
+        {/* ──────────────────────────────────────────────────────────────────
+            F1-F5 — Berekening-toelichting (analoog aan A-E voor OOP).
+            Laat zien WAAR ELK GETAL VANDAAN KOMT, met formule.
+            ────────────────────────────────────────────────────────────── */}
+        <div className="rounded-lg border-2 border-dashed border-[#003366]/30 bg-[#003366]/[0.02] p-4 space-y-6">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[#003366]">
+            Berekening-toelichting — hoe komen we aan deze uren?
+          </p>
+
+          <SubSectie
+            nummer="F1"
+            titel="Scenario-parameters — onderliggende rekenwaarden"
+            hint="Wat zijn de invoer-parameters waarmee de uren-berekening werkt? Looptijd, uurtarief met indexatie, J1-cap voor 2026 en de fase-zwaarte per domein."
+          >
+            <UrenF1Parameters
+              scenarioKey={scenarioKey}
+              interneUrenScen={interneUrenScen}
+              uurtariefSettings={interneUren?.uurtariefSettings}
+              startJaar={startJaar}
+            />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F2"
+            titel="Optelling rollen → scenario-totaal"
+            hint="Per domein: aantal rollen × personen × uren-totaal, met programma/lijn-split. Moet exact het scenario-totaal zijn."
+          >
+            <UrenF2Optelling
+              interneUrenScen={interneUrenScen}
+              uurtariefSettings={interneUren?.uurtariefSettings}
+              startJaar={startJaar}
+            />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F3"
+            titel="Per-fase verdeling per domein — hoe komt het jaar-getal tot stand?"
+            hint="Voor elk domein de keten: fase-curve (welke fase in welk jaar) → fase-zwaarte toegepast op domein-totaal → top-rollen in piek-jaar → programma vs lijn met formule."
+          >
+            <UrenF3PerDomein
+              interneUrenScen={interneUrenScen}
+              begrotingScenario={begrotingScenario}
+              startJaar={startJaar}
+            />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F4"
+            titel="2026 J1-cap-toepassing — half-jaar-correctie"
+            hint="Cito start juni 2026, dus J1 (2026) is een half-jaar. Bruto fase-zwaarte zou meer uren geven; het overschot is naar latere jaren herverdeeld."
+          >
+            <UrenF4J1Cap
+              scenarioKey={scenarioKey}
+              interneUrenScen={interneUrenScen}
+              startJaar={startJaar}
+            />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F5"
+            titel="Stille selecties — Manager Klantcontact + Accountmanager C Prof in CRM-domein"
+            hint="Twee rollen die op het oog buiten 'data & systemen' lijken te vallen, maar wel in het CRM-domein meedoen — voor adoption-leiderschap en sector-input. Geen dubbeltelling met mens-domein."
+          >
+            <UrenF5StilleSelecties
+              interneUrenScen={interneUrenScen}
+              interneUren={interneUren}
+              uurtariefSettings={interneUren?.uurtariefSettings}
+              startJaar={startJaar}
+            />
+          </SubSectie>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// F1 — Scenario-parameters (analoog aan SectieA)
+// ============================================================================
+
+function UrenF1Parameters({
+  scenarioKey,
+  interneUrenScen,
+  uurtariefSettings,
+  startJaar,
+}: {
+  scenarioKey: ScenarioKey;
+  interneUrenScen: UrenFScenario;
+  uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
+  startJaar: number;
+}) {
+  const aantalJaren = interneUrenScen.aantalJaren ?? 0;
+  const basisTarief = uurtariefSettings?.basisTarief ?? 70;
+  const refJaar = uurtariefSettings?.referentiejaar ?? 2025;
+  const indexPct = uurtariefSettings?.indexatiePercentage ?? 5;
+  const j1Cap = scenarioKey === "advies" || scenarioKey === "plus20" ? 290 : 250;
+  const eindjaar = startJaar + Math.max(0, aantalJaren - 1);
+
+  // Toon de tarief-curve over de jaren
+  const tarievenPerJaar: Array<{ jaar: number; tarief: number; factor: number }> = [];
+  for (let i = 0; i < aantalJaren; i++) {
+    const jaar = startJaar + i;
+    const factor = Math.pow(1 + indexPct / 100, jaar - refJaar);
+    tarievenPerJaar.push({ jaar, tarief: Math.round(basisTarief * factor), factor });
+  }
+
+  // Domein-fase-zwaarte als rij-tabel
+  const domeinen: Array<keyof typeof FASE_ZWAARTE> = ["data_systemen", "mens", "processen", "cultuur"];
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Stat
+          label="Aantal jaren"
+          value={`${aantalJaren} jaar`}
+          sub={`${startJaar}–${eindjaar}`}
+        />
+        <Stat
+          label="Uurtarief basis"
+          value={`€ ${basisTarief}`}
+          sub={`+ ${indexPct}%/jr indexatie vanaf ${refJaar}`}
+          mono
+        />
+        <Stat
+          label="2026 J1-cap"
+          value={`${j1Cap} u`}
+          sub="Cito start juni 2026 — half-jaar-niveau"
+          mono
+          highlight
+        />
+      </div>
+
+      {/* Tarief-curve per jaar */}
+      <div className="rounded bg-gray-50/70 border border-gray-200 p-3">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">
+          Tarief-curve per jaar (= € {basisTarief} × (1 + {indexPct}%)^(jaar − {refJaar}))
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs font-mono">
+          {tarievenPerJaar.map((t) => (
+            <div key={t.jaar} className="flex items-baseline justify-between rounded border border-gray-200 bg-white px-2 py-1">
+              <span className="text-gray-500">{t.jaar}</span>
+              <span className="text-gray-800 font-semibold">€ {t.tarief}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Fase-zwaarte per domein */}
+      <div className="rounded bg-gray-50/70 border border-gray-200 p-3">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">
+          Fase-zwaarte per domein — hoe wordt domein-totaal over de fasen verdeeld?
+        </p>
+        <p className="text-[11px] text-gray-600 italic mb-2">
+          Voor data_systemen (CRM) is acceptatie zwaarder gemaakt zodat de uren-piek samenvalt met het OOP-Acceptatie★-jaar uit de begroting. De andere domeinen volgen een gelijkmatigere curve.
+        </p>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left border-b border-gray-300">
+              <th className="py-1.5 pr-2 font-semibold text-gray-700">Domein</th>
+              <th className="py-1.5 px-2 font-mono text-right font-semibold text-gray-700">Analyse</th>
+              <th className="py-1.5 px-2 font-mono text-right font-semibold text-gray-700">Realisatie</th>
+              <th className="py-1.5 px-2 font-mono text-right font-semibold text-gray-700">Acceptatie</th>
+              <th className="py-1.5 px-2 font-mono text-right font-semibold text-gray-700">Beheer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {domeinen.map((d) => {
+              const fz = FASE_ZWAARTE[d];
+              const isCrm = d === "data_systemen";
+              return (
+                <tr key={d} className="border-b border-gray-100 last:border-0">
+                  <td className="py-1.5 pr-2 font-medium text-gray-800">
+                    {DOMAIN_LABEL[d] ?? d}
+                    {isCrm && <span className="ml-1 text-[10px] text-purple-700">(CRM-piek)</span>}
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.analyse * 100)}%</td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.realisatie * 100)}%</td>
+                  <td className={`py-1.5 px-2 font-mono text-right ${isCrm ? "font-bold text-purple-700" : "text-gray-700"}`}>
+                    {Math.round(fz.acceptatie * 100)}%
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.beheer * 100)}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// F2 — Optelling rollen → scenario-totaal (analoog aan SectieB)
+// ============================================================================
+
+function UrenF2Optelling({
+  interneUrenScen,
+  uurtariefSettings,
+  startJaar,
+}: {
+  interneUrenScen: UrenFScenario;
+  uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
+  startJaar: number;
+}) {
+  const domeinen = interneUrenScen.domeinen ?? [];
+  const totaalUren = interneUrenScen.totaalUren ?? 0;
+  const totaalKosten = interneUrenScen.totaalKosten ?? 0;
+  const startTarief =
+    interneUrenScen.uurtariefGebruikt ??
+    (uurtariefSettings
+      ? Math.round(
+          uurtariefSettings.basisTarief *
+            Math.pow(1 + uurtariefSettings.indexatiePercentage / 100, startJaar - uurtariefSettings.referentiejaar),
+        )
+      : 70);
+
+  // Per domein: rollen-uniek + personen-totaal + som-uren
+  const rijen = domeinen.map((d) => {
+    const jaren = d.jaren ?? [];
+    // Aggregeer uren per functieId over alle jaren
+    const perFunctie = new Map<string, { naam: string; uren: number; aantalKeren: number }>();
+    for (const jr of jaren) {
+      for (const r of jr.rollen ?? []) {
+        const key = r.functieId ?? r.functieNaam ?? "onbekend";
+        const cur = perFunctie.get(key) ?? { naam: r.functieNaam ?? key, uren: 0, aantalKeren: 0 };
+        cur.uren += r.uren ?? 0;
+        cur.aantalKeren += 1;
+        perFunctie.set(key, cur);
+      }
+    }
+    const aantalRollen = perFunctie.size;
+    const somUren = Array.from(perFunctie.values()).reduce((s, v) => s + v.uren, 0);
+    const dTot = d.totaalUren ?? somUren;
+    const pct =
+      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+        ? d.programmaPct
+        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+    const progU = Math.round(dTot * pct);
+    const lijnU = Math.round(dTot * (1 - pct));
+    const progPct = Math.round(pct * 100);
+    return {
+      domein: d.domein,
+      aantalRollen,
+      aantalKeren: Array.from(perFunctie.values()).reduce((s, v) => s + v.aantalKeren, 0),
+      somUren,
+      dTot,
+      progU,
+      lijnU,
+      progPct,
+    };
+  });
+
+  const somAlleUren = rijen.reduce((s, r) => s + r.dTot, 0);
+  const tol = Math.max(50, Math.round(totaalUren * 0.005));
+  const matchOk = Math.abs(somAlleUren - totaalUren) <= tol;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left border-b-2 border-gray-300">
+              <th className="py-2 pr-2 font-semibold text-gray-700">Domein</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Rollen</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Rol×jaar</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Som-uren</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-emerald-700">Programma</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-amber-700">Lijn</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rijen.map((r) => {
+              const hex = DOMAIN_BAR_HEX[r.domein] ?? "#6b7280";
+              return (
+                <tr key={r.domein} className="border-b border-gray-100 last:border-0">
+                  <td className="py-1.5 pr-2 font-medium text-gray-800">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: hex }} />
+                      {DOMAIN_LABEL[r.domein] ?? r.domein}
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{r.aantalRollen}</td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-500">{r.aantalKeren}</td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-900 font-semibold">
+                    {r.dTot.toLocaleString("nl-NL")} u
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-emerald-700">
+                    {r.progU.toLocaleString("nl-NL")} u
+                    <span className="text-[10px] text-gray-500 ml-1">({r.progPct}%)</span>
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-amber-700">
+                    {r.lijnU.toLocaleString("nl-NL")} u
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className="border-t-2 border-[#003366] font-mono">
+              <td className="py-2 pr-2 font-bold text-[#003366]">Totaal</td>
+              <td className="py-2 px-2"></td>
+              <td className="py-2 px-2"></td>
+              <td className="py-2 px-2 text-right font-bold text-[#003366]">
+                {somAlleUren.toLocaleString("nl-NL")} u
+              </td>
+              <td className="py-2 px-2"></td>
+              <td className="py-2 px-2"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-gray-600">
+        <span>Scenario-totaal (referentie)</span>
+        <span className="font-mono">{totaalUren.toLocaleString("nl-NL")} u</span>
+      </div>
+      {!matchOk && totaalUren > 0 && (
+        <div className="rounded bg-amber-50 border border-amber-200 p-2 text-xs text-amber-900">
+          ⚠ Verschil van {Math.abs(somAlleUren - totaalUren).toLocaleString("nl-NL")} u — groter dan de toegestane afwijking ({tol} u). Doorgaans rounding op rol-niveau.
+        </div>
+      )}
+
+      {/* Kosten-formule */}
+      <div className="rounded bg-gray-50 border border-gray-200 p-3 font-mono text-[11px] space-y-1">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1">
+          Scenario-totaal kosten (geïndexeerd per jaar)
+        </p>
+        <div className="flex items-baseline justify-between">
+          <span>Σ uren × tarief({startJaar}+i, basis € {uurtariefSettings?.basisTarief ?? 70})</span>
+          <span className="font-bold text-gray-900">{formatEur(totaalKosten)}</span>
+        </div>
+        <p className="text-[10px] text-gray-500 font-sans italic">
+          Kosten per jaar = uren × geïndexeerd tarief (basis × (1 + {uurtariefSettings?.indexatiePercentage ?? 5}%)^(jaar − {uurtariefSettings?.referentiejaar ?? 2025})). Tarief in jaar 1 ≈ € {startTarief}/u.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// F3 — Per-fase verdeling per domein (analoog aan SectieC)
+// ============================================================================
+
+function UrenF3PerDomein({
+  interneUrenScen,
+  begrotingScenario,
+  startJaar,
+}: {
+  interneUrenScen: UrenFScenario;
+  begrotingScenario: BegrotingScenario;
+  startJaar: number;
+}) {
+  const domeinen = interneUrenScen.domeinen ?? [];
+  if (domeinen.length === 0) {
+    return <p className="text-xs text-gray-500 italic">Geen domein-data beschikbaar.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {domeinen.map((d) => (
+        <UrenF3DomeinKaart
+          key={d.domein}
+          domein={d}
+          begrotingInspanningen={begrotingScenario.inspanningen ?? []}
+          startJaar={startJaar}
+          aantalJaren={begrotingScenario.aantalJaren ?? interneUrenScen.aantalJaren ?? 0}
+        />
+      ))}
+    </div>
+  );
+}
+
+function UrenF3DomeinKaart({
+  domein,
+  begrotingInspanningen,
+  startJaar,
+  aantalJaren,
+}: {
+  domein: UrenFDomein;
+  begrotingInspanningen: InspanningBegroting[];
+  startJaar: number;
+  aantalJaren: number;
+}) {
+  const dKey = domein.domein;
+  const dTot = domein.totaalUren ?? 0;
+  const fz = FASE_ZWAARTE[dKey] ?? FASE_ZWAARTE.processen;
+  const hex = DOMAIN_BAR_HEX[dKey] ?? "#6b7280";
+  const jaren = domein.jaren ?? [];
+
+  // F3.1: fase-curve uit begrotingAdvies — pak de inspanningen die in dit
+  // domein vallen, neem voor elke jaar de eerst-genoemde fase als
+  // representatief.
+  const inspanningenVoorDomein = begrotingInspanningen.filter((i) => i.domein === dKey);
+  const fasePerJaar: Map<number, string> = new Map();
+  for (let i = 0; i < aantalJaren; i++) {
+    const jaar = startJaar + i;
+    const fasen = inspanningenVoorDomein
+      .flatMap((insp) => insp.verdelingPerJaar.filter((v) => v.jaar === jaar))
+      .map((v) => v.fase)
+      .filter(Boolean);
+    if (fasen.length > 0) {
+      // Neem de meest voorkomende fase
+      const counts = new Map<string, number>();
+      for (const f of fasen) counts.set(f, (counts.get(f) ?? 0) + 1);
+      const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
+      fasePerJaar.set(jaar, top[0]);
+    }
+  }
+
+  // F3.2: fase-zwaarte toegepast → bereken bruto verdeling per jaar.
+  // Som van actief-jaren-zwaarte normaliseren naar 100% zodat dTot exact verdeeld wordt.
+  const brutoZwaartePerJaar: Map<number, number> = new Map();
+  let zwaarteSom = 0;
+  for (let i = 0; i < aantalJaren; i++) {
+    const jaar = startJaar + i;
+    const f = normaliseerFase(fasePerJaar.get(jaar));
+    const z = fz[f] ?? 0.25;
+    brutoZwaartePerJaar.set(jaar, z);
+    zwaarteSom += z;
+  }
+  const brutoUrenPerJaar: Map<number, number> = new Map();
+  for (const [jaar, z] of brutoZwaartePerJaar.entries()) {
+    const u = zwaarteSom > 0 ? Math.round((z / zwaarteSom) * dTot) : 0;
+    brutoUrenPerJaar.set(jaar, u);
+  }
+
+  // F3.3: top-3 rollen in piek-jaar (= jaar met hoogste werkelijke uren)
+  let piekJaar = startJaar;
+  let piekUren = 0;
+  for (const jr of jaren) {
+    const u = jr.totaalUren ?? 0;
+    if (u > piekUren) {
+      piekUren = u;
+      piekJaar = jr.jaar;
+    }
+  }
+  const piekJaarBlok = jaren.find((j) => j.jaar === piekJaar);
+  const top3Rollen = (piekJaarBlok?.rollen ?? [])
+    .slice()
+    .sort((a, b) => (b.uren ?? 0) - (a.uren ?? 0))
+    .slice(0, 3);
+
+  // F3.4: programma vs lijn-berekening
+  const pct =
+    typeof domein.programmaPct === "number" && domein.programmaPct >= 0 && domein.programmaPct <= 1
+      ? domein.programmaPct
+      : PROGRAMMA_PCT_DEFAULT[dKey] ?? 0.75;
+  const progU = Math.round(dTot * pct);
+  const lijnU = Math.round(dTot * (1 - pct));
+  const progPct = Math.round(pct * 100);
+  const lijnPct = 100 - progPct;
+
+  return (
+    <details className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <summary className="cursor-pointer px-3 py-2 hover:bg-gray-50 flex items-center justify-between">
+        <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hex }} />
+          {DOMAIN_LABEL[dKey] ?? dKey}
+        </span>
+        <span className="text-xs font-mono text-gray-700">
+          {dTot.toLocaleString("nl-NL")} u
+          <span className="text-[10px] text-gray-500 ml-2">piek {piekJaar} ({piekUren.toLocaleString("nl-NL")} u)</span>
+        </span>
+      </summary>
+
+      <div className="px-4 pb-4 pt-2 space-y-4 border-t border-gray-100">
+        {/* F3.1 Fase-curve */}
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+            F3.1 — Fase-curve uit begrotingAdvies
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from(brutoZwaartePerJaar.keys()).sort((a, b) => a - b).map((jaar) => {
+              const f = fasePerJaar.get(jaar);
+              const norm = normaliseerFase(f);
+              const isPiek = jaar === piekJaar && norm === "acceptatie" && dKey === "data_systemen";
+              return (
+                <div
+                  key={jaar}
+                  className={`rounded border px-2 py-1 text-[11px] ${
+                    isPiek
+                      ? "border-purple-400 bg-purple-50 text-purple-900 font-semibold"
+                      : "border-gray-200 bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <span className="font-mono">{jaar}</span>
+                  <span className="mx-1 text-gray-400">→</span>
+                  <span>{FASE_LABEL[norm] ?? f ?? "—"}</span>
+                  {isPiek && <span className="ml-1">★</span>}
+                </div>
+              );
+            })}
+          </div>
+          {inspanningenVoorDomein.length === 0 && (
+            <p className="text-[11px] text-gray-500 italic mt-1">
+              Geen inspanningen in begroting voor dit domein — fasen niet beschikbaar.
+            </p>
+          )}
+        </div>
+
+        {/* F3.2 Fase-zwaarte toegepast */}
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+            F3.2 — Fase-zwaarte toegepast op {dTot.toLocaleString("nl-NL")} u
+          </p>
+          <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
+            <div className="text-[10px] text-gray-500 font-sans">
+              Bruto = totaal × zwaarte / Σzwaarte (= verdelen naar fase-curve hierboven). Werkelijk kan iets afwijken door J1-cap (zie F4) en rounding op rol-niveau.
+            </div>
+            {Array.from(brutoUrenPerJaar.entries())
+              .sort((a, b) => a[0] - b[0])
+              .map(([jaar, brutoU]) => {
+                const werkelijk = jaren.find((j) => j.jaar === jaar)?.totaalUren ?? 0;
+                const z = brutoZwaartePerJaar.get(jaar) ?? 0;
+                const f = fasePerJaar.get(jaar);
+                const norm = normaliseerFase(f);
+                return (
+                  <div key={jaar} className="flex items-baseline justify-between gap-2">
+                    <span className="text-gray-700">
+                      {jaar} ({FASE_LABEL[norm] ?? "—"}, zwaarte {Math.round(z * 100)}%)
+                    </span>
+                    <span className="text-gray-500 text-[10px]">
+                      bruto {brutoU.toLocaleString("nl-NL")} u
+                    </span>
+                    <span className="text-gray-900 font-semibold">
+                      → werkelijk {werkelijk.toLocaleString("nl-NL")} u
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* F3.3 Top-3 rollen in piek-jaar */}
+        {top3Rollen.length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+              F3.3 — Top-3 rollen in piek-jaar {piekJaar}
+            </p>
+            <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
+              {top3Rollen.map((r, i) => (
+                <div key={i} className="flex items-baseline justify-between gap-2">
+                  <span className="text-gray-700 truncate">
+                    {r.functieNaam ?? r.functieId ?? "Onbekend"}
+                  </span>
+                  <span className="text-gray-900 font-semibold">{(r.uren ?? 0).toLocaleString("nl-NL")} u</span>
+                </div>
+              ))}
+              {piekJaarBlok?.activiteit && (
+                <p className="text-[10px] text-gray-500 font-sans italic mt-1.5 pt-1.5 border-t border-gray-200">
+                  Activiteit dit jaar: {piekJaarBlok.activiteit}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* F3.4 Programma vs lijn-berekening */}
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+            F3.4 — Programma vs. lijn (formule)
+          </p>
+          <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
+            <div className="flex items-baseline justify-between">
+              <span className="text-gray-700">{dKey} {dTot.toLocaleString("nl-NL")}u × {progPct}% prog</span>
+              <span className="text-emerald-700 font-semibold">= {progU.toLocaleString("nl-NL")} u programma</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-gray-700">rest {lijnPct}%</span>
+              <span className="text-amber-700 font-semibold">= {lijnU.toLocaleString("nl-NL")} u lijn</span>
+            </div>
+            <p className="text-[10px] text-gray-500 font-sans italic mt-1">
+              {DOMAIN_LIJN_VOORBEELD[dKey] ?? "Lijn-aandeel volgt uit bestaande functieprofielen."}
+            </p>
+          </div>
+        </div>
+
+        {domein.motivatie && (
+          <p className="text-[11px] text-gray-600 italic leading-snug">
+            <strong className="not-italic text-gray-700">Motivatie:</strong> {domein.motivatie}
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+// ============================================================================
+// F4 — 2026 J1-cap-toepassing
+// ============================================================================
+
+function UrenF4J1Cap({
+  scenarioKey,
+  interneUrenScen,
+  startJaar,
+}: {
+  scenarioKey: ScenarioKey;
+  interneUrenScen: UrenFScenario;
+  startJaar: number;
+}) {
+  const totalenPerJaar = interneUrenScen.totalenPerJaar ?? [];
+  const j1 = totalenPerJaar.find((t) => t.jaar === startJaar);
+  if (!j1) {
+    return (
+      <p className="text-xs text-gray-500 italic">
+        Geen J1-jaar ({startJaar}) gevonden in scenario-totalen.
+      </p>
+    );
+  }
+  const j1Cap = scenarioKey === "advies" || scenarioKey === "plus20" ? 290 : 250;
+  const aantalJaren = interneUrenScen.aantalJaren ?? 0;
+  const totaalUren = interneUrenScen.totaalUren ?? 0;
+
+  // Bruto fase-zwaarte zou — bij gelijkmatige verdeling — geven: totaal/aantalJaren
+  // Echter J1 is een half-jaar dus de werkelijke bruto-claim per fase ligt
+  // hoger dan die van de andere jaren. We tonen het verschil.
+  const gemiddeld = aantalJaren > 0 ? Math.round(totaalUren / aantalJaren) : 0;
+  const overschot = Math.max(0, gemiddeld - j1Cap);
+  const j2plusJaren = Math.max(1, aantalJaren - 1);
+  const overschotPerJaar = Math.round(overschot / j2plusJaren);
+  const werkelijkJ1 = j1.uren ?? 0;
+  const cappedOk = werkelijkJ1 <= j1Cap * 1.05;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Stat
+          label={`${startJaar} bruto (gemiddeld)`}
+          value={`${gemiddeld.toLocaleString("nl-NL")} u`}
+          sub={`= ${totaalUren.toLocaleString("nl-NL")} u / ${aantalJaren} jaar (gelijkmatig)`}
+          mono
+        />
+        <Stat
+          label="J1-cap (half-jaar)"
+          value={`${j1Cap} u`}
+          sub={scenarioKey === "advies" || scenarioKey === "plus20" ? "advies/plus20: 290u" : "optimaal/min20: 250u"}
+          mono
+          highlight
+        />
+        <Stat
+          label={`${startJaar} werkelijk`}
+          value={`${werkelijkJ1.toLocaleString("nl-NL")} u`}
+          sub={cappedOk ? "binnen cap" : "boven cap — fase-curve domineert"}
+          mono
+        />
+      </div>
+
+      <div className="rounded bg-gray-50 border border-gray-200 p-3 font-mono text-[11px] space-y-1">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1">
+          Cap-toepassing — formule
+        </p>
+        <div className="flex items-baseline justify-between">
+          <span>Bruto bij gelijkmatige verdeling</span>
+          <span>{gemiddeld.toLocaleString("nl-NL")} u</span>
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span>− J1-cap ({j1Cap}u, want {startJaar} = half-jaar)</span>
+          <span>{j1Cap.toLocaleString("nl-NL")} u</span>
+        </div>
+        <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-800 font-semibold">
+          <span>Overschot herverdeeld over J2..Jn ({j2plusJaren} jaar)</span>
+          <span>≈ {overschotPerJaar.toLocaleString("nl-NL")} u/jr extra</span>
+        </div>
+      </div>
+      <p className="text-[11px] text-gray-600 italic leading-snug">
+        Toelichting: omdat het programma in juni 2026 start, krijgt J1 maar
+        een half kalenderjaar. De fase-zwaarte zou anders ~{gemiddeld.toLocaleString("nl-NL")}u
+        opleveren bij gelijkmatige verdeling; de cap dwingt af dat dit naar
+        ~{j1Cap}u terug gaat. Het overschot ({overschot.toLocaleString("nl-NL")}u)
+        wordt proportioneel naar latere jaren herverdeeld — vandaar dat de
+        piek vaak in J2 of J3 valt en niet al in J1.
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// F5 — Stille selecties (cat-1) toelichting
+// ============================================================================
+
+function UrenF5StilleSelecties({
+  interneUrenScen,
+  interneUren,
+  uurtariefSettings,
+  startJaar,
+}: {
+  interneUrenScen: UrenFScenario;
+  interneUren: UrenFAdvies | null;
+  uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
+  startJaar: number;
+}) {
+  const aantalJaren = interneUrenScen.aantalJaren ?? 0;
+  const basisTarief = uurtariefSettings?.basisTarief ?? 70;
+  const refJaar = uurtariefSettings?.referentiejaar ?? 2025;
+  const indexPct = uurtariefSettings?.indexatiePercentage ?? 5;
+
+  // Voor elke stille selectie: bepaal of die rol in selectiePerDomein staat,
+  // hoeveel personen, en hoeveel uren ze bijdragen volgens de scenario-data.
+  const dataDomein = (interneUrenScen.domeinen ?? []).find((d) => d.domein === "data_systemen");
+
+  function rolUrenInDomein(functieId: string): { totaal: number; perJaar: Map<number, number> } {
+    const perJaar = new Map<number, number>();
+    let totaal = 0;
+    for (const jr of dataDomein?.jaren ?? []) {
+      const r = (jr.rollen ?? []).find((rr) => rr.functieId === functieId);
+      const u = r?.uren ?? 0;
+      perJaar.set(jr.jaar, u);
+      totaal += u;
+    }
+    return { totaal, perJaar };
+  }
+
+  // Geïndexeerd-tarief gemiddeld over de jaren
+  function gemiddeldTarief(): number {
+    let som = 0;
+    for (let i = 0; i < aantalJaren; i++) {
+      const jaar = startJaar + i;
+      som += basisTarief * Math.pow(1 + indexPct / 100, jaar - refJaar);
+    }
+    return aantalJaren > 0 ? Math.round(som / aantalJaren) : basisTarief;
+  }
+  const gemTarief = gemiddeldTarief();
+
+  // Aantal personen via selectiePerDomein
+  function aantalPersonen(functieId: string): number {
+    const sel = interneUren?.selectiePerDomein?.data_systemen ?? {};
+    const ent = sel[functieId];
+    return ent?.aantal ?? 1;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-gray-600 leading-relaxed italic">
+        Twee rollen verschijnen óók in het CRM-domein (data &amp; systemen) terwijl ze in mens of processen al primair gelabeld zijn. Dit is bewust en niet dubbel geteld: het gaat om een ándere activiteit. Hieronder zie je per rol de exacte uren-bijdrage in dit scenario.
+      </p>
+
+      {STILLE_SELECTIES.map((sel) => {
+        const rolBlok = rolUrenInDomein(sel.functieId);
+        const aantal = aantalPersonen(sel.functieId);
+        const totaalUren = rolBlok.totaal;
+        const formule = `${sel.defaultUrenPerJaar}u/jr × ${aantal} personen × ${aantalJaren} jr ≈ ${(sel.defaultUrenPerJaar * aantal * aantalJaren).toLocaleString("nl-NL")}u (richtwaarde)`;
+        const kosten = Math.round(totaalUren * gemTarief);
+        const heeftData = totaalUren > 0;
+
+        return (
+          <div key={sel.functieId} className="rounded-lg border border-purple-200 bg-purple-50/30 p-3 text-xs space-y-2">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="font-semibold text-purple-900">{sel.rolLabel}</span>
+              <span className="font-mono text-gray-700">
+                {heeftData ? (
+                  <>
+                    {totaalUren.toLocaleString("nl-NL")} u totaal · ≈ {formatEur(kosten)}
+                  </>
+                ) : (
+                  <span className="text-gray-500 italic">geen uren in dit scenario</span>
+                )}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-700 leading-snug">{sel.uitleg}</p>
+            <div className="rounded bg-white border border-purple-200 p-2 font-mono text-[11px] space-y-0.5">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-purple-700 font-sans mb-0.5">
+                Richtwaarde-formule
+              </div>
+              <div className="text-gray-700">{formule}</div>
+              {heeftData && (
+                <div className="flex items-baseline justify-between text-gray-600 mt-0.5">
+                  <span>Werkelijk in dit scenario</span>
+                  <span className="text-gray-900 font-semibold">{totaalUren.toLocaleString("nl-NL")} u</span>
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 italic">
+              Programma 70% / lijn 30% voor deze rollen — het stuurgroep- en review-deel valt deels in functieprofiel, vandaar dat het programma-aandeel onder het CRM-gemiddelde van 85% ligt.
+            </p>
+          </div>
+        );
+      })}
+
+      {!dataDomein && (
+        <p className="text-[11px] text-gray-500 italic">
+          Geen data_systemen-domein in dit scenario gevonden — stille selecties niet beschikbaar.
+        </p>
+      )}
     </div>
   );
 }
