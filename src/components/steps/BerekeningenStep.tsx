@@ -777,7 +777,9 @@ function InspanningKeten({
       </summary>
 
       <div className="px-5 pb-5 pt-1 space-y-5 bg-white border-t border-current/20">
-        {/* C1: Dossier-bron */}
+        {/* C1: Dossier-bron — alleen tekst + range-samenvatting. Geen
+            breakdown-tabel meer (die staat in C2, en is daar leidend +
+            sluit op C3). Hierdoor één plek met componenten i.p.v. twee. */}
         {!isOverig && (
           <SubSectie nummer="C1" titel="Uit het dossier — wat zegt de kostenraming?">
             {kostenramingTekst ? (
@@ -786,8 +788,10 @@ function InspanningKeten({
                   <TekstMetEuroHighlights tekst={kostenramingTekst} />
                 </div>
                 <PMBufferDisclaimer tekst={kostenramingTekst} />
-                <BreakdownPaneel tekst={kostenramingTekst} bron="kostenraming" inspanningTitel={insp.inspanningTitel} />
                 <ParserOutputPaneel parsed={parsed} />
+                <p className="text-[11px] text-gray-500 italic">
+                  Bovenstaande is de top-line samenvatting uit het dossier. De rekenkundige uitsplitsing per component (met berekening, tarief-bron en aantal-bron) staat in C2 hieronder.
+                </p>
               </>
             ) : (
               <p className="text-xs text-gray-500 italic">
@@ -1062,28 +1066,28 @@ function BreakdownPaneel({
 }) {
   const parsed: ParsedBreakdown = useMemo(() => parseBreakdown(tekst), [tekst]);
 
-  // Fallback: hardcoded known-breakdown wanneer de parser de motivatie-tekst
-  // niet als netjes-aansluitende uitsplitsing kan herkennen (bv. comma-
-  // gescheiden componenten binnen één haakjes-blok). Alleen toegepast op de
-  // motivatie — kostenraming-tekst proberen we letterlijk te tonen zoals
-  // hij staat.
+  // Known-breakdown krijgt VOORRANG boven parser. Reden: known-breakdown is
+  // de bron die ook in C3 wordt gebruikt voor de optelsom; door hier ook
+  // known te tonen klopt C2 met C3. Parser is fallback voor inspanningen
+  // zonder known-breakdown. Alleen toegepast op de motivatie — kostenraming
+  // toont geen breakdown-tabel meer (alleen tekst + range-samenvatting).
   const known = bron === "motivatie" ? vindKnownBreakdown(inspanningTitel) : null;
 
   const parsedEenmaligToon = !parsed.unparsed && parsed.eenmalig?.sluitNetjesAan && parsed.eenmalig.subComponenten.length >= 2;
   const parsedStructureelToon = !parsed.unparsed && parsed.structureel?.sluitNetjesAan && parsed.structureel.subComponenten.length >= 2;
 
   const eenmaligSection: BreakdownSection | null =
-    parsedEenmaligToon && parsed.eenmalig
-      ? parsed.eenmalig
-      : known?.eenmalig
+    known?.eenmalig
       ? knownSectionAlsBreakdown(known.eenmalig, "eenmalig")
+      : parsedEenmaligToon && parsed.eenmalig
+      ? parsed.eenmalig
       : null;
 
   const structureelSection: BreakdownSection | null =
-    parsedStructureelToon && parsed.structureel
-      ? parsed.structureel
-      : known?.structureel
+    known?.structureel
       ? knownSectionAlsBreakdown(known.structureel, "structureel")
+      : parsedStructureelToon && parsed.structureel
+      ? parsed.structureel
       : null;
 
   if (!eenmaligSection && !structureelSection) return null;
