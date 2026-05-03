@@ -41,7 +41,7 @@ const UPDATES: Update[] = [
     match: /crm.klantdashboard/i,
     nieuweTekst:
       "De totale out-of-pocket investering voor het cross-sectoraal implementeren en inrichten van het integraal CRM-klantdashboard kent twee delen.\n\n" +
-      "**Eenmalig € 440.000 – € 640.000 (middenwaarde € 540.000)**, opgebouwd uit:\n" +
+      "**Eenmalig € 440.000 – € 640.000**, opgebouwd uit:\n" +
       "• Externe implementatie en dashboardbouw — 1.500–2.500 consultanturen × € 150–170/u senior CRM-consultant NL (Berenschot 2026) = € 250.000–€ 375.000\n" +
       "• Datamigratie en 7–8 bronsysteem-integraties — 80–150 ontwikkeluren per koppeling × € 100–130/u + datacleaning = € 75.000–€ 125.000\n" +
       "• Training en adoptie-begeleiding voor 85 medewerkers + externe schaduwbegeleiding = € 40.000–€ 55.000\n" +
@@ -49,7 +49,6 @@ const UPDATES: Update[] = [
       "**Structureel € 75.000 – € 110.000 per jaar vanaf jaar 2 (na go-live)**:\n" +
       "• CRM-licenties 85 gebruikers Microsoft Dynamics 365 Customer Engagement Pro (Microsoft Pricing 2025: € 55–65/maand) = € 50.000–€ 75.000/jaar\n" +
       "• Beheer + doorontwikkeling — 0,3 FTE intern + functioneel beheer = € 25.000–€ 35.000/jaar\n\n" +
-      "**PM-buffer**: bovenop deze raming geldt een 30% afhankelijkheids-marge zolang juridisch-technische ontvlechting van Stichting Cito en de definitieve platformkeuze nog open zijn (worst-case plafond circa € 830.000). Deze buffer is NIET in de scenariobedragen meegenomen — eventuele bandbreedte wordt programma-breed opgevangen via de aparte post onvoorzien.\n\n" +
       "NB: interne capaciteitskosten (~1.466 uur × € 74/u ≈ € 110.000 opportunity-kosten) zijn meegenomen in § 4.2 Interne uren — niet in deze out-of-pocket-raming.",
   },
   {

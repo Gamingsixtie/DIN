@@ -805,7 +805,7 @@ function InspanningKeten({
           nummer={isOverig ? "C1" : "C2"}
           titel={isOverig ? "Onderbouwing van de post" : "Motivatie & onderbouwing — hoe komt het bedrag tot stand?"}
         >
-          <MotivatiePaneel motivatie={insp.motivatie} inspanningTitel={insp.inspanningTitel} />
+          <MotivatiePaneel motivatie={insp.motivatie} inspanningTitel={insp.inspanningTitel} aantalJaren={aantalJaren} />
         </SubSectie>
 
         {/* C3: Bedrag in dit scenario — toon de optelsom die sluit op het
@@ -1016,10 +1016,14 @@ function ParserOutputPaneel({
   );
 }
 
-function MotivatiePaneel({ motivatie, inspanningTitel }: { motivatie: string; inspanningTitel: string }) {
+function MotivatiePaneel({ motivatie, inspanningTitel, aantalJaren }: { motivatie: string; inspanningTitel: string; aantalJaren: number }) {
   if (!motivatie?.trim()) {
     return <p className="text-xs text-gray-500 italic">Geen motivatie beschikbaar.</p>;
   }
+  // Toon alleen de motivatie-INLEIDING (kwalitatieve context) — niet de
+  // dossier-onderbouwing-tekst die door AI is gegenereerd in stap 6 en
+  // mogelijk niet meer resoneert met de actuele breakdown-tabel. De tabel
+  // (BreakdownPaneel) is leidend voor cijfers; resoneert met C3.
   const { inleiding, onderbouwing } = splitMotivatie(motivatie);
   return (
     <div className="space-y-3">
@@ -1029,17 +1033,7 @@ function MotivatiePaneel({ motivatie, inspanningTitel }: { motivatie: string; in
         </div>
       )}
       {onderbouwing && (
-        <>
-          <div className="rounded bg-blue-50/50 border border-blue-200 p-3">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-900 mb-1.5">
-              Dossier-onderbouwing — componenten en bedragen
-            </p>
-            <div className="text-sm text-gray-800 leading-relaxed">
-              <TekstMetEuroHighlights tekst={onderbouwing} />
-            </div>
-          </div>
-          <BreakdownPaneel tekst={onderbouwing} bron="motivatie" inspanningTitel={inspanningTitel} />
-        </>
+        <BreakdownPaneel tekst={onderbouwing} bron="motivatie" inspanningTitel={inspanningTitel} aantalJaren={aantalJaren} />
       )}
     </div>
   );
@@ -1058,10 +1052,12 @@ function BreakdownPaneel({
   tekst,
   bron,
   inspanningTitel,
+  aantalJaren,
 }: {
   tekst: string;
   bron: "kostenraming" | "motivatie";
   inspanningTitel: string;
+  aantalJaren?: number;
 }) {
   const parsed: ParsedBreakdown = useMemo(() => parseBreakdown(tekst), [tekst]);
 
@@ -1119,10 +1115,10 @@ function BreakdownPaneel({
         </div>
       )}
       {eenmaligSection && (
-        <BreakdownTabel section={eenmaligSection} inspanningTitel={inspanningTitel} />
+        <BreakdownTabel section={eenmaligSection} inspanningTitel={inspanningTitel} aantalJaren={aantalJaren} known={known} />
       )}
       {structureelSection && (
-        <BreakdownTabel section={structureelSection} inspanningTitel={inspanningTitel} />
+        <BreakdownTabel section={structureelSection} inspanningTitel={inspanningTitel} aantalJaren={aantalJaren} known={known} />
       )}
     </div>
   );
@@ -1131,9 +1127,13 @@ function BreakdownPaneel({
 function BreakdownTabel({
   section,
   inspanningTitel,
+  aantalJaren,
+  known,
 }: {
   section: BreakdownSection;
   inspanningTitel: string;
+  aantalJaren?: number;
+  known?: ReturnType<typeof vindKnownBreakdown>;
 }) {
   const eenheid = section.label === "structureel" ? "/jr" : "";
   const titel = section.label === "structureel" ? "Structureel per jaar" : "Eenmalig";
@@ -1141,6 +1141,36 @@ function BreakdownTabel({
   function fmtRange(low: number, high: number): string {
     if (low === high) return formatEur(low);
     return `${formatEur(low)} – ${formatEur(high)}`;
+  }
+
+  // Filter componenten met vanafJaar > aantalJaren — die dragen €0 bij in
+  // dit scenario en zouden alleen verwarring scheppen (bv. "Onboarding
+  // vanaf jaar 5" in een 4-jarig advies-scenario).
+  const subs =
+    aantalJaren && section.label === "structureel"
+      ? section.subComponenten.filter((c) => {
+          // Pak vanafJaar uit known-breakdown indien beschikbaar (parser
+          // kent geen vanafJaar). Mapping op naam-substring (lowercase).
+          const knownComp = known?.structureel?.subComponenten.find((kc) =>
+            c.naam.toLowerCase().includes(kc.naam.toLowerCase().slice(0, 20)) ||
+            kc.naam.toLowerCase().includes(c.naam.toLowerCase().slice(0, 20)),
+          );
+          const vanaf = knownComp?.vanafJaar ?? c.vanafJaar ?? 1;
+          return vanaf <= aantalJaren;
+        })
+      : section.subComponenten;
+
+  // Cumulatief structureel-totaal voor lange scenarios — directeur ziet
+  // dan ook wat €X/jr betekent over de looptijd.
+  let cumulatiefMid = 0;
+  let cumulatiefBron: string | null = null;
+  if (aantalJaren && section.label === "structureel" && known?.structureel) {
+    for (const kc of known.structureel.subComponenten) {
+      const start = kc.vanafJaar ?? 1;
+      const actiefJaren = Math.max(0, aantalJaren - start + 1);
+      cumulatiefMid += kc.bedragMid * actiefJaren;
+    }
+    cumulatiefBron = `Cumulatief over ${aantalJaren} jaren (per component bedrag × actieve jaren): ${formatEur(cumulatiefMid)}`;
   }
 
   return (
@@ -1159,9 +1189,14 @@ function BreakdownTabel({
           </tr>
         </thead>
         <tbody>
-          {section.subComponenten.map((c, i) => {
+          {subs.map((c, i) => {
             const redenering = vindRedenering(inspanningTitel, c.naam);
             const berekeningTekst = c.formule ?? redenering?.berekening ?? null;
+            const knownComp = known?.structureel?.subComponenten.find((kc) =>
+              c.naam.toLowerCase().includes(kc.naam.toLowerCase().slice(0, 20)) ||
+              kc.naam.toLowerCase().includes(c.naam.toLowerCase().slice(0, 20)),
+            );
+            const vanafJaarEffectief = knownComp?.vanafJaar ?? c.vanafJaar;
             return (
               <tr key={i} className="border-t border-gray-100 hover:bg-gray-50/50 align-top">
                 <td className="px-3 py-2 text-gray-800">
@@ -1181,9 +1216,9 @@ function BreakdownTabel({
                       <span className="not-italic font-semibold">Aantal-bron:</span> {redenering.aantalBron}
                     </div>
                   )}
-                  {c.vanafJaar !== null && (
+                  {section.label === "structureel" && vanafJaarEffectief && vanafJaarEffectief > 1 && aantalJaren && (
                     <div className="text-[10px] text-gray-500 mt-0.5">
-                      Loopt vanaf jaar {c.vanafJaar}
+                      Vanaf jaar {vanafJaarEffectief} = {Math.max(0, aantalJaren - vanafJaarEffectief + 1)} actieve jaren in dit scenario
                     </div>
                   )}
                 </td>
@@ -1201,12 +1236,15 @@ function BreakdownTabel({
               {fmtRange(section.hoofdtotaalLow, section.hoofdtotaalHigh)}{eenheid}
             </td>
           </tr>
+          {cumulatiefBron && cumulatiefMid > 0 && (
+            <tr className="bg-gray-50 border-t border-gray-200">
+              <td colSpan={2} className="px-3 py-1.5 text-[11px] text-gray-600 italic">
+                {cumulatiefBron}
+              </td>
+            </tr>
+          )}
         </tfoot>
       </table>
-      {/* Buffer-/afrondingsmarge-rij + footnote zijn weggehaald op verzoek
-          (te verwarrend). De directeur ziet hoofdtotaal + componenten;
-          eventuele kleine afronding-verschillen tussen componenten en
-          hoofdtotaal hoeven hier niet expliciet zichtbaar te zijn. */}
     </div>
   );
 }
