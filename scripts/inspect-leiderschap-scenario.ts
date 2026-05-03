@@ -32,15 +32,15 @@ async function main() {
   const stap4 = wiz?.stepResults?.stap4 as Record<string, unknown> | undefined;
   const begroting = stap4?.begrotingAdvies as { startJaar?: number; scenarios?: Record<string, { aantalJaren?: number; totaalGeraamdEuro?: number; inspanningen?: Array<Record<string, unknown>> } | null> } | undefined;
 
-  for (const sk of ["optimaal", "plus20", "advies", "min20"]) {
-    const sc = begroting?.scenarios?.[sk];
-    if (!sc) continue;
-    console.log(`\n=== Scenario ${sk} (${sc.aantalJaren} jaar, totaal ${fmt(sc.totaalGeraamdEuro ?? 0)}) ===`);
-    const insp = sc.inspanningen?.find((i) => /leiderschap/i.test(i.inspanningTitel as string));
-    if (!insp) continue;
-    console.log(`Leiderschap totaal: ${fmt((insp.totaalEuro as number) ?? 0)}`);
-    const verd = insp.verdelingPerJaar as Array<{ jaar: number; euro: number; fase?: string }> | undefined;
-    if (verd) for (const v of verd) console.log(`  ${v.jaar}: ${fmt(v.euro)} ${v.fase ?? ""}`);
+  const sk = "advies";
+  const sc = begroting?.scenarios?.[sk];
+  if (!sc) return;
+  console.log(`\n=== Scenario ${sk} (${sc.aantalJaren} jaar) ===`);
+  console.log(`Inspanning  | Werkelijk | Verwacht (eenmalig+struct×jaren) | Verschil`);
+  for (const insp of sc.inspanningen ?? []) {
+    const titel = (insp.inspanningTitel as string) ?? "?";
+    const werkelijk = (insp.totaalEuro as number) ?? 0;
+    console.log(`${titel.slice(0, 50).padEnd(50)} | ${fmt(werkelijk)}`);
   }
 }
 main().catch(console.error);

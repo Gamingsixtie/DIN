@@ -44,6 +44,75 @@ export interface KnownBreakdown {
 
 export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
   // ─────────────────────────────────────────────────────────────────────
+  // CRM (data_systemen) — motivatie-mid €540K eenmalig (440K-640K),
+  // niet de kostenraming-hoofdtotaal-mid €567,5K (455K-680K). De
+  // motivatie zegt expliciet "middenpunt circa €540.000" — dat is wat
+  // de scenariobedragen gebruiken. Kostenraming-hoofdtotaal is breder
+  // omdat daar een impliciete PM-buffer in zit (worst-case plafond
+  // €830K, apart). Structureel uit motivatie: €92,5K/jr (€50-75K
+  // licenties + €25-35K beheer/doorontwikkeling).
+  // ─────────────────────────────────────────────────────────────────────
+  {
+    inspanningMatch: "crm-klantdashboard",
+    eenmalig: {
+      hoofdtotaalLow: 440_000,
+      hoofdtotaalHigh: 640_000,
+      subComponenten: [
+        {
+          naam: "Externe implementatie en dashboardbouw (1.500–2.500 uur × € 150–170/u)",
+          bedragLow: 250_000,
+          bedragMid: 312_500,
+          bedragHigh: 375_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Datamigratie en 7–8 bronsysteemintegraties",
+          bedragLow: 75_000,
+          bedragMid: 100_000,
+          bedragHigh: 125_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Training en adoptie-begeleiding 85 medewerkers + externe schaduwbegeleiding",
+          bedragLow: 40_000,
+          bedragMid: 47_500,
+          bedragHigh: 55_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Dubbele licentielast 6–12 maanden parallel-runtime huidige Dynamics-omgeving",
+          bedragLow: 30_000,
+          bedragMid: 45_000,
+          bedragHigh: 60_000,
+          isPerJaar: false,
+        },
+      ],
+    },
+    structureel: {
+      hoofdtotaalLow: 75_000,
+      hoofdtotaalHigh: 110_000,
+      subComponenten: [
+        {
+          naam: "CRM-licenties 85 gebruikers Microsoft Dynamics 365 Pro (vanaf jaar 2 — go-live)",
+          bedragLow: 50_000,
+          bedragMid: 62_500,
+          bedragHigh: 75_000,
+          isPerJaar: true,
+          vanafJaar: 2,
+        },
+        {
+          naam: "Beheer + doorontwikkeling (vanaf jaar 2 — na go-live)",
+          bedragLow: 25_000,
+          bedragMid: 30_000,
+          bedragHigh: 35_000,
+          isPerJaar: true,
+          vanafJaar: 2,
+        },
+      ],
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
   // GESPREKSVAARDIGHEIDSTRAINING (mens) — bedragen letterlijk uit
   // motivatie: vast eenmalig €75K (LMS €30K, content €25K, ToT €10K,
   // nulmeting €10K) + variabel kerntraject €80K (twee blokken á €31,5K +
@@ -131,23 +200,58 @@ export const KNOWN_BREAKDOWNS: KnownBreakdown[] = [
   // ─────────────────────────────────────────────────────────────────────
   {
     inspanningMatch: "uniforme",
-    structureel: {
-      hoofdtotaalLow: 18_000,
-      hoofdtotaalHigh: 27_000,
+    eenmalig: {
+      hoofdtotaalLow: 70_000,
+      hoofdtotaalHigh: 86_000,
       subComponenten: [
         {
-          naam: "Proceseigenaarschap-borging via bestaande Smartprocess-tooling",
+          naam: "Externe procesbegeleiding 20 dagen × € 800 + uitrol-coördinatie",
+          bedragLow: 25_000,
+          bedragMid: 32_500,
+          bedragHigh: 40_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Sessiebegeleiding 9 multidisciplinaire werksessies",
+          bedragLow: 15_000,
+          bedragMid: 20_000,
+          bedragHigh: 25_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Externe materialen / methodieken (BiSL/Lean + content-aanpassing)",
+          bedragLow: 5_000,
+          bedragMid: 7_500,
+          bedragHigh: 10_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM)",
+          bedragLow: 10_000,
+          bedragMid: 10_000,
+          bedragHigh: 10_000,
+          isPerJaar: false,
+        },
+        {
+          naam: "Sectorvariatie-buffer (10% herbewerkingsrisico) — eenmalig",
+          bedragLow: 5_000,
+          bedragMid: 6_000,
+          bedragHigh: 7_000,
+          isPerJaar: false,
+        },
+      ],
+    },
+    structureel: {
+      hoofdtotaalLow: 10_000,
+      hoofdtotaalHigh: 15_000,
+      subComponenten: [
+        {
+          naam: "Proceseigenaarschap-borging via bestaande Smartprocess-tooling (vanaf jaar 2)",
           bedragLow: 10_000,
           bedragMid: 12_000,
           bedragHigh: 15_000,
           isPerJaar: true,
-        },
-        {
-          naam: "Cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM)",
-          bedragLow: 8_000,
-          bedragMid: 10_000,
-          bedragHigh: 12_000,
-          isPerJaar: true,
+          vanafJaar: 2,
         },
       ],
     },

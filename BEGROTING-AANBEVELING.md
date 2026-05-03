@@ -1,548 +1,243 @@
-# Realistische Begroting — Aanbeveling voor Sessie d8b97442
+# Begroting-aanbeveling — sluiting met §4.1
 
-**Doel van dit document:** een realistische, doorgerekende begroting per scenario voor **drie inspanningen** — Mens, Processen en Cultuur — die je 1-op-1 kunt doorgeven aan een AI-agent (of mens) om de huidige §4.1 voor die drie te vervangen of bij te stellen.
+**Doel:** elke c3-rekensom in stap 8 moet 1-op-1 sluiten op het scenario-bedrag in §4.1 begroting (uit stap 6). 16 punten (4 inspanningen × 4 scenario's). Hieronder per inspanning de oorzaak en de keuze "begroting aanpassen" vs "berekening aanpassen", met concrete getallen.
 
-> **CRM (data_systemen) blijft buiten scope** dit document doet daarover géén aanbeveling.
-
-**Bron-audit:** [AUDIT-begroting-inhoudelijk.md](AUDIT-begroting-inhoudelijk.md) — daar staat *waarom* deze aanpassingen nodig zijn. Dit document zegt alleen *wat* het moet worden.
-
----
-
-## 1. Overzicht — huidige vs aanbevolen totalen
-
-| Inspanning | Scenario | **Huidig §4.1** | **Aanbevolen** | Verschil | Reden |
-|------------|----------|----------------|----------------|----------|-------|
-| **Mens** (gespreksvaardigheid) | advies (4j) | €142K | **€155K** | +€13K | **Doelgroep is 80 deelnemers (Stap 7), niet 66**: vast €75K (LMS+content+train-de-trainer+curriculum) + variabel €80K (80 × €1.000) |
-|  | plus20 (5j) | €142,5K | **€170K** | +€27,5K | Idem + 1j refresh €15K |
-|  | optimaal (7j) | €143K | **€200K** | +€57K | Idem + 3j refresh €45K |
-|  | min20 (10j) | €142,5K | **€230K** | +€87,5K | Idem + 5j refresh + onboarding nieuwe medewerkers |
-| **Processen** (klantinfo + funnelgovernance) | advies (4j) | €100K | **€114K** | +€14K | Volledige interne dekking (Procesondersteuner Prof bevestigd); structureel-borging volledig toegerekend + governance €10K + sectorvariatie-buffer €6K |
-|  | plus20 (5j) | €112,5K | **€126K** | +€13,5K | Idem + 4j borging |
-|  | optimaal (7j) | €137K | **€150K** | +€13K | Idem + 6j borging |
-|  | min20 (10j) | €175K | **€186K** | +€11K | Idem + 9j borging |
-| **Cultuur** (leiderschapsprogramma) | advies (4j) | €100K | **€130K** | +€30K | Naar onderkant benchmark €14K/lg; executive-tarief afgedekt; 360°-tool licentie |
-|  | plus20 (5j) | €105K | **€145K** | +€40K | Idem + 1j extra cultuurmeting |
-|  | optimaal (7j) | €115K | **€165K** | +€50K | Idem + jaarlijkse meting + intervisie |
-|  | min20 (10j) | €130K | **€195K** | +€65K | Idem + onboarding nieuwe leiders |
+Sessie: `d8b97442-ce8f-4134-b2c7-67dc8e3a3f93`. Pad voor begroting-bedragen:
+`crossAnalyseWizard.stepResults.stap4.begrotingAdvies.scenarios.<key>.inspanningen[<i>].totaalEuro`
 
 ---
 
-## 2. Per inspanning — opbouw, aannames en jaarverdeling
+## 1. CRM (€27.500–28.000 vast nadeel — alle scenario's)
 
-### 2.1 Gespreksvaardigheidstraining (mens) — **80 deelnemers**
+### Oorzaak — gevonden
 
-> **Belangrijk:** doelgroep is **80 deelnemers** (uit Stap 7 selectiePerDomein) — niet 66 zoals het oude dossier zegt. Het bedrag is hierop aangepast.
+De berekening neemt voor eenmalig de **kostenraming-hoofdtotaal-mid van €567.500** (avg van €455K + €680K). Maar de motivatie-tekst onder de inspanning (en de basis voor het scenariobedrag in §4.1) gebruikt **eenmalig mid €540.000** (avg van €440K + €640K — letterlijk in de motivatie: *"middenpunt circa € 540.000"*).
 
-**Opbouw aanbevolen totaal per scenario:**
+Verschil: **€567.500 − €540.000 = €27.500.** Dat is *exact* het vaste gat. Bij 4-jarig wordt het nog €500 verhoogd door afronding op de structureel-mid (€92.500/jr × 3 = €277.500 vs. begroting €249.500). De drijver is dus eenmalig.
 
-| Component | advies (4j) | plus20 (5j) | optimaal (7j) | min20 (10j) |
-|-----------|-------------|-------------|----------------|--------------|
-| **Vast eenmalig (4 posten samen €75K):** | | | | |
-| – LMS-licentie (5+ jr) | €30K | €30K | €30K | €30K |
-| – Content-ontwikkeling outside-in curriculum | €25K | €25K | €25K | €25K |
-| – Train-de-trainer (intern team opbouwen) | €10K | €10K | €10K | €10K |
-| – Nulmeting + intake | €10K | €10K | €10K | €10K |
-| **Variabel (per 80 deelnemers):** | | | | |
-| – Externe trainingspartner 2 blokken (geschaald 80/66 = 1,21) | €63K | €63K | €63K | €63K |
-| – Sessieondersteuning + locatie + materialen (80 pers) | €17K | €17K | €17K | €17K |
-| **Onderhoud (vanaf jaar 4):** | | | | |
-| – Refresh-sessie €15K/jr | €0 | €15K | €45K (3j) | €75K (5j) |
-| – Onboarding nieuwe medewerkers €5K/jr (vanaf jaar 4) | €0 | €0 | €15K (3j) | €30K (6j) |
-| **Totaal** | **€155K** | **€170K** | **€200K** | **€230K** |
-| Per deelnemer (÷80) | €1.938 | €2.125 | €2.500 | €2.875 |
+De kostenraming-tekst noemt eenmalig **€455K–€680K** (top-line) en somt vervolgens 4 sub-componenten op: implementatie €250–375K + datamigratie €75–125K + training €40–55K + dubbele-licentielast €30–60K. Totaal sub-mid = €312,5K + €100K + €47,5K + €45K = **€505K** — maar de hoofdtotaal-mid is €567,5K. Het verschil van €62,5K binnen de top-line is een impliciete PM-buffer die de hoofdtotaal-range omhoog trekt; de motivatie corrigeert dit terug naar €440K–€640K (mid €540K) door de 30% PM-buffer **deels** los te maken (worst-case plafond €830K is apart).
 
-**Aannames:**
-- **80 deelnemers** uit Stap 7 selectiePerDomein (28 klantenservice C, 12 trainer/adviseur A, 7 accountmanager C, 7 mdw binnendienst B, 5 accountmanager C Prof, 3 productmanager DST, 18 overige rollen).
-- 2 trainingsblokken × 3 maanden (kerntraject 10-12 mnd)
-- Externe trainingspartner-tarief €26K/blok bij 66 personen → €31,5K/blok bij 80 (lineair geschaald)
-- LMS-licentie €30K eenmalig voor 5+ jaar (geen jaarlijkse licentie)
-- Content-ontwikkeling outside-in curriculum: €25K eenmalig (PO/VO/Zakelijk/Prof varianten)
-- Train-de-trainer: 12 trainer/adviseurs A worden intern opgeleid voor verankering (€10K externe begeleiding)
-- Vanaf jaar 4: jaarlijkse refresh-sessie + onboarding nieuwe medewerkers (geschat 5-8 nieuwe per jaar in lange scenario's)
+### Optie A — begroting aanpassen (geen voorkeur)
 
-**Aanbevolen jaarverdeling:**
+CRM is door de programmamanager expliciet buiten scope verklaard ("CRM-bedrag in §4.1 ongewijzigd" — sectie 4 van eerdere briefing). Dat betekent: dit is geen reëel nadeel; het is een meet-artefact van de berekening. Verhoog niet de begroting met +€27,5K — dat zou het sluitend maken, maar tegen de scope-afspraak.
 
-| Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-|----------|----|----|----|----|----|----|----|----|----|----|
-| advies (4j) | 25% | 35% | 28% | 12% | | | | | | |
-| plus20 (5j) | 22% | 28% | 25% | 15% | 10% | | | | | |
-| optimaal (7j) | 18% | 22% | 20% | 14% | 12% | 9% | 5% | | | |
-| min20 (10j) | 13% | 17% | 16% | 12% | 10% | 8% | 8% | 7% | 5% | 4% |
+### Optie B — berekening aanpassen (aanbevolen)
 
-**Kritisch:**
-- In min20 mag de borging-fase (jaar 5+) niet onder €18K/jr zakken (was €11K in huidige begroting — onvoldoende voor refresh + onboarding-cyclus voor 80 personen).
-- €/deelnemer komt nu binnen benchmark **€1.500-€3.000** (was €1.775-€1.788 op de onderkant; nu €1.938-€2.875 — ruimer in het midden).
+Pas de **bron** aan voor CRM-eenmalig: gebruik de motivatie-mid (€540K) i.p.v. parser-mid (€567,5K). Twee implementatie-opties:
 
-**Risico's afgedekt:**
-- ✅ 80 deelnemers (Stap 7) i.p.v. 66 (dossier) — variabele kost met factor 1,21 verhoogd
-- ✅ Train-de-trainer + LMS + content-ontwikkeling apart begroot (€75K vast)
-- ✅ Refresher-cyclus voor langere scenario's
-- ✅ Onboarding nieuwe medewerkers (gat in huidige begroting)
-- ⚠️ Executive-tarief externe partner — vaste-prijs-contract bij start vereist
-- ⚠️ Capaciteitsdruk 8u/maand op 80 deelnemers met al hoge werkdruk — back-up-deelnemerslijst per sector, beschermde sessietijd in MT-besluit
+**B1 (lichtgewicht):** Voeg CRM toe aan `KNOWN_BREAKDOWNS` in `src/lib/known-breakdowns.ts` met `inspanningMatch: "crm-klantdashboard"`, eenmalig.hoofdtotaalLow = 440.000 en hoofdtotaalHigh = 640.000 (motivatie-cijfers). Structureel laat je leeg zodat de parser-fallback structureel-mid €92.500/jr blijft gebruiken. Effect:
+
+| Scenario | Berekening nieuw | Werkelijk | Delta nieuw |
+|---|---|---|---|
+| Optimaal (7j) | 540 + 92,5×6 = €1.095K | €1.095K | **€0** |
+| Plus20 (5j) | 540 + 92,5×4 = €910K | €910K | **€0** |
+| Advies (4j) | 540 + 92,5×3 = €817,5K | €817K | **−€500** |
+| Min20 (10j) | 540 + 92,5×9 = €1.372,5K | €1.372K | **−€500** |
+
+**B2 (parser):** Pas `parseDossierRaming()` aan zodat als motivatie-tekst een expliciete *"middenpunt circa € X"*-claim bevat, die **leidend** is voor mid (i.p.v. (low+high)/2). Generieker maar fragieler. Niet aanbevolen.
+
+**Aanbeveling: B1.** Sluit alle 4 CRM-cellen (op €500 afronding na, ruim binnen 1%).
 
 ---
 
-### 2.2 Uniforme klantinformatieprocessen + funnelgovernance (processen) — **5 interne uitvoerders, alle 3 sectoren intern gedekt**
+## 2. Gespreksvaardigheidstraining (mens) — variabel verschil dat met aantalJaren toeneemt
 
-> **Belangrijk:** sector Professionals heeft WEL een interne procesondersteuner (custom-rol "Procesondersteuner professionals"). Externe inhuur is dus NIET de facto verplicht; aanbeveling is daardoor lager dan eerste audit-versie (€114-186K i.p.v. €150-210K).
+### Oorzaak — gevonden
 
-**Opbouw aanbevolen totaal per scenario:**
+De berekening past `vanafJaar=4` met €15K refresh + €5K onboarding = €20K/jr. Bij min20 (10j) telt dat **7 jaar** (jaar 4-10) = €140K structureel. Plus eenmalig €142,5K = som €282,5K.
 
-| Component | advies (4j) | plus20 (5j) | optimaal (7j) | min20 (10j) |
-|-----------|-------------|-------------|----------------|--------------|
-| Eenmalig dossier-mid €62K (externe procesbegeleider 20d × €800 = €16K + sessiebegeleiding €20K + materialen €7,5K, schaalvoordeel 30-40% verrekend) | €62K | €62K | €62K | €62K |
-| Structureel €12K/jr × (looptijd-1) — proceseigenaarschap-borging via Smartprocess | €36K (3j) | €48K (4j) | €72K (6j) | €108K (9j) |
-| Cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM, eenmalig) | €10K | €10K | €10K | €10K |
-| Sectorvariatie-buffer (10% herbewerking — dossier-risico) | €6K | €6K | €6K | €6K |
-| **Totaal** | **€114K** | **€126K** | **€150K** | **€186K** |
+Maar de werkelijke verdelingPerJaar voor min20-gesprek (zie verdeling-script):
+- 2026 €43K + 2027 €24K + 2028 €25K = **€92K eenmalig** in jaar 1-3 (begroting smeert eenmalig over 3 jaren).
+- Vanaf 2029 (jaar 4): 22+17+16+17+23+21+22 = €138K verdeeld over 7 jaren (≈ **€19,7K/jr** gemiddeld), waarvan jaar 8-10 (€23+21+22 = €66K) duidelijk hoger zijn dan refresh+onboarding zouden moeten zijn.
 
-**Aannames:**
-- 3 sectoren (PO, VO, Zakelijk/Prof) × 7 medewerkers = 21 betrokken
-- **5 interne uitvoerders alle 3 sectoren gedekt** (Projectmanager D, Procesmanager Data, Procesondersteuner PO, VO, Professionals)
-- 20 dagen externe procesbegeleiding (Cito-benchmark €800/dag voor methodiek; geen extra inhuur nodig voor adoptie/uitrol)
-- 9 multidisciplinaire werksessies
-- **Smartprocess is bestaande tooling** (geen separate licentiekost)
+De werkelijke som is consistent **€20K lager** dan de motivatie-conforme som omdat:
+1. Jaar 8-10 wordt door de begroting impliciet als "Verankering / Continue ontwikkeling" gerubriceerd; die is **niet** als refresh/onboarding meegenomen door de AI maar wel hoger dan €20K → de begroting voegt impliciet ~€10K extra/jr toe in de slotjaren.
+2. De eenmalige posten in 2026-2028 (€92K) zijn lager dan known-eenmalig €142,5K — verschil €50K is door de AI gesmeerd naar latere jaren als "doorlopende coaching/refresh".
 
-**Aanbevolen jaarverdeling (€K):**
+Per saldo: begroting heeft min20 op **€230K** gezet i.p.v. de motivatie-correcte €282,5K. Dat is een **echt nadeel van €52,5K** (-19%): de AI heeft een lange-staart van het structurele deel weggesneden om binnen het jaarbudget te passen.
 
-| Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-|----------|----|----|----|----|----|----|----|----|----|----|
-| advies (4j) | 14 | 38 | 37 | 25 | | | | | | |
-| plus20 (5j) | 14 | 38 | 37 | 25 | 12 | | | | | |
-| optimaal (7j) | 18 | 44 | 40 | 12 | 12 | 12 | 12 | | | |
-| min20 (10j) | 18 | 44 | 40 | 12 | 12 | 12 | 12 | 12 | 12 | 12 |
+Voor advies (4j): som €162,5K, werkelijk €155K → **€7,5K nadeel**. Hier is structureel maar 1 jaar (jaar 4 alleen), dus klein gat. Begroting €155K = klassiek dossier-eenmalig €125–160K mid (€142,5K) + €12,5K stub voor jaar 4 i.p.v. €20K.
 
-**Logica:** J1 inventarisatie + kickoff (laag), J2 herontwerp + start pilot + structureel (piek), J3 pilot-validatie + uitrol-start (tweede piek), J4+ uitsluitend €12K/jr borging.
+### Optie A — begroting aanpassen (aanbevolen voor min20, plus20, optimaal)
 
-**Fase-bucket-conform:** advies V12%/U66%/B22%, plus20 V11%/U60%/B29%, optimaal V12%/U64%/B24% (✓ conform), min20 V10%/U65%/B26%. Geen 45-58% Voorbereiding meer (was zo in huidige §4.1 — buiten benchmark; nu binnen).
+De motivatie-mid is methodisch correct (refresh €15K/jr vanaf jaar 4 + onboarding €5K/jr vanaf jaar 4 — letterlijk in motivatie). De begroting heeft die te krap geboekt om binnen jaarbudget-cap te passen. Ophogen naar berekende som:
 
-**Risico's afgedekt:**
-- ✅ Werkgroepuren-uitloop (8u → 16-20u/p.p.) — interne capaciteit absorbeert dit
-- ✅ Adoptie-risico in 3 sectoren — eigen procesondersteuner per sector beschikbaar
-- ✅ Herbewerking 10-20% — €6K buffer (10%) op eenmalig
-- ✅ Lange-staart structureel volledig toegerekend (geen afkapping)
-- ⚠️ Marktrisico tarief externe procesbegeleider (€900-1.400/dag) — kan oplopen tot €25-40K i.p.v. €16K; binnen cap-headroom maar bewaken
-- ⚠️ CRM-vertraging blokkeert procesvalidatie — projectmanagement-risico, geen direct budget-risico
+| Scenario | Pad index*<sup>1</sup> | Huidig | Voorgesteld | Reden |
+|---|---|---|---|---|
+| optimaal | `inspanningen[1].totaalEuro` | €200.000 | **€222.500** | Eenmalig €142,5K + 4× €20K = €222,5K |
+| plus20 | `inspanningen[2].totaalEuro` | €170.000 | **€182.500** | Eenmalig €142,5K + 2× €20K = €182,5K |
+| advies | `inspanningen[1].totaalEuro` | €155.000 | **€162.500** | Eenmalig €142,5K + 1× €20K = €162,5K |
+| min20 | `inspanningen[2].totaalEuro` | €230.000 | **€282.500** | Eenmalig €142,5K + 7× €20K = €282,5K |
 
----
+<sup>1</sup> *Volgorde van `inspanningen[]` per scenario: zie verdeling-output. Optimaal: [0]=CRM, [1]=Gesprek, [2]=Processen, [3]=Leiderschap, [4]=Onvoorzien. Plus20: [0]=CRM, [1]=Processen, [2]=Gesprek, [3]=Leiderschap, [4]=Onvoorzien. Advies: [0]=CRM, [1]=Gesprek, [2]=Processen, [3]=Leiderschap, [4]=Onvoorzien. Min20: [0]=CRM, [1]=Processen, [2]=Gesprek, [3]=Leiderschap, [4]=Onvoorzien. **Verifieer voor het script de exacte index per scenario via `inspanningTitel`.**
 
-### 2.3 Leiderschapsprogramma outside-in (cultuur)
+Effect: 4 cellen sluiten exact (delta €0). Cap-impact: optimaal +€22,5K, plus20 +€12,5K, advies +€7,5K, min20 +€52,5K. Past binnen cap-headroom (advies €148K marge, min20 €17K krap — bij min20 verifiëren of headroom volstaat).
 
-**Opbouw aanbevolen totaal per scenario:**
+### Optie B — berekening aanpassen (alternatief)
 
-| Component | advies (4j) | plus20 (5j) | optimaal (7j) | min20 (10j) |
-|-----------|-------------|-------------|----------------|--------------|
-| Externe begeleider 15 dagen × €2.500 | €37,5K | €37,5K | €37,5K | €37,5K |
-| Executive-tarief reservering (+€20K als coaches duurder uitvallen) | €20K | €20K | €20K | €20K |
-| 360°-feedback tool licentie €5K/jr | €20K (4j) | €25K | €35K | €50K |
-| Individuele coaching 9 lg × €4K | €36K | €36K | €36K | €36K |
-| HR-instrumentarium aanpassing | €15K | €15K | €15K | €15K |
-| Cultuurmeting jaarlijks vanaf jaar 3 (€2,5K/meting) | €2,5K (1×) | €5K (2×) | €12,5K (5×) | €20K (8×) |
-| Onboarding nieuwe leiders (jaar 5+: €2K/jr) | €0 | €5K | €10K | €15K |
-| **Totaal** | **€131K** ≈ **€130K** | **€143K** ≈ **€145K** | **€166K** ≈ **€165K** | **€194K** ≈ **€195K** |
+Verlaag refresh+onboarding in known-breakdown: `Refresh-sessies bedragMid 15.000 → 12.500` en `Onboarding bedragMid 5.000 → 2.500`. Effect: structureel/jr daalt naar €15K. Min20: 142,5 + 15×7 = 247,5K → werkelijk 230K → delta -17,5K (nog steeds nadeel). Stelt niet voldoende, en gaat in tegen motivatie-cijfers. **Niet aanbevolen.**
 
-**Aannames:**
-- 9 leidinggevenden (matcht Stap 7) + 2 HR coördinerend = 11 betrokken
-- Externe coach 15 dagen, basis-tarief €2.500/dag, executive-tarief tot €4.000/dag mogelijk
-- 360°-feedback tool: €5K/jr structureel
-- Coaching individueel: 1 dag/lg/jr met externe coach
-- Cultuurmeting vanaf jaar 3: jaarlijks om verankering te toetsen
-- Vanaf jaar 5: nieuwe leiders onboarden in bestaande cultuur
+### Optie C — staffel met "vanafJaar" + "totEnMetJaar"
 
-**Aanbevolen jaarverdeling:**
+Voeg `totEnMetJaar` toe aan `KnownSubComponent` zodat refresh-sessies bv. alleen jaar 4-7 actief is. Methodisch onzuiver (motivatie zegt geen einde), niet aanbevolen.
 
-| Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-|----------|----|----|----|----|----|----|----|----|----|----|
-| advies (4j) | 30% | 35% | 22% | 13% | | | | | | |
-| plus20 (5j) | 25% | 28% | 20% | 17% | 10% | | | | | |
-| optimaal (7j) | 20% | 22% | 17% | 15% | 11% | 9% | 6% | | | |
-| min20 (10j) | 14% | 17% | 14% | 13% | 11% | 9% | 8% | 6% | 5% | 3% |
-
-**Kritisch:**
-- Uitrol-fase (jaar 2-3) **mag niet onder 35%** dalen (huidige optimaal heeft Uitrol 17% — programma zou daarmee feitelijk een 2j-intensief + 5j-borging zijn).
-- Borging-jaren (jaar 4+) **niet onder €5K/jaar** (alleen al 360°-tool €5K).
-
-**Risico's afgedekt:**
-- ✅ Executive-tarief leiderschapscoaches (€20K reservering)
-- ✅ 360°-feedback-tool licentie structureel
-- ✅ Doorlopende cultuurmeting (verankering meetbaar 12-18 mnd na slotmeting)
-- ✅ Onboarding nieuwe leiders in latere jaren
-- ⚠️ Werkdrukverlies MT — beschermde sessietijd in MT-besluit nodig (geen budget-issue maar randvoorwaarde)
+**Aanbeveling: A.** Begroting ophogen voor 4 cellen — sluit exact.
 
 ---
 
-## 3. Wijzigingen in de wizard-input — wat je apart moet doen
+## 3. Processen (€11–14K voordeel — alle scenario's)
 
-Dit zijn dingen die **buiten de begroting** moeten gebeuren om de aanbeveling voor Mens / Processen / Cultuur te schragen:
+### Oorzaak — gevonden
 
-1. **Mens dossier-aanname (66) en Stap 7-selectie (80) sluitend maken.** Kies één:
-   - Of dossier ophogen naar 80 deelnemers (en aanvullen waar in welke sector ze zitten)
-   - Of Stap 7-selectie verlagen naar 66 personen (en motiveren wie afvalt)
+De berekening gebruikt voor processen *parsed* (niet known-eenmalig — code in `C3Samenstelling` checkt eerst `knownBreakdown.eenmalig`, en processen heeft alleen `structureel` in known-breakdowns). Dus:
+- Eenmalig parsed-mid = €62.500 (avg €55K + €70K kostenraming-top)
+- Structureel parsed-mid/jr = €12.500 (avg €10K + €15K — proceseigenaarschap-borging)
 
-2. **Cultuur dossier-cap herzien.** Het dossier zegt nu *"€60-72K over vier jaar"* — dat is structureel onderschat voor diepgaand outside-in. Pas het dossier aan naar €100-130K voor 4j met expliciete uitsplitsing eenmalig + structureel-per-jaar.
+Maar de motivatie-tekst noemt expliciet **drie extra/aanvullende structurele componenten**:
+1. *Proceseigenaarschap-borging via Smartprocess* — €10–15K/jr (mid €12K) ← parsed pakt dit
+2. *Cross-sectoraal governance-instrumentarium* (KPI-template + integratie-format CRM) — **€10K** *(motivatie noemt dit als "structureel"-staart, ambigu — kan ook eenmalig zijn)*
+3. *Sectorvariatie-buffer* — **€6K** *(idem ambigu)*
 
-3. **Externe procesbegeleider-tarief vóór start vastleggen.** Nu staat "ntb" in dossier — onderhandel max-fee €800/dag (Cito-benchmark) voor er een budget op draait.
+De begroting-AI heeft componenten 2+3 (€16K) waarschijnlijk als **eenmalig** opgenomen → echte eenmalig ≈ €62K + €16K = €78K. Met structureel €12K/jr × (jaren-1):
+- Advies (4j): 78 + 12×3 = €114K → werkelijk €114K ✓ exact
+- Plus20 (5j): 78 + 12×4 = €126K → werkelijk €126K ✓ exact
+- Optimaal (7j): 78 + 12×6 = €150K → werkelijk €150K ✓ exact
+- Min20 (10j): 78 + 12×9 = €186K → werkelijk €186K ✓ exact
 
----
+**Het sluit perfect** als je de eenmalig-uitbreiding meeneemt.
 
-## 4. Brief voor de andere agent
+### Optie A — berekening aanpassen (aanbevolen)
 
-Kopieer onderstaande tekst en geef die mee — je kan dan vragen "hercaalibreer §4.1 begroting volgens deze instructies" of "regenereer scenario X met deze totalen".
+Voeg processen toe aan `KNOWN_BREAKDOWNS` met **eenmalig** sectie:
 
----
+```
+{
+  inspanningMatch: "uniforme",
+  eenmalig: {
+    hoofdtotaalLow: 70_000,    // 55 + 10 + 5 (laag)
+    hoofdtotaalHigh: 86_000,   // 70 + 10 + 6 (hoog)
+    subComponenten: [
+      { naam: "Externe procesbegeleiding 20d × €800 + sessiebegeleiding + materialen (kostenraming-top)", bedragLow: 55_000, bedragMid: 62_000, bedragHigh: 70_000, isPerJaar: false },
+      { naam: "Cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM)", bedragLow: 10_000, bedragMid: 10_000, bedragHigh: 10_000, isPerJaar: false },
+      { naam: "Sectorvariatie-buffer (10% herbewerkingsrisico)", bedragLow: 5_000, bedragMid: 6_000, bedragHigh: 7_000, isPerJaar: false },
+    ],
+  },
+  structureel: { ...bestaand laten — €22K/jr klopt niet voor parsed-uitkomst },
+}
+```
 
-> **Briefing — herzien §4.1 begrotingsadvies sessie d8b97442**
->
-> Op basis van een inhoudelijke audit (zie [AUDIT-begroting-inhoudelijk.md](AUDIT-begroting-inhoudelijk.md)) is de huidige §4.1 op vier punten te bijgesteld. Hieronder de aanbevolen totalen per inspanning per scenario; pas de `verdelingPerJaar` aan zodat de som klopt en de fase-verhouding (Voorbereiding 10-25%, Uitrol 50-65%, Borging 15-25%) nageleefd wordt.
->
-> **Scope:** alléén Mens, Processen, Cultuur. CRM (data_systemen) blijft buiten scope — bedrag in §4.1 ongewijzigd (€817K / €910K / €1.095K / €1.372K).
->
-> **Aanbevolen totalen voor de drie inspanningen (€):**
->
-> | Inspanning | advies (4j) | plus20 (5j) | optimaal (7j) | min20 (10j) |
-> |------------|-------------|-------------|----------------|--------------|
-> | Gespreksvaardigheidstraining (mens) — **80 deelnemers** | 155.000 | 170.000 | 200.000 | 230.000 |
-> | Klantinformatieprocessen + funnelgovernance (processen) — **5 interne uitvoerders, alle 3 sectoren gedekt** | 114.000 | 126.000 | 150.000 | 186.000 |
-> | Leiderschapsprogramma (cultuur) | 130.000 | 145.000 | 165.000 | 195.000 |
-> | **Subtotaal 3 inspanningen** | **399.000** | **441.000** | **515.000** | **611.000** |
-> | + CRM ongewijzigd | 817.000 | 910.000 | 1.095.000 | 1.372.000 |
-> | **= Scenario-totaal** | **1.216.000** | **1.351.000** | **1.610.000** | **1.983.000** |
->
-> **Wat is er veranderd t.o.v. de huidige begroting:**
-> 1. **Mens wordt herrekend op 80 deelnemers** (was impliciet 66). Vast €75K (LMS €30K + content €25K + train-de-trainer €10K + nulmeting €10K) + variabel €80K (80 × €1.000) voor de kerntraject. Voor langere scenario's (plus20+) komt er €15K/jr refresh + €5K/jr onboarding nieuwe medewerkers vanaf jaar 4.
-> 2. **Processen wordt aangepast op volledige interne dekking** (5 procesondersteuners, alle 3 sectoren). Geen externe-inhuur-buffer — alleen dossier-mid eenmalig €62K + structureel €12K/jr volledig over (jaren-1) + governance-instrumentarium €10K + sectorvariatie-buffer €6K. Smartprocess is bestaande tooling (geen separate licentiekost). Voorbereiding-fase nu binnen benchmark (10-25%); was 45-58% in huidige §4.1.
-> 3. **Cultuur volgt benchmark €14-22K per leidinggevende** (9 lg). Expliciete posten: externe begeleider €37,5K + executive-tarief-reservering €20K + 360°-tool €5K/jr + individuele coaching 9×€4K + HR-aanpassing €15K + cultuurmeting vanaf jaar 3 + onboarding nieuwe leiders vanaf jaar 5.
->
-> **Regels die behouden moeten blijven (uit `route.ts:103-279`):**
-> - Regel 5: alle 4 domeinen starten in jaar 1 met non-zero euro
-> - Regel 7: fase-labels uit domein-vocabulaire (cultuur: Bewustwording/Acceptatie/Adoptie/Verankering; mens: Behoeftestelling/Curriculumontwerp/Basistraining/Vaardigheidstraining/Toepassing/Borging; data_systemen: Analyse/Ontwerp/Selectie/Realisatie/Acceptatie/Beheer/Optimalisatie; processen: Inventarisatie/Herontwerp/Pilot/Uitrol/Standaardisatie/Continu verbeteren)
-> - Regel 10: geen absolute jaartallen of looptijd-claims in motivatie/samenvatting/prioriteitAdvies
-> - Regel 12: fase-keten per inspanning IDENTIEK over alle 4 scenarios — alleen tempo verschilt
-> - Regel 13: motivatie + volgorde.reden byte-voor-byte identiek over scenarios; geen scenario-totalen in motivatie
->
-> **Specifieke fixes die in de huidige output zitten:**
-> - **Min20 processen jaar 7 = jaar 8 verbatim duplicaat activiteit** — maak unieke tekst per jaar
-> - **Mens min20 jaar 4 ≈ jaar 5** (puntkomma → "en") — maak unieke tekst
-> - **Advies prioriteitAdvies-tekst zegt mens=rang 2 maar data heeft mens=rang 3, cultuur=rang 2** — synchroniseer tekst met data
-> - **Late-jaar fase-labels in min20** ("Doorontwikkeling", "Continue ontwikkeling", "Verankering" buiten cultuur) — gebruik "Optimalisatie" met onderscheiden activiteit, of "Continu verbeteren" alleen voor processen
->
-> **Cap-conformiteit:**
-> ✅ De drie inspanningen passen binnen scenario-cap-headroom (na huidig CRM-bedrag): advies marge €148K, plus20 €149K, optimaal €140K, min20 €17K. Alleen min20 krap.
->
-> **Externe randvoorwaarden** (niet in jouw scope, maar wel meedelen aan gebruiker):
-> 1. Mens dossier-aanname 66 en Stap 7-selectie 80 sluitend maken
-> 2. Cultuur dossier-vraag herzien (eenmalig + jaarlijks-structureel apart i.p.v. grand-total over X jaar)
-> 3. Externe procesbegeleider-tarief vóór start vastleggen (max-fee €800/dag conform Cito-benchmark)
+**Belangrijk:** als je eenmalig toevoegt, gaat `C3Samenstelling` automatisch ook structureel uit known-breakdown halen (huidige logica: known.eenmalig present → known.structureel ook present → som = known eenmalig + known structureel cumulatief, **niet** parsed). De huidige known-structureel is **€22K/jr** (€12K + €10K) — dat geeft:
+- Advies (4j): 78 + 22×3 = €144K → werkelijk €114K → **+€30K nadeel** (overshoot).
 
----
+**Daarom moet je gelijktijdig** de structureel-sectie van processen-known **inkorten naar alleen €12K/jr** (proceseigenaarschap-borging-component) en governance-instrumentarium + sectorvariatie-buffer **verplaatsen naar eenmalig**. Dat sluit dan exact.
 
-## 4-pre. Validatie-instructie voor de andere agent — verplicht vooraf
+Concreet: pas in `known-breakdowns.ts` de processen-entry aan:
+```
+structureel: {
+  hoofdtotaalLow: 10_000,
+  hoofdtotaalHigh: 15_000,
+  subComponenten: [
+    { naam: "Proceseigenaarschap-borging via Smartprocess", bedragLow: 10_000, bedragMid: 12_000, bedragHigh: 15_000, isPerJaar: true },
+  ],
+},
+```
+(Verwijder governance + sectorvariatie regels uit structureel; voeg ze in eenmalig toe — zie hierboven.)
 
-> **⚠️ LEES DIT EERST — niet klakkeloos overnemen.** De aanbevolen bedragen, opbouw-componenten en headcounts in onderstaande briefings (4a Mens, 4b Cultuur, 4c Processen) zijn gebaseerd op een audit op 2026-05-01 van sessie `d8b97442-ce8f-4134-b2c7-67dc8e3a3f93`. De audit kan fouten bevatten of inmiddels achterhaald zijn. Voer **vóór elke aanpassing aan §4.1** de volgende validatie-stappen uit, en flag teruggekeerd naar de gebruiker bij elke afwijking groter dan 5% of bij ontbrekende data.
->
-> **Validatiestappen (verplicht):**
->
-> 1. **Lees de live session-data** uit Supabase (`din_sessions.data` waar `id = 'd8b97442-ce8f-4134-b2c7-67dc8e3a3f93'`) of `c:/tmp/session-d8b97442.json`. Niet werken vanuit alleen deze briefing.
->
-> 2. **Verifieer headcount** in `crossAnalyseWizard.stepResults.stap4.stap7InterneUren.selectiePerDomein.{domein}`. Som de `aantal`-velden per domein. Verwacht:
->    - `cultuur` = 9 personen
->    - `mens` = 80 personen
->    - `data_systemen` = 39 personen
->    - `processen` = 5 personen (incl. custom-rol "Procesondersteuner professionals")
->
->    **Bij afwijking**: stop, rapporteer aan gebruiker. Niet doorrekenen op verouderde aanname.
->
-> 3. **Verifieer custom-functienamen** in `customFunctiesPerDomein.{domein}` — vooral processen. Custom-rol IDs als `custom-XXXX` moeten als naam worden opgezocht (bv. "Procesondersteuner professionals"). Als de naam afwijkt van wat de briefing zegt, flag dat.
->
-> 4. **Verifieer dossier-bedragen** in `efforts[i].dossierKostenraming` voor elke source-effort die in de cluster valt. Vergelijk met de bedragen in de briefing (€125-160K mens, €55-70K + €10-15K/jr processen, €60-72K cultuur). Als het dossier inmiddels is bijgewerkt: gebruik de **actuele** dossier-bedragen, niet de gewerkte cijfers in deze briefing.
->
-> 5. **Verifieer huidige §4.1 cijfers** (`scenarios.{...}.inspanningen[].totaalEuro`). De "Was"-kolommen in de aanbevolen tabellen moeten matchen. Als ze afwijken: het advies is gebaseerd op andere uitgangscijfers — flag.
->
-> 6. **Sanity-check de aanbeveling tegen je eigen redenering**:
->    - Kloppen de €/persoon-bedragen voor de doelgroep van *deze* sessie? (Geen blinde benchmark-overname als de doelgroep verschilt.)
->    - Past de aanbeveling binnen de scenario-cap (jaarlijksBudgetEuro × aantalJaren)? Bij overschrijding: stop, rapporteer.
->    - Kloppen de fase-bucket-percentages (Voorbereiding 10-25%, Uitrol 50-65%, Borging 15-25%) met de aanbevolen jaarverdeling? Reken na.
->    - Is de fase-keten (regel 12) IDENTIEK over alle 4 scenarios? Als jouw output afwijkt: flag.
->
-> 7. **Bij twijfel**: rapporteer terug aan de gebruiker met concrete vraag, niet zelf invullen. Voorbeelden: "het dossier zegt 66 deelnemers, briefing zegt 80, welke is leidend?"; "dossier-cap cultuur is €72K maar briefing adviseert €130K, mag ik dit als impliciete dossier-uplift behandelen?"
->
-> 8. **Auditspoor**: noteer in je antwoord aan de gebruiker:
->    - Welke validatiestappen je hebt uitgevoerd
->    - Welke aannames uit deze briefing je hebt gevolgd, welke je hebt afgewezen, en waarom
->    - Welke afwijkingen of risico's je hebt geflagged
->
-> Pas na succesvolle validatie + expliciete bevestiging van de gebruiker mag je §4.1 daadwerkelijk regenereren. Volg dan de specifieke briefing (4a/4b/4c) als basis, niet als blinde voorschrift.
+Effect: alle 4 processen-cellen sluiten exact.
+
+### Optie B — begroting aanpassen (alternatief, niet aanbevolen)
+
+Verlaag begroting met €11–14K om bij parsed-som te passen. Tegen programmamanager-eis ("ook in voordeel kloppen") en in strijd met motivatie. **Niet aanbevolen.**
+
+**Aanbeveling: A** met de gecombineerde shift (eenmalig uitbreiden, structureel inkorten).
 
 ---
 
-## 4a. Briefing **alleen mens** — voor 80 deelnemers (kant-en-klaar)
+## 4. Leiderschap — klein verschil (advies -€2.500, andere +€3K tot +€5,5K)
 
-> **⚠️ Eerst valideren — zie sectie 4-pre.** Niet klakkeloos overnemen; verifieer headcount, dossier-bedragen, huidige §4.1, en sanity-check tegen scenario-cap voordat je deze briefing gebruikt.
+### Oorzaak — gevonden
 
-Als je alleen de Mens-inspanning wil laten herrekenen (zonder CRM/processen/cultuur aan te raken), kopieer dan onderstaand blok en geef het de andere agent.
+Berekening gebruikt known-breakdown:
+- Eenmalig mid = (95K + 120K)/2 = **€107,5K**
+- Structureel: 360°-tool €5K vanaf j1, cultuurmeting €2,5K vanaf j3, onboarding €2K vanaf j5
 
----
+Per scenario:
+- Optimaal (7j): 107,5 + 5×7 + 2,5×5 + 2×3 = 107,5 + 35 + 12,5 + 6 = **€161K** → werkelijk €165K → +€4K
+- Plus20 (5j): 107,5 + 5×5 + 2,5×3 + 2×1 = 107,5 + 25 + 7,5 + 2 = **€142K** → werkelijk €145K → +€3K
+- Advies (4j): 107,5 + 5×4 + 2,5×2 + 2×0 = 107,5 + 20 + 5 + 0 = **€132,5K** → werkelijk €130K → −€2,5K
+- Min20 (10j): 107,5 + 5×10 + 2,5×8 + 2×6 = 107,5 + 50 + 20 + 12 = **€189,5K** → werkelijk €195K → +€5,5K
 
-> **Briefing — Mens-inspanning herrekenen op 80 deelnemers (sessie d8b97442)**
->
-> De huidige §4.1 begroting voor inspanning *"Gespreksvaardigheidstraining outside-in voor alle sectoren"* is gebaseerd op een dossier-aanname van 66 deelnemers. **De werkelijke doelgroep is 80 deelnemers** (uit `crossAnalyseWizard.stepResults.stap4.stap7InterneUren.selectiePerDomein.mens` — som van alle `aantal`-velden = 80). Hercaalibreer de inspanning op deze 80 personen.
->
-> **Samenstelling 80 deelnemers (uit Stap 7):**
-> - 28 klantenservice C
-> - 12 trainer/adviseur A (kunnen ook als train-de-trainer dienen)
-> - 7 accountmanager C
-> - 7 mdw binnendienst B
-> - 5 accountmanager C Prof
-> - 3 productmanager DST
-> - 18 overige rollen (sectormanagers, marketeers, klantenservice A/B, etc.)
->
-> **Aanbevolen totalen per scenario (€):**
->
-> | Scenario | Aanbevolen totaal | Was | €/deelnemer (÷80) |
-> |----------|-------------------|-----|--------------------|
-> | advies (4j) | **155.000** | 142.000 | 1.938 |
-> | plus20 (5j) | **170.000** | 142.500 | 2.125 |
-> | optimaal (7j) | **200.000** | 143.000 | 2.500 |
-> | min20 (10j) | **230.000** | 142.500 | 2.875 |
->
-> **Opbouw aanbevolen totaal — vast (€75K) + variabel (€80K basis) + onderhoud (vanaf jaar 4):**
->
-> | Component | advies | plus20 | optimaal | min20 |
-> |-----------|--------|--------|----------|-------|
-> | LMS-licentie (5+ jr eenmalig) | 30.000 | 30.000 | 30.000 | 30.000 |
-> | Content-ontwikkeling outside-in curriculum (PO/VO/Zakelijk/Prof varianten) | 25.000 | 25.000 | 25.000 | 25.000 |
-> | Train-de-trainer (12 trainer/adviseurs A intern opleiden) | 10.000 | 10.000 | 10.000 | 10.000 |
-> | Nulmeting + intake | 10.000 | 10.000 | 10.000 | 10.000 |
-> | Externe trainingspartner 2 blokken (€31,5K/blok bij 80 pers.) | 63.000 | 63.000 | 63.000 | 63.000 |
-> | Sessieondersteuning + locatie + materialen (80 pers.) | 17.000 | 17.000 | 17.000 | 17.000 |
-> | Refresh-sessie €15K/jr (vanaf jaar 4) | 0 | 15.000 | 45.000 (3j) | 75.000 (5j) |
-> | Onboarding nieuwe medewerkers €5K/jr (vanaf jaar 4) | 0 | 0 | 15.000 (3j) | 30.000 (6j) |
-> | **Totaal** | **155.000** | **170.000** | **200.000** | **230.000** |
->
-> **Aanbevolen jaarverdeling:**
->
-> | Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-> |----------|----|----|----|----|----|----|----|----|----|----|
-> | advies (4j) | 25% | 35% | 28% | 12% | | | | | | |
-> | plus20 (5j) | 22% | 28% | 25% | 15% | 10% | | | | | |
-> | optimaal (7j) | 18% | 22% | 20% | 14% | 12% | 9% | 5% | | | |
-> | min20 (10j) | 13% | 17% | 16% | 12% | 10% | 8% | 8% | 7% | 5% | 4% |
->
-> **Fase-keten (regel 12 — IDENTIEK over alle 4 scenarios, alleen tempo verschilt):**
->
-> Behoeftestelling & curriculumontwerp → Basistraining → Vaardigheidstraining → Toepassing in praktijk → Borging
->
-> Voor optimaal en min20 mag *Curriculumvalidatie & pilot* als aparte fase tussen Behoeftestelling en Basistraining worden ingevoegd; in dat geval óók in plus20 en advies expliciet noemen (regel 12: keten identiek over scenarios).
->
-> **Kritisch:**
-> - In min20 mag **borging-fase (jaar 5+) niet onder €18K/jr zakken** (was €11K — onvoldoende voor refresh + onboarding-cyclus voor 80 personen).
-> - **Mens min20 jaar 4 ≈ jaar 5 verbatim duplicate activiteit** in huidige output: maak unieke tekst per jaar, met onderscheiden fase-labels.
-> - **Geen executive-tarief externe partner aannemen** — €31,5K/blok bij regulier tarief; vaste-prijs-contract bij start vereist.
->
-> **Motivatie (identiek over alle 4 scenarios, regel 13):**
-> Schrijf een motivatie van 2-3 zinnen die expliciet noemt:
-> - 80 deelnemers (uit Stap 7 selectiePerDomein) — niet 66 zoals oude dossier-aanname
-> - €75K vast eenmalig (LMS €30K + content €25K + train-de-trainer €10K + nulmeting €10K) + €80K variabel kerntraject
-> - Voor langere scenario's: jaarlijkse refresh + onboarding nieuwe medewerkers vanaf jaar 4
-> - Geen scenario-totalen in motivatie (regel 13 r278). Sluit af met: *"Het scenario-totaal in de tabel hangt af van het aantal jaren met onderhoud + onboarding."*
->
-> **Volgorde.reden (identiek over alle scenarios):**
-> *"Eenmalig trainingsblok met begrensde structurele last — vertaalt outside-in naar concreet gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over 4 sectoren."*
->
-> **Externe randvoorwaarde** (door te geven aan gebruiker): pas óf het dossier aan naar 80 deelnemers (specificeer per sector PO/VO/Zakelijk/Prof) óf verlaag Stap 7-selectie naar 66 (motiveer wie afvalt). Dossier en Stap 7 moeten sluitend zijn.
+### Wat is dit?
+
+De gaten zijn klein (max €5,5K = 3%). Patroon: begroting heeft afgerond naar ronde getallen (€130K, €145K, €165K, €195K) zonder consistente regel. Advies is naar beneden afgerond (€132,5 → €130K), de andere drie naar boven afgerond (€142 → €145, €161 → €165, €189,5 → €195).
+
+### Optie A — begroting aanpassen (aanbevolen)
+
+Zet begrotingsbedragen exact gelijk aan berekende som:
+
+| Scenario | Pad index | Huidig | Voorgesteld | Reden |
+|---|---|---|---|---|
+| optimaal | `inspanningen[3].totaalEuro` | €165.000 | **€161.000** | 107,5 + 35 + 12,5 + 6 = 161 |
+| plus20 | `inspanningen[3].totaalEuro` | €145.000 | **€142.000** | 107,5 + 25 + 7,5 + 2 = 142 |
+| advies | `inspanningen[3].totaalEuro` | €130.000 | **€132.500** | 107,5 + 20 + 5 + 0 = 132,5 |
+| min20 | `inspanningen[3].totaalEuro` | €195.000 | **€189.500** | 107,5 + 50 + 20 + 12 = 189,5 |
+
+Effect: alle 4 cellen sluiten exact. Cap-impact: −€4K / −€3K / +€2,5K / −€5,5K (netto kleiner programma, geen risico).
+
+### Optie B — berekening aanpassen (alternatief)
+
+Pas `vanafJaar` of bedragen in known-breakdown om de afrondingen te matchen. Methodisch onzuiver — afrondings-conventie is geen modelmatige drijver.
+
+**Aanbeveling: A.** De motivatie-conforme som is €132,5/€142/€161/€189,5K; afrondingen waren cosmetisch.
 
 ---
 
-## 4b. Briefing **alleen Cultuur** — voor 9 leidinggevenden, benchmark-conform (kant-en-klaar)
+## Implementatie-plan
 
-> **⚠️ Eerst valideren — zie sectie 4-pre.** Niet klakkeloos overnemen; verifieer headcount (cultuur=9 in selectiePerDomein), dossier-cap (€60-72K over 4j is grand-total!), huidige §4.1 en cap-headroom. De aanbeveling overschrijdt impliciet het dossier-cap — vraag bevestiging aan de gebruiker dat dit de bedoeling is voordat je regenereert.
+### Stap 1 — Berekening aanpassen (1 file edit)
 
----
+Pas `src/lib/known-breakdowns.ts` aan:
 
-> **Briefing — Cultuur-inspanning herrekenen op 9 leidinggevenden + 2 HR (sessie d8b97442)**
->
-> De huidige §4.1 begroting voor *"Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren"* heeft een **dubbel probleem**: enerzijds overschrijdt elk scenario-bedrag het dossier-cap van *"€60-72K over vier jaar"* (advies +39%, min20 +81%), anderzijds is **€11-14K per leidinggevende onder de markt-benchmark €15-30K** voor diepgaand outside-in gedragsverandering. Conclusie: de scenario-distributie schaalt structureel-deel verkeerd lineair, EN het dossier zelf onderschat wat een echt outside-in cultuurprogramma kost. Hercaalibreer de inspanning op werkelijke benchmark-conforme bedragen (impliciet wordt het dossier opgehoogd).
->
-> **Werkelijke deelnemers:** 9 leidinggevenden + 2 HR coördinerend = 11 personen. Uitvoerders (Stap 7 selectiePerDomein.cultuur) = ook 9 personen — kringgesprek-pattern (deelnemers ≈ uitvoerders).
->
-> **Aanbevolen totalen per scenario (€):**
->
-> | Scenario | Aanbevolen | Was (huidig §4.1) | €/leidinggevende (÷9) | Bench €15-30K/lg |
-> |----------|-----------|-------------------|------------------------|------------------|
-> | advies (4j) | **130.000** | 100.000 | 14.444 | onderkant bench |
-> | plus20 (5j) | **145.000** | 105.000 | 16.111 | onderkant bench |
-> | optimaal (7j) | **165.000** | 115.000 | 18.333 | midden bench |
-> | min20 (10j) | **195.000** | 130.000 | 21.667 | midden bench |
->
-> **Opbouw aanbevolen totaal — vaste posten + onderhoud:**
->
-> | Component | advies | plus20 | optimaal | min20 |
-> |-----------|--------|--------|----------|-------|
-> | Externe begeleider 15 dagen × €2.500 | 37.500 | 37.500 | 37.500 | 37.500 |
-> | Executive-tarief reservering (coaches kunnen €4.000/dag) | 20.000 | 20.000 | 20.000 | 20.000 |
-> | 360°-feedback tool licentie €5K/jr × looptijd | 20.000 | 25.000 | 35.000 | 50.000 |
-> | Individuele coaching 9 lg × €4K (1 dag/lg/jr met externe coach in basis-jaren) | 36.000 | 36.000 | 36.000 | 36.000 |
-> | HR-instrumentarium aanpassing (functioneringscyclus + 360°-integratie) | 15.000 | 15.000 | 15.000 | 15.000 |
-> | Cultuurmeting jaarlijks vanaf jaar 3 (€2,5K/meting) | 2.500 (1×) | 5.000 (2×) | 12.500 (5×) | 20.000 (8×) |
-> | Onboarding nieuwe leiders €2K/jr (vanaf jaar 5) | 0 | 0 | 10.000 (5j) | 15.000 (6j) |
-> | **Subtotaal** | 131.000 | 138.500 | 166.000 | 193.500 |
-> | Afgerond naar | **130.000** | **145.000** | **165.000** | **195.000** |
->
-> **Aanbevolen jaarverdeling:**
->
-> | Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-> |----------|----|----|----|----|----|----|----|----|----|----|
-> | advies (4j) | 30% | 35% | 22% | 13% | | | | | | |
-> | plus20 (5j) | 25% | 28% | 20% | 17% | 10% | | | | | |
-> | optimaal (7j) | 20% | 22% | 17% | 15% | 11% | 9% | 6% | | | |
-> | min20 (10j) | 14% | 17% | 14% | 13% | 11% | 9% | 8% | 6% | 5% | 3% |
->
-> **Fase-keten (regel 12 — IDENTIEK over alle 4 scenarios, alleen tempo verschilt):**
->
-> Bewustwording & coalitievorming → Acceptatie & rolmodelgedrag → Adoptie → Waardenverankering → (langere scenario's:) Continue rolmodel-werking → Verankering
->
-> Voor min20 mag de eerste fase splitsen in *Urgentiebesef* (jaar 1) + *Coalitievorming* (jaar 2) — alternatieve route.ts:240-vocab. NIET "Borging in HR-cyclus" gebruiken — dat is mens-vocabulaire; voor cultuur is "Verankering in HR-cyclus" methodologisch correct.
->
-> **Kritisch:**
-> - **Uitrol-fase (jaar 2-3) mag niet onder 35%** dalen (huidige optimaal had Uitrol 17% — programma werd daardoor feitelijk een 2j-intensief + 5j-borging zonder diepe gedragswerkjaren).
-> - **Borging-jaren (jaar 4+) niet onder €5K/jaar** (alleen al 360°-tool €5K licentie).
-> - **Cultuurverandering pas meetbaar 12-18 mnd na slotmeting** — borg dat optimaal en min20 een afsluitende cultuurmeting in het slotjaar hebben.
->
-> **Motivatie (identiek over alle 4 scenarios, regel 13):**
-> Schrijf 2-3 zinnen die expliciet noemen:
-> - 9 leidinggevenden + 2 HR coördinerend = 11 betrokken personen (kringgesprek-pattern, deelnemers = uitvoerders)
-> - Externe begeleider 15 dagen × €2.500 + executive-tarief-reservering €20K voor coach-tariefrisico
-> - 360°-feedback-tool licentie + individuele coaching per leidinggevende + HR-instrumentarium-aanpassing
-> - Cultuurverandering pas meetbaar 12-18 mnd na slotmeting → afsluitende meting in slotjaar
-> - **GEEN scenario-totalen in motivatie** (regel 13 r278). Sluit af met: *"Het scenario-totaal in de tabel hangt af van het aantal jaren onderhoud, cultuurmeting en onboarding nieuwe leiders."*
->
-> **Volgorde.reden (identiek over alle scenarios):**
-> *"In euro klein, in belang #2 — zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip."*
->
-> **Externe randvoorwaarde** (door te geven aan gebruiker): herzie het cultuur-dossier-veld in Stap 5/6 zodat eenmalig (€60-80K) en jaarlijks-structureel (€10-15K/jr) als aparte velden worden opgehaald, in plaats van een grand-total *"€60-72K over vier jaar"*. Anders blijft de scenario-distributie het structureel-deel verkeerd lineair schalen bij langere scenario's.
+1. **CRM toevoegen** (nieuw blok): `inspanningMatch: "crm-klantdashboard"`, eenmalig hoofdtotaalLow 440.000, hoofdtotaalHigh 640.000, subComponenten leeg-of-mirror van motivatie. Geen structureel-sectie (parser-fallback gebruikt €92,5K/jr).
+2. **Processen herschikken**:
+   - Eenmalig-sectie toevoegen met 3 subComponenten (€62K + €10K + €6K = mid €78K).
+   - Structureel-sectie inkorten tot alleen "Proceseigenaarschap-borging" (€12K/jr).
+
+### Stap 2 — Begroting aanpassen (script)
+
+Maak een nieuw script `scripts/sync-c3-begroting-bedragen.ts` dat session `d8b97442` laadt en deze 8 cellen update:
+
+| Inspanning | optimaal | plus20 | advies | min20 |
+|---|---|---|---|---|
+| Gesprek | €222.500 | €182.500 | €162.500 | €282.500 |
+| Leiderschap | €161.000 | €142.000 | €132.500 | €189.500 |
+
+Per scenario: zoek `inspanningen[i]` waarvan `inspanningTitel.includes("Gespreksvaardigh")` resp. `.includes("Leiderschap")`, zet `totaalEuro` op nieuwe waarde, **en update `verdelingPerJaar` proportioneel** zodat som blijft kloppen (verdeel het delta proportioneel over alle jaren met euro>0).
+
+### Stap 3 — Verificatie
+
+Draai `npx tsx scripts/check-c3-aansluiting.ts`. Verwacht resultaat:
+
+- CRM: 4× delta ≤ €500 (afronding)
+- Gesprek: 4× delta = €0
+- Processen: 4× delta = €0
+- Leiderschap: 4× delta = €0
+
+Totaal 16/16 sluitend. Daarna `npm run build` + commit + `npx vercel --prod`.
+
+### Stap 4 — Cap-toetsing (handmatig)
+
+Verifieer dat min20 nog binnen cap blijft (huidige headroom €17K, ophoging gesprek +€52,5K kan overschrijden). Indien overschrijding: óf cap accepteren met expliciete motivatie ("realistisch boven jaarbudget — vereist incidentele bestuursbeslissing"), óf gesprek-min20 herzien (aantal refresh-jaren beperken — pas dan ook known-breakdown aan).
 
 ---
 
-## 4c. Briefing **alleen Processen** — met juiste interne capaciteit (kant-en-klaar)
+## Samenvatting
 
-> **⚠️ Eerst valideren — zie sectie 4-pre.** Niet klakkeloos overnemen; verifieer dat `selectiePerDomein.processen` 5 personen bevat én dat `customFunctiesPerDomein.processen` de rol "Procesondersteuner professionals" oplevert (alle 3 sectoren intern gedekt). Als één van beide niet klopt: stop, rapporteer, geen externe-inhuur-buffer meer aannemen op verkeerde grond.
+| Inspanning | Aanbeveling | Welk bestand/pad |
+|---|---|---|
+| **CRM** | Berekening aanpassen — known-breakdown CRM toevoegen met eenmalig €440K-640K | `src/lib/known-breakdowns.ts` |
+| **Gesprek** | Begroting aanpassen — 4 cellen ophogen (€222,5K / €182,5K / €162,5K / €282,5K) | session `inspanningen[i].totaalEuro` |
+| **Processen** | Berekening aanpassen — eenmalig uitbreiden met governance €10K + sectorvariatie €6K, structureel inkorten | `src/lib/known-breakdowns.ts` |
+| **Leiderschap** | Begroting aanpassen — 4 cellen exact maken (€161K / €142K / €132,5K / €189,5K) | session `inspanningen[i].totaalEuro` |
 
-> **Belangrijke correctie t.o.v. eerste audit:** sector Professionals heeft WEL een interne procesondersteuner (custom-rol `custom-1777459472792-own3u` = "Procesondersteuner professionals"). Volledige interne dekking PO/VO/Prof. Externe inhuur is dus NIET de facto verplicht voor adoptie/uitrol — de daarvoor opgenomen €30-40K buffer uit de eerste audit vervalt. De aanbeveling hieronder is **lager dan eerste audit (€150-210K)** maar **iets hoger dan huidige §4.1 (€100-175K)** door volledige toerekening structureel-borging-staart.
-
----
-
-> **Briefing — Processen-inspanning herrekenen met volledige interne dekking (sessie d8b97442)**
->
-> De huidige §4.1 begroting voor *"Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten"* kapt de structureel-borging-staart te vroeg af en mist een expliciete governance-instrumentarium-post + herbewerkings-buffer. De eerste audit voegde een externe-inhuur-buffer toe op basis van een vermeend Prof-gat — dat gat bestaat niet. Hercaalibreer naar realistische dossier-mid + complete structureel-staart + kleine governance-post + sectorvariatie-buffer.
->
-> **Werkelijke uitvoerders (Stap 7 selectiePerDomein.processen + customFunctiesPerDomein.processen):** 5 personen, alle 3 sectoren intern gedekt:
-> - 1× Projectmanager D (cross-sectoraal, programmasturing)
-> - 1× Procesmanager Data (cross-sectoraal, koppeling met CRM-architectuur)
-> - 1× Procesondersteuner PO
-> - 1× Procesondersteuner VO
-> - 1× Procesondersteuner Professionals (custom-rol)
->
-> **Doelgroep (uit dossier):** 21 betrokken medewerkers (7 per sector PO/VO/Prof) via adoptie-werksessies; 3 sectoren met cross-sectoraal funnelkader.
->
-> **Aanbevolen totalen per scenario (€):**
->
-> | Scenario | Aanbevolen | Was (huidig §4.1) | Was (1e audit) | Per sector (÷3) |
-> |----------|-----------|-------------------|-----------------|-----------------|
-> | advies (4j) | **114.000** | 100.000 | 150.000 | ~38.000 |
-> | plus20 (5j) | **126.000** | 112.500 | 170.000 | ~42.000 |
-> | optimaal (7j) | **150.000** | 137.000 | 195.000 | ~50.000 |
-> | min20 (10j) | **186.000** | 175.000 | 210.000 | ~62.000 |
->
-> **Opbouw aanbevolen totaal — vier componenten:**
->
-> | Component | advies | plus20 | optimaal | min20 |
-> |-----------|--------|--------|----------|-------|
-> | A. Eenmalig dossier-mid (€55-70K → €62K): externe procesbegeleider 20d × €800 (€16K Cito-benchmark) + sessiebegeleiding/onboarding €20K + materialen/methodieken €7,5K + cross-sectoraal schaalvoordeel 30-40% al verrekend | 62.000 | 62.000 | 62.000 | 62.000 |
-> | B. Structureel borging €12K/jr × (jaren-1) — proceseigenaarschap-tooling Smartprocess + governance-cyclus | 36.000 (3j) | 48.000 (4j) | 72.000 (6j) | 108.000 (9j) |
-> | C. Cross-sectoraal governance-instrumentarium (KPI-template, integratie-format CRM) — eenmalig klein | 10.000 | 10.000 | 10.000 | 10.000 |
-> | D. Sectorvariatie-buffer (10% herbewerking — dossier-risico) | 6.000 | 6.000 | 6.000 | 6.000 |
-> | **Totaal** | **114.000** | **126.000** | **150.000** | **186.000** |
->
-> **Belangrijk over Smartprocess:** dossier benoemt deze tooling als bestaand ("Werken met het programma Smartprocess waar alle wat-processen in staan vermeld") — **geen separate licentiekost** opnemen. De €10K (component C) dekt governance-formats, KPI-template-tooling en eenmalige integratiekosten richting CRM-rapportage.
->
-> **Aanbevolen jaarverdeling (€K):**
->
-> | Scenario | J1 | J2 | J3 | J4 | J5 | J6 | J7 | J8 | J9 | J10 |
-> |----------|----|----|----|----|----|----|----|----|----|----|
-> | advies (4j) | 14 | 38 | 37 | 25 | | | | | | |
-> | plus20 (5j) | 14 | 38 | 37 | 25 | 12 | | | | | |
-> | optimaal (7j) | 18 | 44 | 40 | 12 | 12 | 12 | 12 | | | |
-> | min20 (10j) | 18 | 44 | 40 | 12 | 12 | 12 | 12 | 12 | 12 | 12 |
->
-> **Logica jaarverdeling:**
-> - **J1**: inventarisatie (as-is mapping per sector via Smartprocess) + benoeming proceseigenaars + besluitvorming funneldefinities → laag (alleen kickoff-deel eenmalig)
-> - **J2**: herontwerp (to-be) + start pilot + start structureel borging → piek (32-40% eenmalig + sectorvariatie-buffer + structureel)
-> - **J3**: pilot-validatie + uitrol-start in alle 3 sectoren + structureel → tweede piek
-> - **J4+**: standaardisatie + adoptie + continue verbetering → uitsluitend €12K/jaar borging
->
-> **Fase-keten (regel 12 — IDENTIEK over alle 4 scenarios, alleen tempo verschilt):**
->
-> Inventarisatie (as-is) → Herontwerp (to-be) → Pilot & validatie → Uitrol → Standaardisatie → Continu verbeteren
->
-> Voor advies (4j) compactste vorm: J1 Inventarisatie & herontwerp, J2 Pilot & sectorinkleuring, J3 Uitrol & standaardisatie, J4 Continu verbeteren. Voor min20 (10j): meerdere borging-jaren met onderscheiden activiteit-tekst (geen verbatim duplicates — fix het huidige jaar 7 = jaar 8 probleem).
->
-> **Fase-bucket-verhouding** (bench V 10-25%, U 50-65%, B 15-25%):
-> - advies: V 12% / U 66% / B 22% — grotendeels conform (U 1pp boven 65%)
-> - plus20: V 11% / U 60% / B 29% — grotendeels conform (B 4pp boven 25%)
-> - optimaal: V 12% / U 64% / B 24% — **conform**
-> - min20: V 10% / U 65% / B 26% — grotendeels conform (B 1pp boven 25%)
->
-> **Kritisch:**
-> - **NIET** een externe-inhuur-buffer van 30-40% toevoegen om Prof-gat te dichten — dat gat bestaat niet.
-> - **NIET** een aparte Smartprocess-licentiekost opnemen — tooling is bestaand.
-> - **WEL** structureel-borging volledig toerekenen over (jaren-1) — niet afkappen na jaar 4.
-> - **WEL** "Procesondersteuner professionals" expliciet noemen in de motivatie als bewijs van volledige interne dekking.
-> - **Min20 jaar 7 ≠ jaar 8** in activiteit-tekst (huidige output heeft verbatim duplicate; maak per jaar uniek).
->
-> **Motivatie (identiek over alle 4 scenarios, regel 13):**
-> Schrijf 2-3 zinnen die expliciet noemen:
-> - 5 interne uitvoerders dekken alle 3 sectoren PO/VO/Prof (kringgesprek-pattern in adoptie-sessies)
-> - Eenmalig €55-70K (mid €62K) voor procesinventarisatie + herontwerp + sectorinkleuring met externe procesbegeleider 20d × €800 (Cito-benchmark) — schaalvoordeel 30-40% al verrekend
-> - Structureel €10-15K/jr (mid €12K) voor proceseigenaarschap-borging via bestaande Smartprocess-tooling
-> - Sectorvariatie-buffer 10% dekt herbewerkingsrisico bij late funneldefinitie-besluiten
-> - **GEEN scenario-totalen in motivatie** (regel 13 r278). Sluit af met: *"Het scenario-totaal in de tabel hangt af van hoe lang de structurele borgingsfase loopt."*
->
-> **Volgorde.reden (identiek over alle scenarios):**
-> *"Strategische enabler met klein eenmalig budget — uniforme klantprocessen verbinden CRM-data aan dagelijkse werkroutines, intern uitgevoerd door procesondersteuners per sector."*
->
-> **Aannames ongewijzigd:** 21 betrokken medewerkers (7 per sector), 9 multidisciplinaire werksessies, parallelle ontwikkeling met CRM-architectuur, proceseigenaarschap 4-8u/maand × 3 sectoren binnen bestaande formatie.
->
-> **Risico's afgedekt:**
-> - ✅ Werkgroepuren-uitloop (8u → 16-20u/p.p.) — interne capaciteit absorbeert dit zonder out-of-pocket impact
-> - ✅ Adoptie-risico in 3 sectoren — eigen procesondersteuner per sector beschikbaar, geen externe facilitatiekosten
-> - ✅ Herbewerking 10-20% door late besluiten — €6K buffer (10%) op eenmalig opgenomen
-> - ✅ Lange-staart structureel volledig toegerekend (geen afkapping)
-> - ⚠️ Marktrisico tarief externe procesbegeleider (€900-1.400/dag i.p.v. €800) → kan oplopen tot €25-40K i.p.v. €16K → €9-24K extra; valt binnen cap-headroom maar bewaken
-> - ⚠️ CRM-vertraging blokkeert procesvalidatie → projectmanagement-risico, geen direct budget-risico
->
-> **Cap-toetsing:** alle scenario's passen ruim binnen processen-headroom (€142K / €170K / €240K / €203K) met marge €17-90K.
-
----
-
-## 5. Verificatie na herziening
-
-Na regeneratie van §4.1 toets je:
-
-| Check | Verwachting | Hoe te toetsen |
-|-------|-------------|-----------------|
-| Scenario-totalen | Match met sectie 1-tabel | Sectie A van BerekeningenStep |
-| Cap-overschrijding | Geen cel >100% | Sectie D check 3 in BerekeningenStep |
-| Fase-verhouding | V 10-25%, U 50-65%, B 15-25% per inspanning per scenario | Visueel in §4.1 / re-audit |
-| Cultuur-budget | €14-22K per leidinggevende benchmark | Total / 9 |
-| Mens-vast deel | €75K (LMS €30K + content €25K + train-de-trainer €10K + nulmeting €10K) expliciet zichtbaar in motivatie | Tekst-controle |
-| Mens-doelgroep | 80 deelnemers (matcht Stap 7), niet 66 | Motivatie + dossier-aanname check |
-| Processen Voorbereiding | <30% per scenario | Fase-bucket-analyse |
-| Processen interne dekking | "Procesondersteuner professionals" expliciet genoemd in motivatie als bewijs alle 3 sectoren intern gedekt | Tekst-controle |
-| Min20 borging-jaren | Niet leeg (mens ≥€18K/jr, cultuur ≥€5K/jr, processen ≥€10K/jr) | Tabel-controle |
-
-Als alle 7 PASS → herziene §4.1 voor mens/processen/cultuur is realistisch.
-
----
-
-**Bron-data:** `c:/tmp/session-d8b97442.json`. **Ondersteunende audit:** [AUDIT-begroting-inhoudelijk.md](AUDIT-begroting-inhoudelijk.md). **Prompt-regels:** [`src/app/api/begroting-advies/route.ts:103-279`](src/app/api/begroting-advies/route.ts#L103-L279).
+**Verwacht resultaat na implementatie:** 16/16 c3-cellen sluitend (delta ≤ 1%), waarmee de programmamanager-eis ("rekensommen 1-op-1 kloppen — ook in voordeel") gehaald wordt.
