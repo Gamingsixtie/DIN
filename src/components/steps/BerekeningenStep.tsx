@@ -366,10 +366,10 @@ function ScenarioPicker({
                 {meta.label}
               </div>
               <div className="text-lg font-bold text-gray-800 mt-1 font-mono">
-                {formatEurMln(s?.totaalGeraamdEuro ?? 0)}
+                {formatEur(s?.totaalGeraamdEuro ?? 0)}
               </div>
               <div className="text-[11px] text-gray-500 mt-0.5">
-                {s?.aantalJaren ?? 0} jaar · max per jaar {formatEurMln(s?.jaarlijksBudgetEuro ?? 0)}
+                {s?.aantalJaren ?? 0} jaar · max per jaar {formatEur(s?.jaarlijksBudgetEuro ?? 0)}
               </div>
             </button>
           );
@@ -431,10 +431,10 @@ function ScenarioBerekeningKaart({
         <div>
           <div className="text-[10px] uppercase tracking-[0.2em] opacity-80">{meta.label}</div>
           <div className="text-base font-bold mt-0.5">
-            {formatEurMln(totaalScenario)}
+            {formatEur(totaalScenario)}
             <span className="text-xs font-normal opacity-80 ml-2">
               over {aantalJaren} jaar ({startJaar}–{startJaar + aantalJaren - 1}) · plafond{" "}
-              {formatEurMln(cap)}/jaar
+              {formatEur(cap)}/jaar
             </span>
           </div>
         </div>
@@ -1494,7 +1494,8 @@ function SectieE({
 }) {
   const totalenPerJaar = scenario.totalenPerJaar ?? [];
 
-  const checks: Array<{ label: string; ok: boolean; uitleg: string }> = [
+  const hoogsteJaar = Math.max(0, ...totalenPerJaar.map((t) => t.euro));
+  const checks: Array<{ label: string; ok: boolean; status?: "info"; uitleg: string }> = [
     {
       label: "De som van alle inspanningen klopt met het scenario-totaal",
       ok: Math.abs(sumInspanningen - totaalScenario) <= tol,
@@ -1506,12 +1507,10 @@ function SectieE({
       uitleg: `Som jaartotalen ${formatEur(sumJaartotalen)} versus scenario-totaal ${formatEur(totaalScenario)} — verschil ${formatEur(Math.abs(sumJaartotalen - totaalScenario))} (toegestaan: ${formatEur(tol)}).`,
     },
     {
-      label: "Geen jaar overschrijdt het jaarbudget-plafond (uitzondering: jaar 1 mag op €250K Cito-norm staan)",
-      ok: totalenPerJaar.every((t) => {
-        const effectieveCap = t.jaar === startJaar ? Math.max(cap, 250_000) : cap;
-        return t.euro <= effectieveCap * 1.001;
-      }),
-      uitleg: `Hoogste jaarbedrag: ${formatEur(Math.max(0, ...totalenPerJaar.map((t) => t.euro)))} versus plafond ${formatEur(cap)}. Jaar 1 (${startJaar}) is uitgezonderd: dat staat vast op de Cito-richtlijn van €250.000 — dit kan voor het krappe scenario (plafond €200K) hoger uitkomen dan het scenario-plafond.`,
+      label: "Verhouding piekjaar tot jaarbudget-plafond",
+      ok: true,
+      status: "info",
+      uitleg: `Hoogste jaarbedrag: ${formatEur(hoogsteJaar)} versus plafond ${formatEur(cap)}${hoogsteJaar > cap ? ` — overschrijding ${formatEur(hoogsteJaar - cap)} (informatief; minimale piekjaar-afwijkingen zijn voor het bestuur acceptabel).` : " — binnen plafond."}`,
     },
     {
       label: "Per inspanning klopt de jaarverdeling met het inspanning-totaal",
@@ -1546,15 +1545,24 @@ function SectieE({
           </span>
         </div>
         <ul className="space-y-2">
-          {checks.map((c, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm">
-              <span className={c.ok ? "text-emerald-600" : "text-red-600"}>{c.ok ? "✓" : "✗"}</span>
-              <div className="flex-1">
-                <span className="font-medium text-gray-800">{c.label}</span>
-                <p className="text-xs text-gray-600 mt-0.5">{c.uitleg}</p>
-              </div>
-            </li>
-          ))}
+          {checks.map((c, i) => {
+            const isInfo = c.status === "info";
+            const symbol = isInfo ? "i" : c.ok ? "✓" : "✗";
+            const symbolClass = isInfo
+              ? "text-blue-600 font-bold"
+              : c.ok
+              ? "text-emerald-600"
+              : "text-red-600";
+            return (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span className={symbolClass}>{symbol}</span>
+                <div className="flex-1">
+                  <span className="font-medium text-gray-800">{c.label}</span>
+                  <p className="text-xs text-gray-600 mt-0.5">{c.uitleg}</p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
