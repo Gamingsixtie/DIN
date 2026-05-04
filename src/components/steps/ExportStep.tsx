@@ -2013,6 +2013,18 @@ function BatenprofielenBlock({ session }: { session: DINSession }) {
 }
 
 // --- H3.2 Vermogensprofielen — verantwoordelijk + niveau ---
+// Per sector waaraan een vermogen is gekoppeld, dragen Sectormanager én
+// Commercieel manager van die sector de verantwoordelijkheid voor opbouw.
+// Deterministisch afgeleid uit c.relatedSectors (fallback c.sectorId), niet
+// uit c.profiel.eigenaar — die werd inconsistent ingevuld per sector.
+function deriveVermogenVerantwoordelijken(c: { relatedSectors?: string[]; sectorId?: string }): string[] {
+  const sectoren = (c.relatedSectors && c.relatedSectors.length > 0)
+    ? c.relatedSectors
+    : (c.sectorId ? [c.sectorId] : []);
+  const uniek = Array.from(new Set(sectoren.map((s) => s.trim()).filter(Boolean)));
+  return uniek.map((s) => `Sectormanager ${s} + Commercieel manager ${s}`);
+}
+
 function VermogensprofielenBlock({ session }: { session: DINSession }) {
   const caps = (session.capabilities ?? []).filter((c) => !c.consolidated);
   if (caps.length === 0) {
@@ -2024,8 +2036,9 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
       <IntroPanel title="Wat staat hieronder?">
         <p>
           De vermogens zijn samengebracht in cross-sectorale clusters (zie het schema hierboven). Per
-          vermogen-cluster leggen we vast aan welke <strong>functionaris</strong> dit vermogen wordt
-          toebedeeld om op te bouwen.
+          sector waaraan een vermogen is gekoppeld, dragen de <strong>Sectormanager</strong> én de{" "}
+          <strong>Commercieel manager</strong> van die sector samen de verantwoordelijkheid voor de
+          opbouw — beide rollen, voor élke sector waar het vermogen aan raakt.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -2039,7 +2052,7 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {sorted.map((c) => {
-              const verantw = c.profiel?.eigenaar?.trim() || "";
+              const verantwLijst = deriveVermogenVerantwoordelijken(c);
               const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
               return (
                 <tr key={c.id} className="hover:bg-gray-50 align-top">
@@ -2051,8 +2064,12 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-700">{sectoren}</td>
                   <td className="px-3 py-2 text-xs">
-                    {verantw ? (
-                      <span className="text-gray-800">{verantw}</span>
+                    {verantwLijst.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {verantwLijst.map((v, i) => (
+                          <li key={i} className="text-gray-800">{v}</li>
+                        ))}
+                      </ul>
                     ) : (
                       <span className="text-amber-700 italic">— nog te benoemen</span>
                     )}

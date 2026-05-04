@@ -1261,11 +1261,14 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
   }
 
   // === 3.2 Vermogensprofielen ===
+  // Verantwoordelijk = per sector "Sectormanager X + Commercieel manager X",
+  // deterministisch afgeleid uit relatedSectors (fallback sectorId).
   children.push(emptyLine());
   children.push(numberedHeading("Vermogensprofielen", "h2", numState));
   children.push(bodyText(
-    "De vermogens zijn samengebracht in cross-sectorale clusters. Per vermogen-cluster leggen we vast " +
-    "aan welke functionaris dit vermogen wordt toebedeeld om op te bouwen.",
+    "De vermogens zijn samengebracht in cross-sectorale clusters. Per sector waaraan een vermogen is " +
+    "gekoppeld, dragen de Sectormanager én de Commercieel manager van die sector samen de " +
+    "verantwoordelijkheid voor de opbouw — beide rollen, voor elke sector waar het vermogen aan raakt.",
     { color: TEXT_PRIMARY, size: 20 }
   ));
   children.push(emptyLine(60));
@@ -1273,14 +1276,22 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     .filter((c) => !c.consolidated)
     .sort((a, b) => (a.title || a.description).localeCompare(b.title || b.description));
   if (sortedVerm.length > 0) {
+    const deriveVerantw = (c: { relatedSectors?: string[]; sectorId?: string }): string => {
+      const sectoren = (c.relatedSectors && c.relatedSectors.length > 0)
+        ? c.relatedSectors
+        : (c.sectorId ? [c.sectorId] : []);
+      const uniek = Array.from(new Set(sectoren.map((s) => s.trim()).filter(Boolean)));
+      if (uniek.length === 0) return "— nog te benoemen";
+      return uniek.map((s) => `Sectormanager ${s} + Commercieel manager ${s}`).join("\n");
+    };
     const vermRows = sortedVerm.map((c) => {
-      const verantw = c.profiel?.eigenaar?.trim() || "— nog te benoemen";
+      const verantw = deriveVerantw(c);
       const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
       return new TableRow({
         children: [
-          styledCell(c.title || c.description, { bold: true, width: 50, size: 16 }),
-          styledCell(sectoren, { width: 25, size: 16 }),
-          styledCell(verantw, { width: 25, size: 16 }),
+          styledCell(c.title || c.description, { bold: true, width: 45, size: 16 }),
+          styledCell(sectoren, { width: 18, size: 16 }),
+          styledCell(verantw, { width: 37, size: 16 }),
         ],
       });
     });
@@ -1290,9 +1301,9 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
         rows: [
           new TableRow({
             children: [
-              headerCell("Vermogen", 50),
-              headerCell("Sectoren", 25),
-              headerCell("Verantwoordelijk", 25),
+              headerCell("Vermogen", 45),
+              headerCell("Sectoren", 18),
+              headerCell("Verantwoordelijk", 37),
             ],
           }),
           ...vermRows,
