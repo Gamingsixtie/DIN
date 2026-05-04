@@ -2067,20 +2067,27 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
   );
 }
 
-// --- H3.3 Inspanningsleiders per domein — afgeleid uit programmaorganisatie.domeineigenaren ---
+// --- H3.3 Eigenaar en inspanningsleider per domein ---
+// Eigenaar = Domeineigenaar uit programmaorganisatie (eindverantwoordelijk).
+// Inspanningsleider = trekker van de dagelijkse uitvoering (uit dossier.inspanningsleider).
+// Dit zijn twee verschillende rollen — daarom twee kolommen.
 function InspanningsleidersBlock({ session }: { session: DINSession }) {
   const po = session.programmaorganisatie;
   // 3.3 toont CROSS-SECTORALE inspanningen — niet de raw sector-inspanningen.
   // Bron: stap4.subEffortAnalysis met actie === "combineren" (de geconsolideerde
   // bundels die in H3-Kern via StapSectorVertaling worden getoond).
-  type SubEffortItem = { domein: EffortDomain; actie: string };
+  type SubEffortItem = {
+    domein: EffortDomain;
+    actie: string;
+    dossier?: { eigenaar?: string; inspanningsleider?: string };
+  };
   const stap4SE = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffortItem[] } } | undefined)?.stap4;
   const crossSectoraleInspanningen = stap4SE?.subEffortAnalysis?.filter((s) => s.actie === "combineren") ?? [];
   const domeinen: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
 
-  // Probeer een leider af te leiden uit programmaorganisatie.domeineigenaren door op rol-string te matchen.
-  // Een rol als "Domeineigenaar Cultuur" wordt gematcht op het woord "cultuur".
-  function findLeiderVoorDomein(domein: EffortDomain): string {
+  // Eigenaar = Domeineigenaar uit programmaorganisatie. Match op rol-string
+  // ("Domeineigenaar Cultuur" → cultuur). Wordt herhaald uit Hoofdstuk 5.
+  function findEigenaarVoorDomein(domein: EffortDomain): string {
     const all = po
       ? [
           ...(po.domeineigenaren ?? []),
@@ -2106,14 +2113,32 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
       : match.rol || match.functie || "";
   }
 
+  // Inspanningsleider = trekker(s) per domein uit dossier.inspanningsleider van de
+  // cross-sectorale inspanningen in dat domein. Kan meerdere personen omvatten;
+  // gededupliceerd, geordend op verschijning.
+  function findInspanningsleidersVoorDomein(domein: EffortDomain): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const s of crossSectoraleInspanningen) {
+      if (s.domein !== domein) continue;
+      const raw = (s.dossier?.inspanningsleider ?? "").trim();
+      if (!raw) continue;
+      if (seen.has(raw)) continue;
+      seen.add(raw);
+      out.push(raw);
+    }
+    return out;
+  }
+
   return (
     <>
       <IntroPanel title="Wat staat hieronder?">
         <p>
-          De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein is er één
-          <strong> inspanningsleider</strong> die de samenhang van inspanningen binnen dat domein bewaakt
-          — niet één leider per inspanning, maar één per domein, zodat de cultuur-, mens-,
-          data &amp; systemen- en processen-lijn consistent worden uitgevoerd.
+          De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein zijn twee rollen
+          gekoppeld: een <strong>eigenaar</strong> (de domeineigenaar uit de programma-organisatie —
+          eindverantwoordelijk voor de samenhang binnen het domein) en een of meer{" "}
+          <strong>inspanningsleiders</strong> (de trekkers die de dagelijkse uitvoering aansturen).
+          De eigenaren zijn herhaald uit Hoofdstuk 5; de inspanningsleiders volgen uit het inspanningendossier.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -2121,6 +2146,7 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
           <thead className="bg-cito-blue/5">
             <tr>
               <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Domein</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Eigenaar</th>
               <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Inspanningsleider</th>
               <th className="text-right px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Aantal inspanningen</th>
             </tr>
@@ -2128,7 +2154,8 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
           <tbody className="divide-y divide-gray-100">
             {domeinen.map((d) => {
               const dc = DOMAIN_COLORS[d];
-              const leider = findLeiderVoorDomein(d);
+              const eigenaar = findEigenaarVoorDomein(d);
+              const leiders = findInspanningsleidersVoorDomein(d);
               const aantal = crossSectoraleInspanningen.filter((s) => s.domein === d).length;
               return (
                 <tr key={d} className="hover:bg-gray-50 align-top">
@@ -2138,8 +2165,19 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {leider ? (
-                      <span className="text-gray-800">{leider}</span>
+                    {eigenaar ? (
+                      <span className="text-gray-800">{eigenaar}</span>
+                    ) : (
+                      <span className="text-amber-700 italic">— nog te benoemen</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {leiders.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {leiders.map((l, i) => (
+                          <li key={i} className="text-gray-800">{l}</li>
+                        ))}
+                      </ul>
                     ) : (
                       <span className="text-amber-700 italic">— nog te benoemen</span>
                     )}
@@ -2152,8 +2190,9 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
         </table>
       </div>
       <p className="text-xs text-gray-500 italic mt-2 max-w-3xl">
-        Een &ldquo;— nog te benoemen&rdquo; betekent dat in de programma-organisatie geen rol is gevonden
-        wiens functie of rol-omschrijving aansluit bij dit domein. Dat is een actiepunt voor de stuurgroep.
+        Een &ldquo;— nog te benoemen&rdquo; bij <em>eigenaar</em> betekent dat geen rol in de programma-organisatie
+        op dit domein matcht; bij <em>inspanningsleider</em> dat in het inspanningendossier nog geen trekker is
+        ingevuld. Beide zijn actiepunten voor de stuurgroep.
       </p>
     </>
   );
@@ -3786,7 +3825,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             <VermogensprofielenBlock session={session} />
           </SubSection>
 
-          <SubSection title="3.3 Inspanningsleiders per domein" id="3-3-inspanningsleiders-per-domein">
+          <SubSection title="3.3 Eigenaar en inspanningsleider per domein" id="3-3-inspanningsleiders-per-domein">
             <InspanningsleidersBlock session={session} />
           </SubSection>
 

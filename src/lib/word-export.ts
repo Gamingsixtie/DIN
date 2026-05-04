@@ -1301,20 +1301,28 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     );
   }
 
-  // === 3.3 Inspanningsleiders per domein ===
+  // === 3.3 Eigenaar en inspanningsleider per domein ===
+  // Eigenaar = Domeineigenaar uit programmaorganisatie (eindverantwoordelijk).
+  // Inspanningsleider = trekker uit dossier.inspanningsleider (dagelijkse uitvoering).
+  // Twee verschillende rollen → twee kolommen.
   children.push(emptyLine());
-  children.push(numberedHeading("Inspanningsleiders per domein", "h2", numState));
+  children.push(numberedHeading("Eigenaar en inspanningsleider per domein", "h2", numState));
   children.push(bodyText(
-    "De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein is er één " +
-    "inspanningsleider die de samenhang van inspanningen binnen dat domein bewaakt — niet één " +
-    "leider per inspanning, maar één per domein, zodat de cultuur-, mens-, data & systemen- en " +
-    "processen-lijn consistent worden uitgevoerd.",
+    "De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein zijn twee rollen " +
+    "gekoppeld: een eigenaar (de domeineigenaar uit de programma-organisatie — eindverantwoordelijk voor " +
+    "de samenhang binnen het domein) en een of meer inspanningsleiders (de trekkers die de dagelijkse " +
+    "uitvoering aansturen). De eigenaren zijn herhaald uit Hoofdstuk 5; de inspanningsleiders volgen uit " +
+    "het inspanningendossier.",
     { color: TEXT_PRIMARY, size: 20 }
   ));
   children.push(emptyLine(60));
   const poVoorH33 = session.programmaorganisatie;
   // Tel CROSS-SECTORALE inspanningen — niet de raw sector-inspanningen.
-  type SubEffortItem33 = { domein: EffortDomain; actie: string };
+  type SubEffortItem33 = {
+    domein: EffortDomain;
+    actie: string;
+    dossier?: { eigenaar?: string; inspanningsleider?: string };
+  };
   const stap4SE33 = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffortItem33[] } } | undefined)?.stap4;
   const crossSectoraleH33 = stap4SE33?.subEffortAnalysis?.filter((s) => s.actie === "combineren") ?? [];
   const domeinenOrder: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
@@ -1325,7 +1333,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     processen: ["proces", "processen", "werkwijze", "governance"],
     overig: ["overig", "onvoorzien", "programma"],
   };
-  const findLeider = (domein: EffortDomain): string => {
+  const findEigenaar = (domein: EffortDomain): string => {
     const all = poVoorH33
       ? [
           ...(poVoorH33.domeineigenaren ?? []),
@@ -1343,13 +1351,28 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       ? `${match.naam}${match.functie ? ` (${match.functie})` : match.rol ? ` (${match.rol})` : ""}`
       : match.rol || match.functie || "— nog te benoemen";
   };
+  const findLeiders = (domein: EffortDomain): string => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const s of crossSectoraleH33) {
+      if (s.domein !== domein) continue;
+      const raw = (s.dossier?.inspanningsleider ?? "").trim();
+      if (!raw) continue;
+      if (seen.has(raw)) continue;
+      seen.add(raw);
+      out.push(raw);
+    }
+    if (out.length === 0) return "— nog te benoemen";
+    return out.join("\n");
+  };
   const inspRows = domeinenOrder.map((d) => {
     const aantal = crossSectoraleH33.filter((s) => s.domein === d).length;
     return new TableRow({
       children: [
-        styledCell(DOMAIN_LABELS[d], { bold: true, width: 30, shading: DOMAIN_COLORS[d], size: 16 }),
-        styledCell(findLeider(d), { width: 50, size: 16 }),
-        styledCell(`${aantal}`, { width: 20, size: 16 }),
+        styledCell(DOMAIN_LABELS[d], { bold: true, width: 22, shading: DOMAIN_COLORS[d], size: 16 }),
+        styledCell(findEigenaar(d), { width: 30, size: 16 }),
+        styledCell(findLeiders(d), { width: 33, size: 16 }),
+        styledCell(`${aantal}`, { width: 15, size: 16 }),
       ],
     });
   });
@@ -1359,9 +1382,10 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       rows: [
         new TableRow({
           children: [
-            headerCell("Domein", 30),
-            headerCell("Inspanningsleider", 50),
-            headerCell("Aantal inspanningen", 20),
+            headerCell("Domein", 22),
+            headerCell("Eigenaar", 30),
+            headerCell("Inspanningsleider", 33),
+            headerCell("Aantal inspanningen", 15),
           ],
         }),
         ...inspRows,
@@ -1369,8 +1393,9 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     })
   );
   children.push(bodyText(
-    "Een “— nog te benoemen” betekent dat in de programma-organisatie geen rol is gevonden " +
-    "wiens functie of rol-omschrijving aansluit bij dit domein. Dat is een actiepunt voor de stuurgroep.",
+    "Een “— nog te benoemen” bij eigenaar betekent dat geen rol in de programma-organisatie op dit domein " +
+    "matcht; bij inspanningsleider dat in het inspanningendossier nog geen trekker is ingevuld. Beide zijn " +
+    "actiepunten voor de stuurgroep.",
     { italic: true, size: 18, color: TEXT_MUTED }
   ));
 

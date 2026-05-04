@@ -19,7 +19,7 @@ const TOC: Array<{ id: string; nummer: string; titel: string; sub?: Array<{ id: 
     sub: [
       { id: "3-1-batenprofielen", titel: "3.1 Batenprofielen" },
       { id: "3-2-vermogensprofielen", titel: "3.2 Vermogensprofielen" },
-      { id: "3-3-inspanningsleiders-per-domein", titel: "3.3 Inspanningsleiders per domein" },
+      { id: "3-3-inspanningsleiders-per-domein", titel: "3.3 Eigenaar en inspanningsleider per domein" },
       { id: "3-4-veranderstrategie", titel: "3.4 Veranderstrategie" },
     ],
   },
