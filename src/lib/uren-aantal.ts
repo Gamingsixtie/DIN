@@ -11,10 +11,18 @@
 // "Resolve naar `title || description` of weglaten" — geen UUIDs in user-facing tekst (CLAUDE.md).
 
 import type { DINSession } from "@/lib/types";
+import { CITO_FUNCTIES } from "@/lib/cito-functies";
 
 export type Domein = "cultuur" | "mens" | "data_systemen" | "processen";
 
-type FunctieInput = { aantal: number; urenPerJaar?: number };
+type FunctieInput = {
+  aantal: number;
+  urenPerJaar?: number;
+  stakeholder?: boolean;
+  stakeholderToelichting?: string;
+  reviewVereist?: boolean;
+  reviewVraag?: string;
+};
 type CustomFunctie = { id: string; naam: string; schaal?: number };
 
 type Stap7Slim = {
@@ -43,6 +51,119 @@ export function getAantalForRol(
   const aantal = stap7?.selectiePerDomein?.[domein]?.[functieId]?.aantal;
   if (typeof aantal === "number" && aantal > 0) return aantal;
   return 1;
+}
+
+/**
+ * Geeft de FunctieInput-flag-data terug voor een rol binnen een domein.
+ * Wordt gebruikt om in de tabel te bepalen of een rol een stakeholder of
+ * review-vereist-rol is, en om de toelichting/vraag op te halen.
+ */
+export function getFunctieInputForRol(
+  session: DINSession | undefined | null,
+  domein: Domein,
+  functieId: string
+): FunctieInput | null {
+  const stap7 = getStap7(session);
+  const sel = stap7?.selectiePerDomein?.[domein]?.[functieId];
+  return sel ?? null;
+}
+
+/**
+ * Resolveer een functieId (cito of custom) naar een leesbare naam, met optionele afdeling.
+ * Werkt zowel voor cito-functies als custom-rollen.
+ */
+export function resolveFunctieNaam(
+  session: DINSession | undefined | null,
+  domein: Domein,
+  functieId: string
+): { naam: string; afdeling?: string } {
+  const cito = CITO_FUNCTIES.find((f) => f.id === functieId);
+  if (cito) return { naam: cito.naam, afdeling: cito.afdeling };
+  const stap7 = getStap7(session);
+  const custom = stap7?.customFunctiesPerDomein?.[domein]?.find((c) => c.id === functieId);
+  if (custom) return { naam: custom.naam, afdeling: "Custom" };
+  return { naam: functieId };
+}
+
+export type StakeholderRol = {
+  domein: Domein;
+  functieId: string;
+  naam: string;
+  afdeling?: string;
+  aantal: number;
+  toelichting?: string;
+};
+
+export type ReviewRol = {
+  domein: Domein;
+  functieId: string;
+  naam: string;
+  afdeling?: string;
+  aantal: number;
+  vraag?: string;
+};
+
+/**
+ * Verzamel alle rollen met `stakeholder: true` over alle domeinen heen.
+ * Volgorde: outside-in (cultuur → mens → data_systemen → processen) → naam alfabetisch.
+ */
+export function collectStakeholderRollen(session: DINSession | undefined | null): StakeholderRol[] {
+  const stap7 = getStap7(session);
+  if (!stap7?.selectiePerDomein) return [];
+  const domOrder: Domein[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const out: StakeholderRol[] = [];
+  for (const d of domOrder) {
+    const sel = stap7.selectiePerDomein[d] ?? {};
+    for (const [functieId, input] of Object.entries(sel)) {
+      if (input?.stakeholder !== true) continue;
+      const { naam, afdeling } = resolveFunctieNaam(session, d, functieId);
+      out.push({
+        domein: d,
+        functieId,
+        naam,
+        afdeling,
+        aantal: typeof input.aantal === "number" && input.aantal > 0 ? input.aantal : 1,
+        toelichting: input.stakeholderToelichting,
+      });
+    }
+  }
+  out.sort((a, b) => {
+    const di = domOrder.indexOf(a.domein) - domOrder.indexOf(b.domein);
+    if (di !== 0) return di;
+    return a.naam.localeCompare(b.naam, "nl-NL");
+  });
+  return out;
+}
+
+/**
+ * Verzamel alle rollen met `reviewVereist: true` over alle domeinen heen.
+ */
+export function collectReviewRollen(session: DINSession | undefined | null): ReviewRol[] {
+  const stap7 = getStap7(session);
+  if (!stap7?.selectiePerDomein) return [];
+  const domOrder: Domein[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const out: ReviewRol[] = [];
+  for (const d of domOrder) {
+    const sel = stap7.selectiePerDomein[d] ?? {};
+    for (const [functieId, input] of Object.entries(sel)) {
+      if (input?.reviewVereist !== true) continue;
+      const { naam, afdeling } = resolveFunctieNaam(session, d, functieId);
+      out.push({
+        domein: d,
+        functieId,
+        naam,
+        afdeling,
+        aantal: typeof input.aantal === "number" && input.aantal > 0 ? input.aantal : 1,
+        vraag: input.reviewVraag,
+      });
+    }
+  }
+  out.sort((a, b) => {
+    const di = domOrder.indexOf(a.domein) - domOrder.indexOf(b.domein);
+    if (di !== 0) return di;
+    return a.naam.localeCompare(b.naam, "nl-NL");
+  });
+  return out;
 }
 
 /**

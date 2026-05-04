@@ -15,7 +15,13 @@ import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } fro
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
 import type { Stap2Result, Stap4Result, Stap5Result } from "@/lib/types";
-import { getAantalForRol, type Domein as Domein4 } from "@/lib/uren-aantal";
+import {
+  getAantalForRol,
+  getFunctieInputForRol,
+  collectStakeholderRollen,
+  collectReviewRollen,
+  type Domein as Domein4,
+} from "@/lib/uren-aantal";
 
 // Domein kleuren
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; border: string }> = {
@@ -2576,6 +2582,127 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
   );
 }
 
+// --- Stakeholders & open beslispunten — apart blok voor cat-2 + cat-3 rollen ---
+// Geldt scenario-overstijgend (komt uit selectiePerDomein, niet uit het scenario zelf).
+// Wordt onder élke scenario-rendering geplaatst voor consistentie met word-export.
+function StakeholdersBeslispuntenExport({ session }: { session: DINSession }) {
+  const stakeholders = collectStakeholderRollen(session);
+  const reviews = collectReviewRollen(session);
+
+  if (stakeholders.length === 0 && reviews.length === 0) return null;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {stakeholders.length > 0 && (
+        <div className="rounded-lg border-2 border-purple-200 bg-purple-50/40 overflow-hidden">
+          <div className="bg-purple-100 px-3 py-2 border-b border-purple-200 flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
+              Betrokken stakeholders ({stakeholders.length}) — geen uren-belasting
+            </span>
+            <span className="text-[10px] text-purple-700 italic">
+              cat-2: rol levert review/input, telt niet mee in uren-totaal
+            </span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="bg-purple-50">
+              <tr className="text-left border-b border-purple-200">
+                <th className="px-3 py-1.5 font-semibold text-purple-800">Rol</th>
+                <th className="px-3 py-1.5 font-semibold text-purple-800 text-right w-16">Aantal</th>
+                <th className="px-3 py-1.5 font-semibold text-purple-800 text-left w-32">Domein</th>
+                <th className="px-3 py-1.5 font-semibold text-purple-800">Toelichting</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stakeholders.map((it, i) => {
+                const dc = DOMAIN_COLORS[it.domein as EffortDomain];
+                return (
+                  <tr
+                    key={`sh-${it.functieId}-${i}`}
+                    className="border-b border-purple-100 last:border-b-0 align-top"
+                  >
+                    <td className="px-3 py-1.5">
+                      <span className="text-gray-900 font-medium">{it.naam}</span>
+                      {it.afdeling && (
+                        <span className="text-[10px] text-gray-500 ml-1">({it.afdeling})</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-gray-700">
+                      {it.aantal}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5`}
+                      >
+                        {DOMAIN_LABELS[it.domein as EffortDomain]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-700 italic leading-snug">
+                      {it.toelichting ?? "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {reviews.length > 0 && (
+        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/40 overflow-hidden">
+          <div className="bg-amber-100 px-3 py-2 border-b border-amber-300 flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-amber-800">
+              Open beslispunten ({reviews.length}) — handmatige review nodig
+            </span>
+            <span className="text-[10px] text-amber-700 italic">
+              cat-3: vraag bepaalt of/hoeveel uren de rol uiteindelijk krijgt
+            </span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="bg-amber-50">
+              <tr className="text-left border-b border-amber-300">
+                <th className="px-3 py-1.5 font-semibold text-amber-900">Rol</th>
+                <th className="px-3 py-1.5 font-semibold text-amber-900 text-left w-32">Domein</th>
+                <th className="px-3 py-1.5 font-semibold text-amber-900">Vraag</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map((it, i) => {
+                const dc = DOMAIN_COLORS[it.domein as EffortDomain];
+                return (
+                  <tr
+                    key={`rv-${it.functieId}-${i}`}
+                    className="border-b border-amber-200 last:border-b-0 align-top"
+                  >
+                    <td className="px-3 py-1.5">
+                      <span className="text-gray-900 font-medium">{it.naam}</span>
+                      {it.afdeling && (
+                        <span className="text-[10px] text-gray-500 ml-1">({it.afdeling})</span>
+                      )}
+                      {it.aantal > 1 && (
+                        <span className="text-[10px] text-gray-500 ml-2">× {it.aantal}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={`text-[10px] uppercase font-bold ${dc.text} ${dc.bg} border ${dc.border} rounded px-1.5 py-0.5`}
+                      >
+                        {DOMAIN_LABELS[it.domein as EffortDomain]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-800 leading-snug">
+                      {it.vraag ?? <span className="text-gray-400 italic">—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Interne uren — Cito-medewerkers per scenario per domein per jaar per rol ---
 function InterneUrenBlock({ session }: { session: DINSession }) {
   type Rol = { functieId: string; functieNaam: string; afdeling?: string; uren: number; uurtarief: number; kosten: number };
@@ -2744,6 +2871,15 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                         <div className="text-gray-500">€ {(d.totaalKosten ?? 0).toLocaleString("nl-NL")}</div>
                       </div>
                     </div>
+                    {d.domein === "mens" && (
+                      <p className="text-[10px] text-gray-500 italic leading-snug mb-2 pl-2 border-l-2 border-gray-300">
+                        Mens-domein heeft <strong className="not-italic font-semibold">80 betrokkenen</strong> in de
+                        selectie: 47 actieve trainings-deelnemers + 12 trainers + 3 sectormanagers + 1 Manager
+                        Klantcontact + 1 Teamleider Trainingen + ~16 stakeholders/begeleiders. De uren-tabel
+                        toont de 64 personen met daadwerkelijke uren-belasting; de stakeholders staan in het
+                        &lsquo;Betrokken stakeholders&rsquo;-blok onder dit scenario.
+                      </p>
+                    )}
                     <div className="space-y-2">
                       {jarenMetUren.map((jr) => (
                         <div key={jr.jaar} className="bg-white border border-gray-100 rounded p-2.5">
@@ -2770,14 +2906,37 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                             <tbody>
                               {jr.rollen.map((r, i) => {
                                 const aantal = getAantalForRol(session, d.domein as Domein4, r.functieId);
+                                const fi = getFunctieInputForRol(session, d.domein as Domein4, r.functieId);
+                                const isStakeholder = fi?.stakeholder === true;
+                                const isReview = fi?.reviewVereist === true;
                                 return (
                                   <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
                                     <td className="py-1">
                                       <span className="text-gray-800">{r.functieNaam}</span>
                                       {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
                                     </td>
-                                    <td className="py-1 text-right text-gray-700 tabular-nums">{aantal}</td>
-                                    <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren.toLocaleString("nl-NL")}</td>
+                                    <td className="py-1 text-right tabular-nums">
+                                      {isStakeholder ? (
+                                        <span
+                                          className="inline-block text-[10px] font-semibold uppercase tracking-wider text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded"
+                                          title={fi?.stakeholderToelichting ?? "Stakeholder (review/input, geen uren-belasting)"}
+                                        >
+                                          Stakeholder
+                                        </span>
+                                      ) : isReview ? (
+                                        <span
+                                          className="inline-block text-[10px] font-semibold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded"
+                                          title={fi?.reviewVraag ?? "Review nodig — handmatige beslissing nog open"}
+                                        >
+                                          Review nodig
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-700">{aantal}</span>
+                                      )}
+                                    </td>
+                                    <td className="py-1 text-right text-gray-800 tabular-nums">
+                                      {isStakeholder ? <span className="text-gray-400">—</span> : r.uren.toLocaleString("nl-NL")}
+                                    </td>
                                     <td className="py-1 text-right text-gray-500 tabular-nums">€ {r.uurtarief}</td>
                                     <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
                                   </tr>
@@ -2791,6 +2950,9 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
                   </div>
                 );
               })}
+
+              {/* Apart blok: Betrokken stakeholders & open beslispunten — per scenario */}
+              <StakeholdersBeslispuntenExport session={session} />
 
               {heeftLegeNa && laatsteJaarMetUren !== null && (
                 <p className="text-xs text-gray-500 italic mt-3">

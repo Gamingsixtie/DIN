@@ -8,6 +8,13 @@ import { splitMotivatie, segmentText, parseBreakdown, type EuroMatch, type Parse
 import { vindRedenering } from "@/lib/component-redeneringen";
 import { vindKnownBreakdown, structureelCumulatiefMid, type KnownSection } from "@/lib/known-breakdowns";
 import { NotitieVoorClaude } from "./NotitieVoorClaude";
+import {
+  collectStakeholderRollen,
+  collectReviewRollen,
+  type Domein as Domein4,
+  type StakeholderRol,
+  type ReviewRol,
+} from "@/lib/uren-aantal";
 
 // Map een hardcoded KnownSection naar de BreakdownSection-shape die
 // BreakdownTabel begrijpt. Gebruikt als fallback wanneer parseBreakdown geen
@@ -1980,6 +1987,15 @@ function SectieF({
               })}
             </div>
 
+            {/* Footnote: 80→64 mens-discrepantie */}
+            <p className="text-[10px] text-gray-500 italic leading-snug mt-3 pl-2 border-l-2 border-gray-300">
+              Mens-domein heeft <strong className="not-italic font-semibold">80 betrokkenen</strong> in de
+              selectie: 47 actieve trainings-deelnemers + 12 trainers + 3 sectormanagers + 1 Manager
+              Klantcontact + 1 Teamleider Trainingen + ~16 stakeholders/begeleiders. De uren-tabel hierboven
+              toont de 64 personen met daadwerkelijke uren-belasting; de stakeholders staan in F6 onder
+              &lsquo;Betrokken stakeholders &amp; open beslispunten&rsquo;.
+            </p>
+
             {/* Toelichting: persoon kan in meerdere domeinen voorkomen */}
             <details className="mt-3 rounded border border-blue-200 bg-blue-50 overflow-hidden">
               <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-blue-900 hover:bg-blue-100">
@@ -2001,7 +2017,10 @@ function SectieF({
                   </li>
                 </ul>
                 <p>
-                  Sommige rollen zijn <strong>stakeholder zonder uren-belasting</strong> (review/input-rol bij CRM): die zie je in Stap 7 onder &lsquo;Functies geselecteerd&rsquo; met label <em>Stakeholder</em> — zij leveren input maar krijgen geen uren toegewezen.
+                  Sommige rollen zijn <strong className="text-purple-800">stakeholder zonder uren-belasting</strong> (review/input-rol bij CRM): die zie je in Stap 7 onder &lsquo;Functies geselecteerd&rsquo; met label <em>Stakeholder</em>, en in dit blok in F6 onder &lsquo;Betrokken stakeholders &amp; open beslispunten&rsquo; — zij leveren input maar krijgen geen uren toegewezen.
+                </p>
+                <p>
+                  Andere rollen hebben label <strong className="text-amber-800">Review nodig</strong> (cat-3): handmatige beslissing nog open. Vraag onder de rol in F6 bepaalt of/hoeveel uren ze krijgen.
                 </p>
               </div>
             </details>
@@ -2160,6 +2179,14 @@ function SectieF({
               uurtariefSettings={interneUren?.uurtariefSettings}
               startJaar={startJaar}
             />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F6"
+            titel="Betrokken stakeholders & open beslispunten"
+            hint="Rollen die wél in de selectie staan maar geen uren-belasting krijgen (Stakeholders, cat-2) of waarvoor nog een handmatige review-beslissing open staat (Open beslispunten, cat-3). Komt uit Stap 7 selectiePerDomein-vlaggen."
+          >
+            <UrenF6StakeholdersBeslispunten session={session} />
           </SubSectie>
         </div>
       </div>
@@ -3126,6 +3153,160 @@ function UrenF5StilleSelecties({
           Geen data_systemen-domein in dit scenario gevonden — stille selecties niet beschikbaar.
         </p>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// F6 — Stakeholders (cat-2) + open beslispunten (cat-3) per domein
+// ============================================================================
+
+function UrenF6StakeholdersBeslispunten({ session }: { session: DINSession }) {
+  const stakeholders = collectStakeholderRollen(session);
+  const reviews = collectReviewRollen(session);
+
+  if (stakeholders.length === 0 && reviews.length === 0) {
+    return (
+      <p className="text-[11px] text-gray-500 italic">
+        Geen stakeholders of open beslispunten gemarkeerd in Stap 7. Komt voor wanneer de selectie
+        nog niet is verfijnd of geen rollen met label <em>Stakeholder</em>/<em>Review nodig</em> bevat.
+      </p>
+    );
+  }
+
+  // Groepeer per domein voor leesbaarheid
+  const domeinen: Domein4[] = ["cultuur", "mens", "data_systemen", "processen"];
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded bg-gray-50 border border-gray-200 p-3 text-xs text-gray-700 leading-relaxed">
+        <p className="font-semibold text-gray-800 mb-1">Verschil stakeholders vs. open beslispunten</p>
+        <ul className="list-disc pl-5 space-y-0.5">
+          <li>
+            <strong className="text-purple-800">Stakeholder</strong> — rol levert review/input maar
+            krijgt <em>geen uren-belasting</em> in deze begroting. Wel meewegen voor governance/communicatie.
+          </li>
+          <li>
+            <strong className="text-amber-800">Review nodig</strong> — handmatige beslissing nog open.
+            Vraag onder de rol bepaalt of/hoeveel uren deze rol uiteindelijk krijgt.
+          </li>
+        </ul>
+      </div>
+
+      {/* Cat 2 — Stakeholders */}
+      {stakeholders.length > 0 && (
+        <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 overflow-hidden">
+          <div className="bg-purple-100 px-3 py-2 border-b border-purple-200 flex items-center justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
+              Stakeholders ({stakeholders.length}) — geen uren-belasting
+            </span>
+            <span className="text-[10px] text-purple-700 font-mono">
+              {stakeholders.reduce((s, r) => s + r.aantal, 0)} personen
+            </span>
+          </div>
+          <div className="p-3 space-y-3">
+            {domeinen.map((dom) => {
+              const inDom = stakeholders.filter((r) => r.domein === dom);
+              if (inDom.length === 0) return null;
+              return <DomeinRolGroep key={`sh-${dom}`} domein={dom} accent="purple" rollen={inDom} type="stakeholder" />;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Cat 3 — Open beslispunten */}
+      {reviews.length > 0 && (
+        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/30 overflow-hidden">
+          <div className="bg-amber-100 px-3 py-2 border-b border-amber-300 flex items-center justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-amber-800">
+              Open beslispunten ({reviews.length}) — handmatige review nodig
+            </span>
+            <span className="text-[10px] text-amber-700 font-mono">
+              {reviews.reduce((s, r) => s + r.aantal, 0)} personen
+            </span>
+          </div>
+          <div className="p-3 space-y-3">
+            {domeinen.map((dom) => {
+              const inDom = reviews.filter((r) => r.domein === dom);
+              if (inDom.length === 0) return null;
+              return <DomeinRolGroep key={`rv-${dom}`} domein={dom} accent="amber" rollen={inDom} type="review" />;
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DomeinRolGroep({
+  domein,
+  accent,
+  rollen,
+  type,
+}: {
+  domein: Domein4;
+  accent: "purple" | "amber";
+  rollen: Array<StakeholderRol | ReviewRol>;
+  type: "stakeholder" | "review";
+}) {
+  const hex = DOMAIN_BAR_HEX[domein] ?? "#6b7280";
+  const labelClasses =
+    accent === "purple"
+      ? "text-[10px] font-semibold uppercase tracking-wider text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded"
+      : "text-[10px] font-semibold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded";
+  const labelText = type === "stakeholder" ? "Stakeholder" : "Review nodig";
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: hex }} />
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700">
+          {DOMAIN_LABEL[domein] ?? domein}
+        </p>
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left border-b border-gray-200">
+            <th className="py-1 font-semibold text-gray-500">Rol</th>
+            <th className="py-1 font-semibold text-gray-500 text-right w-20">Aantal</th>
+            <th className="py-1 font-semibold text-gray-500 text-right w-24">Label</th>
+            <th className="py-1 font-semibold text-gray-500 text-right w-16">Uren</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rollen.map((r, i) => {
+            const toel =
+              type === "stakeholder"
+                ? (r as StakeholderRol).toelichting
+                : (r as ReviewRol).vraag;
+            return (
+              <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0 align-top">
+                <td className="py-1.5 pr-2">
+                  <span className="text-gray-800 font-medium">{r.naam}</span>
+                  {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
+                  {toel && (
+                    <p
+                      className={`text-[10px] mt-0.5 leading-snug italic ${
+                        type === "stakeholder" ? "text-purple-900" : "text-amber-900"
+                      }`}
+                    >
+                      {type === "review" && (
+                        <span className="not-italic font-semibold mr-1">Vraag:</span>
+                      )}
+                      {toel}
+                    </p>
+                  )}
+                </td>
+                <td className="py-1.5 px-1 text-right tabular-nums text-gray-700">{r.aantal}</td>
+                <td className="py-1.5 px-1 text-right">
+                  <span className={labelClasses}>{labelText}</span>
+                </td>
+                <td className="py-1.5 pl-1 text-right text-gray-400 tabular-nums">—</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

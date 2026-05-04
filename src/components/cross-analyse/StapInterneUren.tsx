@@ -1827,6 +1827,7 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 s={s}
                 sv={sv}
                 selectiePerDomein={selectiePerDomein}
+                customFunctiesPerDomein={customFunctiesPerDomein}
                 onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
               />
@@ -2133,16 +2134,202 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
   );
 }
 
+// ----------------------------------------------------------------------------
+// StakeholdersBeslispuntenBlok — collapsible sub-blok onder de rol-tabel.
+// Toont per scenario:
+//  - Cat 2 (stakeholder: true): rollen die input/review leveren maar GEEN uren
+//    krijgen toegewezen (paars accent).
+//  - Cat 3 (reviewVereist: true): rollen waarvoor nog een handmatige beslissing
+//    open staat — visueel als "open beslispunt" (oranje accent).
+// Resolve namen via CITO_FUNCTIES + customFunctiesPerDomein zodat geen UUIDs
+// in de UI verschijnen (CLAUDE.md regel 9).
+// ----------------------------------------------------------------------------
+type StakeholderItem = {
+  domein: Domein;
+  functieId: string;
+  naam: string;
+  afdeling?: string;
+  aantal: number;
+  toelichting?: string;
+};
+type ReviewItem = {
+  domein: Domein;
+  functieId: string;
+  naam: string;
+  afdeling?: string;
+  aantal: number;
+  vraag?: string;
+};
+
+function resolveRolNaam(
+  domein: Domein,
+  functieId: string,
+  customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>,
+): { naam: string; afdeling?: string } {
+  const cito = CITO_FUNCTIES.find((f) => f.id === functieId);
+  if (cito) return { naam: cito.naam, afdeling: cito.afdeling };
+  const custom = customFunctiesPerDomein?.[domein]?.find((c) => c.id === functieId);
+  if (custom) return { naam: custom.naam, afdeling: "Custom" };
+  return { naam: functieId };
+}
+
+function StakeholdersBeslispuntenBlok({
+  selectiePerDomein,
+  customFunctiesPerDomein,
+}: {
+  selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
+  customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
+}): React.ReactElement | null {
+  if (!selectiePerDomein) return null;
+
+  const domOrder: Domein[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const stakeholders: StakeholderItem[] = [];
+  const reviews: ReviewItem[] = [];
+
+  for (const d of domOrder) {
+    const sel = selectiePerDomein[d] ?? {};
+    for (const [functieId, input] of Object.entries(sel)) {
+      const { naam, afdeling } = resolveRolNaam(d, functieId, customFunctiesPerDomein);
+      const aantal = typeof input.aantal === "number" && input.aantal > 0 ? input.aantal : 1;
+      if (input.stakeholder === true) {
+        stakeholders.push({ domein: d, functieId, naam, afdeling, aantal, toelichting: input.stakeholderToelichting });
+      }
+      if (input.reviewVereist === true) {
+        reviews.push({ domein: d, functieId, naam, afdeling, aantal, vraag: input.reviewVraag });
+      }
+    }
+  }
+
+  if (stakeholders.length === 0 && reviews.length === 0) return null;
+
+  return (
+    <details className="rounded-lg border-2 border-purple-200 bg-white overflow-hidden" open>
+      <summary className="cursor-pointer px-4 py-2.5 bg-gradient-to-r from-purple-50 to-amber-50 hover:from-purple-100 hover:to-amber-100 flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-[#003366]">
+          Betrokken stakeholders &amp; open beslispunten
+        </span>
+        <span className="text-[11px] text-gray-600 font-mono shrink-0">
+          {stakeholders.length > 0 && (
+            <span className="inline-block bg-purple-100 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded mr-1.5">
+              {stakeholders.length} stakeholder{stakeholders.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          {reviews.length > 0 && (
+            <span className="inline-block bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+              {reviews.length} beslispunt{reviews.length !== 1 ? "en" : ""}
+            </span>
+          )}
+        </span>
+      </summary>
+
+      <div className="px-4 pb-4 pt-3 border-t border-purple-100 space-y-4">
+        {/* Toelichting verschil stakeholder vs review-vereist */}
+        <div className="rounded bg-gray-50 border border-gray-200 p-2.5 text-[11px] text-gray-700 leading-relaxed">
+          <p>
+            <strong className="text-purple-800">Stakeholder</strong> = betrokken voor input of review,
+            geen uren-belasting in de begroting. <strong className="text-amber-800">Review-vereist</strong> ={" "}
+            handmatige beslissing nog open — vraag onder &lsquo;open beslispunt&rsquo; bepaalt of/hoeveel
+            uren deze rol uiteindelijk krijgt.
+          </p>
+        </div>
+
+        {/* Cat 2 — Stakeholders */}
+        {stakeholders.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-purple-600" />
+              <p className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
+                Stakeholders ({stakeholders.length}) — input/review, geen uren-belasting
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {stakeholders.map((it) => {
+                const dCol = DOMEIN_COLORS[it.domein];
+                return (
+                  <div
+                    key={`sh-${it.domein}-${it.functieId}`}
+                    className="rounded border border-purple-200 bg-purple-50/40 p-2.5 text-[11px]"
+                  >
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${dCol.text} ${dCol.bg} border ${dCol.border}`}>
+                          {DOMEIN_LABELS[it.domein]}
+                        </span>
+                        <span className="font-semibold text-gray-900">{it.naam}</span>
+                        {it.afdeling && <span className="text-[10px] text-gray-500">({it.afdeling})</span>}
+                      </div>
+                      <span className="font-mono tabular-nums text-purple-800">
+                        {it.aantal}× <span className="text-[10px] uppercase tracking-wider">stakeholder</span>
+                      </span>
+                    </div>
+                    {it.toelichting && (
+                      <p className="text-gray-700 leading-snug italic">{it.toelichting}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Cat 3 — Review-vereist (open beslispunten) */}
+        {reviews.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <p className="text-[11px] uppercase tracking-wider font-bold text-amber-800">
+                Open beslispunten ({reviews.length}) — handmatige review nodig
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {reviews.map((it) => {
+                const dCol = DOMEIN_COLORS[it.domein];
+                return (
+                  <div
+                    key={`rv-${it.domein}-${it.functieId}`}
+                    className="rounded border-l-4 border-l-amber-500 border border-amber-200 bg-amber-50/60 p-2.5 text-[11px]"
+                  >
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${dCol.text} ${dCol.bg} border ${dCol.border}`}>
+                          {DOMEIN_LABELS[it.domein]}
+                        </span>
+                        <span className="font-semibold text-gray-900">{it.naam}</span>
+                        {it.afdeling && <span className="text-[10px] text-gray-500">({it.afdeling})</span>}
+                      </div>
+                      <span className="font-mono tabular-nums text-amber-800">
+                        {it.aantal}× <span className="text-[10px] uppercase tracking-wider">review nodig</span>
+                      </span>
+                    </div>
+                    {it.vraag && (
+                      <div className="mt-1 rounded bg-white border border-amber-200 p-2">
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-amber-700 mb-0.5">Vraag</p>
+                        <p className="text-gray-800 leading-snug">{it.vraag}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function ScenarioBlokView({
   s,
   sv,
   selectiePerDomein,
+  customFunctiesPerDomein,
   onSamenvattingEdit,
   onDomeinMotivatieEdit,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
   selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
+  customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
   onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
 }): React.ReactElement {
@@ -2265,6 +2452,15 @@ function ScenarioBlokView({
               ) : (
                 <p className="text-xs text-gray-700 italic leading-relaxed mb-3">{d.motivatie}</p>
               )}
+              {d.domein === "mens" && (
+                <p className="text-[10px] text-gray-500 italic leading-snug mb-3 pl-2 border-l-2 border-gray-300">
+                  Mens-domein heeft <strong className="not-italic font-semibold">80 betrokkenen</strong> in de
+                  selectie: 47 actieve trainings-deelnemers + 12 trainers + 3 sectormanagers + 1 Manager
+                  Klantcontact + 1 Teamleider Trainingen + ~16 stakeholders/begeleiders. De uren-tabel toont
+                  de 64 personen met daadwerkelijke uren-belasting; de stakeholders staan in het &lsquo;Betrokken
+                  stakeholders &amp; open beslispunten&rsquo;-blok onder dit scenario.
+                </p>
+              )}
               <div className="space-y-3">
                 {d.jaren.map((jr) => (
                   <div key={jr.jaar} className="bg-white border border-gray-200 rounded p-3">
@@ -2294,6 +2490,8 @@ function ScenarioBlokView({
                           const aantal = sel?.aantal ?? 1;
                           const isStakeholder = sel?.stakeholder === true;
                           const stakeholderToel = sel?.stakeholderToelichting;
+                          const isReview = sel?.reviewVereist === true;
+                          const reviewVraag = sel?.reviewVraag;
                           return (
                             <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
                               <td className="py-1">
@@ -2308,11 +2506,20 @@ function ScenarioBlokView({
                                   >
                                     Stakeholder
                                   </span>
+                                ) : isReview ? (
+                                  <span
+                                    className="inline-block text-[10px] font-semibold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded"
+                                    title={reviewVraag ?? "Review nodig — handmatige beslissing nog open"}
+                                  >
+                                    Review nodig
+                                  </span>
                                 ) : (
                                   <span className="text-gray-700">{aantal}</span>
                                 )}
                               </td>
-                              <td className="py-1 text-right text-gray-800 tabular-nums">{r.uren}</td>
+                              <td className="py-1 text-right text-gray-800 tabular-nums">
+                                {isStakeholder ? <span className="text-gray-400">—</span> : r.uren}
+                              </td>
                               <td className="py-1 text-right text-gray-500 tabular-nums">€{r.uurtarief}</td>
                               <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
                             </tr>
@@ -2327,6 +2534,12 @@ function ScenarioBlokView({
           );
         })}
       </div>
+
+      {/* Betrokken stakeholders & open beslispunten — apart sub-blok per scenario */}
+      <StakeholdersBeslispuntenBlok
+        selectiePerDomein={selectiePerDomein}
+        customFunctiesPerDomein={customFunctiesPerDomein}
+      />
     </div>
   );
 }

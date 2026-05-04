@@ -33,7 +33,13 @@ import type {
 } from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
-import { getAantalForRol, type Domein as Domein4 } from "./uren-aantal";
+import {
+  getAantalForRol,
+  getFunctieInputForRol,
+  collectStakeholderRollen,
+  collectReviewRollen,
+  type Domein as Domein4,
+} from "./uren-aantal";
 
 // --- Cito outside-in domeinvolgorde (cultuur → mens → data/systemen → processen) ---
 // NIET de klassieke Prevaas-volgorde. Zie memory: "Cito-outside-in volgorde".
@@ -201,6 +207,12 @@ const TEXT_PRIMARY = "1a1a1a";
 const TEXT_SECONDARY = "4a4a4a";
 const TEXT_MUTED = "888888";
 const BORDER_COLOR = "D0D0D0";
+// Pill-kleuren voor Stakeholder (cat-2) en Review-nodig (cat-3) labels in interne-uren-tabellen.
+// Komen overeen met de Tailwind-klassen text-purple-700 / text-amber-800 in de UI.
+const PURPLE_PILL = "6B21A8";
+const PURPLE_BG = "F3E8FF";
+const AMBER_PILL = "92400E";
+const AMBER_BG = "FEF3C7";
 
 
 const DOMAIN_COLORS: Record<EffortDomain, string> = {
@@ -2570,6 +2582,16 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
         if (d.motivatie) {
           children.push(bodyText(d.motivatie, { italic: true, size: 18, color: TEXT_SECONDARY }));
         }
+        // Mens-footnote: 80 betrokkenen → 64 met uren-belasting
+        if (d.domein === "mens") {
+          children.push(bodyText(
+            "Mens-domein heeft 80 betrokkenen in de selectie: 47 actieve trainings-deelnemers + " +
+            "12 trainers + 3 sectormanagers + 1 Manager Klantcontact + 1 Teamleider Trainingen + " +
+            "~16 stakeholders/begeleiders. De uren-tabel toont de 64 personen met daadwerkelijke " +
+            "uren-belasting; de stakeholders staan in het 'Betrokken stakeholders'-blok onder dit scenario.",
+            { italic: true, size: 16, color: TEXT_MUTED }
+          ));
+        }
 
         jarenMetUren.forEach((jr) => {
           const totU = jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0);
@@ -2581,11 +2603,25 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
 
           const rolRows = jr.rollen.map((r) => {
             const aantal = getAantalForRol(session, d.domein as Domein4, r.functieId);
+            const fi = getFunctieInputForRol(session, d.domein as Domein4, r.functieId);
+            const isStakeholder = fi?.stakeholder === true;
+            const isReview = fi?.reviewVereist === true;
+            // Aantal-kolom: paars Stakeholder-label of oranje "Review nodig"-label, anders het getal.
+            // Word-equivalent van het paarse/oranje pill-label uit de UI: gekleurde, vetgedrukte tekst.
+            const aantalCell = isStakeholder
+              ? styledCell("Stakeholder", { width: 10, size: 14, bold: true, color: PURPLE_PILL })
+              : isReview
+                ? styledCell("Review nodig", { width: 10, size: 14, bold: true, color: AMBER_PILL })
+                : styledCell(formatGetal(aantal), { width: 10, size: 14 });
+            // Uren-kolom: stakeholder krijgt em-dash (geen uren-belasting)
+            const urenCell = isStakeholder
+              ? styledCell("—", { width: 15, size: 14, color: TEXT_MUTED })
+              : styledCell(formatGetal(r.uren), { width: 15, size: 14 });
             return new TableRow({
               children: [
                 styledCell(`${r.functieNaam}${r.afdeling ? ` (${r.afdeling})` : ""}`, { width: 45, size: 14 }),
-                styledCell(formatGetal(aantal), { width: 10, size: 14 }),
-                styledCell(formatGetal(r.uren), { width: 15, size: 14 }),
+                aantalCell,
+                urenCell,
                 styledCell(formatEuro(r.uurtarief), { width: 13, size: 14, color: TEXT_SECONDARY }),
                 styledCell(formatEuro(r.kosten), { width: 17, bold: true, size: 14 }),
               ],
@@ -2606,6 +2642,95 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
         });
         children.push(emptyLine());
       });
+
+      // Stakeholders & open beslispunten — apart blok per scenario (cat-2 + cat-3 vlaggen)
+      const stakeholders = collectStakeholderRollen(session);
+      const reviews = collectReviewRollen(session);
+      if (stakeholders.length > 0) {
+        children.push(emptyLine(40));
+        children.push(bodyText(
+          `Betrokken stakeholders (${stakeholders.length}) — geen uren-belasting`,
+          { bold: true, size: 18, color: PURPLE_PILL }
+        ));
+        children.push(bodyText(
+          "Cat-2: rol levert review/input, telt niet mee in uren-totaal van dit scenario.",
+          { italic: true, size: 14, color: TEXT_MUTED }
+        ));
+        const stakeholderRows = stakeholders.map((it) => new TableRow({
+          children: [
+            styledCell(`${it.naam}${it.afdeling ? ` (${it.afdeling})` : ""}`, { width: 30, size: 14 }),
+            styledCell(formatGetal(it.aantal), { width: 8, size: 14 }),
+            styledCell(DOMAIN_LABELS[it.domein] ?? it.domein, {
+              width: 20,
+              size: 12,
+              bold: true,
+              color: CITO_BLUE,
+              shading: DOMAIN_COLORS[it.domein] ?? CITO_BLUE_LIGHT,
+            }),
+            styledCell(it.toelichting ?? "—", { width: 42, size: 14, color: TEXT_SECONDARY }),
+          ],
+        }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Rol", 30),
+                  headerCell("Aantal", 8),
+                  headerCell("Domein", 20),
+                  headerCell("Toelichting", 42),
+                ],
+              }),
+              ...stakeholderRows,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+      }
+
+      if (reviews.length > 0) {
+        children.push(bodyText(
+          `Open beslispunten (${reviews.length}) — handmatige review nodig`,
+          { bold: true, size: 18, color: AMBER_PILL }
+        ));
+        children.push(bodyText(
+          "Cat-3: vraag bepaalt of/hoeveel uren de rol uiteindelijk krijgt.",
+          { italic: true, size: 14, color: TEXT_MUTED }
+        ));
+        const reviewRows = reviews.map((it) => new TableRow({
+          children: [
+            styledCell(
+              `${it.naam}${it.afdeling ? ` (${it.afdeling})` : ""}${it.aantal > 1 ? ` × ${it.aantal}` : ""}`,
+              { width: 30, size: 14 }
+            ),
+            styledCell(DOMAIN_LABELS[it.domein] ?? it.domein, {
+              width: 20,
+              size: 12,
+              bold: true,
+              color: CITO_BLUE,
+              shading: DOMAIN_COLORS[it.domein] ?? CITO_BLUE_LIGHT,
+            }),
+            styledCell(it.vraag ?? "—", { width: 50, size: 14, color: TEXT_PRIMARY }),
+          ],
+        }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Rol", 30),
+                  headerCell("Domein", 20),
+                  headerCell("Vraag", 50),
+                ],
+              }),
+              ...reviewRows,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+      }
 
       if (heeftLegeNa && laatsteMetUren !== null) {
         children.push(bodyText(
