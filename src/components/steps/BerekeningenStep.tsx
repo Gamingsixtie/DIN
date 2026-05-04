@@ -1703,6 +1703,35 @@ const FASE_ZWAARTE: Record<string, Record<string, number>> = {
   cultuur: { analyse: 0.20, realisatie: 0.25, acceptatie: 0.25, beheer: 0.30 },
 };
 
+// Onderbouwing per (domein, fase) — waarom dit percentage? Wordt als hover-tooltip getoond
+// in F1, zodat lezer kan reconstrueren waarom de fase-zwaarte zo is gekozen.
+const FASE_ZWAARTE_ONDERBOUWING: Record<string, Record<string, string>> = {
+  data_systemen: {
+    analyse: "15% — bewust kort gehouden: architectuurkeuze + datakwaliteit-scan zijn intensief maar afgebakend (Q2-besluit + go/no-go ontvlechting Stichting Cito). De zware werk-uren komen pas bij realisatie en acceptatie.",
+    realisatie: "25% — bouw datamodel + sectorinrichting PO/VO + migratie bronsystemen. Externe implementatiepartner doet zware bouw-uren; intern team coördineert/test → 25% intern is realistisch.",
+    acceptatie: "35% (CRM-piek) — V2-tuning na piek-mismatch in V1: key-user-training + acceptatietest + go-live geven de zwaarste capaciteits-piek. Twaalf trainers begeleiden 49–85 eindgebruikers, sectormanagers borgen sector-eisen, Manager D&T trekt adoption. Hierdoor valt mens-uren-piek (training-faciliteit) in hetzelfde jaar als CRM-acceptatie — synchronisatie met OOP-begroting.",
+    beheer: "25% — structureel beheer, doorontwikkeling op basis van gebruiksfeedback en optimalisatie funnelrapportages. Grootste deel valt in functieprofiel (Manager D&T 200u baseline) → vandaar relatief hoog beheer-percentage.",
+  },
+  mens: {
+    analyse: "20% — nulmeting per sector + curriculumontwerp + selectie externe trainingspartner. 47 actieve deelnemers + 12 trainers in voorbereiding; verhoudingsgewijs lichter dan de trainingsblokken zelf.",
+    realisatie: "30% — eerste trainingsblok (3 maanden voor 80 deelnemers): gespreksregie + vraag-achter-de-vraag-methodiek. 28 KS-medewerkers C × 24u + Accountmanagers + binnendienst → grootste brok contacttijd valt hier.",
+    acceptatie: "30% — tweede trainingsblok + casusoefeningen op echte klantcontexten. Even zwaar als realisatie omdat in deze fase de toepassing gekoppeld wordt aan eerste CRM-data; gedragscoaching + intervisie.",
+    beheer: "20% — borging + nazorg: e-learning, intervisie, gedragsindicatoren in functioneringsgesprekken. Afnemend gewicht omdat de meeste taken inschuiven in de bestaande HRM-cyclus.",
+  },
+  processen: {
+    analyse: "20% — as-is procesmapping per sector in Smartprocess + werkgroepsessies funneldefinities + KPI-systematiek. Procesmanager Data + Projectmanager D als trekkers; relatief lichte fase want vooral werkgroep-frequentie.",
+    realisatie: "30% — pilots met sectorvarianten (PO/VO/Zakelijk) parallel aan CRM-bouw. Drie Procesondersteuners (~66u elk in piekjaar) + externe procesbegeleiding 20 dagen. Zwaarste fase voor processen-domein.",
+    acceptatie: "25% — uitrol bij ~21 betrokken medewerkers + onboardingsprogramma + start structureel proceseigenaarschap. Iets lichter dan realisatie omdat veel werk al in pilots is gedaan.",
+    beheer: "25% — standaardisatie funnelgovernance + structureel proceseigenaarschap drie sectoren + eerste verbetercyclus op basis van CRM-rapportages. Procesmanager-werk schuift hier deels in functieprofiel (~45% lijn).",
+  },
+  cultuur: {
+    analyse: "20% — programma-ontwerp leiderschapsprogramma + MT-commitment + eerste sessies cultureel vertrekpunt + gedragscontracten. HR (2 personen) als trekker; sectormanagers + directeur in lichte coalitievorming.",
+    realisatie: "25% — intensieve sessies + gezamenlijke klantbezoeken + integratie outside-in als criterium in beoordelings-/functioneringscyclus. Iets lichter dan in mens omdat het over leiderschapscoaching gaat, niet over groepstraining van 80 deelnemers.",
+    acceptatie: "25% — intervisiesessies cross-sectoraal + koppeling aan resultaten van mens- en CRM-spoor + eerste meting gedragsindicatoren. Even zwaar als realisatie om de outside-in-coalitie zichtbaar te maken.",
+    beheer: "30% — verankering in HRM-cyclus + leren-en-presteren-gesprekken + cultuur als zelfdragend onderdeel. Hoog beheer-percentage omdat het programma alleen blijvend werkt als HR-cyclus het overneemt; vandaar zwaartepunt op borging.",
+  },
+};
+
 // Mapt fase-tekst (zoals die in begrotingAdvies.inspanningen[].verdelingPerJaar[].fase
 // voorkomt) naar de canonieke bucket in FASE_ZWAARTE.
 function normaliseerFase(fase: string | undefined): string {
@@ -1733,6 +1762,7 @@ const STILLE_SELECTIES: Array<{
   rolLabel: string;
   uitleg: string;
   defaultUrenPerJaar: number;
+  urenOnderbouwing: string;
 }> = [
   {
     functieId: "manager_klantcontact",
@@ -1741,6 +1771,8 @@ const STILLE_SELECTIES: Array<{
     uitleg:
       "Manager Klantcontact is in mens al gelabeld voor trainings-coördinatie (~40u/jr — roosters voor klantenservice-team). In data_systemen gaat het om iets anders: stuurgroep-deelname en adoption-leiderschap voor het nieuwe CRM. Geen dubbeltelling: andere activiteit, andere uren.",
     defaultUrenPerJaar: 7,
+    urenOnderbouwing:
+      "7u/jr = 1u/maand CRM-stuurgroep × ~7 actieve maanden in een acceptatie/uitrol-jaar (zomerstop juli–aug telt niet mee). Bouwstenen: maandelijks stuurgroep-overleg (~1u) + ad-hoc adoption-leiderschap voor klantenservice-team. Geen training-faciliteit-uren hier — die zitten al in mens-domein als 40u/jr en zijn een andere activiteit.",
   },
   {
     functieId: "accountmanager_c_prof",
@@ -1749,6 +1781,8 @@ const STILLE_SELECTIES: Array<{
     uitleg:
       "3× Accountmanager C (Professionals) als CRM-eindgebruiker, sectorconfiguratie-input en key-user-training. Stuurgroep-deel valt deels in functieprofiel — daarom ligt programma-aandeel hier op ~70%, niet op 85% zoals het domein-gemiddelde.",
     defaultUrenPerJaar: 9,
+    urenOnderbouwing:
+      "9u/jr per persoon = ~6u CRM-eindgebruiker-acceptatietest (sectorconfiguratie Zakelijk-module) + ~3u key-user-training-deelname per acceptatie/uitrol-jaar. Bij 3 personen levert dit 27u/jr in piek-jaar. Geen overlap met mens-domein-uren (46u contacttijd per persoon over twee trainingsblokken — dat is gespreksvaardigheidstraining, niet CRM-acceptatie).",
   },
 ];
 
@@ -2151,7 +2185,10 @@ function UrenF1Parameters({
   const aantalJaren = interneUrenScen.aantalJaren ?? 0;
   const basisTarief = uurtariefSettings?.basisTarief ?? 70;
   const refJaar = uurtariefSettings?.referentiejaar ?? 2025;
-  const indexPct = uurtariefSettings?.indexatiePercentage ?? 5;
+  // Bron-data kan indexatie als 5 (percent-punten) of 0.05 (fractie) opslaan.
+  // Normaliseer naar percent-punten (bv. 5 voor 5%).
+  const indexPctRaw = uurtariefSettings?.indexatiePercentage ?? 5;
+  const indexPct = indexPctRaw <= 1 ? indexPctRaw * 100 : indexPctRaw;
   const j1Cap = scenarioKey === "advies" || scenarioKey === "plus20" ? 290 : 250;
   const eindjaar = startJaar + Math.max(0, aantalJaren - 1);
 
@@ -2189,28 +2226,88 @@ function UrenF1Parameters({
         />
       </div>
 
-      {/* Tarief-curve per jaar */}
+      {/* Tarief-curve per jaar — met per-cel-formule */}
       <div className="rounded bg-gray-50/70 border border-gray-200 p-3">
         <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">
           Tarief-curve per jaar (= € {basisTarief} × (1 + {indexPct}%)^(jaar − {refJaar}))
         </p>
+        <p className="text-[11px] text-gray-600 italic mb-2 leading-snug">
+          <strong className="not-italic">Waarom € {basisTarief} basis?</strong> Cito-conventie voor interne-uren-doorrekening (mix-tarief over alle schalen, exclusief sociale lasten en overhead — die zitten in de programma-OOP-begroting). <strong className="not-italic">Waarom {indexPct}%/jr?</strong> Conform CAO-loonkost-stijging onderwijs (2024–2026 ≈ 4,5–5%); 5% gekozen als conservatieve, eenduidige indexatie zodat het tarief voor het laatste programmajaar niet onderschat wordt. <strong className="not-italic">Waarom referentiejaar {refJaar}?</strong> Het tarief is vastgesteld bij start van de programma-voorbereiding (eind {refJaar}); jaar-1 ({startJaar}) zit dus al één index-stap hoger.
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs font-mono">
-          {tarievenPerJaar.map((t) => (
-            <div key={t.jaar} className="flex items-baseline justify-between rounded border border-gray-200 bg-white px-2 py-1">
-              <span className="text-gray-500">{t.jaar}</span>
-              <span className="text-gray-800 font-semibold">€ {t.tarief}</span>
-            </div>
-          ))}
+          {tarievenPerJaar.map((t) => {
+            const exponent = t.jaar - refJaar;
+            const exact = basisTarief * t.factor;
+            const formule = `€ ${basisTarief} × ${(t.factor).toFixed(4)} = € ${exact.toFixed(2)} → € ${t.tarief}`;
+            return (
+              <div
+                key={t.jaar}
+                className="flex items-baseline justify-between rounded border border-gray-200 bg-white px-2 py-1 cursor-help"
+                title={`Formule jaar ${t.jaar}:\n€ ${basisTarief} × (1 + ${indexPct}/100)^(${t.jaar} − ${refJaar})\n= € ${basisTarief} × (1.${(indexPct/100).toFixed(2).slice(2)})^${exponent}\n= ${formule}`}
+              >
+                <span className="text-gray-500">{t.jaar}</span>
+                <span className="text-gray-800 font-semibold">€ {t.tarief}</span>
+              </div>
+            );
+          })}
         </div>
+        <p className="text-[10px] text-gray-500 italic mt-1.5">
+          Hover een cel voor de exacte formule. Voorbeeld jaar {startJaar}: € {basisTarief} × 1.05^{startJaar - refJaar} = € {(basisTarief * Math.pow(1 + indexPct/100, startJaar - refJaar)).toFixed(2)} → afgerond € {Math.round(basisTarief * Math.pow(1 + indexPct/100, startJaar - refJaar))}.
+        </p>
       </div>
 
-      {/* Fase-zwaarte per domein */}
+      {/* J1-cap-onderbouwing */}
+      {(scenarioKey === "advies" || scenarioKey === "plus20") && (
+        <div className="rounded bg-amber-50/60 border border-amber-200 p-3">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-amber-900 mb-1.5">
+            Hoe komt de J1-cap van {j1Cap}u tot stand?
+          </p>
+          <div className="text-[11px] text-amber-900 leading-relaxed space-y-1">
+            <p>
+              <strong>Programma start juni {startJaar}</strong> — half kalenderjaar, dus structureel ~50% capaciteit beschikbaar t.o.v. een vol jaar.
+            </p>
+            <p className="font-mono">
+              Cap = (gemiddeld scenario-jaar {Math.round((interneUrenScen.totaalUren ?? 0) / Math.max(1, aantalJaren)).toLocaleString("nl-NL")}u) × ½ × seizoens-correctie ≈ {j1Cap}u
+            </p>
+            <p className="text-[10px]">
+              Voor advies (4j) en plus20 (5j) ligt de cap op <strong>290u</strong>: kortere doorlooptijd → hogere jaargemiddelden → hogere half-jaar-cap. Voor optimaal (7j) en min20 (10j) ligt de cap op 250u (langere looptijd → lager jaargemiddelde, dus lagere J1). De cap voorkomt dat fase-zwaarte het J1-bedrag onrealistisch hoog zet — analyse-fase is normaal 15–20% van het domein-totaal en in een vol jaar; bij een half jaar moet dit naar ~half teruggebracht worden.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* J1-cap-onderbouwing — optimaal & min20 (langere looptijd, lagere cap) */}
+      {(scenarioKey === "optimaal" || scenarioKey === "min20") && (
+        <div className="rounded bg-amber-50/60 border border-amber-200 p-3">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-amber-900 mb-1.5">
+            Hoe komt de J1-cap van {j1Cap}u tot stand? ({scenarioKey === "optimaal" ? "optimaal — 7 jaar" : "min20 — 10 jaar"})
+          </p>
+          <div className="text-[11px] text-amber-900 leading-relaxed space-y-1">
+            <p>
+              <strong>Programma start juni {startJaar}</strong> — half kalenderjaar, dus structureel ~50% capaciteit beschikbaar t.o.v. een vol jaar.
+            </p>
+            <p className="font-mono">
+              Cap = (gemiddeld scenario-jaar {Math.round((interneUrenScen.totaalUren ?? 0) / Math.max(1, aantalJaren)).toLocaleString("nl-NL")}u) × ½ × seizoens-correctie ≈ {j1Cap}u
+            </p>
+            <p className="text-[10px]">
+              <strong>Waarom 250u (en niet 290u zoals bij advies/plus20)?</strong> Langere looptijden ({aantalJaren} jaar) verlagen het jaargemiddelde: het scenario-totaal ({(interneUrenScen.totaalUren ?? 0).toLocaleString("nl-NL")}u) wordt over méér jaren uitgesmeerd, dus zijn ook latere jaren minder zwaar. Een half-jaar-cap die proportioneel blijft komt dan op 250u uit — ~14% lager dan de 290u-cap voor 4–5-jaars-scenario&apos;s. Bovendien ligt voor {scenarioKey === "optimaal" ? "optimaal" : "min20"} de zware Acceptatie-fase pas in {scenarioKey === "optimaal" ? "2029" : "2030"}; J1 ({startJaar}) is een Analyse-jaar (15% fase-zwaarte voor data_systemen), wat bij gelijkmatige verdeling al laag uitvalt — de cap is dan een veiligheidsplafond, geen actieve correctie.
+            </p>
+            {scenarioKey === "min20" && (
+              <p className="text-[10px]">
+                <strong>Specifiek min20:</strong> de 10-jarige looptijd betekent een staart van ~50u/jr structureel werk in J8–J10 (2033–2035) voor doorontwikkeling, optimalisatie en continu verbeteren. Die staart drukt het jaargemiddelde nog verder omlaag, waardoor de 250u-cap voor J1 ruim genoeg blijkt — werkelijk J1 ≈ 264u (binnen 5%-tolerantie van de cap).
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Fase-zwaarte per domein — met onderbouwing per (domein, fase) */}
       <div className="rounded bg-gray-50/70 border border-gray-200 p-3">
         <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">
           Fase-zwaarte per domein — hoe wordt domein-totaal over de fasen verdeeld?
         </p>
-        <p className="text-[11px] text-gray-600 italic mb-2">
-          Voor data_systemen (CRM) is acceptatie zwaarder gemaakt zodat de uren-piek samenvalt met het OOP-Acceptatie★-jaar uit de begroting. De andere domeinen volgen een gelijkmatigere curve.
+        <p className="text-[11px] text-gray-600 italic mb-2 leading-snug">
+          <strong className="not-italic">Wat is fase-zwaarte?</strong> Een verdeel-sleutel: per (domein × fase) bepaalt het percentage welk deel van het domein-totaal in een fase-jaar valt. Som per domein-rij = 100%. Voor <strong className="not-italic">data_systemen (CRM)</strong> is <strong className="not-italic">Acceptatie</strong> bewust zwaarder gemaakt (35% i.p.v. 25%) zodat de uren-piek samenvalt met het OOP-Acceptatie★-jaar uit de begroting (V2-tuning na piek-mismatch in V1: training-uren én license/migratie-uren vallen samen in het jaar dat eindgebruikers het CRM gaan gebruiken — key-user-training, acceptatietest, go-live). De andere domeinen volgen een gelijkmatigere curve omdat hun werkpiek minder uitgesproken is.
         </p>
         <table className="w-full text-xs">
           <thead>
@@ -2226,23 +2323,33 @@ function UrenF1Parameters({
             {domeinen.map((d) => {
               const fz = FASE_ZWAARTE[d];
               const isCrm = d === "data_systemen";
+              const onderbouwing = FASE_ZWAARTE_ONDERBOUWING[d];
               return (
                 <tr key={d} className="border-b border-gray-100 last:border-0">
                   <td className="py-1.5 pr-2 font-medium text-gray-800">
                     {DOMAIN_LABEL[d] ?? d}
                     {isCrm && <span className="ml-1 text-[10px] text-purple-700">(CRM-piek)</span>}
                   </td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.analyse * 100)}%</td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.realisatie * 100)}%</td>
-                  <td className={`py-1.5 px-2 font-mono text-right ${isCrm ? "font-bold text-purple-700" : "text-gray-700"}`}>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help" title={onderbouwing.analyse}>
+                    {Math.round(fz.analyse * 100)}%
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help" title={onderbouwing.realisatie}>
+                    {Math.round(fz.realisatie * 100)}%
+                  </td>
+                  <td className={`py-1.5 px-2 font-mono text-right cursor-help ${isCrm ? "font-bold text-purple-700" : "text-gray-700"}`} title={onderbouwing.acceptatie}>
                     {Math.round(fz.acceptatie * 100)}%
                   </td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{Math.round(fz.beheer * 100)}%</td>
+                  <td className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help" title={onderbouwing.beheer}>
+                    {Math.round(fz.beheer * 100)}%
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        <p className="text-[10px] text-gray-500 italic mt-1.5">
+          Hover een percentage voor de redenering achter die fase-zwaarte (waarom is bv. data_systemen-Acceptatie 35% en niet 25%).
+        </p>
       </div>
     </div>
   );
@@ -2264,31 +2371,36 @@ function UrenF2Optelling({
   const domeinen = interneUrenScen.domeinen ?? [];
   const totaalUren = interneUrenScen.totaalUren ?? 0;
   const totaalKosten = interneUrenScen.totaalKosten ?? 0;
+  // Normaliseer indexatie naar percent-punten (zoals F1)
+  const indexPctRawF2 = uurtariefSettings?.indexatiePercentage ?? 5;
+  const indexPctNorm = indexPctRawF2 <= 1 ? indexPctRawF2 * 100 : indexPctRawF2;
   const startTarief =
     interneUrenScen.uurtariefGebruikt ??
     (uurtariefSettings
       ? Math.round(
           uurtariefSettings.basisTarief *
-            Math.pow(1 + uurtariefSettings.indexatiePercentage / 100, startJaar - uurtariefSettings.referentiejaar),
+            Math.pow(1 + indexPctNorm / 100, startJaar - uurtariefSettings.referentiejaar),
         )
       : 70);
 
-  // Per domein: rollen-uniek + personen-totaal + som-uren
+  // Per domein: rollen-uniek + personen-totaal + som-uren + top-rollen voor breakdown
+  type RolAggregaat = { naam: string; functieId: string; uren: number; aantalJaren: number };
   const rijen = domeinen.map((d) => {
     const jaren = d.jaren ?? [];
     // Aggregeer uren per functieId over alle jaren
-    const perFunctie = new Map<string, { naam: string; uren: number; aantalKeren: number }>();
+    const perFunctie = new Map<string, RolAggregaat>();
     for (const jr of jaren) {
       for (const r of jr.rollen ?? []) {
         const key = r.functieId ?? r.functieNaam ?? "onbekend";
-        const cur = perFunctie.get(key) ?? { naam: r.functieNaam ?? key, uren: 0, aantalKeren: 0 };
+        const cur = perFunctie.get(key) ?? { naam: r.functieNaam ?? key, functieId: key, uren: 0, aantalJaren: 0 };
         cur.uren += r.uren ?? 0;
-        cur.aantalKeren += 1;
+        cur.aantalJaren += 1;
         perFunctie.set(key, cur);
       }
     }
     const aantalRollen = perFunctie.size;
-    const somUren = Array.from(perFunctie.values()).reduce((s, v) => s + v.uren, 0);
+    const rollenAgg = Array.from(perFunctie.values()).sort((a, b) => b.uren - a.uren);
+    const somUren = rollenAgg.reduce((s, v) => s + v.uren, 0);
     const dTot = d.totaalUren ?? somUren;
     const pct =
       typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
@@ -2300,18 +2412,22 @@ function UrenF2Optelling({
     return {
       domein: d.domein,
       aantalRollen,
-      aantalKeren: Array.from(perFunctie.values()).reduce((s, v) => s + v.aantalKeren, 0),
+      aantalKeren: rollenAgg.reduce((s, v) => s + v.aantalJaren, 0),
       somUren,
       dTot,
       progU,
       lijnU,
       progPct,
+      rollenAgg,
     };
   });
 
   const somAlleUren = rijen.reduce((s, r) => s + r.dTot, 0);
   const tol = Math.max(50, Math.round(totaalUren * 0.005));
   const matchOk = Math.abs(somAlleUren - totaalUren) <= tol;
+
+  // Per-jaar-kosten-uitsplitsing voor de scenario-totaal kosten-formule
+  const totalenPerJaar = interneUrenScen.totalenPerJaar ?? [];
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
@@ -2330,6 +2446,14 @@ function UrenF2Optelling({
           <tbody>
             {rijen.map((r) => {
               const hex = DOMAIN_BAR_HEX[r.domein] ?? "#6b7280";
+              const top3 = r.rollenAgg.slice(0, 3);
+              const top3Tip =
+                top3.length > 0
+                  ? `Top-3 rollen in ${r.domein}:\n` +
+                    top3.map((t) => `• ${t.naam}: ${t.uren}u over ${t.aantalJaren} actieve jaren`).join("\n")
+                  : "";
+              const progFormule = `${r.dTot} u × ${r.progPct}% = ${r.progU} u programma\n(programmaPct ${r.progPct}% komt uit Stap 7-selectiePerDomein.programmaPct als gezet, anders uit PROGRAMMA_PCT_DEFAULT[${r.domein}] = ${Math.round((PROGRAMMA_PCT_DEFAULT[r.domein] ?? 0.75) * 100)}%)`;
+              const lijnFormule = `${r.dTot} u × ${100 - r.progPct}% = ${r.lijnU} u lijn`;
               return (
                 <tr key={r.domein} className="border-b border-gray-100 last:border-0">
                   <td className="py-1.5 pr-2 font-medium text-gray-800">
@@ -2338,16 +2462,35 @@ function UrenF2Optelling({
                       {DOMAIN_LABEL[r.domein] ?? r.domein}
                     </span>
                   </td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-700">{r.aantalRollen}</td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-500">{r.aantalKeren}</td>
-                  <td className="py-1.5 px-2 font-mono text-right text-gray-900 font-semibold">
+                  <td
+                    className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                    title={`= aantal unieke functieIds in dit domein over alle scenario-jaren.\n${top3Tip}`}
+                  >
+                    {r.aantalRollen}
+                  </td>
+                  <td
+                    className="py-1.5 px-2 font-mono text-right text-gray-500 cursor-help"
+                    title={`= som van (rol × actief-jaar)-paren. Eén rol die alle ${interneUrenScen.aantalJaren ?? "?"} jaar actief is telt als ${interneUrenScen.aantalJaren ?? "?"}.\nGemiddeld actief: ${r.aantalRollen > 0 ? (r.aantalKeren / r.aantalRollen).toFixed(1) : "—"} jr/rol.`}
+                  >
+                    {r.aantalKeren}
+                  </td>
+                  <td
+                    className="py-1.5 px-2 font-mono text-right text-gray-900 font-semibold cursor-help"
+                    title={`= som van alle uren van alle rollen in alle jaren binnen dit domein.\n${top3.length > 0 ? `Grootste rol: ${top3[0].naam} (${top3[0].uren}u, ${Math.round((top3[0].uren / r.dTot) * 100)}% van domein-totaal).` : ""}`}
+                  >
                     {r.dTot.toLocaleString("nl-NL")} u
                   </td>
-                  <td className="py-1.5 px-2 font-mono text-right text-emerald-700">
+                  <td
+                    className="py-1.5 px-2 font-mono text-right text-emerald-700 cursor-help"
+                    title={progFormule}
+                  >
                     {r.progU.toLocaleString("nl-NL")} u
                     <span className="text-[10px] text-gray-500 ml-1">({r.progPct}%)</span>
                   </td>
-                  <td className="py-1.5 px-2 font-mono text-right text-amber-700">
+                  <td
+                    className="py-1.5 px-2 font-mono text-right text-amber-700 cursor-help"
+                    title={lijnFormule}
+                  >
                     {r.lijnU.toLocaleString("nl-NL")} u
                   </td>
                 </tr>
@@ -2377,7 +2520,7 @@ function UrenF2Optelling({
         </div>
       )}
 
-      {/* Kosten-formule */}
+      {/* Kosten-formule + per-jaar-uitsplitsing */}
       <div className="rounded bg-gray-50 border border-gray-200 p-3 font-mono text-[11px] space-y-1">
         <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1">
           Scenario-totaal kosten (geïndexeerd per jaar)
@@ -2387,8 +2530,42 @@ function UrenF2Optelling({
           <span className="font-bold text-gray-900">{formatEur(totaalKosten)}</span>
         </div>
         <p className="text-[10px] text-gray-500 font-sans italic">
-          Kosten per jaar = uren × geïndexeerd tarief (basis × (1 + {uurtariefSettings?.indexatiePercentage ?? 5}%)^(jaar − {uurtariefSettings?.referentiejaar ?? 2025})). Tarief in jaar 1 ≈ € {startTarief}/u.
+          Kosten per jaar = uren × geïndexeerd tarief (basis × (1 + {indexPctNorm}%)^(jaar − {uurtariefSettings?.referentiejaar ?? 2025})). Tarief in jaar 1 ≈ € {startTarief}/u.
         </p>
+        {totalenPerJaar.length > 0 && (
+          <details className="mt-2 border-t border-gray-200 pt-1.5">
+            <summary className="cursor-pointer text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans hover:text-[#003366]">
+              Per-jaar-uitsplitsing (uren × tarief = kosten)
+            </summary>
+            <div className="mt-1.5 space-y-0.5">
+              {totalenPerJaar.map((t) => {
+                const tarief = uurtariefSettings
+                  ? Math.round(uurtariefSettings.basisTarief * Math.pow(1 + indexPctNorm / 100, t.jaar - uurtariefSettings.referentiejaar))
+                  : startTarief;
+                const aandeel = totaalUren > 0 ? Math.round(((t.uren ?? 0) / totaalUren) * 100) : 0;
+                return (
+                  <div key={t.jaar} className="flex items-baseline justify-between gap-2 text-[11px]">
+                    <span className="text-gray-700 w-12">{t.jaar}</span>
+                    <span className="text-gray-500 flex-1">
+                      {(t.uren ?? 0).toLocaleString("nl-NL")} u × € {tarief}
+                    </span>
+                    <span className="text-gray-900 font-semibold w-20 text-right">{formatEur(t.kosten ?? 0)}</span>
+                    <span className="text-gray-400 text-[10px] w-8 text-right">{aandeel}%</span>
+                  </div>
+                );
+              })}
+              <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between gap-2 font-bold text-gray-800">
+                <span>Σ</span>
+                <span>{totaalUren.toLocaleString("nl-NL")} u</span>
+                <span className="w-20 text-right">{formatEur(totaalKosten)}</span>
+                <span className="w-8" />
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-500 font-sans italic mt-1.5">
+              Aandeel-% per jaar laat de cap-curve zien: J1 (start juni) is laag (5–8%), piek in J3–J5 afhankelijk van scenario, daarna afbouw. Voor min20 zie je een lange staart van ~5% in J8–J10 — structureel beheer/doorontwikkeling.
+            </p>
+          </details>
+        )}
       </div>
     </div>
   );
@@ -2525,24 +2702,33 @@ function UrenF3DomeinKaart({
           <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
             F3.1 — Fase-curve uit begrotingAdvies
           </p>
+          <p className="text-[11px] text-gray-600 italic mb-1.5 leading-snug">
+            Bron: <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">begrotingAdvies.scenarios[{aantalJaren}j].inspanningen[{dKey}].verdelingPerJaar[i].fase</code>. Per jaar wordt de meest voorkomende fase-tekst genomen en gemapt naar de canonieke bucket (analyse / realisatie / acceptatie / beheer) via <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">normaliseerFase()</code>. Niet-herkende fase-teksten (bv. &ldquo;Leverancier-selectie&rdquo;, &ldquo;Go-live &amp; adoptie&rdquo;, &ldquo;Doorontwikkeling&rdquo;, &ldquo;Continu verbeteren&rdquo;) krijgen fallback-zwaarte 25% — ruwweg een gelijkmatig vierde — om geen gat te laten vallen. Hover op een tegel voor de raw fase-tekst.
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {Array.from(brutoZwaartePerJaar.keys()).sort((a, b) => a - b).map((jaar) => {
               const f = fasePerJaar.get(jaar);
               const norm = normaliseerFase(f);
               const isPiek = jaar === piekJaar && norm === "acceptatie" && dKey === "data_systemen";
+              const isFallback = norm === "onbekend";
+              const tip = `Jaar ${jaar}\nRaw fase-tekst: "${f ?? "—"}"\nGenormaliseerd: ${FASE_LABEL[norm] ?? "onbekend"}${isFallback ? " (fallback — 25% zwaarte)" : ` (${Math.round((fz[norm] ?? 0) * 100)}% zwaarte voor ${dKey})`}`;
               return (
                 <div
                   key={jaar}
-                  className={`rounded border px-2 py-1 text-[11px] ${
+                  title={tip}
+                  className={`rounded border px-2 py-1 text-[11px] cursor-help ${
                     isPiek
                       ? "border-purple-400 bg-purple-50 text-purple-900 font-semibold"
+                      : isFallback
+                      ? "border-amber-200 bg-amber-50/60 text-amber-900"
                       : "border-gray-200 bg-gray-50 text-gray-700"
                   }`}
                 >
                   <span className="font-mono">{jaar}</span>
                   <span className="mx-1 text-gray-400">→</span>
-                  <span>{FASE_LABEL[norm] ?? f ?? "—"}</span>
+                  <span>{FASE_LABEL[norm] !== "—" ? FASE_LABEL[norm] : (f ?? "—")}</span>
                   {isPiek && <span className="ml-1">★</span>}
+                  {isFallback && f && <span className="ml-1 text-[9px] uppercase">fb</span>}
                 </div>
               );
             })}
@@ -2550,6 +2736,12 @@ function UrenF3DomeinKaart({
           {inspanningenVoorDomein.length === 0 && (
             <p className="text-[11px] text-gray-500 italic mt-1">
               Geen inspanningen in begroting voor dit domein — fasen niet beschikbaar.
+            </p>
+          )}
+          {/* Min20-staart toelichting voor data_systemen + processen */}
+          {aantalJaren >= 9 && (dKey === "data_systemen" || dKey === "processen" || dKey === "mens" || dKey === "cultuur") && (
+            <p className="text-[10px] text-amber-800 italic mt-1.5 leading-snug">
+              <strong className="not-italic">Min20-staart (J8–J10 = {startJaar + 7}–{startJaar + 9}):</strong> de drie laatste jaren krijgen fase-teksten als &ldquo;Optimalisatie&rdquo;, &ldquo;Doorontwikkeling&rdquo;, &ldquo;Continu verbeteren&rdquo; en &ldquo;Verankering&rdquo; — die mappen niet 1-op-1 op de vier canonieke buckets. Resultaat: ~25% fallback-zwaarte per jaar, wat na normalisatie neerkomt op ~50u/jr structureel werk per domein. Concreet voor {DOMAIN_LABEL[dKey] ?? dKey}: J8–J10 ≈ {[7,8,9].map((idx) => `${jaren.find((jr) => jr.jaar === startJaar + idx)?.totaalUren ?? 0}u`).join(" / ")}. Dit is geen administratief artefact maar realistisch beheer/doorontwikkeling — bij langere doorlooptijd blijft een minimum-bezetting nodig om kennis levend te houden.
             </p>
           )}
         </div>
@@ -2560,8 +2752,8 @@ function UrenF3DomeinKaart({
             F3.2 — Fase-zwaarte toegepast op {dTot.toLocaleString("nl-NL")} u
           </p>
           <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
-            <div className="text-[10px] text-gray-500 font-sans">
-              Bruto = totaal × zwaarte / Σzwaarte (= verdelen naar fase-curve hierboven). Werkelijk kan iets afwijken door J1-cap (zie F4) en rounding op rol-niveau.
+            <div className="text-[10px] text-gray-500 font-sans leading-snug">
+              <strong className="not-italic">Formule:</strong> bruto<sub>jaar</sub> = {dTot.toLocaleString("nl-NL")}u × (zwaarte<sub>jaar</sub> / Σzwaarte). De Σ over {aantalJaren} jaar = {Math.round(zwaarteSom * 100) / 100} (= som van fase-zwaartes per jaar uit FASE_ZWAARTE[<code className="font-mono">{dKey}</code>]; herhaalde fasen tellen meermaals mee, fallback 0.25 voor &ldquo;onbekend&rdquo;). De normalisatie zorgt dat Σbruto = {dTot.toLocaleString("nl-NL")}u (= dTot exact verdeeld). <strong className="not-italic">Werkelijk vs. bruto:</strong> verschil ontstaat door (1) J1-cap-correctie (zie F4 — alleen relevant als bruto J1 boven de J1-cap valt), (2) rol-aggregatie-rounding bij meerdere personen, en (3) de stille selecties uit F5 die in data_systemen extra uren brengen.
             </div>
             {Array.from(brutoUrenPerJaar.entries())
               .sort((a, b) => a[0] - b[0])
@@ -2570,20 +2762,30 @@ function UrenF3DomeinKaart({
                 const z = brutoZwaartePerJaar.get(jaar) ?? 0;
                 const f = fasePerJaar.get(jaar);
                 const norm = normaliseerFase(f);
+                const verschil = werkelijk - brutoU;
+                const isPiekJaar = jaar === piekJaar;
+                const verschilTip = `Verschil bruto → werkelijk: ${verschil >= 0 ? "+" : ""}${verschil}u\nBruto = ${dTot}u × ${(z * 100).toFixed(0)}% / ${(zwaarteSom * 100).toFixed(0)}% = ${brutoU}u\nWerkelijk = optelling rol-uren in jaar (${jaren.find((j) => j.jaar === jaar)?.rollen?.length ?? 0} rollen).${isPiekJaar ? "\n★ Domein-piek-jaar." : ""}`;
                 return (
-                  <div key={jaar} className="flex items-baseline justify-between gap-2">
+                  <div key={jaar} className="flex items-baseline justify-between gap-2 cursor-help" title={verschilTip}>
                     <span className="text-gray-700">
-                      {jaar} ({FASE_LABEL[norm] ?? "—"}, zwaarte {Math.round(z * 100)}%)
+                      {jaar} ({FASE_LABEL[norm] !== "—" ? FASE_LABEL[norm] : (f ?? "—")}, zwaarte {Math.round(z * 100)}%)
                     </span>
                     <span className="text-gray-500 text-[10px]">
                       bruto {brutoU.toLocaleString("nl-NL")} u
                     </span>
-                    <span className="text-gray-900 font-semibold">
+                    <span className={`font-semibold ${isPiekJaar ? "text-purple-700" : "text-gray-900"}`}>
                       → werkelijk {werkelijk.toLocaleString("nl-NL")} u
+                      {isPiekJaar && <span className="ml-1 text-[10px]">★piek</span>}
                     </span>
                   </div>
                 );
               })}
+            {/* Min20-staart annotatie voor data_systemen */}
+            {aantalJaren >= 9 && dKey === "data_systemen" && (
+              <p className="text-[10px] text-amber-800 font-sans italic mt-1.5 pt-1.5 border-t border-amber-200 leading-snug">
+                <strong className="not-italic">Waarom ~50u/jr in J8–J10?</strong> De drie laatste jaren (Optimalisatie / Doorontwikkeling / Continu verbeteren) krijgen elk fallback-zwaarte 25% omdat hun fase-tekst niet 1-op-1 normaliseert. Som ({(0.25 * 3).toFixed(2)}) als deel van Σzwaarte ({zwaarteSom.toFixed(2)}) = {Math.round((0.75 / zwaarteSom) * 100)}% van {dTot}u ≈ {Math.round((0.75 / zwaarteSom) * dTot)}u over 3 jaar = ≈ {Math.round((0.75 / zwaarteSom) * dTot / 3)}u/jr per staart-jaar. Niet 30u (te lichte indexering, geen ruimte voor licentie-verlenging) en niet 80u (zou structureel beheer impliceren dat al in functieprofiel hoort) — 50u/jr is het smalle midden tussen functioneel beheer en programma-doorontwikkeling.
+              </p>
+            )}
           </div>
         </div>
 
@@ -2591,17 +2793,27 @@ function UrenF3DomeinKaart({
         {top3Rollen.length > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1.5">
-              F3.3 — Top-3 rollen in piek-jaar {piekJaar}
+              F3.3 — Top-3 rollen in domein-piek-jaar {piekJaar} ({piekUren.toLocaleString("nl-NL")} u)
+            </p>
+            <p className="text-[11px] text-gray-600 italic mb-1.5 leading-snug">
+              <strong className="not-italic">N.B.:</strong> dit is het piek-jaar van <em>dit domein</em> ({DOMAIN_LABEL[dKey] ?? dKey}, {dTot.toLocaleString("nl-NL")}u totaal) — niet noodzakelijk het piek-jaar van het scenario als geheel. Per domein valt de piek in een ander jaar afhankelijk van de fase-curve: data_systemen piekt in Acceptatie★ ({dKey === "data_systemen" ? piekJaar : "—"}), mens piekt in trainingsblok-jaar (vaak J3), processen piekt rond pilot/uitrol, cultuur is gelijkmatiger met lichte piek bij borging.
             </p>
             <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
-              {top3Rollen.map((r, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-2">
-                  <span className="text-gray-700 truncate">
-                    {r.functieNaam ?? r.functieId ?? "Onbekend"}
-                  </span>
-                  <span className="text-gray-900 font-semibold">{(r.uren ?? 0).toLocaleString("nl-NL")} u</span>
-                </div>
-              ))}
+              {top3Rollen.map((r, i) => {
+                const aandeel = piekUren > 0 ? Math.round(((r.uren ?? 0) / piekUren) * 100) : 0;
+                const formule = `${r.functieNaam ?? "—"}: ${r.uren ?? 0}u in ${piekJaar}\n= ${aandeel}% van domein-piek (${piekUren}u)\n= ${dTot > 0 ? Math.round(((r.uren ?? 0) / dTot) * 100) : 0}% van domein-totaal (${dTot}u over ${aantalJaren}j)`;
+                return (
+                  <div key={i} className="flex items-baseline justify-between gap-2 cursor-help" title={formule}>
+                    <span className="text-gray-700 truncate">
+                      {r.functieNaam ?? r.functieId ?? "Onbekend"}
+                    </span>
+                    <span className="text-gray-900 font-semibold">
+                      {(r.uren ?? 0).toLocaleString("nl-NL")} u
+                      <span className="text-[10px] text-gray-500 ml-1.5">({aandeel}%)</span>
+                    </span>
+                  </div>
+                );
+              })}
               {piekJaarBlok?.activiteit && (
                 <p className="text-[10px] text-gray-500 font-sans italic mt-1.5 pt-1.5 border-t border-gray-200">
                   Activiteit dit jaar: {piekJaarBlok.activiteit}
@@ -2617,17 +2829,23 @@ function UrenF3DomeinKaart({
             F3.4 — Programma vs. lijn (formule)
           </p>
           <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between cursor-help" title={`Bron programmaPct ${progPct}%:\n${typeof domein.programmaPct === "number" ? `gezet in Stap 7 selectiePerDomein.${dKey}.programmaPct = ${(domein.programmaPct * 100).toFixed(0)}%` : `niet gezet → fallback PROGRAMMA_PCT_DEFAULT[${dKey}] = ${Math.round((PROGRAMMA_PCT_DEFAULT[dKey] ?? 0.75) * 100)}%`}\nFormule: ${dTot}u × ${progPct}% = ${progU}u`}>
               <span className="text-gray-700">{dKey} {dTot.toLocaleString("nl-NL")}u × {progPct}% prog</span>
               <span className="text-emerald-700 font-semibold">= {progU.toLocaleString("nl-NL")} u programma</span>
             </div>
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between cursor-help" title={`Lijn = (1 − ${progPct}%) × ${dTot}u = ${lijnPct}% × ${dTot} = ${lijnU}u\nLijn-werk past in bestaand functieprofiel + bestaand budget + bestaande jaarcyclus.`}>
               <span className="text-gray-700">rest {lijnPct}%</span>
               <span className="text-amber-700 font-semibold">= {lijnU.toLocaleString("nl-NL")} u lijn</span>
             </div>
             <p className="text-[10px] text-gray-500 font-sans italic mt-1">
               {DOMAIN_LIJN_VOORBEELD[dKey] ?? "Lijn-aandeel volgt uit bestaande functieprofielen."}
             </p>
+            {/* Min20 processen-staart: structureel proces-eigenaarschap valt zwaarder in lijn */}
+            {aantalJaren >= 9 && dKey === "processen" && (
+              <p className="text-[10px] text-amber-800 font-sans italic mt-1.5 pt-1.5 border-t border-amber-200 leading-snug">
+                <strong className="not-italic">Min20-uitleg processen-staart:</strong> de standaard-split is {Math.round((PROGRAMMA_PCT_DEFAULT.processen) * 100)}% prog / {100 - Math.round((PROGRAMMA_PCT_DEFAULT.processen) * 100)}% lijn voor processen, omdat procesmanagement vanaf het jaar na de pilot grotendeels structureel werk wordt (Smartprocess-beheer + jaarlijkse evaluatiecyclus). Bij min20 (10j) is dat extra duidelijk: J6+ (2031+) zijn vrijwel volledig lijn — Procesmanager Data &amp; Klant heeft het werk in de standaard functieprofiel-cyclus opgenomen en de Procesondersteuners doen onderhouds-werk uit hun eigen team-budget. Het programma-aandeel ({progPct}%) wordt dus gedragen door de eerste 5 jaar; de staart van 5 jaar is overwegend lijn.
+              </p>
+            )}
           </div>
         </div>
 
@@ -2705,26 +2923,35 @@ function UrenF4J1Cap({
         <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 font-sans mb-1">
           Cap-toepassing — formule
         </p>
-        <div className="flex items-baseline justify-between">
-          <span>Bruto bij gelijkmatige verdeling</span>
+        <div className="flex items-baseline justify-between cursor-help" title={`= scenario-totaal / aantal jaar\n= ${totaalUren} / ${aantalJaren}\n= ${gemiddeld}u (zou je krijgen als je alle uren gelijkmatig over de jaren zou uitsmeren — geen fase-curve toegepast)`}>
+          <span>Bruto bij gelijkmatige verdeling ({totaalUren.toLocaleString("nl-NL")}u / {aantalJaren}jr)</span>
           <span>{gemiddeld.toLocaleString("nl-NL")} u</span>
         </div>
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between cursor-help" title={`Cap-keuze:\n• advies (4j) / plus20 (5j) → 290u\n• optimaal (7j) / min20 (10j) → 250u\nLanger scenario = lager jaargemiddelde = lagere half-jaar-cap.\n\nDe cap = (gemiddeld jaar) × ½ × seizoens-correctie. Voor ${aantalJaren}j-scenario: ${gemiddeld}u × 0.5 ≈ ${Math.round(gemiddeld * 0.5)}u, met seizoens-correctie omhoog naar ${j1Cap}u (juni–dec is geen exacte 50% wegens zomerstop + opstart-tempo).`}>
           <span>− J1-cap ({j1Cap}u, want {startJaar} = half-jaar)</span>
           <span>{j1Cap.toLocaleString("nl-NL")} u</span>
         </div>
-        <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-800 font-semibold">
+        <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-gray-800 font-semibold cursor-help" title={`Overschot ${overschot}u / ${j2plusJaren} resterende jaren = ${overschotPerJaar}u/jr extra in J2..J${aantalJaren}.\nNB: dit is een TheorETISCHE herverdeling — in werkelijkheid herverdeelt de fase-zwaarte het overschot proportioneel naar de zwaarte-percentages (Acceptatie krijgt het meeste).`}>
           <span>Overschot herverdeeld over J2..Jn ({j2plusJaren} jaar)</span>
           <span>≈ {overschotPerJaar.toLocaleString("nl-NL")} u/jr extra</span>
         </div>
+        {/* J1 actuele situatie: cap actief of slapend? */}
+        <div className="border-t border-gray-300 pt-1 mt-1 flex items-baseline justify-between text-[10px] font-sans">
+          <span className="text-gray-600">Werkelijk J1 ({startJaar})</span>
+          <span className={`font-mono font-semibold ${cappedOk ? "text-emerald-700" : "text-red-700"}`}>
+            {werkelijkJ1.toLocaleString("nl-NL")} u {cappedOk ? "✓ binnen cap" : "⚠ boven cap"}
+          </span>
+        </div>
       </div>
       <p className="text-[11px] text-gray-600 italic leading-snug">
-        Toelichting: omdat het programma in juni 2026 start, krijgt J1 maar
-        een half kalenderjaar. De fase-zwaarte zou anders ~{gemiddeld.toLocaleString("nl-NL")}u
-        opleveren bij gelijkmatige verdeling; de cap dwingt af dat dit naar
-        ~{j1Cap}u terug gaat. Het overschot ({overschot.toLocaleString("nl-NL")}u)
-        wordt proportioneel naar latere jaren herverdeeld — vandaar dat de
-        piek vaak in J2 of J3 valt en niet al in J1.
+        <strong className="not-italic">Hoe werkt de cap in dit scenario?</strong> Omdat het programma in juni {startJaar} start, krijgt J1 maar een half kalenderjaar.
+        De gelijkmatige-bruto van {gemiddeld.toLocaleString("nl-NL")}u {gemiddeld > j1Cap ? `ligt boven de ${j1Cap}u-cap; in theorie zou ${overschot}u overschot doorgeschoven worden` : `ligt al onder de ${j1Cap}u-cap, dus de cap is hier slapend`}.
+        {" "}<strong className="not-italic">Maar:</strong> de werkelijke J1-uren ({werkelijkJ1.toLocaleString("nl-NL")}u) komen niet uit de gelijkmatige-formule maar uit de <em>fase-curve</em> (F3): J1 is een Analyse-jaar (15% fase-zwaarte voor data_systemen, 20% voor mens/cultuur/processen) en die zwaarte op zich houdt J1 al laag.
+        {scenarioKey === "optimaal" && " Voor optimaal (7j) levert de fase-curve in J1 ongeveer 260u op — vlak onder de 250u-cap (5%-tolerantie aanvaard); de cap fungeert dus als veiligheidsplafond."}
+        {scenarioKey === "min20" && " Voor min20 (10j) levert de fase-curve in J1 ongeveer 264u op — ook vlak boven de 250u-cap (5%-tolerantie). De staart van 50u/jr in J8–J10 verlaagt het jaargemiddelde, waardoor de cap rust kan houden."}
+        {scenarioKey === "advies" && " Voor advies (4j) ligt het jaargemiddelde hoog (~1.440u); de cap moet hier actief het J1-bedrag terugbrengen."}
+        {scenarioKey === "plus20" && " Voor plus20 (5j) ligt het jaargemiddelde rond 1.170u; de cap moet hier actief het J1-bedrag terugbrengen."}
+        {" "}Het overschot wordt niet ineens naar één jaar gepompt, maar verdeelt zich proportioneel naar zwaarste fasen — meestal Acceptatie (J3–J4 voor advies/plus20, J3 voor optimaal, J5 voor min20).
       </p>
     </div>
   );
@@ -2748,7 +2975,9 @@ function UrenF5StilleSelecties({
   const aantalJaren = interneUrenScen.aantalJaren ?? 0;
   const basisTarief = uurtariefSettings?.basisTarief ?? 70;
   const refJaar = uurtariefSettings?.referentiejaar ?? 2025;
-  const indexPct = uurtariefSettings?.indexatiePercentage ?? 5;
+  // Normaliseer indexatie naar percent-punten (data kan 0.05 of 5 zijn)
+  const indexPctRaw = uurtariefSettings?.indexatiePercentage ?? 5;
+  const indexPct = indexPctRaw <= 1 ? indexPctRaw * 100 : indexPctRaw;
 
   // Voor elke stille selectie: bepaal of die rol in selectiePerDomein staat,
   // hoeveel personen, en hoeveel uren ze bijdragen volgens de scenario-data.
@@ -2794,9 +3023,12 @@ function UrenF5StilleSelecties({
         const rolBlok = rolUrenInDomein(sel.functieId);
         const aantal = aantalPersonen(sel.functieId);
         const totaalUren = rolBlok.totaal;
-        const formule = `${sel.defaultUrenPerJaar}u/jr × ${aantal} personen × ${aantalJaren} jr ≈ ${(sel.defaultUrenPerJaar * aantal * aantalJaren).toLocaleString("nl-NL")}u (richtwaarde)`;
+        const richtwaarde = sel.defaultUrenPerJaar * aantal * aantalJaren;
+        const formule = `${sel.defaultUrenPerJaar}u/jr × ${aantal} personen × ${aantalJaren} jr ≈ ${richtwaarde.toLocaleString("nl-NL")}u (richtwaarde)`;
         const kosten = Math.round(totaalUren * gemTarief);
         const heeftData = totaalUren > 0;
+        const perJaarArr = Array.from(rolBlok.perJaar.entries()).sort((a, b) => a[0] - b[0]);
+        const maxJrUren = perJaarArr.reduce((m, [, u]) => Math.max(m, u), 0);
 
         return (
           <div key={sel.functieId} className="rounded-lg border border-purple-200 bg-purple-50/30 p-3 text-xs space-y-2">
@@ -2817,16 +3049,73 @@ function UrenF5StilleSelecties({
               <div className="text-[10px] uppercase tracking-wider font-bold text-purple-700 font-sans mb-0.5">
                 Richtwaarde-formule
               </div>
-              <div className="text-gray-700">{formule}</div>
+              <div
+                className="text-gray-700 cursor-help"
+                title={`Richtwaarde-formule:\n• ${sel.defaultUrenPerJaar}u/jr per persoon (zie bouwstenen onder)\n• × ${aantal} personen (uit selectiePerDomein.data_systemen.${sel.functieId}.aantal — geselecteerd in Stap 7)\n• × ${aantalJaren} jaar (scenario-doorlooptijd)\n= ${richtwaarde}u richtwaarde\nVergelijk met werkelijk: ${totaalUren}u (${richtwaarde > 0 ? Math.round((totaalUren / richtwaarde) * 100) : 0}% van richtwaarde) — afwijking komt omdat de fase-curve in F3 de uren herverdeelt over jaren in plaats van platte ${sel.defaultUrenPerJaar}u/jr.`}
+              >
+                {formule}
+              </div>
+              <p className="text-[10px] text-gray-500 font-sans italic mt-1 pt-1 border-t border-purple-100 leading-snug">
+                <strong className="not-italic text-gray-700">Bouwstenen {sel.defaultUrenPerJaar}u/jr:</strong> {sel.urenOnderbouwing}
+              </p>
               {heeftData && (
                 <div className="flex items-baseline justify-between text-gray-600 mt-0.5">
                   <span>Werkelijk in dit scenario</span>
-                  <span className="text-gray-900 font-semibold">{totaalUren.toLocaleString("nl-NL")} u</span>
+                  <span className="text-gray-900 font-semibold">{totaalUren.toLocaleString("nl-NL")} u
+                    <span className="text-[10px] text-gray-500 ml-1">({richtwaarde > 0 ? Math.round((totaalUren / richtwaarde) * 100) : 0}% van richtwaarde)</span>
+                  </span>
                 </div>
               )}
             </div>
+
+            {/* Per-jaar-verdeling — laat zien waar de uren in dit scenario vallen */}
+            {heeftData && perJaarArr.length > 0 && (
+              <details className="rounded bg-white border border-purple-200">
+                <summary className="cursor-pointer px-2 py-1 text-[10px] uppercase tracking-wider font-bold text-purple-700 hover:bg-purple-50">
+                  Verdeling per jaar — wanneer leveren ze deze uren?
+                </summary>
+                <div className="px-2 pb-2 pt-1 space-y-1 border-t border-purple-100">
+                  <p className="text-[10px] text-gray-600 italic leading-snug mb-1">
+                    De stille selecties volgen dezelfde fase-curve als data_systemen (15% Analyse / 25% Realisatie / 35% Acceptatie★ / 25% Beheer). Daardoor pieken ze ronde de Acceptatie-fase (CRM-go-live), niet plat verdeeld.
+                  </p>
+                  {perJaarArr.map(([jaar, u]) => {
+                    const w = maxJrUren > 0 ? (u / maxJrUren) * 100 : 0;
+                    const aandeel = totaalUren > 0 ? Math.round((u / totaalUren) * 100) : 0;
+                    const tarief = Math.round(basisTarief * Math.pow(1 + indexPct / 100, jaar - refJaar));
+                    const jrKosten = u * tarief;
+                    return (
+                      <div key={jaar} className="flex items-center gap-2 text-[10px] font-mono">
+                        <span className="text-gray-600 w-10">{jaar}</span>
+                        <div className="flex-1 h-2 bg-purple-50 rounded overflow-hidden">
+                          <div className="h-full bg-purple-600" style={{ width: `${Math.max(0.5, w)}%` }} />
+                        </div>
+                        <span className="text-gray-700 w-12 text-right">{u}u</span>
+                        <span className="text-gray-400 w-8 text-right">({aandeel}%)</span>
+                        <span className="text-gray-500 w-16 text-right">€ {jrKosten.toLocaleString("nl-NL")}</span>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[10px] text-gray-500 italic leading-snug mt-1.5 pt-1.5 border-t border-purple-100">
+                    {aantalJaren === 7 && (
+                      <>
+                        <strong>Optimaal (7j):</strong> piek-uren rond 2028–2029 (acceptatie-fase data_systemen). Voor {sel.rolLabel === "CRM-stuurgroep + adoption-leiderschap" ? "Manager Klantcontact" : "Accountmanager C Prof"}: ~5/10/18/30/17/12/8% target-verdeling — werkelijke spreiding hangt af van fase-zwaarte-toepassing.
+                      </>
+                    )}
+                    {aantalJaren === 10 && (
+                      <>
+                        <strong>Min20 (10j):</strong> piek-uren rond 2030 (acceptatie-fase verschuift bij langere looptijd). Target-verdeling voor 10j: ~5/8/12/14/22/14/10/6/5/4% — duidelijk een meer uitgesmeerd profiel, met staart in J8–J10 voor licentiebeheer/optimalisatie/continue verbetering.
+                      </>
+                    )}
+                    {aantalJaren !== 7 && aantalJaren !== 10 && (
+                      <>Verdeling volgt fase-zwaarte data_systemen — concentratie in Acceptatie-jaar.</>
+                    )}
+                  </p>
+                </div>
+              </details>
+            )}
+
             <p className="text-[10px] text-gray-500 italic">
-              Programma 70% / lijn 30% voor deze rollen — het stuurgroep- en review-deel valt deels in functieprofiel, vandaar dat het programma-aandeel onder het CRM-gemiddelde van 85% ligt.
+              <strong className="not-italic">Programma 70% / lijn 30% voor deze rollen.</strong> Lager dan het CRM-domein-gemiddelde van 85% omdat het stuurgroep- en review-deel deels in functieprofiel valt: een Manager Klantcontact zit hoe dan ook in een MT-stuurgroep, een Sectormanager spreekt sowieso met externe partijen — programma-aandeel telt alleen het <em>extra</em> CRM-gerelateerde werk dat zonder dit programma niet zou plaatsvinden.
             </p>
           </div>
         );
