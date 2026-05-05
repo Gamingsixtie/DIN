@@ -57,6 +57,9 @@ type DomeinBlok = {
   programmaPct?: number;
   programmaUren?: number;
   lijnUren?: number;
+  // Interpretatie B: derde uren-type "raadplegen" — geconsulteerden vallen
+  // volledig onder raadplegen, niet onder programma of lijn.
+  raadplegenUren?: number;
 };
 type ScenarioBlok = {
   scenarioLabel: ScenarioLabel;
@@ -70,13 +73,17 @@ type ScenarioBlok = {
     kosten: number;
     urenBudget?: number;
     urenGap?: number;
+    programmaUren?: number;
+    lijnUren?: number;
+    raadplegenUren?: number;
   }>;
   totaalUren: number;
   totaalKosten: number;
   samenvatting: string;
-  // Top-niveau programma vs lijn-uitsplitsing (gezet door scenario-generator). Optioneel.
+  // Top-niveau programma vs lijn vs raadplegen-uitsplitsing (interpretatie B).
   programmaUren?: number;
   lijnUren?: number;
+  raadplegenUren?: number;
 };
 type InterneUrenAdvies = {
   uurtariefSettings: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
@@ -152,6 +159,41 @@ const LEZING_C_CAT_LABEL: Record<LezingCCat, string> = {
   trainings_deelnemer: "trainings-deelnemer",
   geconsulteerd: "geconsulteerd",
 };
+
+// Defensieve normalisatie: oudere data kan categorie-namen met dash, spatie of
+// in mixed-case bevatten. Mapt elke variant naar de canonical interne vorm.
+//   • "trainings-deelnemer" / "trainings deelnemer" / "Trainings_Deelnemer"
+//     → "trainings_deelnemer"
+//   • "Kernteam" / "kernteam-MT" → "kernteam"
+//   • case-insensitive accept voor "leider" en "geconsulteerd"
+// Returns null voor onbekende categorieën zodat caller default-gedrag kan
+// kiezen (bv. heuristiek toepassen).
+function normaliseerCategorie(raw: string | undefined): LezingCCat | null {
+  if (!raw) return null;
+  const norm = raw
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_"); // unify spaces and dashes naar underscores
+  if (norm === "leider") return "leider";
+  if (norm === "geconsulteerd") return "geconsulteerd";
+  if (
+    norm === "trainings_deelnemer" ||
+    norm === "training_deelnemer" ||
+    norm === "trainingsdeelnemer"
+  ) {
+    return "trainings_deelnemer";
+  }
+  if (
+    norm === "kernteam" ||
+    norm === "kernteam_uitvoerend" ||
+    norm === "kernteam_mt" ||
+    norm === "kernteam_mt_cultuur"
+  ) {
+    return "kernteam";
+  }
+  return null;
+}
 
 const LEZING_C_CAT_KLEUR: Record<LezingCCat, string> = {
   leider: "bg-[#003366] text-white",
@@ -2640,31 +2682,48 @@ function ScenarioBlokView({
 }
 
 // ----------------------------------------------------------------------------
-// ProgrammaLijnBlok — programma vs lijn-uitsplitsing per scenario
-// Toont: 3 hoofdgetal-kaarten + per-domein gestapelde bar + collapsible uitleg.
-// Stijl-look-and-feel consistent met SectieF in BerekeningenStep.tsx.
+// ProgrammaLijnBlok — programma / lijn / raadplegen-uitsplitsing per scenario
+// Interpretatie B: drie aparte uren-types per persoon naast elkaar.
+// Toont: 3 hoofdgetal-kaarten + per-domein gestapelde bar (3 segmenten) +
+// collapsible uitleg. Stijl consistent met SectieF in BerekeningenStep.
+// Raadplegen-kleur: paars (consistent met domain data_systemen kleur is OK
+// omdat raadplegen niet domein-gebonden is — kies een neutraal paars).
 // ----------------------------------------------------------------------------
+const RAADPLEGEN_HEX = "#7c3aed";
+
 function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
-  // Resolve programma/lijn per domein — gebruik AI-gezette waarden of val terug op default-pct.
+  // Resolve programma/lijn/raadplegen per domein — gebruik gezette waarden
+  // (door interpretatie-b-driedeling.ts) of val terug op default-pct.
   const domeinUitsplitsing = s.domeinen.map((d) => {
-    const pct =
-      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
-        ? d.programmaPct
-        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
-    const programmaUren =
-      typeof d.programmaUren === "number" ? d.programmaUren : Math.round(d.totaalUren * pct);
-    const lijnUren =
-      typeof d.lijnUren === "number" ? d.lijnUren : Math.round(d.totaalUren * (1 - pct));
+    const heeftDriedeling =
+      typeof d.programmaUren === "number" || typeof d.lijnUren === "number";
+    let programmaUren: number;
+    let lijnUren: number;
+    let raadplegenUren: number;
+    if (heeftDriedeling) {
+      programmaUren = d.programmaUren ?? 0;
+      lijnUren = d.lijnUren ?? 0;
+      raadplegenUren = d.raadplegenUren ?? 0;
+    } else {
+      const pct =
+        typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+          ? d.programmaPct
+          : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+      programmaUren = Math.round(d.totaalUren * pct);
+      lijnUren = Math.round(d.totaalUren * (1 - pct));
+      raadplegenUren = 0;
+    }
     return {
       domein: d.domein,
       totaalUren: d.totaalUren,
-      programmaPct: pct,
       programmaUren,
       lijnUren,
+      raadplegenUren,
     };
   });
 
-  // Top-niveau totalen — gebruik AI-getallen als beschikbaar, anders som van per-domein
+  // Top-niveau totalen — gebruik scenario-niveau-getallen als beschikbaar,
+  // anders som van per-domein.
   const totaalUren = s.totaalUren;
   const programmaTotaal =
     typeof s.programmaUren === "number"
@@ -2674,9 +2733,15 @@ function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
     typeof s.lijnUren === "number"
       ? s.lijnUren
       : domeinUitsplitsing.reduce((acc, d) => acc + d.lijnUren, 0);
+  const raadplegenTotaal =
+    typeof s.raadplegenUren === "number"
+      ? s.raadplegenUren
+      : domeinUitsplitsing.reduce((acc, d) => acc + d.raadplegenUren, 0);
   const programmaPctTot =
     totaalUren > 0 ? Math.round((programmaTotaal / totaalUren) * 100) : 0;
   const lijnPctTot = totaalUren > 0 ? Math.round((lijnTotaal / totaalUren) * 100) : 0;
+  const raadplegenPctTot =
+    totaalUren > 0 ? Math.round((raadplegenTotaal / totaalUren) * 100) : 0;
 
   // Voor de bar: lengte-schaal = scenario-totaal (zo zie je dat data_systemen het grootst is, etc.)
   const maxDomeinUren = domeinUitsplitsing.reduce((m, d) => Math.max(m, d.totaalUren), 0);
@@ -2691,47 +2756,55 @@ function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
       <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
         <p className="text-[11px] uppercase tracking-wider font-bold text-gray-600">
-          Programma vs lijn — uitsplitsing van de capaciteitsbelasting
+          Programma · Lijn · Raadplegen — driedeling capaciteitsbelasting
         </p>
         <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-          Niet alle uren zijn programma-uren. Een deel valt al in functieprofielen, bestaande
-          budgetten of bestaande cycli — dat is &lsquo;lijn&rsquo;.
+          Drie uren-types naast elkaar (interpretatie B). <strong>Programma</strong>:
+          écht extra te financieren capaciteit. <strong>Lijn</strong>: functieprofiel /
+          L&amp;D-budget / bestaande cyclus. <strong>Raadplegen</strong>: incidentele
+          consultatie van geconsulteerden — valt buiten programma- en lijn-toewijzing.
         </p>
       </div>
 
       <div className="p-3 space-y-3">
-        {/* 1. Drie hoofdgetal-kaarten */}
+        {/* 1. Drie hoofdgetal-kaarten — Programma / Lijn / Raadplegen */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <ProgLijnKaart
-            label="Totaal interne uren"
-            waarde={totaalUren}
-            sub={`over ${s.aantalJaren} jaar`}
-            accent="bg-[#003366]"
-          />
           <ProgLijnKaart
             label="Programma — extra te financieren capaciteit"
             waarde={programmaTotaal}
-            sub={`${programmaPctTot}% van totaal`}
-            accent="bg-emerald-700"
+            sub={`${programmaPctTot}% van totaal (${totaalUren.toLocaleString("nl-NL")}u over ${s.aantalJaren} jaar)`}
+            accent="bg-[#003366]"
           />
           <ProgLijnKaart
-            label="Lijn — valt in functieprofielen / bestaande budgetten"
+            label="Lijn — functieprofielen / L&D-budget / bestaande cyclus"
             waarde={lijnTotaal}
             sub={`${lijnPctTot}% van totaal`}
-            accent="bg-amber-700"
+            accent="bg-gray-600"
+          />
+          <ProgLijnKaart
+            label="Raadplegen — incidentele consultatie geconsulteerden"
+            waarde={raadplegenTotaal}
+            sub={`${raadplegenPctTot}% van totaal — eigen categorie naast programma/lijn`}
+            accent="bg-purple-700"
           />
         </div>
 
-        {/* 2. Per-domein gestapelde bar (programma in domein-kleur, lijn in lichte tint) */}
+        {/* 2. Per-domein gestapelde bar — drie segmenten:
+              programma in domein-kleur (vol), lijn in lichte tint van domein-kleur,
+              raadplegen in paars-overlay (consistent met raadplegen-kaart). */}
         <div className="space-y-1.5">
           {sortedDom.map((d) => {
             const hex = DOMAIN_BAR_HEX[d.domein] ?? "#6b7280";
             const w = maxDomeinUren > 0 ? (d.totaalUren / maxDomeinUren) * 100 : 0;
-            const programmaPct =
-              d.totaalUren > 0 ? Math.round((d.programmaUren / d.totaalUren) * 100) : 0;
-            // Binnen de bar: programma-deel breed = pct van bar-breedte
             const programmaBarPct =
               d.totaalUren > 0 ? (d.programmaUren / d.totaalUren) * 100 : 0;
+            const lijnBarPct =
+              d.totaalUren > 0 ? (d.lijnUren / d.totaalUren) * 100 : 0;
+            const raadpBarPct = Math.max(0, 100 - programmaBarPct - lijnBarPct);
+            const programmaPct =
+              d.totaalUren > 0 ? Math.round((d.programmaUren / d.totaalUren) * 100) : 0;
+            const raadpPct =
+              d.totaalUren > 0 ? Math.round((d.raadplegenUren / d.totaalUren) * 100) : 0;
             return (
               <div key={d.domein} className="flex items-center gap-2 text-[11px]">
                 <span className="w-28 shrink-0 font-semibold text-gray-800">
@@ -2740,6 +2813,7 @@ function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
                 <div
                   className="flex-1 h-4 rounded bg-gray-100 overflow-hidden"
                   style={{ maxWidth: `${Math.max(0.5, w)}%` }}
+                  title={`${DOMEIN_LABELS[d.domein]}: programma ${d.programmaUren}u (${programmaPct}%) · lijn ${d.lijnUren}u (${Math.round(lijnBarPct)}%) · raadplegen ${d.raadplegenUren}u (${raadpPct}%)`}
                 >
                   <div className="flex h-full w-full">
                     <div
@@ -2752,9 +2826,16 @@ function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
                     <div
                       className="h-full"
                       style={{
-                        width: `${100 - programmaBarPct}%`,
+                        width: `${lijnBarPct}%`,
                         backgroundColor: hex,
                         opacity: 0.25,
+                      }}
+                    />
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${raadpBarPct}%`,
+                        backgroundColor: RAADPLEGEN_HEX,
                       }}
                     />
                   </div>
@@ -2762,13 +2843,17 @@ function ProgrammaLijnBlok({ s }: { s: ScenarioBlok }): React.ReactElement {
                 <span className="shrink-0 tabular-nums font-mono text-gray-700">
                   {d.totaalUren.toLocaleString("nl-NL")}u
                 </span>
-                <span className="shrink-0 text-gray-500 w-24 text-right">
-                  ({programmaPct}% programma)
+                <span className="shrink-0 text-gray-500 w-32 text-right">
+                  ({programmaPct}% prog · {raadpPct}% raadpl)
                 </span>
               </div>
             );
           })}
         </div>
+        <p className="text-[10px] text-gray-500 italic leading-snug pl-2 border-l-2 border-purple-300">
+          Raadplegen-uren = incidentele consultatie, valt buiten programma- en lijn-toewijzing.
+          Geconsulteerden tellen volledig (100%) als raadplegen.
+        </p>
 
         {/* 3. Collapsible toelichting "Wat is lijn vs programma?" */}
         <details className="rounded border border-gray-200 bg-gray-50 overflow-hidden">

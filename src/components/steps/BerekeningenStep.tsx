@@ -1703,6 +1703,10 @@ type UrenFDomein = {
   totaalUren?: number;
   totaalKosten?: number;
   programmaPct?: number;
+  // Interpretatie B (driedeling): programma / lijn / raadplegen-uren per domein.
+  programmaUren?: number;
+  lijnUren?: number;
+  raadplegenUren?: number;
   jaren?: UrenFDomeinJaar[];
   koppeling?: string[];
 };
@@ -1712,6 +1716,10 @@ type UrenFScenario = {
   uurtariefGebruikt?: number;
   totaalUren?: number;
   totaalKosten?: number;
+  // Interpretatie B (driedeling) — top-niveau totalen.
+  programmaUren?: number;
+  lijnUren?: number;
+  raadplegenUren?: number;
   domeinen?: UrenFDomein[];
   totalenPerJaar?: UrenFTotalen[];
 };
@@ -1740,6 +1748,37 @@ type UrenFVastgesteldeInspanning = {
 // Categorie binnen het kernteam-model (Lezing C). Eén persoon hoort tot één
 // categorie per inspanning. Default-uren-niveaus staan in LEZING_C_DEFAULTS.
 type LezingCCategorie = "leider" | "kernteam" | "trainings_deelnemer" | "geconsulteerd";
+
+// Defensieve normalisatie: oudere data kan categorie-namen met dash, spatie of
+// in mixed-case bevatten (bv. "trainings-deelnemer" of "Trainings Deelnemer").
+// Mapt elke variant naar de canonical interne vorm. Returns null voor
+// onbekende categorieën zodat caller default-gedrag kan kiezen.
+function normaliseerCategorie(raw: string | undefined): LezingCCategorie | null {
+  if (!raw) return null;
+  const norm = raw
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_"); // unify spaces and dashes naar underscores
+  if (norm === "leider") return "leider";
+  if (norm === "geconsulteerd") return "geconsulteerd";
+  if (
+    norm === "trainings_deelnemer" ||
+    norm === "training_deelnemer" ||
+    norm === "trainingsdeelnemer"
+  ) {
+    return "trainings_deelnemer";
+  }
+  if (
+    norm === "kernteam" ||
+    norm === "kernteam_uitvoerend" ||
+    norm === "kernteam_mt" ||
+    norm === "kernteam_mt_cultuur"
+  ) {
+    return "kernteam";
+  }
+  return null;
+}
 
 // Uren-niveau per categorie — fase-gebaseerd (Lezing C). Wordt als ankerpunt
 // gebruikt in F1 en als basis voor F2/F3-categorie-context als de werkelijke
@@ -1847,10 +1886,12 @@ function bepaalCategorie(
   selectie: UrenFFunctieInput | undefined,
   lezingMarker: InterneUrenLezingMarker | undefined,
 ): LezingCCategorie {
-  // 1. Expliciete mapping uit Lezing C
+  // 1. Expliciete mapping uit Lezing C — defensief genormaliseerd zodat
+  //    oudere data met dash/spatie ("trainings-deelnemer") óók werkt.
   const dKey = domein as "cultuur" | "mens" | "data_systemen" | "processen";
   const expl = lezingMarker?.rolCategorieen?.[dKey]?.[functieId];
-  if (expl) return expl;
+  const norm = normaliseerCategorie(expl as string | undefined);
+  if (norm) return norm;
 
   // 2. Heuristiek op basis van selectie-flags
   if (selectie?.stakeholder === true) return "geconsulteerd";
@@ -2000,19 +2041,39 @@ function SectieF({
   const domeinen = interneUrenScen.domeinen ?? [];
   const totalenPerJaar: UrenFTotalen[] = interneUrenScen.totalenPerJaar ?? [];
 
-  // Programma vs lijn — per domein
+  // Programma vs lijn vs raadplegen — per domein (interpretatie B: drie uren-types)
+  // Lees scenario-niveau drieluik als beschikbaar (gezet door
+  // `interpretatie-b-driedeling.ts`); val anders terug op per-domein-uitsplitsing.
   let programmaUren = 0;
   let lijnUren = 0;
-  for (const d of domeinen) {
-    const pct =
-      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
-        ? d.programmaPct
-        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
-    const dTot = d.totaalUren ?? 0;
-    programmaUren += Math.round(dTot * pct);
-    lijnUren += Math.round(dTot * (1 - pct));
+  let raadplegenUren = 0;
+  if (
+    typeof interneUrenScen.programmaUren === "number" &&
+    typeof interneUrenScen.lijnUren === "number"
+  ) {
+    programmaUren = interneUrenScen.programmaUren ?? 0;
+    lijnUren = interneUrenScen.lijnUren ?? 0;
+    raadplegenUren = interneUrenScen.raadplegenUren ?? 0;
+  } else {
+    for (const d of domeinen) {
+      const dTot = d.totaalUren ?? 0;
+      if (typeof d.programmaUren === "number" || typeof d.lijnUren === "number") {
+        programmaUren += d.programmaUren ?? 0;
+        lijnUren += d.lijnUren ?? 0;
+        raadplegenUren += d.raadplegenUren ?? 0;
+      } else {
+        const pct =
+          typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+            ? d.programmaPct
+            : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+        programmaUren += Math.round(dTot * pct);
+        lijnUren += Math.round(dTot * (1 - pct));
+      }
+    }
   }
   const programmaAandeel = totaalUren > 0 ? Math.round((programmaUren / totaalUren) * 100) : 0;
+  const lijnAandeel = totaalUren > 0 ? Math.round((lijnUren / totaalUren) * 100) : 0;
+  const raadplegenAandeel = totaalUren > 0 ? Math.round((raadplegenUren / totaalUren) * 100) : 0;
 
   // Piekjaar
   let piekJaar: number | null = null;
@@ -2057,8 +2118,8 @@ function SectieF({
       />
 
       <div className="space-y-4">
-        {/* 1. Hoofdgetal-kaart */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* 1. Hoofdgetal-kaart — interpretatie B: drie uren-types + Totaal */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <KengetalKaart
             label="Totaal uren"
             waarde={totaalUren}
@@ -2070,14 +2131,21 @@ function SectieF({
             label="Programma-uren"
             waarde={programmaUren}
             sub={`écht extra te financieren capaciteit (${programmaAandeel}%)`}
-            accent="bg-emerald-700"
+            accent="bg-[#003366]"
             mono
           />
           <KengetalKaart
             label="Lijn-uren"
             waarde={lijnUren}
-            sub="valt in functieprofielen / bestaande budgetten"
-            accent="bg-amber-700"
+            sub={`functieprofielen / L&D-budget (${lijnAandeel}%)`}
+            accent="bg-gray-600"
+            mono
+          />
+          <KengetalKaart
+            label="Raadplegen-uren"
+            waarde={raadplegenUren}
+            sub={`incidentele consultatie (${raadplegenAandeel}%)`}
+            accent="bg-purple-700"
             mono
           />
         </div>
@@ -2716,13 +2784,29 @@ function UrenF2Optelling({
     const rollenAgg = Array.from(perFunctie.values()).sort((a, b) => b.uren - a.uren);
     const somUren = rollenAgg.reduce((s, v) => s + v.uren, 0);
     const dTot = d.totaalUren ?? somUren;
-    const pct =
-      typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
-        ? d.programmaPct
-        : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
-    const progU = Math.round(dTot * pct);
-    const lijnU = Math.round(dTot * (1 - pct));
-    const progPct = Math.round(pct * 100);
+    // Interpretatie B: drie uren-types — lees scenario-data als gezet, anders formule.
+    let progU: number;
+    let lijnU: number;
+    let raadpU: number;
+    if (
+      typeof d.programmaUren === "number" ||
+      typeof d.lijnUren === "number"
+    ) {
+      progU = d.programmaUren ?? 0;
+      lijnU = d.lijnUren ?? 0;
+      raadpU = d.raadplegenUren ?? 0;
+    } else {
+      const pct =
+        typeof d.programmaPct === "number" && d.programmaPct >= 0 && d.programmaPct <= 1
+          ? d.programmaPct
+          : PROGRAMMA_PCT_DEFAULT[d.domein] ?? 0.75;
+      progU = Math.round(dTot * pct);
+      lijnU = Math.round(dTot * (1 - pct));
+      raadpU = 0;
+    }
+    const progPct = dTot > 0 ? Math.round((progU / dTot) * 100) : 0;
+    const lijnPct = dTot > 0 ? Math.round((lijnU / dTot) * 100) : 0;
+    const raadpPct = dTot > 0 ? Math.round((raadpU / dTot) * 100) : 0;
     return {
       domein: d.domein,
       aantalRollen,
@@ -2731,7 +2815,10 @@ function UrenF2Optelling({
       dTot,
       progU,
       lijnU,
+      raadpU,
       progPct,
+      lijnPct,
+      raadpPct,
       rollenAgg,
     };
   });
@@ -2930,7 +3017,7 @@ function UrenF2Optelling({
       </div>
 
       <p className="text-[10px] text-gray-500 italic leading-snug pl-2 border-l-2 border-gray-300">
-        Onderstaande klassieke optelling per domein/programma+lijn blijft staan voor doorklikbaarheid (rol-aggregatie + programma/lijn-split per domein). Lezing-C bovenstaande is de categorie-doorrekening; klassiek hieronder is de scenario-rol-data zoals AI die gegenereerd heeft.
+        Onderstaande optelling per domein toont de driedeling <strong className="not-italic font-semibold">programma / lijn / raadplegen</strong> (interpretatie B). Lezing-C bovenstaande is de categorie-doorrekening; hieronder is de scenario-rol-data zoals doorgevoerd. <strong className="not-italic font-semibold">Raadplegen-uren</strong> = incidentele consultatie van geconsulteerden, valt buiten programma- en lijn-toewijzing.
       </p>
 
       <div className="overflow-x-auto">
@@ -2941,8 +3028,9 @@ function UrenF2Optelling({
               <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Rollen</th>
               <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Rol×jaar</th>
               <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Som-uren</th>
-              <th className="py-2 px-2 font-mono text-right font-semibold text-emerald-700">Programma</th>
-              <th className="py-2 px-2 font-mono text-right font-semibold text-amber-700">Lijn</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-[#003366]">Programma</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Lijn</th>
+              <th className="py-2 px-2 font-mono text-right font-semibold text-purple-700">Raadplegen</th>
             </tr>
           </thead>
           <tbody>
@@ -2954,8 +3042,11 @@ function UrenF2Optelling({
                   ? `Top-3 rollen in ${r.domein}:\n` +
                     top3.map((t) => `• ${t.naam}: ${t.uren}u over ${t.aantalJaren} actieve jaren`).join("\n")
                   : "";
-              const progFormule = `${r.dTot} u × ${r.progPct}% = ${r.progU} u programma\n(programmaPct ${r.progPct}% komt uit Stap 7-selectiePerDomein.programmaPct als gezet, anders uit PROGRAMMA_PCT_DEFAULT[${r.domein}] = ${Math.round((PROGRAMMA_PCT_DEFAULT[r.domein] ?? 0.75) * 100)}%)`;
-              const lijnFormule = `${r.dTot} u × ${100 - r.progPct}% = ${r.lijnU} u lijn`;
+              const progFormule = `${r.dTot} u × ${r.progPct}% = ${r.progU} u programma\n(interpretatie B: leider 90%, kernteam-uitvoerend 80%, kernteam-MT cultuur 50%, trainings-deelnemer 50%, geconsulteerd 0%)`;
+              const lijnFormule = `${r.dTot} u × ${r.lijnPct}% = ${r.lijnU} u lijn\n(functieprofielen / L&D-budget / bestaande cyclus)`;
+              const raadpFormule = r.raadpU > 0
+                ? `${r.dTot} u × ${r.raadpPct}% = ${r.raadpU} u raadplegen\n(geconsulteerden: incidentele review/consultatie, valt buiten programma- en lijn-toewijzing)`
+                : "Geen geconsulteerden in dit domein binnen scenario-uren.";
               return (
                 <tr key={r.domein} className="border-b border-gray-100 last:border-0">
                   <td className="py-1.5 pr-2 font-medium text-gray-800">
@@ -2983,17 +3074,31 @@ function UrenF2Optelling({
                     {r.dTot.toLocaleString("nl-NL")} u
                   </td>
                   <td
-                    className="py-1.5 px-2 font-mono text-right text-emerald-700 cursor-help"
+                    className="py-1.5 px-2 font-mono text-right text-[#003366] cursor-help"
                     title={progFormule}
                   >
                     {r.progU.toLocaleString("nl-NL")} u
                     <span className="text-[10px] text-gray-500 ml-1">({r.progPct}%)</span>
                   </td>
                   <td
-                    className="py-1.5 px-2 font-mono text-right text-amber-700 cursor-help"
+                    className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
                     title={lijnFormule}
                   >
                     {r.lijnU.toLocaleString("nl-NL")} u
+                    <span className="text-[10px] text-gray-500 ml-1">({r.lijnPct}%)</span>
+                  </td>
+                  <td
+                    className={`py-1.5 px-2 font-mono text-right cursor-help ${r.raadpU > 0 ? "text-purple-700" : "text-gray-400"}`}
+                    title={raadpFormule}
+                  >
+                    {r.raadpU > 0 ? (
+                      <>
+                        {r.raadpU.toLocaleString("nl-NL")} u
+                        <span className="text-[10px] text-gray-500 ml-1">({r.raadpPct}%)</span>
+                      </>
+                    ) : (
+                      <span>—</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -3005,8 +3110,15 @@ function UrenF2Optelling({
               <td className="py-2 px-2 text-right font-bold text-[#003366]">
                 {somAlleUren.toLocaleString("nl-NL")} u
               </td>
-              <td className="py-2 px-2"></td>
-              <td className="py-2 px-2"></td>
+              <td className="py-2 px-2 text-right font-bold text-[#003366]">
+                {rijen.reduce((s, r) => s + r.progU, 0).toLocaleString("nl-NL")} u
+              </td>
+              <td className="py-2 px-2 text-right font-bold text-gray-700">
+                {rijen.reduce((s, r) => s + r.lijnU, 0).toLocaleString("nl-NL")} u
+              </td>
+              <td className="py-2 px-2 text-right font-bold text-purple-700">
+                {rijen.reduce((s, r) => s + r.raadpU, 0).toLocaleString("nl-NL")} u
+              </td>
             </tr>
           </tbody>
         </table>
@@ -3776,6 +3888,19 @@ function UrenF6MensContext({
           De ~{mensZonderCursisten.toLocaleString("nl-NL")}u programma-organisatie-werk in mens is in lijn met de andere domeinen — het schijnbaar hoge totaal komt door de cursist-cohort, niet door extra programma-belasting op trekkers.
         </p>
       </div>
+      {/* Interpretatie B — driedeling toelichting */}
+      <div className="rounded bg-purple-50 border border-purple-200 p-3 text-[11px] text-purple-900 leading-relaxed">
+        <p className="font-semibold text-purple-900 mb-1">
+          Interpretatie B — driedeling van uren-types
+        </p>
+        <p>
+          <strong>Trainings-deelnemers</strong> tellen <strong>50% programma + 50% lijn</strong>:
+          van de {cursistTot}u/persoon zit ~16u standaard L&amp;D-baseline in de
+          functieprofielen, de rest is nieuw curriculum.{" "}
+          <strong>Geconsulteerden</strong> tellen <strong>volledig als raadplegen-uren</strong>{" "}
+          — incidentele review/consultatie, valt buiten programma- en lijn-toewijzing.
+        </p>
+      </div>
     </div>
   );
 }
@@ -3868,6 +3993,30 @@ function UrenF7LezingVergelijking({
               {toelichting}
             </p>
           )}
+        </div>
+
+        {/* Interpretatie B vs A — driedeling van uren-types */}
+        <div className="rounded border-l-4 border-purple-600 bg-purple-50 p-3 text-xs leading-relaxed">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-600 text-white font-semibold uppercase">
+              Interpretatie B
+            </span>
+            <span className="text-[10px] font-semibold text-purple-800 uppercase tracking-wider">
+              Toegepast op driedeling
+            </span>
+          </div>
+          <p className="text-purple-900">
+            Lezing C met interpretatie B: <strong>drie uren-types</strong> —{" "}
+            <strong>Programma</strong> (extra te financieren),{" "}
+            <strong>Lijn</strong> (functieprofiel/L&amp;D),{" "}
+            <strong>Raadplegen</strong> (incidentele consultatie). Geconsulteerden
+            vallen volledig onder raadplegen, niet onder programma of lijn.
+          </p>
+          <p className="text-[11px] text-purple-800 italic leading-snug mt-2 pt-2 border-t border-purple-200">
+            Verschil met interpretatie A: in A werd geconsulteerd-tijd impliciet bij
+            lijn opgeteld; in B is het een eigen uren-type met eigen kolom in F2 en
+            eigen kaart in de F-hoofdkaarten.
+          </p>
         </div>
       </div>
 
