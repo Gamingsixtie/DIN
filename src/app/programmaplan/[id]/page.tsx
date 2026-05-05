@@ -35,6 +35,7 @@ const TOC: Array<{ id: string; nummer: string; titel: string; sub?: Array<{ id: 
   },
   { id: "hoofdstuk-5", nummer: "5.", titel: "Programma-organisatie en RASCI" },
   { id: "hoofdstuk-6", nummer: "6.", titel: "Planning en roadmap" },
+  { id: "bijlage-a-audit-begroting", nummer: "A.", titel: "Bijlage A — Audit van de begroting" },
 ];
 
 export default function PubliekProgrammaplanPage() {
