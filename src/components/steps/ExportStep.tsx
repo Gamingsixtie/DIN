@@ -11,7 +11,7 @@ import {
   RasciFullMatrix,
   buildClusterBron,
 } from "@/components/steps/GovernanceStep";
-import BerekeningenStep from "@/components/steps/BerekeningenStep";
+import { BerekeningenView } from "@/components/steps/BerekeningenStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
@@ -4334,7 +4334,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             </p>
           </Inleiding>
           <div className="px-4">
-            <BerekeningenStep mode="export" />
+            <BerekeningenView session={session} mode="export" />
           </div>
         </Chapter>
       </div>

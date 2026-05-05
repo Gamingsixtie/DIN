@@ -134,15 +134,30 @@ function tolerantie(scenarioTotaal: number): number {
 }
 
 // ============================================================================
-// Hoofdcomponent
+// Hoofdcomponent — wrapper die session uit context haalt (bestaande gedrag)
 // ============================================================================
 
 export default function BerekeningenStep({ mode = "full" }: { mode?: "full" | "export" } = {}) {
   const { session } = useSession();
+  if (!session) return null;
+  return <BerekeningenView session={session} mode={mode} />;
+}
+
+// ============================================================================
+// View — neemt session als prop, geen context-afhankelijkheid. Hierdoor
+// herbruikbaar in /programmaplan/[id] (publieke leesversie zonder
+// SessionProvider) als bijlage in de export.
+// ============================================================================
+
+export function BerekeningenView({
+  session,
+  mode = "full",
+}: {
+  session: DINSession;
+  mode?: "full" | "export";
+}) {
   const [openScenario, setOpenScenario] = useState<ScenarioKey | null>("advies");
   const isExport = mode === "export";
-
-  if (!session) return null;
 
   const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Result } | undefined)?.stap4;
   const begroting = stap4?.begrotingAdvies as BegrotingAdvies | undefined;
