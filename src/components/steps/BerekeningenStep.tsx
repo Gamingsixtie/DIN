@@ -1673,7 +1673,14 @@ type UrenFScenario = {
   domeinen?: UrenFDomein[];
   totalenPerJaar?: UrenFTotalen[];
 };
-type UrenFFunctieInput = { aantal: number; urenPerJaar?: number };
+type UrenFFunctieInput = {
+  aantal: number;
+  urenPerJaar?: number;
+  stakeholder?: boolean;
+  stakeholderToelichting?: string;
+  reviewVereist?: boolean;
+  reviewVraag?: string;
+};
 type UrenFCustomFunctie = { id: string; naam: string; schaal?: number };
 type UrenFVastgesteldeRol = {
   functieId: string;
@@ -1688,6 +1695,34 @@ type UrenFVastgesteldeInspanning = {
   domein: string;
   rollen: UrenFVastgesteldeRol[];
 };
+// Categorie binnen het kernteam-model (Lezing C). Eén persoon hoort tot één
+// categorie per inspanning. Default-uren-niveaus staan in LEZING_C_DEFAULTS.
+type LezingCCategorie = "leider" | "kernteam" | "trainings_deelnemer" | "geconsulteerd";
+
+// Uren-niveau per categorie — fase-gebaseerd (Lezing C). Wordt als ankerpunt
+// gebruikt in F1 en als basis voor F2/F3-categorie-context als de werkelijke
+// data deze structuur (nog) niet heeft.
+type UrenNiveau = {
+  piek?: number;        // u/jr in piek-jaar (Realisatie/Acceptatie)
+  buitenPiek?: number;  // u/jr in niet-piek-jaar
+  borging?: number;     // u/jr in borgings-jaar (typisch jaar 4+ in lange scenario's)
+  totaal?: number;      // totaal-uren over volledige looptijd (alleen voor cat-2/cat-3-defaults)
+};
+
+// Optionele Lezing-C marker uit Supabase. Wordt door de doorvoer-agent geschreven.
+// Hier alleen lezen — als afwezig: defaults gebruiken.
+type InterneUrenLezingMarker = {
+  lezing?: string;            // bv. "A" | "C"
+  timestamp?: string;
+  toelichting?: string;
+  urenNiveaus?: Partial<Record<LezingCCategorie, UrenNiveau>>;
+  // Optionele per-rol-mapping: functieId → categorie. Geeft F2/F3 een
+  // betrouwbaardere categorie-uitsplitsing dan heuristiek.
+  rolCategorieen?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", Record<string, LezingCCategorie>>>;
+  // Optioneel: per-domein de inspanningsleider-naam (kan placeholder zijn).
+  inspanningsleiders?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", { naam?: string; tbd?: boolean; rolLabel?: string }>>;
+};
+
 type UrenFAdvies = {
   scenarios?: Partial<Record<ScenarioKey, UrenFScenario | null>>;
   uurtariefSettings?: {
@@ -1698,7 +1733,122 @@ type UrenFAdvies = {
   selectiePerDomein?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", Record<string, UrenFFunctieInput>>>;
   customFunctiesPerDomein?: Partial<Record<"cultuur" | "mens" | "data_systemen" | "processen", UrenFCustomFunctie[]>>;
   vastgesteldeUrenPerInspanning?: UrenFVastgesteldeInspanning[];
+  // Lezing C — kernteam-model. Wordt door doorvoer-agent geschreven naar Supabase.
+  interneUrenLezing?: InterneUrenLezingMarker;
 };
+
+// Default uren-niveaus voor Lezing C (kernteam-model). Worden gebruikt als
+// fallback wanneer interneUrenLezing.urenNiveaus niet aanwezig is.
+// Bron: AUDIT-KERNTEAM-MODEL.md — gangbaar voor Cito-context (~124 FTE).
+const LEZING_C_DEFAULTS: Record<LezingCCategorie, UrenNiveau> = {
+  leider: { piek: 80, buitenPiek: 40, borging: 25 },
+  kernteam: { piek: 40, buitenPiek: 15, borging: 10 },
+  geconsulteerd: { totaal: 6 },                      // 6u over hele looptijd
+  trainings_deelnemer: { totaal: 46 },               // 46u contacttijd over 2 trainingsblokken
+};
+
+// Per-domein: standaard kernteam-grootte (5–7 personen volgens Kotter guiding
+// coalition) voor weergave als geen werkelijke data beschikbaar is.
+const LEZING_C_KERNTEAM_GROOTTE_DEFAULT: Record<string, number> = {
+  mens: 5,
+  data_systemen: 7,
+  cultuur: 8,    // bevestigd in AUDIT: alle 8 MT-leden zijn kernteam
+  processen: 5,
+};
+
+// Per-domein: of er trainings-deelnemers in dit domein voorkomen.
+// Standaard alleen mens (gespreksvaardigheidstraining 47 cursisten).
+const LEZING_C_HEEFT_TRAININGS_DEELNEMERS: Record<string, boolean> = {
+  mens: true,
+  data_systemen: false,
+  cultuur: false,
+  processen: false,
+};
+
+const LEZING_C_AANTAL_DEELNEMERS_DEFAULT: Record<string, number> = {
+  mens: 47,
+  data_systemen: 0,
+  cultuur: 0,
+  processen: 0,
+};
+
+// Per-domein: aantal geconsulteerden (cat-3 met 6u/looptijd elk).
+const LEZING_C_GECONSULTEERDEN_DEFAULT: Record<string, number> = {
+  mens: 25,
+  data_systemen: 30,
+  cultuur: 0,
+  processen: 0,
+};
+
+const LEZING_C_CATEGORIE_LABEL: Record<LezingCCategorie, string> = {
+  leider: "leider",
+  kernteam: "kernteam",
+  trainings_deelnemer: "trainings-deelnemer",
+  geconsulteerd: "geconsulteerd",
+};
+
+const LEZING_C_CATEGORIE_KLEUR: Record<LezingCCategorie, string> = {
+  leider: "bg-[#003366] text-white",
+  kernteam: "bg-blue-100 text-blue-900 border border-blue-200",
+  trainings_deelnemer: "bg-emerald-100 text-emerald-900 border border-emerald-200",
+  geconsulteerd: "bg-gray-100 text-gray-700 border border-gray-200",
+};
+
+// Heuristiek: bepaal de categorie van een rol op basis van
+// (a) expliciete rolCategorieen-mapping (Lezing C-data, indien aanwezig),
+// (b) selectiePerDomein-flags (stakeholder/reviewVereist),
+// (c) de naam/het functieId (voor inspanningsleiders).
+function bepaalCategorie(
+  domein: string,
+  functieId: string,
+  functieNaam: string | undefined,
+  selectie: UrenFFunctieInput | undefined,
+  lezingMarker: InterneUrenLezingMarker | undefined,
+): LezingCCategorie {
+  // 1. Expliciete mapping uit Lezing C
+  const dKey = domein as "cultuur" | "mens" | "data_systemen" | "processen";
+  const expl = lezingMarker?.rolCategorieen?.[dKey]?.[functieId];
+  if (expl) return expl;
+
+  // 2. Heuristiek op basis van selectie-flags
+  if (selectie?.stakeholder === true) return "geconsulteerd";
+  if (selectie?.reviewVereist === true) return "geconsulteerd";
+
+  // 3. Heuristiek op functienaam of functieId (inspanningsleider in dossier
+  //    of expliciet als custom-rol gemarkeerd door Lezing-C-doorvoer-agent)
+  const lower = (functieNaam ?? "").toLowerCase();
+  const idLower = functieId.toLowerCase();
+  if (
+    lower.includes("inspanningsleider") ||
+    lower.includes("projectleider") ||
+    lower.includes("projectmanager") ||
+    // Custom-rol-IDs met "-leider" of "leider-" suffix/prefix die door
+    // Lezing-C-doorvoer worden aangemaakt (bv. custom-yara-mens-leider)
+    idLower.includes("-leider") ||
+    idLower.includes("leider-") ||
+    idLower.endsWith("-leider") ||
+    functieId === "manager_klantcontact" ||
+    functieId === "sio"
+  ) {
+    return "leider";
+  }
+
+  // 4. Mens-domein: hoge aantallen → trainings-deelnemers
+  if (domein === "mens") {
+    const aantal = selectie?.aantal ?? 1;
+    // Klantenservice C, accountmanagers, mdw binnendienst → cursisten
+    if (aantal >= 3 && (functieId.includes("klantenservice") || functieId.includes("accountmanager") || functieId.includes("mdw_binnendienst"))) {
+      return "trainings_deelnemer";
+    }
+    // 47-mens-cursisten-cohort: alle entries met urenPerJaar 0 maar wel aantal
+    if ((selectie?.urenPerJaar ?? 0) === 0 && aantal >= 1) {
+      return "trainings_deelnemer";
+    }
+  }
+
+  // 5. Default: kernteam (vakinhoudelijke uitvoerders)
+  return "kernteam";
+}
 
 // Fase-zwaarte per domein. Voor data_systemen (CRM) is acceptatie zwaarder
 // gemaakt zodat de uren-piek samenvalt met het OOP-Acceptatie★-jaar uit de
@@ -1759,40 +1909,6 @@ const FASE_LABEL: Record<string, string> = {
   onbekend: "—",
 };
 
-// Stille selecties (cat-1) — rollen die in een ander domein zitten dan
-// hun primaire `inspanningRelevantie` voor stille adoption-/eindgebruiker-
-// dynamiek. Wordt in F5 toegelicht zodat lezer ziet waarom deze rol in dit
-// domein meedoet.
-const STILLE_SELECTIES: Array<{
-  functieId: string;
-  domein: string;
-  rolLabel: string;
-  uitleg: string;
-  defaultUrenPerJaar: number;
-  urenOnderbouwing: string;
-}> = [
-  {
-    functieId: "manager_klantcontact",
-    domein: "data_systemen",
-    rolLabel: "CRM-stuurgroep + adoption-leiderschap",
-    uitleg:
-      "Manager Klantcontact is in mens al gelabeld voor trainings-coördinatie (~40u/jr — roosters voor klantenservice-team). In data_systemen gaat het om iets anders: stuurgroep-deelname en adoption-leiderschap voor het nieuwe CRM. Geen dubbeltelling: andere activiteit, andere uren.",
-    defaultUrenPerJaar: 7,
-    urenOnderbouwing:
-      "7u/jr = 1u/maand CRM-stuurgroep × ~7 actieve maanden in een acceptatie/uitrol-jaar (zomerstop juli–aug telt niet mee). Bouwstenen: maandelijks stuurgroep-overleg (~1u) + ad-hoc adoption-leiderschap voor klantenservice-team. Geen training-faciliteit-uren hier — die zitten al in mens-domein als 40u/jr en zijn een andere activiteit.",
-  },
-  {
-    functieId: "accountmanager_c_prof",
-    domein: "data_systemen",
-    rolLabel: "CRM eindgebruiker + sectorconfiguratie + key-user-training",
-    uitleg:
-      "3× Accountmanager C (Professionals) als CRM-eindgebruiker, sectorconfiguratie-input en key-user-training. Stuurgroep-deel valt deels in functieprofiel — daarom ligt programma-aandeel hier op ~70%, niet op 85% zoals het domein-gemiddelde.",
-    defaultUrenPerJaar: 9,
-    urenOnderbouwing:
-      "9u/jr per persoon = ~6u CRM-eindgebruiker-acceptatietest (sectorconfiguratie Zakelijk-module) + ~3u key-user-training-deelname per acceptatie/uitrol-jaar. Bij 3 personen levert dit 27u/jr in piek-jaar. Geen overlap met mens-domein-uren (46u contacttijd per persoon over twee trainingsblokken — dat is gespreksvaardigheidstraining, niet CRM-acceptatie).",
-  },
-];
-
 function SectieF({
   scenarioKey,
   session,
@@ -1805,7 +1921,18 @@ function SectieF({
   begrotingScenario: BegrotingScenario;
 }) {
   const stap4 = (session.crossAnalyseWizard?.stepResults as
-    | { stap4?: { stap7InterneUren?: UrenFAdvies } }
+    | {
+        stap4?: {
+          stap7InterneUren?: UrenFAdvies;
+          subEffortAnalysis?: Array<{
+            groepId?: string;
+            domein?: string;
+            titel?: string;
+            voorgesteldeNaam?: string | null;
+            dossier?: { eigenaar?: string; inspanningsleider?: string };
+          }>;
+        };
+      }
     | undefined)?.stap4;
   const interneUren = stap4?.stap7InterneUren ?? null;
   const interneUrenScen = interneUren?.scenarios?.[scenarioKey] ?? null;
@@ -2111,8 +2238,10 @@ function SectieF({
         )}
 
         {/* ──────────────────────────────────────────────────────────────────
-            F1-F5 — Berekening-toelichting (analoog aan A-E voor OOP).
+            F1-F7 — Berekening-toelichting (analoog aan A-E voor OOP).
             Laat zien WAAR ELK GETAL VANDAAN KOMT, met formule.
+            Lezing C (kernteam-model): 4 categorieën — leider / kernteam /
+            trainings-deelnemer / geconsulteerd. Fase-gebaseerde uren-niveaus.
             ────────────────────────────────────────────────────────────── */}
         <div className="rounded-lg border-2 border-dashed border-[#003366]/30 bg-[#003366]/[0.02] p-4 space-y-6">
           <p className="text-[11px] uppercase tracking-wider font-bold text-[#003366]">
@@ -2121,12 +2250,13 @@ function SectieF({
 
           <SubSectie
             nummer="F1"
-            titel="Scenario-parameters — onderliggende rekenwaarden"
-            hint="Wat zijn de invoer-parameters waarmee de uren-berekening werkt? Looptijd, uurtarief met indexatie, J1-cap voor 2026 en de fase-zwaarte per domein."
+            titel="Scenario-parameters & Lezing-C kernteam-model"
+            hint="Vier categorieën per inspanning (leider / kernteam / trainings-deelnemer / geconsulteerd) met fase-gebaseerde uren-niveaus, plus de scenario-rekenparameters: looptijd, uurtarief met indexatie, J1-cap voor 2026 en fase-zwaarte per domein."
           >
             <UrenF1Parameters
               scenarioKey={scenarioKey}
               interneUrenScen={interneUrenScen}
+              interneUren={interneUren}
               uurtariefSettings={interneUren?.uurtariefSettings}
               startJaar={startJaar}
             />
@@ -2134,11 +2264,12 @@ function SectieF({
 
           <SubSectie
             nummer="F2"
-            titel="Optelling rollen → scenario-totaal"
-            hint="Per domein: aantal rollen × personen × uren-totaal, met programma/lijn-split. Moet exact het scenario-totaal zijn."
+            titel="Optelling rollen → scenario-totaal (per categorie)"
+            hint="Per domein per Lezing-C-categorie (leider / kernteam / trainings-deelnemer / geconsulteerd) → totaal-uren. Hover een cel voor de formule (aantal × u/persoon)."
           >
             <UrenF2Optelling
               interneUrenScen={interneUrenScen}
+              interneUren={interneUren}
               uurtariefSettings={interneUren?.uurtariefSettings}
               startJaar={startJaar}
             />
@@ -2147,10 +2278,11 @@ function SectieF({
           <SubSectie
             nummer="F3"
             titel="Per-fase verdeling per domein — hoe komt het jaar-getal tot stand?"
-            hint="Voor elk domein de keten: fase-curve (welke fase in welk jaar) → fase-zwaarte toegepast op domein-totaal → top-rollen in piek-jaar → programma vs lijn met formule."
+            hint="Voor elk domein de keten: fase-curve (welke fase in welk jaar) → fase-zwaarte toegepast op domein-totaal → top-rollen met categorie-context (leider / kernteam / trainings-deelnemer / geconsulteerd) → programma vs lijn met formule."
           >
             <UrenF3PerDomein
               interneUrenScen={interneUrenScen}
+              interneUren={interneUren}
               begrotingScenario={begrotingScenario}
               startJaar={startJaar}
             />
@@ -2170,23 +2302,33 @@ function SectieF({
 
           <SubSectie
             nummer="F5"
-            titel="Stille selecties — Manager Klantcontact + Accountmanager C Prof in CRM-domein"
-            hint="Twee rollen die op het oog buiten 'data & systemen' lijken te vallen, maar wel in het CRM-domein meedoen — voor adoption-leiderschap en sector-input. Geen dubbeltelling met mens-domein."
+            titel="Categorieën & open beslispunten"
+            hint="Per categorie: inspanningsleiders per inspanning (incl. eventuele TBD-placeholders), trainings-deelnemers (mens-cursisten), geconsulteerden per domein, en open beslispunten waarvoor nog handmatige review nodig is."
           >
-            <UrenF5StilleSelecties
-              interneUrenScen={interneUrenScen}
+            <UrenF5CategorieenBeslispunten
+              session={session}
               interneUren={interneUren}
-              uurtariefSettings={interneUren?.uurtariefSettings}
-              startJaar={startJaar}
+              stap4={stap4}
             />
           </SubSectie>
 
           <SubSectie
             nummer="F6"
-            titel="Betrokken stakeholders & open beslispunten"
-            hint="Rollen die wél in de selectie staan maar geen uren-belasting krijgen (Stakeholders, cat-2) of waarvoor nog een handmatige review-beslissing open staat (Open beslispunten, cat-3). Komt uit Stap 7 selectiePerDomein-vlaggen."
+            titel="Mens-domein context — waarom mens-totaal hoog lijkt"
+            hint="Mens-totaal bevat ~2.162u cursist-contacttijd (47 medewerkers × 46u over 2 trainingsblokken). Aftrekken: programma-organisatie-werk in mens is in lijn met de andere domeinen."
           >
-            <UrenF6StakeholdersBeslispunten session={session} />
+            <UrenF6MensContext
+              interneUrenScen={interneUrenScen}
+              interneUren={interneUren}
+            />
+          </SubSectie>
+
+          <SubSectie
+            nummer="F7"
+            titel="Lezing-vergelijking — historie kernteam-model"
+            hint="Decision record: wat is het verschil tussen Lezing A (verworpen) en Lezing C (huidig)? Inclusief timestamp en toelichting uit het marker-record."
+          >
+            <UrenF7LezingVergelijking interneUren={interneUren} />
           </SubSectie>
         </div>
       </div>
@@ -2201,11 +2343,13 @@ function SectieF({
 function UrenF1Parameters({
   scenarioKey,
   interneUrenScen,
+  interneUren,
   uurtariefSettings,
   startJaar,
 }: {
   scenarioKey: ScenarioKey;
   interneUrenScen: UrenFScenario;
+  interneUren: UrenFAdvies | null;
   uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
   startJaar: number;
 }) {
@@ -2218,6 +2362,17 @@ function UrenF1Parameters({
   const indexPct = indexPctRaw <= 1 ? indexPctRaw * 100 : indexPctRaw;
   const j1Cap = scenarioKey === "advies" || scenarioKey === "plus20" ? 290 : 250;
   const eindjaar = startJaar + Math.max(0, aantalJaren - 1);
+
+  // Lezing-C uren-niveaus — lees uit data, fallback naar defaults.
+  const lez = interneUren?.interneUrenLezing;
+  const niveaus: Record<LezingCCategorie, UrenNiveau> = {
+    leider: { ...LEZING_C_DEFAULTS.leider, ...(lez?.urenNiveaus?.leider ?? {}) },
+    kernteam: { ...LEZING_C_DEFAULTS.kernteam, ...(lez?.urenNiveaus?.kernteam ?? {}) },
+    trainings_deelnemer: { ...LEZING_C_DEFAULTS.trainings_deelnemer, ...(lez?.urenNiveaus?.trainings_deelnemer ?? {}) },
+    geconsulteerd: { ...LEZING_C_DEFAULTS.geconsulteerd, ...(lez?.urenNiveaus?.geconsulteerd ?? {}) },
+  };
+  const heeftLezingC = lez?.lezing === "C";
+  const heeftEigenNiveaus = !!lez?.urenNiveaus;
 
   // Toon de tarief-curve over de jaren
   const tarievenPerJaar: Array<{ jaar: number; tarief: number; factor: number }> = [];
@@ -2232,6 +2387,94 @@ function UrenF1Parameters({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+      {/* Lezing-C kernteam-model — info-block */}
+      <div className="rounded-lg border-l-4 border-[#003366] bg-[#003366]/[0.04] p-3 space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[#003366]">
+            Kernteam-model (Lezing&nbsp;C) — uren-niveaus per categorie
+          </p>
+          {heeftLezingC ? (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#003366] text-white">
+              Lezing C actief
+            </span>
+          ) : heeftEigenNiveaus ? (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 border border-emerald-200 text-emerald-800">
+              urenNiveaus uit data
+            </span>
+          ) : (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 border border-amber-200 text-amber-800">
+              defaults — geen Lezing-C-data
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-gray-700 leading-relaxed">
+          Per inspanning <strong>4 categorieën</strong>: Inspanningsleider (1) +
+          Kernteam (5–7 personen) + Trainings-deelnemers (alleen mens-cursisten) +
+          Geconsulteerden (rest, lichte review-input). Fase-gebaseerd: kernteam zwaarder
+          in piek-jaren, lichter in borging.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left border-b border-[#003366]/20">
+                <th className="py-1.5 pr-2 font-semibold text-[#003366]">Categorie</th>
+                <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366]">Piek (Real./Acc.)</th>
+                <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366]">Buiten piek</th>
+                <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366]">
+                  Borging (j4+)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-[#003366]/10">
+                <td className="py-1.5 pr-2 font-medium text-gray-800">
+                  <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1.5 ${LEZING_C_CATEGORIE_KLEUR.leider}`}>
+                    leider
+                  </span>
+                  Inspanningsleider (1)
+                </td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-800">{niveaus.leider.piek ?? "—"}u/jr</td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-700">{niveaus.leider.buitenPiek ?? "—"}u/jr</td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-600">{niveaus.leider.borging ?? "—"}u/jr</td>
+              </tr>
+              <tr className="border-b border-[#003366]/10">
+                <td className="py-1.5 pr-2 font-medium text-gray-800">
+                  <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1.5 ${LEZING_C_CATEGORIE_KLEUR.kernteam}`}>
+                    kernteam
+                  </span>
+                  Kernteam (5–7)
+                </td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-800">{niveaus.kernteam.piek ?? "—"}u/jr</td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-700">{niveaus.kernteam.buitenPiek ?? "—"}u/jr</td>
+                <td className="py-1.5 px-2 font-mono text-right text-gray-600">{niveaus.kernteam.borging ?? "—"}u/jr</td>
+              </tr>
+              <tr className="border-b border-[#003366]/10">
+                <td className="py-1.5 pr-2 font-medium text-gray-800">
+                  <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1.5 ${LEZING_C_CATEGORIE_KLEUR.geconsulteerd}`}>
+                    geconsulteerd
+                  </span>
+                  Geconsulteerd
+                </td>
+                <td colSpan={3} className="py-1.5 px-2 font-mono text-right text-gray-700">
+                  totaal {niveaus.geconsulteerd.totaal ?? 6}u/looptijd
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-2 font-medium text-gray-800">
+                  <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1.5 ${LEZING_C_CATEGORIE_KLEUR.trainings_deelnemer}`}>
+                    trainings-deelnemer
+                  </span>
+                  Cursist (alleen mens)
+                </td>
+                <td colSpan={3} className="py-1.5 px-2 font-mono text-right text-gray-700">
+                  totaal {niveaus.trainings_deelnemer.totaal ?? 46}u/looptijd ({LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens} cursisten, 2 trainings-blokken: Basis + Vaardigheid)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Stat
           label="Aantal jaren"
@@ -2388,10 +2631,12 @@ function UrenF1Parameters({
 
 function UrenF2Optelling({
   interneUrenScen,
+  interneUren,
   uurtariefSettings,
   startJaar,
 }: {
   interneUrenScen: UrenFScenario;
+  interneUren: UrenFAdvies | null;
   uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
   startJaar: number;
 }) {
@@ -2456,8 +2701,196 @@ function UrenF2Optelling({
   // Per-jaar-kosten-uitsplitsing voor de scenario-totaal kosten-formule
   const totalenPerJaar = interneUrenScen.totalenPerJaar ?? [];
 
+  // ===== Lezing-C categorie-uitsplitsing per domein =====
+  const lez = interneUren?.interneUrenLezing;
+  const niveaus: Record<LezingCCategorie, UrenNiveau> = {
+    leider: { ...LEZING_C_DEFAULTS.leider, ...(lez?.urenNiveaus?.leider ?? {}) },
+    kernteam: { ...LEZING_C_DEFAULTS.kernteam, ...(lez?.urenNiveaus?.kernteam ?? {}) },
+    trainings_deelnemer: { ...LEZING_C_DEFAULTS.trainings_deelnemer, ...(lez?.urenNiveaus?.trainings_deelnemer ?? {}) },
+    geconsulteerd: { ...LEZING_C_DEFAULTS.geconsulteerd, ...(lez?.urenNiveaus?.geconsulteerd ?? {}) },
+  };
+  const aantalJrCateg = interneUrenScen.aantalJaren ?? 0;
+  // Schatting jaarlijkse leider-uren = gem. piek-jaar + buiten-piek-jaren / loopjaar
+  // Voor advies (4j): 1 piek + 2 buiten-piek + 1 borging ≈ (80 + 2×40 + 25)/4 = ~46u/jr → totaal 185u
+  // Eenvoudige benadering: piek + (jaren-1) × buitenPiek (zonder borging-uitsplitsing
+  // omdat we niet weten of er borgings-jaren in dit scenario zitten).
+  function leiderTotaalPerInsp(): number {
+    const piek = niveaus.leider.piek ?? 80;
+    const buiten = niveaus.leider.buitenPiek ?? 40;
+    const borging = niveaus.leider.borging ?? 25;
+    if (aantalJrCateg <= 1) return piek;
+    if (aantalJrCateg <= 3) return piek + (aantalJrCateg - 1) * buiten;
+    // 4+ jaar: 1 piek + (j-2) buiten + 1 borging
+    return piek + Math.max(0, aantalJrCateg - 2) * buiten + borging;
+  }
+  function kernteamTotaalPerPersoon(): number {
+    const piek = niveaus.kernteam.piek ?? 40;
+    const buiten = niveaus.kernteam.buitenPiek ?? 15;
+    const borging = niveaus.kernteam.borging ?? 10;
+    if (aantalJrCateg <= 1) return piek;
+    if (aantalJrCateg <= 3) return piek + (aantalJrCateg - 1) * buiten;
+    return piek + Math.max(0, aantalJrCateg - 2) * buiten + borging;
+  }
+  const leiderTot = leiderTotaalPerInsp();
+  const kernteamTot = kernteamTotaalPerPersoon();
+  const cursistTot = niveaus.trainings_deelnemer.totaal ?? 46;
+  const geconsTot = niveaus.geconsulteerd.totaal ?? 6;
+
+  // Per-domein categorieën — gebruik defaults voor aantal kernteam/cursist/gecons
+  // Leider-naam komt uit interneUrenLezing.inspanningsleiders[d] of fallback
+  const categorieRijen = rijen.map((r) => {
+    const dKey = r.domein as "cultuur" | "mens" | "data_systemen" | "processen";
+    const leiderInfo = lez?.inspanningsleiders?.[dKey];
+    const leiderNaam = leiderInfo?.naam || (
+      r.domein === "mens" || r.domein === "cultuur" ? "Yara" :
+      r.domein === "data_systemen" ? "Sven" :
+      r.domein === "processen" ? "TBD" : "—"
+    );
+    const leiderTbd = !!leiderInfo?.tbd || leiderNaam === "TBD";
+    const kernteamN = LEZING_C_KERNTEAM_GROOTTE_DEFAULT[r.domein] ?? 5;
+    const cursistN = LEZING_C_HEEFT_TRAININGS_DEELNEMERS[r.domein]
+      ? (LEZING_C_AANTAL_DEELNEMERS_DEFAULT[r.domein] ?? 0)
+      : 0;
+    const geconsN = LEZING_C_GECONSULTEERDEN_DEFAULT[r.domein] ?? 0;
+
+    const leiderUren = leiderTot;       // 1 leider × leiderTot
+    const kernteamUren = kernteamN * kernteamTot;
+    const cursistUren = cursistN * cursistTot;
+    const geconsUren = geconsN * geconsTot;
+    const totUren = leiderUren + kernteamUren + cursistUren + geconsUren;
+
+    return {
+      domein: r.domein,
+      leiderNaam,
+      leiderTbd,
+      leiderUren,
+      kernteamN,
+      kernteamUren,
+      cursistN,
+      cursistUren,
+      geconsN,
+      geconsUren,
+      totUren,
+      werkelijkUren: r.dTot,
+    };
+  });
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      {/* Lezing-C: per domein per categorie */}
+      <div className="rounded bg-[#003366]/[0.03] border border-[#003366]/20 p-3">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-[#003366] mb-1.5">
+          Lezing-C optelling — per domein per categorie
+        </p>
+        <p className="text-[11px] text-gray-600 italic mb-2 leading-snug">
+          <strong className="not-italic">Formule per cel:</strong> aantal × u/persoon × looptijd-correctie. Hover een cel voor de exacte berekening.
+          {lez?.lezing === "C" ? (
+            <> Aantallen komen uit <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">interneUrenLezing.rolCategorieen</code>; uren-niveaus uit <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">interneUrenLezing.urenNiveaus</code>.</>
+          ) : (
+            <> Aantallen en niveaus zijn defaults (Lezing-C-marker nog niet in data). Bron: AUDIT-KERNTEAM-MODEL.md.</>
+          )}
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left border-b-2 border-[#003366]/30">
+                <th className="py-2 pr-2 font-semibold text-gray-700">Domein</th>
+                <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Leider</th>
+                <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Kernteam</th>
+                <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Trainings-deelnemer</th>
+                <th className="py-2 px-2 font-mono text-right font-semibold text-gray-700">Geconsulteerd</th>
+                <th className="py-2 px-2 font-mono text-right font-semibold text-[#003366]">Totaal Lezing-C</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categorieRijen.map((c) => {
+                const hex = DOMAIN_BAR_HEX[c.domein] ?? "#6b7280";
+                return (
+                  <tr key={c.domein} className="border-b border-[#003366]/10 last:border-0">
+                    <td className="py-1.5 pr-2 font-medium text-gray-800">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: hex }} />
+                        {DOMAIN_LABEL[c.domein] ?? c.domein}
+                      </span>
+                    </td>
+                    <td
+                      className="py-1.5 px-2 font-mono text-right text-gray-800 cursor-help"
+                      title={`Leider voor ${DOMAIN_LABEL[c.domein] ?? c.domein}: ${c.leiderNaam}\n= 1 persoon × ${leiderTot}u (= piek ${niveaus.leider.piek}u + ${Math.max(0, aantalJrCateg - 2)} × buiten-piek ${niveaus.leider.buitenPiek}u${aantalJrCateg >= 4 ? ` + borging ${niveaus.leider.borging}u` : ""})\n= ${c.leiderUren}u over ${aantalJrCateg}j`}
+                    >
+                      <span className="text-gray-700">{c.leiderNaam}</span>
+                      {c.leiderTbd && (
+                        <span className="ml-1 inline-block text-[9px] uppercase tracking-wider font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0 rounded">
+                          TBD
+                        </span>
+                      )}
+                      <span className="ml-1.5 text-gray-900 font-semibold">{c.leiderUren}u</span>
+                    </td>
+                    <td
+                      className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                      title={`Kernteam voor ${DOMAIN_LABEL[c.domein] ?? c.domein}: ${c.kernteamN}p × ${kernteamTot}u/p (= piek ${niveaus.kernteam.piek}u + ${Math.max(0, aantalJrCateg - 2)} × buiten-piek ${niveaus.kernteam.buitenPiek}u${aantalJrCateg >= 4 ? ` + borging ${niveaus.kernteam.borging}u` : ""})\n= ${c.kernteamUren}u over ${aantalJrCateg}j`}
+                    >
+                      {c.kernteamN}p × {kernteamTot}u = <strong className="text-gray-900">{c.kernteamUren.toLocaleString("nl-NL")}u</strong>
+                    </td>
+                    <td
+                      className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                      title={c.cursistN > 0
+                        ? `Cursisten voor ${DOMAIN_LABEL[c.domein] ?? c.domein}: ${c.cursistN}p × ${cursistTot}u contacttijd over 2 trainings-blokken (Basis + Vaardigheid)\n= ${c.cursistUren}u`
+                        : `Geen trainings-deelnemers in dit domein (alleen mens-domein heeft cursist-cohort).`}
+                    >
+                      {c.cursistN > 0 ? (
+                        <>{c.cursistN}p × {cursistTot}u = <strong className="text-gray-900">{c.cursistUren.toLocaleString("nl-NL")}u</strong></>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td
+                      className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                      title={c.geconsN > 0
+                        ? `Geconsulteerden voor ${DOMAIN_LABEL[c.domein] ?? c.domein}: ${c.geconsN}p × ${geconsTot}u/looptijd (review/input op kritische momenten)\n= ${c.geconsUren}u`
+                        : `Geen geconsulteerden in dit domein.`}
+                    >
+                      {c.geconsN > 0 ? (
+                        <>{c.geconsN}p × {geconsTot}u = <strong className="text-gray-900">{c.geconsUren.toLocaleString("nl-NL")}u</strong></>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td
+                      className="py-1.5 px-2 font-mono text-right text-[#003366] font-bold cursor-help"
+                      title={`Lezing-C som = ${c.leiderUren} + ${c.kernteamUren} + ${c.cursistUren} + ${c.geconsUren} = ${c.totUren}u\nWerkelijke uren in dit scenario: ${c.werkelijkUren}u\nVerschil: ${c.werkelijkUren - c.totUren >= 0 ? "+" : ""}${c.werkelijkUren - c.totUren}u`}
+                    >
+                      {c.totUren.toLocaleString("nl-NL")}u
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-[#003366] font-mono">
+                <td className="py-2 pr-2 font-bold text-[#003366]">Totaal Lezing-C</td>
+                <td className="py-2 px-2 text-right text-gray-800">
+                  {categorieRijen.reduce((s, c) => s + c.leiderUren, 0).toLocaleString("nl-NL")}u
+                </td>
+                <td className="py-2 px-2 text-right text-gray-800">
+                  {categorieRijen.reduce((s, c) => s + c.kernteamUren, 0).toLocaleString("nl-NL")}u
+                </td>
+                <td className="py-2 px-2 text-right text-gray-800">
+                  {categorieRijen.reduce((s, c) => s + c.cursistUren, 0).toLocaleString("nl-NL")}u
+                </td>
+                <td className="py-2 px-2 text-right text-gray-800">
+                  {categorieRijen.reduce((s, c) => s + c.geconsUren, 0).toLocaleString("nl-NL")}u
+                </td>
+                <td className="py-2 px-2 text-right font-bold text-[#003366]">
+                  {categorieRijen.reduce((s, c) => s + c.totUren, 0).toLocaleString("nl-NL")}u
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-gray-500 italic leading-snug pl-2 border-l-2 border-gray-300">
+        Onderstaande klassieke optelling per domein/programma+lijn blijft staan voor doorklikbaarheid (rol-aggregatie + programma/lijn-split per domein). Lezing-C bovenstaande is de categorie-doorrekening; klassiek hieronder is de scenario-rol-data zoals AI die gegenereerd heeft.
+      </p>
+
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
@@ -2604,10 +3037,12 @@ function UrenF2Optelling({
 
 function UrenF3PerDomein({
   interneUrenScen,
+  interneUren,
   begrotingScenario,
   startJaar,
 }: {
   interneUrenScen: UrenFScenario;
+  interneUren: UrenFAdvies | null;
   begrotingScenario: BegrotingScenario;
   startJaar: number;
 }) {
@@ -2615,6 +3050,8 @@ function UrenF3PerDomein({
   if (domeinen.length === 0) {
     return <p className="text-xs text-gray-500 italic">Geen domein-data beschikbaar.</p>;
   }
+  const lezMarker = interneUren?.interneUrenLezing;
+  const selectie = interneUren?.selectiePerDomein;
   return (
     <div className="space-y-2">
       {domeinen.map((d) => (
@@ -2624,6 +3061,8 @@ function UrenF3PerDomein({
           begrotingInspanningen={begrotingScenario.inspanningen ?? []}
           startJaar={startJaar}
           aantalJaren={begrotingScenario.aantalJaren ?? interneUrenScen.aantalJaren ?? 0}
+          lezMarker={lezMarker}
+          selectie={selectie}
         />
       ))}
     </div>
@@ -2635,11 +3074,15 @@ function UrenF3DomeinKaart({
   begrotingInspanningen,
   startJaar,
   aantalJaren,
+  lezMarker,
+  selectie,
 }: {
   domein: UrenFDomein;
   begrotingInspanningen: InspanningBegroting[];
   startJaar: number;
   aantalJaren: number;
+  lezMarker?: InterneUrenLezingMarker;
+  selectie?: UrenFAdvies["selectiePerDomein"];
 }) {
   const dKey = domein.domein;
   const dTot = domein.totaalUren ?? 0;
@@ -2828,13 +3271,18 @@ function UrenF3DomeinKaart({
             <div className="rounded bg-gray-50 border border-gray-200 p-2.5 font-mono text-[11px] space-y-1">
               {top3Rollen.map((r, i) => {
                 const aandeel = piekUren > 0 ? Math.round(((r.uren ?? 0) / piekUren) * 100) : 0;
-                const formule = `${r.functieNaam ?? "—"}: ${r.uren ?? 0}u in ${piekJaar}\n= ${aandeel}% van domein-piek (${piekUren}u)\n= ${dTot > 0 ? Math.round(((r.uren ?? 0) / dTot) * 100) : 0}% van domein-totaal (${dTot}u over ${aantalJaren}j)`;
+                const sel = r.functieId ? selectie?.[dKey as keyof NonNullable<typeof selectie>]?.[r.functieId] : undefined;
+                const cat = bepaalCategorie(dKey, r.functieId ?? "", r.functieNaam, sel, lezMarker);
+                const formule = `${r.functieNaam ?? "—"}: ${r.uren ?? 0}u in ${piekJaar}\nCategorie (Lezing C): ${LEZING_C_CATEGORIE_LABEL[cat]}\n= ${aandeel}% van domein-piek (${piekUren}u)\n= ${dTot > 0 ? Math.round(((r.uren ?? 0) / dTot) * 100) : 0}% van domein-totaal (${dTot}u over ${aantalJaren}j)`;
                 return (
                   <div key={i} className="flex items-baseline justify-between gap-2 cursor-help" title={formule}>
-                    <span className="text-gray-700 truncate">
-                      {r.functieNaam ?? r.functieId ?? "Onbekend"}
+                    <span className="text-gray-700 truncate flex items-center gap-1.5 min-w-0">
+                      <span className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded shrink-0 ${LEZING_C_CATEGORIE_KLEUR[cat]}`}>
+                        {LEZING_C_CATEGORIE_LABEL[cat]}
+                      </span>
+                      <span className="truncate">{r.functieNaam ?? r.functieId ?? "Onbekend"}</span>
                     </span>
-                    <span className="text-gray-900 font-semibold">
+                    <span className="text-gray-900 font-semibold shrink-0">
                       {(r.uren ?? 0).toLocaleString("nl-NL")} u
                       <span className="text-[10px] text-gray-500 ml-1.5">({aandeel}%)</span>
                     </span>
@@ -2985,236 +3433,198 @@ function UrenF4J1Cap({
 }
 
 // ============================================================================
-// F5 — Stille selecties (cat-1) toelichting
+// F5 — Categorieën & open beslispunten (Lezing C)
+// Toont per categorie:
+//  - Inspanningsleiders per inspanning (incl. eventuele TBD-placeholders)
+//  - Trainings-deelnemers (mens-cursisten)
+//  - Geconsulteerden per domein
+//  - Open beslispunten (cat-3, reviewVereist: true)
 // ============================================================================
 
-function UrenF5StilleSelecties({
-  interneUrenScen,
+function UrenF5CategorieenBeslispunten({
+  session,
   interneUren,
-  uurtariefSettings,
-  startJaar,
+  stap4,
 }: {
-  interneUrenScen: UrenFScenario;
+  session: DINSession;
   interneUren: UrenFAdvies | null;
-  uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
-  startJaar: number;
+  stap4?: {
+    subEffortAnalysis?: Array<{
+      groepId?: string;
+      domein?: string;
+      titel?: string;
+      voorgesteldeNaam?: string | null;
+      dossier?: { eigenaar?: string; inspanningsleider?: string };
+    }>;
+  };
 }) {
-  const aantalJaren = interneUrenScen.aantalJaren ?? 0;
-  const basisTarief = uurtariefSettings?.basisTarief ?? 70;
-  const refJaar = uurtariefSettings?.referentiejaar ?? 2025;
-  // Normaliseer indexatie naar percent-punten (data kan 0.05 of 5 zijn)
-  const indexPctRaw = uurtariefSettings?.indexatiePercentage ?? 5;
-  const indexPct = indexPctRaw <= 1 ? indexPctRaw * 100 : indexPctRaw;
-
-  // Voor elke stille selectie: bepaal of die rol in selectiePerDomein staat,
-  // hoeveel personen, en hoeveel uren ze bijdragen volgens de scenario-data.
-  const dataDomein = (interneUrenScen.domeinen ?? []).find((d) => d.domein === "data_systemen");
-
-  function rolUrenInDomein(functieId: string): { totaal: number; perJaar: Map<number, number> } {
-    const perJaar = new Map<number, number>();
-    let totaal = 0;
-    for (const jr of dataDomein?.jaren ?? []) {
-      const r = (jr.rollen ?? []).find((rr) => rr.functieId === functieId);
-      const u = r?.uren ?? 0;
-      perJaar.set(jr.jaar, u);
-      totaal += u;
-    }
-    return { totaal, perJaar };
-  }
-
-  // Geïndexeerd-tarief gemiddeld over de jaren
-  function gemiddeldTarief(): number {
-    let som = 0;
-    for (let i = 0; i < aantalJaren; i++) {
-      const jaar = startJaar + i;
-      som += basisTarief * Math.pow(1 + indexPct / 100, jaar - refJaar);
-    }
-    return aantalJaren > 0 ? Math.round(som / aantalJaren) : basisTarief;
-  }
-  const gemTarief = gemiddeldTarief();
-
-  // Aantal personen via selectiePerDomein
-  function aantalPersonen(functieId: string): number {
-    const sel = interneUren?.selectiePerDomein?.data_systemen ?? {};
-    const ent = sel[functieId];
-    return ent?.aantal ?? 1;
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-[11px] text-gray-600 leading-relaxed italic">
-        Twee rollen verschijnen óók in het CRM-domein (data &amp; systemen) terwijl ze in mens of processen al primair gelabeld zijn. Dit is bewust en niet dubbel geteld: het gaat om een ándere activiteit. Hieronder zie je per rol de exacte uren-bijdrage in dit scenario.
-      </p>
-
-      {STILLE_SELECTIES.map((sel) => {
-        const rolBlok = rolUrenInDomein(sel.functieId);
-        const aantal = aantalPersonen(sel.functieId);
-        const totaalUren = rolBlok.totaal;
-        const richtwaarde = sel.defaultUrenPerJaar * aantal * aantalJaren;
-        const formule = `${sel.defaultUrenPerJaar}u/jr × ${aantal} personen × ${aantalJaren} jr ≈ ${richtwaarde.toLocaleString("nl-NL")}u (richtwaarde)`;
-        const kosten = Math.round(totaalUren * gemTarief);
-        const heeftData = totaalUren > 0;
-        const perJaarArr = Array.from(rolBlok.perJaar.entries()).sort((a, b) => a[0] - b[0]);
-        const maxJrUren = perJaarArr.reduce((m, [, u]) => Math.max(m, u), 0);
-
-        return (
-          <div key={sel.functieId} className="rounded-lg border border-purple-200 bg-purple-50/30 p-3 text-xs space-y-2">
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="font-semibold text-purple-900">{sel.rolLabel}</span>
-              <span className="font-mono text-gray-700">
-                {heeftData ? (
-                  <>
-                    {totaalUren.toLocaleString("nl-NL")} u totaal · ≈ {formatEur(kosten)}
-                  </>
-                ) : (
-                  <span className="text-gray-500 italic">geen uren in dit scenario</span>
-                )}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-700 leading-snug">{sel.uitleg}</p>
-            <div className="rounded bg-white border border-purple-200 p-2 font-mono text-[11px] space-y-0.5">
-              <div className="text-[10px] uppercase tracking-wider font-bold text-purple-700 font-sans mb-0.5">
-                Richtwaarde-formule
-              </div>
-              <div
-                className="text-gray-700 cursor-help"
-                title={`Richtwaarde-formule:\n• ${sel.defaultUrenPerJaar}u/jr per persoon (zie bouwstenen onder)\n• × ${aantal} personen (uit selectiePerDomein.data_systemen.${sel.functieId}.aantal — geselecteerd in Stap 7)\n• × ${aantalJaren} jaar (scenario-doorlooptijd)\n= ${richtwaarde}u richtwaarde\nVergelijk met werkelijk: ${totaalUren}u (${richtwaarde > 0 ? Math.round((totaalUren / richtwaarde) * 100) : 0}% van richtwaarde) — afwijking komt omdat de fase-curve in F3 de uren herverdeelt over jaren in plaats van platte ${sel.defaultUrenPerJaar}u/jr.`}
-              >
-                {formule}
-              </div>
-              <p className="text-[10px] text-gray-500 font-sans italic mt-1 pt-1 border-t border-purple-100 leading-snug">
-                <strong className="not-italic text-gray-700">Bouwstenen {sel.defaultUrenPerJaar}u/jr:</strong> {sel.urenOnderbouwing}
-              </p>
-              {heeftData && (
-                <div className="flex items-baseline justify-between text-gray-600 mt-0.5">
-                  <span>Werkelijk in dit scenario</span>
-                  <span className="text-gray-900 font-semibold">{totaalUren.toLocaleString("nl-NL")} u
-                    <span className="text-[10px] text-gray-500 ml-1">({richtwaarde > 0 ? Math.round((totaalUren / richtwaarde) * 100) : 0}% van richtwaarde)</span>
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Per-jaar-verdeling — laat zien waar de uren in dit scenario vallen */}
-            {heeftData && perJaarArr.length > 0 && (
-              <details className="rounded bg-white border border-purple-200">
-                <summary className="cursor-pointer px-2 py-1 text-[10px] uppercase tracking-wider font-bold text-purple-700 hover:bg-purple-50">
-                  Verdeling per jaar — wanneer leveren ze deze uren?
-                </summary>
-                <div className="px-2 pb-2 pt-1 space-y-1 border-t border-purple-100">
-                  <p className="text-[10px] text-gray-600 italic leading-snug mb-1">
-                    De stille selecties volgen dezelfde fase-curve als data_systemen (15% Analyse / 25% Realisatie / 35% Acceptatie★ / 25% Beheer). Daardoor pieken ze ronde de Acceptatie-fase (CRM-go-live), niet plat verdeeld.
-                  </p>
-                  {perJaarArr.map(([jaar, u]) => {
-                    const w = maxJrUren > 0 ? (u / maxJrUren) * 100 : 0;
-                    const aandeel = totaalUren > 0 ? Math.round((u / totaalUren) * 100) : 0;
-                    const tarief = Math.round(basisTarief * Math.pow(1 + indexPct / 100, jaar - refJaar));
-                    const jrKosten = u * tarief;
-                    return (
-                      <div key={jaar} className="flex items-center gap-2 text-[10px] font-mono">
-                        <span className="text-gray-600 w-10">{jaar}</span>
-                        <div className="flex-1 h-2 bg-purple-50 rounded overflow-hidden">
-                          <div className="h-full bg-purple-600" style={{ width: `${Math.max(0.5, w)}%` }} />
-                        </div>
-                        <span className="text-gray-700 w-12 text-right">{u}u</span>
-                        <span className="text-gray-400 w-8 text-right">({aandeel}%)</span>
-                        <span className="text-gray-500 w-16 text-right">€ {jrKosten.toLocaleString("nl-NL")}</span>
-                      </div>
-                    );
-                  })}
-                  <p className="text-[10px] text-gray-500 italic leading-snug mt-1.5 pt-1.5 border-t border-purple-100">
-                    {aantalJaren === 7 && (
-                      <>
-                        <strong>Optimaal (7j):</strong> piek-uren rond 2028–2029 (acceptatie-fase data_systemen). Voor {sel.rolLabel === "CRM-stuurgroep + adoption-leiderschap" ? "Manager Klantcontact" : "Accountmanager C Prof"}: ~5/10/18/30/17/12/8% target-verdeling — werkelijke spreiding hangt af van fase-zwaarte-toepassing.
-                      </>
-                    )}
-                    {aantalJaren === 10 && (
-                      <>
-                        <strong>Min20 (10j):</strong> piek-uren rond 2030 (acceptatie-fase verschuift bij langere looptijd). Target-verdeling voor 10j: ~5/8/12/14/22/14/10/6/5/4% — duidelijk een meer uitgesmeerd profiel, met staart in J8–J10 voor licentiebeheer/optimalisatie/continue verbetering.
-                      </>
-                    )}
-                    {aantalJaren !== 7 && aantalJaren !== 10 && (
-                      <>Verdeling volgt fase-zwaarte data_systemen — concentratie in Acceptatie-jaar.</>
-                    )}
-                  </p>
-                </div>
-              </details>
-            )}
-
-            <p className="text-[10px] text-gray-500 italic">
-              <strong className="not-italic">Programma 70% / lijn 30% voor deze rollen.</strong> Lager dan het CRM-domein-gemiddelde van 85% omdat het stuurgroep- en review-deel deels in functieprofiel valt: een Manager Klantcontact zit hoe dan ook in een MT-stuurgroep, een Sectormanager spreekt sowieso met externe partijen — programma-aandeel telt alleen het <em>extra</em> CRM-gerelateerde werk dat zonder dit programma niet zou plaatsvinden.
-            </p>
-          </div>
-        );
-      })}
-
-      {!dataDomein && (
-        <p className="text-[11px] text-gray-500 italic">
-          Geen data_systemen-domein in dit scenario gevonden — stille selecties niet beschikbaar.
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// F6 — Stakeholders (cat-2) + open beslispunten (cat-3) per domein
-// ============================================================================
-
-function UrenF6StakeholdersBeslispunten({ session }: { session: DINSession }) {
   const stakeholders = collectStakeholderRollen(session);
   const reviews = collectReviewRollen(session);
+  const lez = interneUren?.interneUrenLezing;
 
-  if (stakeholders.length === 0 && reviews.length === 0) {
-    return (
-      <p className="text-[11px] text-gray-500 italic">
-        Geen stakeholders of open beslispunten gemarkeerd in Stap 7. Komt voor wanneer de selectie
-        nog niet is verfijnd of geen rollen met label <em>Stakeholder</em>/<em>Review nodig</em> bevat.
-      </p>
-    );
+  // ── 1. Inspanningsleiders per inspanning (uit dossier.inspanningsleider) ──
+  type LeiderRow = {
+    domein: string;
+    inspanning: string;
+    leider: string;
+    tbd: boolean;
+  };
+  const leidersUitData: LeiderRow[] = (stap4?.subEffortAnalysis ?? [])
+    .filter((s) => s && s.dossier && s.domein)
+    .map((s) => {
+      const naam = (s.dossier?.inspanningsleider ?? "").trim();
+      const isTbd =
+        !naam ||
+        /\b(nader te bepalen|tbd|onbekend|nog te benoemen)\b/i.test(naam) ||
+        /\(.*nader te.*\)/i.test(naam);
+      const inspanning = s.titel || s.voorgesteldeNaam || s.groepId || "Inspanning";
+      return {
+        domein: s.domein ?? "—",
+        inspanning,
+        leider: naam || "Inspanningsleider — naam nog te benoemen",
+        tbd: isTbd,
+      };
+    });
+
+  // Aanvullen vanuit interneUrenLezing.inspanningsleiders als data ontbreekt voor een domein
+  const dom4: Domein4[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const leiderRows: LeiderRow[] = [...leidersUitData];
+  for (const d of dom4) {
+    if (leiderRows.some((r) => r.domein === d)) continue;
+    const info = lez?.inspanningsleiders?.[d];
+    if (info?.naam) {
+      leiderRows.push({
+        domein: d,
+        inspanning: `Inspanning ${DOMAIN_LABEL[d] ?? d}`,
+        leider: info.naam,
+        tbd: !!info.tbd,
+      });
+    }
   }
 
-  // Groepeer per domein voor leesbaarheid
-  const domeinen: Domein4[] = ["cultuur", "mens", "data_systemen", "processen"];
+  // ── 2. Trainings-deelnemers (alleen mens — 47 cursisten) ──
+  const cursistN =
+    LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens ?? 47;
+  const cursistTot =
+    lez?.urenNiveaus?.trainings_deelnemer?.totaal ??
+    LEZING_C_DEFAULTS.trainings_deelnemer.totaal ??
+    46;
+
+  // ── 3. Geconsulteerden per domein (uit stakeholders + lichte review-input) ──
+  // Hergebruik collectStakeholderRollen() — alle rollen met stakeholder: true.
+  // Voor de UI-render filteren we per domein uit `stakeholders`.
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Toelichting */}
       <div className="rounded bg-gray-50 border border-gray-200 p-3 text-xs text-gray-700 leading-relaxed">
-        <p className="font-semibold text-gray-800 mb-1">Verschil stakeholders vs. open beslispunten</p>
+        <p className="font-semibold text-gray-800 mb-1">Vier Lezing-C-categorieën in dit blok</p>
         <ul className="list-disc pl-5 space-y-0.5">
-          <li>
-            <strong className="text-purple-800">Stakeholder</strong> — rol levert review/input maar
-            krijgt <em>geen uren-belasting</em> in deze begroting. Wel meewegen voor governance/communicatie.
-          </li>
-          <li>
-            <strong className="text-amber-800">Review nodig</strong> — handmatige beslissing nog open.
-            Vraag onder de rol bepaalt of/hoeveel uren deze rol uiteindelijk krijgt.
-          </li>
+          <li><strong className="text-[#003366]">Inspanningsleiders</strong> — per inspanning één leider; TBD-pill als naam ontbreekt.</li>
+          <li><strong className="text-emerald-800">Trainings-deelnemers</strong> — alleen mens-cursisten (47p × 46u contacttijd).</li>
+          <li><strong className="text-purple-800">Geconsulteerden</strong> — leveren input/review, krijgen 6u/looptijd. Komt uit selectiePerDomein-flag <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">stakeholder: true</code>.</li>
+          <li><strong className="text-amber-800">Open beslispunten</strong> — handmatige review nodig (cat-3, <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">reviewVereist: true</code>).</li>
         </ul>
       </div>
 
-      {/* Cat 2 — Stakeholders */}
-      {stakeholders.length > 0 && (
-        <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 overflow-hidden">
-          <div className="bg-purple-100 px-3 py-2 border-b border-purple-200 flex items-center justify-between gap-2">
-            <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
-              Stakeholders ({stakeholders.length}) — geen uren-belasting
-            </span>
-            <span className="text-[10px] text-purple-700 font-mono">
-              {stakeholders.reduce((s, r) => s + r.aantal, 0)} personen
-            </span>
-          </div>
-          <div className="p-3 space-y-3">
-            {domeinen.map((dom) => {
-              const inDom = stakeholders.filter((r) => r.domein === dom);
-              if (inDom.length === 0) return null;
-              return <DomeinRolGroep key={`sh-${dom}`} domein={dom} accent="purple" rollen={inDom} type="stakeholder" />;
-            })}
-          </div>
+      {/* ── Inspanningsleiders ── */}
+      <div className="rounded-lg border-2 border-[#003366]/30 bg-[#003366]/[0.04] overflow-hidden">
+        <div className="bg-[#003366] px-3 py-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-white">
+            Inspanningsleiders ({leiderRows.length})
+          </span>
+          <span className="text-[10px] text-white/80 font-mono">
+            cat. leider — 1 persoon per inspanning
+          </span>
         </div>
-      )}
+        <div className="p-3 space-y-2">
+          {leiderRows.length === 0 && (
+            <p className="text-[11px] text-gray-500 italic">
+              Geen inspanningsleiders gevonden in <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">subEffortAnalysis[].dossier.inspanningsleider</code>.
+            </p>
+          )}
+          {leiderRows.map((r, i) => {
+            const hex = DOMAIN_BAR_HEX[r.domein] ?? "#6b7280";
+            return (
+              <div
+                key={`leid-${i}`}
+                className="flex items-baseline justify-between gap-2 rounded border border-[#003366]/15 bg-white px-3 py-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: hex }} />
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 shrink-0">
+                    {DOMAIN_LABEL[r.domein] ?? r.domein}
+                  </span>
+                  <span className="text-xs text-gray-700 truncate">{r.inspanning}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-semibold text-gray-900">{r.leider}</span>
+                  {r.tbd && (
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">
+                      TBD
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* Cat 3 — Open beslispunten */}
+      {/* ── Trainings-deelnemers ── */}
+      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/30 overflow-hidden">
+        <div className="bg-emerald-100 px-3 py-2 border-b border-emerald-200 flex items-center justify-between gap-2">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-800">
+            Trainings-deelnemers — mens-cursisten ({cursistN})
+          </span>
+          <span className="text-[10px] text-emerald-700 font-mono">
+            cat. trainings-deelnemer
+          </span>
+        </div>
+        <div className="p-3 space-y-2 text-xs text-gray-700 leading-relaxed">
+          <p>
+            <strong className="text-emerald-900">{cursistN} cursisten</strong> ×&nbsp;
+            <strong className="text-emerald-900">{cursistTot}u contacttijd</strong> over 2 trainings-blokken
+            (Basis + Vaardigheid) ={" "}
+            <strong className="text-emerald-900 font-mono">
+              {(cursistN * cursistTot).toLocaleString("nl-NL")}u
+            </strong>{" "}
+            cursist-uren in mens-domein.
+          </p>
+          <p className="text-[11px] text-gray-600 italic leading-snug">
+            Alle frontline-medewerkers (klantenservice, accountmanagers, mdw binnendienst) volgen het programma als eindgebruiker. Geen kernteam-rol; pure contacttijd. Zie F6 voor de impact op het mens-domein-totaal.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Geconsulteerden per domein ── */}
+      <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 overflow-hidden">
+        <div className="bg-purple-100 px-3 py-2 border-b border-purple-200 flex items-center justify-between gap-2">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
+            Geconsulteerden ({stakeholders.length}) — review/input, 6u/looptijd
+          </span>
+          <span className="text-[10px] text-purple-700 font-mono">
+            cat. geconsulteerd · {stakeholders.reduce((s, r) => s + r.aantal, 0)} personen
+          </span>
+        </div>
+        <div className="p-3 space-y-3">
+          {stakeholders.length === 0 && (
+            <p className="text-[11px] text-gray-500 italic">
+              Geen rollen met <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">stakeholder: true</code> in selectiePerDomein.
+              Defaults Lezing-C zijn ~25–30 geconsulteerden voor mens en data_systemen.
+            </p>
+          )}
+          {dom4.map((dom) => {
+            const inDom = stakeholders.filter((r) => r.domein === dom);
+            if (inDom.length === 0) return null;
+            return (
+              <DomeinRolGroep key={`gec-${dom}`} domein={dom} accent="purple" rollen={inDom} type="stakeholder" />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Open beslispunten ── */}
       {reviews.length > 0 && (
         <div className="rounded-lg border-2 border-amber-300 bg-amber-50/30 overflow-hidden">
           <div className="bg-amber-100 px-3 py-2 border-b border-amber-300 flex items-center justify-between gap-2">
@@ -3222,11 +3632,11 @@ function UrenF6StakeholdersBeslispunten({ session }: { session: DINSession }) {
               Open beslispunten ({reviews.length}) — handmatige review nodig
             </span>
             <span className="text-[10px] text-amber-700 font-mono">
-              {reviews.reduce((s, r) => s + r.aantal, 0)} personen
+              {reviews.reduce((s, r) => s + r.aantal, 0)} personen · reviewVereist: true
             </span>
           </div>
           <div className="p-3 space-y-3">
-            {domeinen.map((dom) => {
+            {dom4.map((dom) => {
               const inDom = reviews.filter((r) => r.domein === dom);
               if (inDom.length === 0) return null;
               return <DomeinRolGroep key={`rv-${dom}`} domein={dom} accent="amber" rollen={inDom} type="review" />;
@@ -3237,6 +3647,202 @@ function UrenF6StakeholdersBeslispunten({ session }: { session: DINSession }) {
     </div>
   );
 }
+
+// ============================================================================
+// F6 — Mens-domein context: waarom mens-totaal hoog lijkt
+// Aparte info-box met de trainings-footnote: 47 cursisten × 46u contacttijd
+// over 2 trainings-blokken (Basis + Vaardigheid) = ~2.162u. Aftrekken cursisten:
+// ~990u programma-organisatie-werk, in lijn met cultuur/data_systemen/processen.
+// ============================================================================
+
+function UrenF6MensContext({
+  interneUrenScen,
+  interneUren,
+}: {
+  interneUrenScen: UrenFScenario;
+  interneUren: UrenFAdvies | null;
+}) {
+  const lez = interneUren?.interneUrenLezing;
+  const cursistN = LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens ?? 47;
+  const cursistTot =
+    lez?.urenNiveaus?.trainings_deelnemer?.totaal ??
+    LEZING_C_DEFAULTS.trainings_deelnemer.totaal ??
+    46;
+  const cursistUren = cursistN * cursistTot;
+
+  // Werkelijke domein-totalen
+  const domeinen = interneUrenScen.domeinen ?? [];
+  const mens = domeinen.find((d) => d.domein === "mens");
+  const data_sys = domeinen.find((d) => d.domein === "data_systemen");
+  const cultuur = domeinen.find((d) => d.domein === "cultuur");
+  const processen = domeinen.find((d) => d.domein === "processen");
+  const mensTot = mens?.totaalUren ?? 0;
+  const mensZonderCursisten = Math.max(0, mensTot - cursistUren);
+  const cursistAandeel = mensTot > 0 ? Math.round((cursistUren / mensTot) * 100) : 0;
+
+  return (
+    <div className="rounded-lg border-l-4 border-[#003366] bg-[#003366]/[0.04] p-4 space-y-3">
+      <p className="text-[11px] uppercase tracking-wider font-bold text-[#003366]">
+        Waarom mens-totaal hoog lijkt
+      </p>
+      <p className="text-sm text-gray-800 leading-relaxed">
+        Mens is met{" "}
+        <strong className="text-[#003366] font-mono">~{mensTot.toLocaleString("nl-NL")}u</strong>{" "}
+        het zwaarste domein, maar{" "}
+        <strong className="text-[#003366]">~{cursistAandeel}% (~{cursistUren.toLocaleString("nl-NL")}u)</strong>{" "}
+        bestaat uit cursist-contacttijd:{" "}
+        <strong>{cursistN} medewerkers</strong> volgen elk{" "}
+        <strong>{cursistTot}u</strong> outside-in-gespreksvaardigheidstraining over{" "}
+        <strong>2 blokken</strong> (Basis + Vaardigheid).
+      </p>
+      <div className="rounded bg-white border border-[#003366]/20 p-3 space-y-2 text-xs">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-700 mb-1">
+          Aftrekken cursisten — programma-organisatie-werk per domein
+        </p>
+        <table className="w-full font-mono">
+          <tbody>
+            <tr className="border-b border-gray-100">
+              <td className="py-1 pr-2 text-gray-700">Mens-totaal</td>
+              <td className="py-1 px-2 text-right text-gray-900">{mensTot.toLocaleString("nl-NL")}u</td>
+              <td className="py-1 pl-2 text-right text-gray-500 text-[10px]">incl. cursisten</td>
+            </tr>
+            <tr className="border-b border-gray-100">
+              <td className="py-1 pr-2 text-emerald-700">Mens − cursisten</td>
+              <td className="py-1 px-2 text-right text-emerald-700 font-bold">
+                {mensZonderCursisten.toLocaleString("nl-NL")}u
+              </td>
+              <td className="py-1 pl-2 text-right text-gray-500 text-[10px]">kernteam + leider + geconsulteerd</td>
+            </tr>
+            <tr className="border-b border-gray-100">
+              <td className="py-1 pr-2 text-gray-700">Cultuur</td>
+              <td className="py-1 px-2 text-right text-gray-900">{(cultuur?.totaalUren ?? 0).toLocaleString("nl-NL")}u</td>
+              <td className="py-1 pl-2 text-right text-gray-400 text-[10px]">vergelijking</td>
+            </tr>
+            <tr className="border-b border-gray-100">
+              <td className="py-1 pr-2 text-gray-700">Data &amp; Systemen</td>
+              <td className="py-1 px-2 text-right text-gray-900">{(data_sys?.totaalUren ?? 0).toLocaleString("nl-NL")}u</td>
+              <td className="py-1 pl-2 text-right text-gray-400 text-[10px]">vergelijking</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 text-gray-700">Processen</td>
+              <td className="py-1 px-2 text-right text-gray-900">{(processen?.totaalUren ?? 0).toLocaleString("nl-NL")}u</td>
+              <td className="py-1 pl-2 text-right text-gray-400 text-[10px]">vergelijking</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-[11px] text-gray-600 italic leading-snug pt-1.5 border-t border-gray-100">
+          De ~{mensZonderCursisten.toLocaleString("nl-NL")}u programma-organisatie-werk in mens is in lijn met de andere domeinen — het schijnbaar hoge totaal komt door de cursist-cohort, niet door extra programma-belasting op trekkers.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// F7 — Lezing-vergelijking — historie kernteam-model (decision record)
+// ============================================================================
+
+function UrenF7LezingVergelijking({
+  interneUren,
+}: {
+  interneUren: UrenFAdvies | null;
+}) {
+  const lez = interneUren?.interneUrenLezing;
+  const huidigeLezing = lez?.lezing ?? "—";
+  const timestamp = lez?.timestamp;
+  const datumLeesbaar = (() => {
+    if (!timestamp) return null;
+    try {
+      const d = new Date(timestamp);
+      return d.toLocaleString("nl-NL", { dateStyle: "long", timeStyle: "short" });
+    } catch {
+      return timestamp;
+    }
+  })();
+  const toelichting = lez?.toelichting;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-gray-700">
+          Decision record — interneUrenLezing
+        </p>
+        <div className="flex items-center gap-2">
+          {huidigeLezing !== "—" ? (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#003366] text-white">
+              Huidig: Lezing {huidigeLezing}
+            </span>
+          ) : (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 border border-amber-200 text-amber-800">
+              Marker nog niet gezet
+            </span>
+          )}
+          {datumLeesbaar && (
+            <span className="text-[10px] font-mono text-gray-500">
+              {datumLeesbaar}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {/* Lezing A — verworpen */}
+        <div className="rounded border-l-4 border-gray-300 bg-gray-50 p-3 text-xs leading-relaxed">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 font-semibold uppercase">
+              Lezing A
+            </span>
+            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+              Verworpen
+            </span>
+          </div>
+          <p className="text-gray-700">
+            Alle aangemelde personen krijgen uren naar rolfunctie. Resulteerde in
+            onrealistisch hoge totalen voor stakeholder-rollen — review-rollen kregen
+            volle uren-belasting alsof ze uitvoerend waren.
+          </p>
+        </div>
+
+        {/* Lezing C — huidig */}
+        <div className="rounded border-l-4 border-[#003366] bg-[#003366]/[0.04] p-3 text-xs leading-relaxed">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#003366] text-white font-semibold uppercase">
+              Lezing C
+            </span>
+            <span className="text-[10px] font-semibold text-[#003366] uppercase tracking-wider">
+              Huidig
+            </span>
+          </div>
+          <p className="text-gray-800">
+            Kernteam-model met 4 categorieën. <strong>Inspanningsleider trekt</strong> +{" "}
+            <strong>5–7 kernteam</strong> doet uitvoerend werk +{" "}
+            <strong>trainings-deelnemers</strong> volgen training +{" "}
+            <strong>geconsulteerden</strong> leveren incidenteel input. Fase-gebaseerde
+            uren-niveaus per categorie zorgen voor realistische totalen.
+          </p>
+          {toelichting && (
+            <p className="text-[11px] text-gray-600 italic leading-snug mt-2 pt-2 border-t border-[#003366]/10">
+              <strong className="not-italic font-semibold text-gray-700">Marker-toelichting:</strong>{" "}
+              {toelichting}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {!lez && (
+        <p className="text-[11px] text-gray-500 italic leading-snug pt-1 border-t border-gray-100">
+          De marker <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">stap4.stap7InterneUren.interneUrenLezing</code> is nog niet gezet.
+          Zodra de Lezing-C-doorvoer-agent de Supabase-update heeft gedaan, verschijnt hier
+          de timestamp + toelichting.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// DomeinRolGroep — gedeelde helper voor F5 (geconsulteerden + open beslispunten)
+// ============================================================================
 
 function DomeinRolGroep({
   domein,

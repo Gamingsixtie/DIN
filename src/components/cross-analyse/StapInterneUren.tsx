@@ -141,6 +141,71 @@ const DOMAIN_LIJN_VOORBEELD: Record<Domein, string> = {
 // Volgorde van de per-domein-bar: data_systemen, mens, cultuur, processen
 const PROGLIJN_DOMEIN_VOLGORDE: Domein[] = ["data_systemen", "mens", "cultuur", "processen"];
 
+// ────────────────────────────────────────────────────────────────────────────
+// Lezing-C — kernteam-model categorie-labels (consistent met BerekeningenStep)
+// ────────────────────────────────────────────────────────────────────────────
+type LezingCCat = "leider" | "kernteam" | "trainings_deelnemer" | "geconsulteerd";
+
+const LEZING_C_CAT_LABEL: Record<LezingCCat, string> = {
+  leider: "leider",
+  kernteam: "kernteam",
+  trainings_deelnemer: "trainings-deelnemer",
+  geconsulteerd: "geconsulteerd",
+};
+
+const LEZING_C_CAT_KLEUR: Record<LezingCCat, string> = {
+  leider: "bg-[#003366] text-white",
+  kernteam: "bg-blue-100 text-blue-900 border border-blue-200",
+  trainings_deelnemer: "bg-emerald-100 text-emerald-900 border border-emerald-200",
+  geconsulteerd: "bg-gray-100 text-gray-700 border border-gray-200",
+};
+
+// Heuristiek voor Lezing-C categorie. Geeft een redelijke default; wanneer de
+// Lezing-C-doorvoer-agent expliciete `interneUrenLezing.rolCategorieen` schrijft,
+// kan deze functie later vervangen worden door directe lookup.
+function bepaalLezingCCategorie(
+  domein: Domein,
+  functieId: string,
+  functieNaam: string | undefined,
+  selectie: FunctieInput | undefined,
+): LezingCCat {
+  if (selectie?.stakeholder === true) return "geconsulteerd";
+  if (selectie?.reviewVereist === true) return "geconsulteerd";
+
+  const lower = (functieNaam ?? "").toLowerCase();
+  const idLower = functieId.toLowerCase();
+  if (
+    lower.includes("inspanningsleider") ||
+    lower.includes("projectleider") ||
+    lower.includes("projectmanager") ||
+    idLower.includes("-leider") ||
+    idLower.includes("leider-") ||
+    idLower.endsWith("-leider") ||
+    functieId === "manager_klantcontact" ||
+    functieId === "sio"
+  ) {
+    return "leider";
+  }
+
+  // Mens-domein heuristiek voor cursisten (frontline-medewerkers met grote aantallen)
+  if (domein === "mens") {
+    const aantal = selectie?.aantal ?? 1;
+    if (
+      aantal >= 3 &&
+      (functieId.includes("klantenservice") ||
+        functieId.includes("accountmanager") ||
+        functieId.includes("mdw_binnendienst"))
+    ) {
+      return "trainings_deelnemer";
+    }
+    if ((selectie?.urenPerJaar ?? 0) === 0 && aantal >= 1 && functieId !== "manager_klantcontact") {
+      return "trainings_deelnemer";
+    }
+  }
+
+  return "kernteam";
+}
+
 const SCENARIO_META: Array<{
   key: ScenarioLabel;
   label: string;
@@ -2453,13 +2518,21 @@ function ScenarioBlokView({
                 <p className="text-xs text-gray-700 italic leading-relaxed mb-3">{d.motivatie}</p>
               )}
               {d.domein === "mens" && (
-                <p className="text-[10px] text-gray-500 italic leading-snug mb-3 pl-2 border-l-2 border-gray-300">
-                  Mens-domein heeft <strong className="not-italic font-semibold">80 betrokkenen</strong> in de
-                  selectie: 47 actieve trainings-deelnemers + 12 trainers + 3 sectormanagers + 1 Manager
-                  Klantcontact + 1 Teamleider Trainingen + ~16 stakeholders/begeleiders. De uren-tabel toont
-                  de 64 personen met daadwerkelijke uren-belasting; de stakeholders staan in het &lsquo;Betrokken
-                  stakeholders &amp; open beslispunten&rsquo;-blok onder dit scenario.
-                </p>
+                <>
+                  <p className="text-[10px] text-gray-500 italic leading-snug mb-3 pl-2 border-l-2 border-gray-300">
+                    Mens-domein heeft <strong className="not-italic font-semibold">80 betrokkenen</strong> in de
+                    selectie: 47 actieve trainings-deelnemers + 12 trainers + 3 sectormanagers + 1 Manager
+                    Klantcontact + 1 Teamleider Trainingen + ~16 stakeholders/begeleiders. De uren-tabel toont
+                    de 64 personen met daadwerkelijke uren-belasting; de stakeholders staan in het &lsquo;Betrokken
+                    stakeholders &amp; open beslispunten&rsquo;-blok onder dit scenario.
+                  </p>
+                  <div className="rounded border-l-4 border-[#003366] bg-[#003366]/[0.04] p-2.5 text-[11px] text-gray-700 leading-relaxed mb-3">
+                    <p className="font-semibold text-[#003366] text-[10px] uppercase tracking-wider mb-1">
+                      Lezing-C — waarom mens-totaal hoog lijkt
+                    </p>
+                    Mens is met ~{d.totaalUren.toLocaleString("nl-NL")}u het zwaarste domein, maar circa <strong className="text-[#003366]">~70% (~2.162u)</strong> bestaat uit cursist-contacttijd: 47 medewerkers × 46u outside-in-gespreksvaardigheidstraining over 2 blokken (Basis + Vaardigheid). Aftrekken cursisten: ~990u <strong>programma-organisatie-werk</strong> — in lijn met cultuur, data &amp; systemen en processen.
+                  </div>
+                </>
               )}
               <div className="space-y-3">
                 {d.jaren.map((jr) => (
@@ -2492,11 +2565,33 @@ function ScenarioBlokView({
                           const stakeholderToel = sel?.stakeholderToelichting;
                           const isReview = sel?.reviewVereist === true;
                           const reviewVraag = sel?.reviewVraag;
+                          // Lezing-C categorie afleiden (heuristiek; vervangbaar
+                          // door interneUrenLezing.rolCategorieen wanneer beschikbaar)
+                          const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel);
+                          // TBD-detectie op functienaam (placeholder rolnamen)
+                          const naamLower = (r.functieNaam ?? "").toLowerCase();
+                          const isTbd =
+                            naamLower.includes("nader te bepalen") ||
+                            naamLower.includes("nog te benoemen") ||
+                            naamLower.includes("tbd");
                           return (
                             <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
                               <td className="py-1">
-                                <span className="text-gray-800">{r.functieNaam}</span>
-                                {r.afdeling && <span className="text-[10px] text-gray-500 ml-1">({r.afdeling})</span>}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]}`}
+                                    title={`Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`}
+                                  >
+                                    {LEZING_C_CAT_LABEL[cat]}
+                                  </span>
+                                  <span className="text-gray-800">{r.functieNaam}</span>
+                                  {r.afdeling && <span className="text-[10px] text-gray-500">({r.afdeling})</span>}
+                                  {isTbd && (
+                                    <span className="inline-block text-[9px] uppercase tracking-wider font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0 rounded">
+                                      TBD
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-1 text-right tabular-nums">
                                 {isStakeholder ? (
