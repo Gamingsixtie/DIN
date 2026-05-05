@@ -11,6 +11,7 @@ import {
   RasciFullMatrix,
   buildClusterBron,
 } from "@/components/steps/GovernanceStep";
+import BerekeningenStep from "@/components/steps/BerekeningenStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
@@ -4311,6 +4312,30 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           <Kern>
             <RoadmapBlock session={session} />
           </Kern>
+        </Chapter>
+
+        {/* Bijlage A — Audit van de begroting (Stap 8 berekeningen).
+            Letterlijk overgenomen uit BerekeningenStep (mode="export") zodat
+            de stuurgroep de volledige onderbouwing per scenario meekrijgt:
+            scenario-input, optelling, per-inspanning breakdown, jaarverdeling,
+            validatie en interne uren-keten. */}
+        <Chapter number="A." title="Bijlage A — Audit van de begroting" id="bijlage-a-audit-begroting">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Deze bijlage onderbouwt elk getal uit Hoofdstuk 4. Per scenario laat zij zien hoe het jaarbudget-plafond
+              is bepaald, hoe het scenario-totaal is opgebouwd uit de afzonderlijke inspanningen, hoe het bedrag per
+              inspanning ontstaat (uit kostenraming en motivatie in het dossier), hoe het is verdeeld over de jaren,
+              en welke automatische aanpassingen zijn toegepast om binnen de jaargrenzen te passen. De interne uren
+              zijn op dezelfde manier doorgerekend — van rol-categorie tot domein-totaal en jaar-curve.
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Lees deze bijlage als <strong>controleer-document</strong>: alle bedragen in het programmaplan zijn
+              traceerbaar tot deze berekeningen. Wijzigingen in scenario-keuze of dossier-ramingen worden hier zichtbaar.
+            </p>
+          </Inleiding>
+          <div className="px-4">
+            <BerekeningenStep mode="export" />
+          </div>
         </Chapter>
       </div>
     </div>

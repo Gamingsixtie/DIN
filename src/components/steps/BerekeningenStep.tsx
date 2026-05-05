@@ -137,9 +137,10 @@ function tolerantie(scenarioTotaal: number): number {
 // Hoofdcomponent
 // ============================================================================
 
-export default function BerekeningenStep() {
+export default function BerekeningenStep({ mode = "full" }: { mode?: "full" | "export" } = {}) {
   const { session } = useSession();
   const [openScenario, setOpenScenario] = useState<ScenarioKey | null>("advies");
+  const isExport = mode === "export";
 
   if (!session) return null;
 
@@ -157,7 +158,7 @@ export default function BerekeningenStep() {
 
   return (
     <div className="space-y-6">
-      <Header begroting={begroting} />
+      {!isExport && <Header begroting={begroting} />}
 
       {!begroting && <GeenBegrotingPlaceholder />}
 
@@ -170,21 +171,25 @@ export default function BerekeningenStep() {
 
       {begroting && beschikbareScenarios.length > 0 && (
         <>
-          <NotitieVoorClaude
-            scope={{ kind: "globaal" }}
-            titel="Algemeen — geldt voor alle scenario's"
-            hint="Schrijf hier wat je wilt dat Claude leest bij de volgende ronde. Dingen die voor alle scenario's gelden (bv. een aanpassing in tarieven, een verkeerd label, structurele uitleg). Per scenario zit er onderaan elke kaart een eigen notitieblok."
-          />
+          {!isExport && (
+            <NotitieVoorClaude
+              scope={{ kind: "globaal" }}
+              titel="Algemeen — geldt voor alle scenario's"
+              hint="Schrijf hier wat je wilt dat Claude leest bij de volgende ronde. Dingen die voor alle scenario's gelden (bv. een aanpassing in tarieven, een verkeerd label, structurele uitleg). Per scenario zit er onderaan elke kaart een eigen notitieblok."
+            />
+          )}
           <Begrippenlijst />
           <MinMidMaxToelichting />
 
-          <ScenarioPicker
-            beschikbaar={beschikbareScenarios}
-            actief={openScenario}
-            onPick={setOpenScenario}
-            session={session}
-            begroting={begroting}
-          />
+          {!isExport && (
+            <ScenarioPicker
+              beschikbaar={beschikbareScenarios}
+              actief={openScenario}
+              onPick={setOpenScenario}
+              session={session}
+              begroting={begroting}
+            />
+          )}
 
           <div className="space-y-4">
             {beschikbareScenarios.map((k) => (
@@ -194,8 +199,9 @@ export default function BerekeningenStep() {
                 begroting={begroting}
                 subEffortAnalysis={subEffortAnalysis}
                 session={session}
-                open={openScenario === k}
+                open={isExport ? true : openScenario === k}
                 onToggle={() => setOpenScenario(openScenario === k ? null : k)}
+                mode={mode}
               />
             ))}
           </div>
@@ -398,6 +404,7 @@ function ScenarioBerekeningKaart({
   session,
   open,
   onToggle,
+  mode = "full",
 }: {
   scenarioKey: ScenarioKey;
   begroting: BegrotingAdvies;
@@ -405,9 +412,11 @@ function ScenarioBerekeningKaart({
   session: DINSession;
   open: boolean;
   onToggle: () => void;
+  mode?: "full" | "export";
 }) {
   const scenario = begroting.scenarios?.[scenarioKey];
   const meta = SCENARIO_META[scenarioKey];
+  const isExport = mode === "export";
 
   if (!scenario) return null;
 
@@ -432,30 +441,27 @@ function ScenarioBerekeningKaart({
       return Math.abs(sum - (insp.totaalEuro ?? 0)) <= tolerantie(insp.totaalEuro ?? 0);
     });
 
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <button
-        onClick={onToggle}
-        className={`w-full ${meta.band} text-white px-5 py-3 flex items-center justify-between text-left`}
-      >
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] opacity-80">{meta.label}</div>
-          <div className="text-base font-bold mt-0.5">
-            {formatEur(totaalScenario)}
-            <span className="text-xs font-normal opacity-80 ml-2">
-              over {aantalJaren} jaar ({startJaar}–{startJaar + aantalJaren - 1}) · plafond{" "}
-              {formatEur(cap)}/jaar
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span
-            className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${
-              allOk ? "bg-emerald-500/30 text-emerald-50" : "bg-red-500/40 text-red-50"
-            }`}
-          >
-            {allOk ? "✓ klopt" : "⚠ controleren"}
+  const kopInhoud = (
+    <>
+      <div>
+        <div className="text-[10px] uppercase tracking-[0.2em] opacity-80">{meta.label}</div>
+        <div className="text-base font-bold mt-0.5">
+          {formatEur(totaalScenario)}
+          <span className="text-xs font-normal opacity-80 ml-2">
+            over {aantalJaren} jaar ({startJaar}–{startJaar + aantalJaren - 1}) · plafond{" "}
+            {formatEur(cap)}/jaar
           </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span
+          className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${
+            allOk ? "bg-emerald-500/30 text-emerald-50" : "bg-red-500/40 text-red-50"
+          }`}
+        >
+          {allOk ? "✓ klopt" : "⚠ controleren"}
+        </span>
+        {!isExport && (
           <svg
             className={`w-5 h-5 transition-transform ${open ? "rotate-180" : ""}`}
             fill="none"
@@ -464,8 +470,27 @@ function ScenarioBerekeningKaart({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {isExport ? (
+        <div
+          className={`w-full ${meta.band} text-white px-5 py-3 flex items-center justify-between text-left`}
+        >
+          {kopInhoud}
         </div>
-      </button>
+      ) : (
+        <button
+          onClick={onToggle}
+          className={`w-full ${meta.band} text-white px-5 py-3 flex items-center justify-between text-left`}
+        >
+          {kopInhoud}
+        </button>
+      )}
 
       {open && (
         <div className="p-5 space-y-7">
@@ -512,11 +537,13 @@ function ScenarioBerekeningKaart({
             begrotingScenario={scenario}
           />
 
-          <NotitieVoorClaude
-            scope={{ kind: "scenario", scenarioKey }}
-            titel={`Scenario: ${meta.label}`}
-            hint="Notities die alleen voor dit scenario gelden. Bijvoorbeeld: een specifiek bedrag dat hier afwijkt, een berekening die alleen in dit tempo onlogisch wordt, of een sectie die alleen voor dit scenario aanpassing nodig heeft."
-          />
+          {!isExport && (
+            <NotitieVoorClaude
+              scope={{ kind: "scenario", scenarioKey }}
+              titel={`Scenario: ${meta.label}`}
+              hint="Notities die alleen voor dit scenario gelden. Bijvoorbeeld: een specifiek bedrag dat hier afwijkt, een berekening die alleen in dit tempo onlogisch wordt, of een sectie die alleen voor dit scenario aanpassing nodig heeft."
+            />
+          )}
         </div>
       )}
     </div>
