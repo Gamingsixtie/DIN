@@ -2425,6 +2425,250 @@ function StakeholdersBeslispuntenBlok({
   );
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// CategorieGroepsoverzicht — aggregatie per Lezing-C-categorie over hele scenario-looptijd
+// Geef voor één domein een totaal-overzicht: groepeer rollen per categorie
+// (leider / kernteam / trainings-deelnemer / geconsulteerd) met aantal personen
+// per rol + totaal-uren over alle jaren + categorie-totaal.
+// Lost op: gebruiker zag geconsulteerden met 0u in jaren waar ze niet werken.
+// ────────────────────────────────────────────────────────────────────────────
+type CategorieRol = {
+  functieId: string;
+  functieNaam: string;
+  afdeling?: string;
+  aantal: number;
+  totaalUren: number;          // som over alle jaren
+  jarenActief: Array<{ jaar: number; uren: number; activiteit: string }>; // alleen jaren met uren > 0
+  isStakeholder: boolean;
+  isReview: boolean;
+  isTbd: boolean;
+};
+
+const CATEGORIE_VOLGORDE: LezingCCat[] = ["leider", "kernteam", "trainings_deelnemer", "geconsulteerd"];
+
+const CATEGORIE_UITLEG: Record<LezingCCat, string> = {
+  leider: "Trekt de inspanning — eindverantwoordelijk voor voortgang en escalatie.",
+  kernteam: "Doet uitvoerend werk — vakinhoudelijke taken (5–7 personen volgens Kotter guiding coalition).",
+  trainings_deelnemer: "Volgt training als eindgebruiker — pure contacttijd (geen kernteam-rol).",
+  geconsulteerd: "Levert incidenteel input/review op kritische momenten — geen continue belasting.",
+};
+
+const CATEGORIE_CHIP_BG: Record<LezingCCat, string> = {
+  leider: "bg-[#003366]",
+  kernteam: "bg-blue-500",
+  trainings_deelnemer: "bg-emerald-500",
+  geconsulteerd: "bg-gray-400",
+};
+
+const CATEGORIE_BLOK_BG: Record<LezingCCat, string> = {
+  leider: "bg-[#003366]/[0.05] border-[#003366]/30",
+  kernteam: "bg-blue-50 border-blue-200",
+  trainings_deelnemer: "bg-emerald-50 border-emerald-200",
+  geconsulteerd: "bg-gray-50 border-gray-200",
+};
+
+function CategorieGroepsoverzicht({
+  domeinBlok,
+  selectiePerDomein,
+}: {
+  domeinBlok: DomeinBlok;
+  selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
+}): React.ReactElement {
+  // Aggregeer rollen over alle jaren — per functieId één entry met som-uren
+  const perFunctie = new Map<string, CategorieRol & { categorie: LezingCCat }>();
+  for (const jr of domeinBlok.jaren) {
+    for (const r of jr.rollen) {
+      const sel = selectiePerDomein?.[domeinBlok.domein]?.[r.functieId];
+      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel);
+      const naamLower = (r.functieNaam ?? "").toLowerCase();
+      const isTbd =
+        naamLower.includes("nader te bepalen") ||
+        naamLower.includes("nog te benoemen") ||
+        naamLower.includes("tbd");
+      const cur = perFunctie.get(r.functieId) ?? {
+        functieId: r.functieId,
+        functieNaam: r.functieNaam,
+        afdeling: r.afdeling,
+        aantal: sel?.aantal ?? 1,
+        totaalUren: 0,
+        jarenActief: [],
+        isStakeholder: sel?.stakeholder === true,
+        isReview: sel?.reviewVereist === true,
+        isTbd,
+        categorie: cat,
+      };
+      cur.totaalUren += r.uren ?? 0;
+      if ((r.uren ?? 0) > 0) {
+        cur.jarenActief.push({ jaar: jr.jaar, uren: r.uren, activiteit: jr.activiteit });
+      }
+      perFunctie.set(r.functieId, cur);
+    }
+  }
+
+  // Groepeer per categorie
+  const perCategorie: Record<LezingCCat, Array<CategorieRol & { categorie: LezingCCat }>> = {
+    leider: [],
+    kernteam: [],
+    trainings_deelnemer: [],
+    geconsulteerd: [],
+  };
+  for (const r of perFunctie.values()) {
+    perCategorie[r.categorie].push(r);
+  }
+  // Sorteer per categorie op totaal-uren desc
+  for (const c of CATEGORIE_VOLGORDE) {
+    perCategorie[c].sort((a, b) => b.totaalUren - a.totaalUren);
+  }
+
+  // Categorie-totalen
+  const totals: Record<LezingCCat, { personen: number; uren: number; rollen: number }> = {
+    leider: { personen: 0, uren: 0, rollen: 0 },
+    kernteam: { personen: 0, uren: 0, rollen: 0 },
+    trainings_deelnemer: { personen: 0, uren: 0, rollen: 0 },
+    geconsulteerd: { personen: 0, uren: 0, rollen: 0 },
+  };
+  for (const c of CATEGORIE_VOLGORDE) {
+    for (const r of perCategorie[c]) {
+      totals[c].personen += r.aantal;
+      totals[c].uren += r.totaalUren;
+      totals[c].rollen += 1;
+    }
+  }
+
+  const eindJaar = (domeinBlok.jaren[domeinBlok.jaren.length - 1]?.jaar) ?? 0;
+  const startJaar = (domeinBlok.jaren[0]?.jaar) ?? 0;
+  const aantalJaren = domeinBlok.jaren.length;
+
+  // Som van categorie-totaal-personen — niet noodzakelijk gelijk aan unieke
+  // FTEs (één persoon kan 2× geteld zijn als hij in 2 categorieën zit binnen
+  // hetzelfde domein; in praktijk bijna nooit). Toch "som" tonen consistent.
+  const totaalPersonen =
+    totals.leider.personen +
+    totals.kernteam.personen +
+    totals.trainings_deelnemer.personen +
+    totals.geconsulteerd.personen;
+  const totaalRollen =
+    totals.leider.rollen +
+    totals.kernteam.rollen +
+    totals.trainings_deelnemer.rollen +
+    totals.geconsulteerd.rollen;
+
+  return (
+    <div className="rounded-lg border-2 border-[#003366]/30 bg-white overflow-hidden mb-3">
+      <div className="bg-[#003366] text-white px-3 py-2 flex items-baseline justify-between gap-2 flex-wrap">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-bold opacity-80">
+            {DOMEIN_LABELS[domeinBlok.domein]} — overzicht per categorie
+          </p>
+          <p className="text-xs opacity-90">
+            Hele scenario-looptijd ({startJaar}–{eindJaar}, {aantalJaren} jaar) · {totaalRollen} unieke rollen · ~{totaalPersonen} personen · {domeinBlok.totaalUren.toLocaleString("nl-NL")}u totaal
+          </p>
+        </div>
+        <p className="text-[10px] italic opacity-80 max-w-md">
+          Eén lijst per categorie zodat je in één oogopslag ziet wie welke rol heeft, ongeacht in welk jaar de uren vallen.
+        </p>
+      </div>
+      <div className="p-3 space-y-2">
+        {CATEGORIE_VOLGORDE.map((cat) => {
+          const rollen = perCategorie[cat];
+          if (rollen.length === 0) return null;
+          const tot = totals[cat];
+          const aandeelPct =
+            domeinBlok.totaalUren > 0
+              ? Math.round((tot.uren / domeinBlok.totaalUren) * 100)
+              : 0;
+          return (
+            <div
+              key={cat}
+              className={`rounded border-l-4 ${CATEGORIE_BLOK_BG[cat]} p-2.5`}
+            >
+              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`inline-block ${CATEGORIE_CHIP_BG[cat]} text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded`}
+                  >
+                    {LEZING_C_CAT_LABEL[cat]}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-800">
+                    {tot.rollen} rol{tot.rollen === 1 ? "" : "len"} · {tot.personen} {tot.personen === 1 ? "persoon" : "personen"}
+                  </span>
+                  <span className="text-[11px] font-mono tabular-nums text-gray-700">
+                    {tot.uren.toLocaleString("nl-NL")}u totaal ({aandeelPct}%)
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] italic text-gray-600 leading-snug mb-2 pl-1">
+                {CATEGORIE_UITLEG[cat]}
+              </p>
+              <div className="space-y-1">
+                {rollen.map((r) => {
+                  const urenLabel = r.isStakeholder
+                    ? "Stakeholder (geen uren-belasting)"
+                    : r.totaalUren === 0
+                      ? "0u — geen actieve uren in dit scenario"
+                      : `${r.totaalUren.toLocaleString("nl-NL")}u over ${aantalJaren}j`;
+                  // Per-jaar-detail tekst (alleen jaren met uren > 0)
+                  const jaarDetailKort = r.jarenActief
+                    .map((j) => `${j.uren}u in ${j.jaar}`)
+                    .join(" + ");
+                  // Bepaal aantal-suffix
+                  let aantalLabel = "";
+                  if (r.aantal > 1) aantalLabel = ` (${r.aantal} personen)`;
+                  return (
+                    <div
+                      key={r.functieId}
+                      className="bg-white/70 rounded border border-gray-200 px-2 py-1 text-xs flex items-baseline justify-between gap-2 flex-wrap"
+                    >
+                      <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
+                        <span className="font-medium text-gray-900 truncate">
+                          {r.functieNaam}
+                        </span>
+                        {r.afdeling && (
+                          <span className="text-[10px] text-gray-500">({r.afdeling})</span>
+                        )}
+                        {aantalLabel && (
+                          <span className="text-[10px] font-semibold text-gray-700">
+                            {aantalLabel}
+                          </span>
+                        )}
+                        {r.isStakeholder && (
+                          <span className="text-[9px] uppercase tracking-wider font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-1 py-0 rounded">
+                            Stakeholder
+                          </span>
+                        )}
+                        {r.isReview && !r.isStakeholder && (
+                          <span className="text-[9px] uppercase tracking-wider font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0 rounded">
+                            Review nodig
+                          </span>
+                        )}
+                        {r.isTbd && (
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0 rounded">
+                            TBD
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono tabular-nums text-gray-800 font-semibold">
+                          {urenLabel}
+                        </p>
+                        {!r.isStakeholder && r.jarenActief.length > 0 && r.jarenActief.length < aantalJaren && (
+                          <p className="text-[10px] text-gray-500 italic leading-tight">
+                            {jaarDetailKort}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ScenarioBlokView({
   s,
   sv,
@@ -2441,6 +2685,9 @@ function ScenarioBlokView({
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
 }): React.ReactElement {
   const [openDomein, setOpenDomein] = useState<Domein | null>("cultuur");
+  // Per-jaar tabellen: default 0u-rollen verbergen zodat geconsulteerden niet
+  // als "0u rommel" verschijnen in jaren waar ze niet werken.
+  const [toonNulUrenInJaar, setToonNulUrenInJaar] = useState<boolean>(false);
   const eindJaar = s.startJaar + s.aantalJaren - 1;
 
   return (
@@ -2576,6 +2823,30 @@ function ScenarioBlokView({
                   </div>
                 </>
               )}
+              {/* Categorie-groepsoverzicht — één lijst per categorie over hele looptijd
+                  zodat trainings-deelnemers en geconsulteerden zichtbaar zijn,
+                  ongeacht in welk jaar hun uren vallen. Per-jaar-detail blijft eronder. */}
+              <CategorieGroepsoverzicht
+                domeinBlok={d}
+                selectiePerDomein={selectiePerDomein}
+              />
+              {/* Toggle voor de per-jaar-tabellen: 0u-rollen wel/niet tonen.
+                  Default UIT — geconsulteerden met 0u in een jaar verschijnen
+                  niet als "rommel" in dat jaar. */}
+              <div className="flex items-center justify-between mb-2 px-1">
+                <p className="text-[11px] uppercase tracking-wider font-bold text-gray-600">
+                  Detail per jaar — {DOMEIN_LABELS[d.domein]}
+                </p>
+                <label className="flex items-center gap-1.5 text-[11px] text-gray-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={toonNulUrenInJaar}
+                    onChange={(e) => setToonNulUrenInJaar(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  Toon ook rollen met 0u in dit jaar
+                </label>
+              </div>
               <div className="space-y-3">
                 {d.jaren.map((jr) => (
                   <div key={jr.jaar} className="bg-white border border-gray-200 rounded p-3">
@@ -2600,13 +2871,23 @@ function ScenarioBlokView({
                         </tr>
                       </thead>
                       <tbody>
-                        {jr.rollen.map((r, i) => {
+                        {jr.rollen
+                          .filter((r) => {
+                            // Filter 0u-rollen tenzij toggle aan staat. Stakeholders
+                            // mogen blijven (hebben sowieso geen uren-belasting).
+                            if (toonNulUrenInJaar) return true;
+                            const selFilt = selectiePerDomein?.[d.domein]?.[r.functieId];
+                            if (selFilt?.stakeholder === true) return true;
+                            return (r.uren ?? 0) > 0;
+                          })
+                          .map((r, i) => {
                           const sel = selectiePerDomein?.[d.domein]?.[r.functieId];
                           const aantal = sel?.aantal ?? 1;
                           const isStakeholder = sel?.stakeholder === true;
                           const stakeholderToel = sel?.stakeholderToelichting;
                           const isReview = sel?.reviewVereist === true;
                           const reviewVraag = sel?.reviewVraag;
+                          const isNul = !isStakeholder && (r.uren ?? 0) === 0;
                           // Lezing-C categorie afleiden (heuristiek; vervangbaar
                           // door interneUrenLezing.rolCategorieen wanneer beschikbaar)
                           const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel);
@@ -2617,7 +2898,10 @@ function ScenarioBlokView({
                             naamLower.includes("nog te benoemen") ||
                             naamLower.includes("tbd");
                           return (
-                            <tr key={`${r.functieId}-${i}`} className="border-b border-gray-50 last:border-b-0">
+                            <tr
+                              key={`${r.functieId}-${i}`}
+                              className={`border-b border-gray-50 last:border-b-0 ${isNul ? "opacity-50" : ""}`}
+                            >
                               <td className="py-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span
