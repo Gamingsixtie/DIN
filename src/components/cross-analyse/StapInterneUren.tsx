@@ -2010,6 +2010,186 @@ export default function StapInterneUren({
     }
   }
 
+  // Functie toevoegen aan een domein — voegt rol-records toe in alle scenarios
+  // op basis van categorie + actieve fases. Update ook selectiePerDomein
+  // (en customFunctiesPerDomein bij eigen functie) + vUPI.
+  async function handleFunctieToevoegen(input: {
+    domein: Domein;
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    schaal?: number;
+    isCustom: boolean;
+    aantal: number;
+    categorie: LezingCCat;
+    actieveFases: string[];
+    onderbouwing?: string;
+  }): Promise<void> {
+    if (!advies) return;
+    const { domein, functieId, functieNaam, afdeling, schaal, isCustom, aantal, categorie, actieveFases, onderbouwing } = input;
+
+    // Edge case: functie al in selectiePerDomein
+    if (functieId in (selectiePerDomein[domein] ?? {})) {
+      addToast(`${functieNaam} staat al in ${DOMEIN_LABELS[domein]}.`, "error");
+      return;
+    }
+
+    // Edge case: tweede leider
+    if (categorie === "leider") {
+      const huidigeLeiderId = vindHuidigeLeiderId(advies, domein, selectiePerDomein);
+      if (huidigeLeiderId && huidigeLeiderId !== functieId) {
+        const huidigeNaam =
+          CITO_FUNCTIES.find((f) => f.id === huidigeLeiderId)?.naam ??
+          customFunctiesPerDomein?.[domein]?.find((c) => c.id === huidigeLeiderId)?.naam ??
+          huidigeLeiderId;
+        addToast(
+          `Er is al een leider in ${DOMEIN_LABELS[domein]} (${huidigeNaam}). Wijzig eerst die rol naar een andere categorie.`,
+          "error",
+        );
+        return;
+      }
+    }
+
+    // Bewaar previous voor rollback
+    const previousAdvies = advies;
+    const previousSelectie = selectiePerDomein;
+    const previousCustom = customFunctiesPerDomein;
+    const previousVUPI = vastgesteldeUrenPerInspanning;
+
+    // Optimistic update — advies (per-jaar rol-records, totalen, vUPI)
+    const updatedAdvies = voegFunctieToeAanAdvies(
+      advies,
+      domein,
+      functieId,
+      functieNaam,
+      afdeling,
+      aantal,
+      categorie,
+      actieveFases,
+      begroting,
+      basisTarief,
+      referentiejaar,
+      indexatiePct,
+      selectiePerDomein,
+    );
+
+    // Optimistic — selectiePerDomein
+    const nieuweSelectie: Record<Domein, Record<string, FunctieInput>> = {
+      ...selectiePerDomein,
+      [domein]: {
+        ...selectiePerDomein[domein],
+        [functieId]: { aantal },
+      },
+    };
+    setSelectiePerDomein(nieuweSelectie);
+
+    // Optimistic — customFunctiesPerDomein (alleen bij custom)
+    let nieuweCustom = customFunctiesPerDomein;
+    if (isCustom) {
+      nieuweCustom = {
+        ...customFunctiesPerDomein,
+        [domein]: [
+          ...customFunctiesPerDomein[domein],
+          { id: functieId, naam: functieNaam, schaal },
+        ],
+      };
+      setCustomFunctiesPerDomein(nieuweCustom);
+    }
+
+    // vUPI: voeg de nieuwe rol toe per inspanning op dit domein, met
+    // urenTotaal = som over advies-scenario alle jaren voor deze rol.
+    let nieuweVUPI = vastgesteldeUrenPerInspanning;
+    const adviesScen = updatedAdvies.scenarios.advies ?? updatedAdvies.scenarios.optimaal;
+    if (adviesScen) {
+      const dBlok = adviesScen.domeinen.find((d) => d.domein === domein);
+      const urenTotaalAdvies = dBlok
+        ? dBlok.jaren.reduce((s, jr) => {
+            const r = jr.rollen.find((x) => x.functieId === functieId);
+            return s + (r?.uren ?? 0);
+          }, 0)
+        : 0;
+      const onderbouwingTekst =
+        onderbouwing && onderbouwing.length > 0
+          ? onderbouwing
+          : `${aantal}× ${functieNaam} — ${LEZING_C_CAT_LABEL[categorie]} actief in ${actieveFases.length} fase(s).`;
+      nieuweVUPI = vastgesteldeUrenPerInspanning.map((insp) => {
+        if (insp.domein !== domein) return insp;
+        // Voeg alleen toe als deze rol nog niet in deze inspanning staat
+        if (insp.rollen.some((r) => r.functieId === functieId)) return insp;
+        return {
+          ...insp,
+          rollen: [
+            ...insp.rollen,
+            {
+              functieId,
+              functieNaam,
+              afdeling,
+              urenTotaal: urenTotaalAdvies,
+              onderbouwing: onderbouwingTekst,
+            },
+          ],
+        };
+      });
+      setVastgesteldeUrenPerInspanning(nieuweVUPI);
+    }
+
+    setAdvies(updatedAdvies);
+
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      const huidig = (cs as unknown as { stap7InterneUren?: InterneUrenAdvies } | undefined)?.stap7InterneUren;
+      const merged: InterneUrenAdvies = {
+        ...(huidig ?? updatedAdvies),
+        ...updatedAdvies,
+        selectiePerDomein: nieuweSelectie,
+        customFunctiesPerDomein: nieuweCustom,
+      };
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: merged,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+
+    try {
+      const v = await saveNow();
+      if (v === false) {
+        // Rollback
+        setAdvies(previousAdvies);
+        setSelectiePerDomein(previousSelectie);
+        setCustomFunctiesPerDomein(previousCustom);
+        setVastgesteldeUrenPerInspanning(previousVUPI);
+        addToast("Functie toevoegen mislukt — Supabase niet bereikbaar. Lokale staat teruggezet.", "error");
+        return;
+      }
+      addToast(
+        `${functieNaam} toegevoegd aan ${DOMEIN_LABELS[domein]} (${LEZING_C_CAT_LABEL[categorie]}, ${aantal}× — uren herberekend, v${v})`,
+        "success",
+      );
+    } catch (err) {
+      setAdvies(previousAdvies);
+      setSelectiePerDomein(previousSelectie);
+      setCustomFunctiesPerDomein(previousCustom);
+      setVastgesteldeUrenPerInspanning(previousVUPI);
+      addToast(
+        `Functie toevoegen mislukt: ${err instanceof Error ? err.message : "onbekende fout"}`,
+        "error",
+      );
+    }
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -2540,9 +2720,11 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 selectiePerDomein={selectiePerDomein}
                 customFunctiesPerDomein={customFunctiesPerDomein}
                 lezingMarker={advies.interneUrenLezing}
+                begrotingAdvies={begroting}
                 onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
                 onCategorieChange={handleCategorieChange}
+                onFunctieToevoegen={handleFunctieToevoegen}
               />
             );
           })}
@@ -3032,6 +3214,302 @@ function StakeholdersBeslispuntenBlok({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// bepaalUniekeFasesPerDomein — verzamelt unieke fase-strings uit
+// begrotingAdvies voor één domein, gegroepeerd per scenario. Returnt
+// per scenario de unieke set fase-strings + de bijbehorende geclassificeerde
+// FaseType. Gebruikt door FunctieToevoegenModal als checkboxen-bron.
+// ────────────────────────────────────────────────────────────────────────────
+type FaseInfo = { fase: string; faseType: FaseType };
+
+function bepaalUniekeFasesPerDomein(
+  begrotingAdvies: BegrotingAdviesMin | undefined,
+  domein: Domein,
+): Record<ScenarioLabel, FaseInfo[]> {
+  const out: Record<ScenarioLabel, FaseInfo[]> = {
+    optimaal: [],
+    plus20: [],
+    min20: [],
+    advies: [],
+  };
+  const scenKeys: ScenarioLabel[] = ["optimaal", "plus20", "min20", "advies"];
+  for (const k of scenKeys) {
+    const scen = begrotingAdvies?.scenarios?.[k];
+    if (!scen?.inspanningen) continue;
+    const seen = new Set<string>();
+    for (const i of scen.inspanningen) {
+      if (i.domein !== domein) continue;
+      for (const v of i.verdelingPerJaar ?? []) {
+        const fase = (v.fase ?? "").trim();
+        if (!fase || seen.has(fase)) continue;
+        seen.add(fase);
+        out[k].push({ fase, faseType: classificeerFaseString(fase) });
+      }
+    }
+  }
+  return out;
+}
+
+// Geünificeerde fase-lijst over alle scenarios — voor de checkbox-UI in
+// de modal (we tonen 1 lijst, user vinkt aan welke fases relevant zijn;
+// per scenario wordt later getoetst of een jaar-fase in die set zit).
+function bepaalUniekeFasesGeunificeerd(
+  begrotingAdvies: BegrotingAdviesMin | undefined,
+  domein: Domein,
+): FaseInfo[] {
+  const perScen = bepaalUniekeFasesPerDomein(begrotingAdvies, domein);
+  const seen = new Set<string>();
+  const out: FaseInfo[] = [];
+  for (const k of ["optimaal", "plus20", "min20", "advies"] as ScenarioLabel[]) {
+    for (const f of perScen[k]) {
+      if (seen.has(f.fase)) continue;
+      seen.add(f.fase);
+      out.push(f);
+    }
+  }
+  return out;
+}
+
+// Default-aanvinklogica per categorie: welke fases standaard actief zijn.
+//  • leider: alle fases
+//  • kernteam: alle fases
+//  • trainings-deelnemer: basis/vaardigheid (mens) of realisatie/acceptatie (data) — overig: leeg
+//  • geconsulteerd: eerste 2 piek-achtige fases (op basis van fase-type-volgorde)
+function defaultActieveFases(
+  categorie: LezingCCat,
+  domein: Domein,
+  fases: FaseInfo[],
+): string[] {
+  if (categorie === "leider" || categorie === "kernteam") {
+    return fases.map((f) => f.fase);
+  }
+  if (categorie === "trainings_deelnemer") {
+    if (domein === "mens") {
+      return fases
+        .filter((f) => f.faseType === "basis" || f.faseType === "vaardigheid")
+        .map((f) => f.fase);
+    }
+    if (domein === "data_systemen") {
+      return fases
+        .filter((f) => f.faseType === "realisatie" || f.faseType === "acceptatie")
+        .map((f) => f.fase);
+    }
+    return [];
+  }
+  // geconsulteerd → eerste 2 piek-achtige fases
+  const piekTypes: FaseType[] = ["piek", "basis", "vaardigheid", "realisatie", "acceptatie"];
+  return fases
+    .filter((f) => piekTypes.includes(f.faseType))
+    .slice(0, 2)
+    .map((f) => f.fase);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// voegFunctieToeAanAdvies — orkestreert de volledige update wanneer een
+// gebruiker een functie toevoegt: per scenario per domein per jaar wordt
+// een rol-record toegevoegd. Uren-niveau volgt categorie + fase-type van
+// dat jaar; alleen jaren waarvan de fase in `actieveFases` staat krijgen
+// uren > 0 (anders 0).
+// Updated marker: rolCategorieen[domein][functieId] = categorie.
+// ────────────────────────────────────────────────────────────────────────────
+function voegFunctieToeAanAdvies(
+  advies: InterneUrenAdvies,
+  domein: Domein,
+  functieId: string,
+  functieNaam: string,
+  afdeling: string | undefined,
+  aantal: number,
+  categorie: LezingCCat,
+  actieveFases: string[],
+  begrotingAdvies: BegrotingAdviesMin | undefined,
+  basisTarief: number,
+  referentiejaar: number,
+  indexatiePct: number,
+  selectiePerDomein: Record<Domein, Record<string, FunctieInput>>,
+): InterneUrenAdvies {
+  // 1. Update marker: zet categorie-override voor deze nieuwe rol
+  const huidigeMarker: InterneUrenLezingMarker = advies.interneUrenLezing ?? {};
+  const huidigeMapping = huidigeMarker.rolCategorieen ?? {};
+  const huidigeDomeinMapping = huidigeMapping[domein] ?? {};
+  const nieuweMarker: InterneUrenLezingMarker = {
+    ...huidigeMarker,
+    rolCategorieen: {
+      ...huidigeMapping,
+      [domein]: { ...huidigeDomeinMapping, [functieId]: categorie },
+    },
+  };
+
+  const actieveFasesSet = new Set(actieveFases.map((f) => f.trim()));
+
+  // 2. Loop scenarios → bouw nieuwe DomeinBlok met extra rol per jaar
+  const newScenarios: InterneUrenAdvies["scenarios"] = { ...advies.scenarios };
+  const scenKeys: ScenarioLabel[] = ["optimaal", "plus20", "min20", "advies"];
+  for (const scenKey of scenKeys) {
+    const scen = newScenarios[scenKey];
+    if (!scen) continue;
+    const begrotingScenario = begrotingAdvies?.scenarios?.[scenKey] ?? null;
+    const piekJaren = pieksjaren(begrotingScenario, domein);
+
+    // Bepaal per jaar de geldige fases uit begroting (per inspanning op dit domein)
+    function urenVoorJaar(jaar: number): number {
+      // Verzamel fase-strings die in dit jaar vallen voor dit domein
+      const fasesInJaar: string[] = [];
+      if (begrotingScenario?.inspanningen) {
+        for (const i of begrotingScenario.inspanningen) {
+          if (i.domein !== domein) continue;
+          for (const v of i.verdelingPerJaar ?? []) {
+            if (v.jaar !== jaar) continue;
+            const fs = (v.fase ?? "").trim();
+            if (fs) fasesInJaar.push(fs);
+          }
+        }
+      }
+      // Functie is in dit jaar actief als minstens één van de aangevinkte
+      // fases voorkomt in de begroting voor dit jaar.
+      const isActief = fasesInJaar.some((fs) => actieveFasesSet.has(fs));
+      if (!isActief) return 0;
+      const faseType = bepaalFaseType(begrotingScenario, domein, jaar);
+      const urenPP = berekenRolUrenPerPersoonPerJaar(
+        categorie,
+        faseType,
+        domein,
+        jaar,
+        piekJaren,
+      );
+      return urenPP * aantal;
+    }
+
+    const newDomeinen: DomeinBlok[] = scen.domeinen.map((d) => {
+      if (d.domein !== domein) {
+        // Andere domeinen blijven onveranderd, maar progr/lijn/raadplegen
+        // hercalculeren we niet — die blijven gelijk omdat geen rol-mutatie.
+        return d;
+      }
+      const newJaren: JaarBlok[] = d.jaren.map((jr) => {
+        const uren = urenVoorJaar(jr.jaar);
+        const tarief = berekenGeindexeerdTarief(basisTarief, referentiejaar, indexatiePct, jr.jaar);
+        const nieuweRol: Rol = {
+          functieId,
+          functieNaam,
+          afdeling,
+          uren,
+          uurtarief: tarief,
+          kosten: uren * tarief,
+        };
+        // Bestaat de rol al voor dit jaar? Vervang i.p.v. dupliceren.
+        const bestaatIdx = jr.rollen.findIndex((r) => r.functieId === functieId);
+        const nieuweRollen =
+          bestaatIdx >= 0
+            ? jr.rollen.map((r, i) => (i === bestaatIdx ? nieuweRol : r))
+            : [...jr.rollen, nieuweRol];
+        const totaalUren = nieuweRollen.reduce((s, x) => s + (x.uren ?? 0), 0);
+        const totaalKosten = nieuweRollen.reduce((s, x) => s + (x.kosten ?? 0), 0);
+        return { ...jr, rollen: nieuweRollen, totaalUren, totaalKosten };
+      });
+
+      // Hercalculeer programma/lijn/raadplegen voor dit domein op basis van
+      // (nieuwe) rol-categorieen. We hebben nog geen selectiePerDomein-aantallen
+      // in scope hier, maar pcts gebruiken alleen rol.uren — dus correct.
+      let programmaUren = 0;
+      let lijnUren = 0;
+      let raadplegenUren = 0;
+      const seenForCat = new Map<string, LezingCCat>();
+      function getCat(rol: Rol): LezingCCat {
+        const cached = seenForCat.get(rol.functieId);
+        if (cached) return cached;
+        const sel =
+          rol.functieId === functieId
+            ? { aantal }
+            : selectiePerDomein?.[d.domein]?.[rol.functieId];
+        const cat = bepaalLezingCCategorie(d.domein, rol.functieId, rol.functieNaam, sel, nieuweMarker);
+        seenForCat.set(rol.functieId, cat);
+        return cat;
+      }
+      for (const jr of newJaren) {
+        for (const r of jr.rollen) {
+          const rolCat = getCat(r);
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          programmaUren += Math.round(u * pcts.programma);
+          lijnUren += Math.round(u * pcts.lijn);
+          raadplegenUren += Math.round(u * pcts.raadplegen);
+        }
+      }
+
+      const totaalUren = newJaren.reduce((s, j) => s + (j.totaalUren ?? 0), 0);
+      const totaalKosten = newJaren.reduce((s, j) => s + (j.totaalKosten ?? 0), 0);
+      return {
+        ...d,
+        jaren: newJaren,
+        totaalUren,
+        totaalKosten,
+        programmaUren,
+        lijnUren,
+        raadplegenUren,
+      };
+    });
+
+    // Hercalculeer scenario-niveau totalen
+    const newTotalenPerJaar = scen.totalenPerJaar.map((t) => {
+      let uren = 0;
+      let kosten = 0;
+      let progU = 0;
+      let lijnU = 0;
+      let raadU = 0;
+      for (const d of newDomeinen) {
+        const j = d.jaren.find((x) => x.jaar === t.jaar);
+        uren += j?.totaalUren ?? 0;
+        kosten += j?.totaalKosten ?? 0;
+        if (!j) continue;
+        for (const r of j.rollen) {
+          const sel =
+            r.functieId === functieId
+              ? { aantal }
+              : selectiePerDomein?.[d.domein]?.[r.functieId];
+          const rolCat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, nieuweMarker);
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          progU += Math.round(u * pcts.programma);
+          lijnU += Math.round(u * pcts.lijn);
+          raadU += Math.round(u * pcts.raadplegen);
+        }
+      }
+      return {
+        ...t,
+        uren,
+        kosten,
+        urenGap: t.urenBudget !== undefined ? uren - t.urenBudget : t.urenGap,
+        programmaUren: progU,
+        lijnUren: lijnU,
+        raadplegenUren: raadU,
+      };
+    });
+
+    const totaalUren = newDomeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0);
+    const totaalKosten = newDomeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0);
+    const programmaUrenScen = newDomeinen.reduce((s, d) => s + (d.programmaUren ?? 0), 0);
+    const lijnUrenScen = newDomeinen.reduce((s, d) => s + (d.lijnUren ?? 0), 0);
+    const raadplegenUrenScen = newDomeinen.reduce((s, d) => s + (d.raadplegenUren ?? 0), 0);
+
+    newScenarios[scenKey] = {
+      ...scen,
+      domeinen: newDomeinen,
+      totalenPerJaar: newTotalenPerJaar,
+      totaalUren,
+      totaalKosten,
+      programmaUren: programmaUrenScen,
+      lijnUren: lijnUrenScen,
+      raadplegenUren: raadplegenUrenScen,
+    };
+  }
+
+  return {
+    ...advies,
+    scenarios: newScenarios,
+    interneUrenLezing: nieuweMarker,
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // CategorieGroepsoverzicht — aggregatie per Lezing-C-categorie over hele scenario-looptijd
 // Geef voor één domein een totaal-overzicht: groepeer rollen per categorie
 // (leider / kernteam / trainings-deelnemer / geconsulteerd) met aantal personen
@@ -3283,15 +3761,18 @@ function ScenarioBlokView({
   selectiePerDomein,
   customFunctiesPerDomein,
   lezingMarker,
+  begrotingAdvies,
   onSamenvattingEdit,
   onDomeinMotivatieEdit,
   onCategorieChange,
+  onFunctieToevoegen,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
   selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
   customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
   lezingMarker?: InterneUrenLezingMarker;
+  begrotingAdvies?: BegrotingAdviesMin;
   onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
   onCategorieChange?: (
@@ -3300,8 +3781,21 @@ function ScenarioBlokView({
     functieId: string,
     nieuweCategorie: LezingCCat,
   ) => Promise<void> | void;
+  onFunctieToevoegen?: (input: {
+    domein: Domein;
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    schaal?: number;
+    isCustom: boolean;
+    aantal: number;
+    categorie: LezingCCat;
+    actieveFases: string[];
+    onderbouwing?: string;
+  }) => Promise<void> | void;
 }): React.ReactElement {
   const [openDomein, setOpenDomein] = useState<Domein | null>("cultuur");
+  const [modalDomein, setModalDomein] = useState<Domein | null>(null);
   // Per-jaar tabellen: default 0u-rollen verbergen zodat geconsulteerden niet
   // als "0u rommel" verschijnen in jaren waar ze niet werken.
   const [toonNulUrenInJaar, setToonNulUrenInJaar] = useState<boolean>(false);
@@ -3409,7 +3903,18 @@ function ScenarioBlokView({
           const col = DOMEIN_COLORS[d.domein];
           return (
             <div key={d.domein} className={`p-4 ${col.bg}`}>
-              <p className={`text-sm font-semibold ${col.text} mb-1`}>{DOMEIN_LABELS[d.domein]}</p>
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                <p className={`text-sm font-semibold ${col.text}`}>{DOMEIN_LABELS[d.domein]}</p>
+                {onFunctieToevoegen && (
+                  <button
+                    onClick={() => setModalDomein(d.domein)}
+                    title={`Voeg een extra functie toe aan ${DOMEIN_LABELS[d.domein]}`}
+                    className="text-[11px] px-2.5 py-1 rounded border border-[#003366] text-[#003366] bg-white hover:bg-[#003366] hover:text-white font-semibold transition-colors"
+                  >
+                    + Functie toevoegen
+                  </button>
+                )}
+              </div>
               {onDomeinMotivatieEdit ? (
                 <div className="mb-3">
                   <EditableText
@@ -3621,6 +4126,48 @@ function ScenarioBlokView({
         selectiePerDomein={selectiePerDomein}
         customFunctiesPerDomein={customFunctiesPerDomein}
       />
+
+      {/* Modal — Functie toevoegen aan domein */}
+      {modalDomein && onFunctieToevoegen && (() => {
+        const fasesUniek = bepaalUniekeFasesGeunificeerd(begrotingAdvies, modalDomein);
+        // Vind huidige leider in dit domein op basis van scenario s + lezingMarker
+        const dBlok = s.domeinen.find((d) => d.domein === modalDomein);
+        let huidigeLeider: string | null = null;
+        if (dBlok) {
+          const overrides = lezingMarker?.rolCategorieen?.[modalDomein] ?? {};
+          for (const [fId, c] of Object.entries(overrides)) {
+            if (c === "leider") { huidigeLeider = fId; break; }
+          }
+          if (!huidigeLeider) {
+            const seen = new Set<string>();
+            for (const jr of dBlok.jaren) {
+              for (const r of jr.rollen) {
+                if (seen.has(r.functieId)) continue;
+                seen.add(r.functieId);
+                if (overrides[r.functieId]) continue;
+                const sel = selectiePerDomein?.[modalDomein]?.[r.functieId];
+                const cat = bepaalLezingCCategorie(modalDomein, r.functieId, r.functieNaam, sel, lezingMarker);
+                if (cat === "leider") { huidigeLeider = r.functieId; break; }
+              }
+              if (huidigeLeider) break;
+            }
+          }
+        }
+        return (
+          <FunctieToevoegenModal
+            domein={modalDomein}
+            selectiePerDomein={selectiePerDomein ?? { cultuur: {}, mens: {}, data_systemen: {}, processen: {} }}
+            customFunctiesPerDomein={customFunctiesPerDomein ?? { cultuur: [], mens: [], data_systemen: [], processen: [] }}
+            fases={fasesUniek}
+            huidigeLeiderFunctieId={huidigeLeider}
+            onClose={() => setModalDomein(null)}
+            onSubmit={async (input) => {
+              await onFunctieToevoegen({ domein: modalDomein, ...input });
+              setModalDomein(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -3888,6 +4435,358 @@ function ProgLijnKaart({
           <span className="text-xs font-normal text-gray-500 ml-1">u</span>
         </p>
         <p className="text-[10px] text-gray-600 mt-0.5 leading-snug">{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// FunctieToevoegenModal — modal om een extra functie aan een domein toe te
+// voegen (Stap 7). User kiest functie (cito of custom), aantal personen,
+// categorie en in welke fase(s) die actief is. Bij save wordt:
+//   • selectiePerDomein[domein] uitgebreid (en customFunctiesPerDomein
+//     bij eigen functie)
+//   • per scenario per jaar een rol-record toegevoegd, alleen jaren met
+//     één van de aangevinkte fases krijgen uren > 0
+// ────────────────────────────────────────────────────────────────────────────
+function FunctieToevoegenModal({
+  domein,
+  selectiePerDomein,
+  customFunctiesPerDomein,
+  fases,
+  huidigeLeiderFunctieId,
+  onClose,
+  onSubmit,
+}: {
+  domein: Domein;
+  selectiePerDomein: Record<Domein, Record<string, FunctieInput>>;
+  customFunctiesPerDomein: Record<Domein, CustomFunctie[]>;
+  fases: FaseInfo[];
+  huidigeLeiderFunctieId: string | null;
+  onClose: () => void;
+  onSubmit: (input: {
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    schaal?: number;
+    isCustom: boolean;
+    aantal: number;
+    categorie: LezingCCat;
+    actieveFases: string[];
+    onderbouwing?: string;
+  }) => Promise<void> | void;
+}): React.ReactElement {
+  const [bron, setBron] = useState<"cito" | "custom">("cito");
+  const [zoek, setZoek] = useState("");
+  const [gekozenFunctieId, setGekozenFunctieId] = useState<string>("");
+  const [customNaam, setCustomNaam] = useState("");
+  const [customSchaal, setCustomSchaal] = useState("");
+  const [aantal, setAantal] = useState<number>(1);
+  const [categorie, setCategorie] = useState<LezingCCat>("kernteam");
+  const [actieveFases, setActieveFases] = useState<string[]>(() =>
+    defaultActieveFases("kernteam", domein, fases),
+  );
+  const [onderbouwing, setOnderbouwing] = useState("");
+  const [bezig, setBezig] = useState(false);
+
+  // Hercalculeer default-fases bij categorie-wijziging — alleen als gebruiker
+  // niet al expliciet handmatig aangepast heeft. Simpel: reset altijd op cat-wissel.
+  function handleCategorieWissel(nieuw: LezingCCat) {
+    setCategorie(nieuw);
+    setActieveFases(defaultActieveFases(nieuw, domein, fases));
+  }
+
+  // Lijst van Cito-functies, gefilterd op (a) niet al geselecteerd in dit
+  // domein, (b) zoekstring match. We tonen ook functies waarvan
+  // inspanningRelevantie dit domein NIET bevat — gebruiker mag manueel kiezen.
+  const beschikbareCitoFuncties = CITO_FUNCTIES.filter((f) => {
+    if (f.id in selectiePerDomein[domein]) return false;
+    if (zoek.trim().length > 0) {
+      const q = zoek.trim().toLowerCase();
+      if (!f.naam.toLowerCase().includes(q) && !f.afdeling.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Validatie
+  const heeftFunctie =
+    bron === "cito" ? gekozenFunctieId.length > 0 : customNaam.trim().length > 0;
+  const heeftFases = actieveFases.length > 0;
+  const aantalOk = aantal >= 1;
+  const dubbeleLeider =
+    categorie === "leider" &&
+    huidigeLeiderFunctieId !== null &&
+    (bron === "custom" || huidigeLeiderFunctieId !== gekozenFunctieId);
+  const customDubbel =
+    bron === "custom" &&
+    customNaam.trim().length > 0 &&
+    customFunctiesPerDomein[domein].some((c) => c.naam.toLowerCase() === customNaam.trim().toLowerCase());
+
+  const kanOpslaan = heeftFunctie && heeftFases && aantalOk && !dubbeleLeider && !customDubbel && !bezig;
+
+  async function handleSave() {
+    if (!kanOpslaan) return;
+    setBezig(true);
+    try {
+      if (bron === "cito") {
+        const f = CITO_FUNCTIES.find((x) => x.id === gekozenFunctieId);
+        if (!f) {
+          setBezig(false);
+          return;
+        }
+        await onSubmit({
+          functieId: f.id,
+          functieNaam: f.naam,
+          afdeling: f.afdeling,
+          schaal: f.schaal,
+          isCustom: false,
+          aantal,
+          categorie,
+          actieveFases,
+          onderbouwing: onderbouwing.trim() || undefined,
+        });
+      } else {
+        const naam = customNaam.trim();
+        const slug = naam
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 30);
+        const id = `custom-${slug || "rol"}-${Date.now()}`;
+        const schaalNum = customSchaal.trim() ? Number(customSchaal) : undefined;
+        await onSubmit({
+          functieId: id,
+          functieNaam: naam,
+          afdeling: "Custom",
+          schaal: Number.isFinite(schaalNum) ? (schaalNum as number) : undefined,
+          isCustom: true,
+          aantal,
+          categorie,
+          actieveFases,
+          onderbouwing: onderbouwing.trim() || undefined,
+        });
+      }
+    } finally {
+      setBezig(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={() => !bezig && onClose()}
+    >
+      <div
+        className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h3 className="text-lg font-semibold text-[#003366]">
+                Functie toevoegen aan {DOMEIN_LABELS[domein]}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Voeg een extra functie toe aan dit domein. Uren worden automatisch berekend op basis van categorie + gekozen fase(s).
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              disabled={bezig}
+              className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2 disabled:opacity-50"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* 1. Functie kiezen */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+              1. Functie
+            </label>
+            <div className="flex gap-2 mt-2 mb-2">
+              <button
+                onClick={() => setBron("cito")}
+                className={`text-xs px-3 py-1.5 rounded border font-medium ${bron === "cito" ? "bg-[#003366] text-white border-[#003366]" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+              >
+                Cito-functie
+              </button>
+              <button
+                onClick={() => setBron("custom")}
+                className={`text-xs px-3 py-1.5 rounded border font-medium ${bron === "custom" ? "bg-[#003366] text-white border-[#003366]" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+              >
+                Eigen functie
+              </button>
+            </div>
+            {bron === "cito" ? (
+              <>
+                <input
+                  type="text"
+                  value={zoek}
+                  onChange={(e) => setZoek(e.target.value)}
+                  placeholder="Zoek in functienaam of afdeling..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                />
+                <select
+                  value={gekozenFunctieId}
+                  onChange={(e) => setGekozenFunctieId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                  size={Math.min(8, Math.max(3, beschikbareCitoFuncties.length))}
+                >
+                  {beschikbareCitoFuncties.length === 0 ? (
+                    <option disabled>Geen functies beschikbaar (alle al geselecteerd of zoekfilter te streng)</option>
+                  ) : (
+                    beschikbareCitoFuncties.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.naam} (schaal {f.schaal}) — {f.afdeling}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={customNaam}
+                  onChange={(e) => setCustomNaam(e.target.value)}
+                  placeholder="Functienaam (bijv. 'Programma-secretaris')"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                />
+                <input
+                  type="number"
+                  value={customSchaal}
+                  onChange={(e) => setCustomSchaal(e.target.value)}
+                  placeholder="Schaal (optioneel)"
+                  className="w-32 px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                />
+                {customDubbel && (
+                  <p className="text-[11px] text-amber-700">
+                    ⚠ Een eigen functie met deze naam bestaat al in dit domein.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 2. Aantal */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+              2. Aantal personen
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={aantal}
+              onChange={(e) => setAantal(Math.max(1, Math.min(50, Math.floor(Number(e.target.value) || 1))))}
+              className="w-32 mt-1 px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
+
+          {/* 3. Categorie */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+              3. Categorie
+            </label>
+            <select
+              value={categorie}
+              onChange={(e) => handleCategorieWissel((normaliseerCategorie(e.target.value) ?? "kernteam") as LezingCCat)}
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            >
+              {(["leider", "kernteam", "trainings_deelnemer", "geconsulteerd"] as LezingCCat[]).map((c) => (
+                <option key={c} value={c}>
+                  {LEZING_C_CAT_LABEL[c]}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-gray-500 mt-1 italic leading-snug">
+              {CATEGORIE_UITLEG[categorie]}
+            </p>
+            {dubbeleLeider && (
+              <p className="text-[11px] text-amber-700 mt-1">
+                ⚠ Er is al een leider in {DOMEIN_LABELS[domein]}. Wijzig eerst die rol naar een andere categorie voordat je een nieuwe leider aanwijst.
+              </p>
+            )}
+          </div>
+
+          {/* 4. Actieve fases */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+              4. Actieve fase(s)
+            </label>
+            <p className="text-[10px] text-gray-500 mt-0.5 mb-2">
+              Vink aan in welke fases deze functie uren krijgt. Standaard ingesteld op basis van categorie en domein.
+            </p>
+            {fases.length === 0 ? (
+              <p className="text-xs text-gray-500 italic">
+                Geen fases gevonden in begroting voor dit domein.
+              </p>
+            ) : (
+              <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                {fases.map((f) => {
+                  const checked = actieveFases.includes(f.fase);
+                  return (
+                    <label
+                      key={f.fase}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white px-1 py-0.5 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setActieveFases((prev) =>
+                            e.target.checked
+                              ? [...prev, f.fase]
+                              : prev.filter((x) => x !== f.fase),
+                          );
+                        }}
+                      />
+                      <span className="text-gray-800">{f.fase}</span>
+                      <span className="text-[10px] text-gray-500">({f.faseType})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {!heeftFases && fases.length > 0 && (
+              <p className="text-[11px] text-amber-700 mt-1">⚠ Selecteer minstens één fase.</p>
+            )}
+          </div>
+
+          {/* 5. Onderbouwing (optioneel) */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+              5. Onderbouwing (optioneel)
+            </label>
+            <textarea
+              value={onderbouwing}
+              onChange={(e) => setOnderbouwing(e.target.value)}
+              rows={2}
+              placeholder="Waarom is deze rol nodig?"
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003366]"
+            />
+          </div>
+        </div>
+
+        <div className="p-5 border-t border-gray-200 sticky bottom-0 bg-white z-10 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={bezig}
+            className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Annuleren
+          </button>
+          <button
+            onClick={() => { void handleSave(); }}
+            disabled={!kanOpslaan}
+            className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium"
+          >
+            {bezig ? "Bezig..." : "Functie toevoegen"}
+          </button>
+        </div>
       </div>
     </div>
   );
