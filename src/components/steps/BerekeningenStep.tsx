@@ -2538,6 +2538,45 @@ function UrenF1Parameters({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+      {/* Leken-uitleg — "Wat is dit?" — staat bewust BOVENAAN F1 zodat lezers
+          buiten de inhoud (financien, MT, externe stakeholders) eerst de
+          context krijgen voordat ze met urencijfers worden geconfronteerd. */}
+      <div className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4 space-y-3">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-blue-900">
+          Wat is dit?
+        </p>
+        <p className="text-[13px] text-blue-950 leading-relaxed">
+          Deze sectie legt vast hoeveel uren we per categorie inplannen — voor de
+          inspanningsleider, het kernteam, trainings-deelnemers en geconsulteerden.
+          We gebruiken het <strong>&lsquo;Lezing&nbsp;C kernteam-model&rsquo;</strong>:
+          een methodiek met vaste uren-niveaus per categorie en per fase, zodat we
+          niet per individu hoeven te schatten.
+        </p>
+        <div className="text-[12px] text-blue-950 leading-relaxed space-y-1.5">
+          <p className="font-semibold text-blue-900">Termen:</p>
+          <ul className="space-y-1.5 pl-4">
+            <li className="leading-snug">
+              <strong>1 FTE</strong> = 1 voltijd-medewerker = ~1.650 productieve
+              uren per jaar (na vakantie en feestdagen). Dus <strong>80u/jaar
+              = ongeveer 5%</strong> van iemands tijd ≈ 1 dag per maand.
+            </li>
+            <li className="leading-snug">
+              <strong>PMI Class-2</strong> = Project Management Institute
+              schatting-categorie 2. Een &lsquo;preliminary estimate&rsquo; met
+              verwachte nauwkeurigheid <strong>−15% tot +20%</strong>, gangbaar
+              voor business cases in een vroege fase. Onze cijfers zijn dus niet
+              exact, maar realistisch genoeg voor besluitvorming.
+            </li>
+            <li className="leading-snug">
+              <strong>Piek-fase</strong> = jaar waarin het meeste werk gebeurt
+              (meestal Realisatie of Acceptatie); <strong>buiten-piek</strong> =
+              Analyse / Borging-aanloop; <strong>borging</strong> = nazorg na
+              go-live.
+            </li>
+          </ul>
+        </div>
+      </div>
+
       {/* Lezing-C kernteam-model — info-block */}
       <div className="rounded-lg border-l-4 border-[#003366] bg-[#003366]/[0.04] p-3 space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -2624,32 +2663,110 @@ function UrenF1Parameters({
             </tbody>
           </table>
         </div>
-        {/* Inline formule-toelichtingen per categorie (vervangen tooltips). */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-[10px] text-gray-600 leading-snug pt-1.5 mt-1.5 border-t border-[#003366]/10">
-          <div>
-            <span className="font-semibold text-gray-700">Leider piek:</span> ~1 dag/week × 24–26 actieve weken/jr (PMI Class-2) — Realisatie/Acceptatie.
+        {/* Per-categorie onderbouwing — vervangt cryptische "1 dag/week × 24-26
+            weken"-regels door expliciete dagberekening + bron per cijfer.
+            Pim-feedback: "1 dag/week × 24-26 weken" rijmde niet met 80u
+            (zou 208u zijn) — nu rekenen we met werkdagen per jaar. */}
+        <div className="pt-2 mt-2 border-t border-[#003366]/10 space-y-2">
+          <p className="text-[11px] text-gray-700 leading-snug">
+            Per categorie hieronder de uren per jaar, met de onderbouwing waar
+            het cijfer vandaan komt.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left border-b border-[#003366]/20 bg-white/60">
+                  <th className="py-1.5 px-2 font-semibold text-[#003366] w-[18%]">Categorie</th>
+                  <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366] w-[8%]">Piek</th>
+                  <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366] w-[10%]">Buiten piek</th>
+                  <th className="py-1.5 px-2 font-mono text-right font-semibold text-[#003366] w-[8%]">Borging</th>
+                  <th className="py-1.5 px-2 font-semibold text-[#003366]">Hoe komen we hier?</th>
+                </tr>
+              </thead>
+              <tbody className="align-top">
+                <tr className="border-b border-[#003366]/10">
+                  <td className="py-2 px-2 font-medium text-gray-800">
+                    <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1 ${LEZING_C_CATEGORIE_KLEUR.leider}`}>leider</span>
+                    Inspannings­leider
+                  </td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-800">80u/jr</td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-700">40u/jr</td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-600">25u/jr</td>
+                  <td className="py-2 px-2 text-gray-700 leading-snug">
+                    <strong>Piek = 10 werkdagen/jaar</strong> (8u × 10 dagen) ≈
+                    wekelijkse stuurgroep (1u) + maandelijkse review (4u) +
+                    ad-hoc beslismomenten. <strong>Buiten-piek = 5 werkdagen/jaar</strong>
+                    {" "}= maandelijkse coördinatie. <strong>Borging = 3 werkdagen/jaar</strong>
+                    {" "}= kwartaal-toezicht.
+                  </td>
+                </tr>
+                <tr className="border-b border-[#003366]/10">
+                  <td className="py-2 px-2 font-medium text-gray-800">
+                    <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1 ${LEZING_C_CATEGORIE_KLEUR.kernteam}`}>kernteam</span>
+                    Kernteam (5–7)
+                  </td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-800">40u/jr</td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-700">15u/jr</td>
+                  <td className="py-2 px-2 font-mono text-right text-gray-600">10u/jr</td>
+                  <td className="py-2 px-2 text-gray-700 leading-snug">
+                    <strong>Piek = 5 werkdagen/jaar</strong> ≈ 1 dag per maand
+                    werk-/refinement-sessie. <strong>Buiten-piek = 2 werkdagen/jaar</strong>
+                    {" "}= kwartaal-meedenken in design. <strong>Borging = 1 werkdag/jaar</strong>
+                    {" "}= jaarlijkse evaluatie.
+                  </td>
+                </tr>
+                <tr className="border-b border-[#003366]/10">
+                  <td className="py-2 px-2 font-medium text-gray-800">
+                    <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1 ${LEZING_C_CATEGORIE_KLEUR.trainings_deelnemer}`}>trainings-deelnemer</span>
+                    Cursist (mens)
+                  </td>
+                  <td colSpan={3} className="py-2 px-2 font-mono text-right text-gray-800">
+                    24u + 22u = 46u<br/>
+                    <span className="text-[10px] text-gray-500">over 2 blokken</span>
+                  </td>
+                  <td className="py-2 px-2 text-gray-700 leading-snug">
+                    Industry-standaard outside-in gesprekstraining: ~3 dagen
+                    contacttijd (<strong>24u theorie + 22u oefening</strong>),
+                    gespreid over 2 trainings-blokken. <em>Eenmalig per cursist.</em>
+                  </td>
+                </tr>
+                <tr className="border-b border-[#003366]/10">
+                  <td className="py-2 px-2 font-medium text-gray-800">
+                    <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1 ${LEZING_C_CATEGORIE_KLEUR.trainings_deelnemer}`}>trainings-deelnemer</span>
+                    Cursist (data)
+                  </td>
+                  <td colSpan={3} className="py-2 px-2 font-mono text-right text-gray-800">
+                    14u + 14u = 28u<br/>
+                    <span className="text-[10px] text-gray-500">over 2 blokken</span>
+                  </td>
+                  <td className="py-2 px-2 text-gray-700 leading-snug">
+                    Industry-standaard CRM key-user-onboarding: ~3,5 dag
+                    contacttijd, opgesplitst in <strong>functioneel (14u) +
+                    technisch (14u)</strong>. <em>Eenmalig per cursist.</em>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-2 font-medium text-gray-800">
+                    <span className={`inline-block text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded mr-1 ${LEZING_C_CATEGORIE_KLEUR.geconsulteerd}`}>geconsulteerd</span>
+                    Geconsulteerd
+                  </td>
+                  <td colSpan={3} className="py-2 px-2 font-mono text-right text-gray-800">
+                    6u<br/>
+                    <span className="text-[10px] text-gray-500">over hele looptijd</span>
+                  </td>
+                  <td className="py-2 px-2 text-gray-700 leading-snug">
+                    <strong>3 sessies van 2u</strong>: kick-off-review +
+                    tussentijdse validatie + eindreview. Per persoon, gespreid
+                    over de scenario-duur.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div>
-            <span className="font-semibold text-gray-700">Leider buiten piek:</span> ~halve dag/week × 24–26 weken (PMI) — Analyse/Borging-aanloop.
-          </div>
-          <div>
-            <span className="font-semibold text-gray-700">Leider borging (j4+):</span> structureel afgeschaald — alleen review/sturing.
-          </div>
-          <div>
-            <span className="font-semibold text-gray-700">Kernteam piek:</span> ~halve dag/week × 24–26 weken (PMI) — Realisatie/Acceptatie.
-          </div>
-          <div>
-            <span className="font-semibold text-gray-700">Kernteam buiten piek:</span> ~2u/week × 24–26 weken — Analyse/Borging-aanloop.
-          </div>
-          <div>
-            <span className="font-semibold text-gray-700">Kernteam borging (j4+):</span> minimale uitvoer — incidentele follow-up + evaluatie.
-          </div>
-          <div className="md:col-span-2">
-            <span className="font-semibold text-gray-700">Geconsulteerd:</span> 3u in eerste piek-jaar (Realisatie/Basis) + 3u in tweede piek-jaar (Acceptatie/Vaardigheid) = 6u over hele looptijd — incidentele review-input.
-          </div>
-          <div className="md:col-span-2">
-            <span className="font-semibold text-gray-700">Trainings-deelnemer:</span> {LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens} cursisten × {niveaus.trainings_deelnemer.totaal ?? 46}u contacttijd over 2 blokken (Basis + Vaardigheid) — telt 50% programma + 50% lijn (interpretatie B).
-          </div>
+          <p className="text-[10px] text-gray-500 italic leading-snug">
+            Trainings-deelnemers tellen <strong className="not-italic">50% programma + 50% lijn</strong> (interpretatie B);
+            cursist-aantal mens = {LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens}.
+          </p>
         </div>
       </div>
 
@@ -2672,6 +2789,29 @@ function UrenF1Parameters({
           mono
           highlight
         />
+      </div>
+
+      {/* Tarief-curve — leken-uitleg BOVEN het bestaande blok zodat externe
+          lezers eerst de formule + voorbeelden zien voordat ze de tabel
+          interpreteren. Lost op: vraag "hoe komen jullie aan dit tarief?". */}
+      <div className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4 space-y-2">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-blue-900">
+          Hoe berekenen we de uurtarieven?
+        </p>
+        <p className="text-[12px] text-blue-950 leading-relaxed">
+          <strong>Basis-tarief = € {basisTarief}/uur</strong> (Cito-intern
+          gemiddeld kostprijstarief {refJaar}, inclusief overhead). Per jaar
+          verhoogt het tarief met <strong>{indexPct}% loon-/inflatie-index</strong>:
+          {" "}<span className="font-mono text-blue-900">tarief_jaar = € {basisTarief} × {(1 + indexPct/100).toFixed(2)}^(jaar − {refJaar})</span>.
+        </p>
+        <div className="text-[12px] text-blue-950 leading-relaxed">
+          <p className="font-semibold text-blue-900 mb-1">Voorbeelden:</p>
+          <ul className="space-y-0.5 pl-4 font-mono text-[11px]">
+            <li>{refJaar + 1}: € {basisTarief} × {(1 + indexPct/100).toFixed(2)}^1 = € {(basisTarief * (1 + indexPct/100)).toFixed(2)}</li>
+            <li>{refJaar + 2}: € {basisTarief} × {(1 + indexPct/100).toFixed(2)}^2 = € {(basisTarief * Math.pow(1 + indexPct/100, 2)).toFixed(2)}</li>
+            <li>{refJaar + 5}: € {basisTarief} × {(1 + indexPct/100).toFixed(2)}^5 = € {(basisTarief * Math.pow(1 + indexPct/100, 5)).toFixed(2)}</li>
+          </ul>
+        </div>
       </div>
 
       {/* Tarief-curve per jaar — met per-cel-formule */}
@@ -2751,6 +2891,27 @@ function UrenF1Parameters({
           </div>
         </div>
       )}
+
+      {/* Fase-zwaarte — leken-uitleg BOVEN het bestaande blok zodat externe
+          lezers begrijpen waarom werkverdeling per fase niet gelijk is. */}
+      <div className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4 space-y-2">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-blue-900">
+          Wat is fase-zwaarte?
+        </p>
+        <p className="text-[12px] text-blue-950 leading-relaxed">
+          Per fase (Analyse / Realisatie / Acceptatie / Borging) leggen we vast
+          hoeveel procent van het werk daar plaatsvindt — anders dan elk jaar
+          gelijk verdelen. Voorbeeld voor data &amp; systemen:
+          {" "}<strong>Realisatie krijgt 35% van de uren, Acceptatie 30%,
+          Analyse 20%, Borging 15%</strong>. Een &lsquo;realisatie&rsquo;-jaar
+          telt dus zwaarder dan een &lsquo;borging&rsquo;-jaar.
+        </p>
+        <p className="text-[12px] text-blue-950 leading-relaxed">
+          We gebruiken deze percentages om de bruto-uren per jaar uit te rekenen
+          (zie F3.2):
+          {" "}<span className="font-mono text-blue-900">bruto_jaar = totaal × (zwaarte_jaar / Σ_zwaarte)</span>.
+        </p>
+      </div>
 
       {/* Fase-zwaarte per domein — met onderbouwing per (domein, fase) */}
       <div className="rounded bg-gray-50/70 border border-gray-200 p-3">
