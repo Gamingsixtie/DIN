@@ -569,6 +569,7 @@ function herclassificeerRol(
             r.functieNaam,
             selectiePerDomein?.[d.domein]?.[r.functieId],
             nieuweMarker,
+            (r as { categorie?: string }).categorie,
           );
           const pcts = pctsVoorCategorie(rolCat, d.domein);
           const u = r.uren ?? 0;
@@ -3489,6 +3490,7 @@ function verwijderRolUitAdvies(
             r.functieNaam,
             selectiePerDomein?.[d.domein]?.[r.functieId],
             nieuweMarker,
+            (r as { categorie?: string }).categorie,
           );
           const pcts = pctsVoorCategorie(rolCat, d.domein);
           const u = r.uren ?? 0;
@@ -3530,6 +3532,7 @@ function verwijderRolUitAdvies(
             r.functieNaam,
             selectiePerDomein?.[d.domein]?.[r.functieId],
             nieuweMarker,
+            (r as { categorie?: string }).categorie,
           );
           const pcts = pctsVoorCategorie(rolCat, d.domein);
           const u = r.uren ?? 0;
@@ -3691,7 +3694,7 @@ function voegFunctieToeAanAdvies(
           rol.functieId === functieId
             ? { aantal }
             : selectiePerDomein?.[d.domein]?.[rol.functieId];
-        const cat = bepaalLezingCCategorie(d.domein, rol.functieId, rol.functieNaam, sel, nieuweMarker);
+        const cat = bepaalLezingCCategorie(d.domein, rol.functieId, rol.functieNaam, sel, nieuweMarker, (rol as { categorie?: string }).categorie);
         seenForCat.set(rol.functieId, cat);
         return cat;
       }
@@ -3736,7 +3739,7 @@ function voegFunctieToeAanAdvies(
             r.functieId === functieId
               ? { aantal }
               : selectiePerDomein?.[d.domein]?.[r.functieId];
-          const rolCat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, nieuweMarker);
+          const rolCat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, nieuweMarker, (r as { categorie?: string }).categorie);
           const pcts = pctsVoorCategorie(rolCat, d.domein);
           const u = r.uren ?? 0;
           progU += Math.round(u * pcts.programma);
