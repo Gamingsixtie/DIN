@@ -106,6 +106,9 @@ type InterneUrenAdvies = {
     advies?: ScenarioBlok | null;
   };
   partialFailures?: string[];
+  // Lezing-C marker — bevat per-rol categorie-overrides die door de UI-dropdown
+  // (Stap 7 ScenarioBlokView) of door de Lezing-C-doorvoer-agent worden gezet.
+  interneUrenLezing?: InterneUrenLezingMarker;
 };
 
 const DOMEIN_LABELS: Record<Domein, string> = {
@@ -195,6 +198,465 @@ function normaliseerCategorie(raw: string | undefined): LezingCCat | null {
   return null;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Lezing-C — uren-niveaus per categorie (kernteam-model). Bron: AUDIT-KERNTEAM-MODEL.md.
+// piek = piek-jaar, nietPiek = niet-piek-jaar (analyse/ontwerp/borging-aanloop),
+// borging = expliciete borging/nazorg/verankering-fase. Voor trainings-deelnemer
+// en geconsulteerd geldt een afwijkende regel — zie berekenRolUrenPerJaar.
+// ────────────────────────────────────────────────────────────────────────────
+const LEZING_C_UREN_NIVEAUS: Record<LezingCCat, { piek: number; nietPiek: number; borging: number }> = {
+  leider: { piek: 80, nietPiek: 40, borging: 25 },
+  kernteam: { piek: 40, nietPiek: 15, borging: 10 },
+  trainings_deelnemer: { piek: 0, nietPiek: 0, borging: 0 }, // afhankelijk van fase + domein
+  geconsulteerd: { piek: 0, nietPiek: 0, borging: 0 }, // afhankelijk van piek-volgorde
+};
+
+// Programma- vs lijn-aandeel per categorie (interpretatie B). Voor
+// trainings-deelnemer wijkt mens/data af.
+const LEZING_C_PCTS: Record<LezingCCat, { programma: number; lijn: number; raadplegen: number }> = {
+  leider: { programma: 0.90, lijn: 0.10, raadplegen: 0 },
+  kernteam: { programma: 0.80, lijn: 0.20, raadplegen: 0 },
+  trainings_deelnemer: { programma: 0.50, lijn: 0.50, raadplegen: 0 }, // mens-default
+  geconsulteerd: { programma: 0, lijn: 0, raadplegen: 1.0 },
+};
+
+// Trainings-deelnemer per domein heeft eigen pcts (zie spec-tabel).
+const LEZING_C_PCTS_TRAININGS_PER_DOMEIN: Partial<Record<Domein, { programma: number; lijn: number; raadplegen: number }>> = {
+  mens: { programma: 0.50, lijn: 0.50, raadplegen: 0 },
+  data_systemen: { programma: 0.70, lijn: 0.30, raadplegen: 0 },
+};
+
+// Fase-typering uit een fase-string van begrotingAdvies.verdelingPerJaar.
+// Geeft een grove indeling die voldoende is om uren-niveaus te kiezen.
+type FaseType =
+  | "piek"
+  | "niet-piek"
+  | "borging"
+  | "basis"            // mens trainings: blok 1 (24u)
+  | "vaardigheid"      // mens trainings: vaardigheidstraining (22u)
+  | "realisatie"       // data trainings: 14u
+  | "acceptatie";      // data trainings: 14u
+
+function classificeerFaseString(fase: string | undefined): FaseType {
+  const f = (fase ?? "").toLowerCase();
+  if (!f) return "niet-piek";
+  if (f.includes("basistraining") || f.includes("basis")) return "basis";
+  if (f.includes("vaardigheid")) return "vaardigheid";
+  if (f.includes("acceptatie")) return "acceptatie";
+  if (
+    f.includes("borging") ||
+    f.includes("nazorg") ||
+    f.includes("verankering") ||
+    f.includes("continu") ||
+    f.includes("continue") ||
+    f.includes("standaardisatie") ||
+    f.includes("beheer") ||
+    f.includes("optimalisatie") ||
+    f.includes("doorontwikkeling") ||
+    f.includes("ontwikkeling")
+  ) {
+    return "borging";
+  }
+  if (
+    f.includes("realisatie") ||
+    f.includes("kern") ||
+    f.includes("integraties") ||
+    f.includes("uitrol") ||
+    f.includes("go-live") ||
+    f.includes("pilot") ||
+    f.includes("toepassing") ||
+    f.includes("blok 1") ||
+    f.includes("blok 2")
+  ) {
+    // realisatie = piek-fase, behalve als context data-systemen → realisatie-fase voor trainings-deelnemer.
+    if (f.includes("realisatie")) return "realisatie";
+    return "piek";
+  }
+  // analyse / ontwerp / behoeftestelling / leverancier-selectie / inventarisatie / curriculumvalidatie
+  return "niet-piek";
+}
+
+// Bepaal voor één jaar binnen een scenario+domein de dominante fase-type
+// (op basis van euro-aandeel uit begrotingAdvies.verdelingPerJaar). Als
+// geen begrotingsdata: val terug op "niet-piek".
+type BegrotingInspMin = {
+  inspanningTitel?: string;
+  domein?: Domein;
+  verdelingPerJaar?: Array<{ jaar: number; euro: number; fase: string; activiteit?: string }>;
+};
+type BegrotingScenarioMin = {
+  inspanningen?: BegrotingInspMin[];
+};
+
+function bepaalFaseType(
+  scenario: BegrotingScenarioMin | null | undefined,
+  domein: Domein,
+  jaar: number,
+): FaseType {
+  if (!scenario?.inspanningen) return "niet-piek";
+  // Tel euro per fase-type voor inspanningen in dit domein in dit jaar
+  const tally: Record<FaseType, number> = {
+    piek: 0,
+    "niet-piek": 0,
+    borging: 0,
+    basis: 0,
+    vaardigheid: 0,
+    realisatie: 0,
+    acceptatie: 0,
+  };
+  for (const i of scenario.inspanningen) {
+    if (i.domein !== domein) continue;
+    for (const v of i.verdelingPerJaar ?? []) {
+      if (v.jaar !== jaar) continue;
+      const t = classificeerFaseString(v.fase);
+      tally[t] += v.euro ?? 0;
+    }
+  }
+  // Specifieke fasen krijgen prioriteit boven generieke "piek"/"niet-piek"
+  // wanneer er trainings-fasen aanwezig zijn (basis/vaardigheid/realisatie/acceptatie).
+  const specifiek: FaseType[] = ["basis", "vaardigheid", "realisatie", "acceptatie"];
+  let specMax: { type: FaseType | null; sum: number } = { type: null, sum: 0 };
+  for (const t of specifiek) {
+    if (tally[t] > specMax.sum) specMax = { type: t, sum: tally[t] };
+  }
+  if (specMax.type) return specMax.type;
+
+  // Anders: kies dominante uit piek/borging/niet-piek
+  const grof: FaseType[] = ["piek", "borging", "niet-piek"];
+  let grofMax: { type: FaseType; sum: number } = { type: "niet-piek", sum: -1 };
+  for (const t of grof) {
+    if (tally[t] > grofMax.sum) grofMax = { type: t, sum: tally[t] };
+  }
+  return grofMax.type;
+}
+
+// Geef de chronologische lijst van piek-jaren voor één scenario+domein.
+// Wordt gebruikt voor "geconsulteerd" (1e + 2e piek krijgen 3u elk).
+function pieksjaren(
+  scenario: BegrotingScenarioMin | null | undefined,
+  domein: Domein,
+): number[] {
+  if (!scenario?.inspanningen) return [];
+  const jaren = new Set<number>();
+  const perJaarType = new Map<number, Record<FaseType, number>>();
+  for (const i of scenario.inspanningen) {
+    if (i.domein !== domein) continue;
+    for (const v of i.verdelingPerJaar ?? []) {
+      jaren.add(v.jaar);
+      const cur = perJaarType.get(v.jaar) ?? {
+        piek: 0,
+        "niet-piek": 0,
+        borging: 0,
+        basis: 0,
+        vaardigheid: 0,
+        realisatie: 0,
+        acceptatie: 0,
+      };
+      const t = classificeerFaseString(v.fase);
+      cur[t] += v.euro ?? 0;
+      perJaarType.set(v.jaar, cur);
+    }
+  }
+  const piekTypes: FaseType[] = ["piek", "basis", "vaardigheid", "realisatie", "acceptatie"];
+  const sorted = [...jaren].sort((a, b) => a - b);
+  return sorted.filter((j) => {
+    const t = perJaarType.get(j);
+    if (!t) return false;
+    return piekTypes.some((p) => t[p] > 0);
+  });
+}
+
+// Bereken uren-per-jaar voor één persoon op basis van categorie + fase-type.
+// Output is uren per persoon (vermenigvuldigen met aantal voor rol-totaal).
+function berekenRolUrenPerPersoonPerJaar(
+  categorie: LezingCCat,
+  faseType: FaseType,
+  domein: Domein,
+  jaar: number,
+  alleJarenPiek: number[], // chronologische piek-jaren — voor geconsulteerd-detectie
+): number {
+  if (categorie === "leider" || categorie === "kernteam") {
+    const niveaus = LEZING_C_UREN_NIVEAUS[categorie];
+    if (faseType === "borging") return niveaus.borging;
+    if (
+      faseType === "piek" ||
+      faseType === "basis" ||
+      faseType === "vaardigheid" ||
+      faseType === "realisatie" ||
+      faseType === "acceptatie"
+    ) {
+      return niveaus.piek;
+    }
+    return niveaus.nietPiek;
+  }
+  if (categorie === "trainings_deelnemer") {
+    if (domein === "mens") {
+      if (faseType === "basis") return 24;
+      if (faseType === "vaardigheid") return 22;
+      return 0;
+    }
+    if (domein === "data_systemen") {
+      if (faseType === "realisatie") return 14;
+      if (faseType === "acceptatie") return 14;
+      return 0;
+    }
+    return 0;
+  }
+  if (categorie === "geconsulteerd") {
+    // 3u in 1e piek-jaar, 3u in 2e piek-jaar, anders 0.
+    const idx = alleJarenPiek.indexOf(jaar);
+    if (idx === 0 || idx === 1) return 3;
+    return 0;
+  }
+  return 0;
+}
+
+// Pcts-lookup met domein-context voor trainings-deelnemer.
+function pctsVoorCategorie(categorie: LezingCCat, domein: Domein): { programma: number; lijn: number; raadplegen: number } {
+  if (categorie === "trainings_deelnemer") {
+    return LEZING_C_PCTS_TRAININGS_PER_DOMEIN[domein] ?? LEZING_C_PCTS.trainings_deelnemer;
+  }
+  return LEZING_C_PCTS[categorie];
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// herclassificeerRol — orkestreert het wijzigen van een rol-categorie:
+// (1) update interneUrenLezing.rolCategorieen[domein][functieId]
+// (2) per scenario per domein per jaar: hernieuw rol.uren + rol.kosten
+// (3) per domein: hernieuw programmaUren / lijnUren / raadplegenUren
+//     op basis van categorie-pcts + rol.uren
+// (4) hertel jaar.totaalUren/Kosten, domein.totaal, scenario.totaal,
+//     scenario.totalenPerJaar.
+// Alleen het scenario waar de wijziging gedaan is hoeft strict-genomen
+// een herrekening, maar we doen alle scenarios voor consistentie omdat
+// de rolCategorieen-marker globaal is (één override geldt voor alle scenarios).
+// ────────────────────────────────────────────────────────────────────────────
+type BegrotingAdviesMin = {
+  startJaar?: number;
+  scenarios?: Partial<Record<ScenarioLabel, BegrotingScenarioMin | null>>;
+};
+
+function herclassificeerRol(
+  advies: InterneUrenAdvies,
+  domein: Domein,
+  functieId: string,
+  nieuweCategorie: LezingCCat,
+  selectiePerDomein: Record<Domein, Record<string, FunctieInput>> | undefined,
+  begrotingAdvies: BegrotingAdviesMin | undefined,
+  basisTarief: number,
+  referentiejaar: number,
+  indexatiePct: number,
+): InterneUrenAdvies {
+  // 1. Update marker
+  const huidigeMarker: InterneUrenLezingMarker = advies.interneUrenLezing ?? {};
+  const huidigeMapping = huidigeMarker.rolCategorieen ?? {};
+  const huidigeDomeinMapping = huidigeMapping[domein] ?? {};
+  const nieuweMarker: InterneUrenLezingMarker = {
+    ...huidigeMarker,
+    rolCategorieen: {
+      ...huidigeMapping,
+      [domein]: { ...huidigeDomeinMapping, [functieId]: nieuweCategorie },
+    },
+  };
+
+  const aantal = selectiePerDomein?.[domein]?.[functieId]?.aantal ?? 1;
+
+  // 2-4. Loop scenarios → domeinen → jaren → rollen
+  const newScenarios: InterneUrenAdvies["scenarios"] = { ...advies.scenarios };
+  const scenKeys: ScenarioLabel[] = ["optimaal", "plus20", "min20", "advies"];
+  for (const scenKey of scenKeys) {
+    const scen = newScenarios[scenKey];
+    if (!scen) continue;
+    const begrotingScenario = begrotingAdvies?.scenarios?.[scenKey] ?? null;
+    const piekJarenLijst: Record<Domein, number[]> = {
+      cultuur: pieksjaren(begrotingScenario, "cultuur"),
+      mens: pieksjaren(begrotingScenario, "mens"),
+      data_systemen: pieksjaren(begrotingScenario, "data_systemen"),
+      processen: pieksjaren(begrotingScenario, "processen"),
+    };
+    const newDomeinen: DomeinBlok[] = scen.domeinen.map((d) => {
+      // Voor het gewijzigde domein: pas rol-uren aan voor de specifieke functieId.
+      // Hercalculatie van programmaUren/lijnUren/raadplegenUren doen we voor ALLE
+      // domeinen omdat we de pcts per categorie willen herberekenen.
+      const heeftRol = d.jaren.some((jr) => jr.rollen.some((r) => r.functieId === functieId));
+      const moetRolUpdaten = d.domein === domein && heeftRol;
+
+      const newJaren: JaarBlok[] = d.jaren.map((jr) => {
+        let nieuweRollen = jr.rollen;
+        if (moetRolUpdaten) {
+          const faseType = bepaalFaseType(begrotingScenario, d.domein, jr.jaar);
+          const piekJaren = piekJarenLijst[d.domein];
+          const urenPerPersoon = berekenRolUrenPerPersoonPerJaar(
+            nieuweCategorie,
+            faseType,
+            d.domein,
+            jr.jaar,
+            piekJaren,
+          );
+          const nieuweUrenTotaal = urenPerPersoon * aantal;
+          const tarief = berekenGeindexeerdTarief(basisTarief, referentiejaar, indexatiePct, jr.jaar);
+          nieuweRollen = jr.rollen.map((r) => {
+            if (r.functieId !== functieId) return r;
+            return {
+              ...r,
+              uren: nieuweUrenTotaal,
+              uurtarief: tarief,
+              kosten: nieuweUrenTotaal * tarief,
+            };
+          });
+        }
+        const totaalUren = nieuweRollen.reduce((s, x) => s + (x.uren ?? 0), 0);
+        const totaalKosten = nieuweRollen.reduce((s, x) => s + (x.kosten ?? 0), 0);
+        return { ...jr, rollen: nieuweRollen, totaalUren, totaalKosten };
+      });
+
+      // Hercalculeer per-domein programma/lijn/raadplegen op basis van rol-categorieen
+      let programmaUren = 0;
+      let lijnUren = 0;
+      let raadplegenUren = 0;
+      for (const jr of newJaren) {
+        for (const r of jr.rollen) {
+          // Bepaal categorie van deze rol — gebruik de NIEUWE marker
+          const rolCat = bepaalLezingCCategorie(
+            d.domein,
+            r.functieId,
+            r.functieNaam,
+            selectiePerDomein?.[d.domein]?.[r.functieId],
+            nieuweMarker,
+          );
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          programmaUren += Math.round(u * pcts.programma);
+          lijnUren += Math.round(u * pcts.lijn);
+          raadplegenUren += Math.round(u * pcts.raadplegen);
+        }
+      }
+
+      const totaalUren = newJaren.reduce((s, j) => s + (j.totaalUren ?? 0), 0);
+      const totaalKosten = newJaren.reduce((s, j) => s + (j.totaalKosten ?? 0), 0);
+      return {
+        ...d,
+        jaren: newJaren,
+        totaalUren,
+        totaalKosten,
+        programmaUren,
+        lijnUren,
+        raadplegenUren,
+      };
+    });
+
+    // Hercalculeer scenario-niveau: totaalUren, totaalKosten, totalenPerJaar,
+    // programma/lijn/raadplegen-totalen.
+    const newTotalenPerJaar = scen.totalenPerJaar.map((t) => {
+      let uren = 0;
+      let kosten = 0;
+      let progU = 0;
+      let lijnU = 0;
+      let raadU = 0;
+      for (const d of newDomeinen) {
+        const j = d.jaren.find((x) => x.jaar === t.jaar);
+        uren += j?.totaalUren ?? 0;
+        kosten += j?.totaalKosten ?? 0;
+      }
+      // Programma/lijn/raadplegen per jaar: re-derive uit rol-pcts per jaar
+      for (const d of newDomeinen) {
+        const j = d.jaren.find((x) => x.jaar === t.jaar);
+        if (!j) continue;
+        for (const r of j.rollen) {
+          const rolCat = bepaalLezingCCategorie(
+            d.domein,
+            r.functieId,
+            r.functieNaam,
+            selectiePerDomein?.[d.domein]?.[r.functieId],
+            nieuweMarker,
+          );
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          progU += Math.round(u * pcts.programma);
+          lijnU += Math.round(u * pcts.lijn);
+          raadU += Math.round(u * pcts.raadplegen);
+        }
+      }
+      return {
+        ...t,
+        uren,
+        kosten,
+        urenGap: t.urenBudget !== undefined ? uren - t.urenBudget : t.urenGap,
+        programmaUren: progU,
+        lijnUren: lijnU,
+        raadplegenUren: raadU,
+      };
+    });
+
+    const totaalUren = newDomeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0);
+    const totaalKosten = newDomeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0);
+    const programmaUrenScen = newDomeinen.reduce((s, d) => s + (d.programmaUren ?? 0), 0);
+    const lijnUrenScen = newDomeinen.reduce((s, d) => s + (d.lijnUren ?? 0), 0);
+    const raadplegenUrenScen = newDomeinen.reduce((s, d) => s + (d.raadplegenUren ?? 0), 0);
+
+    newScenarios[scenKey] = {
+      ...scen,
+      domeinen: newDomeinen,
+      totalenPerJaar: newTotalenPerJaar,
+      totaalUren,
+      totaalKosten,
+      programmaUren: programmaUrenScen,
+      lijnUren: lijnUrenScen,
+      raadplegenUren: raadplegenUrenScen,
+    };
+  }
+
+  return {
+    ...advies,
+    scenarios: newScenarios,
+    interneUrenLezing: nieuweMarker,
+  };
+}
+
+// Vind huidige leider in een domein, op basis van interneUrenLezing.rolCategorieen
+// (override) en/of de heuristiek. Returnt functieId van de eerste rol die als leider
+// is gemarkeerd, of null. Gebruikt voor de "er is al een leider"-waarschuwing.
+function vindHuidigeLeiderId(
+  advies: InterneUrenAdvies,
+  domein: Domein,
+  selectiePerDomein: Record<Domein, Record<string, FunctieInput>> | undefined,
+): string | null {
+  const marker = advies.interneUrenLezing;
+  // Probeer eerst expliciete override
+  const overrides = marker?.rolCategorieen?.[domein] ?? {};
+  for (const [fId, c] of Object.entries(overrides)) {
+    if (c === "leider") return fId;
+  }
+  // Anders: scan eerste scenario
+  const scenarios = advies.scenarios;
+  const scenKeys: ScenarioLabel[] = ["optimaal", "plus20", "min20", "advies"];
+  for (const k of scenKeys) {
+    const scen = scenarios[k];
+    if (!scen) continue;
+    const dBlok = scen.domeinen.find((d) => d.domein === domein);
+    if (!dBlok) continue;
+    const seen = new Set<string>();
+    for (const jr of dBlok.jaren) {
+      for (const r of jr.rollen) {
+        if (seen.has(r.functieId)) continue;
+        seen.add(r.functieId);
+        // Skip het toepassen van overrides hier — die zijn al gechecked
+        if (overrides[r.functieId]) continue;
+        const cat = bepaalLezingCCategorie(
+          domein,
+          r.functieId,
+          r.functieNaam,
+          selectiePerDomein?.[domein]?.[r.functieId],
+          marker,
+        );
+        if (cat === "leider") return r.functieId;
+      }
+    }
+    break; // één scenario is voldoende
+  }
+  return null;
+}
+
 const LEZING_C_CAT_KLEUR: Record<LezingCCat, string> = {
   leider: "bg-[#003366] text-white",
   kernteam: "bg-blue-100 text-blue-900 border border-blue-200",
@@ -202,15 +664,35 @@ const LEZING_C_CAT_KLEUR: Record<LezingCCat, string> = {
   geconsulteerd: "bg-gray-100 text-gray-700 border border-gray-200",
 };
 
+// Type voor de optionele Lezing-C marker (override-mapping). Wordt door de
+// per-rol categorie-dropdown geschreven, en is óók wat de Lezing-C-doorvoer-
+// agent zou schrijven. Lazy-typing — alle velden optioneel.
+type InterneUrenLezingMarker = {
+  lezing?: string;
+  timestamp?: string;
+  toelichting?: string;
+  urenNiveaus?: Partial<Record<LezingCCat, { piek?: number; nietPiek?: number; buitenPiek?: number; borging?: number; totaal?: number }>>;
+  rolCategorieen?: Partial<Record<Domein, Record<string, LezingCCat>>>;
+  inspanningsleiders?: Partial<Record<Domein, { naam?: string; tbd?: boolean; rolLabel?: string }>>;
+};
+
 // Heuristiek voor Lezing-C categorie. Geeft een redelijke default; wanneer de
 // Lezing-C-doorvoer-agent expliciete `interneUrenLezing.rolCategorieen` schrijft,
-// kan deze functie later vervangen worden door directe lookup.
+// of de gebruiker via de UI-dropdown een categorie kiest, leest deze functie
+// die override (hoogste prioriteit).
 function bepaalLezingCCategorie(
   domein: Domein,
   functieId: string,
   functieNaam: string | undefined,
   selectie: FunctieInput | undefined,
+  lezingMarker?: InterneUrenLezingMarker,
 ): LezingCCat {
+  // 1. Expliciete override (UI-dropdown of doorvoer-agent) — hoogste prioriteit
+  const expl = lezingMarker?.rolCategorieen?.[domein]?.[functieId];
+  const norm = normaliseerCategorie(expl as string | undefined);
+  if (norm) return norm;
+
+  // 2. Heuristiek op basis van selectie-flags
   if (selectie?.stakeholder === true) return "geconsulteerd";
   if (selectie?.reviewVereist === true) return "geconsulteerd";
 
@@ -1406,6 +1888,128 @@ export default function StapInterneUren({
     if (v !== false) addToast(`Halfjaar-2026 correctie toegepast (${factorPct}%)`, "success");
   }
 
+  // Per-rol categorie wijzigen — orkestreert lokale optimistic update + Supabase-sync.
+  // Bij Supabase-fail: rollback lokale state + toast.
+  async function handleCategorieChange(
+    _scenarioKey: ScenarioLabel,
+    domein: Domein,
+    functieId: string,
+    nieuweCategorie: LezingCCat,
+  ): Promise<void> {
+    if (!advies) return;
+
+    // Edge case: waarschuwing als gebruiker een tweede leider toevoegt
+    if (nieuweCategorie === "leider") {
+      const huidigeLeiderId = vindHuidigeLeiderId(advies, domein, selectiePerDomein);
+      if (huidigeLeiderId && huidigeLeiderId !== functieId) {
+        const huidigeNaam =
+          CITO_FUNCTIES.find((f) => f.id === huidigeLeiderId)?.naam ??
+          customFunctiesPerDomein?.[domein]?.find((c) => c.id === huidigeLeiderId)?.naam ??
+          huidigeLeiderId;
+        addToast(
+          `Er is al een leider in ${DOMEIN_LABELS[domein]} (${huidigeNaam}). Wijzig eerst die rol naar een andere categorie voordat je een nieuwe leider aanwijst.`,
+          "error",
+        );
+        return;
+      }
+    }
+
+    // Bewaar vorige staat voor rollback
+    const previousAdvies = advies;
+
+    // Optimistic update: hercalculeer en zet lokaal
+    const updated = herclassificeerRol(
+      advies,
+      domein,
+      functieId,
+      nieuweCategorie,
+      selectiePerDomein,
+      begroting,
+      basisTarief,
+      referentiejaar,
+      indexatiePct,
+    );
+    setAdvies(updated);
+
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+
+    try {
+      const v = await saveNow();
+      if (v === false) {
+        // Rollback: lokale staat naar vorige snapshot
+        setAdvies(previousAdvies);
+        updateSession((prev) => {
+          const cw = prev.crossAnalyseWizard;
+          const cs = cw?.stepResults?.stap4;
+          return {
+            ...prev,
+            crossAnalyseWizard: {
+              currentStep: cw?.currentStep ?? 7,
+              completedSteps: cw?.completedSteps ?? [],
+              wizardVersion: cw?.wizardVersion ?? 2,
+              ...cw,
+              stepResults: {
+                ...(cw?.stepResults ?? {}),
+                stap4: {
+                  ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+                  stap7InterneUren: previousAdvies,
+                } as NonNullable<typeof cs>,
+              },
+            },
+          };
+        });
+        addToast("Categorie wijzigen mislukt — Supabase niet bereikbaar. Lokale staat teruggezet.", "error");
+        return;
+      }
+      addToast(`Categorie gewijzigd naar ${LEZING_C_CAT_LABEL[nieuweCategorie]} — uren herberekend (v${v})`, "success");
+    } catch (err) {
+      setAdvies(previousAdvies);
+      updateSession((prev) => {
+        const cw = prev.crossAnalyseWizard;
+        const cs = cw?.stepResults?.stap4;
+        return {
+          ...prev,
+          crossAnalyseWizard: {
+            currentStep: cw?.currentStep ?? 7,
+            completedSteps: cw?.completedSteps ?? [],
+            wizardVersion: cw?.wizardVersion ?? 2,
+            ...cw,
+            stepResults: {
+              ...(cw?.stepResults ?? {}),
+              stap4: {
+                ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+                stap7InterneUren: previousAdvies,
+              } as NonNullable<typeof cs>,
+            },
+          },
+        };
+      });
+      addToast(
+        `Categorie wijzigen mislukt: ${err instanceof Error ? err.message : "onbekende fout"}`,
+        "error",
+      );
+    }
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -1935,8 +2539,10 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 sv={sv}
                 selectiePerDomein={selectiePerDomein}
                 customFunctiesPerDomein={customFunctiesPerDomein}
+                lezingMarker={advies.interneUrenLezing}
                 onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
+                onCategorieChange={handleCategorieChange}
               />
             );
           })}
@@ -2470,16 +3076,18 @@ const CATEGORIE_BLOK_BG: Record<LezingCCat, string> = {
 function CategorieGroepsoverzicht({
   domeinBlok,
   selectiePerDomein,
+  lezingMarker,
 }: {
   domeinBlok: DomeinBlok;
   selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
+  lezingMarker?: InterneUrenLezingMarker;
 }): React.ReactElement {
   // Aggregeer rollen over alle jaren — per functieId één entry met som-uren
   const perFunctie = new Map<string, CategorieRol & { categorie: LezingCCat }>();
   for (const jr of domeinBlok.jaren) {
     for (const r of jr.rollen) {
       const sel = selectiePerDomein?.[domeinBlok.domein]?.[r.functieId];
-      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel);
+      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker);
       const naamLower = (r.functieNaam ?? "").toLowerCase();
       const isTbd =
         naamLower.includes("nader te bepalen") ||
@@ -2674,15 +3282,24 @@ function ScenarioBlokView({
   sv,
   selectiePerDomein,
   customFunctiesPerDomein,
+  lezingMarker,
   onSamenvattingEdit,
   onDomeinMotivatieEdit,
+  onCategorieChange,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
   selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
   customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
+  lezingMarker?: InterneUrenLezingMarker;
   onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
+  onCategorieChange?: (
+    scenarioKey: ScenarioLabel,
+    domein: Domein,
+    functieId: string,
+    nieuweCategorie: LezingCCat,
+  ) => Promise<void> | void;
 }): React.ReactElement {
   const [openDomein, setOpenDomein] = useState<Domein | null>("cultuur");
   // Per-jaar tabellen: default 0u-rollen verbergen zodat geconsulteerden niet
@@ -2829,6 +3446,7 @@ function ScenarioBlokView({
               <CategorieGroepsoverzicht
                 domeinBlok={d}
                 selectiePerDomein={selectiePerDomein}
+                lezingMarker={lezingMarker}
               />
               {/* Toggle voor de per-jaar-tabellen: 0u-rollen wel/niet tonen.
                   Default UIT — geconsulteerden met 0u in een jaar verschijnen
@@ -2888,15 +3506,28 @@ function ScenarioBlokView({
                           const isReview = sel?.reviewVereist === true;
                           const reviewVraag = sel?.reviewVraag;
                           const isNul = !isStakeholder && (r.uren ?? 0) === 0;
-                          // Lezing-C categorie afleiden (heuristiek; vervangbaar
-                          // door interneUrenLezing.rolCategorieen wanneer beschikbaar)
-                          const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel);
+                          // Lezing-C categorie afleiden — leest eerst expliciete
+                          // override uit interneUrenLezing.rolCategorieen, anders heuristiek.
+                          const cat = bepaalLezingCCategorie(
+                            d.domein,
+                            r.functieId,
+                            r.functieNaam,
+                            sel,
+                            lezingMarker,
+                          );
                           // TBD-detectie op functienaam (placeholder rolnamen)
                           const naamLower = (r.functieNaam ?? "").toLowerCase();
                           const isTbd =
                             naamLower.includes("nader te bepalen") ||
                             naamLower.includes("nog te benoemen") ||
                             naamLower.includes("tbd");
+                          // Categorie-dropdown — gebruikt achtergrondkleur uit
+                          // LEZING_C_CAT_KLEUR voor visuele consistentie met de
+                          // oude pill. Compact (max 24px hoog) zodat het in de
+                          // tabel-rij past. Disabled bij stakeholder/review-flag
+                          // (die volgen automatisch "geconsulteerd").
+                          const dropdownDisabled =
+                            !onCategorieChange || isStakeholder || isReview;
                           return (
                             <tr
                               key={`${r.functieId}-${i}`}
@@ -2904,12 +3535,41 @@ function ScenarioBlokView({
                             >
                               <td className="py-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span
-                                    className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]}`}
-                                    title={`Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`}
-                                  >
-                                    {LEZING_C_CAT_LABEL[cat]}
-                                  </span>
+                                  {onCategorieChange ? (
+                                    <select
+                                      value={cat}
+                                      onChange={(e) => {
+                                        const nieuweCat = normaliseerCategorie(e.target.value) ?? "kernteam";
+                                        if (nieuweCat === cat) return;
+                                        void onCategorieChange(sv.key, d.domein, r.functieId, nieuweCat);
+                                      }}
+                                      disabled={dropdownDisabled}
+                                      title={
+                                        dropdownDisabled
+                                          ? isStakeholder
+                                            ? "Stakeholder-rol: categorie volgt automatisch 'geconsulteerd'"
+                                            : isReview
+                                              ? "Review-rol: categorie volgt automatisch 'geconsulteerd'"
+                                              : `Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`
+                                          : `Lezing-C categorie — wijzig om team-samenstelling aan te passen`
+                                      }
+                                      className={`text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]} cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 focus:outline-none focus:ring-1 focus:ring-[#003366] leading-tight`}
+                                      style={{ maxHeight: 24, minWidth: 110 }}
+                                    >
+                                      {(["leider", "kernteam", "trainings_deelnemer", "geconsulteerd"] as LezingCCat[]).map((c) => (
+                                        <option key={c} value={c} className="text-gray-900 bg-white normal-case">
+                                          {LEZING_C_CAT_LABEL[c]}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span
+                                      className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]}`}
+                                      title={`Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`}
+                                    >
+                                      {LEZING_C_CAT_LABEL[cat]}
+                                    </span>
+                                  )}
                                   <span className="text-gray-800">{r.functieNaam}</span>
                                   {r.afdeling && <span className="text-[10px] text-gray-500">({r.afdeling})</span>}
                                   {isTbd && (
