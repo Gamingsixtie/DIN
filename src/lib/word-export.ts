@@ -2481,15 +2481,18 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
-      "Voor de out-of-pocket-component verdient het advies-scenario de voorkeur. Dit scenario combineert " +
-      "inspanningen waar de inhoud dat toelaat en faseert waar parallelle uitvoering de organisatie zou " +
-      "overbelasten. De jaarlast blijft daarmee binnen wat in een Cito-jaarbudget realistisch is op te nemen, " +
-      "zonder dat momentum verloren gaat doordat zaken te ver naar achteren schuiven.",
+      "Voor de out-of-pocket-component verdient het +20%-scenario van vijf jaar de voorkeur. Dit scenario " +
+      "combineert inspanningen waar de inhoud dat toelaat en faseert waar parallelle uitvoering de organisatie " +
+      "zou overbelasten. De jaarlast blijft daarmee binnen wat in een Cito-jaarbudget realistisch is op te " +
+      "nemen, zonder dat momentum verloren gaat doordat zaken te ver naar achteren schuiven. Vijf jaar past " +
+      "bij de huidige situatie van Cito, bij de belastbaarheid van de organisatie, en bij de doorontwikkelingen " +
+      "die naast dit programma gewoon doorlopen.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
-      "Het advies voor 4.1 is daarmee een gewogen midden tussen ambitie en uitvoerbaarheid; het is geen " +
-      "voorgeprogrammeerde keuze, maar de uitkomst van combineren-waar-het-kan en faseren-waar-het-moet.",
+      "Het advies voor 4.1 is daarmee een gewogen midden tussen ambitie en uitvoerbaarheid: vijf jaar geeft het " +
+      "programma het maximale rendement — kort genoeg om momentum te houden en de baten tijdig te incasseren, " +
+      "lang genoeg om de verandering duurzaam te verankeren.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(emptyLine());
@@ -2749,17 +2752,17 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     children.push(emptyLine());
     children.push(bodyText("4.2.1 Conclusie en advies — Interne uren", { bold: true, size: 22, color: CITO_BLUE }));
     children.push(bodyText(
-      "Voor de interne uren — de inzet van Cito-medewerkers — sluit het advies aan op de keuze in 4.1. " +
-      "Een consistent scenario over out-of-pocket en interne uren voorkomt dat we in geld realistisch begroten " +
-      "maar in capaciteit alsnog overvragen, of omgekeerd.",
+      "Voor de interne uren — de inzet van Cito-medewerkers — sluit het advies aan op de keuze in 4.1: het " +
+      "+20%-scenario van vijf jaar. Een consistent scenario over out-of-pocket en interne uren voorkomt dat " +
+      "we in geld realistisch begroten maar in capaciteit alsnog overvragen, of omgekeerd.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
       "De interne capaciteit van Cito moet zorgvuldig over de programma's en het reguliere lijnwerk worden " +
-      "verdeeld; sleutelrollen zijn schaars en zitten doorgaans op meerdere trajecten tegelijk. Het " +
-      "advies-scenario houdt rekening met die realiteit: de jaarlijkse uren-belasting blijft op een niveau " +
-      "dat naast het reguliere werk gedragen kan worden, zonder dat het programma stilvalt zodra één " +
-      "sleutelrol uitvalt.",
+      "verdeeld; sleutelrollen zijn schaars en zitten doorgaans op meerdere trajecten tegelijk. Vijf jaar " +
+      "houdt rekening met die realiteit: de jaarlijkse uren-belasting blijft op een niveau dat naast het " +
+      "reguliere werk en de lopende doorontwikkelingen gedragen kan worden, zonder dat het programma stilvalt " +
+      "zodra één sleutelrol uitvalt.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(bodyText(
