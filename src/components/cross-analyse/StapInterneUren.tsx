@@ -686,13 +686,18 @@ function bepaalLezingCCategorie(
   functieNaam: string | undefined,
   selectie: FunctieInput | undefined,
   lezingMarker?: InterneUrenLezingMarker,
+  rolCategorie?: string,
 ): LezingCCat {
   // 1. Expliciete override (UI-dropdown of doorvoer-agent) — hoogste prioriteit
   const expl = lezingMarker?.rolCategorieen?.[domein]?.[functieId];
   const norm = normaliseerCategorie(expl as string | undefined);
   if (norm) return norm;
 
-  // 2. Heuristiek op basis van selectie-flags
+  // 2. Direct rol.categorie-veld (gezet door doorvoer-script)
+  const rolNorm = normaliseerCategorie(rolCategorie);
+  if (rolNorm) return rolNorm;
+
+  // 3. Heuristiek op basis van selectie-flags
   if (selectie?.stakeholder === true) return "geconsulteerd";
   if (selectie?.reviewVereist === true) return "geconsulteerd";
 
@@ -3831,7 +3836,7 @@ function CategorieGroepsoverzicht({
   for (const jr of domeinBlok.jaren) {
     for (const r of jr.rollen) {
       const sel = selectiePerDomein?.[domeinBlok.domein]?.[r.functieId];
-      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker);
+      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker, (r as { categorie?: string }).categorie);
       const naamLower = (r.functieNaam ?? "").toLowerCase();
       const isTbd =
         naamLower.includes("nader te bepalen") ||
@@ -4414,7 +4419,7 @@ function ScenarioBlokView({
                         seenL.add(r2.functieId);
                         if (overridesDom[r2.functieId]) continue;
                         const sel2 = selectiePerDomein?.[d.domein]?.[r2.functieId];
-                        const cat2 = bepaalLezingCCategorie(d.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker);
+                        const cat2 = bepaalLezingCCategorie(d.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker, (r2 as { categorie?: string }).categorie);
                         if (cat2 === "leider") { huidigeLeiderIdDom = r2.functieId; break; }
                       }
                       if (huidigeLeiderIdDom) break;
@@ -4426,7 +4431,7 @@ function ScenarioBlokView({
                   // herhaald worden in elk jaarblok.
                   const rollenFiltered = jr.rollen.filter((r) => {
                     const sel = selectiePerDomein?.[d.domein]?.[r.functieId];
-                    const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, lezingMarker);
+                    const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, lezingMarker, (r as { categorie?: string }).categorie);
                     if (cat !== "leider" && cat !== "kernteam") return false;
                     if (toonNulUrenInJaar) return true;
                     if (sel?.stakeholder === true) return true;
@@ -4641,7 +4646,7 @@ function ScenarioBlokView({
                 seen.add(r.functieId);
                 if (overrides[r.functieId]) continue;
                 const sel = selectiePerDomein?.[modalDomein]?.[r.functieId];
-                const cat = bepaalLezingCCategorie(modalDomein, r.functieId, r.functieNaam, sel, lezingMarker);
+                const cat = bepaalLezingCCategorie(modalDomein, r.functieId, r.functieNaam, sel, lezingMarker, (r as { categorie?: string }).categorie);
                 if (cat === "leider") { huidigeLeider = r.functieId; break; }
               }
               if (huidigeLeider) break;
@@ -4713,7 +4718,7 @@ function BezettingTabel({
   for (const jr of domeinBlok.jaren) {
     for (const r of jr.rollen) {
       const sel = selectiePerDomein?.[domeinBlok.domein]?.[r.functieId];
-      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker);
+      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker, (r as { categorie?: string }).categorie);
       if (cat !== categorie) continue;
       const cur = perFunctie.get(r.functieId) ?? {
         functieId: r.functieId,
@@ -4821,7 +4826,7 @@ function BezettingTabel({
                 seenL.add(r2.functieId);
                 if (overridesDom[r2.functieId]) continue;
                 const sel2 = selectiePerDomein?.[domeinBlok.domein]?.[r2.functieId];
-                const cat2 = bepaalLezingCCategorie(domeinBlok.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker);
+                const cat2 = bepaalLezingCCategorie(domeinBlok.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker, (r2 as { categorie?: string }).categorie);
                 if (cat2 === "leider") { huidigeLeiderIdDom = r2.functieId; break; }
               }
               if (huidigeLeiderIdDom) break;
