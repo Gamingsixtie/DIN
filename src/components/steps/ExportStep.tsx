@@ -2274,9 +2274,12 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
   if (!begroting?.scenarios) return null;
 
   const scenarioOrder: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
-  const aanbevolen: ScenarioKey = stap8?.actiefScenario ?? "advies";
-  const heeftAdvies = !!begroting.scenarios[aanbevolen];
-  const echtAanbevolen: ScenarioKey = heeftAdvies ? aanbevolen : "optimaal";
+  // 4.3 aanbeveling: bewust hard op plus20 (5j) — gezonde uitloop voor Cito.
+  // Valt terug op het door de gebruiker in stap 8 gekozen scenario, of "optimaal", als plus20 ontbreekt.
+  const heeftPlus20 = !!begroting.scenarios.plus20;
+  const echtAanbevolen: ScenarioKey = heeftPlus20
+    ? "plus20"
+    : (stap8?.actiefScenario && begroting.scenarios[stap8.actiefScenario] ? stap8.actiefScenario : "optimaal");
   const aanbevolenScen = begroting.scenarios[echtAanbevolen] ?? null;
   const aanbevolenInt = interneUren?.scenarios?.[echtAanbevolen] ?? null;
 
@@ -4181,36 +4184,6 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
           </SubSection>
 
           <SubSection title="4.2 Interne uren" id="4-2-interne-uren">
-            {(() => {
-              // Banner verbergen zodra teksten zijn gegenereerd via huidige
-              // prompt — gesignaleerd door tekstenSchoon=true op het
-              // stap7InterneUren-object.
-              const uren = (
-                session.crossAnalyseWizard?.stepResults as
-                  | { stap4?: { stap7InterneUren?: { tekstenSchoon?: boolean } } }
-                  | undefined
-              )?.stap4?.stap7InterneUren;
-              if (uren?.tekstenSchoon === true) return null;
-              return (
-                <div className="mt-2 mb-4 max-w-3xl rounded-lg border border-blue-300 bg-blue-50 p-3">
-                  <div className="flex items-start gap-2">
-                    <span className="text-blue-700 text-sm leading-none mt-0.5">ℹ️</span>
-                    <div className="text-[12px] text-blue-900 leading-relaxed">
-                      <p className="font-semibold mb-0.5">Tekst-coherentie — éénmalig nog te corrigeren</p>
-                      <p>
-                        De samenvatting (top-level) en motivatie per domein kunnen nog absolute jaartallen
-                        of looptijd-claims bevatten die niet aansluiten bij de tabel-uren per scenario.
-                        Klik in de wizard <strong>Cross-analyse → Stap 7 Interne uren</strong> op
-                        <span className="inline-block mx-1 px-1.5 py-0.5 rounded bg-white border border-blue-300 font-semibold">🔁 Herschrijf alleen teksten</span>
-                        om dit te corrigeren — alle uren, kosten, rollen en jaar-totalen blijven daarbij
-                        server-zijde gegarandeerd identiek (empirisch bewezen: 370 rollen × 104 jaren,
-                        0 verschillen).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
             <InterneUrenBlock session={session} />
             <SubConclusieBlock title="4.2.1 Conclusie en advies — Interne uren">
               <p className="text-sm text-gray-800 leading-relaxed mb-2">
@@ -4273,9 +4246,13 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             <ScenarioTotaalBlock session={session} />
             <Aanbeveling>
               <p className="text-sm text-gray-800 leading-relaxed mb-3">
-                Op basis van out-of-pocket plus interne uren samengeteld komt het advies-scenario uit als de
-                gewogen voorkeur — consistent met de adviezen in 4.1 en 4.2, en passend bij de jaarlijkse
-                budget- en capaciteitsrealiteit van Cito.
+                Op basis van out-of-pocket plus interne uren samengeteld komt het{" "}
+                <strong>+20%-scenario van vijf jaar</strong> uit als de aanbevolen route. Vijf jaar is een
+                gezonde uitloop voor dit programma: het past bij de huidige situatie van Cito, bij de
+                belastbaarheid van de organisatie, en bij de doorontwikkelingen die naast dit programma
+                gewoon doorlopen. In deze looptijd haalt het programma het <strong>maximale rendement</strong>
+                {" "}— kort genoeg om momentum te houden en de baten tijdig te incasseren, lang genoeg om de
+                verandering duurzaam te verankeren in cultuur, mens, data &amp; systemen en processen.
               </p>
               <BegrotingAdviesSamenvattingBlock session={session} />
               <p className="text-sm text-gray-800 leading-relaxed mt-3">

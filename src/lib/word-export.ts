@@ -2340,12 +2340,16 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
   ));
   children.push(emptyLine());
 
-  // Bewaar aanbevolen scenario-keuze voor 4.3 (aanbeveling onderaan)
+  // Bewaar aanbevolen scenario-keuze voor 4.3 (aanbeveling onderaan).
+  // 4.3 staat bewust hard op plus20 (5j) — gezonde uitloop voor Cito.
+  // Valt terug op de keuze uit stap 8, of "optimaal", als plus20 ontbreekt.
   type Stap8K = { actiefScenario?: ScenarioK };
   const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8K } | undefined)?.stap8;
-  const aanbev: ScenarioK = (begroting?.scenarios && stap8?.actiefScenario && begroting.scenarios[stap8.actiefScenario])
-    ? stap8.actiefScenario
-    : (begroting?.scenarios?.advies ? "advies" : "optimaal");
+  const aanbev: ScenarioK = begroting?.scenarios?.plus20
+    ? "plus20"
+    : (stap8?.actiefScenario && begroting?.scenarios?.[stap8.actiefScenario]
+      ? stap8.actiefScenario
+      : "optimaal");
   const aanbevScen = begroting?.scenarios?.[aanbev];
   const aanbevInt = interneUren?.scenarios?.[aanbev];
 
@@ -2820,9 +2824,12 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     // Aanbeveling aan de stuurgroep — afsluitend in 4.3
     children.push(bodyText("Aanbeveling aan de stuurgroep", { bold: true, size: 24, color: "065F46" }));
     children.push(bodyText(
-      "Op basis van out-of-pocket plus interne uren samengeteld komt het advies-scenario uit als de gewogen " +
-      "voorkeur — consistent met de adviezen in 4.1 en 4.2, en passend bij de jaarlijkse budget- en " +
-      "capaciteitsrealiteit van Cito.",
+      "Op basis van out-of-pocket plus interne uren samengeteld komt het +20%-scenario van vijf jaar uit als " +
+      "de aanbevolen route. Vijf jaar is een gezonde uitloop voor dit programma: het past bij de huidige " +
+      "situatie van Cito, bij de belastbaarheid van de organisatie, en bij de doorontwikkelingen die naast " +
+      "dit programma gewoon doorlopen. In deze looptijd haalt het programma het maximale rendement — kort " +
+      "genoeg om momentum te houden en de baten tijdig te incasseren, lang genoeg om de verandering duurzaam " +
+      "te verankeren in cultuur, mens, data & systemen en processen.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     if (aanbevScen) {
