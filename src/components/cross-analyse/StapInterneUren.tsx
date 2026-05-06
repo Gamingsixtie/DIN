@@ -2190,6 +2190,130 @@ export default function StapInterneUren({
     }
   }
 
+  // Rol verwijderen uit een domein — orkestreert verwijdering uit
+  // selectiePerDomein, customFunctiesPerDomein, vUPI én alle scenarios
+  // (incl. aggregaten + Supabase-sync). Bij Supabase-fail: rollback.
+  async function handleRolVerwijderen(
+    domein: Domein,
+    functieId: string,
+  ): Promise<void> {
+    if (!advies) return;
+
+    // Resolveer naam voor confirm-dialog
+    const naam =
+      CITO_FUNCTIES.find((f) => f.id === functieId)?.naam ??
+      customFunctiesPerDomein?.[domein]?.find((c) => c.id === functieId)?.naam ??
+      functieId;
+
+    // Edge case: leider verwijderen → waarschuwing maar wel toestaan
+    const huidigeLeiderId = vindHuidigeLeiderId(advies, domein, selectiePerDomein);
+    const isLeider = huidigeLeiderId === functieId;
+    const extra = isLeider
+      ? `\n\n⚠ Let op: ${naam} is de huidige leider in ${DOMEIN_LABELS[domein]}. Na verwijdering heeft dit domein geen leider meer — voeg eerst een andere leider toe als dat nodig is.`
+      : "";
+
+    const ok = window.confirm(
+      `Weet je zeker dat je "${naam}" wilt verwijderen uit ${DOMEIN_LABELS[domein]}?\n\n` +
+        `• Verwijdert deze rol uit alle 4 scenario's (alle jaren)\n` +
+        `• Verwijdert het record uit "Vastgestelde uren per inspanning" (vUPI)\n` +
+        `• Verwijdert eventuele eigen-functie-registratie\n` +
+        `• Aggregaten (totalen, programma/lijn/raadplegen) worden herrekend\n` +
+        `• Dit kan niet ongedaan gemaakt worden.${extra}`,
+    );
+    if (!ok) return;
+
+    // Bewaar vorige staat voor rollback
+    const previousAdvies = advies;
+    const previousSelectie = selectiePerDomein;
+    const previousCustom = customFunctiesPerDomein;
+    const previousVUPI = vastgesteldeUrenPerInspanning;
+
+    // Optimistic update — advies (verwijder rol uit alle scenarios + marker)
+    const updatedAdvies = verwijderRolUitAdvies(advies, domein, functieId, selectiePerDomein);
+
+    // Optimistic — selectiePerDomein
+    const nieuweDomeinSel: Record<string, FunctieInput> = { ...(selectiePerDomein[domein] ?? {}) };
+    delete nieuweDomeinSel[functieId];
+    const nieuweSelectie: Record<Domein, Record<string, FunctieInput>> = {
+      ...selectiePerDomein,
+      [domein]: nieuweDomeinSel,
+    };
+    setSelectiePerDomein(nieuweSelectie);
+
+    // Optimistic — customFunctiesPerDomein (verwijder als custom)
+    const nieuweCustom: Record<Domein, CustomFunctie[]> = {
+      ...customFunctiesPerDomein,
+      [domein]: (customFunctiesPerDomein[domein] ?? []).filter((c) => c.id !== functieId),
+    };
+    setCustomFunctiesPerDomein(nieuweCustom);
+
+    // Optimistic — vUPI: schrap deze rol uit elke inspanning op dit domein
+    const nieuweVUPI = vastgesteldeUrenPerInspanning.map((insp) => {
+      if (insp.domein !== domein) return insp;
+      return {
+        ...insp,
+        rollen: insp.rollen.filter((r) => r.functieId !== functieId),
+      };
+    });
+    setVastgesteldeUrenPerInspanning(nieuweVUPI);
+
+    setAdvies(updatedAdvies);
+
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      const huidig = (cs as unknown as { stap7InterneUren?: InterneUrenAdvies } | undefined)?.stap7InterneUren;
+      const merged: InterneUrenAdvies = {
+        ...(huidig ?? updatedAdvies),
+        ...updatedAdvies,
+        selectiePerDomein: nieuweSelectie,
+        customFunctiesPerDomein: nieuweCustom,
+      };
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 7,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              stap7InterneUren: merged,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+
+    try {
+      const v = await saveNow();
+      if (v === false) {
+        // Rollback
+        setAdvies(previousAdvies);
+        setSelectiePerDomein(previousSelectie);
+        setCustomFunctiesPerDomein(previousCustom);
+        setVastgesteldeUrenPerInspanning(previousVUPI);
+        addToast("Rol verwijderen mislukt — Supabase niet bereikbaar. Lokale staat teruggezet.", "error");
+        return;
+      }
+      addToast(
+        `${naam} verwijderd uit ${DOMEIN_LABELS[domein]} — uren herberekend (v${v})`,
+        "success",
+      );
+    } catch (err) {
+      setAdvies(previousAdvies);
+      setSelectiePerDomein(previousSelectie);
+      setCustomFunctiesPerDomein(previousCustom);
+      setVastgesteldeUrenPerInspanning(previousVUPI);
+      addToast(
+        `Rol verwijderen mislukt: ${err instanceof Error ? err.message : "onbekende fout"}`,
+        "error",
+      );
+    }
+  }
+
   if (!begroting?.scenarios) {
     return (
       <div className="text-center py-10">
@@ -2725,6 +2849,7 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
                 onCategorieChange={handleCategorieChange}
                 onFunctieToevoegen={handleFunctieToevoegen}
+                onRolVerwijderen={handleRolVerwijderen}
               />
             );
           })}
@@ -3304,6 +3429,147 @@ function defaultActieveFases(
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// verwijderRolUitAdvies — orkestreert de volledige verwijdering wanneer een
+// gebruiker een functie verwijdert: per scenario, per domein, per jaar wordt
+// het rol-record geschrapt en alle aggregaten (totaalUren, totaalKosten,
+// programma/lijn/raadplegen) opnieuw berekend. Verwijdert ook het categorie-
+// override-record uit de marker.
+// ────────────────────────────────────────────────────────────────────────────
+function verwijderRolUitAdvies(
+  advies: InterneUrenAdvies,
+  domein: Domein,
+  functieId: string,
+  selectiePerDomein: Record<Domein, Record<string, FunctieInput>> | undefined,
+): InterneUrenAdvies {
+  // 1. Update marker: verwijder de categorie-override voor deze rol
+  const huidigeMarker: InterneUrenLezingMarker = advies.interneUrenLezing ?? {};
+  const huidigeMapping = huidigeMarker.rolCategorieen ?? {};
+  const huidigeDomeinMapping: Record<string, LezingCCat> = { ...(huidigeMapping[domein] ?? {}) };
+  delete huidigeDomeinMapping[functieId];
+  const nieuweMarker: InterneUrenLezingMarker = {
+    ...huidigeMarker,
+    rolCategorieen: {
+      ...huidigeMapping,
+      [domein]: huidigeDomeinMapping,
+    },
+  };
+
+  // 2. Loop scenarios → domeinen → jaren → filter rollen
+  const newScenarios: InterneUrenAdvies["scenarios"] = { ...advies.scenarios };
+  const scenKeys: ScenarioLabel[] = ["optimaal", "plus20", "min20", "advies"];
+  for (const scenKey of scenKeys) {
+    const scen = newScenarios[scenKey];
+    if (!scen) continue;
+
+    const newDomeinen: DomeinBlok[] = scen.domeinen.map((d) => {
+      if (d.domein !== domein) {
+        return d;
+      }
+      const newJaren: JaarBlok[] = d.jaren.map((jr) => {
+        const nieuweRollen = jr.rollen.filter((r) => r.functieId !== functieId);
+        const totaalUren = nieuweRollen.reduce((s, x) => s + (x.uren ?? 0), 0);
+        const totaalKosten = nieuweRollen.reduce((s, x) => s + (x.kosten ?? 0), 0);
+        return { ...jr, rollen: nieuweRollen, totaalUren, totaalKosten };
+      });
+
+      // Hercalculeer programma/lijn/raadplegen voor dit domein
+      let programmaUren = 0;
+      let lijnUren = 0;
+      let raadplegenUren = 0;
+      for (const jr of newJaren) {
+        for (const r of jr.rollen) {
+          const rolCat = bepaalLezingCCategorie(
+            d.domein,
+            r.functieId,
+            r.functieNaam,
+            selectiePerDomein?.[d.domein]?.[r.functieId],
+            nieuweMarker,
+          );
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          programmaUren += Math.round(u * pcts.programma);
+          lijnUren += Math.round(u * pcts.lijn);
+          raadplegenUren += Math.round(u * pcts.raadplegen);
+        }
+      }
+
+      const totaalUren = newJaren.reduce((s, j) => s + (j.totaalUren ?? 0), 0);
+      const totaalKosten = newJaren.reduce((s, j) => s + (j.totaalKosten ?? 0), 0);
+      return {
+        ...d,
+        jaren: newJaren,
+        totaalUren,
+        totaalKosten,
+        programmaUren,
+        lijnUren,
+        raadplegenUren,
+      };
+    });
+
+    // Hercalculeer scenario-niveau totalen
+    const newTotalenPerJaar = scen.totalenPerJaar.map((t) => {
+      let uren = 0;
+      let kosten = 0;
+      let progU = 0;
+      let lijnU = 0;
+      let raadU = 0;
+      for (const d of newDomeinen) {
+        const j = d.jaren.find((x) => x.jaar === t.jaar);
+        uren += j?.totaalUren ?? 0;
+        kosten += j?.totaalKosten ?? 0;
+        if (!j) continue;
+        for (const r of j.rollen) {
+          const rolCat = bepaalLezingCCategorie(
+            d.domein,
+            r.functieId,
+            r.functieNaam,
+            selectiePerDomein?.[d.domein]?.[r.functieId],
+            nieuweMarker,
+          );
+          const pcts = pctsVoorCategorie(rolCat, d.domein);
+          const u = r.uren ?? 0;
+          progU += Math.round(u * pcts.programma);
+          lijnU += Math.round(u * pcts.lijn);
+          raadU += Math.round(u * pcts.raadplegen);
+        }
+      }
+      return {
+        ...t,
+        uren,
+        kosten,
+        urenGap: t.urenBudget !== undefined ? uren - t.urenBudget : t.urenGap,
+        programmaUren: progU,
+        lijnUren: lijnU,
+        raadplegenUren: raadU,
+      };
+    });
+
+    const totaalUren = newDomeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0);
+    const totaalKosten = newDomeinen.reduce((s, d) => s + (d.totaalKosten ?? 0), 0);
+    const programmaUrenScen = newDomeinen.reduce((s, d) => s + (d.programmaUren ?? 0), 0);
+    const lijnUrenScen = newDomeinen.reduce((s, d) => s + (d.lijnUren ?? 0), 0);
+    const raadplegenUrenScen = newDomeinen.reduce((s, d) => s + (d.raadplegenUren ?? 0), 0);
+
+    newScenarios[scenKey] = {
+      ...scen,
+      domeinen: newDomeinen,
+      totalenPerJaar: newTotalenPerJaar,
+      totaalUren,
+      totaalKosten,
+      programmaUren: programmaUrenScen,
+      lijnUren: lijnUrenScen,
+      raadplegenUren: raadplegenUrenScen,
+    };
+  }
+
+  return {
+    ...advies,
+    scenarios: newScenarios,
+    interneUrenLezing: nieuweMarker,
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // voegFunctieToeAanAdvies — orkestreert de volledige update wanneer een
 // gebruiker een functie toevoegt: per scenario per domein per jaar wordt
 // een rol-record toegevoegd. Uren-niveau volgt categorie + fase-type van
@@ -3755,6 +4021,161 @@ function CategorieGroepsoverzicht({
   );
 }
 
+// ----------------------------------------------------------------------------
+// RolActieMenu — één compact actie-menu per rol (Stap 7 UI-verfijning).
+// Vervangt de losse categorie-dropdown + × kruisje door één 3-dots-knop
+// met dropdown waarin de gebruiker:
+//   • de rol naar een andere Lezing-C categorie verplaatst (4 opties — huidige
+//     categorie disabled), of
+//   • de rol helemaal uit de selectie verwijdert (rode optie, met confirm via
+//     handleRolVerwijderen die zelf window.confirm aanroept).
+// Disabled wanneer er geen acties zijn (bv. stakeholder/review-rollen waarvan
+// categorie automatisch volgt).
+// ----------------------------------------------------------------------------
+function RolActieMenu({
+  huidigeCategorie,
+  onVerplaats,
+  onVerwijder,
+  disableLeider,
+  disabled,
+  disabledReden,
+}: {
+  huidigeCategorie: LezingCCat;
+  onVerplaats?: (nieuweCategorie: LezingCCat) => void;
+  onVerwijder?: () => void;
+  disableLeider?: boolean;
+  disabled?: boolean;
+  disabledReden?: string;
+}): React.ReactElement {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Buiten-klikken sluit het menu
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const heeftActies = Boolean(onVerplaats) || Boolean(onVerwijder);
+  const isDisabled = Boolean(disabled) || !heeftActies;
+
+  const VERPLAATS_OPTIES: LezingCCat[] = [
+    "leider",
+    "kernteam",
+    "trainings_deelnemer",
+    "geconsulteerd",
+  ];
+
+  return (
+    <div ref={wrapperRef} className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isDisabled) return;
+          setOpen((v) => !v);
+        }}
+        disabled={isDisabled}
+        title={
+          isDisabled
+            ? disabledReden ?? "Geen acties beschikbaar voor deze rol"
+            : "Acties — verplaats of verwijder rol"
+        }
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`inline-flex items-center justify-center w-6 h-6 rounded text-gray-500 hover:bg-gray-100 hover:text-[#003366] focus:outline-none focus:ring-1 focus:ring-[#003366] disabled:opacity-40 disabled:cursor-not-allowed leading-none text-[14px] font-bold`}
+      >
+        ⋯
+      </button>
+      {open && !isDisabled && (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-1 w-56 origin-top-right rounded border border-gray-200 bg-white shadow-lg py-1 text-xs"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onVerplaats && (
+            <>
+              <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                Verplaats naar
+              </p>
+              {VERPLAATS_OPTIES.map((c) => {
+                const isHuidig = c === huidigeCategorie;
+                const isLeiderGeblokkeerd =
+                  c === "leider" && disableLeider === true && !isHuidig;
+                const optieDisabled = isHuidig || isLeiderGeblokkeerd;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="menuitem"
+                    disabled={optieDisabled}
+                    onClick={() => {
+                      if (optieDisabled) return;
+                      setOpen(false);
+                      onVerplaats(c);
+                    }}
+                    title={
+                      isHuidig
+                        ? `Huidige categorie — ${LEZING_C_CAT_LABEL[c]}`
+                        : isLeiderGeblokkeerd
+                          ? "Er is al een leider in dit domein. Wijzig die rol eerst."
+                          : `Verplaats naar ${LEZING_C_CAT_LABEL[c]}`
+                    }
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 ${
+                      optieDisabled
+                        ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                        : "text-gray-800 hover:bg-[#003366]/10 hover:text-[#003366]"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[c]}`}
+                    >
+                      {LEZING_C_CAT_LABEL[c]}
+                    </span>
+                    {isHuidig && (
+                      <span className="text-[10px] italic text-gray-500">huidige</span>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
+          {onVerplaats && onVerwijder && (
+            <div className="my-1 border-t border-gray-200" />
+          )}
+          {onVerwijder && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onVerwijder();
+              }}
+              className="w-full text-left px-3 py-1.5 text-red-700 hover:bg-red-50 flex items-center gap-2"
+              title="Helemaal verwijderen uit selectie (alle scenarios)"
+            >
+              <span className="inline-block w-4 text-center">✕</span>
+              Helemaal verwijderen
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScenarioBlokView({
   s,
   sv,
@@ -3766,6 +4187,7 @@ function ScenarioBlokView({
   onDomeinMotivatieEdit,
   onCategorieChange,
   onFunctieToevoegen,
+  onRolVerwijderen,
 }: {
   s: ScenarioBlok;
   sv: { key: ScenarioLabel; label: string; kleur: { banner: string; tekst: string; accent: string; kaart: string } };
@@ -3793,6 +4215,7 @@ function ScenarioBlokView({
     actieveFases: string[];
     onderbouwing?: string;
   }) => Promise<void> | void;
+  onRolVerwijderen?: (domein: Domein, functieId: string) => Promise<void> | void;
 }): React.ReactElement {
   const [openDomein, setOpenDomein] = useState<Domein | null>("cultuur");
   const [modalDomein, setModalDomein] = useState<Domein | null>(null);
@@ -3958,7 +4381,7 @@ function ScenarioBlokView({
                   niet als "rommel" in dat jaar. */}
               <div className="flex items-center justify-between mb-2 px-1">
                 <p className="text-[11px] uppercase tracking-wider font-bold text-gray-600">
-                  Detail per jaar — {DOMEIN_LABELS[d.domein]}
+                  Detail per jaar — {DOMEIN_LABELS[d.domein]} (alleen leider + kernteam)
                 </p>
                 <label className="flex items-center gap-1.5 text-[11px] text-gray-700 cursor-pointer select-none">
                   <input
@@ -3967,11 +4390,52 @@ function ScenarioBlokView({
                     onChange={(e) => setToonNulUrenInJaar(e.target.checked)}
                     className="cursor-pointer"
                   />
-                  Toon ook rollen met 0u in dit jaar
+                  Toon ook leider/kernteam-rollen met 0u in dit jaar
                 </label>
               </div>
+              <p className="text-[10px] text-gray-500 italic leading-snug mb-2 pl-1">
+                Trainings-deelnemers en geconsulteerden zijn samengevat in aparte overzichten onder deze per-jaar-tabel
+                — gebruik het ⋯ actie-menu rechts in de rij om een rol naar een andere categorie te verplaatsen of helemaal
+                uit de selectie te verwijderen.
+              </p>
               <div className="space-y-3">
-                {d.jaren.map((jr) => (
+                {d.jaren.map((jr) => {
+                  // Bepaal huidige leider-id in dit domein (voor disableLeider in menu).
+                  const overridesDom = lezingMarker?.rolCategorieen?.[d.domein] ?? {};
+                  let huidigeLeiderIdDom: string | null = null;
+                  for (const [fId, c] of Object.entries(overridesDom)) {
+                    if (c === "leider") { huidigeLeiderIdDom = fId; break; }
+                  }
+                  if (!huidigeLeiderIdDom) {
+                    const seenL = new Set<string>();
+                    for (const jr2 of d.jaren) {
+                      for (const r2 of jr2.rollen) {
+                        if (seenL.has(r2.functieId)) continue;
+                        seenL.add(r2.functieId);
+                        if (overridesDom[r2.functieId]) continue;
+                        const sel2 = selectiePerDomein?.[d.domein]?.[r2.functieId];
+                        const cat2 = bepaalLezingCCategorie(d.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker);
+                        if (cat2 === "leider") { huidigeLeiderIdDom = r2.functieId; break; }
+                      }
+                      if (huidigeLeiderIdDom) break;
+                    }
+                  }
+                  // Per-jaar tabel toont enkel leider + kernteam.
+                  // Trainings-deelnemers en geconsulteerden krijgen aparte
+                  // overzichten verderop — voorkomt dat 65 cursisten per jaar
+                  // herhaald worden in elk jaarblok.
+                  const rollenFiltered = jr.rollen.filter((r) => {
+                    const sel = selectiePerDomein?.[d.domein]?.[r.functieId];
+                    const cat = bepaalLezingCCategorie(d.domein, r.functieId, r.functieNaam, sel, lezingMarker);
+                    if (cat !== "leider" && cat !== "kernteam") return false;
+                    if (toonNulUrenInJaar) return true;
+                    if (sel?.stakeholder === true) return true;
+                    return (r.uren ?? 0) > 0;
+                  });
+                  // Subtotaal alleen voor leider + kernteam in dit jaar.
+                  const subtotaalUren = rollenFiltered.reduce((s, r) => s + (r.uren ?? 0), 0);
+                  const subtotaalKosten = rollenFiltered.reduce((s, r) => s + (r.kosten ?? 0), 0);
+                  return (
                   <div key={jr.jaar} className="bg-white border border-gray-200 rounded p-3">
                     <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                       <div>
@@ -3979,8 +4443,16 @@ function ScenarioBlokView({
                         <p className="text-sm text-gray-800">{jr.activiteit}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-800">{jr.totaalUren.toLocaleString("nl-NL")} u</p>
-                        <p className="text-[11px] text-gray-500">€ {jr.totaalKosten.toLocaleString("nl-NL")}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {subtotaalUren.toLocaleString("nl-NL")} u
+                          <span className="text-[10px] font-normal text-gray-500 ml-1">
+                            (kernteam)
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-gray-500">€ {subtotaalKosten.toLocaleString("nl-NL")}</p>
+                        <p className="text-[10px] text-gray-400 italic">
+                          jaar-totaal incl. trainings/geconsulteerd: {jr.totaalUren.toLocaleString("nl-NL")} u
+                        </p>
                       </div>
                     </div>
                     <table className="w-full text-xs">
@@ -3991,19 +4463,20 @@ function ScenarioBlokView({
                           <th className="py-1 font-semibold text-gray-500 text-right">Uren</th>
                           <th className="py-1 font-semibold text-gray-500 text-right">€/u</th>
                           <th className="py-1 font-semibold text-gray-500 text-right">Kosten</th>
+                          {(onRolVerwijderen || onCategorieChange) && (
+                            <th className="py-1 font-semibold text-gray-500 text-right w-8" aria-label="Acties" />
+                          )}
                         </tr>
                       </thead>
                       <tbody>
-                        {jr.rollen
-                          .filter((r) => {
-                            // Filter 0u-rollen tenzij toggle aan staat. Stakeholders
-                            // mogen blijven (hebben sowieso geen uren-belasting).
-                            if (toonNulUrenInJaar) return true;
-                            const selFilt = selectiePerDomein?.[d.domein]?.[r.functieId];
-                            if (selFilt?.stakeholder === true) return true;
-                            return (r.uren ?? 0) > 0;
-                          })
-                          .map((r, i) => {
+                        {rollenFiltered.length === 0 && (
+                          <tr>
+                            <td colSpan={(onRolVerwijderen || onCategorieChange) ? 6 : 5} className="py-2 text-[11px] text-gray-500 italic text-center">
+                              Geen leider- of kernteam-rollen in dit jaar.
+                            </td>
+                          </tr>
+                        )}
+                        {rollenFiltered.map((r, i) => {
                           const sel = selectiePerDomein?.[d.domein]?.[r.functieId];
                           const aantal = sel?.aantal ?? 1;
                           const isStakeholder = sel?.stakeholder === true;
@@ -4026,13 +4499,14 @@ function ScenarioBlokView({
                             naamLower.includes("nader te bepalen") ||
                             naamLower.includes("nog te benoemen") ||
                             naamLower.includes("tbd");
-                          // Categorie-dropdown — gebruikt achtergrondkleur uit
-                          // LEZING_C_CAT_KLEUR voor visuele consistentie met de
-                          // oude pill. Compact (max 24px hoog) zodat het in de
-                          // tabel-rij past. Disabled bij stakeholder/review-flag
-                          // (die volgen automatisch "geconsulteerd").
-                          const dropdownDisabled =
-                            !onCategorieChange || isStakeholder || isReview;
+                          // Actie-menu disabled-staat: stakeholder/review-rollen
+                          // volgen automatisch 'geconsulteerd' — geen actie mogelijk.
+                          const menuDisabled = isStakeholder || isReview;
+                          const menuDisabledReden = isStakeholder
+                            ? "Stakeholder-rol: categorie volgt automatisch 'geconsulteerd'"
+                            : isReview
+                              ? "Review-rol: categorie volgt automatisch 'geconsulteerd'"
+                              : undefined;
                           return (
                             <tr
                               key={`${r.functieId}-${i}`}
@@ -4040,41 +4514,15 @@ function ScenarioBlokView({
                             >
                               <td className="py-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  {onCategorieChange ? (
-                                    <select
-                                      value={cat}
-                                      onChange={(e) => {
-                                        const nieuweCat = normaliseerCategorie(e.target.value) ?? "kernteam";
-                                        if (nieuweCat === cat) return;
-                                        void onCategorieChange(sv.key, d.domein, r.functieId, nieuweCat);
-                                      }}
-                                      disabled={dropdownDisabled}
-                                      title={
-                                        dropdownDisabled
-                                          ? isStakeholder
-                                            ? "Stakeholder-rol: categorie volgt automatisch 'geconsulteerd'"
-                                            : isReview
-                                              ? "Review-rol: categorie volgt automatisch 'geconsulteerd'"
-                                              : `Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`
-                                          : `Lezing-C categorie — wijzig om team-samenstelling aan te passen`
-                                      }
-                                      className={`text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]} cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 focus:outline-none focus:ring-1 focus:ring-[#003366] leading-tight`}
-                                      style={{ maxHeight: 24, minWidth: 110 }}
-                                    >
-                                      {(["leider", "kernteam", "trainings_deelnemer", "geconsulteerd"] as LezingCCat[]).map((c) => (
-                                        <option key={c} value={c} className="text-gray-900 bg-white normal-case">
-                                          {LEZING_C_CAT_LABEL[c]}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : (
-                                    <span
-                                      className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]}`}
-                                      title={`Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]}`}
-                                    >
-                                      {LEZING_C_CAT_LABEL[cat]}
-                                    </span>
-                                  )}
+                                  {/* Categorie-pill — read-only; wijzigen gebeurt via
+                                      het actie-menu (laatste kolom). Visuele
+                                      consistentie met oude pill blijft behouden. */}
+                                  <span
+                                    className={`inline-block text-[9px] uppercase tracking-wider font-semibold px-1 py-0 rounded ${LEZING_C_CAT_KLEUR[cat]}`}
+                                    title={`Lezing-C categorie: ${LEZING_C_CAT_LABEL[cat]} — wijzig via het ⋯ actie-menu`}
+                                  >
+                                    {LEZING_C_CAT_LABEL[cat]}
+                                  </span>
                                   <span className="text-gray-800">{r.functieNaam}</span>
                                   {r.afdeling && <span className="text-[10px] text-gray-500">({r.afdeling})</span>}
                                   {isTbd && (
@@ -4108,14 +4556,61 @@ function ScenarioBlokView({
                               </td>
                               <td className="py-1 text-right text-gray-500 tabular-nums">€{r.uurtarief}</td>
                               <td className="py-1 text-right font-semibold text-gray-800 tabular-nums">€ {r.kosten.toLocaleString("nl-NL")}</td>
+                              {(onRolVerwijderen || onCategorieChange) && (
+                                <td className="py-1 text-right">
+                                  <RolActieMenu
+                                    huidigeCategorie={cat}
+                                    onVerplaats={
+                                      onCategorieChange
+                                        ? (nieuweCat) =>
+                                            void onCategorieChange(sv.key, d.domein, r.functieId, nieuweCat)
+                                        : undefined
+                                    }
+                                    onVerwijder={
+                                      onRolVerwijderen
+                                        ? () => void onRolVerwijderen(d.domein, r.functieId)
+                                        : undefined
+                                    }
+                                    disableLeider={
+                                      huidigeLeiderIdDom !== null &&
+                                      huidigeLeiderIdDom !== r.functieId
+                                    }
+                                    disabled={menuDisabled}
+                                    disabledReden={menuDisabledReden}
+                                  />
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
-                ))}
+                  );
+                })}
               </div>
+              {/* Trainings-deelnemers — apart overzicht (vol-domein-overzicht) */}
+              <BezettingTabel
+                domeinBlok={d}
+                categorie="trainings_deelnemer"
+                selectiePerDomein={selectiePerDomein}
+                lezingMarker={lezingMarker}
+                begrotingAdvies={begrotingAdvies}
+                scenarioKey={sv.key}
+                onCategorieChange={onCategorieChange}
+                onRolVerwijderen={onRolVerwijderen}
+              />
+              {/* Geconsulteerden — apart overzicht */}
+              <BezettingTabel
+                domeinBlok={d}
+                categorie="geconsulteerd"
+                selectiePerDomein={selectiePerDomein}
+                lezingMarker={lezingMarker}
+                begrotingAdvies={begrotingAdvies}
+                scenarioKey={sv.key}
+                onCategorieChange={onCategorieChange}
+                onRolVerwijderen={onRolVerwijderen}
+              />
             </div>
           );
         })}
@@ -4168,6 +4663,230 @@ function ScenarioBlokView({
           />
         );
       })()}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// BezettingTabel — apart overzicht per categorie (trainings-deelnemer of
+// geconsulteerd) per domein. Aggregreert rollen over hele scenario-looptijd
+// zodat niet 65 trainings-cursisten in elk jaarblok herhaald worden.
+//   Kolommen: Rol | Aantal | Totaal uren | Detail-tekst (fase + jaar) |
+//             ⋯ actie-menu (RolActieMenu — verplaats + verwijder gegroepeerd)
+// Detail-tekst leest fase-string per jaar uit begrotingAdvies (bv.
+//   "24u Basis-jr 2027 + 22u Vaardigheid-jr 2028") of fallback op jaar-totaal.
+// ----------------------------------------------------------------------------
+function BezettingTabel({
+  domeinBlok,
+  categorie,
+  selectiePerDomein,
+  lezingMarker,
+  begrotingAdvies,
+  scenarioKey,
+  onCategorieChange,
+  onRolVerwijderen,
+}: {
+  domeinBlok: DomeinBlok;
+  categorie: Extract<LezingCCat, "trainings_deelnemer" | "geconsulteerd">;
+  selectiePerDomein?: Record<Domein, Record<string, FunctieInput>>;
+  lezingMarker?: InterneUrenLezingMarker;
+  begrotingAdvies?: BegrotingAdviesMin;
+  scenarioKey: ScenarioLabel;
+  onCategorieChange?: (
+    scenarioKey: ScenarioLabel,
+    domein: Domein,
+    functieId: string,
+    nieuweCategorie: LezingCCat,
+  ) => Promise<void> | void;
+  onRolVerwijderen?: (domein: Domein, functieId: string) => Promise<void> | void;
+}): React.ReactElement | null {
+  // 1. Aggregeer rollen over alle jaren in dit domein, alleen voor de gevraagde categorie
+  type AggRol = {
+    functieId: string;
+    functieNaam: string;
+    afdeling?: string;
+    aantal: number;
+    totaalUren: number;
+    perJaar: Array<{ jaar: number; uren: number; activiteit: string }>;
+  };
+  const perFunctie = new Map<string, AggRol>();
+  for (const jr of domeinBlok.jaren) {
+    for (const r of jr.rollen) {
+      const sel = selectiePerDomein?.[domeinBlok.domein]?.[r.functieId];
+      const cat = bepaalLezingCCategorie(domeinBlok.domein, r.functieId, r.functieNaam, sel, lezingMarker);
+      if (cat !== categorie) continue;
+      const cur = perFunctie.get(r.functieId) ?? {
+        functieId: r.functieId,
+        functieNaam: r.functieNaam,
+        afdeling: r.afdeling,
+        aantal: sel?.aantal ?? 1,
+        totaalUren: 0,
+        perJaar: [],
+      };
+      cur.totaalUren += r.uren ?? 0;
+      if ((r.uren ?? 0) > 0) {
+        cur.perJaar.push({ jaar: jr.jaar, uren: r.uren, activiteit: jr.activiteit });
+      }
+      perFunctie.set(r.functieId, cur);
+    }
+  }
+  const rollen = Array.from(perFunctie.values()).sort((a, b) => b.totaalUren - a.totaalUren);
+  if (rollen.length === 0) return null;
+
+  // 2. Bouw per-rol detail-tekst uit begroting (fase-string per jaar)
+  const begrotingScen = begrotingAdvies?.scenarios?.[scenarioKey] ?? null;
+  function bouwDetailTekst(rol: AggRol): string {
+    if (rol.perJaar.length === 0) return "Geen actieve uren";
+    // Probeer per jaar de dominante fase-string uit de begroting te halen
+    // (eerste fase met euro > 0 op dit domein in dit jaar).
+    const segments: string[] = [];
+    for (const j of rol.perJaar) {
+      let faseLabel = "";
+      if (begrotingScen?.inspanningen) {
+        // Verzamel fases voor dit jaar in dit domein, sorteer op euro-aandeel desc
+        const faseMap = new Map<string, number>();
+        for (const i of begrotingScen.inspanningen) {
+          if (i.domein !== domeinBlok.domein) continue;
+          for (const v of i.verdelingPerJaar ?? []) {
+            if (v.jaar !== j.jaar) continue;
+            const fs = (v.fase ?? "").trim();
+            if (!fs) continue;
+            faseMap.set(fs, (faseMap.get(fs) ?? 0) + (v.euro ?? 0));
+          }
+        }
+        const sorted = Array.from(faseMap.entries()).sort((a, b) => b[1] - a[1]);
+        if (sorted.length > 0) {
+          // Korte fase-aanduiding: eerste woord met hoofdletter
+          const raw = sorted[0][0];
+          const woord = raw.split(/[\s\-]/)[0] ?? raw;
+          faseLabel = woord.charAt(0).toUpperCase() + woord.slice(1).toLowerCase();
+        }
+      }
+      if (faseLabel) {
+        segments.push(`${j.uren}u ${faseLabel} ${j.jaar}`);
+      } else {
+        segments.push(`${j.uren}u in ${j.jaar}`);
+      }
+    }
+    return segments.join(" + ");
+  }
+
+  const totaalAantal = rollen.reduce((s, r) => s + r.aantal, 0);
+  const totaalUren = rollen.reduce((s, r) => s + r.totaalUren, 0);
+  const aantalJaren = domeinBlok.jaren.length;
+  const headerLabel =
+    categorie === "trainings_deelnemer" ? "Trainings-deelnemers" : "Geconsulteerden";
+  const headerSub =
+    categorie === "trainings_deelnemer"
+      ? "Eindgebruikers die training volgen — pure contacttijd, geen kernteam-rol."
+      : "Leveren incidenteel input/review op kritische momenten — geen continue belasting.";
+  const blokKleur =
+    categorie === "trainings_deelnemer"
+      ? "border-emerald-200 bg-emerald-50/40"
+      : "border-gray-200 bg-gray-50";
+  const chipKleur =
+    categorie === "trainings_deelnemer"
+      ? "bg-emerald-500 text-white"
+      : "bg-gray-500 text-white";
+
+  return (
+    <div className={`mt-3 rounded-lg border-2 ${blokKleur} overflow-hidden`}>
+      <div className="px-3 py-2 border-b border-gray-200 bg-white/60 flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${chipKleur}`}>
+            {headerLabel}
+          </span>
+          <p className="text-xs font-semibold text-gray-800">
+            {rollen.length} rol{rollen.length === 1 ? "" : "len"} · {totaalAantal} {totaalAantal === 1 ? "persoon" : "personen"}
+          </p>
+          <p className="text-[11px] font-mono tabular-nums text-gray-700">
+            {totaalUren.toLocaleString("nl-NL")}u over {aantalJaren}j
+          </p>
+        </div>
+        <p className="text-[10px] italic text-gray-600 max-w-md">{headerSub}</p>
+      </div>
+      <div className="p-2">
+        {(() => {
+          // Bepaal huidige leider-id in dit domein (voor disableLeider in menu)
+          const overridesDom = lezingMarker?.rolCategorieen?.[domeinBlok.domein] ?? {};
+          let huidigeLeiderIdDom: string | null = null;
+          for (const [fId, c] of Object.entries(overridesDom)) {
+            if (c === "leider") { huidigeLeiderIdDom = fId; break; }
+          }
+          if (!huidigeLeiderIdDom) {
+            const seenL = new Set<string>();
+            for (const jr2 of domeinBlok.jaren) {
+              for (const r2 of jr2.rollen) {
+                if (seenL.has(r2.functieId)) continue;
+                seenL.add(r2.functieId);
+                if (overridesDom[r2.functieId]) continue;
+                const sel2 = selectiePerDomein?.[domeinBlok.domein]?.[r2.functieId];
+                const cat2 = bepaalLezingCCategorie(domeinBlok.domein, r2.functieId, r2.functieNaam, sel2, lezingMarker);
+                if (cat2 === "leider") { huidigeLeiderIdDom = r2.functieId; break; }
+              }
+              if (huidigeLeiderIdDom) break;
+            }
+          }
+          return (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left border-b border-gray-200">
+                  <th className="py-1 px-2 font-semibold text-gray-500">Rol</th>
+                  <th className="py-1 px-2 font-semibold text-gray-500 text-right w-16">Aantal</th>
+                  <th className="py-1 px-2 font-semibold text-gray-500 text-right w-28">Totaal uren</th>
+                  <th className="py-1 px-2 font-semibold text-gray-500">Toelichting</th>
+                  {(onCategorieChange || onRolVerwijderen) && (
+                    <th className="py-1 px-2 font-semibold text-gray-500 w-8" aria-label="Acties" />
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {rollen.map((r) => {
+                  const detail = bouwDetailTekst(r);
+                  return (
+                    <tr key={r.functieId} className="border-b border-gray-100 last:border-b-0 align-top">
+                      <td className="py-1.5 px-2">
+                        <p className="text-gray-900 font-medium leading-snug">{r.functieNaam}</p>
+                        {r.afdeling && (
+                          <p className="text-[10px] text-gray-500 leading-tight">{r.afdeling}</p>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-800">{r.aantal}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums font-semibold text-gray-800">
+                        {r.totaalUren.toLocaleString("nl-NL")}u
+                        <span className="block text-[10px] font-normal text-gray-500">over {r.perJaar.length}j</span>
+                      </td>
+                      <td className="py-1.5 px-2 text-[11px] text-gray-700 italic leading-snug">{detail}</td>
+                      {(onCategorieChange || onRolVerwijderen) && (
+                        <td className="py-1.5 px-2 text-right">
+                          <RolActieMenu
+                            huidigeCategorie={categorie}
+                            onVerplaats={
+                              onCategorieChange
+                                ? (nieuweCat) =>
+                                    void onCategorieChange(scenarioKey, domeinBlok.domein, r.functieId, nieuweCat)
+                                : undefined
+                            }
+                            onVerwijder={
+                              onRolVerwijderen
+                                ? () => void onRolVerwijderen(domeinBlok.domein, r.functieId)
+                                : undefined
+                            }
+                            disableLeider={
+                              huidigeLeiderIdDom !== null &&
+                              huidigeLeiderIdDom !== r.functieId
+                            }
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          );
+        })()}
+      </div>
     </div>
   );
 }
