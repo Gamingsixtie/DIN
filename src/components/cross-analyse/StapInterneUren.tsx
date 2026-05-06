@@ -84,6 +84,9 @@ type ScenarioBlok = {
   programmaUren?: number;
   lijnUren?: number;
   raadplegenUren?: number;
+  // Dirty-flag: is de samenvatting handmatig in de UI bewerkt?
+  // Scripts moeten dit scenario dan overslaan om handmatige edits niet te overschrijven.
+  samenvattingHandmatigBewerkt?: boolean;
 };
 type InterneUrenAdvies = {
   uurtariefSettings: { basisTarief: number; referentiejaar: number; indexatiePercentage: number };
@@ -1787,7 +1790,10 @@ export default function StapInterneUren({
     if (!sc) return;
     const updated: InterneUrenAdvies = {
       ...advies,
-      scenarios: { ...advies.scenarios, [scenarioKey]: { ...sc, samenvatting: newValue } },
+      scenarios: {
+        ...advies.scenarios,
+        [scenarioKey]: { ...sc, samenvatting: newValue, samenvattingHandmatigBewerkt: true },
+      },
     };
     setAdvies(updated);
     updateSession((prev) => {
@@ -2851,6 +2857,7 @@ Houd uren, rollen, kosten en jaar-cellen exact onveranderd.`,
                 customFunctiesPerDomein={customFunctiesPerDomein}
                 lezingMarker={advies.interneUrenLezing}
                 begrotingAdvies={begroting}
+                handmatigBewerkt={s.samenvattingHandmatigBewerkt === true}
                 onSamenvattingEdit={(v) => handleSamenvattingEdit(sv.key, v)}
                 onDomeinMotivatieEdit={(idx, v) => handleDomeinMotivatieEdit(sv.key, idx, v)}
                 onCategorieChange={handleCategorieChange}
@@ -4191,6 +4198,7 @@ function ScenarioBlokView({
   customFunctiesPerDomein,
   lezingMarker,
   begrotingAdvies,
+  handmatigBewerkt,
   onSamenvattingEdit,
   onDomeinMotivatieEdit,
   onCategorieChange,
@@ -4203,6 +4211,7 @@ function ScenarioBlokView({
   customFunctiesPerDomein?: Record<Domein, CustomFunctie[]>;
   lezingMarker?: InterneUrenLezingMarker;
   begrotingAdvies?: BegrotingAdviesMin;
+  handmatigBewerkt?: boolean;
   onSamenvattingEdit?: (newValue: string) => Promise<void> | void;
   onDomeinMotivatieEdit?: (domeinIdx: number, newValue: string) => Promise<void> | void;
   onCategorieChange?: (
@@ -4236,7 +4245,17 @@ function ScenarioBlokView({
     <div className="space-y-3">
       {/* Banner */}
       <div className={`${sv.kleur.banner} text-white rounded-lg p-4`}>
-        <p className={`text-[11px] font-semibold uppercase tracking-wider ${sv.kleur.tekst} mb-1`}>Scenario — {sv.label}</p>
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className={`text-[11px] font-semibold uppercase tracking-wider ${sv.kleur.tekst}`}>Scenario — {sv.label}</p>
+          {handmatigBewerkt === true && (
+            <span
+              title="Deze samenvatting is handmatig in de UI bewerkt en wordt niet door scripts overschreven."
+              className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/95 text-[#003366] border border-white/60"
+            >
+              ✏ handmatig bewerkt
+            </span>
+          )}
+        </div>
         {onSamenvattingEdit ? (
           <div className="bg-white/95 rounded p-2 -mx-1">
             <EditableText

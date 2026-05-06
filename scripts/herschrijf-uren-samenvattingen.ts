@@ -150,6 +150,10 @@ async function main() {
       console.warn(`[skip] scenario ${k} bestaat niet`);
       continue;
     }
+    if ((scen as any).samenvattingHandmatigBewerkt) {
+      console.log(`  ⏭ ${k}: handmatig bewerkt, overslaan`);
+      continue;
+    }
     beforeAfter[k].voor = scen.samenvatting || "";
     beforeAfter[k].na = SAMENVATTINGEN[k];
 

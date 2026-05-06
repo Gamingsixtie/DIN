@@ -154,6 +154,10 @@ async function main() {
   for (const sk of Object.keys(scenarios)) {
     const sc = scenarios[sk];
     if (!sc) continue;
+    if ((sc as any).samenvattingHandmatigBewerkt) {
+      console.log(`  ⏭ ${sk}: handmatig bewerkt, overslaan`);
+      continue;
+    }
     const voor = sc.samenvatting ?? "";
     const na = bouwSamenvatting(sk, sc);
     const veranderd = voor !== na;
