@@ -2126,6 +2126,7 @@ function SectieF({
             sub={`over de hele looptijd (${interneUrenScen.aantalJaren ?? 0} jaar)`}
             accent="bg-[#003366]"
             mono
+            title="Som van alle domein-totalen: data + mens + cultuur + processen, over alle scenario-jaren."
           />
           <KengetalKaart
             label="Programma-uren"
@@ -2133,6 +2134,7 @@ function SectieF({
             sub={`écht extra te financieren capaciteit (${programmaAandeel}%)`}
             accent="bg-[#003366]"
             mono
+            title={`${programmaAandeel}% van totaal: leider 90% + kernteam 80% + trainings-deelnemer mens 50% + geconsulteerd 0%, gewogen per rol-categorie en domein.`}
           />
           <KengetalKaart
             label="Lijn-uren"
@@ -2140,6 +2142,7 @@ function SectieF({
             sub={`functieprofielen / L&D-budget (${lijnAandeel}%)`}
             accent="bg-gray-600"
             mono
+            title={`(100 − ${programmaAandeel})% van totaal min raadplegen: rest na programma + raadplegen — bestaande functieprofielen, L&D-budget, jaarcyclus.`}
           />
           <KengetalKaart
             label="Raadplegen-uren"
@@ -2147,6 +2150,7 @@ function SectieF({
             sub={`incidentele consultatie (${raadplegenAandeel}%)`}
             accent="bg-purple-700"
             mono
+            title="Geconsulteerden 100% raadplegen — incidentele review-tijd buiten programma- en lijn-toewijzing."
           />
         </div>
 
@@ -2430,7 +2434,7 @@ function SectieF({
             <SubSectie
               nummer="F6"
               titel="Mens-domein context — waarom mens-totaal hoog lijkt"
-              hint="Mens-totaal bevat ~2.162u cursist-contacttijd (47 medewerkers × 46u over 2 trainingsblokken). Aftrekken: programma-organisatie-werk in mens is in lijn met de andere domeinen."
+              hint="Mens-totaal bevat ~2.162u cursist-contacttijd (47 medewerkers × 46u over 2 trainingsblokken). Trainings-deelnemers tellen 50% programma + 50% lijn (interpretatie B). Aftrekken cursisten: programma-organisatie-werk in mens is in lijn met de andere domeinen."
             >
               <UrenF6MensContext
                 interneUrenScen={interneUrenScen}
@@ -2549,9 +2553,18 @@ function UrenF1Parameters({
                   </span>
                   Inspanningsleider (1)
                 </td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-800">{niveaus.leider.piek ?? "—"}u/jr</td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-700">{niveaus.leider.buitenPiek ?? "—"}u/jr</td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-600">{niveaus.leider.borging ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-800 cursor-help"
+                  title="~1 dag/week × 24–26 actieve weken/jr (PMI Class-2). Voor inspanningsleider in piek-jaren (Realisatie/Acceptatie)."
+                >{niveaus.leider.piek ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                  title="~halve dag/week × 24–26 weken (PMI). Voor leider in niet-piek-jaren (Analyse, Borging-aanloop)."
+                >{niveaus.leider.buitenPiek ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-600 cursor-help"
+                  title="Borgings-jaar (j4+): structureel afgeschaald — alleen review/sturing, geen actieve trekkende rol meer."
+                >{niveaus.leider.borging ?? "—"}u/jr</td>
               </tr>
               <tr className="border-b border-[#003366]/10">
                 <td className="py-1.5 pr-2 font-medium text-gray-800">
@@ -2560,9 +2573,18 @@ function UrenF1Parameters({
                   </span>
                   Kernteam (5–7)
                 </td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-800">{niveaus.kernteam.piek ?? "—"}u/jr</td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-700">{niveaus.kernteam.buitenPiek ?? "—"}u/jr</td>
-                <td className="py-1.5 px-2 font-mono text-right text-gray-600">{niveaus.kernteam.borging ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-800 cursor-help"
+                  title="~halve dag/week × 24–26 weken (PMI). Voor uitvoerend kernteam-lid in piek-jaren (Realisatie/Acceptatie)."
+                >{niveaus.kernteam.piek ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                  title="~2u/week × 24–26 weken. Voor kernteam-lid in niet-piek-jaren (Analyse, Borging-aanloop)."
+                >{niveaus.kernteam.buitenPiek ?? "—"}u/jr</td>
+                <td
+                  className="py-1.5 px-2 font-mono text-right text-gray-600 cursor-help"
+                  title="Borgings-jaar (j4+): minimale uitvoer — alleen incidentele follow-up en evaluatie."
+                >{niveaus.kernteam.borging ?? "—"}u/jr</td>
               </tr>
               <tr className="border-b border-[#003366]/10">
                 <td className="py-1.5 pr-2 font-medium text-gray-800">
@@ -2571,7 +2593,11 @@ function UrenF1Parameters({
                   </span>
                   Geconsulteerd
                 </td>
-                <td colSpan={3} className="py-1.5 px-2 font-mono text-right text-gray-700">
+                <td
+                  colSpan={3}
+                  className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                  title="3u in eerste piek-jaar (Realisatie/Basis) + 3u in tweede piek-jaar (Acceptatie/Vaardigheid) = 6u over hele looptijd. Conform Lezing C: incidentele review-input."
+                >
                   totaal {niveaus.geconsulteerd.totaal ?? 6}u/looptijd
                 </td>
               </tr>
@@ -2582,7 +2608,11 @@ function UrenF1Parameters({
                   </span>
                   Cursist (alleen mens)
                 </td>
-                <td colSpan={3} className="py-1.5 px-2 font-mono text-right text-gray-700">
+                <td
+                  colSpan={3}
+                  className="py-1.5 px-2 font-mono text-right text-gray-700 cursor-help"
+                  title={`${LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens} cursisten × ${niveaus.trainings_deelnemer.totaal ?? 46}u contacttijd over 2 trainings-blokken (Basis + Vaardigheid). Telt 50% programma + 50% lijn (interpretatie B).`}
+                >
                   totaal {niveaus.trainings_deelnemer.totaal ?? 46}u/looptijd ({LEZING_C_AANTAL_DEELNEMERS_DEFAULT.mens} cursisten, 2 trainings-blokken: Basis + Vaardigheid)
                 </td>
               </tr>
@@ -3286,19 +3316,34 @@ function UrenF2Optelling({
               })}
               <tr className="border-t-2 border-[#003366] font-mono">
                 <td className="py-2 pr-2 font-bold text-[#003366]">Totaal Lezing-C</td>
-                <td className="py-2 px-2 text-right text-gray-800">
+                <td
+                  className="py-2 px-2 text-right text-gray-800 cursor-help"
+                  title={`Σ leider-uren over 4 domeinen = ${categorieRijen.map((c) => `${DOMAIN_LABEL[c.domein] ?? c.domein} ${c.leiderUren}u`).join(" + ")} = ${categorieRijen.reduce((s, c) => s + c.leiderUren, 0)}u`}
+                >
                   {categorieRijen.reduce((s, c) => s + c.leiderUren, 0).toLocaleString("nl-NL")}u
                 </td>
-                <td className="py-2 px-2 text-right text-gray-800">
+                <td
+                  className="py-2 px-2 text-right text-gray-800 cursor-help"
+                  title={`Σ kernteam-uren over 4 domeinen = ${categorieRijen.map((c) => `${DOMAIN_LABEL[c.domein] ?? c.domein} ${c.kernteamUren}u`).join(" + ")} = ${categorieRijen.reduce((s, c) => s + c.kernteamUren, 0)}u`}
+                >
                   {categorieRijen.reduce((s, c) => s + c.kernteamUren, 0).toLocaleString("nl-NL")}u
                 </td>
-                <td className="py-2 px-2 text-right text-gray-800">
+                <td
+                  className="py-2 px-2 text-right text-gray-800 cursor-help"
+                  title={`Σ trainings-deelnemer-uren over 4 domeinen (alleen mens heeft cursist-cohort) = ${categorieRijen.reduce((s, c) => s + c.cursistUren, 0)}u`}
+                >
                   {categorieRijen.reduce((s, c) => s + c.cursistUren, 0).toLocaleString("nl-NL")}u
                 </td>
-                <td className="py-2 px-2 text-right text-gray-800">
+                <td
+                  className="py-2 px-2 text-right text-gray-800 cursor-help"
+                  title={`Σ geconsulteerd-uren over 4 domeinen = ${categorieRijen.map((c) => `${DOMAIN_LABEL[c.domein] ?? c.domein} ${c.geconsUren}u`).join(" + ")} = ${categorieRijen.reduce((s, c) => s + c.geconsUren, 0)}u`}
+                >
                   {categorieRijen.reduce((s, c) => s + c.geconsUren, 0).toLocaleString("nl-NL")}u
                 </td>
-                <td className="py-2 px-2 text-right font-bold text-[#003366]">
+                <td
+                  className="py-2 px-2 text-right font-bold text-[#003366] cursor-help"
+                  title={`Σ over alle 4 categorieën × 4 domeinen = leider ${categorieRijen.reduce((s, c) => s + c.leiderUren, 0)}u + kernteam ${categorieRijen.reduce((s, c) => s + c.kernteamUren, 0)}u + cursist ${categorieRijen.reduce((s, c) => s + c.cursistUren, 0)}u + geconsulteerd ${categorieRijen.reduce((s, c) => s + c.geconsUren, 0)}u = ${categorieRijen.reduce((s, c) => s + c.totUren, 0)}u Lezing-C-totaal`}
+                >
                   {categorieRijen.reduce((s, c) => s + c.totUren, 0).toLocaleString("nl-NL")}u
                 </td>
               </tr>
@@ -3333,10 +3378,10 @@ function UrenF2Optelling({
                   ? `Top-3 rollen in ${r.domein}:\n` +
                     top3.map((t) => `• ${t.naam}: ${t.uren}u over ${t.aantalJaren} actieve jaren`).join("\n")
                   : "";
-              const progFormule = `${r.dTot} u × ${r.progPct}% = ${r.progU} u programma\n(interpretatie B: leider 90%, kernteam-uitvoerend 80%, kernteam-MT cultuur 50%, trainings-deelnemer 50%, geconsulteerd 0%)`;
-              const lijnFormule = `${r.dTot} u × ${r.lijnPct}% = ${r.lijnU} u lijn\n(functieprofielen / L&D-budget / bestaande cyclus)`;
+              const progFormule = `${r.dTot} u × ${r.progPct}% = ${r.progU} u programma\n\nInterpretatie B-rationale per categorie:\n• Leider 90% — werk valt buiten functieprofiel, vergt extra capaciteit\n• Kernteam-uitvoerend 80% — pioniers-werk; ~20% is L&D-baseline\n• Kernteam-MT cultuur 50% — voorbeeldgedrag valt half in lijn-rol\n• Trainings-deelnemer 50% — ~16u standaard L&D zit al in functieprofiel\n• Geconsulteerd 0% — incidentele review = raadplegen, niet programma`;
+              const lijnFormule = `${r.dTot} u × ${r.lijnPct}% = ${r.lijnU} u lijn\n\nLijn = werk dat past binnen bestaand functieprofiel + bestaand afdelingsbudget + bestaande jaarcyclus (HRM/L&D/beheer). Alleen wanneer alle drie waar zijn.`;
               const raadpFormule = r.raadpU > 0
-                ? `${r.dTot} u × ${r.raadpPct}% = ${r.raadpU} u raadplegen\n(geconsulteerden: incidentele review/consultatie, valt buiten programma- en lijn-toewijzing)`
+                ? `${r.dTot} u × ${r.raadpPct}% = ${r.raadpU} u raadplegen\n\nGeconsulteerden: 6u/looptijd review-input, valt buiten programma- en lijn-toewijzing — eigen uren-type onder interpretatie B.`
                 : "Geen geconsulteerden in dit domein binnen scenario-uren.";
               return (
                 <tr key={r.domein} className="border-b border-gray-100 last:border-0">
@@ -3815,6 +3860,15 @@ function UrenF4J1Cap({
   const werkelijkJ1 = j1.uren ?? 0;
   const cappedOk = werkelijkJ1 <= j1Cap * 1.05;
 
+  // Per-domein-uitsplitsing van werkelijke J1-uren — voor tooltip
+  const j1PerDomein = (interneUrenScen.domeinen ?? []).map((d) => {
+    const jr = d.jaren?.find((x) => x.jaar === startJaar);
+    return { domein: d.domein, uren: jr?.totaalUren ?? 0 };
+  });
+  const j1BreakdownTip = j1PerDomein.length > 0
+    ? `J1 (${startJaar}) per domein:\n${j1PerDomein.map((p) => `• ${DOMAIN_LABEL[p.domein] ?? p.domein}: ${p.uren.toLocaleString("nl-NL")}u`).join("\n")}\nΣ = ${werkelijkJ1.toLocaleString("nl-NL")}u (${cappedOk ? "binnen" : "boven"} cap ${j1Cap}u)`
+    : `J1 totaal = ${werkelijkJ1.toLocaleString("nl-NL")}u`;
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -3823,6 +3877,7 @@ function UrenF4J1Cap({
           value={`${gemiddeld.toLocaleString("nl-NL")} u`}
           sub={`= ${totaalUren.toLocaleString("nl-NL")} u / ${aantalJaren} jaar (gelijkmatig)`}
           mono
+          title={`Theoretisch jaargemiddelde = ${totaalUren.toLocaleString("nl-NL")}u / ${aantalJaren}j = ${gemiddeld}u (zonder fase-curve, zonder J1-cap).`}
         />
         <Stat
           label="J1-cap (half-jaar)"
@@ -3830,12 +3885,14 @@ function UrenF4J1Cap({
           sub={scenarioKey === "advies" || scenarioKey === "plus20" ? "advies/plus20: 290u" : "optimaal/min20: 250u"}
           mono
           highlight
+          title={`Cap voor start-juni half-jaar. ${scenarioKey === "advies" || scenarioKey === "plus20" ? "Korte scenario's (4–5j) krijgen 290u" : "Lange scenario's (7–10j) krijgen 250u"} — kort=hogere jaarbelasting toelaatbaar.`}
         />
         <Stat
           label={`${startJaar} werkelijk`}
           value={`${werkelijkJ1.toLocaleString("nl-NL")} u`}
           sub={cappedOk ? "binnen cap" : "boven cap — fase-curve domineert"}
           mono
+          title={j1BreakdownTip}
         />
       </div>
 
@@ -4045,7 +4102,10 @@ function UrenF5CategorieenBeslispunten({
       {/* ── Geconsulteerden per domein ── */}
       <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 overflow-hidden">
         <div className="bg-purple-100 px-3 py-2 border-b border-purple-200 flex items-center justify-between gap-2">
-          <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">
+          <span
+            className="text-[11px] uppercase tracking-wider font-bold text-purple-800 cursor-help"
+            title="3u in eerste piek-jaar (Realisatie/Basis) + 3u in tweede piek-jaar (Acceptatie/Vaardigheid) = 6u over hele looptijd. Conform Lezing C: incidentele review-input."
+          >
             Geconsulteerden ({stakeholders.length}) — review/input, 6u/looptijd
           </span>
           <span className="text-[10px] text-purple-700 font-mono">
@@ -4134,7 +4194,10 @@ function UrenF6MensContext({
         Mens is met{" "}
         <strong className="text-[#003366] font-mono">~{mensTot.toLocaleString("nl-NL")}u</strong>{" "}
         het zwaarste domein, maar{" "}
-        <strong className="text-[#003366]">~{cursistAandeel}% (~{cursistUren.toLocaleString("nl-NL")}u)</strong>{" "}
+        <strong
+          className="text-[#003366] cursor-help"
+          title={`Formule: ${cursistUren.toLocaleString("nl-NL")}u trainings-deelnemers / ${mensTot.toLocaleString("nl-NL")}u mens-totaal × 100% = ${cursistAandeel}%. Cursist-uren = ${cursistN}p × ${cursistTot}u contacttijd over 2 blokken.`}
+        >~{cursistAandeel}% (~{cursistUren.toLocaleString("nl-NL")}u)</strong>{" "}
         bestaat uit cursist-contacttijd:{" "}
         <strong>{cursistN} medewerkers</strong> volgen elk{" "}
         <strong>{cursistTot}u</strong> outside-in-gespreksvaardigheidstraining over{" "}
@@ -4405,15 +4468,20 @@ function KengetalKaart({
   sub,
   accent,
   mono,
+  title,
 }: {
   label: string;
   waarde: number;
   sub: string;
   accent: string;
   mono?: boolean;
+  title?: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div
+      className={`rounded-lg border border-gray-200 bg-white overflow-hidden ${title ? "cursor-help" : ""}`}
+      title={title}
+    >
       <div className={`${accent} text-white text-[10px] uppercase tracking-wider font-bold px-3 py-1.5`}>
         {label}
       </div>
@@ -4467,18 +4535,21 @@ function Stat({
   sub,
   mono,
   highlight,
+  title,
 }: {
   label: string;
   value: string;
   sub?: string;
   mono?: boolean;
   highlight?: boolean;
+  title?: string;
 }) {
   return (
     <div
       className={`rounded-lg border p-3 ${
         highlight ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-white"
-      }`}
+      } ${title ? "cursor-help" : ""}`}
+      title={title}
     >
       <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">{label}</p>
       <p className={`text-base font-bold text-gray-900 mt-0.5 ${mono ? "font-mono" : ""}`}>{value}</p>
