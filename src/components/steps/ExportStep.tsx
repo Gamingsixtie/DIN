@@ -2733,14 +2733,6 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
     return <p className="text-sm text-gray-400 italic">Geen scenario&apos;s in het interne-uren-advies.</p>;
   }
 
-  // --- Bevindingen voor 4.2: neutraal, geen voorgekauwde scenario-keuze ---
-  const refUrenScen = interneUren.scenarios?.advies ?? interneUren.scenarios?.optimaal ?? null;
-  const totUren42 = refUrenScen?.totaalUren ?? refUrenScen?.domeinen.reduce((s, d) => s + (d.totaalUren ?? 0), 0) ?? 0;
-  const euroFmt42 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const sortedDom = refUrenScen?.domeinen
-    ? [...refUrenScen.domeinen].sort((a, b) => (b.totaalUren ?? 0) - (a.totaalUren ?? 0))
-    : [];
-
   return (
     <>
       <IntroPanel title="Wat staat hieronder?">
@@ -2751,27 +2743,16 @@ function InterneUrenBlock({ session }: { session: DINSession }) {
           over alle scenario&apos;s gelijk.
         </p>
         <p>
-          De doorlooptijd hangt af van het gekozen scenario: een hoger ambitieniveau verkort de looptijd,
-          een lager niveau rekt hem uit. De keuze tussen scenario&apos;s — en de daaruit volgende doorlooptijd
-          — komt aan bod in 4.2.1 en in het totaaloverzicht in 4.3.
+          <strong>Waarom vier scenario&apos;s?</strong> De stuurgroep krijgt zo één doorgerekend basisbeeld plus
+          drie expliciete varianten daarop. Het verschil tussen de scenario&apos;s draait om <em>tempo</em> en
+          <em> ambitieniveau</em>; de inhoud van de inzet blijft overal gelijk.
         </p>
-        {sortedDom.length > 0 && totUren42 > 0 && (
-          <>
-            <p className="mt-2"><strong>Verhouding van inzet per domein</strong> (referentie: scenario {interneUren.scenarios?.advies ? SCENARIO_LABELS.advies : SCENARIO_LABELS.optimaal}):</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              {sortedDom.map((d) => {
-                const aandeel = totUren42 > 0 ? Math.round(((d.totaalUren ?? 0) / totUren42) * 100) : 0;
-                return (
-                  <li key={d.domein} className="leading-snug">
-                    <strong>{DOMAIN_LABELS[d.domein]}</strong> — {(d.totaalUren ?? 0).toLocaleString("nl-NL")} u (
-                    {aandeel}%, {euroFmt42.format(d.totaalKosten ?? 0)})
-                    {d.motivatie ? <>: <span className="text-gray-700">{d.motivatie}</span></> : null}
-                  </li>
-                );
-              })}
-            </ol>
-          </>
-        )}
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>{SCENARIO_LABELS.optimaal}</strong> — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.</li>
+          <li><strong>{SCENARIO_LABELS.plus20}</strong> — sneller (+20%): hogere parallelle uren-inzet per jaar; baten worden eerder gerealiseerd.</li>
+          <li><strong>{SCENARIO_LABELS.min20}</strong> — langzamer (−20%): lagere jaarlijkse uren-belasting, maar langere periode zonder volledige baten.</li>
+          <li><strong>{SCENARIO_LABELS.advies}</strong> — gewogen advies: combineren waar capacitair verantwoord, faseren waar de organisatie het anders niet kan dragen.</li>
+        </ul>
       </IntroPanel>
       <ScenarioPicker label="Spring direct naar een interne-uren-scenario:" scrollTo="4-2" />
 

@@ -2511,10 +2511,22 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       { color: TEXT_PRIMARY, size: 20 }
     ));
     children.push(bodyText(
-      "De doorlooptijd hangt af van het gekozen scenario: een hoger ambitieniveau verkort de looptijd, een " +
-      "lager niveau rekt hem uit. De keuze tussen scenario's komt aan bod in 4.2.1 en in het totaaloverzicht " +
-      "in 4.3.",
+      "Waarom vier scenario's? De stuurgroep krijgt zo één doorgerekend basisbeeld plus drie expliciete " +
+      "varianten daarop. Het verschil tussen de scenario's draait om tempo en ambitieniveau; de inhoud van " +
+      "de inzet blijft overal gelijk.",
       { color: TEXT_PRIMARY, size: 20 }
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.optimaal} — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.plus20} — sneller (+20%): hogere parallelle uren-inzet per jaar; baten worden eerder gerealiseerd.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.min20} — langzamer (−20%): lagere jaarlijkse uren-belasting, maar langere periode zonder volledige baten.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.advies} — gewogen advies: combineren waar capacitair verantwoord, faseren waar de organisatie het anders niet kan dragen.`
     ));
     if (interneUren.uurtariefSettings) {
       children.push(bodyText(
