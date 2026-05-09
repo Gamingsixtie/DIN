@@ -193,8 +193,16 @@ export function BerekeningenView({
               hint="Schrijf hier wat je wilt dat Claude leest bij de volgende ronde. Dingen die voor alle scenario's gelden (bv. een aanpassing in tarieven, een verkeerd label, structurele uitleg). Per scenario zit er onderaan elke kaart een eigen notitieblok."
             />
           )}
-          <Begrippenlijst />
-          <MinMidMaxToelichting />
+          {isExport && (
+            <BijlageAInhoudsopgave beschikbaar={beschikbareScenarios} />
+          )}
+
+          <div id="bijlage-a-begrippen" className="scroll-mt-24">
+            <Begrippenlijst />
+          </div>
+          <div id="bijlage-a-minmidmax" className="scroll-mt-24">
+            <MinMidMaxToelichting />
+          </div>
 
           {!isExport && (
             <ScenarioPicker
@@ -208,21 +216,67 @@ export function BerekeningenView({
 
           <div className="space-y-4">
             {beschikbareScenarios.map((k) => (
-              <ScenarioBerekeningKaart
-                key={k}
-                scenarioKey={k}
-                begroting={begroting}
-                subEffortAnalysis={subEffortAnalysis}
-                session={session}
-                open={isExport ? true : openScenario === k}
-                onToggle={() => setOpenScenario(openScenario === k ? null : k)}
-                mode={mode}
-              />
+              <div key={k} id={`bijlage-a-scenario-${k}`} className="scroll-mt-24">
+                <ScenarioBerekeningKaart
+                  scenarioKey={k}
+                  begroting={begroting}
+                  subEffortAnalysis={subEffortAnalysis}
+                  session={session}
+                  open={isExport ? true : openScenario === k}
+                  onToggle={() => setOpenScenario(openScenario === k ? null : k)}
+                  mode={mode}
+                />
+              </div>
             ))}
           </div>
         </>
       )}
     </div>
+  );
+}
+
+// --- Inhoudsopgave voor Bijlage A (alleen in export-mode) ---
+function BijlageAInhoudsopgave({ beschikbaar }: { beschikbaar: ScenarioKey[] }) {
+  const items: Array<{ id: string; label: string; sub?: string }> = [
+    { id: "bijlage-a-begrippen", label: "Begrippenlijst" },
+    { id: "bijlage-a-minmidmax", label: "Min / Mid / Max — toelichting bandbreedte" },
+    ...beschikbaar.map((k) => ({
+      id: `bijlage-a-scenario-${k}`,
+      label: `Scenario — ${SCENARIO_META[k].label}`,
+      sub: SCENARIO_META[k].uitleg,
+    })),
+  ];
+
+  return (
+    <nav
+      aria-label="Inhoudsopgave Bijlage A"
+      className="rounded-xl border-2 border-[#003366]/20 bg-[#003366]/[0.03] p-5"
+    >
+      <div className="text-[10px] uppercase tracking-[0.2em] text-[#003366]/70 font-bold mb-2">
+        Inhoudsopgave Bijlage A
+      </div>
+      <h3 className="text-base font-bold text-[#003366] mb-3">Spring direct naar een onderdeel</h3>
+      <ol className="space-y-2">
+        {items.map((it, i) => (
+          <li key={it.id} className="flex items-baseline gap-3">
+            <span className="text-xs font-bold text-[#003366]/60 tabular-nums w-6 shrink-0">
+              {i + 1}.
+            </span>
+            <div className="flex-1 min-w-0">
+              <a
+                href={`#${it.id}`}
+                className="text-sm font-semibold text-[#003366] hover:underline underline-offset-2"
+              >
+                {it.label}
+              </a>
+              {it.sub && (
+                <p className="text-[11px] text-gray-600 leading-snug mt-0.5">{it.sub}</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 
