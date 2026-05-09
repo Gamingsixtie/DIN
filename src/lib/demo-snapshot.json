@@ -68,7 +68,7 @@
         "indicator": "NPS-score onder leerkrachten en schoolbesturen, gecombineerd met het aandeel klantgesprekken dat als samenwerkings- of beleidsgerichte dialoog wordt gekwalificeerd",
         "meetmethode": "Halfjaarlijkse NPS-enquête onder leerkrachten en schoolbesturen; kwalitatieve gespreksregistratie via CRM met labeling op gesprekstype (transactioneel vs. verdiepend); aanvullend: jaarlijkse analyse van gebruikersaantallen, trainingsdeelname en meldingsvolume klantenservice",
         "targetValue": "NPS stijging van minimaal +10 punten t.o.v. nulmeting; ≥ 40% van klantgesprekken gekwalificeerd als samenwerkings- of beleidsgerichte dialoog binnen 2 jaar",
-        "currentValue": "Nulmeting NPS: nog te bepalen (Q1 2025); aandeel verdiepende klantgesprekken: 0% formeel geregistreerd",
+        "currentValue": "Nulmeting NPS: nog te bepalen bij start programma; aandeel verdiepende klantgesprekken: 0% formeel geregistreerd",
         "bateneigenaar": "Commercieel Manager",
         "indicatorOwner": "Sectormanager PO",
         "measurementMoment": "Halfjaarlijks (NPS en gespreksanalyse), jaarlijks (gebruikersaantallen en trainingsdata)"
@@ -907,7 +907,7 @@
             "beschrijving": "Outside-in cultuur en klantgerichte gespreksvaardigheden: zowel PO (Trainen medewerkers in klantgerichte gespreksvaardigheden, Verankeren outside-in leiderschap), Zakelijk (Werven en ontwikkelen outside-in competenties, Verankeren outside-in mindset) als VO (Trainen en verankeren klantgerichte rollen) investeren in identieke mens- en cultuurinterventies. Één gezamenlijk trainings- en leiderschapstraject kan schaalvoordeel opleveren."
           },
           {
-            "impact": "Één organisatiebreed CRM-/klantdataplatform voorkomt dubbele investeringen, versnelt het integraal klantbeeld (kerndoel programma) en ondersteunt kostenefficiëntie conform Cito-kader.",
+            "impact": "Één organisatiebreed CRM-/klantdataplatform voorkomt dubbele investeringen en versnelt het integraal klantbeeld (kerndoel programma).",
             "sectoren": [
               "VO",
               "Zakelijk"
@@ -1038,7 +1038,7 @@
         "vermogenGelijkenisGroepen": [
           {
             "id": "g1",
-            "reden": "Deze drieluik levert de grootste hefboom: alle drie de sectoren bouwen dezelfde onderliggende capaciteit en verschillen slechts in klantcontext. Cross-sectoraal optrekken voorkomt drie parallelle CRM- en funneltrajecten en sluit direct de gap dat PO nog geen data- en procesinspanningen heeft.",
+            "reden": "Deze drieluik levert de grootste hefboom: alle drie de sectoren bouwen dezelfde onderliggende capaciteit en verschillen slechts in klantcontext.",
             "vermogenIds": [
               "4aa95cb0-f3c3-4108-8e81-8abec1cc6587",
               "cfdf5175-78ee-4836-a29f-7d53b2afe465",

@@ -275,7 +275,15 @@ HARDE REGELS:
     - **Wat NIET per scenario verschilt**: \`motivatie\` per inspanning (= waarom doen we deze inspanning, dossier-onderbouwing) en \`volgorde.reden\` (= positie-label, waarom is deze rangorde).
     - Concreet: schrijf de \`motivatie\` voor CRM één keer; gebruik EXACT dezelfde tekst in advies, plus20, optimaal en min20. Idem voor \`volgorde.reden\`. AI vertaalt scenario-context in samenvatting/prioriteitAdvies, NIET in motivatie/positie.
     - REDEN: lezer vergelijkt scenarios kolom-voor-kolom. Als motivatie van CRM in advies "Het CRM is het technische fundament" zegt en in plus20 "Het dossier raamt €440K-€640K" → onverklaarbaar onderscheid → vragen over geloofwaardigheid.
-    - **GEEN SCENARIO-TOTALEN IN MOTIVATIE.** Noem in \`motivatie\` GEEN cumulatieve scenario-bedragen ("doel-totaal circa € 910.000", "totaal € 1.125.000", "deze post bedraagt € 817K"). Die verschillen per scenario en zijn fout als 1-op-1 gekopieerd. Noem WEL dossier-bedragen die heilig zijn ongeacht scenario: eenmalig (€ 440-640K) en jaarlijks structureel (€ 92.500/jaar). Sluit eventueel af met "Het scenario-totaal in de tabel hangt af van de looptijd". Het scenario-totaal staat al in de tabel rechts; hoeft niet in motivatie.`;
+    - **GEEN SCENARIO-TOTALEN IN MOTIVATIE.** Noem in \`motivatie\` GEEN cumulatieve scenario-bedragen ("doel-totaal circa € 910.000", "totaal € 1.125.000", "deze post bedraagt € 817K"). Die verschillen per scenario en zijn fout als 1-op-1 gekopieerd. Noem WEL dossier-bedragen die heilig zijn ongeacht scenario: eenmalig (€ 440-640K) en jaarlijks structureel (€ 92.500/jaar). Sluit eventueel af met "Het scenario-totaal in de tabel hangt af van de looptijd". Het scenario-totaal staat al in de tabel rechts; hoeft niet in motivatie.
+14. **GEEN AANLOOPPUNT-DISCUSSIE OF BUDGET-DOORKANTELEN IN \`samenvatting\` EN \`prioriteitAdvies\`.**
+    Schrijf in deze velden NOOIT:
+    - "Aanlooppunt", "het programma start juni 2026 staat vast", "doorkantelen", "kantelt door naar", "doorschuiving naar Q1 2027", "in een half jaar productief landen".
+    - Discussie over wat in 6 maanden wel/niet haalbaar is, of over € 200-220K productief versus € 30-50K doorkantelen.
+    - Stuurgroep-vragen of "te bespreken in stuurgroep"-sluitformuleringen.
+    - "Vrijval"-claims of redeneringen over wat onderbesteding doet met het budget van een volgend jaar.
+    REDEN: uitgangspunt is dat het volledige jaarbudget 2026 productief wordt opgemaakt; uiterlijk juni 2026 starten is de randvoorwaarde. Dat is een vaststaand programma-randpunt, geen scenario-keuze. Hier hoort geen tekst over het wegschuiven van budget naar volgende jaren.
+    WEL toegestaan in \`samenvatting\`: éénmaal "uiterlijk juni 2026 starten is randvoorwaarde voor volledige opmaak van het 2026-budget" als kort feit, indien relevant — niet als uitgebreide discussie.`;
 }
 
 const VergelijkingSchema = z.object({

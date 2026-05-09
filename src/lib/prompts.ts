@@ -217,7 +217,7 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
       "id": "g1",
       "vermogenIds": ["<cap-po-id>", "<cap-vo-id>", "<cap-zak-id>"],
       "gezamenlijkeOmschrijving": "Medewerker-wendbaarheid bij digitalisering",
-      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen.>"
+      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen. **NIET toegestaan**: claims dat één bepaalde sector 'geen data- en procesinspanningen heeft' of 'achterloopt' (vrijwel altijd onjuist en stigmatiserend); claims over Cito-kerndoelen ('medewerker-ontwikkeling', 'commerciële slagkracht'), formatie-kader of FTE-beleid; redeneringen over kostenefficiëntie via 'één ontwerp-traject voor drie sectorvarianten'. Houd het bij hefboom/afhankelijkheid/coverage van de drieluik zelf.>"
     }
   ],
   "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"

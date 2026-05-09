@@ -1964,6 +1964,11 @@ function BatenprofielenBlock({ session }: { session: DINSession }) {
           resultaat, geen indicator om voortgang aan af te lezen, en geen moment waarop &ldquo;klaar&rdquo;
           is vastgesteld.
         </p>
+        <p className="mt-2 italic text-gray-700">
+          De onderstaande batenprofielen zijn een <strong>voorstel</strong> — definitieve indicatoren,
+          waarden en meetmomenten moeten nog in de stuurgroep worden besproken. Dit is één mogelijke
+          uitwerking om de discussie te voeden.
+        </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
         <table className="w-full text-sm">
@@ -2162,7 +2167,6 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
           gekoppeld: een <strong>eigenaar</strong> (de domeineigenaar uit de programma-organisatie —
           eindverantwoordelijk voor de samenhang binnen het domein) en een of meer{" "}
           <strong>inspanningsleiders</strong> (de trekkers die de dagelijkse uitvoering aansturen).
-          De eigenaren zijn herhaald uit Hoofdstuk 5; de inspanningsleiders volgen uit het inspanningendossier.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -2361,7 +2365,10 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
               {(() => {
                 const adv = sanitizeAdviesText(aanbevolenScen.prioriteitAdvies);
                 return adv ? (
-                  <p className="text-sm text-gray-800 leading-relaxed mt-3 whitespace-pre-wrap">{adv}</p>
+                  <p className="text-sm text-gray-700 italic leading-relaxed mt-3">
+                    De prioriteitsvolgorde voor dit aanbevolen scenario en de detail-berekeningen per inspanning
+                    staan in <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                  </p>
                 ) : null;
               })()}
             </div>
@@ -2574,7 +2581,11 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
                     <div className={`text-[10px] uppercase tracking-wider ${kleur.accent} font-bold mb-1`}>
                       Prioriteitadvies (outside-in volgorde)
                     </div>
-                    <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{cleanedAdv}</p>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      De rangorde volgt de outside-in logica (cultuur → mens → data &amp; systemen → processen)
+                      en is in alle vier scenario&apos;s identiek; alleen tempo verschilt. Voor de onderbouwing
+                      per inspanning en de detail-berekeningen: zie <strong>Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                    </p>
                   </div>
                 );
               })()}
@@ -3306,7 +3317,12 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                         <p className="text-xs text-gray-700 leading-relaxed mb-2">{autoToelichting}</p>
                       )}
                       {motivatie && <p className="text-xs text-gray-700 leading-relaxed mb-1 whitespace-pre-wrap">{motivatie}</p>}
-                      {advies && <p className="text-xs text-gray-600 italic leading-relaxed whitespace-pre-wrap">{advies}</p>}
+                      {advies && (
+                        <p className="text-xs text-gray-600 italic leading-relaxed">
+                          Prioriteitsvolgorde en detail-berekeningen voor dit scenario: zie{" "}
+                          <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                        </p>
+                      )}
                     </div>
                   </>
                 );
@@ -3319,7 +3335,12 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                     Toelichting bij dit scenario
                   </div>
                   {motivatie && <p className="text-xs text-gray-700 leading-relaxed mb-1 whitespace-pre-wrap">{motivatie}</p>}
-                  {advies && <p className="text-xs text-gray-600 italic leading-relaxed whitespace-pre-wrap">{advies}</p>}
+                  {advies && (
+                    <p className="text-xs text-gray-600 italic leading-relaxed">
+                      Prioriteitsvolgorde en detail-berekeningen voor dit scenario: zie{" "}
+                      <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                    </p>
+                  )}
                 </div>
               )}
             </ScenarioCollapse>
@@ -4052,11 +4073,9 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               </p>
             </div>
 
-            {/* Aanlooppunt 2026 — bewust geadresseerd voor stuurgroep-discussie.
-                Programma start juni 2026 (feit). Budget €250K voor 2026 is vastgesteld
-                en moet productief landen — bedrijfseconomisch kan onderbesteding niet
-                want vrijval drukt 2027 omlaag. Banner expliciet per scenario zodat
-                stuurgroep ziet dat we de doorschuiving naar 2027 onder ogen hebben gezien. */}
+            {/* Aanlooppunt 2026 — start-randvoorwaarde voor de stuurgroep.
+                Doel is de volledige € 250.000 in 2026 productief op te maken
+                conform begroting; uiterlijk juni 2026 starten is daarvoor randvoorwaarde. */}
             <div className="mt-4 max-w-3xl rounded-lg border-2 border-amber-300 bg-amber-50 p-4 space-y-2.5">
               <div className="flex items-start gap-2 mb-1">
                 <span className="text-amber-700 text-base leading-none mt-0.5">⚠</span>
@@ -4065,44 +4084,9 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 </p>
               </div>
               <p className="text-sm text-gray-800 leading-relaxed">
-                Het programma start juni 2026 — dat staat vast. Het jaarbudget van € 250.000 voor 2026 is vastgesteld
-                en wordt volledig benut; bij Cito betekent onderbesteding vrijval plus een lager budget in 2027, wat
-                we willen voorkomen. De vraag is dus niet <em>of</em> we het opmaken, maar <em>hoe we het in een half
-                jaar productief laten landen</em>.
-              </p>
-              <p className="text-sm text-gray-800 leading-relaxed">
-                <strong>Wat in zes maanden wél haalbaar is</strong> — en wat in alle scenario&apos;s de jaar-1-activiteiten
-                vormt: architectuurkeuze CRM, leveranciersselectie, MT-besluit cultuurprogramma, nulmeting
-                gespreksvaardigheid, eerste werkgroepsessies processen. Naar onze inschatting wordt circa
-                € 200.000–€ 220.000 productief in H2 2026 ingezet; de resterende € 30.000–€ 50.000 kantelt door
-                naar Q1 2027 binnen het meerjarige scenario-totaal — niet als vrijval, maar als planning-realiteit.
-              </p>
-              <div className="text-sm text-gray-800 leading-relaxed">
-                <p className="font-semibold mb-1">Per scenario verschilt de druk:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>
-                    <strong>Huidig budget</strong> en <strong>−20% (langzamer)</strong> — meeste flexibiliteit;
-                    de doorschuiving valt weg in de ruimere meerjarige spreiding (1–2% van het scenario-totaal).
-                  </li>
-                  <li>
-                    <strong>+20% (sneller)</strong> — krapst: jaar 2 vraagt al € 300.000 en heeft weinig ruimte om
-                    opgeschoven 2026-werk te absorberen. Halfjaars-2026 betekent vol tempo vanaf juni.
-                  </li>
-                  <li>
-                    <strong>Advies-scenario</strong> — krap maar haalbaar; doorschuiving wordt opgevangen binnen
-                    het 4-jarig scenario-totaal.
-                  </li>
-                </ul>
-              </div>
-              <p className="text-sm text-gray-800 leading-relaxed">
-                <strong>Hetzelfde geldt voor de interne uren in §4.2</strong>: Cito-medewerkers starten effectief
-                vanaf juni 2026, dus realistisch loopt H2 2026 op 50–60% van de jaar-1-uren, met de rest in Q1 2027.
-                Dit raakt de fasering, niet de meerjarige uren-totalen.
-              </p>
-              <p className="text-sm text-amber-900 leading-relaxed bg-amber-100/60 rounded px-3 py-2 mt-2 italic">
-                <strong className="not-italic">Te bespreken in stuurgroep:</strong> hoe organiseren we de productieve
-                landing in H2 2026 — welke opstart-activiteiten prioriteren we voor Q3–Q4, en welke onderdelen
-                kantelen we naar Q1 2027 binnen scenario-totaal?
+                Doel is de volledige € 250.000 in 2026 productief op te maken — zoals ook in de begrotingen per
+                scenario terugkomt. <strong>Uiterlijk juni 2026 starten</strong> is daarvoor de randvoorwaarde:
+                later starten betekent dat het jaarbudget niet meer in 2026 productief geland kan worden.
               </p>
             </div>
 
@@ -4299,7 +4283,81 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             <BerekeningenView session={session} mode="export" />
           </div>
         </Chapter>
+
+        {/* Bijlage B — Prioriteit-onderbouwing per scenario.
+            De volledige prioriteitAdvies-tekst per scenario die voorheen in §4.1 stond,
+            verhuist hierheen zodat §4.1 beknopt blijft. Bevat per scenario de rangorde-
+            motivatie en de uitsplitsingen per inspanning (eenmalig/structureel, doelgroep). */}
+        <Chapter number="B." title="Bijlage B — Prioriteit-onderbouwing per scenario" id="bijlage-b-prioriteit-onderbouwing">
+          <Inleiding>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Deze bijlage bevat de detail-onderbouwing en aannames achter de prioriteitsvolgorde van de
+              inspanningen per scenario. In §4.1 staat alleen een korte samenvatting; hieronder staan de
+              volledige berekeningen — uitsplitsingen per inspanning, eenmalige en structurele bedragen,
+              doelgroep-aannames — uitgewerkt voor elk scenario. De rangorde volgt de outside-in logica
+              (cultuur → mens → data &amp; systemen → processen) en is in alle vier scenario&apos;s identiek;
+              alleen tempo verschilt.
+            </p>
+          </Inleiding>
+          <Kern>
+            <PrioriteitOnderbouwingBlock session={session} />
+          </Kern>
+        </Chapter>
       </div>
+    </div>
+  );
+}
+
+// --- Bijlage B blok: prioriteitAdvies per scenario ---
+function PrioriteitOnderbouwingBlock({ session }: { session: DINSession }) {
+  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
+  type BegrScenarioMin = { prioriteitAdvies?: string };
+  type BegrAdvMin = { scenarios?: Partial<Record<ScenarioK, BegrScenarioMin | null>> };
+
+  const begroting = (
+    session.crossAnalyseWizard?.stepResults as
+      | { stap4?: { begrotingAdvies?: BegrAdvMin } }
+      | undefined
+  )?.stap4?.begrotingAdvies;
+
+  if (!begroting?.scenarios) {
+    return (
+      <p className="text-sm text-gray-500 italic px-4 py-3">
+        Het begrotingsadvies is nog niet beschikbaar; deze bijlage vult zich automatisch zodra Stap 4 in de
+        cross-analyse-wizard is uitgevoerd.
+      </p>
+    );
+  }
+
+  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
+  const items = scenarioOrder
+    .map((key) => {
+      const adv = sanitizeAdviesText(begroting.scenarios?.[key]?.prioriteitAdvies);
+      return adv ? { key, adv } : null;
+    })
+    .filter((x): x is { key: ScenarioK; adv: string } => x !== null);
+
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-gray-500 italic px-4 py-3">
+        Voor de huidige scenario&apos;s is nog geen prioriteitadvies gegenereerd.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-5 px-4">
+      {items.map(({ key, adv }) => {
+        const kleur = SCENARIO_KLEUR[key];
+        return (
+          <div key={key} className={`rounded-lg border border-gray-200 ${kleur.bg} p-4`}>
+            <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.accent} mb-2`}>
+              Scenario — {SCENARIO_LABELS[key]}
+            </div>
+            <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{adv}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }

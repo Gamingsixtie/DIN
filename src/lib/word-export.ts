@@ -1229,6 +1229,11 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     "voortgang aan af te lezen, en geen moment waarop “klaar” is vastgesteld.",
     { color: TEXT_PRIMARY, size: 20 }
   ));
+  children.push(bodyText(
+    "De onderstaande batenprofielen zijn een voorstel — definitieve indicatoren, waarden en meetmomenten " +
+    "moeten nog in de stuurgroep worden besproken. Dit is één mogelijke uitwerking om de discussie te voeden.",
+    { italic: true, color: TEXT_SECONDARY, size: 18 }
+  ));
   children.push(emptyLine(60));
   const sortedBaten = [...session.benefits].sort((a, b) => {
     if (a.sectorId !== b.sectorId) return a.sectorId.localeCompare(b.sectorId);
@@ -1334,8 +1339,7 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     "De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein zijn twee rollen " +
     "gekoppeld: een eigenaar (de domeineigenaar uit de programma-organisatie — eindverantwoordelijk voor " +
     "de samenhang binnen het domein) en een of meer inspanningsleiders (de trekkers die de dagelijkse " +
-    "uitvoering aansturen). De eigenaren zijn herhaald uit Hoofdstuk 5; de inspanningsleiders volgen uit " +
-    "het inspanningendossier.",
+    "uitvoering aansturen).",
     { color: TEXT_PRIMARY, size: 20 }
   ));
   children.push(emptyLine(60));
@@ -2466,7 +2470,12 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
 
       if (s.prioriteitAdvies) {
         children.push(bodyText("Prioriteitadvies (outside-in volgorde):", { bold: true, size: 20, color: CITO_BLUE }));
-        children.push(bodyText(s.prioriteitAdvies, { size: 20, color: TEXT_PRIMARY }));
+        children.push(bodyText(
+          "De rangorde volgt de outside-in logica (cultuur → mens → data & systemen → processen) en is in alle " +
+          "vier scenario's identiek; alleen tempo verschilt. Voor de onderbouwing per inspanning en de detail-" +
+          "berekeningen per scenario: zie Bijlage B — Prioriteit-onderbouwing per scenario.",
+          { size: 20, color: TEXT_PRIMARY }
+        ));
         children.push(emptyLine());
       }
     });
@@ -2857,7 +2866,11 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
         children.push(bodyText(aanbevScen.samenvatting, { size: 20, color: TEXT_PRIMARY }));
       }
       if (aanbevScen.prioriteitAdvies) {
-        children.push(bodyText(aanbevScen.prioriteitAdvies, { italic: true, size: 18, color: TEXT_SECONDARY }));
+        children.push(bodyText(
+          "De prioriteitsvolgorde voor dit aanbevolen scenario en de detail-berekeningen per inspanning staan " +
+          "in Bijlage B — Prioriteit-onderbouwing per scenario.",
+          { italic: true, size: 18, color: TEXT_SECONDARY }
+        ));
       }
     }
     if (begroting?.vergelijking) {
@@ -3442,6 +3455,67 @@ export async function generateVerrijktSectorplanDocument(
   return Packer.toBlob(doc);
 }
 
+// --- Bijlage B — Prioriteit-onderbouwing per scenario ---
+// Bevat de detail-onderbouwing per scenario die in §4.1 alleen samengevat staat.
+// De volledige prioriteitAdvies-tekst (met aannames en uitsplitsingen) verhuist hierheen,
+// zodat §4.1 beknopt blijft en de stuurgroep de berekeningen apart kan raadplegen.
+export function bijlageBegrotingsberekeningenSection(session: DINSession, numState: NumberingState) {
+  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
+  type BegrScenarioMin = { prioriteitAdvies?: string; samenvatting?: string };
+  type BegrAdvMin = { scenarios?: Partial<Record<ScenarioK, BegrScenarioMin | null>> };
+
+  const begroting = (
+    session.crossAnalyseWizard?.stepResults as
+      | { stap4?: { begrotingAdvies?: BegrAdvMin } }
+      | undefined
+  )?.stap4?.begrotingAdvies;
+
+  const children: (Paragraph | Table)[] = [];
+  children.push(plainH1("Bijlage B — Prioriteit-onderbouwing per scenario", numState));
+  children.push(bodyText(
+    "Deze bijlage bevat de detail-onderbouwing en aannames achter de prioriteitsvolgorde van de inspanningen " +
+    "per scenario. In §4.1 staat alleen een korte samenvatting; de volledige berekeningen — uitsplitsingen " +
+    "per inspanning, eenmalige en structurele bedragen, doelgroep-aannames — staan hieronder per scenario " +
+    "uitgewerkt. De rangorde volgt de outside-in logica (cultuur → mens → data & systemen → processen) en " +
+    "is in alle vier scenario's identiek; alleen tempo verschilt.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+
+  if (!begroting?.scenarios) {
+    children.push(emptyLine());
+    children.push(bodyText(
+      "Het begrotingsadvies is nog niet beschikbaar; deze bijlage vult zich automatisch zodra Stap 4 in de " +
+      "cross-analyse-wizard is uitgevoerd.",
+      { italic: true, color: TEXT_MUTED, size: 18 }
+    ));
+    return { properties: {}, children };
+  }
+
+  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
+  let renderedAny = false;
+  scenarioOrder.forEach((key) => {
+    const s = begroting.scenarios?.[key];
+    if (!s || !s.prioriteitAdvies) return;
+    renderedAny = true;
+    children.push(emptyLine());
+    children.push(bodyText(
+      `Scenario — ${SCENARIO_LABELS[key]}`,
+      { bold: true, size: 22, color: CITO_BLUE }
+    ));
+    children.push(bodyText(s.prioriteitAdvies, { size: 20, color: TEXT_PRIMARY }));
+  });
+
+  if (!renderedAny) {
+    children.push(emptyLine());
+    children.push(bodyText(
+      "Voor de huidige scenario's is nog geen prioriteitadvies gegenereerd.",
+      { italic: true, color: TEXT_MUTED, size: 18 }
+    ));
+  }
+
+  return { properties: {}, children };
+}
+
 // --- Hoofdfunctie ---
 
 export async function generateWordDocument(session: DINSession): Promise<Blob> {
@@ -3506,6 +3580,9 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
 
   // Hoofdstuk 6 \u2014 Planning en roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
+
+  // Bijlage \u2014 Begrotingsberekeningen (detail-onderbouwing prioriteitadvies per scenario)
+  contentSections.push(bijlageBegrotingsberekeningenSection(session, numState));
 
   // Now build TOC from accumulated tocEntries
   const tocSection = tableOfContentsSection(numState);
