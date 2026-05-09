@@ -90,6 +90,21 @@ function formatGetal(n: number): string {
   return new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 }).format(n);
 }
 
+// Sanitizer voor batenprofiel-meetwaarden: vervangt verleden Q1-Q4 jaartallen
+// (2020-2025) door een neutrale "bij start programma"-formulering. AI heeft in
+// oudere sessies nulmeting-momenten als "(Q1 2025)" of vergelijkbaar vastgelegd;
+// in 2026 zijn die jaartallen verleden tijd en moeten ze niet meer in een
+// toekomstgericht programmaplan staan.
+function sanitizeMeetjaarTekst(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/\s*\(\s*Q[1-4]\s*202[0-5]\s*\)/gi, "")
+    .replace(/\bQ[1-4]\s*202[0-5]\b/gi, "bij start programma")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
+}
+
 const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20" | "advies", string> = {
   optimaal: "Huidig budget",
   plus20: "+20% scenario",
@@ -1243,9 +1258,9 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     const baatRows = sortedBaten.map((b) => {
       const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "— nog te benoemen";
       const indicator = b.profiel.indicator?.trim() || "— nog te bepalen";
-      const cur = b.profiel.currentValue?.trim() || "?";
+      const cur = sanitizeMeetjaarTekst(b.profiel.currentValue?.trim()) || "?";
       const tgt = b.profiel.targetValue?.trim() || "?";
-      const meet = b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "—";
+      const meet = sanitizeMeetjaarTekst(b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim()) || "—";
       return new TableRow({
         children: [
           styledCell(b.title || b.description, { bold: true, width: 28, size: 16 }),
@@ -2473,7 +2488,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
         children.push(bodyText(
           "De rangorde volgt de outside-in logica (cultuur → mens → data & systemen → processen) en is in alle " +
           "vier scenario's identiek; alleen tempo verschilt. Voor de onderbouwing per inspanning en de detail-" +
-          "berekeningen per scenario: zie Bijlage B — Prioriteit-onderbouwing per scenario.",
+          "berekeningen per scenario: zie Bijlage A — Audit van de begroting.",
           { size: 20, color: TEXT_PRIMARY }
         ));
         children.push(emptyLine());
@@ -2868,7 +2883,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       if (aanbevScen.prioriteitAdvies) {
         children.push(bodyText(
           "De prioriteitsvolgorde voor dit aanbevolen scenario en de detail-berekeningen per inspanning staan " +
-          "in Bijlage B — Prioriteit-onderbouwing per scenario.",
+          "in Bijlage A — Audit van de begroting.",
           { italic: true, size: 18, color: TEXT_SECONDARY }
         ));
       }
@@ -3455,7 +3470,7 @@ export async function generateVerrijktSectorplanDocument(
   return Packer.toBlob(doc);
 }
 
-// --- Bijlage B — Prioriteit-onderbouwing per scenario ---
+// --- Bijlage A — Audit van de begroting ---
 // Bevat de detail-onderbouwing per scenario die in §4.1 alleen samengevat staat.
 // De volledige prioriteitAdvies-tekst (met aannames en uitsplitsingen) verhuist hierheen,
 // zodat §4.1 beknopt blijft en de stuurgroep de berekeningen apart kan raadplegen.
@@ -3471,7 +3486,7 @@ export function bijlageBegrotingsberekeningenSection(session: DINSession, numSta
   )?.stap4?.begrotingAdvies;
 
   const children: (Paragraph | Table)[] = [];
-  children.push(plainH1("Bijlage B — Prioriteit-onderbouwing per scenario", numState));
+  children.push(plainH1("Bijlage A — Audit van de begroting", numState));
   children.push(bodyText(
     "Deze bijlage bevat de detail-onderbouwing en aannames achter de prioriteitsvolgorde van de inspanningen " +
     "per scenario. In §4.1 staat alleen een korte samenvatting; de volledige berekeningen — uitsplitsingen " +
@@ -3581,8 +3596,8 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
   // Hoofdstuk 6 \u2014 Planning en roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
 
-  // Bijlage \u2014 Begrotingsberekeningen (detail-onderbouwing prioriteitadvies per scenario)
-  contentSections.push(bijlageBegrotingsberekeningenSection(session, numState));
+  // (Bijlage B verwijderd \u2014 detail-berekeningen staan al in Bijlage A via BerekeningenView)
+  void bijlageBegrotingsberekeningenSection;
 
   // Now build TOC from accumulated tocEntries
   const tocSection = tableOfContentsSection(numState);

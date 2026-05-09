@@ -1926,6 +1926,23 @@ function sanitizeAdviesText(text: string | null | undefined): string {
   return cleaned;
 }
 
+// Sanitizer voor batenprofiel-meetwaarden: vervangt verleden Q1-Q4 jaartallen
+// (2020-2025) door een neutrale "bij start programma"-formulering. Reden:
+// AI heeft in oudere sessies nulmeting-momenten als "(Q1 2025)" of vergelijkbaar
+// vastgelegd; in 2026 zijn die jaartallen verleden tijd en moeten ze niet meer
+// in een toekomstgericht programmaplan staan.
+function sanitizeMeetjaarTekst(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    // "(Q1 2025)" / "(Q3 2024)" tussen haakjes — verwijder de hele haakjes-groep
+    .replace(/\s*\(\s*Q[1-4]\s*202[0-5]\s*\)/gi, "")
+    // "Q1 2025" / "Q3 2024" zonder haakjes — vervang door "bij start programma"
+    .replace(/\bQ[1-4]\s*202[0-5]\b/gi, "bij start programma")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
+}
+
 // --- Scenario-totaaloverzicht (4 scenarios + motivatie waarom actief scenario) ---
 type ScenarioKey = "optimaal" | "plus20" | "min20" | "advies";
 const SCENARIO_LABELS: Record<ScenarioKey, string> = {
@@ -1986,9 +2003,9 @@ function BatenprofielenBlock({ session }: { session: DINSession }) {
             {sorted.map((b) => {
               const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "";
               const indicator = b.profiel.indicator?.trim() || "";
-              const cur = b.profiel.currentValue?.trim() || "";
+              const cur = sanitizeMeetjaarTekst(b.profiel.currentValue?.trim() || "");
               const tgt = b.profiel.targetValue?.trim() || "";
-              const meet = b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "";
+              const meet = sanitizeMeetjaarTekst(b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "");
               return (
                 <tr key={b.id} className="hover:bg-gray-50 align-top">
                   <td className="px-3 py-2">
@@ -2367,7 +2384,7 @@ function BegrotingAdviesSamenvattingBlock({ session }: { session: DINSession }) 
                 return adv ? (
                   <p className="text-sm text-gray-700 italic leading-relaxed mt-3">
                     De prioriteitsvolgorde voor dit aanbevolen scenario en de detail-berekeningen per inspanning
-                    staan in <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                    staan in <strong className="not-italic">Bijlage A — Audit van de begroting</strong>.
                   </p>
                 ) : null;
               })()}
@@ -2584,7 +2601,7 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
                     <p className="text-xs text-gray-700 leading-relaxed">
                       De rangorde volgt de outside-in logica (cultuur → mens → data &amp; systemen → processen)
                       en is in alle vier scenario&apos;s identiek; alleen tempo verschilt. Voor de onderbouwing
-                      per inspanning en de detail-berekeningen: zie <strong>Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                      per inspanning en de detail-berekeningen: zie <strong>Bijlage A — Audit van de begroting</strong>.
                     </p>
                   </div>
                 );
@@ -3320,7 +3337,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                       {advies && (
                         <p className="text-xs text-gray-600 italic leading-relaxed">
                           Prioriteitsvolgorde en detail-berekeningen voor dit scenario: zie{" "}
-                          <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                          <strong className="not-italic">Bijlage A — Audit van de begroting</strong>.
                         </p>
                       )}
                     </div>
@@ -3338,7 +3355,7 @@ function ScenarioTotaalBlock({ session }: { session: DINSession }) {
                   {advies && (
                     <p className="text-xs text-gray-600 italic leading-relaxed">
                       Prioriteitsvolgorde en detail-berekeningen voor dit scenario: zie{" "}
-                      <strong className="not-italic">Bijlage B — Prioriteit-onderbouwing per scenario</strong>.
+                      <strong className="not-italic">Bijlage A — Audit van de begroting</strong>.
                     </p>
                   )}
                 </div>
@@ -4283,81 +4300,7 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             <BerekeningenView session={session} mode="export" />
           </div>
         </Chapter>
-
-        {/* Bijlage B — Prioriteit-onderbouwing per scenario.
-            De volledige prioriteitAdvies-tekst per scenario die voorheen in §4.1 stond,
-            verhuist hierheen zodat §4.1 beknopt blijft. Bevat per scenario de rangorde-
-            motivatie en de uitsplitsingen per inspanning (eenmalig/structureel, doelgroep). */}
-        <Chapter number="B." title="Bijlage B — Prioriteit-onderbouwing per scenario" id="bijlage-b-prioriteit-onderbouwing">
-          <Inleiding>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Deze bijlage bevat de detail-onderbouwing en aannames achter de prioriteitsvolgorde van de
-              inspanningen per scenario. In §4.1 staat alleen een korte samenvatting; hieronder staan de
-              volledige berekeningen — uitsplitsingen per inspanning, eenmalige en structurele bedragen,
-              doelgroep-aannames — uitgewerkt voor elk scenario. De rangorde volgt de outside-in logica
-              (cultuur → mens → data &amp; systemen → processen) en is in alle vier scenario&apos;s identiek;
-              alleen tempo verschilt.
-            </p>
-          </Inleiding>
-          <Kern>
-            <PrioriteitOnderbouwingBlock session={session} />
-          </Kern>
-        </Chapter>
       </div>
-    </div>
-  );
-}
-
-// --- Bijlage B blok: prioriteitAdvies per scenario ---
-function PrioriteitOnderbouwingBlock({ session }: { session: DINSession }) {
-  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
-  type BegrScenarioMin = { prioriteitAdvies?: string };
-  type BegrAdvMin = { scenarios?: Partial<Record<ScenarioK, BegrScenarioMin | null>> };
-
-  const begroting = (
-    session.crossAnalyseWizard?.stepResults as
-      | { stap4?: { begrotingAdvies?: BegrAdvMin } }
-      | undefined
-  )?.stap4?.begrotingAdvies;
-
-  if (!begroting?.scenarios) {
-    return (
-      <p className="text-sm text-gray-500 italic px-4 py-3">
-        Het begrotingsadvies is nog niet beschikbaar; deze bijlage vult zich automatisch zodra Stap 4 in de
-        cross-analyse-wizard is uitgevoerd.
-      </p>
-    );
-  }
-
-  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
-  const items = scenarioOrder
-    .map((key) => {
-      const adv = sanitizeAdviesText(begroting.scenarios?.[key]?.prioriteitAdvies);
-      return adv ? { key, adv } : null;
-    })
-    .filter((x): x is { key: ScenarioK; adv: string } => x !== null);
-
-  if (items.length === 0) {
-    return (
-      <p className="text-sm text-gray-500 italic px-4 py-3">
-        Voor de huidige scenario&apos;s is nog geen prioriteitadvies gegenereerd.
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-5 px-4">
-      {items.map(({ key, adv }) => {
-        const kleur = SCENARIO_KLEUR[key];
-        return (
-          <div key={key} className={`rounded-lg border border-gray-200 ${kleur.bg} p-4`}>
-            <div className={`text-[11px] font-bold uppercase tracking-wider ${kleur.accent} mb-2`}>
-              Scenario — {SCENARIO_LABELS[key]}
-            </div>
-            <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{adv}</p>
-          </div>
-        );
-      })}
     </div>
   );
 }
