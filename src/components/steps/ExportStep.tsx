@@ -347,14 +347,10 @@ function KernonderwerpenBlock({ session }: { session: DINSession }) {
 // --- Programmadoelen ---
 
 function GoalsBlock({ session, number }: { session: DINSession; number?: string }) {
-  const sortedGoals = [...session.goals].sort((a, b) => a.rank - b.rank);
-  const focusDoel = sortedGoals[0];
-  const focusText = focusDoel ? `doel ${focusDoel.rank}` : "het focusdoel";
-
   return (
     <Section title="Programmadoelen" number={number}>
-      <div className="space-y-3 mb-6">
-        {sortedGoals.map((goal) => (
+      <div className="space-y-3">
+        {session.goals.sort((a, b) => a.rank - b.rank).map((goal) => (
           <div key={goal.id} className="flex items-start gap-4">
             <div className="w-8 h-8 rounded-full bg-cito-blue text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
               {goal.rank}
@@ -367,34 +363,6 @@ function GoalsBlock({ session, number }: { session: DINSession; number?: string 
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
-        <div>
-          <div className="text-xs font-bold text-cito-blue uppercase tracking-wide mb-1.5">Werkvolgorde</div>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            De programmadoelen worden volgordelijk opgepakt. We starten met <strong>{focusText}</strong> en bouwen
-            vanuit daar verder uit richting de overige doelen. Dit borgt focus en haalbaarheid, en biedt ruimte om
-            geleerde lessen mee te nemen naar de volgende cyclus.
-          </p>
-        </div>
-        <div>
-          <div className="text-xs font-bold text-cito-blue uppercase tracking-wide mb-1.5">
-            Cyclische evaluatie — elke 6 tot 9 maanden
-          </div>
-          <p className="text-sm text-gray-700 leading-relaxed mb-2">
-            Hoewel de doelen volgordelijk worden opgepakt, werkt het programma in <strong>cycli van zes tot negen
-            maanden</strong>. Aan het eind van elke cyclus evalueren we expliciet: liggen we nog op koers voor het
-            focusdoel, of moeten we het gezamenlijke doelbeeld bijstellen? Deze iteratieve mindset voorkomt dat we
-            star vasthouden aan een aanvankelijk pad terwijl de omgeving verandert.
-          </p>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            Tegelijk geldt: {focusText} is meerjarig, maar de overige doelen worden niet uit het oog verloren tot
-            het focusdoel volledig is afgerond. Zodra het focusdoel voldoende verankerd raakt — typisch na enkele
-            cycli — verschuift het zwaartepunt geleidelijk naar de volgende doelen. Zo blijven alle programmadoelen
-            in zicht en wordt voorkomen dat ze <strong>pas na vijf jaar</strong> in beeld komen.
-          </p>
-        </div>
       </div>
     </Section>
   );
@@ -1766,22 +1734,44 @@ function DoelenMetVolgordeBlock({ session }: { session: DINSession }) {
           Werkvolgorde
         </div>
         <p className="text-sm text-gray-700 leading-relaxed mb-2">
-          De programmadoelen worden volgordelijk opgepakt. We werken{" "}
+          De programmadoelen worden volgordelijk opgepakt. We starten met{" "}
           {focusDoel ? <strong>doel {focusDoel.rank} (&ldquo;{focusDoel.name}&rdquo;)</strong> : <strong>doel 1</strong>}{" "}
-          eerst volledig af voordat de overige doelen{" "}
+          en bouwen vanuit daar verder uit richting de overige doelen
           {overigeDoelen.length > 0 && (
             <>
-              (
+              {" "}(
               {overigeDoelen.map((g, i) => (
                 <span key={g.id}>
                   {i > 0 && ", "}doel {g.rank}
                 </span>
               ))}
-              ){" "}
+              )
             </>
           )}
-          aan de beurt komen. Dit borgt focus, haalbaarheid en de mogelijkheid om geleerde lessen mee te nemen
-          naar de volgende doelcyclus.
+          . Dit borgt focus en haalbaarheid, en biedt ruimte om geleerde lessen mee te nemen naar de
+          volgende cyclus.
+        </p>
+      </div>
+
+      <div className="mb-5 p-4 rounded-lg bg-amber-50 border border-amber-200">
+        <div className="text-[10px] uppercase tracking-wider text-amber-800 font-bold mb-2">
+          Cyclische evaluatie — elke 6 tot 9 maanden
+        </div>
+        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+          Hoewel de doelen volgordelijk worden opgepakt, werkt het programma in <strong>cycli van zes
+          tot negen maanden</strong>. Aan het eind van elke cyclus evalueren we expliciet: liggen we nog
+          op koers voor het focusdoel, of moeten we het gezamenlijke doelbeeld bijstellen? Deze
+          iteratieve mindset voorkomt dat we star vasthouden aan een aanvankelijk pad terwijl de
+          omgeving verandert.
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          Tegelijk geldt:{" "}
+          {focusDoel ? <strong>doel {focusDoel.rank}</strong> : <strong>het focusdoel</strong>}{" "}
+          is meerjarig, maar de overige doelen worden niet uit het oog verloren tot het focusdoel
+          volledig is afgerond. Zodra het focusdoel voldoende verankerd raakt — typisch na enkele cycli
+          — verschuift het zwaartepunt geleidelijk naar de volgende doelen. Zo blijven alle
+          programmadoelen in zicht en wordt voorkomen dat ze <strong>pas na vijf jaar</strong> in beeld
+          komen.
         </p>
       </div>
       <div className="space-y-3">
