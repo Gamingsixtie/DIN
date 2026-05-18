@@ -2425,13 +2425,13 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     children.push(emptyLine(40));
 
     // KiB-aanloop in jaar 1 — subtiele voetnoot, geen aparte begrotingspost.
-    // KiB is methodisch de voorloper van DIN; uitloop in 2026 vormt de
-    // inhoudelijke aanloop op het jaar-1 out-of-pocket budget.
+    // KiB is methodisch de voorloper van DIN; doorloop in 2026 valt inhoudelijk
+    // samen met de programmastart en wordt daarom niet apart begroot.
     children.push(bodyText(
-      "Voetnoot bij jaar 1: in het opmaken van het jaar-1 budget is de doorloop van het Klantenbeeld-project " +
-      "(KiB) verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma en de cyclus pas medio " +
-      "2026 start, is dit niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de eerste " +
-      "inhoudelijke invulling van 2026.",
+      "Voetnoot bij jaar 1: het Klantenbeeld-project (KiB) loopt op dit moment door en levert de visie, " +
+      "doelen en scope waarop dit programma medio 2026 verder bouwt. KiB-uitloop en programmastart vallen " +
+      "daarmee in 2026 samen en zijn methodisch één beweging — KiB is daarom geen losse " +
+      "begrotingspost, maar de inhoudelijke aanloop op de eerste DIN-cyclus.",
       { size: 18, color: TEXT_MUTED, italic: true }
     ));
     children.push(emptyLine(60));

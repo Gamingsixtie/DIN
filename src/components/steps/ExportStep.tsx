@@ -4127,11 +4127,11 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 scenario terugkomt. <strong>Uiterlijk juni 2026 starten</strong> is daarvoor de randvoorwaarde:
                 later starten betekent dat het jaarbudget niet meer in 2026 productief geland kan worden.
               </p>
-              <p className="text-[11px] italic text-amber-900/70 leading-relaxed pt-1 border-t border-amber-200/60">
-                In het opmaken van dit jaar-1 budget is de doorloop van het Klantenbeeld-project (KiB)
-                verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma en de cyclus pas medio 2026
-                start, is dit niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de eerste inhoudelijke
-                invulling van 2026.
+              <p className="text-[11px] italic text-amber-900/80 leading-relaxed pt-1 border-t border-amber-200/60">
+                Het Klantenbeeld-project (KiB) loopt op dit moment door en levert de visie, doelen en scope waarop
+                dit programma medio 2026 verder bouwt. KiB-uitloop en programmastart vallen daarmee in 2026 samen
+                en zijn methodisch één beweging — KiB is daarom geen losse begrotingspost, maar de inhoudelijke
+                aanloop op de eerste DIN-cyclus.
               </p>
             </div>
 
