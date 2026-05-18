@@ -2429,9 +2429,9 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     // samen met de programmastart en wordt daarom niet apart begroot.
     children.push(bodyText(
       "Voetnoot bij jaar 1: het Klantenbeeld-project (KiB) loopt op dit moment door en levert de visie, " +
-      "doelen en scope waarop dit programma medio 2026 verder bouwt. KiB-uitloop en programmastart vallen " +
-      "daarmee in 2026 samen en zijn methodisch één beweging — KiB is daarom geen losse " +
-      "begrotingspost, maar de inhoudelijke aanloop op de eerste DIN-cyclus.",
+      "doelen en scope waarop dit programma verder bouwt. KiB-uitloop en programmastart vallen daarmee " +
+      "in 2026 samen en zijn methodisch één beweging — KiB is daarom geen losse begrotingspost, " +
+      "maar de inhoudelijke aanloop op de eerste DIN-cyclus.",
       { size: 18, color: TEXT_MUTED, italic: true }
     ));
     children.push(emptyLine(60));

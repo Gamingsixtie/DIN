@@ -4129,9 +4129,9 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               </p>
               <p className="text-[11px] italic text-amber-900/80 leading-relaxed pt-1 border-t border-amber-200/60">
                 Het Klantenbeeld-project (KiB) loopt op dit moment door en levert de visie, doelen en scope waarop
-                dit programma medio 2026 verder bouwt. KiB-uitloop en programmastart vallen daarmee in 2026 samen
-                en zijn methodisch één beweging — KiB is daarom geen losse begrotingspost, maar de inhoudelijke
-                aanloop op de eerste DIN-cyclus.
+                dit programma verder bouwt. KiB-uitloop en programmastart vallen daarmee in 2026 samen en zijn
+                methodisch één beweging — KiB is daarom geen losse begrotingspost, maar de inhoudelijke aanloop
+                op de eerste DIN-cyclus.
               </p>
             </div>
 
