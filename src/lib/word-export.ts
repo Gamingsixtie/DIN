@@ -710,9 +710,29 @@ function programmaDoelenSection(session: DINSession, numState: NumberingState) {
     const overigeNamen = overigeDoelen.map((g) => `doel ${g.rank}`).join(", ");
     const focusText = focusDoel ? `doel ${focusDoel.rank} ("${focusDoel.name}")` : "doel 1";
     children.push(bodyText(
-      `De programmadoelen worden volgordelijk opgepakt. We werken ${focusText} eerst volledig af ` +
-      (overigeNamen ? `voordat de overige doelen (${overigeNamen}) aan de beurt komen. ` : `voordat de overige doelen aan de beurt komen. `) +
-      "Dit borgt focus, haalbaarheid en de mogelijkheid om geleerde lessen mee te nemen naar de volgende doelcyclus.",
+      `De programmadoelen worden volgordelijk opgepakt. We starten met ${focusText} en bouwen vanuit daar verder uit ` +
+      (overigeNamen ? `richting de overige doelen (${overigeNamen}). ` : `richting de overige doelen. `) +
+      "Dit borgt focus en haalbaarheid, en biedt ruimte om geleerde lessen mee te nemen naar de volgende cyclus.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(emptyLine());
+
+    // Cyclische evaluatie — voorkomt het misverstand dat doel 2/3 pas na meerdere
+    // jaren in beeld komen. Iteratief mindset: 6–9 maanden cycli, met geleidelijk
+    // verschuivend zwaartepunt naar volgende doelen zodra het focusdoel verankert.
+    children.push(subHeading("Cyclische evaluatie — elke 6 tot 9 maanden"));
+    children.push(bodyText(
+      "Hoewel de doelen volgordelijk worden opgepakt, werkt het programma in cycli van zes tot negen maanden. " +
+      "Aan het eind van elke cyclus evalueren we expliciet: liggen we nog op koers voor het focusdoel, " +
+      "of moeten we het gezamenlijke doelbeeld bijstellen? Deze iteratieve mindset voorkomt dat we star " +
+      "vasthouden aan een aanvankelijk pad terwijl de omgeving verandert.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      `Tegelijk geldt: ${focusText} is meerjarig, maar de overige doelen worden niet uit het oog verloren ` +
+      "tot het focusdoel volledig is afgerond. Zodra het focusdoel voldoende verankerd raakt — typisch " +
+      "na enkele cycli — verschuift het zwaartepunt geleidelijk naar de volgende doelen. Zo blijven alle " +
+      "programmadoelen in zicht en wordt voorkomen dat ze pas na vijf jaar in beeld komen.",
       { size: 22, color: TEXT_PRIMARY }
     ));
     children.push(emptyLine());
@@ -2401,6 +2421,18 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     ));
     children.push(bullet(
       `${SCENARIO_LABELS.advies} — gewogen advies: combineren waar inhoudelijk verantwoord, faseren waar de organisatie het anders niet kan dragen.`
+    ));
+    children.push(emptyLine(40));
+
+    // KiB-aanloop in jaar 1 — subtiele voetnoot, geen aparte begrotingspost.
+    // KiB is methodisch de voorloper van DIN; uitloop in 2026 vormt de
+    // inhoudelijke aanloop op het jaar-1 out-of-pocket budget.
+    children.push(bodyText(
+      "Voetnoot bij jaar 1: in het opmaken van het jaar-1 budget is de doorloop van het Klantenbeeld-project " +
+      "(KiB) verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma en de cyclus pas medio " +
+      "2026 start, is dit niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de eerste " +
+      "inhoudelijke invulling van 2026.",
+      { size: 18, color: TEXT_MUTED, italic: true }
     ));
     children.push(emptyLine(60));
 

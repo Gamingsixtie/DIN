@@ -347,10 +347,14 @@ function KernonderwerpenBlock({ session }: { session: DINSession }) {
 // --- Programmadoelen ---
 
 function GoalsBlock({ session, number }: { session: DINSession; number?: string }) {
+  const sortedGoals = [...session.goals].sort((a, b) => a.rank - b.rank);
+  const focusDoel = sortedGoals[0];
+  const focusText = focusDoel ? `doel ${focusDoel.rank}` : "het focusdoel";
+
   return (
     <Section title="Programmadoelen" number={number}>
-      <div className="space-y-3">
-        {session.goals.sort((a, b) => a.rank - b.rank).map((goal) => (
+      <div className="space-y-3 mb-6">
+        {sortedGoals.map((goal) => (
           <div key={goal.id} className="flex items-start gap-4">
             <div className="w-8 h-8 rounded-full bg-cito-blue text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
               {goal.rank}
@@ -363,6 +367,34 @@ function GoalsBlock({ session, number }: { session: DINSession; number?: string 
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+        <div>
+          <div className="text-xs font-bold text-cito-blue uppercase tracking-wide mb-1.5">Werkvolgorde</div>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            De programmadoelen worden volgordelijk opgepakt. We starten met <strong>{focusText}</strong> en bouwen
+            vanuit daar verder uit richting de overige doelen. Dit borgt focus en haalbaarheid, en biedt ruimte om
+            geleerde lessen mee te nemen naar de volgende cyclus.
+          </p>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-cito-blue uppercase tracking-wide mb-1.5">
+            Cyclische evaluatie — elke 6 tot 9 maanden
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed mb-2">
+            Hoewel de doelen volgordelijk worden opgepakt, werkt het programma in <strong>cycli van zes tot negen
+            maanden</strong>. Aan het eind van elke cyclus evalueren we expliciet: liggen we nog op koers voor het
+            focusdoel, of moeten we het gezamenlijke doelbeeld bijstellen? Deze iteratieve mindset voorkomt dat we
+            star vasthouden aan een aanvankelijk pad terwijl de omgeving verandert.
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            Tegelijk geldt: {focusText} is meerjarig, maar de overige doelen worden niet uit het oog verloren tot
+            het focusdoel volledig is afgerond. Zodra het focusdoel voldoende verankerd raakt — typisch na enkele
+            cycli — verschuift het zwaartepunt geleidelijk naar de volgende doelen. Zo blijven alle programmadoelen
+            in zicht en wordt voorkomen dat ze <strong>pas na vijf jaar</strong> in beeld komen.
+          </p>
+        </div>
       </div>
     </Section>
   );
@@ -4104,6 +4136,12 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
                 Doel is de volledige € 250.000 in 2026 productief op te maken — zoals ook in de begrotingen per
                 scenario terugkomt. <strong>Uiterlijk juni 2026 starten</strong> is daarvoor de randvoorwaarde:
                 later starten betekent dat het jaarbudget niet meer in 2026 productief geland kan worden.
+              </p>
+              <p className="text-[11px] italic text-amber-900/70 leading-relaxed pt-1 border-t border-amber-200/60">
+                In het opmaken van dit jaar-1 budget is de doorloop van het Klantenbeeld-project (KiB)
+                verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma en de cyclus pas medio 2026
+                start, is dit niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de eerste inhoudelijke
+                invulling van 2026.
               </p>
             </div>
 
