@@ -2429,9 +2429,8 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     // samen met de programmastart en wordt daarom niet apart begroot.
     children.push(bodyText(
       "Voetnoot bij jaar 1: in de jaar-1 raming is de doorloop van het Klantenbeeld-project (KiB) " +
-      "verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma en de eerste cyclus dit " +
-      "jaar van start gaat, is dit niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de " +
-      "eerste inhoudelijke invulling van 2026.",
+      "verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma, dat eind juni van " +
+      "start gaat, is dit niet als aparte begrotingspost opgenomen.",
       { size: 18, color: TEXT_MUTED, italic: true }
     ));
     children.push(emptyLine(60));

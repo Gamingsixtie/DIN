@@ -4129,9 +4129,8 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
               </p>
               <p className="text-[11px] italic text-amber-900/80 leading-relaxed pt-1 border-t border-amber-200/60">
                 In de jaar-1 raming is de doorloop van het Klantenbeeld-project (KiB) verdisconteerd. Omdat KiB
-                methodisch de aanloop vormt naar dit programma en de eerste cyclus dit jaar van start gaat, is dit
-                niet als aparte begrotingspost opgenomen — de KiB-uitloop vormt de eerste inhoudelijke invulling
-                van 2026.
+                methodisch de aanloop vormt naar dit programma, dat eind juni van start gaat, is dit niet als
+                aparte begrotingspost opgenomen.
               </p>
             </div>
 
