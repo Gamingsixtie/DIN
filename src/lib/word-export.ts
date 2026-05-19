@@ -2453,7 +2453,7 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
       }
       if (s.totaalGeraamdEuro !== undefined) {
         children.push(bodyText(
-          `${formatEuro(s.jaarlijksBudgetEuro ?? 0)} / jaar × ${aantalJaren} jaar (${startJaar}–${eindJaar}) = ${formatEuro(s.totaalGeraamdEuro)}`,
+          `${formatEuro(s.jaarlijksBudgetEuro ?? 0)} / jaar (richtbudget) — over ${aantalJaren} jaar (${startJaar}–${eindJaar}) — totaal ${formatEuro(s.totaalGeraamdEuro)}`,
           { size: 18, color: TEXT_MUTED, italic: true }
         ));
       }

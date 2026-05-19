@@ -2519,7 +2519,7 @@ function BegrotingAdviesBlock({ session }: { session: DINSession }) {
             ? euroFmt41.format(s.totaalGeraamdEuro)
             : undefined;
           const metaText = s.totaalGeraamdEuro !== undefined
-            ? `${euroFmt41.format(s.jaarlijksBudgetEuro ?? 0)} / jaar × ${aantalJaren} jaar`
+            ? `${euroFmt41.format(s.jaarlijksBudgetEuro ?? 0)} / jaar (richtbudget) — over ${aantalJaren} jaar`
             : undefined;
 
           return (
