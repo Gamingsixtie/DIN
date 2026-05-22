@@ -2841,9 +2841,24 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
   }
 
   // === 4.3 Totaaloverzicht ===
+  // Spiegelt de in-app ScenarioTotaalBlock: per scenario een jaartabel
+  // (Categorie × jaar), een domein-verdelingstabel en een tabel met de drie
+  // grootste kostendrijvers. Daarna een Samenvatting-per-scenario tabel
+  // (Word-equivalent van BegrotingAdviesSamenvattingBlock) gevolgd door de
+  // aanbeveling.
   children.push(numberedHeading("Totaaloverzicht — vier scenario's", "h2", numState));
 
-  const scenarioRows: TableRow[] = [];
+  type ScenTot43 = {
+    key: ScenarioK;
+    oop: number;
+    intK: number;
+    intU: number;
+    tot: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    aantalJaren?: number;
+  };
+  const scenarioTotals43: ScenTot43[] = [];
   scenarioOrder.forEach((key) => {
     const b = begroting?.scenarios?.[key];
     const i = interneUren?.scenarios?.[key];
@@ -2852,40 +2867,263 @@ function begrotingEnRamingSection(session: DINSession, numState: NumberingState)
     const intU = i?.totaalUren ?? 0;
     const tot = oop + intK;
     if (oop === 0 && intK === 0 && tot === 0) return;
-    scenarioRows.push(
-      new TableRow({
-        children: [
-          styledCell(SCENARIO_LABELS[key], { bold: true, width: 28, size: 18 }),
-          styledCell(formatEuro(oop), { width: 24, size: 18 }),
-          styledCell(intU > 0 ? `${formatEuro(intK)} (${formatGetal(intU)} u)` : formatEuro(intK), { width: 24, size: 18 }),
-          styledCell(formatEuro(tot), { width: 24, bold: true, color: CITO_BLUE, size: 18 }),
-        ],
-      })
-    );
+    scenarioTotals43.push({
+      key,
+      oop,
+      intK,
+      intU,
+      tot,
+      samenvatting: b?.samenvatting,
+      prioriteitAdvies: b?.prioriteitAdvies,
+      aantalJaren: b?.aantalJaren,
+    });
   });
 
-  if (scenarioRows.length === 0) {
+  if (scenarioTotals43.length === 0) {
     children.push(bodyText("Totaaloverzicht is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
   } else {
     children.push(bodyText(
-      "In dit overzicht zijn de vier scenario's naast elkaar gelegd: out-of-pocket plus interne uren bij elkaar " +
-      "opgeteld geeft het totaal-investeringsbeeld dat de stuurgroep nodig heeft om een keuze te maken.",
+      "De totale programmakosten kennen twee componenten: out-of-pocket (externe uitgaven per inspanning — " +
+      "licenties, inkoop, externe inhuur) en interne uren (tijd van Cito-medewerkers, vermenigvuldigd met het " +
+      "interne uurtarief tot interne kosten). Onderstaande vier scenario's zijn gelijkwaardig doorgerekend. " +
+      "De stuurgroep kiest hieruit het scenario waarmee de programmabegroting verder wordt vastgezet.",
       { color: TEXT_PRIMARY, size: 20 }
     ));
-    children.push(emptyLine(60));
+
+    // Bevindingen — spread, conclusie en advies
+    const totalen43 = scenarioTotals43.map((r) => r.tot);
+    const minTot43 = Math.min(...totalen43);
+    const maxTot43 = Math.max(...totalen43);
+    const minRij43 = scenarioTotals43.find((r) => r.tot === minTot43);
+    const maxRij43 = scenarioTotals43.find((r) => r.tot === maxTot43);
+    const advRij43 = scenarioTotals43.find((r) => r.key === "advies") ?? scenarioTotals43.find((r) => r.key === "optimaal");
+    const spread43 = maxTot43 > 0 && minTot43 > 0 ? Math.round(((maxTot43 - minTot43) / minTot43) * 100) : 0;
+
+    if (minRij43 && maxRij43 && advRij43) {
+      children.push(emptyLine(40));
+      children.push(bodyText("Bevindingen", { bold: true, size: 20, color: CITO_BLUE }));
+      children.push(bodyText(
+        "Het totaaloverzicht voegt de out-of-pocket-raming (4.1) en de interne-uren-raming (4.2) samen tot de " +
+        "integrale programmakosten per scenario. Ieder scenario rekent met dezelfde programma-inhoud, maar " +
+        "verschilt in tempo, fasering en jaarbudget.",
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+      const cijfersText43 = scenarioTotals43
+        .map((r) => `${SCENARIO_LABELS[r.key]} ${formatEuro(r.tot)}`)
+        .join(" · ");
+      children.push(bodyText(
+        `De vier scenario's in cijfers: ${cijfersText43}. De spread tussen het goedkoopste ` +
+        `(${SCENARIO_LABELS[minRij43.key]}) en duurste (${SCENARIO_LABELS[maxRij43.key]}) scenario is ` +
+        `${formatEuro(maxTot43 - minTot43)} (${spread43}%).`,
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+      children.push(bodyText(
+        `Conclusie en aanbeveling: het scenario "${SCENARIO_LABELS[advRij43.key]}" komt uit op ` +
+        `${formatEuro(advRij43.tot)} (${formatEuro(advRij43.oop)} out-of-pocket + ${formatEuro(advRij43.intK)} ` +
+        `interne uren). Dit is het scenario dat de stuurgroep is geadviseerd, omdat het de inhoudelijke ` +
+        `randvoorwaarden van het programma respecteert zonder dat momentum verloren gaat.`,
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+    }
+    children.push(emptyLine());
+
+    // Per-scenario detail: jaartabel + domein-verdeling + top-3 kostendrijvers
+    type PerJaar43 = { jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number };
+    type Stap8Detail43 = { scenarios?: Partial<Record<ScenarioK, { perJaar?: PerJaar43[] } | null>> };
+    const stap8Detail43 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8Detail43 } | undefined)?.stap8;
+
+    const jarenForScenario43 = (key: ScenarioK): PerJaar43[] => {
+      const fromStap8 = stap8Detail43?.scenarios?.[key]?.perJaar ?? [];
+      if (fromStap8.length > 0) return fromStap8;
+      const begrPerJaar = begroting?.scenarios?.[key]?.totalenPerJaar ?? [];
+      const urenPerJaar = interneUren?.scenarios?.[key]?.totalenPerJaar ?? [];
+      if (begrPerJaar.length === 0 && urenPerJaar.length === 0) return [];
+      const alleJaren = Array.from(
+        new Set([...begrPerJaar.map((b) => b.jaar), ...urenPerJaar.map((u) => u.jaar)])
+      ).sort();
+      return alleJaren.map((jaar) => {
+        const b = begrPerJaar.find((x) => x.jaar === jaar);
+        const u = urenPerJaar.find((x) => x.jaar === jaar);
+        const oop = b?.euro ?? 0;
+        const intK = u?.kosten ?? 0;
+        return { jaar, outOfPocket: oop, interneUren: u?.uren ?? 0, interneKosten: intK, totaal: oop + intK };
+      });
+    };
+
+    scenarioTotals43.forEach((scen) => {
+      children.push(emptyLine(40));
+      children.push(bodyText(`Scenario — ${SCENARIO_LABELS[scen.key]}`, { bold: true, size: 22, color: CITO_BLUE }));
+      children.push(bodyText(
+        `Out-of-pocket ${formatEuro(scen.oop)} + interne uren ${formatEuro(scen.intK)}` +
+        (scen.intU > 0 ? ` (${formatGetal(scen.intU)} u)` : "") +
+        ` = totaal ${formatEuro(scen.tot)}` +
+        (scen.aantalJaren ? ` over ${scen.aantalJaren} jaar` : ""),
+        { italic: true, size: 18, color: TEXT_MUTED }
+      ));
+
+      const jaren43 = jarenForScenario43(scen.key);
+      if (jaren43.length > 0) {
+        const totOop = jaren43.reduce((s, j) => s + j.outOfPocket, 0);
+        const totInt = jaren43.reduce((s, j) => s + j.interneKosten, 0);
+        const totUren = jaren43.reduce((s, j) => s + j.interneUren, 0);
+        const colW = Math.max(7, Math.floor(55 / (jaren43.length + 1)));
+        const labelW = Math.max(20, 100 - colW * (jaren43.length + 1));
+
+        const headerCells43 = [headerCell("Categorie", labelW)];
+        jaren43.forEach((j) => headerCells43.push(headerCell(`${j.jaar}`, colW)));
+        headerCells43.push(headerCell("Totaal", colW));
+
+        const oopRow = new TableRow({
+          children: [
+            styledCell("Out-of-pocket — externe uitgaven", { width: labelW, size: 16 }),
+            ...jaren43.map((j) => styledCell(formatEuro(j.outOfPocket), { width: colW, size: 16 })),
+            styledCell(formatEuro(totOop), { width: colW, bold: true, color: CITO_BLUE, size: 16 }),
+          ],
+        });
+        const intRow = new TableRow({
+          children: [
+            styledCell("Interne uren — Cito-medewerkers (uren × tarief)", { width: labelW, size: 16 }),
+            ...jaren43.map((j) =>
+              styledCell(`${formatEuro(j.interneKosten)} (${formatGetal(j.interneUren)} u)`, { width: colW, size: 16 })
+            ),
+            styledCell(`${formatEuro(totInt)} (${formatGetal(totUren)} u)`, { width: colW, bold: true, color: CITO_BLUE, size: 16 }),
+          ],
+        });
+        const totRow = new TableRow({
+          children: [
+            styledCell("TOTAAL", { width: labelW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 18 }),
+            ...jaren43.map((j) =>
+              styledCell(formatEuro(j.totaal), { width: colW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 18 })
+            ),
+            styledCell(formatEuro(scen.tot), { width: colW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 20 }),
+          ],
+        });
+
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [new TableRow({ children: headerCells43 }), oopRow, intRow, totRow],
+          })
+        );
+        children.push(emptyLine(40));
+      }
+
+      // Domein-verdeling + top-3 inspanningen
+      type Insp43Min = { inspanningTitel: string; domein: EffortDomain; totaalEuro: number };
+      const inspanningen43: Insp43Min[] = (begroting?.scenarios?.[scen.key]?.inspanningen ?? []) as Insp43Min[];
+      if (inspanningen43.length > 0) {
+        const domeinenOrder43: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+        const perDomein43 = domeinenOrder43.map((d) => {
+          const items = inspanningen43.filter((i) => i.domein === d);
+          return { domein: d, totaal: items.reduce((s, i) => s + i.totaalEuro, 0), count: items.length };
+        });
+        const grandTotal43 = perDomein43.reduce((s, d) => s + d.totaal, 0) || 1;
+        const domeinRows43 = perDomein43.map((d) =>
+          new TableRow({
+            children: [
+              styledCell(DOMAIN_LABELS[d.domein], { bold: true, width: 35, shading: DOMAIN_COLORS[d.domein], size: 16 }),
+              styledCell(`${d.count}`, { width: 20, size: 16 }),
+              styledCell(formatEuro(d.totaal), { width: 25, size: 16 }),
+              styledCell(`${Math.round((d.totaal / grandTotal43) * 100)}%`, { width: 20, size: 16 }),
+            ],
+          })
+        );
+        children.push(bodyText("Verdeling over de vier inspanningsdomeinen", { bold: true, size: 18, color: CITO_BLUE }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Domein", 35),
+                  headerCell("Inspanningen", 20),
+                  headerCell("Out-of-pocket", 25),
+                  headerCell("Aandeel", 20),
+                ],
+              }),
+              ...domeinRows43,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+
+        const sortedInsp43 = [...inspanningen43].sort((a, b) => b.totaalEuro - a.totaalEuro);
+        const top43 = sortedInsp43.slice(0, Math.min(3, sortedInsp43.length));
+        if (top43.length > 0) {
+          const topRows43 = top43.map((insp, i) =>
+            new TableRow({
+              children: [
+                styledCell(`${i + 1}`, { width: 6, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 16 }),
+                styledCell(insp.inspanningTitel, { width: 50, bold: true, size: 16 }),
+                styledCell(DOMAIN_LABELS[insp.domein], {
+                  width: 20,
+                  size: 14,
+                  bold: true,
+                  color: CITO_BLUE,
+                  shading: DOMAIN_COLORS[insp.domein],
+                }),
+                styledCell(formatEuro(insp.totaalEuro), { width: 16, bold: true, color: CITO_BLUE, size: 16 }),
+                styledCell(`${Math.round((insp.totaalEuro / grandTotal43) * 100)}%`, { width: 8, size: 14, color: TEXT_SECONDARY }),
+              ],
+            })
+          );
+          children.push(bodyText("Grootste kostendrijvers in dit scenario", { bold: true, size: 18, color: CITO_BLUE }));
+          children.push(
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    headerCell("#", 6),
+                    headerCell("Inspanning", 50),
+                    headerCell("Domein", 20),
+                    headerCell("Bedrag", 16),
+                    headerCell("Aandeel", 8),
+                  ],
+                }),
+                ...topRows43,
+              ],
+            })
+          );
+          children.push(emptyLine(40));
+        }
+      }
+
+      const motivatie43 = scen.samenvatting?.trim();
+      if (motivatie43) {
+        children.push(bodyText(motivatie43, { italic: true, size: 18, color: TEXT_SECONDARY }));
+      }
+    });
+
+    // Samenvatting per scenario — Word-equivalent BegrotingAdviesSamenvattingBlock
+    children.push(emptyLine());
+    children.push(bodyText("Samenvatting per scenario", { bold: true, size: 22, color: CITO_BLUE }));
+    const summaryRows43 = scenarioTotals43.map((scen) => {
+      const isAanbevolen = scen.key === aanbev;
+      const labelText = `${SCENARIO_LABELS[scen.key]}${isAanbevolen ? "  ✓ advies" : ""}`;
+      const samen = scen.samenvatting?.trim() ?? "";
+      return new TableRow({
+        children: [
+          styledCell(labelText, {
+            bold: true,
+            width: 22,
+            shading: isAanbevolen ? CITO_BLUE_LIGHT : undefined,
+            color: CITO_BLUE,
+            size: 18,
+          }),
+          styledCell(formatEuro(scen.tot), { bold: true, width: 18, size: 20, color: CITO_BLUE }),
+          styledCell(samen || "—", { width: 60, size: 16, color: TEXT_PRIMARY }),
+        ],
+      });
+    });
     children.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
           new TableRow({
-            children: [
-              headerCell("Scenario", 28),
-              headerCell("Out-of-pocket", 24),
-              headerCell("Interne uren (kosten)", 24),
-              headerCell("Totaal geraamd", 24),
-            ],
+            children: [headerCell("Scenario", 22), headerCell("Totaal", 18), headerCell("Samenvatting", 60)],
           }),
-          ...scenarioRows,
+          ...summaryRows43,
         ],
       })
     );
