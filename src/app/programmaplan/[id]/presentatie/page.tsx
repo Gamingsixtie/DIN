@@ -5,29 +5,22 @@ import { useParams } from "next/navigation";
 import { loadSessionFromSupabase } from "@/lib/persistence";
 import type { DINSession } from "@/lib/types";
 
-/**
- * Presentatie-modus: gecureerde KERN per onderwerp als full-screen slides.
- * Handgemaakt, één boodschap per slide — geen ingeplakte lees-/analyse-componenten.
- */
+/** Presentatie-modus: diagram-gedreven slides. Eén beeld per slide, minimale tekst. */
 
-const SIDES_ACTIVITEITEN: Array<{ t: string; d: string }> = [
-  { t: "Programmamanagement & regie", d: "Leiding, voortgang & samenhang; escalatie; de drie sectoren verbinden." },
-  { t: "Adoptie & gedragsverandering", d: "Adoptie-framework per rol; van training naar borging." },
-  { t: "Customer Success", d: "Eén klantreis; proactieve contactmomenten; feedback loops." },
-  { t: "CRM & data", d: "CRM-strategie & -inrichting; data naar acties en stuurinformatie." },
-  { t: "Leiderschap & organisatie", d: "Voorbeeldgedrag, werving, governance Cito BV ↔ Stichting." },
-  { t: "Kennisdeling & verbinding", d: "Kennisdeling tussen sectoren; intervisie; successen tonen." },
-];
-
+const CITO = "#003366";
+const MINT = "#0f9d77";
 const DOMS = [
   { key: "mens", label: "Mens", color: "#2563eb" },
   { key: "processen", label: "Processen", color: "#059669" },
   { key: "data_systemen", label: "Data & Systemen", color: "#7c3aed" },
   { key: "cultuur", label: "Cultuur", color: "#d97706" },
 ] as const;
-
-const SECTOR_COLOR: Record<string, string> = { PO: "#7c5cd6", VO: "#10b981", Zakelijk: "#0e9e8e" };
-const SECTORS = ["PO", "VO", "Zakelijk"] as const;
+const SECTORS = [
+  { key: "PO", color: "#7c5cd6" },
+  { key: "VO", color: "#10b981" },
+  { key: "Zakelijk", color: "#0e9e8e" },
+] as const;
+const SIDES = ["Programmamanagement & regie", "Adoptie & gedrag", "Customer Success", "CRM & data", "Leiderschap", "Kennisdeling"];
 
 interface StepShape {
   stap2?: { vermogenGelijkenisGroepen?: Array<{ gezamenlijkeOmschrijving?: string }> };
@@ -36,21 +29,19 @@ interface StepShape {
     begrotingAdvies?: { scenarios?: Record<string, { aantalJaren?: number; inspanningen?: Array<{ totaalEuro?: number }> }> };
   };
 }
-
-const euro = (n: number) => "€ " + n.toLocaleString("nl-NL");
+const mln = (n: number) => "€ " + (n / 1_000_000).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " mln";
 
 function Eyebrow({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
-  return <div className={`text-[12px] font-bold tracking-[0.22em] uppercase mb-2 ${dark ? "text-teal-200" : "text-teal-600"}`}>{children}</div>;
+  return <div className={`text-[clamp(11px,1.1vw,14px)] font-bold tracking-[0.24em] uppercase mb-2 ${dark ? "text-teal-200" : "text-teal-600"}`}>{children}</div>;
 }
-
-function SlideFrame({ eyebrow, titel, children }: { eyebrow: string; titel: string; children: React.ReactNode }) {
+function Frame({ eyebrow, titel, children }: { eyebrow: string; titel: string; children: React.ReactNode }) {
   return (
-    <div className="h-full flex flex-col px-[7vw] py-[6vh]">
+    <div className="h-full flex flex-col px-[6vw] py-[6vh]">
       <div className="shrink-0">
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h2 className="text-[clamp(26px,3.5vw,46px)] font-bold text-cito-blue leading-tight">{titel}</h2>
+        <h2 className="text-[clamp(24px,3.2vw,42px)] font-bold text-cito-blue leading-tight">{titel}</h2>
       </div>
-      <div className="flex-1 min-h-0 flex flex-col justify-center">{children}</div>
+      <div className="flex-1 min-h-0 flex items-center justify-center">{children}</div>
     </div>
   );
 }
@@ -68,11 +59,7 @@ export default function PresentatiePage() {
     let cancelled = false;
     setLoading(true);
     loadSessionFromSupabase(id)
-      .then((s) => {
-        if (cancelled) return;
-        if (!s) setError("Programmaplan niet gevonden of niet meer beschikbaar.");
-        else setSession(s);
-      })
+      .then((s) => { if (cancelled) return; if (!s) setError("Programmaplan niet gevonden."); else setSession(s); })
       .catch(() => { if (!cancelled) setError("Programmaplan kon niet geladen worden."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -83,204 +70,179 @@ export default function PresentatiePage() {
     const sr = session.crossAnalyseWizard?.stepResults as StepShape | undefined;
     const goals = (session.goals ?? []) as Array<{ title?: string; name?: string }>;
     const benefits = (session.benefits ?? []) as Array<{ title?: string; description?: string; sectorId?: string }>;
-    const visie = (session.vision ?? {}) as { beknopt?: string };
     const po = session.programmaorganisatie;
 
     const focusdoel = goals[0]?.title || goals[0]?.name || "";
-    const batenPerSector = SECTORS.map((sec) => {
-      const b = benefits.find((x) => x.sectorId === sec);
-      return { sector: sec, titel: b ? b.title || b.description || "" : "" };
-    }).filter((x) => x.titel);
-    const hefboom = sr?.stap2?.vermogenGelijkenisGroepen?.[0]?.gezamenlijkeOmschrijving || "";
+    const baat = (sec: string) => { const b = benefits.find((x) => x.sectorId === sec); return b ? b.title || b.description || "" : ""; };
     const combineren = (sr?.stap4?.subEffortAnalysis ?? []).filter((s) => s.actie === "combineren");
-    const inspPerDomein = DOMS.map((d) => {
-      const m = combineren.find((s) => s.domein === d.key);
-      return { ...d, titel: m?.titel || m?.voorgesteldeNaam || "" };
-    });
+    const inspPerDomein = DOMS.map((d) => ({ ...d, titel: combineren.find((s) => s.domein === d.key)?.titel || combineren.find((s) => s.domein === d.key)?.voorgesteldeNaam || "" }));
     const scenarios = sr?.stap4?.begrotingAdvies?.scenarios ?? {};
-    const scenRows = ([["advies", "Advies"], ["plus20", "+20%"], ["optimaal", "Optimaal"], ["min20", "−20%"]] as const).flatMap(
-      ([k, label]) => {
-        const sc = scenarios[k];
-        if (!sc) return [];
-        const som = (sc.inspanningen ?? []).reduce((a, i) => a + (i.totaalEuro ?? 0), 0);
-        return [{ label, jaren: sc.aantalJaren ?? 0, bedrag: som, focus: k === "plus20" }];
-      }
-    );
+    const scenRows = ([["advies", "Advies"], ["plus20", "+20%"], ["optimaal", "Optimaal"], ["min20", "−20%"]] as const).flatMap(([k, label]) => {
+      const sc = scenarios[k]; if (!sc) return [];
+      return [{ label, jaren: sc.aantalJaren ?? 0, bedrag: (sc.inspanningen ?? []).reduce((a, i) => a + (i.totaalEuro ?? 0), 0), focus: k === "plus20" }];
+    });
+    const maxBedrag = Math.max(1, ...scenRows.map((r) => r.bedrag));
     const namen = (arr?: Array<{ naam?: string }>) => (arr ?? []).map((r) => r.naam).filter(Boolean).join(" · ");
 
     const out: React.ReactNode[] = [];
 
     // 1 — Titel
     out.push(
-      <div className="h-full flex flex-col justify-center px-[8vw] bg-cito-blue text-white">
-        <div className="text-[13px] tracking-[0.35em] font-bold text-white/55 mb-5">CITO DIN · PROGRAMMAPLAN</div>
-        <h1 className="text-[clamp(44px,7vw,88px)] font-bold leading-[1.04]">{session.name}</h1>
-        <p className="text-[clamp(17px,2.2vw,28px)] text-white/75 mt-5 max-w-3xl">Recap &amp; vervolg — van strategie naar uitvoering</p>
-        <div className="mt-10 text-white/50 text-sm tracking-wide">Cito BV · met 3sides</div>
+      <div className="h-full flex flex-col justify-center px-[8vw] bg-cito-blue text-white relative overflow-hidden">
+        <div className="absolute -right-24 -top-24 w-[480px] h-[480px] rounded-full border border-white/10" />
+        <div className="absolute right-20 top-40 w-[300px] h-[300px] rounded-full border border-white/10" />
+        <div className="text-[13px] tracking-[0.35em] font-bold text-white/55 mb-5 relative">CITO DIN · PROGRAMMAPLAN</div>
+        <h1 className="text-[clamp(46px,7.5vw,92px)] font-bold leading-[1.03] relative">{session.name}</h1>
+        <p className="text-[clamp(17px,2.2vw,28px)] text-white/75 mt-5 max-w-3xl relative">Recap &amp; vervolg — van strategie naar uitvoering</p>
+        <div className="mt-10 text-white/50 text-sm tracking-wide relative">Cito BV · met 3sides</div>
       </div>
     );
 
-    // 2 — Waar staan we
+    // 2 — Waar staan we (journey)
     out.push(
-      <SlideFrame eyebrow="Inleiding — waar staan we" titel="Wat we tot nu toe samen deden">
-        <div className="space-y-5 max-w-4xl">
-          {[
-            ["Visie bepaald", "Van reactief leverancier naar proactieve, outside-in partner."],
-            ["DIN toegepast", "Samen met de sectormanagers vertaald naar baten, vermogens en inspanningen."],
-            ["Netwerk geconsolideerd", "Per doel één samenhangend, cross-sectoraal afgestemd netwerk."],
-          ].map((s, i) => (
-            <div key={i} className="flex items-start gap-5">
-              <span className="text-2xl font-bold text-teal-500 tabular-nums leading-none mt-1">0{i + 1}</span>
-              <div>
-                <div className="text-[clamp(18px,1.8vw,24px)] font-bold text-gray-900">{s[0]}</div>
-                <div className="text-[clamp(14px,1.3vw,18px)] text-gray-600 mt-0.5">{s[1]}</div>
+      <Frame eyebrow="Inleiding — waar staan we" titel="Van visie naar geconsolideerd netwerk">
+        <div className="flex items-center justify-center gap-2 md:gap-6 w-full max-w-5xl">
+          {[["Visie", "outside-in"], ["DIN", "met sectormanagers"], ["Netwerk", "geconsolideerd"], ["Vandaag", "recap & vervolg"]].map((s, i, arr) => (
+            <div key={i} className="flex items-center gap-2 md:gap-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-[clamp(80px,11vw,150px)] h-[clamp(80px,11vw,150px)] rounded-full grid place-items-center text-white font-bold text-[clamp(14px,1.6vw,22px)] shadow-lg" style={{ background: i === 3 ? MINT : CITO }}>{s[0]}</div>
+                <div className="text-[clamp(11px,1.1vw,15px)] text-gray-500 mt-2">{s[1]}</div>
               </div>
+              {i < arr.length - 1 && <div className="text-2xl md:text-4xl text-gray-300">→</div>}
             </div>
           ))}
         </div>
-      </SlideFrame>
+      </Frame>
     );
 
-    // 3 — Doelstellingen
+    // 3 — Doelstellingen (3 pijlers, focus uitgelicht)
     out.push(
-      <SlideFrame eyebrow="De gezamenlijke doelstellingen" titel="Drie doelen — focus op doel 1">
-        <div className="space-y-5 max-w-4xl">
+      <Frame eyebrow="De gezamenlijke doelstellingen" titel="Drie doelen — één focus">
+        <div className="grid grid-cols-3 gap-5 w-full max-w-5xl items-end">
           {goals.slice(0, 3).map((g, i) => (
-            <div key={i} className="flex items-center gap-6">
-              <span className={`text-[clamp(36px,4vw,56px)] font-bold tabular-nums leading-none ${i === 0 ? "text-cito-blue" : "text-gray-300"}`}>{i + 1}</span>
-              <div className="flex-1 text-[clamp(17px,1.8vw,24px)] font-semibold text-gray-900">{g.title || g.name}</div>
-              {i === 0 && <span className="text-[11px] font-bold text-white bg-cito-blue rounded-full px-3 py-1 shrink-0">FOCUS</span>}
+            <div key={i} className={`rounded-2xl p-6 flex flex-col ${i === 0 ? "text-white shadow-xl" : "bg-gray-50 border border-gray-200"}`} style={{ background: i === 0 ? CITO : undefined, height: i === 0 ? "clamp(220px,30vh,300px)" : "clamp(170px,24vh,240px)" }}>
+              <div className="flex items-center justify-between">
+                <span className={`text-[clamp(40px,5vw,68px)] font-bold leading-none ${i === 0 ? "text-white" : "text-gray-300"}`}>{i + 1}</span>
+                {i === 0 && <span className="text-[11px] font-bold bg-white/20 rounded-full px-3 py-1">FOCUS</span>}
+              </div>
+              <div className={`mt-auto text-[clamp(13px,1.3vw,18px)] font-semibold leading-snug ${i === 0 ? "text-white" : "text-gray-800"}`}>{g.title || g.name}</div>
             </div>
           ))}
         </div>
-      </SlideFrame>
+      </Frame>
     );
 
-    // 4 — Cross-sectorale kern
+    // 4 — Cross-sectorale kern (convergentie-diagram)
+    const sectorY = 14, hub = { x: 500, y: 150, w: 360, h: 96 }, domY = 372;
+    const sectorX = [200, 500, 800], domX = [110, 370, 630, 890];
     out.push(
-      <SlideFrame eyebrow="Cross-sectorale uitkomst — de kern" titel="Eén hefboom voor drie sectoren">
-        <div className="max-w-5xl space-y-6">
-          {focusdoel && (
-            <div className="text-[clamp(13px,1.2vw,16px)] text-gray-500">
-              <span className="font-semibold text-cito-blue">Focusdoel:</span> {focusdoel}
-            </div>
-          )}
-          <div className="grid grid-cols-3 gap-4">
-            {batenPerSector.map((b) => (
-              <div key={b.sector} className="rounded-xl border border-gray-200 bg-white p-4">
-                <span className="text-[11px] font-bold text-white rounded-full px-2.5 py-0.5" style={{ background: SECTOR_COLOR[b.sector] }}>{b.sector}</span>
-                <div className="text-[clamp(14px,1.3vw,17px)] font-medium text-gray-900 mt-2.5 leading-snug">{b.titel}</div>
-              </div>
+      <Frame eyebrow="Cross-sectorale uitkomst — de kern" titel="Eén hefboom voor drie sectoren">
+        <div className="w-full max-w-5xl">
+          {focusdoel && <div className="text-center text-[clamp(12px,1.2vw,15px)] text-gray-500 mb-1"><span className="font-semibold text-cito-blue">Focusdoel:</span> {focusdoel}</div>}
+          <svg viewBox="0 0 1000 460" className="w-full h-auto" style={{ maxHeight: "60vh" }}>
+            {sectorX.map((x, i) => (<line key={"l" + i} x1={x} y1={sectorY + 56} x2={hub.x} y2={hub.y} stroke="#cbd5e1" strokeWidth={2} />))}
+            {domX.map((x, i) => (<line key={"d" + i} x1={hub.x} y1={hub.y + hub.h} x2={x} y2={domY} stroke="#cbd5e1" strokeWidth={2} />))}
+            {SECTORS.map((s, i) => (
+              <g key={s.key}>
+                <rect x={sectorX[i] - 90} y={sectorY} width={180} height={56} rx={12} fill="#fff" stroke={s.color} strokeWidth={2} />
+                <text x={sectorX[i]} y={sectorY + 34} textAnchor="middle" fontSize={20} fontWeight={700} fill={s.color}>{s.key}</text>
+              </g>
             ))}
-          </div>
-          {hefboom && (
-            <div className="rounded-xl bg-teal-50 border border-teal-200 p-5">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-teal-700 mb-1.5">De hefboom — gedeelde vermogens · dekt 4/4 domeinen</div>
-              <div className="text-[clamp(15px,1.5vw,20px)] text-gray-800 leading-relaxed">{hefboom}</div>
-            </div>
-          )}
+            <rect x={hub.x - hub.w / 2} y={hub.y} width={hub.w} height={hub.h} rx={16} fill={CITO} />
+            <text x={hub.x} y={hub.y + 42} textAnchor="middle" fontSize={26} fontWeight={700} fill="#fff">Eén gedeeld vermogen</text>
+            <text x={hub.x} y={hub.y + 72} textAnchor="middle" fontSize={15} fill="#9fd0ff">CRM-fundament · outside-in · funnels · mensen · cultuur</text>
+            {DOMS.map((d, i) => (
+              <g key={d.key}>
+                <rect x={domX[i] - 100} y={domY} width={200} height={56} rx={12} fill={d.color} />
+                <text x={domX[i]} y={domY + 34} textAnchor="middle" fontSize={17} fontWeight={700} fill="#fff">{d.label}</text>
+              </g>
+            ))}
+          </svg>
         </div>
-      </SlideFrame>
+      </Frame>
     );
 
-    // 5 — Inspanningen
+    // 5 — Inspanningen (4 kleurvlakken)
     out.push(
-      <SlideFrame eyebrow="De inspanningen" titel="Vier domeinen, één keer goed">
-        <div className="grid grid-cols-2 gap-5 max-w-5xl">
+      <Frame eyebrow="De inspanningen — cross-sectoraal" titel="Vier domeinen, één keer goed">
+        <div className="grid grid-cols-2 gap-4 w-full max-w-5xl">
           {inspPerDomein.map((d) => (
-            <div key={d.key} className="rounded-xl border border-gray-200 bg-white p-5 flex items-start gap-4">
-              <span className="w-3 h-3 rounded-full mt-2 shrink-0" style={{ background: d.color }} />
-              <div>
-                <div className="font-bold text-[clamp(15px,1.4vw,19px)]" style={{ color: d.color }}>{d.label}</div>
-                <div className="text-[clamp(14px,1.3vw,17px)] text-gray-800 mt-0.5 leading-snug">{d.titel || "—"}</div>
-              </div>
+            <div key={d.key} className="rounded-2xl p-6 text-white flex flex-col justify-between min-h-[clamp(120px,18vh,170px)]" style={{ background: d.color }}>
+              <div className="text-[clamp(18px,2vw,28px)] font-bold">{d.label}</div>
+              <div className="text-[clamp(13px,1.3vw,17px)] text-white/90 leading-snug mt-2">{d.titel || "—"}</div>
             </div>
           ))}
         </div>
-      </SlideFrame>
+      </Frame>
     );
 
-    // 6 — Begroting & raming
+    // 6 — Raming (balkendiagram)
     if (scenRows.length > 0)
       out.push(
-        <SlideFrame eyebrow="Begroting & raming — out-of-pocket" titel="Het +20%-scenario: een 5-jaar horizon">
-          <div className="grid grid-cols-[1fr_auto] gap-8 max-w-5xl items-start">
-            <div className="space-y-2.5">
-              {scenRows.map((r) => (
-                <div key={r.label} className={`flex items-center justify-between rounded-lg px-5 py-3.5 border ${r.focus ? "bg-cito-blue text-white border-cito-blue" : "bg-white border-gray-200"}`}>
-                  <span className="font-semibold w-24">{r.label}</span>
-                  <span className={`text-sm ${r.focus ? "text-white/70" : "text-gray-500"}`}>{r.jaren} jaar</span>
-                  <span className="font-bold tabular-nums text-lg">{euro(r.bedrag)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 w-64">
-              <div className="text-[10px] uppercase tracking-wider text-cito-blue font-bold mb-2.5">Highlights</div>
-              <ul className="text-sm text-gray-700 space-y-2 list-disc pl-4 leading-relaxed">
-                <li>Out-of-pocket; interne uren apart</li>
-                <li>Grootste post: CRM-klantdashboard</li>
-                <li>Intentie: 5-jaar horizon (+20%)</li>
-              </ul>
-            </div>
-          </div>
-        </SlideFrame>
-      );
-
-    // 7 — Programma-organisatie (curated organigram)
-    if (po)
-      out.push(
-        <SlideFrame eyebrow="Programma-organisatie" titel="Helder belegd">
-          <div className="max-w-3xl mx-auto w-full">
-            <div className="flex flex-col items-center gap-1.5">
-              {[
-                ["Opdrachtgever", po.opdrachtgever?.naam, true],
-                ["Programmamanager", po.programmamanager?.naam, true],
-                ["Kerngroep", "Inspanningsleiders + domeineigenaren", false],
-              ].map((n, i) => (
-                <div key={i} className="flex flex-col items-center w-full">
-                  <div className={`w-72 max-w-full text-center rounded-lg px-4 py-2.5 ${n[2] ? "bg-cito-blue text-white" : "bg-white border border-gray-200"}`}>
-                    <div className={`text-[10px] uppercase tracking-wider font-bold ${n[2] ? "text-white/70" : "text-cito-blue"}`}>{n[0]}</div>
-                    <div className={`font-semibold ${n[2] ? "text-white" : "text-gray-900"}`}>{n[1]}</div>
+        <Frame eyebrow="Begroting & raming — out-of-pocket" titel="Vier scenario's — intentie: 5-jaar horizon">
+          <div className="w-full max-w-4xl space-y-4">
+            {scenRows.map((r) => (
+              <div key={r.label} className="flex items-center gap-4">
+                <div className={`w-28 text-right text-[clamp(13px,1.3vw,17px)] font-semibold ${r.focus ? "text-cito-blue" : "text-gray-500"}`}>{r.label}</div>
+                <div className="flex-1 h-10 rounded-lg bg-gray-100 relative overflow-hidden">
+                  <div className="h-full rounded-lg flex items-center justify-end pr-3 transition-all" style={{ width: `${(r.bedrag / maxBedrag) * 100}%`, background: r.focus ? CITO : "#cbd5e1" }}>
+                    <span className={`text-[clamp(12px,1.2vw,16px)] font-bold tabular-nums ${r.focus ? "text-white" : "text-gray-700"}`}>{mln(r.bedrag)}</span>
                   </div>
-                  {i < 2 && <div className="w-0.5 h-4 bg-gray-300" />}
+                  {r.focus && <span className="absolute right-[-66px] top-1/2 -translate-y-1/2 text-[11px] font-bold text-cito-blue">★ {r.jaren} jaar</span>}
                 </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              {[
-                ["Stuurgroep · besluit", namen(po.stuurgroep), "#003366"],
-                ["Adviesgroep · advies", namen(po.adviesgroep), "#d97706"],
-              ].map((g, i) => (
-                <div key={i} className="rounded-lg border border-gray-200 bg-white p-4 border-l-4" style={{ borderLeftColor: g[2] as string }}>
-                  <div className="font-bold text-sm" style={{ color: g[2] as string }}>{g[0]}</div>
-                  <div className="text-sm text-gray-700 mt-1 leading-snug">{g[1] || "—"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </SlideFrame>
-      );
-
-    // 8 — 3sides
-    out.push(
-      <div className="h-full flex flex-col px-[7vw] py-[6vh] bg-cito-blue text-white">
-        <div className="shrink-0">
-          <Eyebrow dark>Samenwerking · met 3sides</Eyebrow>
-          <h2 className="text-[clamp(26px,3.5vw,46px)] font-bold">Wat 3sides gaat doen</h2>
-        </div>
-        <div className="flex-1 min-h-0 flex flex-col justify-center">
-          <div className="grid grid-cols-2 gap-3.5 max-w-5xl">
-            {SIDES_ACTIVITEITEN.map((a) => (
-              <div key={a.t} className="rounded-xl bg-white/10 border border-white/15 p-4">
-                <div className="font-bold text-[clamp(14px,1.4vw,18px)]">{a.t}</div>
-                <div className="text-[clamp(12px,1.15vw,15px)] text-white/70 mt-1 leading-snug">{a.d}</div>
+                <div className="w-14 text-[clamp(11px,1.1vw,14px)] text-gray-400">{r.jaren} jr</div>
               </div>
             ))}
           </div>
-          <div className="text-[clamp(13px,1.2vw,16px)] text-teal-200 mt-5">
-            Vast team: senior consultant (~3 d/wk) + medior (~2 d/wk) · specialisten op afroep.
+        </Frame>
+      );
+
+    // 7 — Organigram (boom)
+    if (po)
+      out.push(
+        <Frame eyebrow="Programma-organisatie" titel="Helder belegd">
+          <div className="flex flex-col items-center w-full max-w-4xl">
+            {[["Opdrachtgever", po.opdrachtgever?.naam], ["Programmamanager", po.programmamanager?.naam]].map((n, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className="rounded-xl bg-cito-blue text-white px-8 py-3 text-center shadow">
+                  <div className="text-[10px] uppercase tracking-wider text-white/70 font-bold">{n[0]}</div>
+                  <div className="font-bold text-[clamp(15px,1.5vw,20px)]">{n[1]}</div>
+                </div>
+                <div className="w-0.5 h-5 bg-gray-300" />
+              </div>
+            ))}
+            <div className="w-2/3 h-0.5 bg-gray-300" />
+            <div className="grid grid-cols-3 gap-4 w-full mt-5">
+              {[["Stuurgroep", namen(po.stuurgroep), CITO], ["Kerngroep", "Inspanningsleiders + domeineigenaren", MINT], ["Adviesgroep", namen(po.adviesgroep), "#d97706"]].map((g, i) => (
+                <div key={i} className="rounded-xl border-2 bg-white p-4 text-center" style={{ borderColor: g[2] as string }}>
+                  <div className="font-bold text-[clamp(13px,1.3vw,17px)]" style={{ color: g[2] as string }}>{g[0]}</div>
+                  <div className="text-[clamp(11px,1.1vw,14px)] text-gray-600 mt-1 leading-snug">{g[1] || "—"}</div>
+                </div>
+              ))}
+            </div>
           </div>
+        </Frame>
+      );
+
+    // 8 — 3sides (hub & spoke)
+    out.push(
+      <div className="h-full flex flex-col px-[6vw] py-[6vh] bg-cito-blue text-white">
+        <div className="shrink-0"><Eyebrow dark>Samenwerking · met 3sides</Eyebrow><h2 className="text-[clamp(24px,3.2vw,42px)] font-bold">3sides — jullie executiepartner</h2></div>
+        <div className="flex-1 min-h-0 flex items-center justify-center">
+          <svg viewBox="0 0 1000 480" className="w-full h-auto max-w-5xl" style={{ maxHeight: "62vh" }}>
+            {SIDES.map((_, i) => { const a = (Math.PI * 2 * i) / 6 - Math.PI / 2; const cx = 500 + Math.cos(a) * 320, cy = 240 + Math.sin(a) * 185; return <line key={"s" + i} x1={500} y1={240} x2={cx} y2={cy} stroke="rgba(255,255,255,0.25)" strokeWidth={2} />; })}
+            <circle cx={500} cy={240} r={92} fill="#fff" />
+            <text x={500} y={234} textAnchor="middle" fontSize={30} fontWeight={800} fill={CITO}>3sides</text>
+            <text x={500} y={262} textAnchor="middle" fontSize={13} fill={MINT}>senior + medior</text>
+            {SIDES.map((t, i) => { const a = (Math.PI * 2 * i) / 6 - Math.PI / 2; const cx = 500 + Math.cos(a) * 320, cy = 240 + Math.sin(a) * 185; return (
+              <g key={i}>
+                <rect x={cx - 130} y={cy - 26} width={260} height={52} rx={26} fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.25)" />
+                <text x={cx} y={cy + 5} textAnchor="middle" fontSize={16} fontWeight={600} fill="#fff">{t}</text>
+              </g>
+            ); })}
+          </svg>
         </div>
+        <div className="text-[clamp(12px,1.2vw,15px)] text-teal-200 text-center">Senior (~3 d/wk) + medior (~2 d/wk) · specialisten op afroep.</div>
       </div>
     );
 
@@ -289,53 +251,27 @@ export default function PresentatiePage() {
 
   const count = slides.length;
   const go = useCallback((d: number) => setIdx((i) => Math.max(0, Math.min(count - 1, i + d))), [count]);
-  const toggleFs = useCallback(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) el.requestFullscreen?.();
-    else document.exitFullscreen?.();
-  }, []);
-
+  const toggleFs = useCallback(() => { const el = rootRef.current; if (!el) return; if (!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.(); }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(1); }
       else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); go(-1); }
-      else if (e.key === "Home") setIdx(0);
-      else if (e.key === "End") setIdx(count - 1);
+      else if (e.key === "Home") setIdx(0); else if (e.key === "End") setIdx(count - 1);
       else if (e.key.toLowerCase() === "f") toggleFs();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [go, toggleFs, count]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-center"><div className="inline-block w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3" /><p className="text-sm text-gray-300">Presentatie laden…</p></div>
-      </div>
-    );
-  }
-  if (error || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="max-w-md text-center bg-white rounded-xl p-8 shadow"><h1 className="text-lg font-bold text-gray-800 mb-2">Programmaplan niet gevonden</h1><p className="text-sm text-gray-600">{error ?? "De link is mogelijk verlopen."}</p></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-900"><div className="text-center"><div className="inline-block w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3" /><p className="text-sm text-gray-300">Presentatie laden…</p></div></div>;
+  if (error || !session) return <div className="min-h-screen flex items-center justify-center bg-gray-900"><div className="max-w-md text-center bg-white rounded-xl p-8 shadow"><h1 className="text-lg font-bold text-gray-800 mb-2">Niet gevonden</h1><p className="text-sm text-gray-600">{error ?? "De link is mogelijk verlopen."}</p></div></div>;
 
   return (
     <div ref={rootRef} className="fixed inset-0 bg-gray-100 overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-black/10 z-50">
-        <div className="h-full bg-cito-blue transition-[width] duration-300" style={{ width: `${count > 1 ? (idx / (count - 1)) * 100 : 0}%` }} />
-      </div>
-
-      <div className="absolute inset-0 flex items-stretch justify-center p-[2vmin]">
-        <div className="w-full max-w-[1440px] bg-white rounded-2xl shadow-2xl overflow-hidden">{slides[idx]}</div>
-      </div>
-
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-black/10 z-50"><div className="h-full bg-cito-blue transition-[width] duration-300" style={{ width: `${count > 1 ? (idx / (count - 1)) * 100 : 0}%` }} /></div>
+      <div className="absolute inset-0 flex items-stretch justify-center p-[2vmin]"><div className="w-full max-w-[1440px] bg-white rounded-2xl shadow-2xl overflow-hidden">{slides[idx]}</div></div>
       <button className="absolute top-0 bottom-0 left-0 w-[12%] z-30 cursor-w-resize" onClick={() => go(-1)} aria-label="Vorige" />
       <button className="absolute top-0 bottom-0 right-0 w-[12%] z-30 cursor-e-resize" onClick={() => go(1)} aria-label="Volgende" />
-
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white/95 backdrop-blur rounded-full shadow-lg border border-gray-200 px-2 py-1.5">
         <button onClick={() => go(-1)} disabled={idx === 0} className="w-9 h-9 grid place-items-center rounded-full text-cito-blue hover:bg-cito-blue/10 disabled:opacity-30 text-lg">‹</button>
         <span className="text-xs font-semibold text-gray-600 tabular-nums px-1 min-w-[44px] text-center">{idx + 1} / {count}</span>
@@ -343,7 +279,7 @@ export default function PresentatiePage() {
         <div className="w-px h-5 bg-gray-200 mx-1" />
         <button onClick={toggleFs} className="h-9 px-3 grid place-items-center rounded-full text-cito-blue hover:bg-cito-blue/10 text-xs font-semibold" title="Volledig scherm (F)">⤢ Full-screen</button>
       </div>
-      <div className="absolute bottom-6 right-6 z-40 text-[11px] text-gray-400 select-none">← → navigeren · F volledig scherm</div>
+      <div className="absolute bottom-6 right-6 z-40 text-[11px] text-gray-400 select-none">← → · F volledig scherm</div>
     </div>
   );
 }
