@@ -284,10 +284,16 @@ export default function PubliekProgrammaplanPage() {
             </button>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors"
+              className="px-4 py-2 bg-white border border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors"
             >
-              Printen / opslaan als PDF
+              Printen / PDF
             </button>
+            <a
+              href={`/programmaplan/${id}/presentatie`}
+              className="px-4 py-2 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors inline-flex items-center gap-1.5"
+            >
+              ▶ Presenteren
+            </a>
           </div>
         </header>
 
