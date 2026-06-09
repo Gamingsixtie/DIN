@@ -727,6 +727,7 @@ function governanceDetails(session: DINSession): string {
     (po.programmamanager ? 1 : 0) +
     (po.kerngroep?.length ?? 0) +
     (po.stuurgroep?.length ?? 0) +
+    (po.adviesgroep?.length ?? 0) +
     (po.domeineigenaren?.length ?? 0) +
     (po.klankbordgroep?.length ?? 0);
   const itemTotal = items.length;

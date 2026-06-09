@@ -1119,6 +1119,7 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
   "programmamanager":{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""},
   "kerngroep":       [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "stuurgroep":      [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
+  "adviesgroep":     [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "klankbordgroep":  [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "domeineigenaren": [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "besluitvormingsritme":"",

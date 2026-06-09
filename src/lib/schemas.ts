@@ -813,6 +813,10 @@ export const ProgrammaorganisatieSchema = z.object({
   programmamanager: ProgrammaRolSchema.optional(),
   kerngroep: z.array(ProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(ProgrammaRolSchema).optional().default([]),
+  // Adviesgroep: intern, gezaghebbend/inhoudelijk advies aan opdrachtgever + stuurgroep,
+  // GEEN besluitmandaat. Onderscheiden van de klankbordgroep (externe klant-/buitenwereld-
+  // reflectie). Beide adviseren, maar vanuit een andere positie.
+  adviesgroep: z.array(ProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(ProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(ProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),
@@ -866,6 +870,7 @@ export const AIProgrammaorganisatieSchema = z.object({
   programmamanager: AIProgrammaRolSchema.optional(),
   kerngroep: z.array(AIProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  adviesgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(AIProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),

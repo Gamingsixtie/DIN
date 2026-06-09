@@ -1533,7 +1533,7 @@ function governanceSection(session: DINSession, numState: NumberingState, active
   ));
   children.push(bodyText(
     "De programma-organisatie opent met het organigram en de tabel van gremia (opdrachtgever, programmamanager, " +
-    "kerngroep, stuurgroep, domeineigenaren en klankbordgroep) \u2014 per rol met sector en mandaat. Daarbij " +
+    "kerngroep, stuurgroep, adviesgroep, domeineigenaren en klankbordgroep) \u2014 per rol met sector en mandaat. Daarbij " +
     "horen het besluitvormings- en escalatieritme: met welke frequentie wordt besloten en langs welke weg " +
     "loopt opschaling als een knelpunt niet op uitvoeringsniveau wordt opgelost.",
     { size: 22, color: TEXT_PRIMARY }
@@ -1560,6 +1560,7 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     if (po.programmamanager) allRollen.push({ ...po.programmamanager, groep: "Programmamanager" });
     for (const r of po.kerngroep ?? []) allRollen.push({ ...r, groep: "Kerngroep" });
     for (const r of po.stuurgroep ?? []) allRollen.push({ ...r, groep: "Stuurgroep" });
+    for (const r of po.adviesgroep ?? []) allRollen.push({ ...r, groep: "Adviesgroep" });
     for (const r of po.domeineigenaren ?? []) allRollen.push({ ...r, groep: "Domeineigenaar" });
     for (const r of po.klankbordgroep ?? []) allRollen.push({ ...r, groep: "Klankbordgroep" });
   }
