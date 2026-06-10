@@ -21,9 +21,18 @@ const SECTORS = [
   { key: "Zakelijk", color: "#0e9e8e" },
 ] as const;
 const SIDES = ["Programmamanagement & regie", "Adoptie & gedrag", "Customer Success", "CRM & data", "Leiderschap", "Kennisdeling"];
-// Subtiel DIN-netwerk-motief voor de titelpagina (nodes + verbindingen).
-const NET_NODES: Array<[number, number]> = [[1190, 78], [1305, 150], [1235, 250], [1355, 320], [1118, 196], [120, 560], [250, 626], [176, 716], [68, 666], [306, 558]];
-const NET_LINES: Array<[number, number]> = [[0, 1], [0, 4], [1, 2], [2, 3], [1, 3], [4, 2], [5, 6], [5, 8], [6, 7], [6, 9], [8, 7]];
+// DIN-netwerk-motief voor de titelpagina (nodes + verbindingen, corner-constellaties).
+const NET_NODES: Array<[number, number]> = [
+  [1150, 60], [1280, 120], [1360, 210], [1230, 235], [1330, 325], [1095, 175], [1392, 95], [1205, 345],
+  [90, 520], [210, 600], [140, 702], [60, 640], [292, 560], [182, 762], [322, 680],
+  [1352, 560], [1240, 662],
+];
+const NET_LINES: Array<[number, number]> = [
+  [0, 1], [1, 6], [1, 2], [2, 4], [3, 4], [0, 5], [3, 1], [2, 3], [7, 4], [7, 3],
+  [8, 9], [9, 10], [8, 11], [9, 12], [10, 13], [13, 14], [14, 10], [12, 9],
+  [15, 16],
+];
+const NET_ACCENT = new Set([1, 9, 16]);
 
 interface StepShape {
   stap2?: { vermogenGelijkenisGroepen?: Array<{ gezamenlijkeOmschrijving?: string }> };
@@ -93,10 +102,13 @@ export default function PresentatiePage() {
     out.push(
       <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] relative overflow-hidden bg-gradient-to-b from-[#f5f8fc] to-white">
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 810" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <g stroke="#003366" strokeOpacity="0.13" strokeWidth="1.5">
+          <g stroke="#003366" strokeOpacity="0.15" strokeWidth="1.5">
             {NET_LINES.map(([a, b], i) => (<line key={i} x1={NET_NODES[a][0]} y1={NET_NODES[a][1]} x2={NET_NODES[b][0]} y2={NET_NODES[b][1]} />))}
           </g>
-          {NET_NODES.map(([x, y], i) => (<circle key={i} cx={x} cy={y} r={i % 4 === 0 ? 9 : 5} fill="#003366" fillOpacity={i % 4 === 0 ? 0.18 : 0.13} />))}
+          {NET_NODES.map(([x, y], i) => {
+            const accent = NET_ACCENT.has(i), hub = i % 4 === 0;
+            return (<circle key={i} cx={x} cy={y} r={accent ? 7 : hub ? 9 : 5} fill={accent ? "#0f9d77" : "#003366"} fillOpacity={accent ? 0.55 : hub ? 0.24 : 0.17} />);
+          })}
         </svg>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(50% 42% at 50% 42%, rgba(255,255,255,0.78), transparent 72%)" }} />
         <div className="relative">
