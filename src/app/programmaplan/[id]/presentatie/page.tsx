@@ -136,11 +136,11 @@ export default function PresentatiePage() {
     // 3 — Programmadoelen (focus doel 1)
     out.push(
       <Slide title="De gezamenlijke doelen — één focus: doel 1">
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-5">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
           <div className="rounded-3xl text-white p-7 shadow-xl relative overflow-hidden" style={{ background: CITO }}>
             <div className="absolute -right-12 -top-12 w-60 h-60 rounded-full border border-white/10" />
             <div className="flex items-start gap-6 relative">
-              <span className="font-extrabold leading-none" style={{ fontSize: "clamp(56px,9vh,108px)" }}>1</span>
+              <span className="font-extrabold leading-none" style={{ fontSize: "clamp(48px,7.5vh,88px)" }}>1</span>
               <div className="flex-1">
                 <span className="text-[11px] font-bold rounded-full px-3 py-1" style={{ background: GREEN, color: "#173a0a" }}>FOCUS — hiermee beginnen we</span>
                 <div className="font-bold leading-tight mt-2.5" style={{ fontSize: "clamp(20px,2.7vw,36px)" }}>{goals[0]?.title || goals[0]?.name}</div>
@@ -167,14 +167,14 @@ export default function PresentatiePage() {
           <div className="flex justify-center"><div className="w-0.5 h-3" style={{ background: "#cbd5e1" }} /></div>
           <div className="text-center text-[9px] uppercase tracking-wider font-bold mb-1.5" style={{ color: SUB }}>Baten per sector</div>
           <div className="grid grid-cols-3 gap-3">
-            {baatPerSector.map((b) => (<div key={b.key} className="rounded-lg bg-white p-2.5 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[10px] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(11px,1.1vw,14px)] leading-snug" style={{ color: INK }}>{b.titel}</div></div>))}
+            {baatPerSector.map((b) => (<div key={b.key} className="rounded-lg bg-white p-2.5 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[10px] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(11px,1.1vw,14px)] leading-snug line-clamp-3" style={{ color: INK }}>{b.titel}</div></div>))}
           </div>
           <div className="flex justify-center"><div className="w-0.5 h-3 mt-2" style={{ background: "#cbd5e1" }} /></div>
           <div className="rounded-xl p-3.5 mt-1" style={{ background: "#e9faf4", border: `1px solid ${TEAL}` }}>
             <div className="text-center text-[9px] uppercase tracking-wider font-bold" style={{ color: "#0b7a5c" }}>Gelijkende vermogens — hefboomgroep · dekt 4/4 domeinen</div>
-            <div className="text-center text-[clamp(11px,1.1vw,14px)] leading-snug my-2" style={{ color: INK }}>{hefboom}</div>
+            <div className="text-center text-[clamp(11px,1.1vw,14px)] leading-snug my-2 max-w-3xl mx-auto line-clamp-2" style={{ color: INK }}>{hefboom}</div>
             <div className="grid grid-cols-3 gap-2">
-              {vermPerSector.map((v) => (<div key={v.key} className="rounded-lg bg-white border-2 p-2" style={{ borderColor: v.color }}><span className="text-[9px] font-bold" style={{ color: v.color }}>{v.key}</span><div className="text-[clamp(11px,1.1vw,14px)] font-semibold leading-snug" style={{ color: INK }}>{v.titel}</div></div>))}
+              {vermPerSector.map((v) => (<div key={v.key} className="rounded-lg bg-white border-2 p-2" style={{ borderColor: v.color }}><span className="text-[9px] font-bold" style={{ color: v.color }}>{v.key}</span><div className="text-[clamp(11px,1.1vw,14px)] font-semibold leading-snug line-clamp-3" style={{ color: INK }}>{v.titel}</div></div>))}
             </div>
           </div>
         </div>
@@ -184,12 +184,13 @@ export default function PresentatiePage() {
     // 5–8 — De inspanningen, per domein (nadruk)
     INSP_DETAIL.forEach((d) => out.push(
       <Slide key={d.label} title={`De inspanningen — ${d.label}`} headerColor={d.color}>
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <span className="text-[10px] font-bold text-white rounded-full px-2.5 py-1" style={{ background: d.color }}>Combineren · hefboom — raakt 3 sectoren</span>
-            <span className="font-bold tabular-nums text-[clamp(14px,1.5vw,20px)]" style={{ color: d.color }}>{d.bedrag} <span className="font-normal text-[11px]" style={{ color: SUB }}>· {d.aandeel}</span></span>
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <span className="text-[10px] font-bold text-white rounded-full px-2.5 py-1" style={{ background: d.color }}>Combineren · hefboom — cross-sectoraal</span>
+            <span className="font-bold tabular-nums text-[clamp(14px,1.5vw,20px)]" style={{ color: d.color }}>{d.bedrag}</span>
+            <span className="text-[clamp(10px,1.1vw,13px)] font-semibold rounded-full px-2 py-0.5" style={{ background: PANEL, color: SUB }}>{d.aandeel}</span>
           </div>
-          <div className="font-bold leading-tight text-[clamp(18px,2.2vw,30px)]" style={{ color: INK }}>{d.titel}</div>
+          <div className="font-bold leading-tight text-[clamp(18px,2.2vw,30px)] border-l-4 pl-3" style={{ color: INK, borderColor: d.color }}>{d.titel}</div>
           <div className="mt-5 space-y-3">
             {d.bullets.map((b) => (<div key={b} className="flex items-start gap-3"><span className="w-2.5 h-2.5 rounded-full mt-2 shrink-0" style={{ background: d.color }} /><span className="text-[clamp(13px,1.5vw,19px)]" style={{ color: INK }}>{b}</span></div>))}
           </div>
@@ -214,8 +215,8 @@ export default function PresentatiePage() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>Per jaar — binnen het plafond</div>
-              <div className="flex items-end justify-between gap-2" style={{ height: "clamp(100px,16vh,160px)" }}>
-                {RAMING_JAAR.map(([jaar, bedrag]) => (<div key={jaar} className="flex-1 flex flex-col items-center justify-end h-full"><span className="text-[10px] font-bold tabular-nums" style={{ color: CITO }}>{euroK(bedrag)}</span><div className="w-full rounded-t mt-1" style={{ height: `${(bedrag / 330000) * 100}%`, background: CITO }} /><span className="text-[11px] mt-1" style={{ color: SUB }}>{jaar}</span></div>))}
+              <div className="flex items-end justify-between gap-2" style={{ height: "clamp(120px,17vh,170px)" }}>
+                {RAMING_JAAR.map(([jaar, bedrag]) => (<div key={jaar} className="flex-1 flex flex-col items-center justify-end h-full"><span className="text-[10px] font-bold tabular-nums" style={{ color: CITO }}>{euroK(bedrag)}</span><div className="w-full rounded-t mt-1" style={{ height: `${(bedrag / 360000) * 100}%`, background: CITO }} /><span className="text-[11px] mt-1" style={{ color: SUB }}>{jaar}</span></div>))}
               </div>
             </div>
           </div>
@@ -229,19 +230,21 @@ export default function PresentatiePage() {
     // 10 — Programma-organisatie (1-op-1: app-organigram)
     if (po)
       out.push(
-        <Slide title="Programma-organisatie" scroll>
-          <div className="w-full max-w-5xl mx-auto"><OrganigramView po={po} /></div>
+        <Slide title="Programma-organisatie">
+          <div className="w-full flex items-start justify-center overflow-hidden">
+            <div className="w-full max-w-5xl origin-top" style={{ transform: "scale(0.82)" }}><OrganigramView po={po} /></div>
+          </div>
         </Slide>
       );
 
     // 11 — Rol van 3sides (waarom + hoe + team)
     out.push(
-      <Slide title="Rol van 3sides in het programma" subtitle="Strategisch & executiepartner die de interne capaciteit versterkt" headerColor={NAVY}>
+      <Slide title="Rol van 3sides in het programma" subtitle="Strategisch & executiepartner die de interne capaciteit versterkt" headerColor={NAVY} scroll>
         <div className="w-full max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6 items-stretch">
             <div>
               <div className="font-bold text-[clamp(14px,1.5vw,19px)] mb-2" style={{ color: CITO }}>Hoe zetten we 3sides in?</div>
-              <div className="rounded-2xl p-4 space-y-2" style={{ background: PANEL }}>
+              <div className="rounded-2xl p-3.5 space-y-1.5" style={{ background: PANEL }}>
                 {SIDES_DOEN.map(([t, d]) => (<div key={t} className="flex items-start gap-2.5"><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><div><div className="font-bold text-[clamp(12px,1.2vw,15px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(10px,1.05vw,13px)] leading-snug" style={{ color: SUB }}>{d}</div></div></div>))}
               </div>
             </div>
@@ -252,7 +255,7 @@ export default function PresentatiePage() {
               </div>
             </div>
           </div>
-          <div className="mt-4 rounded-xl p-3 text-center text-[clamp(11px,1.15vw,15px)]" style={{ background: PANEL, color: SUB }}>
+          <div className="mt-3 rounded-xl p-2.5 text-center text-[clamp(11px,1.15vw,15px)] leading-snug" style={{ background: PANEL, color: SUB }}>
             <strong style={{ color: INK }}>Vast team:</strong> senior consultant (~3 d/wk) + medior (~2 d/wk) · <strong style={{ color: INK }}>specialisten op afroep:</strong> CRM-consultants · solutions architecten · journey designers.
           </div>
         </div>
