@@ -143,19 +143,34 @@ export default function PresentatiePage() {
       </Frame>
     );
 
-    // 3 — Doelstellingen (3 pijlers, focus uitgelicht)
+    // 3 — Programmadoelen (power slide: focus op doel 1)
     out.push(
-      <Frame eyebrow="De gezamenlijke doelstellingen" titel="Drie doelen — één focus">
-        <div className="grid grid-cols-3 gap-5 w-full max-w-5xl items-end">
-          {goals.slice(0, 3).map((g, i) => (
-            <div key={i} className={`rounded-2xl p-6 flex flex-col ${i === 0 ? "text-white shadow-xl" : "bg-gray-50 border border-gray-200"}`} style={{ background: i === 0 ? CITO : undefined, height: i === 0 ? "clamp(220px,30vh,300px)" : "clamp(170px,24vh,240px)" }}>
-              <div className="flex items-center justify-between">
-                <span className={`text-[clamp(40px,5vw,68px)] font-bold leading-none ${i === 0 ? "text-white" : "text-gray-300"}`}>{i + 1}</span>
-                {i === 0 && <span className="text-[11px] font-bold bg-white/20 rounded-full px-3 py-1">FOCUS</span>}
+      <Frame eyebrow="Programmadoelen" titel="Eén focus: doel 1">
+        <div className="w-full max-w-5xl flex flex-col gap-5">
+          <div className="rounded-3xl text-white p-7 shadow-xl relative overflow-hidden" style={{ background: CITO }}>
+            <div className="absolute -right-12 -top-12 w-60 h-60 rounded-full border border-white/10" />
+            <div className="absolute right-8 top-8 w-32 h-32 rounded-full border border-white/10" />
+            <div className="flex items-start gap-6 relative">
+              <span className="text-[clamp(56px,8vw,108px)] font-extrabold leading-none">1</span>
+              <div className="flex-1">
+                <span className="text-[11px] font-bold bg-emerald-400 text-emerald-950 rounded-full px-3 py-1">FOCUS</span>
+                <div className="text-[clamp(20px,2.7vw,36px)] font-bold leading-tight mt-2.5">{goals[0]?.title || goals[0]?.name}</div>
+                <div className="text-[clamp(13px,1.3vw,18px)] text-white/75 mt-2.5">Eén betrouwbaar klantbeeld · proactief handelen mogelijk</div>
               </div>
-              <div className={`mt-auto text-[clamp(13px,1.3vw,18px)] font-semibold leading-snug ${i === 0 ? "text-white" : "text-gray-800"}`}>{g.title || g.name}</div>
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2].map((n) => (
+              <div key={n} className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex items-start gap-3">
+                <span className="text-3xl font-bold text-gray-300 leading-none">{n + 1}</span>
+                <div className="text-[clamp(13px,1.3vw,17px)] font-semibold text-gray-700 leading-snug">{goals[n]?.title || goals[n]?.name}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[clamp(12px,1.2vw,15px)] text-gray-500 flex items-start gap-2.5">
+            <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: MINT }} />
+            <span>De focus op doel 1 bepalen we samen in de <strong className="text-gray-700">eerste sessie met het MT</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span>
+          </div>
         </div>
       </Frame>
     );
