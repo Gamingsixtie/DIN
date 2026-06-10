@@ -444,7 +444,7 @@ export default function PresentatiePage() {
           <h1 className="text-[clamp(46px,8.5vw,116px)] font-extrabold text-white leading-[0.95] tracking-tight">We gaan <span style={{ color: GREEN }}>live!</span></h1>
           <p className="text-[clamp(15px,2.1vw,28px)] text-white/85 mt-6 max-w-3xl mx-auto">Van strategie naar uitvoering — samen maken we Klant in Beeld waar.</p>
           <div className="mt-9 inline-flex items-center gap-4 rounded-full bg-white/10 border border-white/20 px-6 py-3 backdrop-blur">
-            <span className="text-[clamp(12px,1.3vw,16px)] text-white/80">Juni — uitwerking &amp; planning</span>
+            <span className="text-[clamp(12px,1.3vw,16px)] text-white/80">Juni — planning verder uitwerken &amp; definitief maken</span>
             <span className="text-white/50">→</span>
             <span className="text-[clamp(13px,1.5vw,19px)] font-bold text-white">1 juli 2026 — we gaan live 🚀</span>
           </div>
