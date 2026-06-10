@@ -7,7 +7,7 @@ import type { DINSession } from "@/lib/types";
 
 /** Presentatie-modus — opmaak: gekleurde kopbalk + witte body met platte, kleurrijke kaarten. */
 
-const CITO = "#003366", TEAL = "#159a86", ORANGE = "#ee7a1a", PINK = "#e51f55", GREEN = "#7bc043";
+const CITO = "#003366", TEAL = "#159a86", ORANGE = "#ee7a1a", GREEN = "#7bc043";
 const NAVY = "#1b3a5b", PANEL = "#eef1f6", INK = "#243244", SUB = "#6b7a8d";
 const DOMS = [
   { key: "mens", label: "Mens", color: "#2563eb" },
@@ -20,41 +20,46 @@ const SECTORS = [
   { key: "VO", color: "#10b981" },
   { key: "Zakelijk", color: "#0e9e8e" },
 ] as const;
-const TIMELINE = [
-  { label: "Visie", sub: "outside-in als fundament", color: NAVY },
-  { label: "DIN-netwerk", sub: "met de sectormanagers", color: TEAL },
-  { label: "Geconsolideerd", sub: "cross-sectoraal", color: ORANGE },
-  { label: "Vandaag", sub: "recap & vervolg", color: PINK },
+const VISIE_PIJLERS = [
+  ["Outside-in leidend", "wat klanten werkelijk nodig hebben"],
+  ["Vier domeinen verbonden", "mens · proces · systeem · cultuur"],
+  ["Samen met klanten", "echte oplossingen, duurzame relaties"],
 ];
 const SIDES_DOEN = [
-  ["Programmamanagement & regie", "Leiding, voortgang, samenhang en escalatie"],
-  ["Adoptie & gedragsverandering", "Van training naar borging, per rol"],
-  ["Customer Success & CRM", "Eén klantreis; data die stuurt"],
-  ["Kennisdeling & verbinding", "De drie sectoren met elkaar verbinden"],
+  ["Programmamanagement & regie", "Interim leiding · voortgang & tempo · escalatie · sectoren verbinden"],
+  ["Adoptie & gedragsverandering", "Adoptie-framework per rol · competentiematrix · nulmeting · borging"],
+  ["Customer Success", "Eén samenhangende klantreis · proactieve contactmomenten · feedback loops"],
+  ["CRM & data", "Advies CRM-strategie & -keuze · koppeling Mailion/Microspace · data → actie"],
+  ["Leiderschap & organisatie", "Voorbeeldgedrag · werving · governance Cito BV ↔ Stichting"],
+  ["Kennisdeling & verbinding", "Kennisdeling tussen sectoren · intervisie · successen tonen"],
 ];
-const SIDES_TEAM = [
-  ["Senior consultant", "Interim programmaleiding · ~3 dagen/week", TEAL],
-  ["Medior consultant", "Uitwerking & facilitering · ~2 dagen/week", NAVY],
-  ["Specialisten op afroep", "CRM · solutions architecten · journey designers", ORANGE],
+const SIDES_KERN: Array<[string, string, string]> = [
+  ["Expertise voor ieder domein", "Snel schakelen — parallel werken aan mens · proces · data · cultuur", TEAL],
+  ["Learnings uit Klant in Beeld", "De inzichten en het geleerde nemen we mee", NAVY],
+  ["Prioriteit op het nú", "Sales · funnel · accountplannen · verkoopkansen — ongeacht de systeemkeuze; plus de langere-termijn doelen", ORANGE],
 ];
+// Raming — vijfjarig scenario (2026–2030), cijfers uit het verslag (§4).
+const RAMING_TOTAAL = "€ 1.459.500";
+const RAMING_POST: Array<[string, number, string]> = [["Data & Systemen", 910000, "#7c3aed"], ["Mens", 182500, "#2563eb"], ["Cultuur", 142000, "#d97706"], ["Processen", 126000, "#059669"], ["Onvoorzien", 99000, "#94a3b8"]];
+const RAMING_JAAR: Array<[string, number]> = [["2026", 251500], ["2027", 301500], ["2028", 302500], ["2029", 301500], ["2030", 302500]];
 const NET_NODES: Array<[number, number]> = [[1150, 60], [1280, 120], [1360, 210], [1230, 235], [1330, 325], [1095, 175], [1392, 95], [1205, 345], [90, 520], [210, 600], [140, 702], [60, 640], [292, 560], [182, 762], [322, 680], [1352, 560], [1240, 662]];
 const NET_LINES: Array<[number, number]> = [[0, 1], [1, 6], [1, 2], [2, 4], [3, 4], [0, 5], [3, 1], [2, 3], [7, 4], [7, 3], [8, 9], [9, 10], [8, 11], [9, 12], [10, 13], [13, 14], [14, 10], [12, 9], [15, 16]];
 const NET_ACCENT = new Set([1, 9, 16]);
 
 interface StepShape {
   stap2?: { vermogenGelijkenisGroepen?: Array<{ gezamenlijkeOmschrijving?: string }> };
-  stap4?: { subEffortAnalysis?: Array<{ actie?: string; domein?: string; titel?: string; voorgesteldeNaam?: string }>; begrotingAdvies?: { scenarios?: Record<string, { aantalJaren?: number; inspanningen?: Array<{ totaalEuro?: number }> }> } };
+  stap4?: { subEffortAnalysis?: Array<{ actie?: string; domein?: string; titel?: string; voorgesteldeNaam?: string }> };
 }
-const mln = (n: number) => "€ " + (n / 1_000_000).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " mln";
+const euroK = (n: number) => "€ " + Math.round(n / 1000).toLocaleString("nl-NL") + "K";
 
 function Slide({ title, subtitle, headerColor, children }: { title: string; subtitle?: string; headerColor?: string; children: React.ReactNode }) {
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="px-[5vw] py-[4vh] shrink-0" style={{ background: headerColor || CITO }}>
-        <h2 className="text-[clamp(22px,3vw,40px)] font-bold text-white leading-tight">{title}</h2>
+      <div className="px-[5vw] py-[3.6vh] shrink-0" style={{ background: headerColor || CITO }}>
+        <h2 className="text-[clamp(21px,2.9vw,38px)] font-bold text-white leading-tight">{title}</h2>
       </div>
       {subtitle && <div className="px-[5vw] pt-4 shrink-0 text-[clamp(13px,1.5vw,20px)] italic font-medium" style={{ color: TEAL }}>{subtitle}</div>}
-      <div className="flex-1 min-h-0 px-[5vw] py-[4vh] flex flex-col justify-center">{children}</div>
+      <div className="flex-1 min-h-0 px-[5vw] py-[3.5vh] flex flex-col justify-center">{children}</div>
     </div>
   );
 }
@@ -83,17 +88,19 @@ export default function PresentatiePage() {
     const sr = session.crossAnalyseWizard?.stepResults as StepShape | undefined;
     const goals = (session.goals ?? []) as Array<{ title?: string; name?: string }>;
     const benefits = (session.benefits ?? []) as Array<{ title?: string; description?: string; sectorId?: string }>;
+    const caps = ((session.capabilities ?? []) as Array<{ title?: string; description?: string; sectorId?: string; consolidated?: boolean }>).filter((c) => !c.consolidated);
     const po = session.programmaorganisatie;
+    const baatPerSector = SECTORS.map((s) => { const b = benefits.find((x) => x.sectorId === s.key); return { ...s, titel: b ? b.title || b.description || "" : "" }; });
+    const vermPerSector = SECTORS.map((s) => { const c = caps.find((x) => x.sectorId === s.key); return { ...s, titel: c ? c.title || c.description || "" : "" }; });
+    const hefboom = sr?.stap2?.vermogenGelijkenisGroepen?.[0]?.gezamenlijkeOmschrijving || "";
     const combineren = (sr?.stap4?.subEffortAnalysis ?? []).filter((s) => s.actie === "combineren");
     const inspPerDomein = DOMS.map((d) => ({ ...d, titel: combineren.find((s) => s.domein === d.key)?.titel || combineren.find((s) => s.domein === d.key)?.voorgesteldeNaam || "" }));
-    const scenarios = sr?.stap4?.begrotingAdvies?.scenarios ?? {};
-    const scenRows = ([["advies", "Advies"], ["plus20", "+20%"], ["optimaal", "Optimaal"], ["min20", "−20%"]] as const).flatMap(([k, label]) => { const sc = scenarios[k]; if (!sc) return []; return [{ label, jaren: sc.aantalJaren ?? 0, bedrag: (sc.inspanningen ?? []).reduce((a, i) => a + (i.totaalEuro ?? 0), 0), focus: k === "plus20" }]; });
-    const maxBedrag = Math.max(1, ...scenRows.map((r) => r.bedrag));
     const namen = (arr?: Array<{ naam?: string }>) => (arr ?? []).map((r) => r.naam).filter(Boolean).join(" · ");
+    const maxPost = Math.max(...RAMING_POST.map((p) => p[1]));
 
     const out: React.ReactNode[] = [];
 
-    // 1 — Titel (cover met netwerk-motief)
+    // 1 — Titel
     out.push(
       <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] relative overflow-hidden bg-gradient-to-b from-[#f5f8fc] to-white">
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 810" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -110,162 +117,191 @@ export default function PresentatiePage() {
       </div>
     );
 
-    // 2 — Waar staan we (timeline)
+    // 2 — Visie
     out.push(
-      <Slide title="Waar staan we — van visie naar uitvoering" headerColor={TEAL}>
-        <div className="relative w-full max-w-5xl mx-auto">
-          <div className="absolute left-[12%] right-[12%] h-1.5 rounded-full" style={{ background: TEAL, top: "clamp(40px,7vh,60px)" }} />
-          <div className="flex justify-between relative">
-            {TIMELINE.map((s, i) => (
-              <div key={i} className="flex flex-col items-center text-center w-1/4">
-                <div className="rounded-full grid place-items-center text-white font-bold shadow-lg" style={{ background: s.color, width: "clamp(80px,12vh,120px)", height: "clamp(80px,12vh,120px)", fontSize: "clamp(28px,4vh,44px)" }}>{i + 1}</div>
-                <div className="mt-4 font-bold text-[clamp(14px,1.5vw,20px)]" style={{ color: INK }}>{s.label}</div>
-                <div className="text-[clamp(11px,1.2vw,15px)] mt-0.5" style={{ color: SUB }}>{s.sub}</div>
-              </div>
-            ))}
+      <Slide title="Programmavisie" headerColor={TEAL}>
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="font-bold leading-tight text-[clamp(22px,3.2vw,44px)]" style={{ color: CITO }}>Van reactief leverancier naar een proactieve, <span style={{ color: TEAL }}>outside-in</span> partner.</div>
+          <div className="grid grid-cols-3 gap-4 mt-9">
+            {VISIE_PIJLERS.map(([t, d]) => (<div key={t} className="rounded-2xl p-5 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(14px,1.5vw,19px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(12px,1.2vw,15px)] mt-1" style={{ color: SUB }}>{d}</div></div>))}
           </div>
         </div>
       </Slide>
     );
 
-    // 3 — Programmadoelen (power: focus doel 1)
+    // 3 — Programmadoelen (focus doel 1)
     out.push(
-      <Slide title="Programmadoelen — één focus: doel 1">
+      <Slide title="De gezamenlijke doelen — één focus: doel 1">
         <div className="w-full max-w-5xl mx-auto flex flex-col gap-5">
           <div className="rounded-3xl text-white p-7 shadow-xl relative overflow-hidden" style={{ background: CITO }}>
             <div className="absolute -right-12 -top-12 w-60 h-60 rounded-full border border-white/10" />
             <div className="flex items-start gap-6 relative">
               <span className="font-extrabold leading-none" style={{ fontSize: "clamp(56px,9vh,108px)" }}>1</span>
               <div className="flex-1">
-                <span className="text-[11px] font-bold rounded-full px-3 py-1" style={{ background: GREEN, color: "#173a0a" }}>FOCUS</span>
+                <span className="text-[11px] font-bold rounded-full px-3 py-1" style={{ background: GREEN, color: "#173a0a" }}>FOCUS — hiermee beginnen we</span>
                 <div className="font-bold leading-tight mt-2.5" style={{ fontSize: "clamp(20px,2.7vw,36px)" }}>{goals[0]?.title || goals[0]?.name}</div>
                 <div className="text-white/75 mt-2.5 text-[clamp(13px,1.3vw,18px)]">Eén betrouwbaar klantbeeld · proactief handelen mogelijk</div>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {[1, 2].map((n) => (
-              <div key={n} className="rounded-2xl border border-gray-200 p-4 flex items-start gap-3" style={{ background: PANEL }}>
-                <span className="text-3xl font-bold text-gray-300 leading-none">{n + 1}</span>
-                <div className="font-semibold leading-snug text-[clamp(13px,1.3vw,17px)]" style={{ color: SUB }}>{goals[n]?.title || goals[n]?.name}</div>
-              </div>
-            ))}
+            {[1, 2].map((n) => (<div key={n} className="rounded-2xl border border-gray-200 p-4 flex items-start gap-3" style={{ background: PANEL }}><span className="text-3xl font-bold text-gray-300 leading-none">{n + 1}</span><div className="font-semibold leading-snug text-[clamp(13px,1.3vw,17px)]" style={{ color: SUB }}>{goals[n]?.title || goals[n]?.name}</div></div>))}
           </div>
-          <div className="text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ color: SUB }}>
-            <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} />
-            <span>De focus op doel 1 bepalen we samen in de <strong style={{ color: INK }}>eerste sessie met het MT</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span>
-          </div>
+          <div className="text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ color: SUB }}><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><span>De focus op doel 1 bepalen we samen in de <strong style={{ color: INK }}>eerste sessie met het MT</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span></div>
         </div>
       </Slide>
     );
 
-    // 4 — Cross-sectorale kern (convergentie)
-    const sY = 14, hub = { x: 500, y: 150, w: 360, h: 96 }, dY = 372, sX = [200, 500, 800], dX = [110, 370, 630, 890];
+    // 4 — Cross-sectorale uitkomst (focusdoel → baten → hefboomgroep)
     out.push(
-      <Slide title="Cross-sectorale uitkomst — één hefboom voor drie sectoren">
+      <Slide title="Cross-sectorale uitkomst — geconsolideerd vanuit de DIN">
         <div className="w-full max-w-5xl mx-auto">
-          {goals[0] && <div className="text-center text-[clamp(12px,1.2vw,15px)] mb-1" style={{ color: SUB }}><span className="font-semibold" style={{ color: CITO }}>Focusdoel:</span> {goals[0].title}</div>}
-          <svg viewBox="0 0 1000 460" className="w-full h-auto" style={{ maxHeight: "54vh" }}>
-            {sX.map((x, i) => (<line key={"l" + i} x1={x} y1={sY + 56} x2={hub.x} y2={hub.y} stroke="#cbd5e1" strokeWidth={2} />))}
-            {dX.map((x, i) => (<line key={"d" + i} x1={hub.x} y1={hub.y + hub.h} x2={x} y2={dY} stroke="#cbd5e1" strokeWidth={2} />))}
-            {SECTORS.map((s, i) => (<g key={s.key}><rect x={sX[i] - 90} y={sY} width={180} height={56} rx={14} fill="#fff" stroke={s.color} strokeWidth={2.5} /><text x={sX[i]} y={sY + 35} textAnchor="middle" fontSize={21} fontWeight={700} fill={s.color}>{s.key}</text></g>))}
-            <rect x={hub.x - hub.w / 2} y={hub.y} width={hub.w} height={hub.h} rx={18} fill={CITO} />
-            <text x={hub.x} y={hub.y + 42} textAnchor="middle" fontSize={26} fontWeight={700} fill="#fff">Eén gedeeld vermogen</text>
-            <text x={hub.x} y={hub.y + 72} textAnchor="middle" fontSize={15} fill="#9fd0ff">CRM-fundament · outside-in · funnels · mensen · cultuur</text>
-            {DOMS.map((d, i) => (<g key={d.key}><rect x={dX[i] - 100} y={dY} width={200} height={56} rx={14} fill={d.color} /><text x={dX[i]} y={dY + 35} textAnchor="middle" fontSize={17} fontWeight={700} fill="#fff">{d.label}</text></g>))}
-          </svg>
+          <div className="rounded-xl text-white px-5 py-2.5 text-center mb-4" style={{ background: NAVY }}>
+            <div className="text-[10px] uppercase tracking-wider opacity-70 font-bold">Focusdoel — prioriteit 1</div>
+            <div className="font-bold text-[clamp(13px,1.5vw,20px)] leading-snug">{goals[0]?.title}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>Baten per sector</div>
+              <div className="space-y-2">
+                {baatPerSector.map((b) => (<div key={b.key} className="rounded-lg bg-white p-2.5 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[10px] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(12px,1.2vw,15px)] leading-snug" style={{ color: INK }}>{b.titel}</div></div>))}
+              </div>
+            </div>
+            <div className="rounded-xl p-4" style={{ background: "#e9faf4", border: `1px solid ${TEAL}` }}>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-1.5" style={{ color: "#0b7a5c" }}>Gedeelde vermogens — hefboomgroep · dekt 4/4 domeinen</div>
+              <div className="text-[clamp(12px,1.15vw,15px)] leading-snug mb-3" style={{ color: INK }}>{hefboom}</div>
+              <div className="space-y-1.5">
+                {vermPerSector.map((v) => (<div key={v.key} className="flex items-start gap-2 text-[clamp(11px,1.1vw,14px)]"><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: v.color }} /><span style={{ color: SUB }}>{v.titel}</span></div>))}
+              </div>
+            </div>
+          </div>
         </div>
       </Slide>
     );
 
-    // 5 — Inspanningen (4 kleurkaarten)
+    // 5 — De inspanningen (volledig)
     out.push(
-      <Slide title="De inspanningen — vier domeinen, één keer goed">
+      <Slide title="De inspanningen — gezamenlijk per domein">
         <div className="grid grid-cols-2 gap-4 w-full max-w-5xl mx-auto">
           {inspPerDomein.map((d) => (
-            <div key={d.key} className="rounded-2xl p-6 text-white flex flex-col justify-between" style={{ background: d.color, minHeight: "clamp(110px,17vh,160px)" }}>
-              <div className="font-bold text-[clamp(17px,2vw,26px)]">{d.label}</div>
-              <div className="text-white/90 leading-snug mt-2 text-[clamp(12px,1.3vw,16px)]">{d.titel || "—"}</div>
+            <div key={d.key} className="rounded-2xl p-5 text-white flex flex-col justify-between" style={{ background: d.color, minHeight: "clamp(110px,17vh,160px)" }}>
+              <div><span className="text-[10px] font-bold bg-white/20 rounded-full px-2 py-0.5">Combineren · hefboom — raakt 3 sectoren</span></div>
+              <div><div className="font-bold text-[clamp(17px,2vw,26px)]">{d.label}</div><div className="text-white/90 leading-snug mt-1 text-[clamp(12px,1.3vw,16px)]">{d.titel || "—"}</div></div>
             </div>
           ))}
         </div>
       </Slide>
     );
 
-    // 6 — Raming (balken)
-    if (scenRows.length > 0)
-      out.push(
-        <Slide title="Begroting & raming — vier scenario's">
-          <div className="w-full max-w-4xl mx-auto space-y-4">
-            {scenRows.map((r) => (
-              <div key={r.label} className="flex items-center gap-4">
-                <div className={`w-24 text-right font-semibold text-[clamp(13px,1.3vw,17px)]`} style={{ color: r.focus ? CITO : SUB }}>{r.label}</div>
-                <div className="flex-1 h-11 rounded-lg relative overflow-hidden" style={{ background: PANEL }}>
-                  <div className="h-full rounded-lg flex items-center justify-end pr-3" style={{ width: `${(r.bedrag / maxBedrag) * 100}%`, background: r.focus ? CITO : "#c4cdd9" }}>
-                    <span className={`font-bold tabular-nums text-[clamp(12px,1.2vw,16px)] ${r.focus ? "text-white" : "text-gray-700"}`}>{mln(r.bedrag)}</span>
-                  </div>
-                </div>
-                <div className="w-16 text-[clamp(11px,1.1vw,14px)]" style={{ color: r.focus ? CITO : SUB, fontWeight: r.focus ? 700 : 400 }}>{r.jaren} jr{r.focus ? " ★" : ""}</div>
-              </div>
-            ))}
-            <div className="text-center text-[clamp(12px,1.2vw,15px)] pt-2" style={{ color: SUB }}>Intentie: het <strong style={{ color: CITO }}>+20%-scenario</strong> als 5-jaar horizon · out-of-pocket (interne uren apart)</div>
-          </div>
-        </Slide>
-      );
-
-    // 7 — Organigram (boom)
-    if (po)
-      out.push(
-        <Slide title="Programma-organisatie — helder belegd">
-          <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
-            {[["Opdrachtgever", po.opdrachtgever?.naam], ["Programmamanager", po.programmamanager?.naam]].map((n, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="rounded-xl text-white px-8 py-3 text-center shadow" style={{ background: CITO }}>
-                  <div className="text-[10px] uppercase tracking-wider text-white/70 font-bold">{n[0]}</div>
-                  <div className="font-bold text-[clamp(15px,1.5vw,20px)]">{n[1]}</div>
-                </div>
-                <div className="w-0.5 h-5 bg-gray-300" />
-              </div>
-            ))}
-            <div className="w-2/3 h-0.5 bg-gray-300" />
-            <div className="grid grid-cols-3 gap-4 w-full mt-5">
-              {[["Stuurgroep", namen(po.stuurgroep), CITO], ["Kerngroep", "Inspanningsleiders + domeineigenaren", TEAL], ["Adviesgroep", namen(po.adviesgroep), ORANGE]].map((g, i) => (
-                <div key={i} className="rounded-xl bg-white p-4 text-center border-t-4 shadow-sm" style={{ borderTopColor: g[2] as string }}>
-                  <div className="font-bold text-[clamp(13px,1.3vw,17px)]" style={{ color: g[2] as string }}>{g[0]}</div>
-                  <div className="mt-1 leading-snug text-[clamp(11px,1.1vw,14px)]" style={{ color: SUB }}>{g[1] || "—"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Slide>
-      );
-
-    // 8 — 3sides (2 kolommen)
+    // 6 — Raming (vijfjarig scenario)
     out.push(
-      <Slide title="Rol van 3sides in het programma" subtitle="Strategisch partner die de interne capaciteit versterkt" headerColor={NAVY}>
-        <div className="grid grid-cols-2 gap-8 w-full max-w-5xl mx-auto">
-          <div>
-            <div className="font-bold text-[clamp(15px,1.6vw,21px)] mb-3" style={{ color: CITO }}>Hoe zetten we 3sides in?</div>
-            <div className="rounded-2xl p-5 space-y-3.5" style={{ background: PANEL }}>
-              {SIDES_DOEN.map(([t, d]) => (
-                <div key={t} className="flex items-start gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} />
-                  <div><div className="font-bold text-[clamp(13px,1.3vw,17px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(11px,1.15vw,14px)]" style={{ color: SUB }}>{d}</div></div>
-                </div>
-              ))}
+      <Slide title="Raming — vijfjarig scenario (2026–2030)">
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
+            <div><div className="font-extrabold text-[clamp(28px,4vw,52px)] leading-none" style={{ color: CITO }}>{RAMING_TOTAAL}</div><div className="text-[clamp(12px,1.3vw,16px)] mt-1" style={{ color: SUB }}>totaal · 2026–2030 (5 jaar)</div></div>
+            <div className="rounded-xl px-4 py-2 text-right" style={{ background: PANEL }}><div className="font-bold text-[clamp(13px,1.4vw,18px)]" style={{ color: INK }}>Jaarplafond € 300.000</div><div className="text-[clamp(11px,1.1vw,14px)]" style={{ color: SUB }}>2026: € 250.000 (Cito-eis)</div></div>
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>Per inspanning</div>
+              <div className="space-y-2">
+                {RAMING_POST.map(([label, bedrag, color]) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <div className="w-28 text-[clamp(10px,1.1vw,13px)] text-right shrink-0" style={{ color: INK }}>{label}</div>
+                    <div className="flex-1 h-6 rounded" style={{ background: PANEL }}><div className="h-full rounded flex items-center justify-end pr-2" style={{ width: `${(bedrag / maxPost) * 100}%`, background: color }}><span className="text-[10px] font-bold text-white tabular-nums">{euroK(bedrag)}</span></div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>Per jaar — binnen het plafond</div>
+              <div className="flex items-end justify-between gap-2" style={{ height: "clamp(110px,18vh,180px)" }}>
+                {RAMING_JAAR.map(([jaar, bedrag]) => (
+                  <div key={jaar} className="flex-1 flex flex-col items-center justify-end h-full">
+                    <span className="text-[10px] font-bold tabular-nums" style={{ color: CITO }}>{euroK(bedrag)}</span>
+                    <div className="w-full rounded-t mt-1" style={{ height: `${(bedrag / 330000) * 100}%`, background: CITO }} />
+                    <span className="text-[11px] mt-1" style={{ color: SUB }}>{jaar}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="font-bold text-[clamp(15px,1.6vw,21px)] mb-3" style={{ color: CITO }}>Het team</div>
-            <div className="space-y-3">
-              {SIDES_TEAM.map(([t, d, c]) => (
-                <div key={t} className="rounded-2xl p-4 text-white" style={{ background: c }}>
-                  <div className="font-bold text-[clamp(14px,1.4vw,19px)]">{t}</div>
-                  <div className="text-white/85 text-[clamp(11px,1.15vw,14px)] mt-0.5">{d}</div>
-                </div>
-              ))}
+          <div className="text-center text-[clamp(11px,1.1vw,14px)] mt-4" style={{ color: SUB }}>Gefaseerde uitrol; kritische aannames: externe implementatiepartner · Stichting Cito-ontvlechting · tarieven leiderschapscoaches.</div>
+        </div>
+      </Slide>
+    );
+
+    // 7 — Programma-organisatie (volledig organigram)
+    if (po) {
+      const klankbord = (po.klankbordgroep ?? []).map((r) => r.rol).filter(Boolean).join(" · ") || "Klantvertegenwoordiging PO · VO · Zakelijk";
+      const domOwner = (label: string) => { const r = (po.domeineigenaren ?? []).find((x) => (x.rol || "").toLowerCase().includes(label.toLowerCase().split(" ")[0])); const n = r?.naam || ""; return n.includes(",") ? "sectormanagers" : n || "—"; };
+      out.push(
+        <Slide title="Programma-organisatie">
+          <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
+            <div className="grid grid-cols-[0.9fr_1.3fr_0.9fr] gap-4 items-start">
+              <div className="rounded-xl bg-white border border-gray-200 p-3 shadow-sm self-center">
+                <div className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: TEAL }}>Klankbordgroep</div>
+                <div className="text-[clamp(10px,1.05vw,13px)] leading-snug" style={{ color: SUB }}>{klankbord}</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="rounded-xl text-white px-5 py-2 text-center shadow w-full" style={{ background: CITO }}><div className="text-[9px] uppercase tracking-wider text-white/70 font-bold">Opdrachtgever</div><div className="font-bold text-[clamp(13px,1.4vw,18px)]">{po.opdrachtgever?.naam}</div></div>
+                <div className="w-0.5 h-3 bg-gray-300" />
+                <div className="rounded-xl text-white px-5 py-2 text-center shadow w-full" style={{ background: CITO }}><div className="text-[9px] uppercase tracking-wider text-white/70 font-bold">Programmamanager</div><div className="font-bold text-[clamp(13px,1.4vw,18px)]">{po.programmamanager?.naam}</div></div>
+                <div className="w-0.5 h-3 bg-gray-300" />
+                <div className="rounded-xl bg-white border-2 px-4 py-2 text-center w-full" style={{ borderColor: TEAL }}><div className="text-[9px] uppercase tracking-wider font-bold" style={{ color: TEAL }}>Kerngroep · inspanningsleiders</div><div className="text-[clamp(10px,1.05vw,13px)] leading-snug mt-0.5" style={{ color: INK }}>{namen(po.kerngroep)}</div></div>
+              </div>
+              <div className="space-y-3 self-center">
+                <div className="rounded-xl bg-white border-t-4 p-3 shadow-sm" style={{ borderTopColor: CITO }}><div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: CITO }}>Stuurgroep · besluit</div><div className="text-[clamp(10px,1.05vw,13px)] mt-0.5" style={{ color: SUB }}>{namen(po.stuurgroep)}</div></div>
+                <div className="rounded-xl bg-white border-t-4 p-3 shadow-sm" style={{ borderTopColor: ORANGE }}><div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ORANGE }}>Adviesgroep · advies</div><div className="text-[clamp(10px,1.05vw,13px)] mt-0.5" style={{ color: SUB }}>{namen(po.adviesgroep)}</div></div>
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold text-center mb-1.5" style={{ color: "#b45309" }}>Domeineigenaren</div>
+              <div className="grid grid-cols-4 gap-2">
+                {DOMS.map((d) => (<div key={d.key} className="rounded-lg p-2 text-center" style={{ background: `${d.color}1a`, border: `1px solid ${d.color}` }}><div className="font-bold text-[clamp(11px,1.1vw,14px)]" style={{ color: d.color }}>{d.label}</div><div className="text-[10px]" style={{ color: SUB }}>{domOwner(d.label)}</div></div>))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-[clamp(10px,1vw,13px)]" style={{ color: SUB }}>
+              <div><strong style={{ color: INK }}>Ritme:</strong> stuurgroep maandelijks · kerngroep bilateraal PM · klankbord per kwartaal</div>
+              <div><strong style={{ color: INK }}>Escalatie:</strong> inspanningsleider → domeineigenaar → PM → opdrachtgever</div>
             </div>
           </div>
+        </Slide>
+      );
+    }
+
+    // 8 — 3sides (nadruk: waarom + hoe + team)
+    out.push(
+      <Slide title="Rol van 3sides in het programma" subtitle="Strategisch & executiepartner die de interne capaciteit versterkt" headerColor={NAVY}>
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <div className="font-bold text-[clamp(14px,1.5vw,19px)] mb-2" style={{ color: CITO }}>Hoe zetten we 3sides in?</div>
+              <div className="rounded-2xl p-4 space-y-2" style={{ background: PANEL }}>
+                {SIDES_DOEN.map(([t, d]) => (<div key={t} className="flex items-start gap-2.5"><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><div><div className="font-bold text-[clamp(12px,1.2vw,15px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(10px,1.05vw,13px)] leading-snug" style={{ color: SUB }}>{d}</div></div></div>))}
+              </div>
+            </div>
+            <div>
+              <div className="font-bold text-[clamp(14px,1.5vw,19px)] mb-2" style={{ color: CITO }}>Waarom 3sides?</div>
+              <div className="space-y-2.5">
+                {SIDES_KERN.map(([t, d, c]) => (<div key={t} className="rounded-2xl p-3.5 text-white" style={{ background: c }}><div className="font-bold text-[clamp(13px,1.3vw,17px)]">{t}</div><div className="text-white/85 text-[clamp(11px,1.1vw,14px)] mt-0.5 leading-snug">{d}</div></div>))}
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl p-3 text-center text-[clamp(11px,1.15vw,15px)]" style={{ background: PANEL, color: SUB }}>
+            <strong style={{ color: INK }}>Vast team:</strong> senior consultant (~3 d/wk) + medior (~2 d/wk) · <strong style={{ color: INK }}>specialisten op afroep:</strong> CRM-consultants · solutions architecten · journey designers.
+          </div>
+        </div>
+      </Slide>
+    );
+
+    // 9 — Next steps
+    out.push(
+      <Slide title="Next steps" headerColor={TEAL}>
+        <div className="w-full max-w-4xl mx-auto flex items-stretch gap-5">
+          <div className="flex-1 rounded-2xl p-7 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(22px,2.6vw,36px)]" style={{ color: CITO }}>Juni</div><div className="mt-3 text-[clamp(13px,1.4vw,18px)]" style={{ color: INK }}>Uitwerking &amp; planning — samen met 3sides</div></div>
+          <div className="grid place-items-center text-4xl" style={{ color: SUB }}>→</div>
+          <div className="flex-1 rounded-2xl p-7 text-white shadow-xl relative overflow-hidden" style={{ background: CITO }}><div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border border-white/10" /><div className="font-extrabold text-[clamp(26px,3.4vw,52px)] relative">1 juli</div><div className="mt-3 text-white/80 text-[clamp(13px,1.4vw,18px)] relative">Van start — we gaan aan de slag</div></div>
         </div>
       </Slide>
     );
