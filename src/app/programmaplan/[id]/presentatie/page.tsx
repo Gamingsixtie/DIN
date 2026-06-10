@@ -88,13 +88,16 @@ export default function PresentatiePage() {
 
     // 1 — Titel
     out.push(
-      <div className="h-full flex flex-col justify-center px-[8vw] bg-cito-blue text-white relative overflow-hidden">
-        <div className="absolute -right-24 -top-24 w-[480px] h-[480px] rounded-full border border-white/10" />
-        <div className="absolute right-20 top-40 w-[300px] h-[300px] rounded-full border border-white/10" />
-        <div className="text-[13px] tracking-[0.35em] font-bold text-white/55 mb-5 relative">CITO DIN · PROGRAMMAPLAN</div>
-        <h1 className="text-[clamp(46px,7.5vw,92px)] font-bold leading-[1.03] relative">{session.name}</h1>
-        <p className="text-[clamp(17px,2.2vw,28px)] text-white/75 mt-5 max-w-3xl relative">Recap &amp; vervolg — van strategie naar uitvoering</p>
-        <div className="mt-10 text-white/50 text-sm tracking-wide relative">Cito BV · met 3sides</div>
+      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] bg-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(58% 48% at 50% 38%, rgba(0,51,102,0.055), transparent 72%)" }} />
+        <div className="relative">
+          <div className="text-[clamp(11px,1.25vw,15px)] tracking-[0.42em] uppercase font-semibold text-slate-400 mb-7">Doelen-Inspanningennetwerk</div>
+          <h1 className="text-[clamp(52px,8.5vw,116px)] font-bold text-cito-blue leading-[0.95] tracking-tight">Programmaplan</h1>
+          <p className="text-[clamp(22px,3.4vw,48px)] font-medium mt-4">
+            <span className="text-cito-blue">Klant </span><span className="text-slate-400">in</span><span className="text-cito-blue"> Beeld</span>
+          </p>
+          <div className="w-20 h-[3px] bg-cito-blue/25 rounded-full mx-auto mt-12" />
+        </div>
       </div>
     );
 
