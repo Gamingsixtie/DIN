@@ -246,28 +246,21 @@ export default function PresentatiePage() {
         out.push(
           <Slide key="crm-csm" title="Van CRM naar CSM — naar een integraal klantbeeld" headerColor="#7c3aed">
             <div className="w-full max-w-5xl mx-auto">
-              <div className="text-center text-[clamp(13px,1.4vw,18px)] leading-snug mb-4 max-w-4xl mx-auto" style={{ color: INK }}>
-                Het CRM is het <strong>fundament</strong> voor één organisatiebreed klantbeeld — maar dekt alleen de <strong>randen</strong> van de klantreis. <span style={{ color: "#0b7a5c" }}><strong>CSM</strong> maakt het beeld compleet.</span>
+              <div className="text-center text-[clamp(14px,1.6vw,21px)] leading-snug mb-6 max-w-4xl mx-auto" style={{ color: INK }}>
+                We beginnen met het <strong style={{ color: "#7c3aed" }}>CRM</strong> als fundament voor één klantbeeld — en bouwen toe naar <strong style={{ color: "#0b7a5c" }}>CSM</strong> voor de kern: het daadwerkelijke gebruik. Samen een <strong>end-to-end klantbeeld</strong>.
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5" style={{ borderTopColor: "#7c3aed" }}>
-                  <div className="font-bold text-[clamp(16px,1.9vw,24px)]" style={{ color: "#7c3aed" }}>CRM — de relatie</div>
-                  <div className="text-[clamp(11px,1.2vw,15px)] mt-1 font-semibold" style={{ color: SUB }}>Randen van de klantreis: oriëntatie · aankoop · verlenging</div>
-                  <div className="text-[clamp(12px,1.3vw,16px)] mt-2.5 leading-snug" style={{ color: INK }}>Beheert interacties, transacties en relatiebeheer. Geeft inzicht in wíe de klant is en wat er wordt afgenomen.</div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-3">
+                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5 flex flex-col" style={{ borderTopColor: "#7c3aed" }}>
+                  <div className="font-extrabold text-[clamp(18px,2.1vw,28px)]" style={{ color: "#7c3aed" }}>CRM — de relatie</div>
+                  <div className="text-[clamp(12px,1.3vw,16px)] mt-1.5 font-semibold" style={{ color: SUB }}>De randen van de klantreis: oriëntatie · aankoop · verlenging</div>
+                  <div className="text-[clamp(13px,1.45vw,18px)] mt-3 leading-snug" style={{ color: INK }}>Beheert interacties, transacties en relatiebeheer — inzicht in wíe de klant is en wat er wordt afgenomen.</div>
                 </div>
-                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5" style={{ borderTopColor: TEAL }}>
-                  <div className="font-bold text-[clamp(16px,1.9vw,24px)]" style={{ color: "#0b7a5c" }}>CSM — de waarde</div>
-                  <div className="text-[clamp(11px,1.2vw,15px)] mt-1 font-semibold" style={{ color: SUB }}>De kern: daadwerkelijk gebruik · succes · outcomes</div>
-                  <div className="text-[clamp(12px,1.3vw,16px)] mt-2.5 leading-snug" style={{ color: INK }}>Maximaliseert klantwaarde: een continu, dynamisch klantbeeld om proactief te sturen op adoptie en tijdig risico&apos;s te signaleren.</div>
+                <div className="grid place-items-center px-1"><span className="text-[clamp(28px,4vw,52px)] font-bold" style={{ color: "#9aa7b4" }}>→</span></div>
+                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5 flex flex-col" style={{ borderTopColor: TEAL }}>
+                  <div className="font-extrabold text-[clamp(18px,2.1vw,28px)]" style={{ color: "#0b7a5c" }}>CSM — de waarde</div>
+                  <div className="text-[clamp(12px,1.3vw,16px)] mt-1.5 font-semibold" style={{ color: SUB }}>De kern: daadwerkelijk gebruik · succes · outcomes</div>
+                  <div className="text-[clamp(13px,1.45vw,18px)] mt-3 leading-snug" style={{ color: INK }}>Maximaliseert klantwaarde — een continu, dynamisch klantbeeld om proactief te sturen op adoptie en risico tijdig te signaleren.</div>
                 </div>
-              </div>
-              <div className="rounded-xl p-3.5 mt-4 flex items-start gap-3" style={{ background: "#7c3aed14", border: "1px solid #7c3aed40" }}>
-                <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: "#7c3aed" }} />
-                <span className="text-[clamp(12px,1.3vw,16px)] leading-snug" style={{ color: INK }}>De kern blijft nu buiten beeld: rond <strong>Leerling in Beeld</strong> en de <strong>Doorstroomtoets</strong> ontstaat waardevolle gebruiksdata die vandaag nauwelijks zichtbaar is.</span>
-              </div>
-              <div className="rounded-2xl p-4 mt-3 text-white shadow-lg flex items-start gap-3" style={{ background: NAVY }}>
-                <span className="text-[clamp(11px,1.1vw,13px)] font-extrabold rounded-full px-3 py-1 shrink-0" style={{ background: GREEN, color: "#173a0a" }}>ADVIES</span>
-                <span className="text-[clamp(12px,1.35vw,17px)] leading-snug">Benader Klant in Beeld vanaf de start als één <strong>integrale transformatie</strong> — CRM én CSM samen als fundament voor een werkelijk <strong>end-to-end klantbeeld</strong> over de hele klantreis.</span>
               </div>
             </div>
           </Slide>
@@ -419,6 +412,10 @@ export default function PresentatiePage() {
                 <div className="mt-2 rounded-md px-2 py-1.5 text-[clamp(9px,1vw,12px)] leading-snug" style={{ background: q.color + "16", color: INK }}><strong style={{ color: q.color }}>Mijlpaal:</strong> {q.mijlpaal}</div>
               </div>
             ))}
+          </div>
+          <div className="mt-3 rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: PANEL }}>
+            <span className="text-[clamp(11px,1.2vw,14px)] font-extrabold rounded-full px-3 py-1 shrink-0 text-white" style={{ background: "#94a3b8" }}>PARALLEL · nog te bepalen</span>
+            <span className="text-[clamp(11px,1.25vw,15px)]" style={{ color: INK }}><strong style={{ color: "#2563eb" }}>Mens</strong> (training &amp; coaching · € 182.500) en <strong style={{ color: "#d97706" }}>Cultuur</strong> (leiderschap · € 142.000) lopen parallel mee — exacte fasering wordt nog bepaald; bedragen conform de raming.</span>
           </div>
         </div>
       </Slide>
