@@ -3,42 +3,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { loadSessionFromSupabase } from "@/lib/persistence";
-import type { DINSession } from "@/lib/types";
+import type { DINSession, Stap2Result, Stap4Result, Stap5Result } from "@/lib/types";
 import { OrganigramView } from "@/components/steps/GovernanceStep";
+import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
 
 /** Presentatie-modus — opmaak: gekleurde kopbalk + witte body met platte, kleurrijke kaarten. */
 
-const CITO = "#003366", TEAL = "#159a86", ORANGE = "#ee7a1a", GREEN = "#7bc043";
+const CITO = "#003366", TEAL = "#159a86", GREEN = "#7bc043";
 const NAVY = "#1b3a5b", PANEL = "#eef1f6", INK = "#243244", SUB = "#6b7a8d";
-const SECTORS = [
-  { key: "PO", color: "#7c5cd6" },
-  { key: "VO", color: "#10b981" },
-  { key: "Zakelijk", color: "#0e9e8e" },
-] as const;
 const VISIE_PIJLERS = [
   ["Outside-in leidend", "wat klanten werkelijk nodig hebben"],
   ["Vier domeinen verbonden", "mens · proces · systeem · cultuur"],
   ["Samen met klanten", "echte oplossingen, duurzame relaties"],
 ];
-// Inspanningen per domein — cross-sectorale bundel + gebundelde inspanningen + investering (verslag §3/§4).
-const INSP_DETAIL: Array<{ label: string; color: string; titel: string; bullets: string[]; bedrag: string; aandeel: string }> = [
-  { label: "Mens", color: "#2563eb", titel: "Gespreksvaardigheidstraining outside-in voor alle sectoren", bullets: ["Trainen in klantgerichte gespreksvaardigheden", "Werven & ontwikkelen van outside-in competenties", "Klantgerichte rollen en samenwerking verankeren"], bedrag: "€ 182.500", aandeel: "~13%" },
-  { label: "Processen", color: "#059669", titel: "Uniforme klantinformatieprocessen & funnelgovernance", bullets: ["Klantinformatieprocessen standaardiseren & borgen, organisatiebreed", "Commerciële werkafspraken, rollen & KPI-structuur standaardiseren"], bedrag: "€ 126.000", aandeel: "~9%" },
-  { label: "Data & Systemen", color: "#7c3aed", titel: "Integraal CRM-klantdashboard cross-sectoraal", bullets: ["Implementeren en inrichten van integraal CRM-klantdashboard", "Eén centrale bron voor klantdata en inzichten"], bedrag: "€ 910.000", aandeel: "grootste post" },
-  { label: "Cultuur", color: "#d97706", titel: "Leiderschapsprogramma outside-in verankeren", bullets: ["Outside-in leiderschap als rolmodelgedrag", "Outside-in mindset & klantgericht eigenaarschap", "Eigenaarschap & teamcultuur binnen commercieel team"], bedrag: "€ 142.000", aandeel: "~10%" },
-];
-const SIDES_DOEN = [
-  ["Programmamanagement & regie", "Interim leiding · voortgang & tempo · escalatie · sectoren verbinden"],
-  ["Adoptie & gedragsverandering", "Adoptie-framework per rol · competentiematrix · nulmeting · borging"],
-  ["Customer Success", "Eén samenhangende klantreis · proactieve contactmomenten · feedback loops"],
-  ["CRM & data", "Advies CRM-strategie & -keuze · koppeling Mailion/Microspace · data → actie"],
-  ["Leiderschap & organisatie", "Voorbeeldgedrag · werving · profielen aanscherpen"],
-  ["Kennisdeling & verbinding", "Kennisdeling tussen sectoren · intervisie · successen tonen"],
-];
-const SIDES_KERN: Array<[string, string, string]> = [
-  ["Expertise voor ieder domein", "Snel schakelen — parallel werken aan mens · proces · data · cultuur", TEAL],
-  ["Learnings uit Klant in Beeld", "De inzichten en het geleerde nemen we mee", NAVY],
-  ["Prioriteit op het nú", "Sales · funnel · accountplannen · verkoopkansen — ongeacht de systeemkeuze; plus de langere-termijn doelen", ORANGE],
+// Inspanningen per domein — cross-sectorale bundel + gebundelde inspanningen + vijf fasen + investering (verslag §3/§4).
+const INSP_DETAIL: Array<{ label: string; color: string; titel: string; bullets: string[]; fases: string[]; bedrag: string; aandeel: string }> = [
+  { label: "Mens", color: "#2563eb", titel: "Gespreksvaardigheidstraining outside-in voor alle sectoren", bullets: ["Trainen in klantgerichte gespreksvaardigheden", "Werven & ontwikkelen van outside-in competenties", "Klantgerichte rollen en samenwerking verankeren"], fases: ["Behoeftestelling & curriculumontwerp", "Basistraining", "Vaardigheidstraining", "Toepassing in de praktijk", "Borging & nazorg"], bedrag: "€ 182.500", aandeel: "~13%" },
+  { label: "Processen", color: "#059669", titel: "Uniforme klantinformatieprocessen & funnelgovernance", bullets: ["Klantinformatieprocessen standaardiseren & borgen, organisatiebreed", "Commerciële werkafspraken, rollen & KPI-structuur standaardiseren"], fases: ["Inventarisatie (as-is)", "Herontwerp (to-be) & pilot", "Uitrol", "Standaardisatie", "Continu verbeteren"], bedrag: "€ 126.000", aandeel: "~9%" },
+  { label: "Data & Systemen", color: "#7c3aed", titel: "Integraal CRM-klantdashboard cross-sectoraal", bullets: ["Implementeren en inrichten van integraal CRM-klantdashboard", "Eén centrale bron voor klantdata en inzichten"], fases: ["Analyse & architectuur", "Realisatie & integraties", "Acceptatie & uitrol", "In beheer", "Optimalisatie"], bedrag: "€ 910.000", aandeel: "grootste post" },
+  { label: "Cultuur", color: "#d97706", titel: "Leiderschapsprogramma outside-in verankeren", bullets: ["Outside-in leiderschap als rolmodelgedrag", "Outside-in mindset & klantgericht eigenaarschap", "Eigenaarschap & teamcultuur binnen commercieel team"], fases: ["Bewustwording & coalitievorming", "Acceptatie & rolmodelgedrag", "Adoptie", "Waardenverankering", "Continue rolmodel-werking"], bedrag: "€ 142.000", aandeel: "~10%" },
 ];
 const SIDES_DOMEIN: Array<[string, string, string]> = [
   ["Mens", "#2563eb", "Trainingen mét HR op echte klantcases; coaching & intervisie op de werkvloer."],
@@ -52,11 +35,6 @@ const RAMING_JAAR: Array<[string, number]> = [["2026", 251500], ["2027", 301500]
 const NET_NODES: Array<[number, number]> = [[1150, 60], [1280, 120], [1360, 210], [1230, 235], [1330, 325], [1095, 175], [1392, 95], [1205, 345], [90, 520], [210, 600], [140, 702], [60, 640], [292, 560], [182, 762], [322, 680], [1352, 560], [1240, 662]];
 const NET_LINES: Array<[number, number]> = [[0, 1], [1, 6], [1, 2], [2, 4], [3, 4], [0, 5], [3, 1], [2, 3], [7, 4], [7, 3], [8, 9], [9, 10], [8, 11], [9, 12], [10, 13], [13, 14], [14, 10], [12, 9], [15, 16]];
 const NET_ACCENT = new Set([1, 9, 16]);
-
-interface StepShape {
-  stap2?: { vermogenGelijkenisGroepen?: Array<{ gezamenlijkeOmschrijving?: string }> };
-  stap4?: { subEffortAnalysis?: Array<{ actie?: string; domein?: string; titel?: string; voorgesteldeNaam?: string }> };
-}
 const euroK = (n: number) => "€ " + Math.round(n / 1000).toLocaleString("nl-NL") + "K";
 
 function Slide({ title, subtitle, headerColor, scroll, children }: { title: string; subtitle?: string; headerColor?: string; scroll?: boolean; children: React.ReactNode }) {
@@ -92,14 +70,9 @@ export default function PresentatiePage() {
 
   const slides = useMemo<React.ReactNode[]>(() => {
     if (!session) return [];
-    const sr = session.crossAnalyseWizard?.stepResults as StepShape | undefined;
+    const stepRes = session.crossAnalyseWizard?.stepResults as { stap2?: Stap2Result; stap4?: Stap4Result; stap5?: Stap5Result } | undefined;
     const goals = (session.goals ?? []) as Array<{ title?: string; name?: string }>;
-    const benefits = (session.benefits ?? []) as Array<{ title?: string; description?: string; sectorId?: string }>;
-    const caps = ((session.capabilities ?? []) as Array<{ title?: string; description?: string; sectorId?: string; consolidated?: boolean }>).filter((c) => !c.consolidated);
     const po = session.programmaorganisatie;
-    const baatPerSector = SECTORS.map((s) => { const b = benefits.find((x) => x.sectorId === s.key); return { ...s, titel: b ? b.title || b.description || "" : "" }; });
-    const vermPerSector = SECTORS.map((s) => { const c = caps.find((x) => x.sectorId === s.key); return { ...s, titel: c ? c.title || c.description || "" : "" }; });
-    const hefboom = sr?.stap2?.vermogenGelijkenisGroepen?.[0]?.gezamenlijkeOmschrijving || "";
     const maxPost = Math.max(...RAMING_POST.map((p) => p[1]));
 
     const out: React.ReactNode[] = [];
@@ -113,7 +86,7 @@ export default function PresentatiePage() {
         </svg>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(50% 42% at 50% 42%, rgba(255,255,255,0.78), transparent 72%)" }} />
         <div className="relative">
-          <div className="text-[clamp(11px,1.3vw,16px)] tracking-[0.44em] uppercase font-semibold text-slate-400 mb-7">Doelen-Inspanningennetwerk</div>
+          <div className="text-[clamp(11px,1.3vw,16px)] tracking-[0.3em] uppercase font-semibold text-slate-400 mb-7">Doelen-Inspanningennetwerk</div>
           <h1 className="text-[clamp(56px,9.5vw,132px)] font-extrabold text-cito-blue leading-[0.92] tracking-tight">Programmaplan</h1>
           <p className="text-[clamp(24px,3.8vw,54px)] font-medium mt-5"><span className="text-cito-blue">Klant </span><span className="text-slate-400">in</span><span className="text-cito-blue"> Beeld</span></p>
           <div className="flex items-center justify-center gap-2.5 mt-12"><span className="w-1.5 h-1.5 rounded-full bg-cito-blue/40" /><span className="w-16 h-[3px] bg-cito-blue/25 rounded-full" /><span className="w-1.5 h-1.5 rounded-full bg-cito-blue/40" /></div>
@@ -126,8 +99,8 @@ export default function PresentatiePage() {
       <Slide title="Programmavisie" headerColor={TEAL}>
         <div className="w-full max-w-4xl mx-auto">
           <div className="font-bold leading-tight text-[clamp(22px,3.2vw,44px)]" style={{ color: CITO }}>Van reactief leverancier naar een proactieve, <span style={{ color: TEAL }}>outside-in</span> partner.</div>
-          <div className="grid grid-cols-3 gap-4 mt-9">
-            {VISIE_PIJLERS.map(([t, d]) => (<div key={t} className="rounded-2xl p-5 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(14px,1.5vw,19px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(12px,1.2vw,15px)] mt-1" style={{ color: SUB }}>{d}</div></div>))}
+          <div className="grid grid-cols-3 gap-5 mt-12">
+            {VISIE_PIJLERS.map(([t, d]) => (<div key={t} className="rounded-2xl p-5 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(14px,1.5vw,19px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(12px,1.2vw,15px)] mt-1.5 leading-snug" style={{ color: SUB }}>{d}</div></div>))}
           </div>
         </div>
       </Slide>
@@ -149,61 +122,56 @@ export default function PresentatiePage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {[1, 2].map((n) => (<div key={n} className="rounded-2xl border border-gray-200 p-4 flex items-start gap-3" style={{ background: PANEL }}><span className="text-3xl font-bold text-gray-300 leading-none">{n + 1}</span><div className="font-semibold leading-snug text-[clamp(13px,1.3vw,17px)]" style={{ color: SUB }}>{goals[n]?.title || goals[n]?.name}</div></div>))}
+            {[1, 2].map((n) => (<div key={n} className="rounded-2xl border border-gray-200 p-4 flex items-start gap-3" style={{ background: PANEL }}><span className="text-2xl font-bold text-gray-300 leading-none">{n + 1}</span><div className="font-semibold leading-snug text-[clamp(13px,1.3vw,17px)]" style={{ color: SUB }}>{goals[n]?.title || goals[n]?.name}</div></div>))}
           </div>
-          <div className="text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ color: SUB }}><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><span>De focus op doel 1 is samen met het <strong style={{ color: INK }}>MT bepaald</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span></div>
+          <div className="rounded-xl p-3 text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ background: PANEL, color: SUB }}><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><span>De focus op doel 1 is samen met het <strong style={{ color: INK }}>MT bepaald</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span></div>
         </div>
       </Slide>
     );
 
-    // 4 — Cross-sectorale uitkomst (oorspronkelijke schema)
+    // 4 — Cross-sectorale uitkomst (volledig in-app diagram)
     out.push(
-      <Slide title="Cross-sectorale uitkomst — geconsolideerd vanuit de DIN">
+      <Slide title="Cross-sectorale uitkomst — het volledige DIN-diagram" scroll>
         <div className="w-full max-w-5xl mx-auto">
-          <div className="rounded-xl text-white px-5 py-2 text-center" style={{ background: NAVY }}>
-            <div className="text-[9px] uppercase tracking-wider opacity-70 font-bold">Focusdoel — prioriteit 1</div>
-            <div className="font-bold text-[clamp(13px,1.5vw,19px)] leading-snug">{goals[0]?.title}</div>
-          </div>
-          <div className="flex justify-center"><div className="w-0.5 h-3" style={{ background: "#cbd5e1" }} /></div>
-          <div className="text-center text-[9px] uppercase tracking-wider font-bold mb-1.5" style={{ color: SUB }}>Baten per sector</div>
-          <div className="grid grid-cols-3 gap-3">
-            {baatPerSector.map((b) => (<div key={b.key} className="rounded-lg bg-white p-2.5 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[10px] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(11px,1.1vw,14px)] leading-snug line-clamp-3" style={{ color: INK }}>{b.titel}</div></div>))}
-          </div>
-          <div className="flex justify-center"><div className="w-0.5 h-3 mt-2" style={{ background: "#cbd5e1" }} /></div>
-          <div className="rounded-xl p-3.5 mt-1" style={{ background: "#e9faf4", border: `1px solid ${TEAL}` }}>
-            <div className="text-center text-[9px] uppercase tracking-wider font-bold" style={{ color: "#0b7a5c" }}>Gelijkende vermogens — hefboomgroep · dekt 4/4 domeinen</div>
-            <div className="text-center text-[clamp(11px,1.1vw,14px)] leading-snug my-2 max-w-3xl mx-auto line-clamp-2" style={{ color: INK }}>{hefboom}</div>
-            <div className="grid grid-cols-3 gap-2">
-              {vermPerSector.map((v) => (<div key={v.key} className="rounded-lg bg-white border-2 p-2" style={{ borderColor: v.color }}><span className="text-[9px] font-bold" style={{ color: v.color }}>{v.key}</span><div className="text-[clamp(11px,1.1vw,14px)] font-semibold leading-snug line-clamp-3" style={{ color: INK }}>{v.titel}</div></div>))}
-            </div>
-          </div>
+          <StapSectorVertaling session={session} result={stepRes?.stap5} stap2Result={stepRes?.stap2} stap4Result={stepRes?.stap4} compact />
         </div>
       </Slide>
     );
 
-    // 5–8 — De inspanningen, per domein (nadruk)
+    // 5–8 — De inspanningen, per domein (uitgebreid: bullets + vijf fasen)
     INSP_DETAIL.forEach((d) => out.push(
       <Slide key={d.label} title={`De inspanningen — ${d.label}`} headerColor={d.color}>
         <div className="w-full max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
             <span className="text-[10px] font-bold text-white rounded-full px-2.5 py-1" style={{ background: d.color }}>Combineren · hefboom — cross-sectoraal</span>
             <span className="font-bold tabular-nums text-[clamp(14px,1.5vw,20px)]" style={{ color: d.color }}>{d.bedrag}</span>
             <span className="text-[clamp(10px,1.1vw,13px)] font-semibold rounded-full px-2 py-0.5" style={{ background: PANEL, color: SUB }}>{d.aandeel}</span>
           </div>
-          <div className="font-bold leading-tight text-[clamp(18px,2.2vw,30px)] border-l-4 pl-3" style={{ color: INK, borderColor: d.color }}>{d.titel}</div>
-          <div className="mt-5 space-y-3">
-            {d.bullets.map((b) => (<div key={b} className="flex items-start gap-3"><span className="w-2.5 h-2.5 rounded-full mt-2 shrink-0" style={{ background: d.color }} /><span className="text-[clamp(13px,1.5vw,19px)]" style={{ color: INK }}>{b}</span></div>))}
+          <div className="font-bold leading-tight text-[clamp(16px,2vw,26px)] border-l-4 pl-3" style={{ color: INK, borderColor: d.color }}>{d.titel}</div>
+          <div className="grid grid-cols-2 gap-7 mt-5">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>Wat bouwen we?</div>
+              <div className="space-y-2.5">
+                {d.bullets.map((b) => (<div key={b} className="flex items-start gap-2.5"><span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: d.color }} /><span className="text-[clamp(12px,1.3vw,16px)] leading-snug" style={{ color: INK }}>{b}</span></div>))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: SUB }}>In vijf fasen</div>
+              <div className="space-y-1.5">
+                {d.fases.map((f, i) => (<div key={f} className="flex items-center gap-2.5"><span className="w-6 h-6 rounded-full grid place-items-center text-white text-[11px] font-bold shrink-0" style={{ background: d.color }}>{i + 1}</span><span className="text-[clamp(11px,1.2vw,15px)]" style={{ color: INK }}>{f}</span></div>))}
+              </div>
+            </div>
           </div>
         </div>
       </Slide>
     ));
 
-    // 9 — Raming (vijfjarig scenario, beter toegelicht)
+    // 9 — Raming (+20%-scenario = de 5 jaar)
     out.push(
-      <Slide title="Raming — vijfjarig scenario (2026–2030)">
+      <Slide title="Raming — +20%-scenario over vijf jaar (2026–2030)">
         <div className="w-full max-w-5xl mx-auto">
           <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
-            <div><div className="font-extrabold text-[clamp(28px,4vw,52px)] leading-none" style={{ color: CITO }}>{RAMING_TOTAAL}</div><div className="text-[clamp(12px,1.3vw,16px)] mt-1" style={{ color: SUB }}>totaal · 2026–2030 (5 jaar)</div></div>
+            <div><div className="font-extrabold text-[clamp(28px,4vw,52px)] leading-none" style={{ color: CITO }}>{RAMING_TOTAAL}</div><div className="text-[clamp(12px,1.3vw,16px)] mt-1" style={{ color: SUB }}>totaal · het <strong style={{ color: INK }}>+20%-scenario</strong> = de 5-jaar horizon</div></div>
             <div className="rounded-xl px-4 py-2 text-right" style={{ background: PANEL }}><div className="font-bold text-[clamp(13px,1.4vw,18px)]" style={{ color: INK }}>Jaarplafond € 300.000</div><div className="text-[clamp(11px,1.1vw,14px)]" style={{ color: SUB }}>2026: € 250.000 (Cito-eis)</div></div>
           </div>
           <div className="grid grid-cols-2 gap-8">
@@ -227,7 +195,7 @@ export default function PresentatiePage() {
       </Slide>
     );
 
-    // 10 — Programma-organisatie (1-op-1: app-organigram)
+    // 10 — Programma-organisatie (1-op-1 app-organigram, op schaal)
     if (po)
       out.push(
         <Slide title="Programma-organisatie">
@@ -237,36 +205,16 @@ export default function PresentatiePage() {
         </Slide>
       );
 
-    // 11 — Rol van 3sides (waarom + hoe + team)
+    // 11 — Rol van 3sides (één slide: de vier domeinen + team)
     out.push(
-      <Slide title="Rol van 3sides in het programma" subtitle="Strategisch & executiepartner die de interne capaciteit versterkt" headerColor={NAVY} scroll>
+      <Slide title="Rol van 3sides — over de vier domeinen" subtitle="Strategisch & executiepartner; verandering lukt als mens, proces, data én cultuur samen bewegen" headerColor={NAVY}>
         <div className="w-full max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 gap-6 items-stretch">
-            <div>
-              <div className="font-bold text-[clamp(14px,1.5vw,19px)] mb-2" style={{ color: CITO }}>Hoe zetten we 3sides in?</div>
-              <div className="rounded-2xl p-3.5 space-y-1.5" style={{ background: PANEL }}>
-                {SIDES_DOEN.map(([t, d]) => (<div key={t} className="flex items-start gap-2.5"><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><div><div className="font-bold text-[clamp(12px,1.2vw,15px)]" style={{ color: INK }}>{t}</div><div className="text-[clamp(10px,1.05vw,13px)] leading-snug" style={{ color: SUB }}>{d}</div></div></div>))}
-              </div>
-            </div>
-            <div>
-              <div className="font-bold text-[clamp(14px,1.5vw,19px)] mb-2" style={{ color: CITO }}>Waarom 3sides?</div>
-              <div className="space-y-2.5">
-                {SIDES_KERN.map(([t, d, c]) => (<div key={t} className="rounded-2xl p-3.5 text-white" style={{ background: c }}><div className="font-bold text-[clamp(13px,1.3vw,17px)]">{t}</div><div className="text-white/85 text-[clamp(11px,1.1vw,14px)] mt-0.5 leading-snug">{d}</div></div>))}
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+            {SIDES_DOMEIN.map(([label, color, desc]) => (<div key={label} className="rounded-2xl p-4 bg-white border-l-4 shadow-sm" style={{ borderLeftColor: color }}><div className="font-bold text-[clamp(15px,1.6vw,21px)]" style={{ color }}>{label}</div><div className="text-[clamp(11px,1.25vw,15px)] mt-1 leading-snug" style={{ color: SUB }}>{desc}</div></div>))}
           </div>
-          <div className="mt-3 rounded-xl p-2.5 text-center text-[clamp(11px,1.15vw,15px)] leading-snug" style={{ background: PANEL, color: SUB }}>
-            <strong style={{ color: INK }}>Vast team:</strong> senior consultant (~3 d/wk) + medior (~2 d/wk) · <strong style={{ color: INK }}>specialisten op afroep:</strong> CRM-consultants · solutions architecten · journey designers.
+          <div className="mt-4 rounded-xl p-2.5 text-center text-[clamp(11px,1.15vw,15px)] leading-snug" style={{ background: PANEL, color: SUB }}>
+            <strong style={{ color: INK }}>Vast team:</strong> senior consultant (~3 d/wk) + medior (~2 d/wk) · specialisten op afroep (CRM · solutions architecten · journey designers).
           </div>
-        </div>
-      </Slide>
-    );
-
-    // 12 — 3sides over de vier domeinen
-    out.push(
-      <Slide title="3sides werkt aan de vier domeinen — tegelijk" subtitle="Gedragsverandering lukt als mens, proces, data én cultuur samen bewegen" headerColor={NAVY}>
-        <div className="grid grid-cols-2 gap-4 w-full max-w-5xl mx-auto">
-          {SIDES_DOMEIN.map(([label, color, desc]) => (<div key={label} className="rounded-2xl p-5 bg-white border-l-4 shadow-sm" style={{ borderLeftColor: color }}><div className="font-bold text-[clamp(15px,1.7vw,22px)]" style={{ color }}>{label}</div><div className="text-[clamp(12px,1.3vw,16px)] mt-1.5 leading-snug" style={{ color: SUB }}>{desc}</div></div>))}
         </div>
       </Slide>
     );
@@ -276,7 +224,7 @@ export default function PresentatiePage() {
       <Slide title="Next steps" headerColor={TEAL}>
         <div className="w-full max-w-4xl mx-auto flex items-stretch gap-5">
           <div className="flex-1 rounded-2xl p-7 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(22px,2.6vw,36px)]" style={{ color: CITO }}>Juni</div><div className="mt-3 text-[clamp(13px,1.4vw,18px)]" style={{ color: INK }}>Uitwerking &amp; planning — samen met 3sides</div></div>
-          <div className="grid place-items-center text-4xl" style={{ color: SUB }}>→</div>
+          <div className="grid place-items-center text-4xl shrink-0 w-12" style={{ color: SUB }}>→</div>
           <div className="flex-1 rounded-2xl p-7 text-white shadow-xl relative overflow-hidden" style={{ background: CITO }}><div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border border-white/10" /><div className="font-extrabold text-[clamp(26px,3.4vw,52px)] relative">1 juli</div><div className="mt-3 text-white/80 text-[clamp(13px,1.4vw,18px)] relative">Van start — we gaan aan de slag</div></div>
         </div>
       </Slide>
