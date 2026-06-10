@@ -147,7 +147,7 @@ export default function PresentatiePage() {
           <div className="grid grid-cols-2 gap-4">
             {[1, 2].map((n) => (<div key={n} className="rounded-2xl border border-gray-200 p-4 flex items-start gap-3" style={{ background: PANEL }}><span className="text-3xl font-bold text-gray-300 leading-none">{n + 1}</span><div className="font-semibold leading-snug text-[clamp(13px,1.3vw,17px)]" style={{ color: SUB }}>{goals[n]?.title || goals[n]?.name}</div></div>))}
           </div>
-          <div className="text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ color: SUB }}><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><span>De focus op doel 1 bepalen we samen in de <strong style={{ color: INK }}>eerste sessie met het MT</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span></div>
+          <div className="text-[clamp(12px,1.2vw,15px)] flex items-start gap-2.5" style={{ color: SUB }}><span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TEAL }} /><span>De focus op doel 1 is samen met het <strong style={{ color: INK }}>MT bepaald</strong>. Doel 2 en 3 volgen gaandeweg, cyclisch.</span></div>
         </div>
       </Slide>
     );
