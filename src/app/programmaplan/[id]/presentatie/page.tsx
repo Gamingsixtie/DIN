@@ -33,6 +33,13 @@ const SIDES_DOMEIN: Array<[string, string, string]> = [
   ["Data & Systemen", "#7c3aed", "CRM-input vanuit klantperspectief; data om gesprekken en beslissingen te sturen — welke data, welk systeem."],
   ["Cultuur", "#d97706", "Rituelen: klantverhalen, reflectie, klantbezoeken; leiderschap in voorbeeldgedrag; commitment van alle sectormanagers."],
 ];
+const PLANNING: Array<{ kwartaal: string; thema: string; color: string; items: string[]; mijlpaal: string }> = [
+  { kwartaal: "Q3 2026", color: "#7c3aed", thema: "Van framework naar eerste beweging", items: ["Kickoff & stakeholder-alignment", "Adoptie-framework + nulmeting", "Inventarisatie CRM · pilot 1 sector"], mijlpaal: "Adoptie-framework gereed en gedragen door DIN-team" },
+  { kwartaal: "Q4 2026", color: "#7c3aed", thema: "Pilot uitrollen", items: ["Uitrol naar 2e sector", "Eerste intervisiegroepen live", "Journey → CRM-input & funnelprocessen", "Richting CRM bepaald"], mijlpaal: "Pilot draait, eerste gedragsdata beschikbaar" },
+  { kwartaal: "Q1 2027", color: "#159a86", thema: "Aanscherpen op data & gedrag", items: ["Uitrol naar 3e sector", "Training & coaching live (met HR)", "Eerste KPI-rapportage"], mijlpaal: "Alle sectoren actief, adoptie geborgd in de lijn" },
+  { kwartaal: "Q2 2027", color: "#159a86", thema: "Borging centraal", items: ["Verdieping cultuurinterventies", "Co-creatie met klanten", "Processen verankerd in workflow"], mijlpaal: "Programma draait zonder constante begeleiding van 3sides" },
+  { kwartaal: "Q3–Q4 2027", color: "#7bc043", thema: "Doorontwikkelen & bijsturen", items: ["Learning loops geïnstitutionaliseerd", "Leiderschap neemt eigenaarschap", "3sides → sparringpartner"], mijlpaal: "Cito staat zelfstandig, impact aantoonbaar binnen 2 jaar" },
+];
 const RAMING_TOTAAL = "€ 1.459.500";
 const RAMING_POST: Array<[string, number, string]> = [["Data & Systemen", 910000, "#7c3aed"], ["Mens", 182500, "#2563eb"], ["Cultuur", 142000, "#d97706"], ["Processen", 126000, "#059669"], ["Onvoorzien", 99000, "#94a3b8"]];
 const RAMING_JAAR: Array<[string, number]> = [["2026", 251500], ["2027", 301500], ["2028", 302500], ["2029", 301500], ["2030", 302500]];
@@ -184,7 +191,8 @@ export default function PresentatiePage() {
     );
 
     // 5–8 — De inspanningen, per domein (power slide: hero + kaarten + fase-journey)
-    INSP_DETAIL.forEach((d, di) => out.push(
+    INSP_DETAIL.forEach((d, di) => {
+      out.push(
       <Slide key={d.label} title={`Inspanning ${di + 1} van 4 — ${d.label}`} headerColor={d.color}>
         <div className="w-full max-w-5xl mx-auto">
           {/* Hero: titel + prominente investering */}
@@ -232,7 +240,39 @@ export default function PresentatiePage() {
           )}
         </div>
       </Slide>
-    ));
+      );
+      // Direct na de CRM-inspanning: de bredere CRM→CSM-visie
+      if (d.label === "Data & Systemen")
+        out.push(
+          <Slide key="crm-csm" title="Van CRM naar CSM — naar een integraal klantbeeld" headerColor="#7c3aed">
+            <div className="w-full max-w-5xl mx-auto">
+              <div className="text-center text-[clamp(13px,1.4vw,18px)] leading-snug mb-4 max-w-4xl mx-auto" style={{ color: INK }}>
+                Het CRM is het <strong>fundament</strong> voor één organisatiebreed klantbeeld — maar dekt alleen de <strong>randen</strong> van de klantreis. <span style={{ color: "#0b7a5c" }}><strong>CSM</strong> maakt het beeld compleet.</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5" style={{ borderTopColor: "#7c3aed" }}>
+                  <div className="font-bold text-[clamp(16px,1.9vw,24px)]" style={{ color: "#7c3aed" }}>CRM — de relatie</div>
+                  <div className="text-[clamp(11px,1.2vw,15px)] mt-1 font-semibold" style={{ color: SUB }}>Randen van de klantreis: oriëntatie · aankoop · verlenging</div>
+                  <div className="text-[clamp(12px,1.3vw,16px)] mt-2.5 leading-snug" style={{ color: INK }}>Beheert interacties, transacties en relatiebeheer. Geeft inzicht in wíe de klant is en wat er wordt afgenomen.</div>
+                </div>
+                <div className="rounded-2xl bg-white border-t-4 shadow-sm p-5" style={{ borderTopColor: TEAL }}>
+                  <div className="font-bold text-[clamp(16px,1.9vw,24px)]" style={{ color: "#0b7a5c" }}>CSM — de waarde</div>
+                  <div className="text-[clamp(11px,1.2vw,15px)] mt-1 font-semibold" style={{ color: SUB }}>De kern: daadwerkelijk gebruik · succes · outcomes</div>
+                  <div className="text-[clamp(12px,1.3vw,16px)] mt-2.5 leading-snug" style={{ color: INK }}>Maximaliseert klantwaarde: een continu, dynamisch klantbeeld om proactief te sturen op adoptie en tijdig risico&apos;s te signaleren.</div>
+                </div>
+              </div>
+              <div className="rounded-xl p-3.5 mt-4 flex items-start gap-3" style={{ background: "#7c3aed14", border: "1px solid #7c3aed40" }}>
+                <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: "#7c3aed" }} />
+                <span className="text-[clamp(12px,1.3vw,16px)] leading-snug" style={{ color: INK }}>De kern blijft nu buiten beeld: rond <strong>Leerling in Beeld</strong> en de <strong>Doorstroomtoets</strong> ontstaat waardevolle gebruiksdata die vandaag nauwelijks zichtbaar is.</span>
+              </div>
+              <div className="rounded-2xl p-4 mt-3 text-white shadow-lg flex items-start gap-3" style={{ background: NAVY }}>
+                <span className="text-[clamp(11px,1.1vw,13px)] font-extrabold rounded-full px-3 py-1 shrink-0" style={{ background: GREEN, color: "#173a0a" }}>ADVIES</span>
+                <span className="text-[clamp(12px,1.35vw,17px)] leading-snug">Benader Klant in Beeld vanaf de start als één <strong>integrale transformatie</strong> — CRM én CSM samen als fundament voor een werkelijk <strong>end-to-end klantbeeld</strong> over de hele klantreis.</span>
+              </div>
+            </div>
+          </Slide>
+        );
+    });
 
     // 9 — Raming (+20%-scenario = de 5 jaar) — grote cijfers
     out.push(
@@ -316,17 +356,75 @@ export default function PresentatiePage() {
               </div>
             ))}
           </div>
-          {/* Team — specialisten op afroep */}
-          <div className="mt-5 rounded-2xl text-white p-4 flex items-center gap-4 shadow-lg" style={{ background: NAVY }}>
-            <span className="text-[clamp(13px,1.45vw,19px)] font-extrabold shrink-0">Specialisten op afroep</span>
-            <span className="w-px self-stretch bg-white/20" />
-            <span className="flex-1 text-[clamp(12px,1.3vw,16px)] leading-snug opacity-90">Inzetbaar afhankelijk van de behoefte op dat moment: <strong className="opacity-100">CRM · solutions architecten · journey designers</strong>.</span>
+        </div>
+      </Slide>
+    );
+
+    // 11b — De rol van 3sides (team & sturing)
+    out.push(
+      <Slide key="rol-3sides" title="De rol van 3sides" headerColor={NAVY}>
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="text-center text-[clamp(13px,1.4vw,18px)] leading-snug mb-5 max-w-4xl mx-auto" style={{ color: INK }}>
+            <strong>Strategisch &amp; executiepartner.</strong> 3sides neemt het voortouw op <strong>Processen</strong> en <strong>Data &amp; Systemen</strong>, en houdt het programma draaiende waar competenties ontbreken — met één vast aanspreekpunt.
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-white border-t-4 shadow-sm p-4 flex flex-col" style={{ borderTopColor: TEAL }}>
+              <div className="text-[clamp(10px,1.05vw,12px)] uppercase tracking-wider font-bold" style={{ color: SUB }}>Vast team</div>
+              <div className="font-bold text-[clamp(15px,1.7vw,21px)] mt-0.5" style={{ color: CITO }}>Topic leads</div>
+              <div className="w-9 h-[3px] rounded-full my-2.5" style={{ background: TEAL }} />
+              <div className="text-[clamp(11px,1.25vw,15px)] leading-snug" style={{ color: INK }}>Senior consultants in de voortrekkersrol — kennen Cito, nemen inhoudelijk de leiding en zorgen voor de uitvoering op Processen en Data &amp; Systemen.</div>
+            </div>
+            <div className="rounded-2xl bg-white border-t-4 shadow-sm p-4 flex flex-col" style={{ borderTopColor: "#7c3aed" }}>
+              <div className="text-[clamp(10px,1.05vw,12px)] uppercase tracking-wider font-bold" style={{ color: SUB }}>Flexibele schil</div>
+              <div className="font-bold text-[clamp(15px,1.7vw,21px)] mt-0.5" style={{ color: "#7c3aed" }}>Specialisten op afroep</div>
+              <div className="w-9 h-[3px] rounded-full my-2.5" style={{ background: "#7c3aed" }} />
+              <div className="text-[clamp(11px,1.25vw,15px)] leading-snug" style={{ color: INK }}>CRM-consultants · solutions architecten · journey designers. Incidenteel, altijd afgestemd op wat het programma op dat moment nodig heeft.</div>
+            </div>
+            <div className="rounded-2xl bg-white border-t-4 shadow-sm p-4 flex flex-col" style={{ borderTopColor: GREEN }}>
+              <div className="text-[clamp(10px,1.05vw,12px)] uppercase tracking-wider font-bold" style={{ color: SUB }}>Strategisch</div>
+              <div className="font-bold text-[clamp(15px,1.7vw,21px)] mt-0.5" style={{ color: "#5a8a1a" }}>Business partner</div>
+              <div className="w-9 h-[3px] rounded-full my-2.5" style={{ background: GREEN }} />
+              <div className="text-[clamp(11px,1.25vw,15px)] leading-snug" style={{ color: INK }}><strong>Lammert Postma</strong> is nauw betrokken bij het hele traject; geeft op strategisch niveau sturing en houdt het programma op koers.</div>
+            </div>
+          </div>
+          <div className="mt-5 rounded-2xl text-white p-3.5 text-center shadow-lg" style={{ background: NAVY }}>
+            <span className="text-[clamp(13px,1.45vw,18px)] font-bold">Alle betrokken partijen werken als één team</span> <span className="text-[clamp(12px,1.3vw,16px)] opacity-85">— richting en samenhang bovenin, uitvoering en verbinding op de werkvloer.</span>
           </div>
         </div>
       </Slide>
     );
 
-    // 12 — Slotslide: feestelijk, we gaan van START
+    // 11c — Planning (roadmap 2026–2027)
+    out.push(
+      <Slide title="Planning — van framework naar zelfstandige borging" headerColor={CITO}>
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded-xl px-4 py-2 flex items-baseline gap-2 flex-wrap" style={{ background: "#7c3aed14", border: "1px solid #7c3aed40" }}>
+              <span className="font-bold text-[clamp(13px,1.4vw,18px)]" style={{ color: "#7c3aed" }}>2026 · CRM &amp; funnel</span>
+              <span className="text-[clamp(11px,1.15vw,14px)]" style={{ color: SUB }}>processen, systemen &amp; eenduidige klantreis</span>
+            </div>
+            <div className="rounded-xl px-4 py-2 flex items-baseline gap-2 flex-wrap" style={{ background: TEAL + "18", border: `1px solid ${TEAL}` }}>
+              <span className="font-bold text-[clamp(13px,1.4vw,18px)]" style={{ color: "#0b7a5c" }}>2027 · Integraal klantbeeld</span>
+              <span className="text-[clamp(11px,1.15vw,14px)]" style={{ color: SUB }}>van CRM naar CSM, borging in de lijn</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-2.5">
+            {PLANNING.map((q) => (
+              <div key={q.kwartaal} className="rounded-xl bg-white border shadow-sm p-2.5 flex flex-col" style={{ borderColor: q.color + "55" }}>
+                <span className="text-[clamp(11px,1.2vw,14px)] font-extrabold text-white rounded-md px-2 py-0.5 self-start" style={{ background: q.color }}>{q.kwartaal}</span>
+                <div className="font-bold text-[clamp(11px,1.2vw,14px)] mt-2 leading-tight" style={{ color: INK }}>{q.thema}</div>
+                <ul className="mt-2 space-y-1 flex-1">
+                  {q.items.map((it) => (<li key={it} className="text-[clamp(9px,1.05vw,12px)] leading-snug flex gap-1.5" style={{ color: SUB }}><span className="font-bold shrink-0" style={{ color: q.color }}>·</span><span>{it}</span></li>))}
+                </ul>
+                <div className="mt-2 rounded-md px-2 py-1.5 text-[clamp(9px,1vw,12px)] leading-snug" style={{ background: q.color + "16", color: INK }}><strong style={{ color: q.color }}>Mijlpaal:</strong> {q.mijlpaal}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Slide>
+    );
+
+    // 12 — Slotslide: feestelijk, we gaan live
     const confetti = Array.from({ length: 38 }, (_, i) => ({
       x: (i * 149 + 60) % 1440,
       y: (i * 233 + 40) % 810,
@@ -346,12 +444,12 @@ export default function PresentatiePage() {
           <div className="inline-flex items-center gap-2.5 text-[clamp(11px,1.3vw,16px)] tracking-[0.25em] uppercase font-bold text-white/70 mb-6">
             <span className="w-2.5 h-2.5 rounded-full" style={{ background: GREEN }} />1 juli 2026 · samen met 3sides
           </div>
-          <h1 className="text-[clamp(46px,8.5vw,116px)] font-extrabold text-white leading-[0.95] tracking-tight">We gaan <span style={{ color: GREEN }}>van start!</span></h1>
+          <h1 className="text-[clamp(46px,8.5vw,116px)] font-extrabold text-white leading-[0.95] tracking-tight">We gaan <span style={{ color: GREEN }}>live!</span></h1>
           <p className="text-[clamp(15px,2.1vw,28px)] text-white/85 mt-6 max-w-3xl mx-auto">Van strategie naar uitvoering — samen maken we Klant in Beeld waar.</p>
           <div className="mt-9 inline-flex items-center gap-4 rounded-full bg-white/10 border border-white/20 px-6 py-3 backdrop-blur">
             <span className="text-[clamp(12px,1.3vw,16px)] text-white/80">Juni — uitwerking &amp; planning</span>
             <span className="text-white/50">→</span>
-            <span className="text-[clamp(13px,1.5vw,19px)] font-bold text-white">1 juli — van start 🚀</span>
+            <span className="text-[clamp(13px,1.5vw,19px)] font-bold text-white">1 juli 2026 — we gaan live 🚀</span>
           </div>
         </div>
       </div>
