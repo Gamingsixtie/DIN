@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { loadSessionFromSupabase } from "@/lib/persistence";
-import type { DINSession, ProgrammaRol } from "@/lib/types";
+import type { DINSession } from "@/lib/types";
+import { OrganigramView } from "@/components/steps/GovernanceStep";
 
 /** Presentatie-modus — opmaak: gekleurde kopbalk + witte body met platte, kleurrijke kaarten. */
 
@@ -24,7 +25,7 @@ const INSP_DETAIL: Array<{ label: string; color: string; titel: string; bullets:
   { label: "Mens", color: "#2563eb", titel: "Gespreksvaardigheidstraining outside-in voor alle sectoren", bullets: ["Trainen in klantgerichte gespreksvaardigheden", "Werven & ontwikkelen van outside-in competenties", "Klantgerichte rollen en samenwerking verankeren"], fases: ["Behoeftestelling & curriculumontwerp", "Basistraining", "Vaardigheidstraining", "Toepassing in de praktijk", "Borging & nazorg"], bedrag: "€ 182.500", aandeel: "~13%" },
   { label: "Processen", color: "#059669", titel: "Uniforme klantinformatieprocessen & funnelgovernance", bullets: ["Klantinformatieprocessen standaardiseren & borgen, organisatiebreed", "Commerciële werkafspraken, rollen & KPI-structuur standaardiseren"], fases: ["Inventarisatie (as-is)", "Herontwerp (to-be) & pilot", "Uitrol", "Standaardisatie", "Continu verbeteren"], bedrag: "€ 126.000", aandeel: "~9%" },
   { label: "Data & Systemen", color: "#7c3aed", titel: "Integraal CRM-klantdashboard cross-sectoraal", bullets: ["Implementeren en inrichten van integraal CRM-klantdashboard", "Eén centrale bron voor klantdata en inzichten"], fases: ["Analyse & architectuur", "Realisatie & integraties", "Acceptatie & uitrol", "In beheer", "Optimalisatie"], bedrag: "€ 910.000", aandeel: "grootste post" },
-  { label: "Cultuur", color: "#d97706", titel: "Leiderschapsprogramma outside-in verankeren", bullets: ["Outside-in leiderschap als rolmodelgedrag", "Outside-in mindset & klantgericht eigenaarschap", "Eigenaarschap & teamcultuur binnen commercieel team"], fases: ["Bewustwording & coalitievorming", "Acceptatie & rolmodelgedrag", "Adoptie", "Waardenverankering", "Continue rolmodel-werking"], bedrag: "€ 142.000", aandeel: "~10%" },
+  { label: "Cultuur", color: "#d97706", titel: "Leiderschapsprogramma outside-in verankeren", bullets: ["Outside-in leiderschap als rolmodelgedrag", "Outside-in mindset & klantgericht eigenaarschap"], fases: ["Bewustwording & coalitievorming", "Acceptatie & rolmodelgedrag", "Adoptie", "Waardenverankering", "Continue rolmodel-werking"], bedrag: "€ 142.000", aandeel: "~10%" },
 ];
 const SIDES_DOMEIN: Array<[string, string, string]> = [
   ["Mens", "#2563eb", "Trainingen mét HR op echte klantcases; coaching & intervisie op de werkvloer."],
@@ -49,6 +50,51 @@ function Slide({ title, subtitle, headerColor, scroll, children }: { title: stri
       {subtitle && <div className="px-[5vw] pt-3 shrink-0 text-[clamp(13px,1.5vw,20px)] italic font-medium" style={{ color: TEAL }}>{subtitle}</div>}
       <div className={`flex-1 min-h-0 px-[5vw] py-[3.4vh] flex flex-col ${scroll ? "overflow-auto justify-start" : "justify-center"}`}>{children}</div>
     </div>
+  );
+}
+
+/** 3sides-logo (gereconstrueerd als SVG): gelaagde "3" in koraal/cyaan/leiblauw + "SIDES"-woordmerk. */
+function ThreeSidesLogo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 372 116" className={className} role="img" aria-label="3sides">
+      <g fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={900}>
+        <text x="2" y="76" fontSize="102" fill="#fb6e6e">3</text>
+        <text x="2" y="94" fontSize="102" fill="#16c7de">3</text>
+        <text x="17" y="85" fontSize="102" fill="#4c6378">3</text>
+      </g>
+      <text x="120" y="82" fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={800} fontSize="62" letterSpacing="3" fill="#4c6378">SIDES</text>
+    </svg>
+  );
+}
+
+/** Cito-logo (gereconstrueerd als SVG): kleurrijke organische blob + wit "CiTO". */
+function CitoLogo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" className={className} role="img" aria-label="Cito">
+      <ellipse cx="52" cy="50" rx="46" ry="40" fill="#1fb4d4" transform="rotate(-12 52 50)" />
+      <ellipse cx="74" cy="58" rx="40" ry="44" fill="#1a3f74" opacity="0.9" transform="rotate(24 74 58)" />
+      <ellipse cx="64" cy="84" rx="42" ry="30" fill="#e6007e" opacity="0.88" transform="rotate(-7 64 84)" />
+      <text x="55" y="72" textAnchor="middle" fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={800} fontSize="31" letterSpacing="0.5" fill="#fff">CiTO</text>
+    </svg>
+  );
+}
+
+/** Handshake-vector (samenwerking) — twee handen die elkaar grijpen, lijnstijl. */
+function HandshakeIcon({ className = "", stroke = "#003366" }: { className?: string; stroke?: string }) {
+  return (
+    <svg viewBox="0 0 96 64" className={className} role="img" aria-label="samenwerking" fill="none" stroke={stroke} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round">
+      {/* linker onderarm + mouw */}
+      <path d="M4 24 l16 -7 l20 13" />
+      <path d="M4 40 l13 6" />
+      {/* rechter onderarm + mouw */}
+      <path d="M92 24 l-16 -7 l-17 11" />
+      <path d="M92 40 l-13 6" />
+      {/* greep: duim + ineengevouwen vingers */}
+      <path d="M40 30 q7 8 15 4" />
+      <path d="M44 24 l11 8 q4 3 8 1 l13 -7" />
+      <path d="M42 37 l9 6 q3 2 7 0" />
+      <path d="M45 44 l6 4 q3 2 6 0" />
+    </svg>
   );
 }
 
@@ -81,8 +127,6 @@ export default function PresentatiePage() {
     const vermPerSector = SECTORS.map((s) => { const c = caps.find((x) => x.sectorId === s.key); return { ...s, titel: c ? c.title || c.description || "" : "" }; });
     const hefboom = sr?.stap2?.vermogenGelijkenisGroepen?.[0]?.gezamenlijkeOmschrijving || "";
     const po = session.programmaorganisatie;
-    const persoonNaam = (r?: ProgrammaRol) => (r ? r.naam || r.rol || "" : "");
-    const persoonRol = (r?: ProgrammaRol) => (r ? r.functie || (r.naam ? r.rol : "") || "" : "");
 
     const out: React.ReactNode[] = [];
 
@@ -142,24 +186,24 @@ export default function PresentatiePage() {
     out.push(
       <Slide title="Cross-sectorale uitkomst — het volledige DIN-diagram">
         <div className="w-full max-w-5xl mx-auto">
-          <div className="rounded-2xl text-white px-6 py-2.5 text-center shadow-lg" style={{ background: NAVY }}>
-            <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: "#9fe6ce" }}>Focusdoel — prioriteit 1</div>
-            <div className="font-bold text-[clamp(15px,1.9vw,24px)] leading-snug">{goals[0]?.title}</div>
+          <div className="rounded-2xl text-white px-7 py-4 text-center shadow-lg" style={{ background: NAVY }}>
+            <div className="text-[clamp(11px,1.2vw,14px)] uppercase tracking-wider font-bold" style={{ color: "#9fe6ce" }}>Focusdoel — prioriteit 1</div>
+            <div className="font-bold text-[clamp(18px,2.3vw,30px)] leading-snug mt-0.5">{goals[0]?.title}</div>
           </div>
-          <div className="text-center text-[9px] uppercase tracking-wider font-bold mt-2.5 mb-1" style={{ color: SUB }}>Baten per sector</div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {baatPerSector.map((b) => (<div key={b.key} className="rounded-lg bg-white p-2 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[9px] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(10px,1.05vw,13px)] leading-snug line-clamp-2" style={{ color: INK }}>{b.titel}</div></div>))}
+          <div className="text-center text-[clamp(11px,1.2vw,14px)] uppercase tracking-wider font-bold mt-4 mb-2" style={{ color: SUB }}>Baten per sector</div>
+          <div className="grid grid-cols-3 gap-3">
+            {baatPerSector.map((b) => (<div key={b.key} className="rounded-xl bg-white p-3 shadow-sm border-l-4" style={{ borderLeftColor: b.color }}><span className="text-[clamp(11px,1.2vw,14px)] font-bold" style={{ color: b.color }}>{b.key}</span><div className="text-[clamp(13px,1.45vw,17px)] leading-snug line-clamp-2 mt-0.5" style={{ color: INK }}>{b.titel}</div></div>))}
           </div>
-          <div className="rounded-xl p-2.5 mt-2.5" style={{ background: "#e9faf4", border: `1px solid ${TEAL}` }}>
-            <div className="text-center text-[9px] uppercase tracking-wider font-bold" style={{ color: "#0b7a5c" }}>Gedeelde vermogens — hefboomgroep · dekt 4/4 domeinen</div>
-            <div className="text-center text-[clamp(10px,1.05vw,13px)] leading-snug my-1.5 max-w-3xl mx-auto line-clamp-2" style={{ color: INK }}>{hefboom}</div>
-            <div className="grid grid-cols-3 gap-2">
-              {vermPerSector.map((v) => (<div key={v.key} className="rounded bg-white border p-1.5" style={{ borderColor: v.color }}><span className="text-[8px] font-bold" style={{ color: v.color }}>{v.key}</span><div className="text-[clamp(9px,1vw,12px)] font-semibold leading-snug line-clamp-2" style={{ color: INK }}>{v.titel}</div></div>))}
+          <div className="rounded-2xl p-3.5 mt-4" style={{ background: "#e9faf4", border: `1px solid ${TEAL}` }}>
+            <div className="text-center text-[clamp(11px,1.2vw,14px)] uppercase tracking-wider font-bold" style={{ color: "#0b7a5c" }}>Gedeelde vermogens — hefboomgroep · dekt 4/4 domeinen</div>
+            <div className="text-center text-[clamp(13px,1.4vw,17px)] leading-snug my-2 max-w-3xl mx-auto line-clamp-2" style={{ color: INK }}>{hefboom}</div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {vermPerSector.map((v) => (<div key={v.key} className="rounded-lg bg-white border p-2" style={{ borderColor: v.color }}><span className="text-[clamp(10px,1.1vw,13px)] font-bold" style={{ color: v.color }}>{v.key}</span><div className="text-[clamp(12px,1.3vw,15px)] font-semibold leading-snug line-clamp-2" style={{ color: INK }}>{v.titel}</div></div>))}
             </div>
           </div>
-          <div className="text-center mt-2.5 mb-1"><span className="text-[9px] uppercase tracking-wider font-bold" style={{ color: SUB }}>Cross-sectorale inspanningen</span> <span className="text-[10px] italic" style={{ color: SUB }}>— toelichting per inspanning volgt op de volgende slides</span></div>
-          <div className="grid grid-cols-4 gap-2">
-            {INSP_DETAIL.map((d) => (<div key={d.label} className="rounded-lg p-2 text-white" style={{ background: d.color }}><div className="text-[9px] font-bold uppercase opacity-85">{d.label}</div><div className="text-[clamp(9px,1vw,12px)] leading-snug line-clamp-2">{d.titel}</div></div>))}
+          <div className="text-center mt-4 mb-2"><span className="text-[clamp(11px,1.2vw,14px)] uppercase tracking-wider font-bold" style={{ color: SUB }}>Cross-sectorale inspanningen</span> <span className="text-[clamp(11px,1.2vw,14px)] italic" style={{ color: SUB }}>— toelichting per inspanning volgt hierna</span></div>
+          <div className="grid grid-cols-4 gap-2.5">
+            {INSP_DETAIL.map((d) => (<div key={d.label} className="rounded-xl p-3 text-white" style={{ background: d.color }}><div className="text-[clamp(11px,1.15vw,13px)] font-bold uppercase opacity-85">{d.label}</div><div className="text-[clamp(12px,1.3vw,15px)] leading-snug line-clamp-2 mt-0.5">{d.titel}</div></div>))}
           </div>
         </div>
       </Slide>
@@ -251,66 +295,33 @@ export default function PresentatiePage() {
       </Slide>
     );
 
-    // 10 — Programma-organisatie (schoon nagebouwd, groot leesbaar)
-    if (po) {
-      const orgKolommen: Array<{ titel: string; kleur: string; rollen: ProgrammaRol[] }> = [
-        { titel: "Kerngroep", kleur: TEAL, rollen: po.kerngroep ?? [] },
-        { titel: "Stuurgroep · besluitvormend", kleur: CITO, rollen: po.stuurgroep ?? [] },
-        { titel: "Adviesgroep · intern advies", kleur: "#7c5cd6", rollen: po.adviesgroep ?? [] },
-      ].filter((k) => k.rollen.length > 0);
-      if ((po.domeineigenaren ?? []).length > 0) orgKolommen.push({ titel: "Domeineigenaren", kleur: "#d97706", rollen: po.domeineigenaren ?? [] });
+    // 10 — Programma-organisatie (originele app-opmaak, tekst uitvergroot)
+    if (po)
       out.push(
         <Slide title="Programma-organisatie">
-          <div className="w-full max-w-5xl mx-auto">
-            {/* Hiërarchie: opdrachtgever → programmamanager */}
-            <div className="flex flex-col items-center">
-              {po.opdrachtgever && (
-                <div className="w-full max-w-md rounded-2xl text-white px-6 py-3.5 text-center shadow-lg" style={{ background: CITO }}>
-                  <div className="text-[clamp(10px,1.05vw,12px)] uppercase tracking-wider font-bold opacity-75">Opdrachtgever</div>
-                  <div className="font-bold text-[clamp(18px,2.1vw,28px)] leading-tight">{persoonNaam(po.opdrachtgever)}</div>
-                  {persoonRol(po.opdrachtgever) && <div className="text-[clamp(12px,1.3vw,16px)] opacity-85 mt-0.5">{persoonRol(po.opdrachtgever)}</div>}
-                </div>
-              )}
-              {po.opdrachtgever && po.programmamanager && <div className="h-5 w-[3px]" style={{ background: CITO + "55" }} />}
-              {po.programmamanager && (
-                <div className="w-full max-w-md rounded-2xl px-6 py-3.5 text-center shadow-md bg-white border-2" style={{ borderColor: CITO }}>
-                  <div className="text-[clamp(10px,1.05vw,12px)] uppercase tracking-wider font-bold" style={{ color: TEAL }}>Programmamanager</div>
-                  <div className="font-bold text-[clamp(18px,2.1vw,28px)] leading-tight" style={{ color: CITO }}>{persoonNaam(po.programmamanager)}</div>
-                  {persoonRol(po.programmamanager) && <div className="text-[clamp(12px,1.3vw,16px)] mt-0.5" style={{ color: SUB }}>{persoonRol(po.programmamanager)}</div>}
-                </div>
-              )}
-            </div>
-            {/* Kolommen: gremia */}
-            <div className="grid gap-4 mt-6" style={{ gridTemplateColumns: `repeat(${orgKolommen.length}, minmax(0,1fr))` }}>
-              {orgKolommen.map((k) => (
-                <div key={k.titel} className="rounded-2xl bg-white border-t-4 shadow-sm p-4" style={{ borderTopColor: k.kleur }}>
-                  <div className="text-[clamp(12px,1.3vw,16px)] font-bold mb-3 leading-tight" style={{ color: k.kleur }}>{k.titel}</div>
-                  <div className="space-y-2.5">
-                    {k.rollen.map((r) => (
-                      <div key={r.id} className="rounded-lg px-3 py-2.5" style={{ background: PANEL }}>
-                        <div className="font-bold text-[clamp(13px,1.4vw,18px)] leading-tight" style={{ color: INK }}>{persoonNaam(r)}</div>
-                        {persoonRol(r) && <div className="text-[clamp(11px,1.2vw,14px)] leading-tight mt-0.5" style={{ color: SUB }}>{persoonRol(r)}</div>}
-                        {r.sector && <div className="text-[clamp(10px,1.05vw,13px)] font-bold mt-1" style={{ color: k.kleur }}>{r.sector}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="w-full flex items-start justify-center">
+            <div className="w-full max-w-5xl origin-top" style={{ transform: "scale(1.1)" }}><OrganigramView po={po} /></div>
           </div>
         </Slide>
       );
-    }
 
     // 11 — De samenwerking met 3sides (power slide: discipline per inspanning)
     out.push(
       <Slide title="De samenwerking met 3sides" headerColor={NAVY}>
         <div className="w-full max-w-5xl mx-auto">
-          {/* Power statement */}
+          {/* Samenwerkings-lockup: Cito × 3sides */}
+          <div className="flex items-center justify-center gap-7 sm:gap-10 mb-3">
+            <CitoLogo className="h-[clamp(46px,8.5vh,78px)] w-auto" />
+            <div className="flex flex-col items-center gap-1">
+              <HandshakeIcon stroke={TEAL} className="h-[clamp(26px,4.5vh,42px)] w-auto" />
+              <span className="text-[clamp(9px,1vw,12px)] uppercase tracking-[0.18em] font-bold" style={{ color: TEAL }}>samenwerking</span>
+            </div>
+            <ThreeSidesLogo className="h-[clamp(34px,6vh,56px)] w-auto" />
+          </div>
+          {/* Statement */}
           <div className="text-center mb-5">
-            <span className="inline-block text-[clamp(10px,1.05vw,13px)] font-bold uppercase tracking-[0.22em] rounded-full px-4 py-1.5" style={{ background: "#e9faf4", color: "#0b7a5c" }}>Strategisch & executiepartner</span>
-            <div className="font-extrabold leading-tight mt-3 text-[clamp(21px,2.9vw,40px)]" style={{ color: CITO }}>Voor élke inspanning de juiste discipline aan tafel</div>
-            <div className="text-[clamp(13px,1.4vw,18px)] mt-2 max-w-3xl mx-auto" style={{ color: SUB }}>Verandering lukt alléén als mens, proces, data én cultuur samen bewegen — 3sides brengt per domein de specialist.</div>
+            <div className="font-extrabold leading-tight text-[clamp(19px,2.6vw,36px)]" style={{ color: CITO }}>Voor élke inspanning de juiste discipline aan tafel</div>
+            <div className="text-[clamp(12px,1.35vw,17px)] mt-1.5 max-w-3xl mx-auto" style={{ color: SUB }}>Cito &amp; 3sides als strategisch &amp; executiepartner — verandering lukt als mens, proces, data én cultuur samen bewegen.</div>
           </div>
           {/* Discipline per inspanning */}
           <div className="grid grid-cols-4 gap-3">
