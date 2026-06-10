@@ -21,6 +21,9 @@ const SECTORS = [
   { key: "Zakelijk", color: "#0e9e8e" },
 ] as const;
 const SIDES = ["Programmamanagement & regie", "Adoptie & gedrag", "Customer Success", "CRM & data", "Leiderschap", "Kennisdeling"];
+// Subtiel DIN-netwerk-motief voor de titelpagina (nodes + verbindingen).
+const NET_NODES: Array<[number, number]> = [[1190, 78], [1305, 150], [1235, 250], [1355, 320], [1118, 196], [120, 560], [250, 626], [176, 716], [68, 666], [306, 558]];
+const NET_LINES: Array<[number, number]> = [[0, 1], [0, 4], [1, 2], [2, 3], [1, 3], [4, 2], [5, 6], [5, 8], [6, 7], [6, 9], [8, 7]];
 
 interface StepShape {
   stap2?: { vermogenGelijkenisGroepen?: Array<{ gezamenlijkeOmschrijving?: string }> };
@@ -88,15 +91,25 @@ export default function PresentatiePage() {
 
     // 1 — Titel
     out.push(
-      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] bg-white relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(58% 48% at 50% 38%, rgba(0,51,102,0.055), transparent 72%)" }} />
+      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] relative overflow-hidden bg-gradient-to-b from-[#f5f8fc] to-white">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 810" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g stroke="#003366" strokeOpacity="0.13" strokeWidth="1.5">
+            {NET_LINES.map(([a, b], i) => (<line key={i} x1={NET_NODES[a][0]} y1={NET_NODES[a][1]} x2={NET_NODES[b][0]} y2={NET_NODES[b][1]} />))}
+          </g>
+          {NET_NODES.map(([x, y], i) => (<circle key={i} cx={x} cy={y} r={i % 4 === 0 ? 9 : 5} fill="#003366" fillOpacity={i % 4 === 0 ? 0.18 : 0.13} />))}
+        </svg>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(50% 42% at 50% 42%, rgba(255,255,255,0.78), transparent 72%)" }} />
         <div className="relative">
-          <div className="text-[clamp(11px,1.25vw,15px)] tracking-[0.42em] uppercase font-semibold text-slate-400 mb-7">Doelen-Inspanningennetwerk</div>
-          <h1 className="text-[clamp(52px,8.5vw,116px)] font-bold text-cito-blue leading-[0.95] tracking-tight">Programmaplan</h1>
-          <p className="text-[clamp(22px,3.4vw,48px)] font-medium mt-4">
+          <div className="text-[clamp(11px,1.3vw,16px)] tracking-[0.44em] uppercase font-semibold text-slate-400 mb-7">Doelen-Inspanningennetwerk</div>
+          <h1 className="text-[clamp(56px,9.5vw,132px)] font-extrabold text-cito-blue leading-[0.92] tracking-tight">Programmaplan</h1>
+          <p className="text-[clamp(24px,3.8vw,54px)] font-medium mt-5">
             <span className="text-cito-blue">Klant </span><span className="text-slate-400">in</span><span className="text-cito-blue"> Beeld</span>
           </p>
-          <div className="w-20 h-[3px] bg-cito-blue/25 rounded-full mx-auto mt-12" />
+          <div className="flex items-center justify-center gap-2.5 mt-12">
+            <span className="w-1.5 h-1.5 rounded-full bg-cito-blue/40" />
+            <span className="w-16 h-[3px] bg-cito-blue/25 rounded-full" />
+            <span className="w-1.5 h-1.5 rounded-full bg-cito-blue/40" />
+          </div>
         </div>
       </div>
     );
