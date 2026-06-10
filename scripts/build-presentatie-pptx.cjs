@@ -57,6 +57,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     card.style.borderRadius = "0";
     card.style.boxShadow = "none";
     [...root.children].forEach((ch) => { if (ch !== wrapper) ch.style.display = "none"; });
+    // globale app-chrome buiten de presentatie-root (sync-footer e.d.)
+    document.querySelectorAll("footer").forEach((f) => { f.style.display = "none"; });
   });
 
   await sleep(700);
