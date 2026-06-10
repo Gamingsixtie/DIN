@@ -21,10 +21,10 @@ const SECTORS = [
   { key: "Zakelijk", color: "#0e9e8e" },
 ] as const;
 // Inspanningen per domein — cross-sectorale bundel + gebundelde inspanningen + vijf fasen + investering (verslag §3/§4).
-const INSP_DETAIL: Array<{ label: string; color: string; titel: string; bullets: string[]; fases: string[]; bedrag: string; aandeel: string }> = [
+const INSP_DETAIL: Array<{ label: string; color: string; titel: string; bullets: string[]; fases: string[]; bedrag: string; aandeel: string; prio?: string }> = [
   { label: "Mens", color: "#2563eb", titel: "Gespreksvaardigheidstraining outside-in voor alle sectoren", bullets: ["Trainen in klantgerichte gespreksvaardigheden", "Werven & ontwikkelen van outside-in competenties", "Klantgerichte rollen en samenwerking verankeren"], fases: ["Behoeftestelling & curriculumontwerp", "Basistraining", "Vaardigheidstraining", "Toepassing in de praktijk", "Borging & nazorg"], bedrag: "€ 182.500", aandeel: "~13%" },
   { label: "Processen", color: "#059669", titel: "Uniforme klantinformatieprocessen & funnelgovernance", bullets: ["Klantinformatieprocessen standaardiseren & borgen, organisatiebreed", "Commerciële werkafspraken, rollen & KPI-structuur standaardiseren"], fases: ["Inventarisatie (as-is)", "Herontwerp (to-be) & pilot", "Uitrol", "Standaardisatie", "Continu verbeteren"], bedrag: "€ 126.000", aandeel: "~9%" },
-  { label: "Data & Systemen", color: "#7c3aed", titel: "Integraal CRM-klantdashboard cross-sectoraal", bullets: ["Implementeren en inrichten van integraal CRM-klantdashboard", "Eén centrale bron voor klantdata en inzichten"], fases: ["Analyse & architectuur", "Realisatie & integraties", "Acceptatie & uitrol", "In beheer", "Optimalisatie"], bedrag: "€ 910.000", aandeel: "grootste post" },
+  { label: "Data & Systemen", color: "#7c3aed", titel: "Integraal CRM-klantdashboard cross-sectoraal", bullets: ["Implementeren en inrichten van integraal CRM-klantdashboard", "Eén centrale bron voor klantdata en inzichten"], fases: ["Analyse & architectuur", "Realisatie & integraties", "Acceptatie & uitrol", "In beheer", "Optimalisatie"], bedrag: "€ 910.000", aandeel: "grootste post", prio: "Quick wins én de uitdagingen van dit moment worden al vanaf fase 1 parallel aangepakt — daarom heeft deze CRM-inspanning prioriteit." },
   { label: "Cultuur", color: "#d97706", titel: "Leiderschapsprogramma outside-in verankeren", bullets: ["Outside-in leiderschap als rolmodelgedrag", "Outside-in mindset & klantgericht eigenaarschap"], fases: ["Bewustwording & coalitievorming", "Acceptatie & rolmodelgedrag", "Adoptie", "Waardenverankering", "Continue rolmodel-werking"], bedrag: "€ 142.000", aandeel: "~10%" },
 ];
 const SIDES_DOMEIN: Array<[string, string, string]> = [
@@ -50,32 +50,6 @@ function Slide({ title, subtitle, headerColor, scroll, children }: { title: stri
       {subtitle && <div className="px-[5vw] pt-3 shrink-0 text-[clamp(13px,1.5vw,20px)] italic font-medium" style={{ color: TEAL }}>{subtitle}</div>}
       <div className={`flex-1 min-h-0 px-[5vw] py-[3.4vh] flex flex-col ${scroll ? "overflow-auto justify-start" : "justify-center"}`}>{children}</div>
     </div>
-  );
-}
-
-/** 3sides-logo (gereconstrueerd als SVG): gelaagde "3" in koraal/cyaan/leiblauw + "SIDES"-woordmerk. */
-function ThreeSidesLogo({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 372 116" className={className} role="img" aria-label="3sides">
-      <g fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={900}>
-        <text x="2" y="76" fontSize="102" fill="#fb6e6e">3</text>
-        <text x="2" y="94" fontSize="102" fill="#16c7de">3</text>
-        <text x="17" y="85" fontSize="102" fill="#4c6378">3</text>
-      </g>
-      <text x="120" y="82" fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={800} fontSize="62" letterSpacing="3" fill="#4c6378">SIDES</text>
-    </svg>
-  );
-}
-
-/** Cito-logo (gereconstrueerd als SVG): kleurrijke organische blob + wit "CiTO". */
-function CitoLogo({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 120 120" className={className} role="img" aria-label="Cito">
-      <ellipse cx="52" cy="50" rx="46" ry="40" fill="#1fb4d4" transform="rotate(-12 52 50)" />
-      <ellipse cx="74" cy="58" rx="40" ry="44" fill="#1a3f74" opacity="0.9" transform="rotate(24 74 58)" />
-      <ellipse cx="64" cy="84" rx="42" ry="30" fill="#e6007e" opacity="0.88" transform="rotate(-7 64 84)" />
-      <text x="55" y="72" textAnchor="middle" fontFamily="system-ui, 'Segoe UI', Arial, sans-serif" fontWeight={800} fontSize="31" letterSpacing="0.5" fill="#fff">CiTO</text>
-    </svg>
   );
 }
 
@@ -250,6 +224,12 @@ export default function PresentatiePage() {
               ))}
             </div>
           </div>
+          {d.prio && (
+            <div className="mt-5 rounded-xl p-3.5 flex items-start gap-3" style={{ background: d.color + "14", border: `1px solid ${d.color}40` }}>
+              <span className="text-[clamp(10px,1.1vw,13px)] font-extrabold text-white rounded-full px-3 py-1 shrink-0 tracking-wide" style={{ background: d.color }}>PRIORITEIT</span>
+              <span className="text-[clamp(12px,1.3vw,16px)] leading-snug font-medium" style={{ color: INK }}>{d.prio}</span>
+            </div>
+          )}
         </div>
       </Slide>
     ));
@@ -309,14 +289,16 @@ export default function PresentatiePage() {
     out.push(
       <Slide title="De samenwerking met 3sides" headerColor={NAVY}>
         <div className="w-full max-w-5xl mx-auto">
-          {/* Samenwerkings-lockup: Cito × 3sides */}
-          <div className="flex items-center justify-center gap-7 sm:gap-10 mb-3">
-            <CitoLogo className="h-[clamp(46px,8.5vh,78px)] w-auto" />
-            <div className="flex flex-col items-center gap-1">
+          {/* Samenwerkings-lockup: Cito × 3sides (echte logo's) */}
+          <div className="flex items-center justify-center gap-6 sm:gap-9 mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/cito_logo.jpg" alt="Cito" className="h-[clamp(54px,9vh,82px)] w-auto rounded-xl shadow-sm" />
+            <div className="flex flex-col items-center gap-1 shrink-0">
               <HandshakeIcon stroke={TEAL} className="h-[clamp(26px,4.5vh,42px)] w-auto" />
               <span className="text-[clamp(9px,1vw,12px)] uppercase tracking-[0.18em] font-bold" style={{ color: TEAL }}>samenwerking</span>
             </div>
-            <ThreeSidesLogo className="h-[clamp(34px,6vh,56px)] w-auto" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/3sides.png" alt="3sides — Strategic Product People" className="h-[clamp(72px,12vh,112px)] w-auto rounded-xl border border-gray-200 shadow-sm" />
           </div>
           {/* Statement */}
           <div className="text-center mb-5">
@@ -334,25 +316,45 @@ export default function PresentatiePage() {
               </div>
             ))}
           </div>
-          {/* Vast team */}
+          {/* Team — specialisten op afroep */}
           <div className="mt-5 rounded-2xl text-white p-4 flex items-center gap-4 shadow-lg" style={{ background: NAVY }}>
-            <span className="text-[clamp(13px,1.45vw,19px)] font-extrabold shrink-0">Eén vast team</span>
+            <span className="text-[clamp(13px,1.45vw,19px)] font-extrabold shrink-0">Specialisten op afroep</span>
             <span className="w-px self-stretch bg-white/20" />
-            <span className="flex-1 text-[clamp(12px,1.3vw,16px)] leading-snug opacity-90">Senior consultant (~3 d/wk) + medior (~2 d/wk) · specialisten op afroep: <strong className="opacity-100">CRM · solutions architecten · journey designers</strong>.</span>
+            <span className="flex-1 text-[clamp(12px,1.3vw,16px)] leading-snug opacity-90">Inzetbaar afhankelijk van de behoefte op dat moment: <strong className="opacity-100">CRM · solutions architecten · journey designers</strong>.</span>
           </div>
         </div>
       </Slide>
     );
 
-    // 13 — Next steps
+    // 12 — Slotslide: feestelijk, we gaan van START
+    const confetti = Array.from({ length: 38 }, (_, i) => ({
+      x: (i * 149 + 60) % 1440,
+      y: (i * 233 + 40) % 810,
+      c: ["#7bc043", "#fb6e6e", "#16c7de", "#ffffff", "#ffd166", "#7c3aed"][i % 6],
+      r: (i * 57) % 360,
+      w: 9 + (i % 3) * 5,
+    }));
     out.push(
-      <Slide title="Next steps" headerColor={TEAL}>
-        <div className="w-full max-w-4xl mx-auto flex items-stretch gap-5">
-          <div className="flex-1 rounded-2xl p-7 border-t-4" style={{ background: PANEL, borderTopColor: TEAL }}><div className="font-bold text-[clamp(22px,2.6vw,36px)]" style={{ color: CITO }}>Juni</div><div className="mt-3 text-[clamp(13px,1.4vw,18px)]" style={{ color: INK }}>Uitwerking &amp; planning — samen met 3sides</div></div>
-          <div className="grid place-items-center text-4xl shrink-0 w-12" style={{ color: SUB }}>→</div>
-          <div className="flex-1 rounded-2xl p-7 text-white shadow-xl relative overflow-hidden" style={{ background: CITO }}><div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border border-white/10" /><div className="font-extrabold text-[clamp(26px,3.4vw,52px)] relative">1 juli</div><div className="mt-3 text-white/80 text-[clamp(13px,1.4vw,18px)] relative">Van start — we gaan aan de slag</div></div>
+      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CITO} 0%, #0c4f86 55%, #0a4a7a 100%)` }}>
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 810" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          {confetti.map((p, i) => (i % 2 === 0
+            ? <rect key={i} x={p.x} y={p.y} width={p.w} height={p.w * 0.5} rx={2} fill={p.c} opacity={0.82} transform={`rotate(${p.r} ${p.x} ${p.y})`} />
+            : <circle key={i} cx={p.x} cy={p.y} r={p.w * 0.42} fill={p.c} opacity={0.78} />
+          ))}
+        </svg>
+        <div className="relative">
+          <div className="inline-flex items-center gap-2.5 text-[clamp(11px,1.3vw,16px)] tracking-[0.25em] uppercase font-bold text-white/70 mb-6">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: GREEN }} />1 juli 2026 · samen met 3sides
+          </div>
+          <h1 className="text-[clamp(46px,8.5vw,116px)] font-extrabold text-white leading-[0.95] tracking-tight">We gaan <span style={{ color: GREEN }}>van start!</span></h1>
+          <p className="text-[clamp(15px,2.1vw,28px)] text-white/85 mt-6 max-w-3xl mx-auto">Van strategie naar uitvoering — samen maken we Klant in Beeld waar.</p>
+          <div className="mt-9 inline-flex items-center gap-4 rounded-full bg-white/10 border border-white/20 px-6 py-3 backdrop-blur">
+            <span className="text-[clamp(12px,1.3vw,16px)] text-white/80">Juni — uitwerking &amp; planning</span>
+            <span className="text-white/50">→</span>
+            <span className="text-[clamp(13px,1.5vw,19px)] font-bold text-white">1 juli — van start 🚀</span>
+          </div>
         </div>
-      </Slide>
+      </div>
     );
 
     return out;
