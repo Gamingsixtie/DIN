@@ -187,6 +187,7 @@ KW.forEach((k, i) => {
   s.addText(k, { x, y, w, h: 0.7, align: "center", valign: "middle", fontFace: F, fontSize: 14, bold: true, color: C.ink });
 });
 s.addText("Een datagedreven organisatie die het verschil maakt in elk ecosysteem.", { x: 1.5, y: 5.7, w: W - 3.0, h: 0.6, align: "center", fontFace: F, fontSize: 18, color: C.sub });
+s.addNotes("Volledige visietekst (achtergrond voor de presentator):\n\nMet het programma Klant in Zicht maakt Cito BV de beweging van reactief leverancier naar proactieve strategische partner. Vertrekpunt daarbij is een outside-in perspectief: niet wat wij als organisatie te bieden hebben, maar wat klanten werkelijk nodig hebben, bepaalt hoe wij denken en handelen. Door mens, proces, systeem en cultuur structureel met elkaar te verbinden, verankert Cito BV dit in de hele organisatie: we wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen. Het resultaat is een onderscheidende, datagedreven organisatie die haar klanten écht kent en begrijpt, en op basis daarvan duurzame relaties opbouwt, zodat zij het verschil maakt in elk ecosysteem waarin zij actief is.");
 
 const OUT = "C:\\Users\\pdebu\\Downloads\\Klant-in-Zicht-Medewerkers-bewerkbaar.pptx";
 P.writeFile({ fileName: OUT })
