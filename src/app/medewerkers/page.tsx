@@ -183,17 +183,26 @@ export default function MedewerkersPresentatie() {
       </Slide>
     );
 
-    // 7–10 — Quizvraag per domein
+    // Quizvraag per domein (gesloten vraag: ja/nee — antwoord is steeds NEE)
     DOMEINEN.forEach((d) => out.push(
-      <Slide key={d.label} title={`Quizje: het domein ${d.label}`} subtitle="Zijn we er met dit ene domein?" headerColor={d.color}>
-        <div className="w-full max-w-4xl mx-auto text-center">
-          <div className="text-[clamp(34px,5vw,64px)] mb-3">{d.emoji}</div>
-          <div className="font-bold text-[clamp(20px,2.8vw,38px)] leading-tight" style={{ color: INK }}>{d.vraag}</div>
-          <div className="text-[clamp(18px,2.4vw,32px)] font-bold mt-3" style={{ color: SUB }}>Zijn we er dan?</div>
-          <div className="inline-flex items-center gap-3 rounded-full px-7 py-3 mt-6 shadow-lg" style={{ background: d.color }}>
-            <span className="text-white font-extrabold text-[clamp(20px,2.6vw,34px)]">Nee 🙃</span>
+      <Slide key={d.label} title={`Het domein ${d.label}`} subtitle="Quizvraag — zijn we er met dít ene domein?" headerColor={d.color}>
+        <div className="w-full max-w-5xl mx-auto grid grid-cols-[1fr_1.25fr] gap-8 items-center">
+          {/* Toepasselijk plaatje per domein */}
+          <div className="grid place-items-center">
+            <div className="rounded-[2rem] grid place-items-center shadow-sm" style={{ width: "clamp(170px,26vw,290px)", height: "clamp(170px,26vw,290px)", background: d.color + "14", border: `2px solid ${d.color}33` }}>
+              <span style={{ fontSize: "clamp(80px,13vw,150px)", lineHeight: 1 }}>{d.emoji}</span>
+            </div>
           </div>
-          <div className="text-[clamp(14px,1.6vw,21px)] mt-6 max-w-2xl mx-auto leading-snug" style={{ color: INK }}>{d.uitleg}</div>
+          {/* Vraag + gesloten ja/nee */}
+          <div>
+            <div className="font-bold text-[clamp(19px,2.5vw,34px)] leading-tight" style={{ color: INK }}>{d.vraag}</div>
+            <div className="text-[clamp(16px,2vw,26px)] font-bold mt-2" style={{ color: SUB }}>Zijn we er dan?</div>
+            <div className="flex items-center gap-3 mt-5">
+              <span className="rounded-full px-5 py-2.5 font-bold text-[clamp(15px,1.8vw,22px)] border-2" style={{ borderColor: "#cbd5e1", color: "#94a3b8" }}>JA ✅</span>
+              <span className="rounded-full px-6 py-2.5 font-extrabold text-white text-[clamp(17px,2vw,26px)] shadow-lg" style={{ background: d.color }}>NEE ❌</span>
+            </div>
+            <div className="text-[clamp(13px,1.5vw,19px)] mt-5 leading-snug" style={{ color: INK }}>{d.uitleg}</div>
+          </div>
         </div>
       </Slide>
     ));
