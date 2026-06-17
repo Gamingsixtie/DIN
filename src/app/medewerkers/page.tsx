@@ -298,26 +298,16 @@ export default function MedewerkersPresentatie() {
     // 14 — Slot: waar staan we straks (power-vorm)
     out.push(
       <Slide title="Waar staan we straks?" headerColor={CITO}>
-        <div className="w-full max-w-5xl mx-auto">
-          <div className="text-center font-extrabold leading-tight text-[clamp(20px,2.8vw,38px)]" style={{ color: CITO }}>
+        <div className="w-full max-w-4xl mx-auto text-center">
+          <div className="font-extrabold leading-tight text-[clamp(26px,4vw,52px)]" style={{ color: CITO }}>
             Van reactief leverancier naar een <span style={{ color: TEAL }}>proactieve, strategische partner</span>.
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-7">
-            {([
-              ["Outside-in als vertrekpunt", "Niet wat wíj te bieden hebben, maar wat klanten werkelijk nodig hebben bepaalt hoe we denken en handelen."],
-              ["Vier domeinen verbonden", "Mens, proces, systeem én cultuur structureel verbonden en verankerd in de hele organisatie."],
-              ["Proactief, samen met klanten", "We wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen."],
-              ["Klanten die we écht kennen", "Een datagedreven organisatie die haar klanten kent en begrijpt — en daarop duurzame relaties bouwt."],
-            ] as Array<[string, string]>).map(([t, d]) => (
-              <div key={t} className="rounded-2xl p-5 border-l-4 shadow-sm bg-white" style={{ borderLeftColor: TEAL }}>
-                <div className="font-bold text-[clamp(15px,1.7vw,21px)]" style={{ color: CITO }}>{t}</div>
-                <div className="text-[clamp(12px,1.3vw,16px)] mt-1.5 leading-snug" style={{ color: SUB }}>{d}</div>
-              </div>
+          <div className="flex flex-wrap justify-center gap-3 mt-10">
+            {["Outside-in", "Vier domeinen verbonden", "Proactief & samen", "De klant écht kennen"].map((k) => (
+              <span key={k} className="rounded-full px-5 py-2.5 font-semibold text-[clamp(13px,1.5vw,18px)]" style={{ background: PANEL, color: INK }}>{k}</span>
             ))}
           </div>
-          <div className="mt-6 rounded-2xl text-white p-4 text-center text-[clamp(13px,1.45vw,18px)] leading-snug shadow-lg" style={{ background: NAVY }}>
-            <strong style={{ color: GREEN }}>Het resultaat:</strong> een onderscheidende, datagedreven organisatie die het verschil maakt in elk ecosysteem waarin zij actief is.
-          </div>
+          <p className="text-[clamp(14px,1.6vw,20px)] mt-10" style={{ color: SUB }}>Een datagedreven organisatie die het verschil maakt in elk ecosysteem.</p>
         </div>
       </Slide>
     );

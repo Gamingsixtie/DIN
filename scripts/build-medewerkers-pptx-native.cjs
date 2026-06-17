@@ -179,18 +179,14 @@ s = P.addSlide(); header(s, "Hoe blijven we je op de hoogte houden?", null, C.gr
 
 // ---------- 17. Slot: waar staan we straks (power-vorm) ----------
 s = P.addSlide(); header(s, "Waar staan we straks?", null, C.cito);
-s.addText([{ text: "Van reactief leverancier naar een ", options: { color: C.cito } }, { text: "proactieve, strategische partner", options: { color: C.teal } }, { text: ".", options: { color: C.cito } }], { x: 1.0, y: 1.35, w: W - 2.0, h: 0.9, align: "center", fontFace: F, fontSize: 30, bold: true });
-const PILL = [["Outside-in als vertrekpunt", "Niet wat wíj te bieden hebben, maar wat klanten werkelijk nodig hebben bepaalt hoe we denken en handelen."], ["Vier domeinen verbonden", "Mens, proces, systeem én cultuur structureel verbonden en verankerd in de hele organisatie."], ["Proactief, samen met klanten", "We wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen."], ["Klanten die we écht kennen", "Een datagedreven organisatie die haar klanten kent en begrijpt — en daarop duurzame relaties bouwt."]];
-PILL.forEach((pl, i) => {
-  const col = i % 2, row = Math.floor(i / 2);
-  const w = 5.7, gap = 0.5, x = (W - (2 * w + gap)) / 2 + col * (w + gap), y = 2.45 + row * 1.55, h = 1.4;
-  cardBg(s, x, y, w, h);
-  s.addShape(S.rect, { x, y, w: 0.12, h, fill: { color: C.teal } });
-  s.addText(pl[0], { x: x + 0.35, y: y + 0.18, w: w - 0.6, h: 0.4, fontFace: F, fontSize: 17, bold: true, color: C.cito });
-  s.addText(pl[1], { x: x + 0.35, y: y + 0.58, w: w - 0.6, h: 0.75, fontFace: F, fontSize: 13, color: C.sub, lineSpacingMultiple: 1.1 });
+s.addText([{ text: "Van reactief leverancier naar een ", options: { color: C.cito } }, { text: "proactieve, strategische partner", options: { color: C.teal } }, { text: ".", options: { color: C.cito } }], { x: 1.2, y: 2.1, w: W - 2.4, h: 1.8, align: "center", valign: "middle", fontFace: F, fontSize: 40, bold: true, lineSpacingMultiple: 1.05 });
+const KW = ["Outside-in", "Vier domeinen verbonden", "Proactief & samen", "De klant écht kennen"];
+KW.forEach((k, i) => {
+  const w = 2.95, gap = 0.3, x = (W - (4 * w + 3 * gap)) / 2 + i * (w + gap), y = 4.5;
+  s.addShape(S.roundRect, { x, y, w, h: 0.7, rectRadius: 0.35, fill: { color: C.panel } });
+  s.addText(k, { x, y, w, h: 0.7, align: "center", valign: "middle", fontFace: F, fontSize: 14, bold: true, color: C.ink });
 });
-s.addShape(S.roundRect, { x: 1.0, y: 5.75, w: W - 2.0, h: 1.0, rectRadius: 0.12, fill: { color: C.navy } });
-s.addText([{ text: "Het resultaat:  ", options: { bold: true, color: C.green } }, { text: "een onderscheidende, datagedreven organisatie die het verschil maakt in elk ecosysteem waarin zij actief is.", options: { color: "FFFFFF" } }], { x: 1.4, y: 5.75, w: W - 2.8, h: 1.0, align: "center", valign: "middle", fontFace: F, fontSize: 16, lineSpacingMultiple: 1.1 });
+s.addText("Een datagedreven organisatie die het verschil maakt in elk ecosysteem.", { x: 1.5, y: 5.7, w: W - 3.0, h: 0.6, align: "center", fontFace: F, fontSize: 18, color: C.sub });
 
 const OUT = "C:\\Users\\pdebu\\Downloads\\Klant-in-Zicht-Medewerkers-bewerkbaar.pptx";
 P.writeFile({ fileName: OUT })
