@@ -28,7 +28,7 @@ const DOMEINEN: Array<{ label: string; color: string; emoji: string; vraag: stri
 const OPGELEVERD: Array<{ sector: string; color: string; cijfers: Array<[string, string]>; punten: string[]; betrokkenen: string; foto: string }> = [
   { sector: "Primair Onderwijs", color: "#7c5cd6", cijfers: [["8", "interviews"], ["11", "betrokkenen"], ["3", "klantreizen"], ["2", "proceskaarten"]], punten: ["2 klantreizen van scholen + 1 aparte KVS-klantreis", "2 interne proceskaarten: systemen, data & interne stappen", "Knelpunten, behoeften & kansen → ontwerpcriteria en prioriteiten", "Eerste oplossingsrichtingen mét KPI’s — klaar om te valideren"], betrokkenen: "IB’ers, leerkrachten, beheerders & schoolleiders", foto: "Werksessie PO" },
   { sector: "Voortgezet Onderwijs", color: "#10b981", cijfers: [["9", "interviews"], ["5", "klantreizen"], ["3", "proceskaarten"], ["8", "kansen (HKJ’s)"]], punten: ["5 klantreizen: hoe scholen met onze producten werken én hoe ze dat ervaren", "3 interne proceskaarten: systemen, data & interne stappen", "Knelpunten & kansen → ontwerpcriteria en prioriteiten", "8 belangrijkste kansen (HKJ’s) uitgewerkt tot concrete ideeën"], betrokkenen: "Docenten, kwaliteitsmedewerkers, schoolleiders & leerlingen", foto: "Werksessie VO" },
-  { sector: "Professionals", color: "#0e9e8e", cijfers: [["7", "externe interviews"], ["+", "interne interviews"], ["1", "klantreis"]], punten: ["Klantreis van aanvraag tot training — boven én onder de lijn van zichtbaarheid", "Interne interviews: het proces voor klant én Cito helder in beeld", "Knelpunten & kansen → Hoe-Kun-Je’s en ontwerpcriteria", "Ideeën uitgewerkt tot concrete verbeterconcepten — klaar om te valideren"], betrokkenen: "Docenten, opleidingscoördinatoren & examencommissieleden", foto: "Werksessie Professionals" },
+  { sector: "Professionals", color: "#0e9e8e", cijfers: [["7", "externe interviews"], ["+", "interne interviews"], ["1", "diepgaande klantreis"], ["✓", "verbeterconcepten"]], punten: ["Eén klantreis — maar volledig end-to-end uitgewerkt: van aanvraag tot training, boven én onder de lijn van zichtbaarheid", "Externe én interne interviews: het proces voor klant én Cito helder in beeld", "Knelpunten & kansen → Hoe-Kun-Je’s en ontwerpcriteria", "Ideeën uitgewerkt tot concrete verbeterconcepten — klaar om te valideren"], betrokkenen: "Docenten, opleidingscoördinatoren & examencommissieleden", foto: "Werksessie Professionals" },
 ];
 
 function Slide({ title, subtitle, headerColor, children }: { title: string; subtitle?: string; headerColor?: string; children: React.ReactNode }) {
@@ -265,14 +265,29 @@ export default function MedewerkersPresentatie() {
       </Slide>
     );
 
-    // 14 — Slot: waar staan we straks (tekstueel)
+    // 14 — Slot: waar staan we straks (power-vorm)
     out.push(
-      <Slide title="Waar staan we straks?" subtitle="Als we dit samen voor elkaar krijgen">
-        <div className="w-full max-w-3xl mx-auto space-y-5 text-[clamp(14px,1.7vw,22px)] leading-relaxed" style={{ color: INK }}>
-          <p>We kennen onze klanten niet meer alleen van een momentopname, maar houden ze <strong style={{ color: TEAL }}>continu in zicht</strong> — over de hele klantreis heen.</p>
-          <p>We werken <strong>outside-in</strong>: vanuit wat scholen, docenten en leerlingen écht nodig hebben. En dat zit in alles — in onze <strong>cultuur</strong>, onze <strong>mensen</strong>, onze <strong>systemen</strong> én onze <strong>processen</strong>.</p>
-          <p>Beslissingen baseren we op echt inzicht in plaats van aannames. En dat merken onze klanten — én wijzelf.</p>
-          <p className="font-bold pt-2" style={{ color: CITO }}>Klant in Zicht. Samen maken we het waar. 👀</p>
+      <Slide title="Waar staan we straks?" headerColor={CITO}>
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="text-center font-extrabold leading-tight text-[clamp(20px,2.8vw,38px)]" style={{ color: CITO }}>
+            Van reactief leverancier naar een <span style={{ color: TEAL }}>proactieve, strategische partner</span>.
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-7">
+            {([
+              ["Outside-in als vertrekpunt", "Niet wat wíj te bieden hebben, maar wat klanten werkelijk nodig hebben bepaalt hoe we denken en handelen."],
+              ["Vier domeinen verbonden", "Mens, proces, systeem én cultuur structureel verbonden en verankerd in de hele organisatie."],
+              ["Proactief, samen met klanten", "We wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen."],
+              ["Klanten die we écht kennen", "Een datagedreven organisatie die haar klanten kent en begrijpt — en daarop duurzame relaties bouwt."],
+            ] as Array<[string, string]>).map(([t, d]) => (
+              <div key={t} className="rounded-2xl p-5 border-l-4 shadow-sm bg-white" style={{ borderLeftColor: TEAL }}>
+                <div className="font-bold text-[clamp(15px,1.7vw,21px)]" style={{ color: CITO }}>{t}</div>
+                <div className="text-[clamp(12px,1.3vw,16px)] mt-1.5 leading-snug" style={{ color: SUB }}>{d}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 rounded-2xl text-white p-4 text-center text-[clamp(13px,1.45vw,18px)] leading-snug shadow-lg" style={{ background: NAVY }}>
+            <strong style={{ color: GREEN }}>Het resultaat:</strong> een onderscheidende, datagedreven organisatie die het verschil maakt in elk ecosysteem waarin zij actief is.
+          </div>
         </div>
       </Slide>
     );
