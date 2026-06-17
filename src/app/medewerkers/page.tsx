@@ -295,21 +295,14 @@ export default function MedewerkersPresentatie() {
       </Slide>
     );
 
-    // 14 — Slot: waar staan we straks (power-vorm)
+    // 14 — Slot: waar staan we straks (visietekst, kernwoorden dikgedrukt)
     out.push(
-      <Slide title="Waar staan we straks?" headerColor={CITO}>
-        <div className="w-full max-w-4xl mx-auto text-center">
-          <div className="font-extrabold leading-tight text-[clamp(26px,4vw,52px)]" style={{ color: CITO }}>
-            Van reactief leverancier naar een <span style={{ color: TEAL }}>proactieve, strategische partner</span>.
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 mt-10">
-            {["Outside-in", "Vier domeinen verbonden", "Proactief & samen", "De klant écht kennen"].map((k) => (
-              <span key={k} className="rounded-full px-5 py-2.5 font-semibold text-[clamp(13px,1.5vw,18px)]" style={{ background: PANEL, color: INK }}>{k}</span>
-            ))}
-          </div>
-          <p className="text-[clamp(14px,1.6vw,20px)] mt-10" style={{ color: SUB }}>Een datagedreven organisatie die het verschil maakt in elk ecosysteem.</p>
-        </div>
-      </Slide>
+      <div className="h-full flex flex-col items-center justify-center px-[9vw] bg-white">
+        <div className="w-full text-center text-[clamp(11px,1.3vw,16px)] tracking-[0.3em] uppercase font-semibold text-slate-400 mb-7">Waar staan we straks?</div>
+        <p className="max-w-5xl text-left leading-relaxed text-[clamp(14px,1.75vw,25px)]" style={{ color: "#334155" }}>
+          Met het programma <strong style={{ color: CITO }}>Klant in Zicht</strong> maakt Cito BV de beweging van <strong style={{ color: CITO }}>reactief leverancier naar proactieve strategische partner</strong>. Vertrekpunt daarbij is een <strong style={{ color: CITO }}>outside-in perspectief</strong>: niet wat wij als organisatie te bieden hebben, maar <strong style={{ color: CITO }}>wat klanten werkelijk nodig hebben</strong>, bepaalt hoe wij denken en handelen. Door <strong style={{ color: CITO }}>mens, proces, systeem en cultuur</strong> structureel met elkaar te verbinden, verankert Cito BV dit in de hele organisatie: <strong style={{ color: CITO }}>we wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen</strong>. Het resultaat is een <strong style={{ color: CITO }}>onderscheidende, datagedreven organisatie</strong> die haar klanten <strong style={{ color: CITO }}>écht kent en begrijpt</strong>, en op basis daarvan <strong style={{ color: CITO }}>duurzame relaties</strong> opbouwt, zodat zij <strong style={{ color: TEAL }}>het verschil maakt in elk ecosysteem</strong> waarin zij actief is.
+        </p>
+      </div>
     );
 
     return out;

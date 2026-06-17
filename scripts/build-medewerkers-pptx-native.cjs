@@ -178,15 +178,16 @@ s = P.addSlide(); header(s, "Hoe blijven we je op de hoogte houden?", null, C.gr
 });
 
 // ---------- 17. Slot: waar staan we straks (power-vorm) ----------
-s = P.addSlide(); header(s, "Waar staan we straks?", null, C.cito);
-s.addText([{ text: "Van reactief leverancier naar een ", options: { color: C.cito } }, { text: "proactieve, strategische partner", options: { color: C.teal } }, { text: ".", options: { color: C.cito } }], { x: 1.2, y: 2.1, w: W - 2.4, h: 1.8, align: "center", valign: "middle", fontFace: F, fontSize: 40, bold: true, lineSpacingMultiple: 1.05 });
-const KW = ["Outside-in", "Vier domeinen verbonden", "Proactief & samen", "De klant écht kennen"];
-KW.forEach((k, i) => {
-  const w = 2.95, gap = 0.3, x = (W - (4 * w + 3 * gap)) / 2 + i * (w + gap), y = 4.5;
-  s.addShape(S.roundRect, { x, y, w, h: 0.7, rectRadius: 0.35, fill: { color: C.panel } });
-  s.addText(k, { x, y, w, h: 0.7, align: "center", valign: "middle", fontFace: F, fontSize: 14, bold: true, color: C.ink });
-});
-s.addText("Een datagedreven organisatie die het verschil maakt in elk ecosysteem.", { x: 1.5, y: 5.7, w: W - 3.0, h: 0.6, align: "center", fontFace: F, fontSize: 18, color: C.sub });
+s = P.addSlide(); s.background = { color: "FFFFFF" };
+s.addText("WAAR STAAN WE STRAKS?", { x: 0, y: 0.8, w: W, h: 0.4, align: "center", fontFace: F, fontSize: 14, bold: true, color: C.grey, charSpacing: 3 });
+const BODY = "334155", B = (text) => ({ text, options: { color: C.cito, bold: true } }), N = (text) => ({ text, options: { color: BODY } });
+s.addText([
+  N("Met het programma "), B("Klant in Zicht"), N(" maakt Cito BV de beweging van "), B("reactief leverancier naar proactieve strategische partner"),
+  N(". Vertrekpunt daarbij is een "), B("outside-in perspectief"), N(": niet wat wij als organisatie te bieden hebben, maar "), B("wat klanten werkelijk nodig hebben"),
+  N(", bepaalt hoe wij denken en handelen. Door "), B("mens, proces, systeem en cultuur"), N(" structureel met elkaar te verbinden, verankert Cito BV dit in de hele organisatie: "), B("we wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen"),
+  N(". Het resultaat is een "), B("onderscheidende, datagedreven organisatie"), N(" die haar klanten "), B("écht kent en begrijpt"), N(", en op basis daarvan "), B("duurzame relaties"), N(" opbouwt, zodat zij "),
+  { text: "het verschil maakt in elk ecosysteem", options: { color: C.teal, bold: true } }, N(" waarin zij actief is."),
+], { x: 1.4, y: 1.65, w: W - 2.8, h: 5.3, align: "left", valign: "top", fontFace: F, fontSize: 21, lineSpacingMultiple: 1.3 });
 s.addNotes("Volledige visietekst (achtergrond voor de presentator):\n\nMet het programma Klant in Zicht maakt Cito BV de beweging van reactief leverancier naar proactieve strategische partner. Vertrekpunt daarbij is een outside-in perspectief: niet wat wij als organisatie te bieden hebben, maar wat klanten werkelijk nodig hebben, bepaalt hoe wij denken en handelen. Door mens, proces, systeem en cultuur structureel met elkaar te verbinden, verankert Cito BV dit in de hele organisatie: we wachten niet op vragen, maar bouwen samen met klanten aan echte oplossingen. Het resultaat is een onderscheidende, datagedreven organisatie die haar klanten écht kent en begrijpt, en op basis daarvan duurzame relaties opbouwt, zodat zij het verschil maakt in elk ecosysteem waarin zij actief is.");
 
 const OUT = "C:\\Users\\pdebu\\Downloads\\Klant-in-Zicht-Medewerkers-bewerkbaar.pptx";
