@@ -24,6 +24,13 @@ const DOMEINEN: Array<{ label: string; color: string; emoji: string; vraag: stri
   { label: "Processen", color: "#059669", emoji: "🔄", vraag: "Stel: onze processen staan tot in de puntjes op papier.", uitleg: "Zonder mensen die ze beheersen, data die ze voedt en cultuur die ze draagt, blijft het papier." },
 ];
 
+// Wat heeft het opgeleverd? — per sector (samenvatting projectgroepen Klant in Beeld)
+const OPGELEVERD: Array<{ sector: string; color: string; cijfers: Array<[string, string]>; punten: string[]; betrokkenen: string; foto: string }> = [
+  { sector: "Primair Onderwijs", color: "#7c5cd6", cijfers: [["8", "interviews"], ["11", "betrokkenen"], ["3", "klantreizen"], ["2", "proceskaarten"]], punten: ["2 klantreizen van scholen + 1 aparte KVS-klantreis", "2 interne proceskaarten: systemen, data & interne stappen", "Knelpunten, behoeften & kansen → ontwerpcriteria en prioriteiten", "Eerste oplossingsrichtingen mét KPI’s — klaar om te valideren"], betrokkenen: "IB’ers, leerkrachten, beheerders & schoolleiders", foto: "Werksessie PO" },
+  { sector: "Voortgezet Onderwijs", color: "#10b981", cijfers: [["9", "interviews"], ["5", "klantreizen"], ["3", "proceskaarten"], ["8", "kansen (HKJ’s)"]], punten: ["5 klantreizen: hoe scholen met onze producten werken én hoe ze dat ervaren", "3 interne proceskaarten: systemen, data & interne stappen", "Knelpunten & kansen → ontwerpcriteria en prioriteiten", "8 belangrijkste kansen (HKJ’s) uitgewerkt tot concrete ideeën"], betrokkenen: "Docenten, kwaliteitsmedewerkers, schoolleiders & leerlingen", foto: "Werksessie VO" },
+  { sector: "Professionals", color: "#0e9e8e", cijfers: [["7", "externe interviews"], ["+", "interne interviews"], ["1", "klantreis"]], punten: ["Klantreis van aanvraag tot training — boven én onder de lijn van zichtbaarheid", "Interne interviews: het proces voor klant én Cito helder in beeld", "Knelpunten & kansen → Hoe-Kun-Je’s en ontwerpcriteria", "Ideeën uitgewerkt tot concrete verbeterconcepten — klaar om te valideren"], betrokkenen: "Docenten, opleidingscoördinatoren & examencommissieleden", foto: "Werksessie Professionals" },
+];
+
 function Slide({ title, subtitle, headerColor, children }: { title: string; subtitle?: string; headerColor?: string; children: React.ReactNode }) {
   return (
     <div className="h-full flex flex-col bg-white">
@@ -85,18 +92,61 @@ export default function MedewerkersPresentatie() {
       </Slide>
     );
 
-    // 4 — Recap (OPEN — samen invullen)
+    // 4 — Wat heeft het opgeleverd? (overzicht)
     out.push(
-      <Slide title="Wat hebben we tot nu toe bereikt?" subtitle="Terugblik op het project Klant in Beeld">
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="rounded-3xl border-2 border-dashed p-10 text-center" style={{ borderColor: "#c7d0db", background: "#fafcfe" }}>
-            <div className="text-[clamp(34px,5vw,60px)]">📝</div>
-            <div className="font-bold text-[clamp(18px,2.2vw,28px)] mt-2" style={{ color: INK }}>Deze slide vullen we samen in</div>
-            <div className="text-[clamp(13px,1.4vw,18px)] mt-2 max-w-2xl mx-auto leading-snug" style={{ color: SUB }}>Hier komt de terugblik op de mijlpalen van project Klant in Beeld — nog nader te bepalen.</div>
+      <Slide title="Wat heeft het opgeleverd?" subtitle="De projectgroep Klant in Beeld dook in de wereld van onze gebruikers">
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="text-[clamp(13px,1.5vw,19px)] leading-relaxed text-center max-w-4xl mx-auto" style={{ color: INK }}>
+            In elke sector gingen collega’s hard aan de slag. Via <strong>interviews en analyses</strong> brachten we de belangrijkste <strong>klantreizen</strong> en <strong>interne processen</strong> in kaart — wat leidde tot een helder overzicht van <strong>knelpunten én kansen</strong>, direct vertaald naar <strong>ontwerpcriteria en prioriteiten</strong>. De eerste oplossingsrichtingen staan in de steigers.
           </div>
+          <div className="grid grid-cols-4 gap-3 mt-8">
+            {([["24", "interviews"], ["9", "klantreizen"], ["5", "interne proceskaarten"], ["3", "sectoren aan de slag"]] as Array<[string, string]>).map(([n, l]) => (
+              <div key={l} className="rounded-2xl p-4 text-center shadow-sm" style={{ background: PANEL }}>
+                <div className="font-extrabold text-[clamp(26px,3.4vw,48px)] leading-none" style={{ color: CITO }}>{n}</div>
+                <div className="text-[clamp(11px,1.2vw,15px)] mt-1.5" style={{ color: SUB }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center text-[clamp(12px,1.3vw,16px)] mt-7 font-semibold" style={{ color: SUB }}>Per sector — PO, VO en Professionals — hieronder de oogst 👇</div>
         </div>
       </Slide>
     );
+
+    // 5–7 — Wat heeft het opgeleverd, per sector
+    OPGELEVERD.forEach((s) => out.push(
+      <Slide key={s.sector} title={`Opgeleverd — ${s.sector}`} headerColor={s.color}>
+        <div className="w-full max-w-5xl mx-auto grid grid-cols-[1.35fr_1fr] gap-6 items-stretch">
+          <div className="flex flex-col">
+            <div className="flex gap-2.5 flex-wrap mb-5">
+              {s.cijfers.map(([n, l]) => (
+                <div key={l} className="rounded-xl px-3.5 py-2 text-center" style={{ background: s.color + "14", border: `1px solid ${s.color}33` }}>
+                  <div className="font-extrabold text-[clamp(18px,2.2vw,28px)] leading-none" style={{ color: s.color }}>{n}</div>
+                  <div className="text-[clamp(10px,1.05vw,13px)] mt-1" style={{ color: SUB }}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2.5">
+              {s.punten.map((p) => (
+                <div key={p} className="flex items-start gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: s.color }} />
+                  <span className="text-[clamp(12px,1.35vw,17px)] leading-snug" style={{ color: INK }}>{p}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="flex-1 rounded-2xl border-2 border-dashed grid place-items-center text-center p-4" style={{ borderColor: s.color + "66", background: s.color + "0d", minHeight: "clamp(150px,26vh,250px)" }}>
+              <div>
+                <div className="text-[clamp(28px,4vw,44px)]">📷</div>
+                <div className="text-[clamp(11px,1.2vw,14px)] font-semibold mt-1" style={{ color: s.color }}>{s.foto}</div>
+                <div className="text-[clamp(9px,1vw,11px)] mt-0.5" style={{ color: SUB }}>foto toevoegen in PowerPoint</div>
+              </div>
+            </div>
+            <div className="text-[clamp(11px,1.2vw,14px)] mt-2.5 leading-snug" style={{ color: SUB }}><strong style={{ color: INK }}>Wie spraken we?</strong> {s.betrokkenen}</div>
+          </div>
+        </div>
+      </Slide>
+    ));
 
     // 5 — Naamswijziging: in Beeld -> in Zicht
     out.push(
