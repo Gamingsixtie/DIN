@@ -11,6 +11,7 @@ const W = 13.333, H = 7.5, F = "Segoe UI";
 const C = { cito: "003366", teal: "159a86", green: "7bc043", navy: "1b3a5b", panel: "EEF1F6", ink: "243244", sub: "6B7A8D", line: "E5E9EF", grey: "94A3B8", lgrey: "CBD5E1" };
 const DOM = { cultuur: "D97706", mens: "2563EB", data: "7C3AED", proces: "059669" };
 const S = P.ShapeType;
+const LOGO = require("path").join(__dirname, "..", "public", "klant-in-zicht.png");
 
 const header = (s, title, subtitle, color) => {
   s.addShape(S.rect, { x: 0, y: 0, w: W, h: 1.1, fill: { color } });
@@ -36,15 +37,18 @@ s.addText("Waar staan we — en wat verandert er?", { x: 0, y: 4.2, w: W, h: 0.6
 
 // ---------- 2. Agenda ----------
 s = P.addSlide(); header(s, "Waar gaan we het over hebben?", null, C.teal);
-const AGENDA = [["Even terugblikken", "wat is Klant in Beeld ook alweer?"], ["Groot nieuws", "Klant in Beeld krijgt een nieuwe naam"], ["Zo werken we", "een netwerk, vier domeinen"], ["Een quizje", "zijn we er met een domein?"], ["Samen met 3sides", "met wie we dit hebben gedaan"], ["Op de hoogte blijven", "intranet en bijeenkomsten"]];
+const AGENDA = [["Even terugblikken", "wat is Klant in Beeld ook alweer?"], ["Groot nieuws", "Klant in Beeld krijgt een nieuwe naam"], ["Zo werken we", "een netwerk, vier domeinen"], ["Een quizje", "zijn we er met een domein?"], ["Samen met 3sides", "met wie we dit hebben gedaan"], ["Op de hoogte blijven", "intranet en bijeenkomsten"], ["Waar staan we straks?", "onze stip op de horizon"]];
 AGENDA.forEach((a, i) => {
+  const last = i === AGENDA.length - 1 && AGENDA.length % 2 === 1;
   const col = i % 2, row = Math.floor(i / 2);
-  const x = 0.9 + col * 5.95, y = 1.55 + row * 1.7, w = 5.5, h = 1.45;
+  const y = 1.45 + row * 1.45, h = 1.25;
+  const x = last ? 0.9 : 0.9 + col * 5.95;
+  const w = last ? W - 1.8 : 5.5;
   cardBg(s, x, y, w, h, { fill: C.panel, noLine: true });
-  s.addShape(S.ellipse, { x: x + 0.3, y: y + 0.42, w: 0.6, h: 0.6, fill: { color: C.cito } });
-  s.addText(String(i + 1), { x: x + 0.3, y: y + 0.42, w: 0.6, h: 0.6, align: "center", valign: "middle", fontFace: F, fontSize: 18, bold: true, color: "FFFFFF" });
-  s.addText(a[0], { x: x + 1.1, y: y + 0.26, w: w - 1.3, h: 0.5, fontFace: F, fontSize: 18, bold: true, color: C.ink, valign: "middle" });
-  s.addText(a[1], { x: x + 1.1, y: y + 0.72, w: w - 1.3, h: 0.5, fontFace: F, fontSize: 13, color: C.sub, valign: "middle" });
+  s.addShape(S.ellipse, { x: x + 0.3, y: y + 0.33, w: 0.58, h: 0.58, fill: { color: C.cito } });
+  s.addText(String(i + 1), { x: x + 0.3, y: y + 0.33, w: 0.58, h: 0.58, align: "center", valign: "middle", fontFace: F, fontSize: 17, bold: true, color: "FFFFFF" });
+  s.addText(a[0], { x: x + 1.05, y: y + 0.22, w: w - 1.25, h: 0.45, fontFace: F, fontSize: 17, bold: true, color: C.ink, valign: "middle" });
+  s.addText(a[1], { x: x + 1.05, y: y + 0.64, w: w - 1.25, h: 0.45, fontFace: F, fontSize: 12.5, color: C.sub, valign: "middle" });
 });
 
 // ---------- 3. Inleiding ----------
@@ -88,6 +92,24 @@ s = P.addSlide(); s.background = { color: C.cito };
 s.addText("GROOT NIEUWS", { x: 0, y: 1.6, w: W, h: 0.4, align: "center", fontFace: F, fontSize: 14, bold: true, color: "9FB4CB", charSpacing: 3 });
 s.addText([{ text: "Klant in Beeld", options: { strike: true, color: "8AA0B8" } }, { text: "   →   ", options: { color: "B8C6D6" } }, { text: "Klant in ", options: { color: "FFFFFF" } }, { text: "Zicht", options: { color: C.green } }], { x: 0.5, y: 2.5, w: W - 1, h: 1.5, align: "center", fontFace: F, fontSize: 48, bold: true });
 s.addText("We zetten de klant niet alleen even in beeld — we houden 'm blijvend in zicht. Van momentopname naar continu meebewegen.", { x: 1.8, y: 4.4, w: W - 3.6, h: 1.2, align: "center", fontFace: F, fontSize: 20, color: "DCE6EF", lineSpacingMultiple: 1.2 });
+
+// ---------- 8b. Logo Klant in Zicht ----------
+s = P.addSlide(); s.background = { color: "F5F8FC" };
+s.addImage({ path: LOGO, x: 2.67, y: 1.15, w: 8, h: 4.7, sizing: { type: "contain", w: 8, h: 4.7 } });
+s.addText("Vier domeinen. Eén klantbeeld.", { x: 0, y: 6.1, w: W, h: 0.6, align: "center", fontFace: F, fontSize: 22, color: C.sub });
+
+// ---------- 8c. Power-impressie: van kijken naar vooruitkijken ----------
+s = P.addSlide(); s.background = { color: C.navy };
+s.addText("VAN KIJKEN NAAR VOORUITKIJKEN", { x: 0, y: 0.9, w: W, h: 0.4, align: "center", fontFace: F, fontSize: 14, bold: true, color: "9FB4CB", charSpacing: 3 });
+s.addText([{ text: "Een beeld is een momentopname.\n", options: { color: "FFFFFF" } }, { text: "Klant in Zicht", options: { color: C.green } }, { text: " is vooruitkijken.", options: { color: "FFFFFF" } }], { x: 1.0, y: 1.35, w: W - 2.0, h: 1.6, align: "center", fontFace: F, fontSize: 36, bold: true, lineSpacingMultiple: 1.05 });
+const TRANS = [["Zien", "Begrijpen"], ["Reageren", "Anticiperen"], ["Kijken", "Vooruitkijken"], ["Leverancier", "Partner"]];
+TRANS.forEach((t, i) => {
+  const col = i % 2, row = Math.floor(i / 2);
+  const w = 5.0, gap = 0.5, x = (W - (2 * w + gap)) / 2 + col * (w + gap), y = 3.55 + row * 0.95;
+  s.addShape(S.roundRect, { x, y, w, h: 0.75, rectRadius: 0.38, fill: { color: "FFFFFF", transparency: 86 } });
+  s.addText([{ text: t[0] + "   →   ", options: { color: "C7D3E0" } }, { text: t[1], options: { color: C.green, bold: true } }], { x, y, w, h: 0.75, align: "center", valign: "middle", fontFace: F, fontSize: 18 });
+});
+s.addText("Mens, cultuur, data en processen als één geheel — om de klant écht te kennen en duurzaam verbonden te blijven.", { x: 1.5, y: 5.65, w: W - 3.0, h: 0.9, align: "center", fontFace: F, fontSize: 16, color: "DCE6EF", lineSpacingMultiple: 1.15 });
 
 // ---------- 9. DIN-netwerk intro ----------
 s = P.addSlide(); header(s, "Zo werken we: één netwerk, vier domeinen", null, C.cito);
@@ -170,4 +192,14 @@ PILL.forEach((pl, i) => {
 s.addShape(S.roundRect, { x: 1.0, y: 5.75, w: W - 2.0, h: 1.0, rectRadius: 0.12, fill: { color: C.navy } });
 s.addText([{ text: "Het resultaat:  ", options: { bold: true, color: C.green } }, { text: "een onderscheidende, datagedreven organisatie die het verschil maakt in elk ecosysteem waarin zij actief is.", options: { color: "FFFFFF" } }], { x: 1.4, y: 5.75, w: W - 2.8, h: 1.0, align: "center", valign: "middle", fontFace: F, fontSize: 16, lineSpacingMultiple: 1.1 });
 
-P.writeFile({ fileName: "C:\\Users\\pdebu\\Downloads\\Klant-in-Zicht-Medewerkers-bewerkbaar.pptx" }).then((f) => console.log("PPTX (bewerkbaar) geschreven:", f)).catch((e) => { console.error("FOUT:", e.code || e.message); process.exit(1); });
+const OUT = "C:\\Users\\pdebu\\Downloads\\Klant-in-Zicht-Medewerkers-bewerkbaar.pptx";
+P.writeFile({ fileName: OUT })
+  .then((f) => console.log("PPTX (bewerkbaar) geschreven:", f))
+  .catch((e) => {
+    if (e.code === "EBUSY" || e.code === "EPERM") {
+      const alt = OUT.replace(/\.pptx$/, "-" + Date.now() + ".pptx");
+      console.warn("Bestand vergrendeld (open in PowerPoint?) — schrijf naar:", alt);
+      return P.writeFile({ fileName: alt }).then((f) => console.log("PPTX (bewerkbaar) geschreven:", f));
+    }
+    console.error("FOUT:", e.code || e.message); process.exit(1);
+  });

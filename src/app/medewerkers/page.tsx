@@ -14,6 +14,7 @@ const AGENDA: Array<[string, string]> = [
   ["Een quizje 🤔", "zijn we er met één domein?"],
   ["Samen met 3sides", "met wie we dit hebben gedaan"],
   ["Op de hoogte blijven", "intranet & bijeenkomsten"],
+  ["Waar staan we straks?", "onze stip op de horizon"],
 ];
 
 // 4 domeinen in outside-in volgorde: cultuur → mens → data/systemen → processen
@@ -68,7 +69,7 @@ export default function MedewerkersPresentatie() {
       <Slide title="Waar gaan we het over hebben?" headerColor={TEAL}>
         <div className="w-full max-w-4xl mx-auto grid grid-cols-2 gap-4">
           {AGENDA.map(([t, d], i) => (
-            <div key={t} className="rounded-2xl p-4 flex items-start gap-3" style={{ background: PANEL }}>
+            <div key={t} className={`rounded-2xl p-4 flex items-start gap-3 ${i === AGENDA.length - 1 && AGENDA.length % 2 === 1 ? "col-span-2" : ""}`} style={{ background: PANEL }}>
               <span className="w-9 h-9 rounded-full grid place-items-center text-white font-bold shrink-0 text-[clamp(14px,1.5vw,18px)]" style={{ background: CITO }}>{i + 1}</span>
               <div>
                 <div className="font-bold text-[clamp(14px,1.5vw,19px)]" style={{ color: INK }}>{t}</div>
@@ -159,6 +160,35 @@ export default function MedewerkersPresentatie() {
             <span className="text-[clamp(40px,7vw,96px)] font-extrabold text-white leading-none">Klant in <span style={{ color: GREEN }}>Zicht</span></span>
           </div>
           <p className="text-[clamp(15px,2.1vw,26px)] text-white/85 mt-8 max-w-3xl mx-auto leading-snug">We zetten de klant niet alleen even <strong>in beeld</strong> — we houden ’m blijvend <strong style={{ color: GREEN }}>in zicht</strong>. Van momentopname naar continu meebewegen.</p>
+        </div>
+      </div>
+    );
+
+    // 5a — Logo Klant in Zicht
+    out.push(
+      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] bg-gradient-to-b from-[#f5f8fc] to-white">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/klant-in-zicht.png" alt="Klant in Zicht" className="w-auto" style={{ maxHeight: "62vh", maxWidth: "82vw" }} />
+        <p className="text-[clamp(15px,2vw,26px)] text-slate-500 mt-8">Vier domeinen. Eén klantbeeld.</p>
+      </div>
+    );
+
+    // 5b — Power-impressie: van kijken naar vooruitkijken
+    out.push(
+      <div className="h-full flex flex-col items-center justify-center text-center px-[8vw] relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${CITO} 100%)` }}>
+        <div className="relative w-full max-w-5xl">
+          <div className="text-[clamp(11px,1.3vw,16px)] tracking-[0.25em] uppercase font-bold text-white/60 mb-4">Van kijken naar vooruitkijken</div>
+          <h1 className="text-[clamp(22px,3.4vw,46px)] font-extrabold text-white leading-tight">Een beeld is een momentopname.<br /><span style={{ color: GREEN }}>Klant in Zicht</span> is vooruitkijken.</h1>
+          <div className="grid grid-cols-2 gap-3 mt-9 max-w-3xl mx-auto">
+            {([["Zien", "Begrijpen"], ["Reageren", "Anticiperen"], ["Kijken", "Vooruitkijken"], ["Leverancier", "Partner"]] as Array<[string, string]>).map(([a, b]) => (
+              <div key={a} className="rounded-full bg-white/10 border border-white/15 px-5 py-3 flex items-center justify-center gap-3">
+                <span className="text-white/55 font-semibold text-[clamp(13px,1.5vw,19px)]">{a}</span>
+                <span className="text-white/40">→</span>
+                <span className="font-extrabold text-[clamp(14px,1.7vw,21px)]" style={{ color: GREEN }}>{b}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[clamp(13px,1.5vw,19px)] text-white/80 mt-8 max-w-3xl mx-auto leading-snug">Mens, cultuur, data en processen als één geheel — om de klant écht te kennen en duurzaam verbonden te blijven.</p>
         </div>
       </div>
     );
