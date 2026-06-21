@@ -49,9 +49,31 @@ const METHODIEK_REGELS = `METHODIEK-REGELS (STRIKT):
 - Antwoord in het Nederlands (nl-NL). Geen Engelse termen.
 - Een BAAT is een gewenst effect in de buitenwereld (outcome). Meet via een outcome-KPI: NPS, conversie, omzet, klanttevredenheid, gebruiksgraad, uitval, doorlooptijd, etc.
 - Een VERMOGEN is een capaciteit — wat de organisatie moet KUNNEN. Meet via volwassenheid (maturity, 1-5 schaal) gecombineerd met observeerbare indicatoren (bijv. % medewerkers dat de methodiek beheerst, aanwezigheid van een werkend proces/systeem, frequentie van toepassing).
-- VERZIN GEEN NULCIJFERS OF GETALLEN. Je stelt de metric, de meetmethode en de richting voor — niet de waarde. De huidige waarde (nulmeting) beschrijf je als een AANPAK: bijvoorbeeld "Nulmeting bij programmastart via een eerste meting" of "Vast te stellen via baseline-meting in Q1". Schrijf NOOIT een verzonnen percentage, score of getal als startwaarde.
+- VERZIN GEEN NULCIJFERS OF GETALLEN. Je stelt de metric, de meetmethode en de richting voor — niet de waarde. De huidige waarde (nulmeting) beschrijf je als een AANPAK: bijvoorbeeld "Nulmeting bij programmastart (Q3 2026) via een eerste meting" of "Vast te stellen via baseline-meting bij start". Schrijf NOOIT een verzonnen percentage, score of getal als startwaarde — in deze sessie wordt de MÉTHODE vastgelegd, niet het getal.
 - De doelwaarde (targetValue) mag een richting of relatieve ambitie zijn ("hoger dan de nulmeting", "minimaal niveau 4/5", "stijging t.o.v. baseline") — verzin ook hier geen exact getal dat je niet kunt onderbouwen.
 - Wees concreet, meetbaar en realistisch voor een kleine, bureaucratische organisatie met schaarse capaciteit.`;
+
+// Veld-labels voor de focus-instructie (komt overeen met de toggle-knoppen in de UI).
+const VELD_LABEL_VOOR_PROMPT: Record<string, string> = {
+  indicator: "indicator (meetbare KPI)",
+  meetmethode: "meetmethode",
+  currentValue: "nulmeting / startwaarde-aanpak",
+  measurementMoment: "meetmoment",
+  eigenaar: "eigenaar / verantwoordelijke",
+  targetValue: "doelwaarde",
+};
+
+/**
+ * Bouwt de focus-instructie wanneer de gebruiker specifieke velden koos.
+ * Leeg/afwezig = alle velden (geen instructie). Conform BenefitCard's
+ * "Focus ALLEEN op het aanscherpen van: X".
+ */
+export function buildVeldFocus(velden?: string[]): string {
+  const geldig = (velden ?? []).filter((v) => VELD_LABEL_VOOR_PROMPT[v]);
+  if (geldig.length === 0) return "";
+  const labels = geldig.map((v) => VELD_LABEL_VOOR_PROMPT[v]);
+  return `\n\nFOCUS (STRIKT): de gebruiker wil ALLEEN de volgende velden aangescherpt/voorgesteld krijgen: ${labels.join(", ")}. Lever voor de overige velden de bestaande waarde ongewijzigd terug (of een passende neutrale waarde als die leeg is), maar besteed je aandacht uitsluitend aan de gekozen velden.`;
+}
 
 // ============================================================
 // MODUS 'vragen' — leidende zetvragen

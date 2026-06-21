@@ -6,6 +6,7 @@ import {
   KPI_VRAGEN_PROMPT,
   KPI_VOORSTEL_PROMPT,
   KPI_CORRECTIE_PROMPT,
+  buildVeldFocus,
 } from "@/lib/kpi-suggest-prompt";
 
 export const maxDuration = 300;
@@ -33,6 +34,9 @@ interface KpiSuggestBody {
   goalName?: string;
   answers?: Record<string, string>;
   userCorrection?: string;
+  // Optioneel: welke meetvelden de gebruiker wil laten aanscherpen.
+  // Leeg/afwezig = alle velden (zoals BenefitCard's veld-selectie).
+  velden?: string[];
 }
 
 const LEVEL_LABEL: Record<KpiLevel, string> = {
@@ -42,7 +46,7 @@ const LEVEL_LABEL: Record<KpiLevel, string> = {
 
 /** Bouw het user-message met alle beschikbare context. */
 function buildUserMessage(body: KpiSuggestBody): string {
-  const { level, item = {}, sector, goalName, answers, userCorrection } = body;
+  const { level, item = {}, sector, goalName, answers, userCorrection, velden } = body;
   const parts: string[] = [];
 
   parts.push(`Niveau: ${LEVEL_LABEL[level as KpiLevel]}`);
@@ -82,6 +86,13 @@ function buildUserMessage(body: KpiSuggestBody): string {
   // Correctie van de gebruiker (prioriteit bij modus 'correctie').
   if (body.mode === "correctie" && userCorrection) {
     parts.push(`GEBRUIKERSCORRECTIE (prioriteit — verwerk dit):\n${userCorrection}`);
+  }
+
+  // Veld-focus: alleen relevant bij voorstel/correctie (de 'vragen'-modus stelt
+  // altijd brede zetvragen). Leeg = alle velden.
+  if (body.mode !== "vragen") {
+    const focus = buildVeldFocus(velden);
+    if (focus) parts.push(focus.trim());
   }
 
   return parts.join("\n\n");
