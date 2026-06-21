@@ -75,6 +75,18 @@ export function buildVeldFocus(velden?: string[]): string {
   return `\n\nFOCUS (STRIKT): de gebruiker wil ALLEEN de volgende velden aangescherpt/voorgesteld krijgen: ${labels.join(", ")}. Voor ALLE overige velden: geef exact de bestaande waarde uit de context ongewijzigd terug; is die leeg, geef dan letterlijk "—". Verzin niets voor die velden en bedenk er geen placeholder bij — besteed je aandacht uitsluitend aan de gekozen velden.`;
 }
 
+/**
+ * Veld-focus voor de 'vragen'-modus: richt de zetvragen op de gekozen velden
+ * en stel er minder bij een smalle scope. Leeg/afwezig = brede zetvragen (3-4).
+ */
+export function buildVragenFocus(velden?: string[]): string {
+  const geldig = (velden ?? []).filter((v) => VELD_LABEL_VOOR_PROMPT[v]);
+  if (geldig.length === 0) return "";
+  const labels = geldig.map((v) => VELD_LABEL_VOOR_PROMPT[v]);
+  const aantal = geldig.length === 1 ? "precies 2 gerichte vragen" : "2 à 3 gerichte vragen";
+  return `\n\nVELD-FOCUS: de gebruiker wil ALLEEN ${labels.join(", ")} aanscherpen. Stel daarom ${aantal} die UITSLUITEND helpen om dit/deze veld(en) scherp te krijgen — geen vragen over de andere meetvariabelen. Houd de scope smal (minder vragen dan bij een brede baat/vermogen).`;
+}
+
 // ============================================================
 // MODUS 'vragen' — leidende zetvragen
 // ============================================================
@@ -115,6 +127,8 @@ Je levert:
 - measurementMoment: wanneer/hoe vaak wordt gemeten? (bijv. Elk kwartaal, Halfjaarlijks, Bij programmastart en -einde).
 - eigenaar: wie is verantwoordelijk voor het meten/leveren van de data? (rol/functie, bijv. BI-specialist, Controller, Sectormanager).
 - toelichting: 1-2 zinnen die uitleggen waarom deze KPI passend is bij dit niveau (baat = outcome, vermogen = maturity).
+
+SPECIFIEK bij een VERMOGEN: gebruik de meegegeven "huidige situatie (as-is)", "gewenste situatie (to-be)" en de maturity (nu → doel) om de indicator en meetmethode CONCREET en op-maat te maken voor dít vermogen. Verwijs naar de concrete elementen uit de situatieschets (bv. specifieke processen, data/CRM, gedrag). Vermijd generieke formuleringen die op elk vermogen zouden passen.
 
 ${METHODIEK_REGELS}
 

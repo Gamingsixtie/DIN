@@ -92,6 +92,49 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }
 
+// ------------------------------------------------------------
+// Opslag-feedback: subtiele "✓ opgeslagen"-flash na een auto-save.
+// De velden slaan op onBlur op (geen opslaan-knop). Deze hook toont kort
+// een bevestiging zodat de gebruiker ziet dát/wanneer er opgeslagen is.
+// flash() roep je ALLEEN aan als er daadwerkelijk opgeslagen werd.
+// ------------------------------------------------------------
+function useOpgeslagenFlash(duurMs = 1500): [boolean, () => void] {
+  const [zichtbaar, setZichtbaar] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Opruimen bij unmount — geen setState op een verdwenen component.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function flash() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setZichtbaar(true);
+    timerRef.current = setTimeout(() => {
+      setZichtbaar(false);
+      timerRef.current = null;
+    }, duurMs);
+  }
+
+  return [zichtbaar, flash];
+}
+
+/** Kleine, rustige "✓ opgeslagen"-indicator met fade-out. */
+function OpgeslagenFlash({ zichtbaar }: { zichtbaar: boolean }) {
+  return (
+    <span
+      aria-hidden={!zichtbaar}
+      className={`inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 transition-opacity duration-500 ${
+        zichtbaar ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <span aria-hidden>✓</span> opgeslagen
+    </span>
+  );
+}
+
 // Hint bij het nulmeting-veld: in deze sessie leggen we de méthode vast, niet het getal.
 const NULMETING_HINT =
   "In deze sessie leg je de méthode vast, niet het getal — de nulmeting wordt bij programmastart (Q3 2026) gemeten.";
@@ -114,6 +157,32 @@ const KPI_VELD_KNOPPEN: { key: KpiVeldKey; label: string }[] = [
   { key: "measurementMoment", label: "Meetmoment" },
   { key: "eigenaar", label: "Eigenaar" },
 ];
+
+/**
+ * Ontdubbel inspanningen robuust.
+ *
+ * `session.efforts` bevat per-sector-duplicaten: ofwel met een
+ * `consolidatedInto`-veld dat naar een canoniek item wijst, ofwel met
+ * identieke titels. Een simpele `!consolidated`-filter pakt die niet, waardoor
+ * elke inspanning ~9× per domein verschijnt. We groeperen op een stabiele
+ * sleutel en houden per groep alléén het eerste item.
+ *
+ * Sleutel: `consolidatedInto` (de canonieke verwijzing) of, bij gebrek daaraan,
+ * de genormaliseerde titel/omschrijving (title || description || id).
+ */
+function dedupEfforts(efforts: DINEffort[]): DINEffort[] {
+  const gezien = new Set<string>();
+  const uniek: DINEffort[] = [];
+  for (const e of efforts) {
+    const sleutel =
+      e.consolidatedInto ??
+      (e.title || e.description || e.id).trim().toLowerCase();
+    if (gezien.has(sleutel)) continue;
+    gezien.add(sleutel);
+    uniek.push(e);
+  }
+  return uniek;
+}
 
 /** Lege VermogensProfiel die de verplichte schema-velden behoudt. */
 function leegVermogensProfiel(cap: DINCapability): VermogensProfiel {
@@ -174,7 +243,12 @@ export default function KPIMeetbaarheidStep() {
   // Punt 8: toon ALLE niet-geconsolideerde vermogens (Zakelijk/PO/VO).
   const capabilities = (session.capabilities ?? []).filter((c) => !c.consolidated);
   // Punt 4: alle niet-geconsolideerde inspanningen (read-only context).
-  const efforts = (session.efforts ?? []).filter((e) => !e.consolidated);
+  // Ontdubbel robuust: per-sector-duplicaten (consolidatedInto / identieke
+  // titels) zorgden er anders voor dat elke inspanning ~9× per domein verscheen
+  // — zowel in de InspanningenMap als in de 3sides-tracker-koppeling.
+  const efforts = dedupEfforts(
+    (session.efforts ?? []).filter((e) => !e.consolidated)
+  );
 
   const batenGedimd = sessieModus && actieveSectie !== "baten";
   const vermogensGedimd = sessieModus && actieveSectie !== "vermogens";
@@ -218,12 +292,17 @@ export default function KPIMeetbaarheidStep() {
       </div>
 
       {/* ---------- Scope-notitie ---------- */}
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-semibold rounded-full px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200">
           Nu: KPI&apos;s op baten + vermogens
         </span>
         <span className="text-[11px] font-semibold rounded-full px-3 py-1 bg-gray-100 text-gray-500 border border-gray-200">
           Inspanningen later — via adoptie-framework (3sides)
+        </span>
+        {/* Rustige uitleg: er is bewust geen opslaan-knop. */}
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+          <span aria-hidden className="text-emerald-500">✓</span>
+          Wijzigingen worden automatisch opgeslagen
         </span>
       </div>
 
@@ -682,6 +761,23 @@ function VermogenKpiKaart({
       <AiKpiPaneel
         level="vermogen"
         item={capability}
+        // Rijke context voor de route: as-is/to-be + maturity + reeds
+        // ingevulde meetvariabelen (die staan genest onder .profiel). Hierdoor
+        // wordt het AI-voorstel specifiek voor DÍT vermogen i.p.v. generiek.
+        apiItem={{
+          title: capability.title,
+          description: capability.description,
+          indicator: capability.profiel?.indicator,
+          meetmethode: capability.profiel?.meetmethode,
+          currentValue: capability.profiel?.currentValue,
+          targetValue: capability.profiel?.targetValue,
+          measurementMoment: capability.profiel?.measurementMoment,
+          eigenaar: capability.profiel?.eigenaar,
+          huidieSituatie: capability.profiel?.huidieSituatie,
+          gewensteSituatie: capability.profiel?.gewensteSituatie,
+          currentLevel: capability.currentLevel,
+          targetLevel: capability.targetLevel,
+        }}
         onApply={(patch) => {
           // Snapshot vóór toepassen, zodat undo altijd kan (punt 2).
           setVorigProfiel(capability.profiel ? { ...capability.profiel } : leegVermogensProfiel(capability));
@@ -709,12 +805,17 @@ function VermogenKpiKaart({
 function AiKpiPaneel({
   level,
   item,
+  apiItem,
   onApply,
   kanHerstellen,
   onUndo,
 }: {
   level: "baat" | "vermogen";
   item: DINBenefit | DINCapability;
+  // Optioneel: de payload die naar /api/kpi-suggest gaat. Bij een vermogen
+  // sturen we hier de rijke context mee (as-is/to-be + maturity) zodat het
+  // voorstel specifiek wordt i.p.v. generiek. Valt terug op `item`.
+  apiItem?: Record<string, unknown>;
   onApply: (patch: KpiPatch) => void;
   // Undo (punt 2): paneel toont een "Ongedaan maken"-knop zodra er iets toegepast is.
   kanHerstellen: boolean;
@@ -744,6 +845,10 @@ function AiKpiPaneel({
       return next;
     });
   }
+
+  // Payload-item voor de route: rijke context indien meegegeven (vermogen),
+  // anders het ruwe item. Zo wordt het AI-voorstel specifiek i.p.v. generiek.
+  const itemPayload: unknown = apiItem ?? item;
 
   // De geselecteerde velden als array; leeg = alles (geen filter/instructie).
   const geselecteerdeVelden = Array.from(selectedVelden);
@@ -813,7 +918,7 @@ function AiKpiPaneel({
 
   async function startVragen() {
     setOpen(true);
-    const result = await callApi({ mode: "vragen", level, item });
+    const result = await callApi({ mode: "vragen", level, item: itemPayload });
     if (!result) return;
     const vs: KpiVraag[] = (result.vragen ?? result.questions ?? []).map(
       (v: unknown, i: number): KpiVraag => {
@@ -834,7 +939,7 @@ function AiKpiPaneel({
     const result = await callApi({
       mode: "voorstel",
       level,
-      item,
+      item: itemPayload,
       answers: antwoorden,
       velden: geselecteerdeVelden,
     });
@@ -848,7 +953,7 @@ function AiKpiPaneel({
     const result = await callApi({
       mode: "correctie",
       level,
-      item,
+      item: itemPayload,
       answers: antwoorden,
       userCorrection: correctie,
       velden: geselecteerdeVelden,
@@ -1533,6 +1638,8 @@ function KpiVeld({
   hint?: string;
 }) {
   const [lokaal, setLokaal] = useState(waarde ?? "");
+  // Subtiele opslag-bevestiging na een daadwerkelijke onBlur-save.
+  const [opgeslagen, flashOpgeslagen] = useOpgeslagenFlash();
 
   // Houd lokale state in sync als de sessiewaarde extern verandert (bv. AI-toepassen).
   const [vorigeWaarde, setVorigeWaarde] = useState(waarde ?? "");
@@ -1543,13 +1650,19 @@ function KpiVeld({
 
   return (
     <div className={kolommen === "full" ? "sm:col-span-2" : undefined}>
-      <label className="text-[11px] font-medium text-gray-500 block mb-1">{label}</label>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <label className="text-[11px] font-medium text-gray-500">{label}</label>
+        <OpgeslagenFlash zichtbaar={opgeslagen} />
+      </div>
       <input
         value={lokaal}
         onChange={(e) => setLokaal(e.target.value)}
         onBlur={() => {
           // Alleen wegschrijven als er daadwerkelijk iets veranderde.
-          if (lokaal !== (waarde ?? "")) onSave(lokaal);
+          if (lokaal !== (waarde ?? "")) {
+            onSave(lokaal);
+            flashOpgeslagen();
+          }
         }}
         placeholder={placeholder}
         className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30 focus:border-cito-blue/40"
@@ -1576,14 +1689,28 @@ function MaturityStepper({
   accent?: boolean;
 }) {
   const huidig = value ?? 1;
+  // Maturity slaat direct op via updateSession; flash na een geslaagde wijziging.
+  const [opgeslagen, flashOpgeslagen] = useOpgeslagenFlash();
+
+  // Clamp-bewuste wijziging: alleen opslaan/flashen als de waarde echt verandert.
+  function wijzig(nieuw: number) {
+    const clamped = Math.max(1, Math.min(5, nieuw));
+    if (clamped === value) return;
+    onChange(clamped);
+    flashOpgeslagen();
+  }
+
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
-        {label}
+      <div className="flex items-center gap-2 mb-1">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          {label}
+        </div>
+        <OpgeslagenFlash zichtbaar={opgeslagen} />
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => onChange(huidig - 1)}
+          onClick={() => wijzig(huidig - 1)}
           disabled={huidig <= 1}
           className="w-7 h-7 rounded-md border border-gray-300 bg-white text-gray-600 font-bold hover:border-cito-blue/40 disabled:opacity-30"
           aria-label="Verlaag maturity"
@@ -1605,7 +1732,7 @@ function MaturityStepper({
           <span className="text-[10px] text-gray-400">/ 5</span>
         </div>
         <button
-          onClick={() => onChange(huidig + 1)}
+          onClick={() => wijzig(huidig + 1)}
           disabled={huidig >= 5}
           className="w-7 h-7 rounded-md border border-gray-300 bg-white text-gray-600 font-bold hover:border-cito-blue/40 disabled:opacity-30"
           aria-label="Verhoog maturity"
@@ -1625,19 +1752,28 @@ function KpiStatusToggle({
   onToggle: () => void;
 }) {
   const afgestemd = status === "afgestemd";
+  // De toggle slaat direct op via updateSession; flash na elke wissel.
+  const [opgeslagen, flashOpgeslagen] = useOpgeslagenFlash();
+
   return (
-    <button
-      onClick={onToggle}
-      className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-        afgestemd
-          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-          : "bg-amber-50 text-amber-700 border-amber-300"
-      }`}
-      title="Klik om de afstem-status te wisselen"
-    >
-      {afgestemd ? "✓ " : "○ "}
-      {KPI_STATUS_LABEL[status]}
-    </button>
+    <div className="shrink-0 flex items-center gap-1.5">
+      <OpgeslagenFlash zichtbaar={opgeslagen} />
+      <button
+        onClick={() => {
+          onToggle();
+          flashOpgeslagen();
+        }}
+        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+          afgestemd
+            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+            : "bg-amber-50 text-amber-700 border-amber-300"
+        }`}
+        title="Klik om de afstem-status te wisselen"
+      >
+        {afgestemd ? "✓ " : "○ "}
+        {KPI_STATUS_LABEL[status]}
+      </button>
+    </div>
   );
 }
 

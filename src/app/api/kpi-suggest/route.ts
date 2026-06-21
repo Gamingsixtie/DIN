@@ -7,6 +7,7 @@ import {
   KPI_VOORSTEL_PROMPT,
   KPI_CORRECTIE_PROMPT,
   buildVeldFocus,
+  buildVragenFocus,
 } from "@/lib/kpi-suggest-prompt";
 
 export const maxDuration = 300;
@@ -24,6 +25,11 @@ interface KpiItem {
   measurementMoment?: string;
   eigenaar?: string;
   indicatorOwner?: string;
+  // Vermogen-context (voor een specifiek i.p.v. generiek voorstel)
+  huidieSituatie?: string;
+  gewensteSituatie?: string;
+  currentLevel?: number;
+  targetLevel?: number;
 }
 
 interface KpiSuggestBody {
@@ -55,6 +61,13 @@ function buildUserMessage(body: KpiSuggestBody): string {
 
   if (item.title) parts.push(`Titel: "${item.title}"`);
   if (item.description) parts.push(`Beschrijving: "${item.description}"`);
+
+  // Vermogen-context: as-is/to-be + maturity — cruciaal voor een SPECIFIEK vermogen-voorstel.
+  if (item.huidieSituatie) parts.push(`Huidige situatie (as-is): "${item.huidieSituatie}"`);
+  if (item.gewensteSituatie) parts.push(`Gewenste situatie (to-be): "${item.gewensteSituatie}"`);
+  if (typeof item.currentLevel === "number" || typeof item.targetLevel === "number") {
+    parts.push(`Maturity: nu ${item.currentLevel ?? "?"} → doel ${item.targetLevel ?? "?"} (schaal 1-5)`);
+  }
 
   // Huidige (deels) ingevulde meetvariabelen — bij 'correctie' is dit het vorige voorstel.
   const huidig: string[] = [];
@@ -88,9 +101,13 @@ function buildUserMessage(body: KpiSuggestBody): string {
     parts.push(`GEBRUIKERSCORRECTIE (prioriteit — verwerk dit):\n${userCorrection}`);
   }
 
-  // Veld-focus: alleen relevant bij voorstel/correctie (de 'vragen'-modus stelt
-  // altijd brede zetvragen). Leeg = alle velden.
-  if (body.mode !== "vragen") {
+  // Veld-focus. Bij 'vragen' richten we de zetvragen op de gekozen velden
+  // (gerichter + minder); bij voorstel/correctie scherpen we alleen die velden aan.
+  // Leeg = breed / alle velden.
+  if (body.mode === "vragen") {
+    const vfocus = buildVragenFocus(velden);
+    if (vfocus) parts.push(vfocus.trim());
+  } else {
     const focus = buildVeldFocus(velden);
     if (focus) parts.push(focus.trim());
   }
