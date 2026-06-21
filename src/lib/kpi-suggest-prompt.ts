@@ -38,8 +38,21 @@ export const KpiVoorstelSchema = z.object({
   }),
 });
 
+/**
+ * 3sides-KPI → één meetbare oplevering-KPI voor de uitvoeringspartner (3sides).
+ * KPI = is de afgesproken deliverable KLAAR (output), NIET het klant-effect.
+ */
+export const Kpi3sidesSchema = z.object({
+  suggestion: z.object({
+    kpi: z.string().min(1),
+    meetmoment: z.string().min(1),
+    toelichting: z.string().min(1),
+  }),
+});
+
 export type KpiVragenResult = z.infer<typeof KpiVragenSchema>;
 export type KpiVoorstelResult = z.infer<typeof KpiVoorstelSchema>;
+export type Kpi3sidesResult = z.infer<typeof Kpi3sidesSchema>;
 
 // ============================================================
 // Gedeelde methodiek-regels (in elke prompt herhaald)
@@ -173,5 +186,33 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
     "measurementMoment": "Wanneer/hoe vaak gemeten",
     "eigenaar": "Rol verantwoordelijk voor de meting",
     "toelichting": "1-2 zinnen onderbouwing"
+  }
+}`;
+
+// ============================================================
+// MODUS '3sides' — meetbare oplevering-KPI voor de uitvoeringspartner
+// ============================================================
+
+export const KPI_3SIDES_PROMPT = `Je bent een DIN-methodiek expert (Doelen-Inspanningennetwerk, Wijnen & Van der Tak, 2002).
+
+Je bepaalt welke meetbare KPI we aan 3sides geven — 3sides is de UITVOERINGSPARTNER die in 2026 per domein de afgesproken deliverables bouwt en oplevert.
+
+KERNREGEL (STRIKT):
+- Een 3sides-KPI meet of de afgesproken DELIVERABLE/OPLEVERING KLAAR is. Het is een OUTPUT-KPI: "klaar j/n" of een telbare output (bijv. "X van Y opleveringen gereed").
+- Een 3sides-KPI is NADRUKKELIJK NIET het klant-effect of de outcome — dat is Cito's BAAT en valt buiten de scope van de uitvoeringspartner. Meet dus geen NPS, conversie, gebruiksgraad, tevredenheid of ander effect in de buitenwereld.
+- Baseer de KPI op het meegegeven DOMEIN, de 2026-FASE en de afgesproken DELIVERABLES. Maak de KPI concreet en herleidbaar tot die deliverables (verwijs naar de concrete opleveringen).
+- VERZIN GEEN GETALLEN die je niet uit de context hebt. Als je telbaar formuleert, gebruik dan het werkelijke aantal deliverables uit de context; bedenk geen percentages of doelcijfers.
+- Het meetmoment beschrijft WANNEER de oplevering klaar is (bijv. "eind 2026", "Q4 2026").
+
+${METHODIEK_REGELS}
+
+Je krijgt context: het domein, de 2026-fase en de lijst afgesproken deliverables.
+
+Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tekst):
+{
+  "suggestion": {
+    "kpi": "meetbare oplevering-KPI (klaar j/n of telbaar)",
+    "meetmoment": "wanneer klaar (bv. eind 2026 / Q4 2026)",
+    "toelichting": "1-2 zinnen"
   }
 }`;

@@ -1696,10 +1696,14 @@ function ThreesidesDomeinKaart({
         )}
 
         {/* Bewerkbaar 3sides-KPI/target-veld — ná deliverables en funnel/quick-wins.
-            Persisteert naar session.threesidesOverrides (key = "domein:_kpi"). */}
+            Persisteert naar session.threesidesOverrides (key = "domein:_kpi").
+            `data` + `overrides` worden meegegeven zodat de ✨AI-knop het domein,
+            de 2026-fase en de (eventueel aangepaste) deliverables als context kan
+            meesturen naar /api/kpi-suggest. */}
         <ThreesidesKpiVeld
-          domein={data.domein}
+          data={data}
           override={overrides?.[`${data.domein}:_kpi`]}
+          overrides={overrides}
           updateSession={updateSession}
         />
 
@@ -1832,21 +1836,40 @@ function ThreesidesDeliverableRij({
 }
 
 // ------------------------------------------------------------
+// 3sides-KPI AI-voorstel (POST /api/kpi-suggest, level "3sides").
+// Eén meetbare oplevering-KPI (klaar j/n) voor de uitvoeringspartner — géén
+// klant-effect. kpi + meetmoment + toelichting.
+// ------------------------------------------------------------
+interface Threesides3sidesVoorstel {
+  kpi?: string;
+  meetmoment?: string;
+  toelichting?: string;
+}
+
+// ------------------------------------------------------------
 // Bewerkbaar 3sides-KPI/target-veld per domein.
 // Vrij tekstveld waarin de gebruiker de meetbare 3sides-KPI/target voor dít
 // domein vastlegt. Persisteert naar session.threesidesOverrides via updateSession;
 // we patchen ALLEEN de key "domein:_kpi" (spread van het bestaande object) —
 // nooit het hele object leeg overschrijven. Opslaan op onBlur, met change-guard.
+//
+// Daarnaast: een ✨AI-knop die een meetbare oplevering-KPI voorstelt op basis
+// van het domein, de 2026-fase en de (eventueel aangepaste) deliverables. Het
+// voorstel kan met "Toepassen" in dit veld gezet en opgeslagen worden — via
+// hetzelfde "domein:_kpi"-opslagpatroon.
 // ------------------------------------------------------------
 function ThreesidesKpiVeld({
-  domein,
+  data,
   override,
+  overrides,
   updateSession,
 }: {
-  domein: ThreesidesDomeinData["domein"];
+  data: ThreesidesDomeinData;
   override: { klaar?: boolean; tekst?: string } | undefined;
+  overrides: ThreesidesOverrides | undefined;
   updateSession: ReturnType<typeof useSession>["updateSession"];
 }) {
+  const domein = data.domein;
   const key = `${domein}:_kpi`;
   // Effectieve waarde: override-tekst als die er is, anders leeg.
   const effectieveTekst = override?.tekst ?? "";
@@ -1856,14 +1879,23 @@ function ThreesidesKpiVeld({
   // "✓ opgeslagen"-flash, hergebruik van de gedeelde helper.
   const [opgeslagenZichtbaar, flashOpgeslagen] = useOpgeslagenFlash();
 
+  // --- AI-voorstel-state ---
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiFout, setAiFout] = useState<string | null>(null);
+  const [aiRetryable, setAiRetryable] = useState(false);
+  const [aiVoorstel, setAiVoorstel] = useState<Threesides3sidesVoorstel | null>(null);
+
   // Houd de lokale input in sync wanneer de override van buitenaf wijzigt
   // (bijv. na undo). Alleen overschrijven als de waarde echt afwijkt.
   useEffect(() => {
     setTekst(effectieveTekst);
   }, [effectieveTekst]);
 
-  function opslaan() {
-    const nieuweTekst = tekst.trim();
+  // Schrijf een tekst naar het "domein:_kpi"-veld via het bestaande patroon:
+  // ALLEEN deze key patchen (spread van het bestaande object), change-guard,
+  // ✓-flash. Wordt gebruikt door zowel onBlur als "Toepassen".
+  function schrijfTekst(nieuweRuw: string) {
+    const nieuweTekst = nieuweRuw.trim();
     // Change-guard: alleen schrijven als de tekst daadwerkelijk veranderd is.
     if (nieuweTekst === effectieveTekst.trim()) return;
     updateSession((prev) => ({
@@ -1875,6 +1907,65 @@ function ThreesidesKpiVeld({
     flashOpgeslagen();
   }
 
+  function opslaan() {
+    schrijfTekst(tekst);
+  }
+
+  // Vraag een AI-voorstel voor de 3sides-oplevering-KPI. We sturen het domein,
+  // de 2026-fase en de EFFECTIEVE deliverable-teksten mee (override-tekst als die
+  // er is, anders het standaard-label) — zo volgt het voorstel de bewerkingen.
+  async function vraagAiVoorstel() {
+    setAiLoading(true);
+    setAiFout(null);
+    setAiRetryable(false);
+    setAiVoorstel(null);
+    try {
+      const deliverables = data.deliverables.map(
+        (d, i) => overrides?.[`${domein}:${i}`]?.tekst ?? d.label
+      );
+      const res = await fetch("/api/kpi-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "voorstel",
+          level: "3sides",
+          domein,
+          fase: data.fase2026,
+          deliverables,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json?.success === false) {
+        setAiRetryable(Boolean(json?.retryable));
+        setAiFout(json?.error || "AI-verzoek mislukt. Probeer het opnieuw.");
+        return;
+      }
+      const suggestion = (json?.data?.suggestion ??
+        json?.suggestion) as Threesides3sidesVoorstel | undefined;
+      if (!suggestion?.kpi) {
+        setAiRetryable(true);
+        setAiFout("Geen bruikbaar voorstel ontvangen. Probeer het opnieuw.");
+        return;
+      }
+      setAiVoorstel(suggestion);
+    } catch (e) {
+      console.error("[kpi-suggest][3sides]", e);
+      setAiRetryable(true);
+      setAiFout("Verbinding mislukt. Probeer het opnieuw.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  // Pas de voorgestelde KPI toe: zet 'm in het veld én sla op (zelfde patroon).
+  function pasVoorstelToe() {
+    if (!aiVoorstel?.kpi) return;
+    const nieuw = aiVoorstel.kpi.trim();
+    setTekst(nieuw);
+    schrijfTekst(nieuw);
+    setAiVoorstel(null);
+  }
+
   return (
     <div
       className="mt-2.5 rounded-lg px-3 py-2 border"
@@ -1884,7 +1975,19 @@ function ThreesidesKpiVeld({
         <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#6d28d9" }}>
           3sides-KPI (invullen)
         </div>
-        <OpgeslagenFlash zichtbaar={opgeslagenZichtbaar} />
+        <div className="flex items-center gap-2">
+          <OpgeslagenFlash zichtbaar={opgeslagenZichtbaar} />
+          <button
+            type="button"
+            onClick={vraagAiVoorstel}
+            disabled={aiLoading}
+            title="AI stelt een meetbare oplevering-KPI voor (klaar j/n) op basis van de deliverables"
+            className="text-[10px] font-bold px-2 py-0.5 rounded-md border transition-colors disabled:opacity-50"
+            style={{ background: "#fff", borderColor: "#c4b5fd", color: "#6d28d9" }}
+          >
+            {aiLoading ? "Bezig…" : "✨ AI"}
+          </button>
+        </div>
       </div>
       <input
         value={tekst}
@@ -1896,6 +1999,69 @@ function ThreesidesKpiVeld({
         placeholder="bv. datakwaliteits-scan gereed (j/n) · richting CRM bepaald"
         className="mt-1 w-full bg-white text-[11px] leading-relaxed px-2 py-1 rounded-md border border-violet-200 text-violet-900 placeholder:text-violet-300 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
       />
+
+      {/* AI-fout + retry */}
+      {aiFout && (
+        <div className="mt-1.5 p-1.5 bg-red-50 border border-red-200 rounded text-[10px] text-red-600 leading-snug">
+          {aiFout}
+          {aiRetryable && (
+            <button
+              type="button"
+              onClick={vraagAiVoorstel}
+              className="ml-1.5 underline font-medium"
+            >
+              Opnieuw proberen
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* AI-voorstel — ter inspiratie; "Toepassen" zet de KPI in het veld + slaat op */}
+      {aiVoorstel?.kpi && (
+        <div
+          className="mt-2 rounded-lg px-2.5 py-2 border"
+          style={{ background: "#fff", borderColor: "#c4b5fd" }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#6d28d9" }}>
+              ✨ AI-voorstel ter inspiratie
+            </span>
+            <button
+              type="button"
+              onClick={() => setAiVoorstel(null)}
+              className="text-[10px] text-gray-400 hover:text-gray-600"
+              title="Voorstel verbergen"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="mt-1 text-[11px] font-semibold leading-snug" style={{ color: "#4c1d95" }}>
+            {aiVoorstel.kpi}
+          </p>
+          {aiVoorstel.meetmoment && (
+            <p className="mt-0.5 text-[10px] text-gray-500 leading-snug">
+              <span className="font-semibold">Meetmoment: </span>
+              {aiVoorstel.meetmoment}
+            </p>
+          )}
+          {aiVoorstel.toelichting && (
+            <p className="mt-0.5 text-[10px] text-gray-500 italic leading-snug">
+              {aiVoorstel.toelichting}
+            </p>
+          )}
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={pasVoorstelToe}
+              className="text-[10px] font-semibold px-2.5 py-1 rounded-md text-white transition-colors"
+              style={{ background: "#6d28d9" }}
+            >
+              Toepassen
+            </button>
+            <span className="text-[9px] text-violet-400 italic">jij beslist</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

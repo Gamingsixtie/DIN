@@ -3,9 +3,11 @@ import { callClaudeWithValidation } from "@/lib/ai-client";
 import {
   KpiVragenSchema,
   KpiVoorstelSchema,
+  Kpi3sidesSchema,
   KPI_VRAGEN_PROMPT,
   KPI_VOORSTEL_PROMPT,
   KPI_CORRECTIE_PROMPT,
+  KPI_3SIDES_PROMPT,
   buildVeldFocus,
   buildVragenFocus,
 } from "@/lib/kpi-suggest-prompt";
@@ -13,7 +15,7 @@ import {
 export const maxDuration = 300;
 
 type KpiMode = "vragen" | "voorstel" | "correctie";
-type KpiLevel = "baat" | "vermogen";
+type KpiLevel = "baat" | "vermogen" | "3sides";
 
 interface KpiItem {
   title?: string;
@@ -43,21 +45,53 @@ interface KpiSuggestBody {
   // Optioneel: welke meetvelden de gebruiker wil laten aanscherpen.
   // Leeg/afwezig = alle velden (zoals BenefitCard's veld-selectie).
   velden?: string[];
+  // 3sides-context (level === "3sides"): domein, 2026-fase en de afgesproken
+  // deliverables waaruit de oplevering-KPI volgt.
+  domein?: string;
+  deliverables?: string[];
+  fase?: string;
 }
 
 const LEVEL_LABEL: Record<KpiLevel, string> = {
   baat: "Baat (gewenst effect in de buitenwereld — outcome-KPI)",
   vermogen: "Vermogen (capaciteit — meet via volwassenheid/maturity + observeerbare indicatoren)",
+  "3sides":
+    "3sides-deliverable (uitvoeringspartner — KPI = oplevering klaar j/n, geen klant-effect)",
 };
 
 /** Bouw het user-message met alle beschikbare context. */
 function buildUserMessage(body: KpiSuggestBody): string {
-  const { level, item = {}, sector, goalName, answers, userCorrection, velden } = body;
+  const {
+    level,
+    item = {},
+    sector,
+    goalName,
+    answers,
+    userCorrection,
+    velden,
+    domein,
+    deliverables,
+    fase,
+  } = body;
   const parts: string[] = [];
 
   parts.push(`Niveau: ${LEVEL_LABEL[level as KpiLevel]}`);
   if (sector) parts.push(`Sector: ${sector}`);
   if (goalName) parts.push(`Programmadoel: ${goalName}`);
+
+  // 3sides-context: domein, 2026-fase en de afgesproken deliverables — de
+  // bron waaruit de oplevering-KPI (klaar j/n) volgt.
+  if (level === "3sides") {
+    if (domein) parts.push(`Domein: ${domein}`);
+    if (fase) parts.push(`2026-fase: ${fase}`);
+    const dlv = (deliverables ?? []).filter((d) => typeof d === "string" && d.trim());
+    if (dlv.length > 0) {
+      parts.push(
+        `Afgesproken deliverables (${dlv.length}):\n${dlv.map((d) => `- ${d}`).join("\n")}`
+      );
+    }
+    return parts.join("\n\n");
+  }
 
   if (item.title) parts.push(`Titel: "${item.title}"`);
   if (item.description) parts.push(`Beschrijving: "${item.description}"`);
@@ -126,9 +160,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!level || !["baat", "vermogen"].includes(level)) {
+    if (!level || !["baat", "vermogen", "3sides"].includes(level)) {
       return NextResponse.json(
-        { success: false, error: "Level moet 'baat' of 'vermogen' zijn" },
+        { success: false, error: "Level moet 'baat', 'vermogen' of '3sides' zijn" },
         { status: 400 }
       );
     }
@@ -162,6 +196,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: { questions: result.data.questions },
+      });
+    }
+
+    // 3sides-oplevering-KPI: één meetbare deliverable-KPI (klaar j/n) voor de
+    // uitvoeringspartner. Geen zetvragen/correctie-flow — direct een voorstel.
+    if (level === "3sides") {
+      const result = await callClaudeWithValidation(
+        Kpi3sidesSchema,
+        KPI_3SIDES_PROMPT,
+        userMessage,
+        { maxTokens: 1024, maxRetries: 1 }
+      );
+
+      if (!result.success) {
+        console.error("[kpi-suggest] AI validation failed (3sides):", result.error);
+        return NextResponse.json(
+          { success: false, error: result.error, retryable: true },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: { suggestion: result.data.suggestion },
       });
     }
 
