@@ -419,9 +419,14 @@ export default function KPIMeetbaarheidStep() {
           <LegeMelding tekst="Nog geen vermogens in deze sessie. Voeg ze toe in de DIN-mapping." />
         ) : (
           <div className="mt-4 space-y-4">
-            {capabilities.map((c) => (
-              <VermogenKpiKaart key={c.id} capability={c} updateSession={updateSession} />
-            ))}
+            {/* Display-merge: alle (niet-geconsolideerde) per-sector vermogens worden
+                getoond als ÉÉN gedeeld, cross-sectoraal vermogen. De 3 onderliggende
+                capabilities blijven volledig in session.capabilities — niets wordt
+                verwijderd. KPI's op gedeeld niveau, maturity per sector. */}
+            <GedeeldVermogenKaart
+              capabilities={capabilities}
+              updateSession={updateSession}
+            />
           </div>
         )}
       </section>
@@ -623,64 +628,155 @@ function BaatKpiKaart({
 }
 
 // ============================================================
-// VERMOGENS — kaart
+// VERMOGENS — gedeelde (cross-sectorale) kaart
+// ------------------------------------------------------------
+// De gebruiker ziet ÉÉN gedeeld vermogen i.p.v. 3 losse kaarten. De 3
+// onderliggende per-sector vermogens (Zakelijk/PO/VO) komen terug als subrijen
+// en blijven volledig in session.capabilities — dit is een DISPLAY-merge, geen
+// verwijdering. Maturity is per sector bewerkbaar (slaat op die capability op).
+// De KPI-meetvariabelen + status staan op gedeeld niveau en worden bij opslaan
+// naar ALLE gegroepeerde capabilities geschreven, zodat de data consistent is.
 // ============================================================
 
-function VermogenKpiKaart({
-  capability,
+/** Leesbare sectornaam voor een capability: relatedSectors[0] of sectorId. */
+function sectorLabel(c: DINCapability): string {
+  const uitRelated = c.relatedSectors?.find((s) => s && s.trim().length > 0);
+  return (uitRelated || c.sectorId || "Onbekend").trim();
+}
+
+/**
+ * Patch het profiel van ALLE gegroepeerde capabilities met dezelfde waarde,
+ * in één updateSession-call (punt 2). Behoud de profiel-merge-guard: als een
+ * profiel bestond, behouden we eigenaar/huidieSituatie/gewensteSituatie.
+ * `groepIds` bepaalt welke capabilities geraakt worden; de rest blijft intact.
+ */
+function patchGroepProfiel(
+  updateSession: ReturnType<typeof useSession>["updateSession"],
+  groepIds: Set<string>,
+  patch: Partial<VermogensProfiel>
+) {
+  updateSession((prev) => ({
+    capabilities: prev.capabilities.map((c) => {
+      if (!groepIds.has(c.id)) return c;
+      const basis = c.profiel ?? leegVermogensProfiel(c);
+      return { ...c, profiel: { ...basis, ...patch } };
+    }),
+  }));
+}
+
+function GedeeldVermogenKaart({
+  capabilities,
   updateSession,
 }: {
-  capability: DINCapability;
+  capabilities: DINCapability[];
   updateSession: ReturnType<typeof useSession>["updateSession"];
 }) {
-  // Undo (punt 2): bewaar het volledige profiel vóór een AI-toepassing.
-  const [vorigProfiel, setVorigProfiel] = useState<VermogensProfiel | null>(null);
+  // Stabiele set van groep-IDs — alle gegroepeerde (niet-geconsolideerde)
+  // capabilities horen tot dit ene gedeelde vermogen.
+  const groepIds = new Set(capabilities.map((c) => c.id));
+  // Representatief: de eerste gegroepeerde capability draagt de gedeelde
+  // KPI-waarden (we schrijven bij opslaan naar alle 3, dus ze zijn identiek).
+  const representant = capabilities[0];
+  const sectoren = capabilities.map(sectorLabel);
 
-  // Schrijf één meetvariabele van het vermogensprofiel weg.
-  // Als profiel undefined is, maken we een nieuw object dat de verplichte
-  // schema-velden behoudt (eigenaar / huidieSituatie / gewensteSituatie).
+  // Undo (punt 2): bewaar de profielen van ALLE gegroepeerde capabilities vóór
+  // een AI-toepassing, zodat undo de hele groep terugzet.
+  const [vorigeProfielen, setVorigeProfielen] = useState<Record<
+    string,
+    VermogensProfiel
+  > | null>(null);
+
+  // Schrijf één gedeelde meetvariabele weg naar ALLE gegroepeerde capabilities.
   function patchProfiel(patch: Partial<VermogensProfiel>) {
-    updateSession((prev) => ({
-      capabilities: prev.capabilities.map((c) => {
-        if (c.id !== capability.id) return c;
-        const basis = c.profiel ?? leegVermogensProfiel(c);
-        return { ...c, profiel: { ...basis, ...patch } };
-      }),
-    }));
+    patchGroepProfiel(updateSession, groepIds, patch);
   }
 
-  // Herstel het hele profiel naar de bewaarde staat (via updateSession — punt 7).
-  function herstelProfiel(snapshot: VermogensProfiel) {
+  // Maak een snapshot van de huidige profielen van de hele groep (voor undo).
+  function maakSnapshot(): Record<string, VermogensProfiel> {
+    const snap: Record<string, VermogensProfiel> = {};
+    for (const c of capabilities) {
+      snap[c.id] = c.profiel ? { ...c.profiel } : leegVermogensProfiel(c);
+    }
+    return snap;
+  }
+
+  // Herstel de profielen van de hele groep naar de bewaarde staat (punt 7).
+  function herstelProfielen(snap: Record<string, VermogensProfiel>) {
     updateSession((prev) => ({
       capabilities: prev.capabilities.map((c) =>
-        c.id === capability.id ? { ...c, profiel: { ...snapshot } } : c
+        snap[c.id] ? { ...c, profiel: { ...snap[c.id] } } : c
       ),
     }));
   }
 
-  // Maturity opslaan, geclampt op 1–5.
-  function setLevel(veld: "currentLevel" | "targetLevel", value: number) {
+  // Maturity opslaan PER SECTOR — schrijft alleen naar die specifieke
+  // capability, geclampt op 1–5. Maturity blijft dus per sector bewerkbaar.
+  function setLevel(
+    capId: string,
+    veld: "currentLevel" | "targetLevel",
+    value: number
+  ) {
     const clamped = Math.max(1, Math.min(5, value));
     updateSession((prev) => ({
       capabilities: prev.capabilities.map((c) =>
-        c.id === capability.id ? { ...c, [veld]: clamped } : c
+        c.id === capId ? { ...c, [veld]: clamped } : c
       ),
     }));
   }
 
-  const status = capability.profiel?.kpiStatus ?? "concept";
+  // Gedeelde status uit de representant; toggle schrijft naar alle 3 (punt 4).
+  const status = representant?.profiel?.kpiStatus ?? "concept";
+
+  // Gedeelde KPI-waarden komen van de representant (na opslaan identiek voor alle).
+  const gedeeld = representant?.profiel;
+
+  // ---- Gecombineerde AI-context (punt 3) ----
+  // Voeg de 3 as-is/to-be-teksten samen met sector-prefix en stel een
+  // maturity-overzicht per sector samen, zodat het AI-voorstel cross-sectoraal
+  // én specifiek wordt. currentLevel/targetLevel = de range over de groep.
+  const huidigeRange = capabilities
+    .map((c) => c.currentLevel)
+    .filter((v): v is number => typeof v === "number");
+  const gewensteRange = capabilities
+    .map((c) => c.targetLevel)
+    .filter((v): v is number => typeof v === "number");
+  const minCurrent = huidigeRange.length ? Math.min(...huidigeRange) : undefined;
+  const maxCurrent = huidigeRange.length ? Math.max(...huidigeRange) : undefined;
+  const minTarget = gewensteRange.length ? Math.min(...gewensteRange) : undefined;
+  const maxTarget = gewensteRange.length ? Math.max(...gewensteRange) : undefined;
+
+  const huidieSituatieGecombineerd = capabilities
+    .map((c) => `${sectorLabel(c)}: ${c.profiel?.huidieSituatie ?? "—"}`)
+    .join(" | ");
+  const gewensteSituatieGecombineerd = capabilities
+    .map((c) => `${sectorLabel(c)}: ${c.profiel?.gewensteSituatie ?? "—"}`)
+    .join(" | ");
+  const maturityOverzicht = capabilities
+    .map(
+      (c) =>
+        `${sectorLabel(c)}: as-is ${c.currentLevel ?? "?"} → to-be ${
+          c.targetLevel ?? "?"
+        }`
+    )
+    .join(" | ");
+
+  const gedeeldeTitel = "Klantgericht commercieel vermogen";
+  const sectorenTekst = sectoren.join(" · ");
 
   return (
-    <div className="border rounded-xl bg-white shadow-sm overflow-hidden" style={{ borderColor: "#cdeef4" }}>
-      {/* Kop */}
+    <div
+      className="border rounded-xl bg-white shadow-sm overflow-hidden"
+      style={{ borderColor: "#cdeef4" }}
+    >
+      {/* Kop — gedeeld vermogen over alle sectoren */}
       <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-b from-white to-cyan-50/40">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[#0891b2]">
-              Vermogen
+              Gedeeld vermogen · {capabilities.length} sectoren
             </div>
             <div className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">
-              {capability.title || capability.description}
+              {gedeeldeTitel} — gedeeld over {sectorenTekst}
             </div>
           </div>
           <KpiStatusToggle
@@ -690,110 +786,199 @@ function VermogenKpiKaart({
             }
           />
         </div>
-        {capability.title && (
-          <p className="mt-2 text-xs text-gray-500 leading-relaxed">{capability.description}</p>
-        )}
-      </div>
-
-      {/* Maturity-ladder */}
-      <div className="px-4 py-3 bg-cyan-50/30 border-b border-gray-100 flex flex-wrap items-center gap-6">
-        <MaturityStepper
-          label="As-is (huidig)"
-          value={capability.currentLevel}
-          onChange={(v) => setLevel("currentLevel", v)}
-        />
-        <span className="text-[#0891b2] font-bold text-lg">→</span>
-        <MaturityStepper
-          label="To-be (gewenst)"
-          value={capability.targetLevel}
-          onChange={(v) => setLevel("targetLevel", v)}
-          accent
-        />
-        <p className="text-[10px] text-gray-400 max-w-[220px] leading-tight">
-          Maturity 1–5. Schuift op per herijking (6–9 mnd / jaarlijks) zodra de KPI gehaald is.
+        <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+          Eén cross-sectoraal vermogen, opgebouwd uit de per-sector vermogens hieronder.
+          De meetvariabelen gelden voor de hele keten; maturity blijft per sector.
         </p>
       </div>
 
-      {/* Meetvelden */}
+      {/* Per-sector subrijen — de 3 onderliggende vermogens komen hier terug */}
+      <div className="px-4 py-3 bg-cyan-50/30 border-b border-gray-100 space-y-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-[#0891b2]">
+          Per sector — as-is → to-be (situatie read-only · maturity bewerkbaar)
+        </div>
+        {capabilities.map((c) => (
+          <SectorSubrij key={c.id} capability={c} onSetLevel={setLevel} />
+        ))}
+        <p className="text-[10px] text-gray-400 leading-tight">
+          Maturity 1–5 per sector. Schuift op per herijking (6–9 mnd / jaarlijks) zodra de
+          KPI gehaald is. Situatie-teksten komen uit het DIN-netwerk.
+        </p>
+      </div>
+
+      {/* Gedeelde meetvelden — één keer invullen, schrijft naar alle sectoren */}
+      <div className="px-4 pt-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-[#0891b2]">
+          Gedeelde meetvariabelen — gelden voor alle {capabilities.length} sectoren
+        </div>
+      </div>
       <div className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <KpiVeld
           label="Indicator (meetbare KPI)"
-          waarde={capability.profiel?.indicator}
+          waarde={gedeeld?.indicator}
           placeholder="Waaraan zie je dat het vermogen groeit?"
           kolommen="full"
           onSave={(v) => patchProfiel({ indicator: v })}
         />
         <KpiVeld
           label="Nulmeting (startwaarde)"
-          waarde={capability.profiel?.currentValue}
+          waarde={gedeeld?.currentValue}
           placeholder="Bijv. 'Nulmeting bij start' — geen verzonnen getal"
           hint={NULMETING_HINT}
           onSave={(v) => patchProfiel({ currentValue: v })}
         />
         <KpiVeld
           label="Doelwaarde"
-          waarde={capability.profiel?.targetValue}
+          waarde={gedeeld?.targetValue}
           placeholder="Gewenste waarde"
           onSave={(v) => patchProfiel({ targetValue: v })}
         />
         <KpiVeld
           label="Meetmethode (hoe meten)"
-          waarde={capability.profiel?.meetmethode}
+          waarde={gedeeld?.meetmethode}
           placeholder="Bijv. maturity-assessment, audit"
           onSave={(v) => patchProfiel({ meetmethode: v })}
         />
         <KpiVeld
           label="Meetmoment"
-          waarde={capability.profiel?.measurementMoment}
+          waarde={gedeeld?.measurementMoment}
           placeholder="Bijv. per herijking, jaarlijks"
           onSave={(v) => patchProfiel({ measurementMoment: v })}
         />
         <KpiVeld
-          label="Eigenaar"
-          waarde={capability.profiel?.eigenaar}
-          placeholder="Wie is verantwoordelijk voor dit vermogen?"
+          label="Eigenaar (gedeeld)"
+          waarde={gedeeld?.eigenaar}
+          placeholder="Wie is verantwoordelijk voor dit gedeelde vermogen?"
           kolommen="full"
           onSave={(v) => patchProfiel({ eigenaar: v })}
         />
       </div>
 
-      {/* AI-paneel — map AI-velden naar het vermogensprofiel (drop bateneigenaar/horizon) */}
+      {/* AI-paneel — GECOMBINEERDE cross-sectorale context (punt 3).
+          Toepassen schrijft naar alle gegroepeerde capabilities (punt 2). */}
       <AiKpiPaneel
         level="vermogen"
-        item={capability}
-        // Rijke context voor de route: as-is/to-be + maturity + reeds
-        // ingevulde meetvariabelen (die staan genest onder .profiel). Hierdoor
-        // wordt het AI-voorstel specifiek voor DÍT vermogen i.p.v. generiek.
+        item={{ profiel: gedeeld } as DINCapability}
         apiItem={{
-          title: capability.title,
-          description: capability.description,
-          indicator: capability.profiel?.indicator,
-          meetmethode: capability.profiel?.meetmethode,
-          currentValue: capability.profiel?.currentValue,
-          targetValue: capability.profiel?.targetValue,
-          measurementMoment: capability.profiel?.measurementMoment,
-          eigenaar: capability.profiel?.eigenaar,
-          huidieSituatie: capability.profiel?.huidieSituatie,
-          gewensteSituatie: capability.profiel?.gewensteSituatie,
-          currentLevel: capability.currentLevel,
-          targetLevel: capability.targetLevel,
+          title: gedeeldeTitel,
+          description: `Cross-sectoraal vermogen, gedeeld over ${sectorenTekst}. Maturity per sector: ${maturityOverzicht}.`,
+          indicator: gedeeld?.indicator,
+          meetmethode: gedeeld?.meetmethode,
+          currentValue: gedeeld?.currentValue,
+          targetValue: gedeeld?.targetValue,
+          measurementMoment: gedeeld?.measurementMoment,
+          eigenaar: gedeeld?.eigenaar,
+          // Samengevoegde as-is/to-be met sector-prefix — cross-sectoraal én specifiek.
+          huidieSituatie: huidieSituatieGecombineerd,
+          gewensteSituatie: gewensteSituatieGecombineerd,
+          // Range over de groep (mag weggelaten zijn als geen levels gezet zijn).
+          currentLevel: minCurrent,
+          targetLevel: maxTarget,
+          maturityRange: {
+            currentMin: minCurrent,
+            currentMax: maxCurrent,
+            targetMin: minTarget,
+            targetMax: maxTarget,
+          },
+          maturityPerSector: maturityOverzicht,
+          sectoren,
         }}
         onApply={(patch) => {
-          // Snapshot vóór toepassen, zodat undo altijd kan (punt 2).
-          setVorigProfiel(capability.profiel ? { ...capability.profiel } : leegVermogensProfiel(capability));
+          // Snapshot van de HELE groep vóór toepassen, zodat undo alles terugzet (punt 2).
+          setVorigeProfielen(maakSnapshot());
           const { bateneigenaar, toelichting, ...rest } = patch;
           void bateneigenaar;
           void toelichting;
+          // Schrijf naar ALLE gegroepeerde capabilities (punt 2 + 3).
           patchProfiel(rest);
         }}
-        kanHerstellen={vorigProfiel !== null}
+        kanHerstellen={vorigeProfielen !== null}
         onUndo={() => {
-          if (vorigProfiel) {
-            herstelProfiel(vorigProfiel);
-            setVorigProfiel(null);
+          if (vorigeProfielen) {
+            herstelProfielen(vorigeProfielen);
+            setVorigeProfielen(null);
           }
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Eén per-sector subrij binnen de gedeelde vermogen-kaart. Toont sector,
+ * as-is → to-be situatie (read-only), eigenaar en de bewerkbare maturity
+ * (slaat op die specifieke capability op).
+ */
+function SectorSubrij({
+  capability,
+  onSetLevel,
+}: {
+  capability: DINCapability;
+  onSetLevel: (
+    capId: string,
+    veld: "currentLevel" | "targetLevel",
+    value: number
+  ) => void;
+}) {
+  const sector = sectorLabel(capability);
+  const asIs = capability.profiel?.huidieSituatie?.trim();
+  const toBe = capability.profiel?.gewensteSituatie?.trim();
+  const eigenaar = capability.profiel?.eigenaar?.trim();
+
+  return (
+    <div className="rounded-lg border border-cyan-100 bg-white/70 px-3 py-2.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className="text-[10px] font-bold uppercase tracking-wider text-white px-2 py-0.5 rounded"
+          style={{ background: "#0891b2" }}
+        >
+          {sector}
+        </span>
+        <span className="text-xs font-semibold text-gray-700 min-w-0 truncate">
+          {capability.title || capability.description}
+        </span>
+        {eigenaar && (
+          <span className="ml-auto text-[10px] text-gray-500">
+            Eigenaar: <span className="font-medium text-gray-700">{eigenaar}</span>
+          </span>
+        )}
+      </div>
+
+      {/* As-is → to-be situatie (read-only) */}
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="rounded-md bg-gray-50 border border-gray-100 px-2.5 py-1.5">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+            As-is (huidige situatie)
+          </div>
+          <p className="text-[11px] text-gray-600 leading-snug mt-0.5">
+            {asIs && asIs.length > 0 ? asIs : <span className="text-gray-300">—</span>}
+          </p>
+        </div>
+        <div className="rounded-md bg-cyan-50/60 border border-cyan-100 px-2.5 py-1.5">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-[#0891b2]">
+            To-be (gewenste situatie)
+          </div>
+          <p className="text-[11px] text-gray-700 leading-snug mt-0.5">
+            {toBe && toBe.length > 0 ? toBe : <span className="text-gray-300">—</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Maturity per sector — bewerkbaar (slaat op deze capability op) */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-5">
+        <MaturityStepper
+          label="As-is (huidig)"
+          value={capability.currentLevel}
+          onChange={(v) => onSetLevel(capability.id, "currentLevel", v)}
+        />
+        <span className="text-[#0891b2] font-bold text-lg">→</span>
+        <MaturityStepper
+          label="To-be (gewenst)"
+          value={capability.targetLevel}
+          onChange={(v) => onSetLevel(capability.id, "targetLevel", v)}
+          accent
+        />
+      </div>
     </div>
   );
 }
