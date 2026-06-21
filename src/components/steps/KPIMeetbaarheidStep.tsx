@@ -539,10 +539,14 @@ function BaatKpiKaart({
           />
         </div>
         {benefit.title && (
-          <p className="mt-2 text-xs text-gray-500 italic leading-relaxed">
-            <span className="not-italic font-semibold text-[#0066cc]">Omschrijving — </span>
-            {benefit.description}
-          </p>
+          <div className="mt-2">
+            <span className="text-xs not-italic font-semibold text-[#0066cc]">Omschrijving — </span>
+            <UitklapbareTekst
+              tekst={benefit.description}
+              clamp={2}
+              className="text-xs text-gray-500 italic leading-relaxed"
+            />
+          </div>
         )}
         <p className="mt-1 text-[10px] text-gray-400">Omschrijving uit het DIN-netwerk</p>
       </div>
@@ -761,7 +765,19 @@ function GedeeldVermogenKaart({
     )
     .join(" | ");
 
-  const gedeeldeTitel = "Klantgericht commercieel vermogen";
+  // Punt A: ECHTE namen uit het DIN-netwerk — geen zelfbedachte kop. We tonen
+  // letterlijk de title (fallback description) van elke gegroepeerde capability,
+  // gekoppeld aan de sector, zodat zichtbaar is uit welke werkelijke vermogens
+  // dit ene gedeelde vermogen is samengevoegd.
+  const echteVermogens = capabilities.map((c) => ({
+    sector: sectorLabel(c),
+    naam: (c.title || c.description || "").trim(),
+  }));
+  // Voor de AI-payload geven we de ECHTE namen mee (geen verzonnen kop). Als er
+  // geen titels zijn, valt het terug op een neutrale omschrijving.
+  const gedeeldeTitel =
+    echteVermogens.map((v) => v.naam).filter(Boolean).join(" / ") ||
+    "Gedeeld cross-sectoraal vermogen";
   const sectorenTekst = sectoren.join(" · ");
 
   return (
@@ -769,15 +785,29 @@ function GedeeldVermogenKaart({
       className="border rounded-xl bg-white shadow-sm overflow-hidden"
       style={{ borderColor: "#cdeef4" }}
     >
-      {/* Kop — gedeeld vermogen over alle sectoren */}
+      {/* Kop — ÉÉN gedeeld vermogen, samengevoegd uit de ECHTE per-sector
+          vermogens (punt A). We tonen letterlijk capability.title (fallback
+          description) — geen zelfbedachte naam. */}
       <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-b from-white to-cyan-50/40">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[#0891b2]">
-              Gedeeld vermogen · {capabilities.length} sectoren
+              Eén gedeeld vermogen · samengevoegd uit {capabilities.length} sectoren
             </div>
-            <div className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">
-              {gedeeldeTitel} — gedeeld over {sectorenTekst}
+            <div className="text-sm font-semibold text-gray-800 mt-1 leading-snug">
+              Gedeeld over {sectorenTekst}
+            </div>
+            {/* Samengevoegd uit: de echte vermogen-namen uit het netwerk */}
+            <div className="mt-1.5 text-xs text-gray-600 leading-relaxed">
+              <span className="font-semibold text-[#0891b2]">Samengevoegd uit:</span>{" "}
+              {echteVermogens.map((v, i) => (
+                <span key={i}>
+                  {i > 0 && <span className="text-gray-300"> · </span>}
+                  <span className="font-medium text-gray-700" title={`Sector: ${v.sector}`}>
+                    «{v.naam || "—"}»
+                  </span>
+                </span>
+              ))}
             </div>
           </div>
           <KpiStatusToggle
@@ -788,7 +818,7 @@ function GedeeldVermogenKaart({
           />
         </div>
         <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-          Eén cross-sectoraal vermogen, opgebouwd uit de per-sector vermogens hieronder.
+          Eén cross-sectoraal vermogen, samengevoegd uit de per-sector vermogens hieronder.
           De meetvariabelen gelden voor de hele keten; maturity blijft per sector.
         </p>
       </div>
@@ -951,17 +981,29 @@ function SectorSubrij({
           <div className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">
             As-is (huidige situatie)
           </div>
-          <p className="text-[11px] text-gray-600 leading-snug mt-0.5">
-            {asIs && asIs.length > 0 ? asIs : <span className="text-gray-300">—</span>}
-          </p>
+          {asIs && asIs.length > 0 ? (
+            <div className="mt-0.5">
+              <UitklapbareTekst tekst={asIs} clamp={3} className="text-[11px] text-gray-600 leading-snug" />
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-600 leading-snug mt-0.5">
+              <span className="text-gray-300">—</span>
+            </p>
+          )}
         </div>
         <div className="rounded-md bg-cyan-50/60 border border-cyan-100 px-2.5 py-1.5">
           <div className="text-[9px] font-semibold uppercase tracking-wider text-[#0891b2]">
             To-be (gewenste situatie)
           </div>
-          <p className="text-[11px] text-gray-700 leading-snug mt-0.5">
-            {toBe && toBe.length > 0 ? toBe : <span className="text-gray-300">—</span>}
-          </p>
+          {toBe && toBe.length > 0 ? (
+            <div className="mt-0.5">
+              <UitklapbareTekst tekst={toBe} clamp={3} className="text-[11px] text-gray-700 leading-snug" />
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-700 leading-snug mt-0.5">
+              <span className="text-gray-300">—</span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -1653,6 +1695,14 @@ function ThreesidesDomeinKaart({
           </div>
         )}
 
+        {/* Bewerkbaar 3sides-KPI/target-veld — ná deliverables en funnel/quick-wins.
+            Persisteert naar session.threesidesOverrides (key = "domein:_kpi"). */}
+        <ThreesidesKpiVeld
+          domein={data.domein}
+          override={overrides?.[`${data.domein}:_kpi`]}
+          updateSession={updateSession}
+        />
+
         {data.verdereJaren && (
           <div className="text-[10px] text-gray-400 pt-1.5 border-t border-gray-100 mt-1.5">
             Latere jaren: {data.verdereJaren}
@@ -1777,6 +1827,75 @@ function ThreesidesDeliverableRij({
           <OpgeslagenFlash zichtbaar={opgeslagenZichtbaar} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Bewerkbaar 3sides-KPI/target-veld per domein.
+// Vrij tekstveld waarin de gebruiker de meetbare 3sides-KPI/target voor dít
+// domein vastlegt. Persisteert naar session.threesidesOverrides via updateSession;
+// we patchen ALLEEN de key "domein:_kpi" (spread van het bestaande object) —
+// nooit het hele object leeg overschrijven. Opslaan op onBlur, met change-guard.
+// ------------------------------------------------------------
+function ThreesidesKpiVeld({
+  domein,
+  override,
+  updateSession,
+}: {
+  domein: ThreesidesDomeinData["domein"];
+  override: { klaar?: boolean; tekst?: string } | undefined;
+  updateSession: ReturnType<typeof useSession>["updateSession"];
+}) {
+  const key = `${domein}:_kpi`;
+  // Effectieve waarde: override-tekst als die er is, anders leeg.
+  const effectieveTekst = override?.tekst ?? "";
+
+  // Lokale input-state voor snelle UX; persisteert op onBlur.
+  const [tekst, setTekst] = useState(effectieveTekst);
+  // "✓ opgeslagen"-flash, hergebruik van de gedeelde helper.
+  const [opgeslagenZichtbaar, flashOpgeslagen] = useOpgeslagenFlash();
+
+  // Houd de lokale input in sync wanneer de override van buitenaf wijzigt
+  // (bijv. na undo). Alleen overschrijven als de waarde echt afwijkt.
+  useEffect(() => {
+    setTekst(effectieveTekst);
+  }, [effectieveTekst]);
+
+  function opslaan() {
+    const nieuweTekst = tekst.trim();
+    // Change-guard: alleen schrijven als de tekst daadwerkelijk veranderd is.
+    if (nieuweTekst === effectieveTekst.trim()) return;
+    updateSession((prev) => ({
+      threesidesOverrides: {
+        ...(prev.threesidesOverrides ?? {}),
+        [key]: { ...(prev.threesidesOverrides?.[key] ?? {}), tekst: nieuweTekst },
+      },
+    }));
+    flashOpgeslagen();
+  }
+
+  return (
+    <div
+      className="mt-2.5 rounded-lg px-3 py-2 border"
+      style={{ background: "#f6f1fe", borderColor: "#e4d8fb" }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#6d28d9" }}>
+          3sides-KPI (invullen)
+        </div>
+        <OpgeslagenFlash zichtbaar={opgeslagenZichtbaar} />
+      </div>
+      <input
+        value={tekst}
+        onChange={(e) => setTekst(e.target.value)}
+        onBlur={opslaan}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+        placeholder="bv. datakwaliteits-scan gereed (j/n) · richting CRM bepaald"
+        className="mt-1 w-full bg-white text-[11px] leading-relaxed px-2 py-1 rounded-md border border-violet-200 text-violet-900 placeholder:text-violet-300 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
+      />
     </div>
   );
 }
@@ -1941,6 +2060,66 @@ function MetaVeld({ label, waarde }: { label: string; waarde?: string }) {
 // Kleine presentatie-componenten
 // ============================================================
 
+/**
+ * Read-only lange tekst die standaard met line-clamp wordt ingekort en bij
+ * klik volledig uitklapt (punt C). Toont alleen een "meer/minder"-toggle als de
+ * tekst daadwerkelijk te lang is om binnen `clamp` regels te passen — anders
+ * gewoon de volledige tekst. Detectie via scrollHeight > clientHeight.
+ */
+function UitklapbareTekst({
+  tekst,
+  clamp = 2,
+  className = "",
+}: {
+  tekst: string;
+  clamp?: 2 | 3 | 4;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [afgekapt, setAfgekapt] = useState(false);
+  const pRef = useRef<HTMLParagraphElement | null>(null);
+
+  // Meet of de tekst in ingeklapte staat wordt afgekapt; alleen dan tonen we
+  // de toggle. Hermeten bij tekstwijziging.
+  useEffect(() => {
+    const el = pRef.current;
+    if (!el) return;
+    if (!open) {
+      setAfgekapt(el.scrollHeight - 1 > el.clientHeight);
+    }
+  }, [tekst, open]);
+
+  const clampClass = open
+    ? ""
+    : clamp === 2
+      ? "line-clamp-2"
+      : clamp === 3
+        ? "line-clamp-3"
+        : "line-clamp-4";
+
+  return (
+    <div>
+      <p
+        ref={pRef}
+        onClick={() => afgekapt && setOpen((v) => !v)}
+        className={`${clampClass} ${afgekapt ? "cursor-pointer" : ""} ${className}`}
+        title={afgekapt ? (open ? "Klik om in te klappen" : "Klik om volledig te tonen") : undefined}
+      >
+        {tekst}
+      </p>
+      {afgekapt && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="mt-0.5 text-[10px] font-semibold text-cito-blue hover:underline"
+        >
+          {open ? "− Minder" : "+ Meer"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function VoorstelRij({
   label,
   huidig,
@@ -1970,7 +2149,16 @@ function VoorstelRij({
   );
 }
 
-/** Bewerkbaar veld met lokale state; persisteert op onBlur via onSave. */
+/**
+ * Bewerkbaar veld met lokale state; persisteert op onBlur via onSave.
+ *
+ * Punt C: auto-groeiende textarea i.p.v. een input op één regel, zodat lange
+ * teksten volledig leesbaar zijn. De textarea groeit mee met de inhoud (we
+ * resetten de hoogte en zetten 'm op scrollHeight bij elke wijziging). Enter
+ * voegt een nieuwe regel toe (textarea-default); opslaan blijft op onBlur.
+ * Opslag-patroon ongewijzigd: lokale state → onBlur → change-guard → onSave →
+ * "✓ opgeslagen"-flash.
+ */
 function KpiVeld({
   label,
   waarde,
@@ -1989,6 +2177,7 @@ function KpiVeld({
   const [lokaal, setLokaal] = useState(waarde ?? "");
   // Subtiele opslag-bevestiging na een daadwerkelijke onBlur-save.
   const [opgeslagen, flashOpgeslagen] = useOpgeslagenFlash();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Houd lokale state in sync als de sessiewaarde extern verandert (bv. AI-toepassen).
   const [vorigeWaarde, setVorigeWaarde] = useState(waarde ?? "");
@@ -1997,13 +2186,24 @@ function KpiVeld({
     setLokaal(waarde ?? "");
   }
 
+  // Auto-grow: reset hoogte en groei naar scrollHeight. Draait bij elke
+  // waarde-wijziging (typen én externe sync), zodat de hele tekst zichtbaar is.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [lokaal]);
+
   return (
     <div className={kolommen === "full" ? "sm:col-span-2" : undefined}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <label className="text-[11px] font-medium text-gray-500">{label}</label>
         <OpgeslagenFlash zichtbaar={opgeslagen} />
       </div>
-      <input
+      <textarea
+        ref={textareaRef}
+        rows={1}
         value={lokaal}
         onChange={(e) => setLokaal(e.target.value)}
         onBlur={() => {
@@ -2014,7 +2214,7 @@ function KpiVeld({
           }
         }}
         placeholder={placeholder}
-        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-cito-blue/30 focus:border-cito-blue/40"
+        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm leading-snug resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-cito-blue/30 focus:border-cito-blue/40"
       />
       {hint && (
         <p className="mt-1 text-[10px] text-amber-600 leading-snug flex items-start gap-1">
