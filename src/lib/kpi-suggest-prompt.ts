@@ -72,7 +72,7 @@ export function buildVeldFocus(velden?: string[]): string {
   const geldig = (velden ?? []).filter((v) => VELD_LABEL_VOOR_PROMPT[v]);
   if (geldig.length === 0) return "";
   const labels = geldig.map((v) => VELD_LABEL_VOOR_PROMPT[v]);
-  return `\n\nFOCUS (STRIKT): de gebruiker wil ALLEEN de volgende velden aangescherpt/voorgesteld krijgen: ${labels.join(", ")}. Lever voor de overige velden de bestaande waarde ongewijzigd terug (of een passende neutrale waarde als die leeg is), maar besteed je aandacht uitsluitend aan de gekozen velden.`;
+  return `\n\nFOCUS (STRIKT): de gebruiker wil ALLEEN de volgende velden aangescherpt/voorgesteld krijgen: ${labels.join(", ")}. Voor ALLE overige velden: geef exact de bestaande waarde uit de context ongewijzigd terug; is die leeg, geef dan letterlijk "—". Verzin niets voor die velden en bedenk er geen placeholder bij — besteed je aandacht uitsluitend aan de gekozen velden.`;
 }
 
 // ============================================================
