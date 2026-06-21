@@ -73,6 +73,7 @@ export const AppStepSchema = z.enum([
   "prioritering",
   "export",
   "berekeningen",
+  "kpi-meetbaarheid",
 ]);
 
 // ============================================================
@@ -87,12 +88,22 @@ export const BatenProfielSchema = z.object({
   targetValue: z.string(),
   meetmethode: z.string().optional(),
   measurementMoment: z.string().optional(),
+  // KPI-sessie (stap 9): gefaseerde horizon + afstem-status
+  horizon: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const VermogensProfielSchema = z.object({
   eigenaar: z.string(),
   huidieSituatie: z.string(),
   gewensteSituatie: z.string(),
+  // KPI-sessie (stap 9): meetvariabelen voor het vermogen (optioneel, achterwaarts compatibel)
+  indicator: z.string().optional(),
+  meetmethode: z.string().optional(),
+  currentValue: z.string().optional(),
+  targetValue: z.string().optional(),
+  measurementMoment: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const InspanningsDossierSchema = z.object({

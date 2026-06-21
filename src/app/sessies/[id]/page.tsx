@@ -14,6 +14,7 @@ import GovernanceStep from "@/components/steps/GovernanceStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
 import BerekeningenStep from "@/components/steps/BerekeningenStep";
+import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -33,6 +34,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <ExportStep />;
     case "berekeningen":
       return <BerekeningenStep />;
+    case "kpi-meetbaarheid":
+      return <KPIMeetbaarheidStep />;
   }
 }
 
