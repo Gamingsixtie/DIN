@@ -986,6 +986,10 @@ export const DINSessionSchema = z.object({
   externalProjects: z.array(ExternalProjectSchema).optional(),
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies: z.record(z.string(), z.unknown()).optional(),
+  // KPI-sessie (stap 9): bewerkbare 3sides-tracker — klaar-status + tekst per deliverable, key = "domein:index"
+  threesidesOverrides: z
+    .record(z.string(), z.object({ klaar: z.boolean().optional(), tekst: z.string().optional() }))
+    .optional(),
   // Doel-voor-doel voortgang: welke doelen zijn afgerond
   completedGoals: z.array(z.string()).optional().default([]),
   // Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)

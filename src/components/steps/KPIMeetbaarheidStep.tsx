@@ -6,6 +6,7 @@ import type {
   DINBenefit,
   DINCapability,
   DINEffort,
+  DINSession,
   EffortDomain,
   VermogensProfiel,
 } from "@/lib/types";
@@ -432,7 +433,7 @@ export default function KPIMeetbaarheidStep() {
       </section>
 
       {/* ================= 3SIDES-TRACKER (punt 6) ================= */}
-      <ThreesidesTracker efforts={efforts} />
+      <ThreesidesTracker efforts={efforts} updateSession={updateSession} overrides={session.threesidesOverrides} />
 
       {/* ================= INSPANNINGEN-MAP (punt 4) ================= */}
       <InspanningenMap
@@ -1498,7 +1499,17 @@ function FlowStap({
 // 3SIDES-TRACKER (punt 6) — gesourcede 2026-deliverables per domein
 // ============================================================
 
-function ThreesidesTracker({ efforts }: { efforts: DINEffort[] }) {
+type ThreesidesOverrides = NonNullable<DINSession["threesidesOverrides"]>;
+
+function ThreesidesTracker({
+  efforts,
+  updateSession,
+  overrides,
+}: {
+  efforts: DINEffort[];
+  updateSession: ReturnType<typeof useSession>["updateSession"];
+  overrides: ThreesidesOverrides | undefined;
+}) {
   return (
     <section className="mt-12">
       <SectieKop
@@ -1535,7 +1546,13 @@ function ThreesidesTracker({ efforts }: { efforts: DINEffort[] }) {
       {/* Deliverables per domein */}
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         {THREESIDES_DOMEINEN.map((d) => (
-          <ThreesidesDomeinKaart key={d.domein} data={d} efforts={efforts} />
+          <ThreesidesDomeinKaart
+            key={d.domein}
+            data={d}
+            efforts={efforts}
+            updateSession={updateSession}
+            overrides={overrides}
+          />
         ))}
       </div>
     </section>
@@ -1545,9 +1562,13 @@ function ThreesidesTracker({ efforts }: { efforts: DINEffort[] }) {
 function ThreesidesDomeinKaart({
   data,
   efforts,
+  updateSession,
+  overrides,
 }: {
   data: ThreesidesDomeinData;
   efforts: DINEffort[];
+  updateSession: ReturnType<typeof useSession>["updateSession"];
+  overrides: ThreesidesOverrides | undefined;
 }) {
   const kleur = DOMAIN_COLORS[data.domein].bar;
   // Koppel deliverables aan de inspanning(en) van dit domein (punt 6).
@@ -1581,17 +1602,56 @@ function ThreesidesDomeinKaart({
         <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
           2026-deliverables · klaar j/n
         </div>
-        {data.deliverables.map((dlv) => (
-          <div key={dlv.label} className="flex items-start gap-2 text-xs text-gray-700">
-            {/* Statische/illustratieve checkbox (klaar j/n) */}
-            <span
-              className="mt-0.5 w-3.5 h-3.5 rounded border border-gray-300 bg-white shrink-0"
-              aria-hidden
-            />
-            <span className="leading-snug">{dlv.label}</span>
-          </div>
+        {/* Punt B: bewerkbare deliverables — klaar-toggle + inline tekst, gepersisteerd
+            naar session.threesidesOverrides (key = "domein:index"). */}
+        {data.deliverables.map((dlv, index) => (
+          <ThreesidesDeliverableRij
+            key={`${data.domein}:${index}`}
+            domein={data.domein}
+            index={index}
+            standaardLabel={dlv.label}
+            override={overrides?.[`${data.domein}:${index}`]}
+            updateSession={updateSession}
+          />
         ))}
         <div className="text-[9px] text-amber-700 pt-1">uit raming Plus20</div>
+
+        {/* Punt C: sales/marketing-funnel + quick wins (alleen data & systemen). */}
+        {data.funnel && (
+          <div
+            className="mt-2.5 rounded-lg px-3 py-2 border"
+            style={{ background: "#f6f1fe", borderColor: "#e4d8fb" }}
+          >
+            <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#6d28d9" }}>
+              Sales/marketing-funnel
+            </div>
+            <p className="mt-0.5 text-[11px] leading-relaxed" style={{ color: "#4c1d95" }}>
+              {data.funnel}
+            </p>
+          </div>
+        )}
+        {data.quickWins && data.quickWins.length > 0 && (
+          <div
+            className="mt-2 rounded-lg px-3 py-2 border"
+            style={{ background: "#f6f1fe", borderColor: "#e4d8fb" }}
+          >
+            <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#6d28d9" }}>
+              Quick wins
+            </div>
+            <ul className="mt-1 space-y-1">
+              {data.quickWins.map((qw, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-1.5 text-[11px] leading-relaxed"
+                  style={{ color: "#4c1d95" }}
+                >
+                  <span aria-hidden style={{ color: "#6d28d9" }}>•</span>
+                  <span>{qw}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {data.verdereJaren && (
           <div className="text-[10px] text-gray-400 pt-1.5 border-t border-gray-100 mt-1.5">
@@ -1612,6 +1672,110 @@ function ThreesidesDomeinKaart({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Eén bewerkbare 3sides-deliverable-rij (punt B).
+// - klaar-toggle (knop) schakelt de status om
+// - tekst is inline bewerkbaar (default = standaardLabel, of override-tekst)
+// Beide persisteren naar session.threesidesOverrides via updateSession; we
+// patchen ALLEEN de specifieke key (domein:index) — nooit het hele object
+// leeg overschrijven. Tekst slaat op onBlur op, met change-guard.
+// ------------------------------------------------------------
+function ThreesidesDeliverableRij({
+  domein,
+  index,
+  standaardLabel,
+  override,
+  updateSession,
+}: {
+  domein: ThreesidesDomeinData["domein"];
+  index: number;
+  standaardLabel: string;
+  override: { klaar?: boolean; tekst?: string } | undefined;
+  updateSession: ReturnType<typeof useSession>["updateSession"];
+}) {
+  const key = `${domein}:${index}`;
+  const klaar = override?.klaar ?? false;
+  // Effectieve tekst: override-tekst als die er is, anders de standaard-label.
+  const effectieveTekst = override?.tekst ?? standaardLabel;
+
+  // Lokale input-state voor snelle UX; persisteert op onBlur.
+  const [tekst, setTekst] = useState(effectieveTekst);
+  // "✓ opgeslagen"-flash, hergebruik van de gedeelde helper.
+  const [opgeslagenZichtbaar, flashOpgeslagen] = useOpgeslagenFlash();
+
+  // Houd de lokale input in sync wanneer de override van buitenaf wijzigt
+  // (bijv. na undo). Alleen overschrijven als de waarde echt afwijkt.
+  useEffect(() => {
+    setTekst(effectieveTekst);
+  }, [effectieveTekst]);
+
+  function toggleKlaar() {
+    const nieuweKlaar = !klaar;
+    updateSession((prev) => ({
+      threesidesOverrides: {
+        ...(prev.threesidesOverrides ?? {}),
+        [key]: { ...(prev.threesidesOverrides?.[key] ?? {}), klaar: nieuweKlaar },
+      },
+    }));
+    flashOpgeslagen();
+  }
+
+  function opslaanTekst() {
+    const nieuweTekst = tekst.trim();
+    // Change-guard: alleen schrijven als de tekst daadwerkelijk veranderd is
+    // t.o.v. wat effectief getoond wordt. Lege tekst valt terug op standaard.
+    if (nieuweTekst === effectieveTekst.trim()) return;
+    updateSession((prev) => ({
+      threesidesOverrides: {
+        ...(prev.threesidesOverrides ?? {}),
+        [key]: {
+          ...(prev.threesidesOverrides?.[key] ?? {}),
+          tekst: nieuweTekst.length > 0 ? nieuweTekst : standaardLabel,
+        },
+      },
+    }));
+    flashOpgeslagen();
+  }
+
+  return (
+    <div className="flex items-start gap-2 text-xs text-gray-700">
+      {/* Klaar-toggle (klaar j/n) — knop schakelt de status om */}
+      <button
+        type="button"
+        onClick={toggleKlaar}
+        aria-pressed={klaar}
+        title={klaar ? "Gereed — klik om terug te zetten" : "Markeer als gereed"}
+        className={`mt-0.5 w-4 h-4 rounded grid place-items-center text-[10px] font-bold shrink-0 border transition-colors ${
+          klaar
+            ? "text-white border-transparent"
+            : "bg-white border-gray-300 text-transparent hover:border-violet-400"
+        }`}
+        style={klaar ? { background: "#6d28d9", borderColor: "#6d28d9" } : undefined}
+      >
+        ✓
+      </button>
+      {/* Inline bewerkbare deliverable-tekst */}
+      <div className="min-w-0 flex-1">
+        <input
+          value={tekst}
+          onChange={(e) => setTekst(e.target.value)}
+          onBlur={opslaanTekst}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          placeholder={standaardLabel}
+          className={`w-full bg-transparent text-xs leading-snug px-1 py-0.5 -ml-1 rounded border border-transparent hover:border-violet-200 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-violet-200 ${
+            klaar ? "line-through text-gray-400" : "text-gray-700"
+          }`}
+        />
+        <div className="-ml-0.5">
+          <OpgeslagenFlash zichtbaar={opgeslagenZichtbaar} />
+        </div>
       </div>
     </div>
   );

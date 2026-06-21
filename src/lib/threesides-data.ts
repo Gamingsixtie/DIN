@@ -27,6 +27,10 @@ export interface ThreesidesDomeinData {
   deliverables: ThreesidesDeliverable[];
   /** Optionele noot over latere jaren (realisatie/go-live etc.). */
   verdereJaren?: string;
+  /** Optioneel: sales/marketing-funnel focus — uit 3sides-voorstel (alleen data & systemen). */
+  funnel?: string;
+  /** Optioneel: quick wins — uit 3sides-voorstel (lijn 5: signaleren → prioriteren → direct doen). */
+  quickWins?: string[];
 }
 
 // Volgorde conform Cito outside-in: cultuur → mens → data/systemen → processen.
@@ -63,6 +67,12 @@ export const THREESIDES_DOMEINEN: ThreesidesDomeinData[] = [
       { label: "migratiestrategie" },
     ],
     verdereJaren: "Realisatie 2027 · CRM go-live 2028",
+    funnel:
+      "2026-focus CRM & sales/marketing-funnel: eenduidige klantreis per sector → vertaald naar funnelprocessen (fases · triggers · acties) → output klantreis = input voor CRM/data.",
+    quickWins: [
+      "Huidig CRM in kaart brengen: wat werkt · wat loopt vast · kosten & kansen",
+      "Quick wins signaleren → prioriteren op impact × uitvoerbaarheid → direct implementeren (niet wachten tot het einde)",
+    ],
   },
   {
     domein: "processen",
