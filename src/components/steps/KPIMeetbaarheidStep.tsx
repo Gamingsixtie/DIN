@@ -669,6 +669,57 @@ function patchGroepProfiel(
   }));
 }
 
+// Minimale, defensieve shape voor de cross-analyse-uitkomst. crossAnalyseWizard
+// is niet volledig getypt in DINSession — we lezen alleen wat we nodig hebben en
+// casten via `unknown` om TS-fouten te vermijden. Verzin niets: alleen lezen.
+type CrossAnalyseGedeeldVermogen = {
+  stepResults?: {
+    stap2?: {
+      vermogenClusters?: { clusterTitel?: string }[];
+      vermogenGelijkenisGroepen?: {
+        gezamenlijkeOmschrijving?: string;
+        reden?: string;
+      }[];
+    };
+  };
+};
+
+/**
+ * Lees de gezamenlijke (cross-sectorale) titel + omschrijving van het gedeelde
+ * vermogen uit de cross-analyse (gedeelde-vermogens-stap, stap2).
+ *  - titel = vermogenClusters[0].clusterTitel
+ *  - omschrijving = het deel ná de "—" uit vermogenGelijkenisGroepen[0].gezamenlijkeOmschrijving
+ *  - reden = vermogenGelijkenisGroepen[0].reden (onderbouwing waarom cross-sectoraal)
+ * Defensief: optional chaining + cast naar minimale shape. Geeft `null` terug als
+ * de data ontbreekt, zodat de kaart terugvalt op de "samengevoegd uit …"-weergave.
+ * `reden` is optioneel (`undefined` als die ontbreekt → blokje wordt niet getoond).
+ */
+function leesGedeeldVermogenUitCrossAnalyse(
+  session: DINSession
+): { titel: string; omschrijving: string; reden?: string } | null {
+  const wizard = session.crossAnalyseWizard as unknown as
+    | CrossAnalyseGedeeldVermogen
+    | undefined;
+  const stap2 = wizard?.stepResults?.stap2;
+  const titel = stap2?.vermogenClusters?.[0]?.clusterTitel?.trim();
+  if (!titel) return null;
+
+  // Omschrijving: alles ná het eerste "—" (em-dash). Valt terug op de hele
+  // string als er geen em-dash in zit, en op "" als er niets na de dash staat.
+  const ruweOmschrijving =
+    stap2?.vermogenGelijkenisGroepen?.[0]?.gezamenlijkeOmschrijving?.trim() ?? "";
+  const naDash = ruweOmschrijving.includes("—")
+    ? ruweOmschrijving.split("—").slice(1).join("—").trim()
+    : ruweOmschrijving;
+
+  // Onderbouwing/reden uit de cross-analyse — waarom dit vermogen cross-sectoraal
+  // is. Optioneel: blijft `undefined` als de data ontbreekt (geen blokje tonen).
+  const reden =
+    stap2?.vermogenGelijkenisGroepen?.[0]?.reden?.trim() || undefined;
+
+  return { titel, omschrijving: naDash, reden };
+}
+
 function GedeeldVermogenKaart({
   capabilities,
   updateSession,
@@ -676,6 +727,13 @@ function GedeeldVermogenKaart({
   capabilities: DINCapability[];
   updateSession: ReturnType<typeof useSession>["updateSession"];
 }) {
+  // Sessie nodig voor de cross-analyse-uitkomst (gedeelde-vermogens-titel).
+  const { session } = useSession();
+  // Gezamenlijke cross-sectorale titel + omschrijving uit het netwerk. `null`
+  // als de cross-analyse-data ontbreekt → fallback op "samengevoegd uit …".
+  const crossGedeeld = session
+    ? leesGedeeldVermogenUitCrossAnalyse(session)
+    : null;
   // Stabiele set van groep-IDs — alle gegroepeerde (niet-geconsolideerde)
   // capabilities horen tot dit ene gedeelde vermogen.
   const groepIds = new Set(capabilities.map((c) => c.id));
@@ -785,30 +843,65 @@ function GedeeldVermogenKaart({
       className="border rounded-xl bg-white shadow-sm overflow-hidden"
       style={{ borderColor: "#cdeef4" }}
     >
-      {/* Kop — ÉÉN gedeeld vermogen, samengevoegd uit de ECHTE per-sector
-          vermogens (punt A). We tonen letterlijk capability.title (fallback
-          description) — geen zelfbedachte naam. */}
+      {/* Kop — ÉÉN gedeeld vermogen. Bij voorkeur de GEZAMENLIJKE cross-sectorale
+          titel + omschrijving uit de cross-analyse (gedeelde-vermogens-stap). Als
+          die ontbreekt, valt de kaart terug op de "samengevoegd uit …"-weergave
+          met de echte per-sector vermogen-namen (punt A). Niets verzonnen. */}
       <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-b from-white to-cyan-50/40">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[#0891b2]">
               Eén gedeeld vermogen · samengevoegd uit {capabilities.length} sectoren
             </div>
-            <div className="text-sm font-semibold text-gray-800 mt-1 leading-snug">
-              Gedeeld over {sectorenTekst}
-            </div>
-            {/* Samengevoegd uit: de echte vermogen-namen uit het netwerk */}
-            <div className="mt-1.5 text-xs text-gray-600 leading-relaxed">
-              <span className="font-semibold text-[#0891b2]">Samengevoegd uit:</span>{" "}
-              {echteVermogens.map((v, i) => (
-                <span key={i}>
-                  {i > 0 && <span className="text-gray-300"> · </span>}
-                  <span className="font-medium text-gray-700" title={`Sector: ${v.sector}`}>
-                    «{v.naam || "—"}»
-                  </span>
-                </span>
-              ))}
-            </div>
+            {crossGedeeld ? (
+              <>
+                {/* Gezamenlijke titel uit het netwerk (clusterTitel) */}
+                <div className="text-sm font-bold text-gray-800 mt-1 leading-snug">
+                  {crossGedeeld.titel}
+                </div>
+                {/* Omschrijving uit het netwerk (deel ná de "—") */}
+                {crossGedeeld.omschrijving && (
+                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                    {crossGedeeld.omschrijving}
+                  </p>
+                )}
+                {/* Onderbouwing uit de cross-analyse — waarom dit vermogen
+                    cross-sectoraal is. Subtiel blokje; alleen tonen als de
+                    cross-analyse een `reden` heeft (niets verzonnen). */}
+                {crossGedeeld.reden && (
+                  <div className="mt-2 rounded-md border-l-2 border-[#0891b2]/40 bg-cyan-50/60 px-2.5 py-1.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-[#0891b2]">
+                      Waarom cross-sectoraal:
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-gray-600 leading-relaxed">
+                      {crossGedeeld.reden}
+                    </p>
+                  </div>
+                )}
+                <div className="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
+                  <span className="font-semibold text-[#0891b2]">Gedeeld over:</span>{" "}
+                  {sectorenTekst}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-semibold text-gray-800 mt-1 leading-snug">
+                  Gedeeld over {sectorenTekst}
+                </div>
+                {/* Fallback: samengevoegd uit de echte vermogen-namen uit het netwerk */}
+                <div className="mt-1.5 text-xs text-gray-600 leading-relaxed">
+                  <span className="font-semibold text-[#0891b2]">Samengevoegd uit:</span>{" "}
+                  {echteVermogens.map((v, i) => (
+                    <span key={i}>
+                      {i > 0 && <span className="text-gray-300"> · </span>}
+                      <span className="font-medium text-gray-700" title={`Sector: ${v.sector}`}>
+                        «{v.naam || "—"}»
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           <KpiStatusToggle
             status={status}
@@ -2158,10 +2251,22 @@ function InspanningenMap({
   );
 }
 
+// Lookup: domein → totale Plus20-kostenraming (over de looptijd). Bron:
+// THREESIDES_DOMEINEN (data €910K · mens €183K · cultuur €142K · processen €126K).
+// We tonen deze Plus20-raming PRIMAIR per inspanning i.p.v. de generieke
+// effort.kostenraming.
+const PLUS20_RAMING_PER_DOMEIN: Partial<Record<EffortDomain, string>> =
+  Object.fromEntries(
+    THREESIDES_DOMEINEN.map((d) => [d.domein, d.budgetTotaalPlus20])
+  ) as Partial<Record<EffortDomain, string>>;
+
 function InspanningKaart({ effort, kleur }: { effort: DINEffort; kleur: string }) {
   const d = effort.dossier;
   const eigenaar = d?.eigenaar?.trim();
   const leider = d?.inspanningsleider?.trim();
+  // Primaire raming = Plus20 per domein. De generieke effort.kostenraming tonen
+  // we alleen nog klein/secundair (zie onder).
+  const plus20Raming = PLUS20_RAMING_PER_DOMEIN[effort.domain];
   const kosten = d?.kostenraming?.trim();
   const resultaat = d?.verwachtResultaat?.trim();
 
@@ -2189,7 +2294,30 @@ function InspanningKaart({ effort, kleur }: { effort: DINEffort; kleur: string }
           <MetaVeld label="Eigenaar" waarde={eigenaar} />
           <MetaVeld label="Inspanningsleider" waarde={leider} />
           <MetaVeld label="Planning" waarde={effort.quarter} />
-          <MetaVeld label="Kostenraming" waarde={kosten} />
+          {/* Primaire raming = Plus20 (per domein). Valt terug op de generieke
+              kostenraming als er voor dit domein geen Plus20-bedrag is. */}
+          {plus20Raming ? (
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">
+                Raming Plus20
+              </div>
+              <div
+                className="text-xs font-semibold text-gray-800 truncate"
+                title={plus20Raming}
+              >
+                {plus20Raming}
+              </div>
+              {/* Generieke kostenraming klein/secundair eronder (alleen als die
+                  afwijkt — anders weglaten). */}
+              {kosten && kosten.length > 0 && (
+                <div className="text-[10px] text-gray-400 truncate" title={kosten}>
+                  basisraming: {kosten}
+                </div>
+              )}
+            </div>
+          ) : (
+            <MetaVeld label="Kostenraming" waarde={kosten} />
+          )}
         </div>
         {resultaat && (
           <div className="pt-1">

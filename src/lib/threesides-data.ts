@@ -31,6 +31,8 @@ export interface ThreesidesDomeinData {
   funnel?: string;
   /** Optioneel: quick wins — uit 3sides-voorstel (lijn 5: signaleren → prioriteren → direct doen). */
   quickWins?: string[];
+  /** Totale kostenraming over de looptijd in de Plus20-variant (5 jaar). Bron: begroting-fasering Plus20. */
+  budgetTotaalPlus20: string;
 }
 
 // Volgorde conform Cito outside-in: cultuur → mens → data/systemen → processen.
@@ -40,6 +42,7 @@ export const THREESIDES_DOMEINEN: ThreesidesDomeinData[] = [
     domein: "cultuur",
     fase2026: "Bewustwording",
     budget2026: "€34K",
+    budgetTotaalPlus20: "€142K (5 jaar · Plus20)",
     deliverables: [
       { label: "programma-ontwerp" },
       { label: "MT-besluit" },
@@ -50,6 +53,7 @@ export const THREESIDES_DOMEINEN: ThreesidesDomeinData[] = [
     domein: "mens",
     fase2026: "Behoefte",
     budget2026: "€39K",
+    budgetTotaalPlus20: "€183K (5 jaar · Plus20)",
     deliverables: [
       { label: "nulmeting per sector" },
       { label: "curriculumontwerp" },
@@ -60,6 +64,7 @@ export const THREESIDES_DOMEINEN: ThreesidesDomeinData[] = [
     domein: "data_systemen",
     fase2026: "Analyse",
     budget2026: "€166K",
+    budgetTotaalPlus20: "€910K (5 jaar · Plus20)",
     deliverables: [
       { label: "platformkeuze (Dynamics-equivalent)" },
       { label: "datakwaliteits-scan" },
@@ -78,6 +83,7 @@ export const THREESIDES_DOMEINEN: ThreesidesDomeinData[] = [
     domein: "processen",
     fase2026: "Inventarisatie",
     budget2026: "€13K",
+    budgetTotaalPlus20: "€126K (5 jaar · Plus20)",
     deliverables: [
       { label: "as-is mapping per sector via Smartprocess" },
       { label: "besluit funneldefinities" },
