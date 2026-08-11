@@ -9,20 +9,11 @@
 
 ---
 
-## 1. Scenario en bronnen
+## 1. Uitgangspunt
 
-Het "20%-scenario" is het **Plus20-scenario** uit het programma-begrotingsadvies: 20% méér jaarbudget dan het huidige plafond (€ 250.000 × 1,2 = € 300.000 vanaf 2027; 2026 blijft hard € 250.000), waardoor het programma in 5 jaar in plaats van 7 wordt gerealiseerd. Plus20 is het geadviseerde scenario: gefaseerd tempo met beheersbare jaarlast en gespreide CRM-bouw.
+Deze begroting is de **jaarschijf 2027** van het programma Klant in Beeld, volgens het gekozen 20%-scenario (jaarplafond € 300.000 vanaf 2027). Van het vijfjarige programma (2026–2030) is hier uitsluitend het jaar 2027 opgenomen: € 301.500 externe kosten en 3.484 interne uren.
 
-Alle ingevulde waarden zijn scriptmatig herleid uit één bron van waarheid (geen handmatig overgetypte bedragen):
-
-| Bron | Gebruikt voor |
-|---|---|
-| **Live sessie d8b97442 (Supabase, v2594, 9 juli 2026)** — lokale kopie: `BRON-LIVE-SESSIE-STAP4-2026-08-11.json` | Interne uren 2027 per rol per domein + out-of-pocket 2027 per inspanning |
-| `src/lib/known-breakdowns.ts` (CRM-component, mid-waarden) | Splitsing CRM-bedrag in licenties vs. diensten |
-| `AUDIT-OUT-OF-POCKET-FASERING.md` · `STAP6-VS-STAP8-PLUS20.md` | Kruiscontrole jaarbedragen |
-| `PLAUSIBILITEIT-PLUS20.md` | Marktbenchmark-onderbouwing tarieven (Berenschot, Microsoft Pricing, Gartner/Forrester, NIP/NOLOC) |
-
-**Alleen jaarschijf 2027.** Het Plus20-scenario omvat in totaal 8.166 interne uren en € 1.459.500 over vijf jaar; in deze begroting is uitsluitend de 2027-schijf opgenomen (3.484 uur, € 301.500). Het vulscript filtert hard op `jaar == 2027` en breekt af als de som niet exact overeenkomt met het jaartotaal in de bron.
+Alle waarden zijn één-op-één herleid uit de actuele programmadata (stand 9 juli 2026; lokale kopie: `BRON-LIVE-SESSIE-STAP4-2026-08-11.json`). Tarieven en bedragen zijn onderbouwd met marktbenchmarks (o.a. Berenschot, Microsoft Pricing, Gartner; zie `PLAUSIBILITEIT-PLUS20.md`). De CRM-splitsing licenties/diensten komt uit `src/lib/known-breakdowns.ts`; kruiscontrole jaarbedragen in `AUDIT-OUT-OF-POCKET-FASERING.md` en `STAP6-VS-STAP8-PLUS20.md`. Het vulscript filtert hard op `jaar == 2027` en breekt af als de som niet exact overeenkomt met het jaartotaal in de bron.
 
 ---
 
@@ -48,6 +39,8 @@ Alle ingevulde waarden zijn scriptmatig herleid uit één bron van waarheid (gee
 - *Uniforme klantinformatieprocessen — € 28.000* (fase "Herontwerp (to-be) & pilot"): externe procesbegeleiding (dagtarief € 800), begeleiding van multidisciplinaire werksessies, pilots in Smartprocess en afstemming met het CRM-datamodel. Externe procesconsultancy → 410.
 - *Onvoorzien — € 7.000*: programma-brede risicobuffer (scope-uitloop, tariefrisico externe partners, integratie-issues). Het Cito-sjabloon kent geen aparte post onvoorzien; de buffer is bij 410 gevoegd omdat de belangrijkste risico's in de externe advies-/implementatiesfeer liggen. **Bij vrijval valt dit bedrag terug aan het programmabudget** (conform scenario-motivatie).
 
+**Op post 410 landt ook de rol van 3sides** als strategische- en executiepartner (begeleiding, borging, regie op met name processen en data — bron: `3SIDES-VOORSTEL-2026-2027.md`): de begeleidingscomponenten hierboven vormen daarvoor het kader. De definitieve 3sides-urenraming 2027 (6 maanden, uren aanpasbaar op basis van de 2026-ervaring) volgt als offerte; valt die hoger uit dan het kader, dan is de post onvoorzien het eerste vangnet en vraagt het meerdere om herijking van de programmaraming.
+
 **586 — Trainers/Docenten: € 39.500 (trainingsblok gespreksvaardigheid).** Eerste trainingsblok van drie maanden: externe trainers (kerntraject dagtarief € 2.500), gedragsgerichte coaching op gespreksregie en praktijkopdrachten met echte klantcases per sector. Externe trainerskosten → 586.
 
 **843 — Omzet: € 0.** Dit is een kostenproject (projectgroep "Kosten — Beheeractiviteiten", kostenplaats 7040); er wordt geen omzet op dit project begroot. De marge-regel (E105) toont daardoor `#DIV/0!` — inherent aan een kostenproject, geen fout.
@@ -56,14 +49,14 @@ Alle ingevulde waarden zijn scriptmatig herleid uit één bron van waarheid (gee
 
 ## 3. Interne uren — 3.484 uur eigen medewerkers
 
-### Mappingregel DIN-rollen → Cito-rolcodes
+### Van programmafunctie naar Cito-rolcode
 
-Het programmamodel raamt uren op rolregels (functie × domein); het Cito-sjabloon kent 24 rolcodes. Mapping volgens vier vaste regels, integraal toegepast:
+De urenraming van het programma is opgebouwd per functie (bijvoorbeeld accountmanager C, klantenservice C, sectormanager PO) per domein. Het Cito-sjabloon kent 24 rolcodes; elke functie is volgens vier vaste regels aan één rolcode toegewezen:
 
-1. **Uitvoerende rollen** → hun directe Cito-code (accountmanager → AM, trainer → TRA, productmanager → PDM, productowner → PDO, …).
-2. **Klantenservice- en binnendienstrollen** → **MCB** (Medewerker Commerciële Binnendienst) — het sjabloon kent geen aparte klantenservice-code; MCB is hetzelfde klantcontact-cluster en met € 56/u een conservatief tarief.
-3. **Alle leidinggevende rollen** (sectormanagers, directeur, managers — incl. de nieuwe Commercieel manager —, teamleiders én de vier inspanningsleiders) → **PJM** (Projectmanager) — programma-/projectleidende inzet; PJM-tarief € 90/u ligt het dichtst bij het leiderstarief van het model.
-4. **HR-rollen**: curriculum-/opleidingswerk → **TRA**; HRM-instrumentarium (360°-feedback, functioneringscyclus) → **PRO** (procesconsultant).
+1. **Uitvoerende functies** → hun directe Cito-code (accountmanager → AM € 81/u, trainer → TRA € 87/u, productmanager → PDM € 95/u, productowner → PDO € 87/u).
+2. **Klantenservice- en binnendienstfuncties** → **MCB** (Medewerker Commerciële Binnendienst, € 56/u) — het sjabloon kent geen aparte klantenservice-code; MCB is hetzelfde klantcontact-cluster.
+3. **Alle leidinggevende functies** (sectormanagers, directeur, managers — incl. de nieuwe Commercieel manager —, teamleiders én de vier inspanningsleiders) → **PJM** (Projectmanager), tegen het **PJM-tarief van € 90/u**. Dit is het Cito-tarief dat het dichtst ligt bij wat het programma voor leidinggevenden rekende (€ 82/u).
+4. **HR-functies**: curriculum-/opleidingswerk → **TRA** (€ 87/u); HRM-instrumentarium (360°-feedback, functioneringscyclus) → **PRO** (procesconsultant, € 56/u).
 
 ### Resultaat per rolregel in de Excel
 
@@ -80,7 +73,7 @@ Het programmamodel raamt uren op rolregels (functie × domein); het Cito-sjabloo
 | F54 | PJM — Projectmanager | € 90 | 1.030 | € 92.700 | projectmanager d (101) · 4 inspanningsleiders (4 × 95 = 380: Sven/SIO data, Yara/HR mens én cultuur, processen t.b.b.) · sectormanagers PO/VO/Prof (3 × 100 = 300, incl. 3 u geconsulteerd processen p.p.) · manager D&T (44) · manager klantcontact (90) · directeur BV (41) · teamleider PS (41) · teamleider klantenservice (24) · teamleider trainingen (6) · commercieel manager (3, geconsulteerd) |
 | | **Totaal** | | **3.484** | **€ 261.316** | |
 
-> **Leeswaarschuwing voor de controller:** MCB (1.050 u) en PJM (1.030 u) zijn *aggregaties* van respectievelijk 8 en 15 modelrollen — geen twee individuele medewerkers met een extreem urenbeslag. Het regel-niveau is reproduceerbaar uit het bronbestand `BRON-LIVE-SESSIE-STAP4-2026-08-11.json`. De rol content specialist (14 u in de meiversie) is in de actuele modelversie vervallen; CS staat daarom leeg.
+> **Leeswaarschuwing voor de controller:** MCB (1.050 u) en PJM (1.030 u) zijn *optellingen* van meerdere functies — MCB bundelt 8 klantenservice- en binnendienstfuncties, PJM bundelt 15 leidinggevende functies (sectormanagers, teamleiders, directeur, inspanningsleiders). Het zijn dus geen twee individuele medewerkers met een extreem urenbeslag. De opbouw per functie is reproduceerbaar uit het bronbestand `BRON-LIVE-SESSIE-STAP4-2026-08-11.json`. De functie content specialist (14 u in de meiversie) is in de actuele programmadata vervallen; CS staat daarom leeg.
 
 **Inleen (F55–F65) is bewust leeg.** Alle externe inzet (implementatiepartner, trainers, consultants, coaches) is in het programmamodel als out-of-pocket-bedrag geraamd en staat dus op de onkostenposten (§ 2), niet als inleenuren.
 
@@ -95,9 +88,9 @@ Het urentotaal oogt hoog, maar is verklaarbaar en bewust gepland:
 5. **Per persoon blijft de belasting beperkt.** De uren zijn verspreid over ± 65 rollen door grote delen van de organisatie; gemiddeld 5–12 uur per medewerker per jaar (bron: programmaplan-3sides, actieplan-slide). De grootste individuele posten: inspanningsleiders 95 uur (± 0,05 fte) en deelnemers van het trainingsblok 24 uur p.p.
 6. **Verhouding tot het reguliere projecturenbudget:** het scenario rekent met een basis-urenruimte van 540 u/jaar; 2027 gaat daar met +2.944 uur bewust overheen. Dit is de geplande programmapiek — de uren worden gedragen vanuit de reguliere personeelsbegroting en zijn hier apart inzichtelijk gemaakt, niet dubbel begroot.
 
-### Tariefverschil model vs. Cito-sjabloon
+### Tariefverschil programma-raming vs. Cito-sjabloon
 
-Het programmamodel waardeert de 2027-uren tegen een indexeerd vlak tarief (€ 77/u; leidinggevenden € 82/u): **€ 266.985**. Het Cito-sjabloon rekent met kostprijstarieven per rol uit boekjaar 2026 (€ 46–95/u): **€ 261.316**. Verschil **−€ 5.669 (−2,1%)** — het grootste urenblok (klantenservice/binnendienst, MCB € 56/u) kost werkelijk minder dan het vlakke modeltarief; de duurdere rollen (PJM € 90, TRA € 87, PDM € 95) compenseren dat grotendeels maar niet volledig. Het urenaantal (3.484) is in beide gelijk; alleen de waardering verschilt. **Zodra de tariefkaart boekjaar 2027 geladen is en K1 wordt bijgezet, herrekent de Excel automatisch naar 2027-tarieven** — bij ± 5% indexatie stijgt het bedrag naar ± € 274.000.
+De programma-raming waardeert de 2027-uren tegen een geïndexeerd vlak tarief (€ 77/u; leidinggevenden € 82/u): **€ 266.985**. Het Cito-sjabloon rekent met kostprijstarieven per rol uit boekjaar 2026 (€ 46–95/u): **€ 261.316**. Verschil **−€ 5.669 (−2,1%)** — het grootste urenblok (klantenservice/binnendienst, MCB € 56/u) kost werkelijk minder dan het vlakke modeltarief; de duurdere rollen (PJM € 90, TRA € 87, PDM € 95) compenseren dat grotendeels maar niet volledig. Het urenaantal (3.484) is in beide gelijk; alleen de waardering verschilt. **Zodra de tariefkaart boekjaar 2027 geladen is en K1 wordt bijgezet, herrekent de Excel automatisch naar 2027-tarieven** — bij ± 5% indexatie stijgt het bedrag naar ± € 274.000.
 
 ---
 
@@ -116,6 +109,7 @@ Het programmamodel waardeert de 2027-uren tegen een indexeerd vlak tarief (€ 7
 1. **Tariefkaart boekjaar 2027 laden en K1 bijzetten** — grootste openstaande actualisatie; een 2027-begroting hoort tegen 2027-tarieven (zie § 3, tariefverschil).
 2. Tabblad *Stamgegevens projecten* bevat drie hardgecodeerde "vertaling"-persnummers (G2/H2/I2) die niet overeenkomen met de huidige projectleider/controller/opdrachtgever — bewust niet aangepast (administratie-eigenaarschap ligt bij control).
 3. Controlecel F108 staat op −1; dit is een bestaande sjabloonafwijking (de omzetregel telt niet mee in het aantal-totaal) die al vóór het invullen bestond.
+4. **3sides-urenraming 2027 nog te ontvangen** en af te zetten tegen het begeleidingskader op post 410 (€ 58.000 begeleiding + € 7.000 onvoorzien).
 
 ---
 
