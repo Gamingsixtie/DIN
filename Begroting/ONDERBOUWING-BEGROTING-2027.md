@@ -39,7 +39,7 @@ Alle waarden zijn één-op-één herleid uit de actuele programmadata (stand 9 j
 - *Uniforme klantinformatieprocessen — € 28.000* (fase "Herontwerp (to-be) & pilot"): externe procesbegeleiding (dagtarief € 800), begeleiding van multidisciplinaire werksessies, pilots in Smartprocess en afstemming met het CRM-datamodel. Externe procesconsultancy → 410.
 - *Onvoorzien — € 7.000*: programma-brede risicobuffer (scope-uitloop, tariefrisico externe partners, integratie-issues). Het Cito-sjabloon kent geen aparte post onvoorzien; de buffer is bij 410 gevoegd omdat de belangrijkste risico's in de externe advies-/implementatiesfeer liggen. **Bij vrijval valt dit bedrag terug aan het programmabudget** (conform scenario-motivatie).
 
-**Op post 410 landt ook de rol van 3sides** als strategische- en executiepartner (begeleiding, borging, regie op met name processen en data — bron: `3SIDES-VOORSTEL-2026-2027.md`): de begeleidingscomponenten hierboven vormen daarvoor het kader. De definitieve 3sides-urenraming 2027 (6 maanden, uren aanpasbaar op basis van de 2026-ervaring) volgt als offerte; valt die hoger uit dan het kader, dan is de post onvoorzien het eerste vangnet en vraagt het meerdere om herijking van de programmaraming.
+> **Disclaimer 3sides:** de inzet van 3sides is **verdisconteerd in de posten 410 én 543**. Als strategische- en executiepartner (bron: `3SIDES-VOORSTEL-2026-2027.md`) levert 3sides zowel advies en begeleiding (410: leiderschaps- en procescomponenten) als uitvoerend werk op data & systemen binnen de CRM-realisatie (543, naast de technische implementatiepartner). De precieze verdeling over beide posten volgt uit de 3sides-urenraming 2027 (6 maanden, uren aanpasbaar op basis van de 2026-ervaring); de totaalbedragen per post wijzigen daardoor niet.
 
 **586 — Trainers/Docenten: € 39.500 (trainingsblok gespreksvaardigheid).** Eerste trainingsblok van drie maanden: externe trainers (kerntraject dagtarief € 2.500), gedragsgerichte coaching op gespreksregie en praktijkopdrachten met echte klantcases per sector. Externe trainerskosten → 586.
 
@@ -109,7 +109,7 @@ De programma-raming waardeert de 2027-uren tegen een geïndexeerd vlak tarief (�
 1. **Tariefkaart boekjaar 2027 laden en K1 bijzetten** — grootste openstaande actualisatie; een 2027-begroting hoort tegen 2027-tarieven (zie § 3, tariefverschil).
 2. Tabblad *Stamgegevens projecten* bevat drie hardgecodeerde "vertaling"-persnummers (G2/H2/I2) die niet overeenkomen met de huidige projectleider/controller/opdrachtgever — bewust niet aangepast (administratie-eigenaarschap ligt bij control).
 3. Controlecel F108 staat op −1; dit is een bestaande sjabloonafwijking (de omzetregel telt niet mee in het aantal-totaal) die al vóór het invullen bestond.
-4. **3sides-urenraming 2027 nog te ontvangen** en af te zetten tegen het begeleidingskader op post 410 (€ 58.000 begeleiding + € 7.000 onvoorzien).
+4. **3sides-urenraming 2027 nog te ontvangen**; de verdeling van de 3sides-inzet over de posten 410 en 543 daarop afstemmen (zie disclaimer in § 2).
 
 ---
 
