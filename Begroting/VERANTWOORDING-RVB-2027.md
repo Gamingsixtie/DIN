@@ -9,4 +9,4 @@ Daarnaast vraagt 2027 **± 3.500 interne uren** (≈ € 261.000 tegen interne k
 Mijlpaal eind 2027: het eerste trainingsblok is afgerond, de CRM-bouw met de eerste integraties staat (go-live volgt in 2028) en de sectoren werken steeds meer zelfstandig met het nieuwe klantbeeld.
 
 ---
-*Volledige onderbouwing en bronverwijzingen: `ONDERBOUWING-BEGROTING-2027.md` / Toelichting projectbegroting 2027.*
+*Volledige onderbouwing en bronverwijzingen: `ONDERBOUWING-BEGROTING-2027.md` / Toelichting raming 2027.*

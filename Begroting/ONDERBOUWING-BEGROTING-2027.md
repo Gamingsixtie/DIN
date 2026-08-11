@@ -1,6 +1,6 @@
 # Onderbouwing projectbegroting 2027 — Klant in zicht (30626-0003)
 
-**Bestand:** `Projectgroting 2027 30626-0003 klant in zicht 2027.xlsx` (tabblad Projectbegroting)
+**Bestand:** `Projectraming 2027 30626-0003 klant in zicht 2027.xlsx` (tabblad Projectbegroting)
 **Programma:** Klant in Beeld (hoofdproject 30626) · jaarschijf 2027 · projectleider Pim de Burger · opdrachtgever Roel Bakker · controller George Pavel
 **Scenario:** Plus20 — het geadviseerde vijfjarige middenscenario (2026–2030, totaal € 1.459.500 out-of-pocket, jaarplafond € 300.000 vanaf 2027)
 **Ingevuld voor 2027:** € 301.500 out-of-pocket (onkosten) + 3.484 interne uren (eigen medewerkers, € 261.316 tegen Cito-tarieven)
