@@ -11,7 +11,6 @@
 // ============================================================
 
 interface KpiRij {
-  ster?: boolean;
   naam: string;
   definitie: string;
   start: string;
@@ -28,7 +27,7 @@ const BATEN: {
     sectorKleur: "bg-violet-700",
     titel: "Sterkere klantgerichtheid bij opdrachtgevers & kandidaten",
     rijen: [
-      { ster: true, naam: "Funnel-conversieratio per stap", definitie: "Succespercentage per overgang: lead → opportunity → offerte → deal", start: "Nulmeting Q3 → uitval in lange leadtrajecten minimaliseren" },
+      { naam: "Funnel-conversieratio per stap", definitie: "Succespercentage per overgang: lead → opportunity → offerte → deal", start: "Nulmeting Q3 → uitval in lange leadtrajecten minimaliseren" },
       { naam: "Offertes: aantal + % → opdracht", definitie: "Volume-driver in lange trajecten én het percentage dat opdracht wordt", start: "Nulmeting Q3 → meer offertes, hogere slaagkans" },
       { naam: "Conversie uit bezoeken", definitie: "Bezoeken waar een call-to-action of vervolg uit voortkomt", start: "Nulmeting Q3 → meer vervolg uit bezoeken" },
       { naam: "Serviceniveau & reactietijden", definitie: "Reactietijd op klantvragen (mail/telefoon)", start: "Nulmeting Q3 → sneller reageren" },
@@ -40,7 +39,7 @@ const BATEN: {
     sectorKleur: "bg-sky-700",
     titel: "Intensiever partnership",
     rijen: [
-      { ster: true, naam: "Groei productgebruik (cross-/up-sell)", definitie: "% scholen dat upgradet van basis naar compleet, of extra trainingen/diensten afneemt", start: "Nulmeting Q3 → meer cross-/up-sell conversie" },
+      { naam: "Groei productgebruik (cross-/up-sell)", definitie: "% scholen dat upgradet van basis naar compleet, of extra trainingen/diensten afneemt", start: "Nulmeting Q3 → meer cross-/up-sell conversie" },
       { naam: "Gebruiksintensiteit volledige lijn", definitie: "% scholen met de volledige doorlopende lijn: Toets + LVS + DST", start: "Nulmeting Q3 → meer scholen op de volledige lijn" },
       { naam: "Raamcontracten grote besturen", definitie: "Aantal totaalpakket-contracten voor alle scholen tegelijk", start: "Nulmeting Q3 → alle accountmanagers voeren dit uit" },
       { naam: "Ontwikkeldeadlines & beloftes gehaald", definitie: "% productbeloftes en deadlines richting klanten gehaald — meting bij productmanagers", start: "Nulmeting Q3 → beloftes waarmaken" },
@@ -52,7 +51,7 @@ const BATEN: {
     sectorKleur: "bg-emerald-700",
     titel: "Hogere voorspelbaarheid commerciële begroting",
     rijen: [
-      { ster: true, naam: "Prognose-nauwkeurigheid", definitie: "Afwijking tussen de zomerprognose en de gerealiseerde omzet", start: "Nulmeting Q3 → afwijking minimaliseren" },
+      { naam: "Prognose-nauwkeurigheid", definitie: "Afwijking tussen de zomerprognose en de gerealiseerde omzet", start: "Nulmeting Q3 → afwijking minimaliseren" },
       { naam: "% meerjarige (3-jr) licenties", definitie: "Aandeel licenties omgezet van 1-jarig naar 3-jarig", start: "Nulmeting Q3 → aandeel 3-jarig omhoog" },
       { naam: "Inzicht in toetskeuzemomenten", definitie: "Markt-/klantreisdata op productniveau → voedt prognose en propositieontwikkeling", start: "Nulmeting Q3 → geïntegreerd in prognosemodellen" },
       { naam: "Churn / klantbehoud", definitie: "Verloren scholen per schooljaar", start: "Nulmeting Q3 → churn omlaag" },
@@ -170,7 +169,7 @@ export default function KpiModelBlock() {
       <div>
         <h4 className="text-sm font-bold text-gray-800 mb-1">1 · Baten-KPI&apos;s — waarop we sturen</h4>
         <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-          Per sector één baat met de bijbehorende KPI&apos;s. ★ = de belangrijkste per baat. Eigenaar:{" "}
+          Per sector één baat met de bijbehorende KPI&apos;s. Eigenaar:{" "}
           <strong>Commercieel Manager</strong> · meetverantwoordelijke: <strong>Strategisch Marketeer</strong>.
         </p>
         <div className="space-y-4">
@@ -194,7 +193,6 @@ export default function KpiModelBlock() {
                   {b.rijen.map((r) => (
                     <tr key={r.naam} className="align-top">
                       <td className="px-3 py-2 font-semibold text-gray-800">
-                        {r.ster && <span className="text-amber-600 mr-1">★</span>}
                         {r.naam}
                       </td>
                       <td className="px-3 py-2 text-gray-600">{r.definitie}</td>

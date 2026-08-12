@@ -34,7 +34,7 @@ Aanvullend:
 
 - Doelwaarde-eisen: **meetbaar · toetsbaar · motiverend · haalbaar** + concreet getal **mét meetmoment** + "roept het gewenste gedrag op". Haalbaarheid is pas toetsbaar mét startwaarde → **doelwaarden pas ná de nulmeting** vaststellen.
 - 5 toetsvragen per baat: dient het doel? · eigenaar? · helder & meetbaar? · start-/doelwaarde duidelijk & haalbaar? · gewenst gedrag?
-- **"Tien baten zijn al meer dan genoeg"** — beperk meetpunten, markeer ★ hoofd-KPI per baat, vermijd schijnnauwkeurigheid.
+- **"Tien baten zijn al meer dan genoeg"** — beperk meetpunten, vermijd schijnnauwkeurigheid. **GEEN ★/hoofd-KPI-markering per baat** (besluit Pim 2026-08-13: nooit vastgesteld dat de eerste KPI per sector de belangrijkste is).
 - Baten zijn er om te **leren en bij te sturen**, niet om af te rekenen.
 - Elke KPI/indicator heeft een **eigenaar** — zonder eigenaar niet "vastgesteld".
 
