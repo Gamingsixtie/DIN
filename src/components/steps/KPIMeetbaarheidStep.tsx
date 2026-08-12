@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "@/lib/session-context";
+import KpiModelBlock from "@/components/programmaplan/KpiModelBlock";
 import type {
   DINBenefit,
   DINCapability,
@@ -209,6 +210,7 @@ export default function KPIMeetbaarheidStep() {
 
   // Sessie-modus: focus i.p.v. verbergen. Stepper: baten -> vermogens -> klaar
   const [sessieModus, setSessieModus] = useState(false);
+  const [modelOpen, setModelOpen] = useState(true);
   const [actieveSectie, setActieveSectie] = useState<"baten" | "vermogens" | "klaar">("baten");
 
   // ---- Sessie-timer (punt 1) ----
@@ -305,6 +307,31 @@ export default function KPIMeetbaarheidStep() {
           <span aria-hidden className="text-emerald-500">✓</span>
           Wijzigingen worden automatisch opgeslagen
         </span>
+      </div>
+
+      {/* ---------- Definitief KPI-model (uitkomst stakeholdersessie) ---------- */}
+      <div className="mt-4 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <button
+          onClick={() => setModelOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide bg-cito-blue text-white rounded px-2 py-0.5">
+              Vastgesteld
+            </span>
+            <span className="text-sm font-semibold text-gray-800">
+              Definitief KPI-model — uitkomst stakeholdersessie
+            </span>
+          </div>
+          <span className="text-gray-400 text-xs">
+            {modelOpen ? "▲ inklappen" : "▼ uitklappen"}
+          </span>
+        </button>
+        {modelOpen && (
+          <div className="px-4 pb-4 border-t border-gray-100 pt-4">
+            <KpiModelBlock />
+          </div>
+        )}
       </div>
 
       {/* ---------- Niveau-band ---------- */}

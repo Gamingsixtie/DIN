@@ -1,15 +1,8 @@
 import Link from "next/link";
 
-// Sessie-schetsen en modellen. Het KPI-model dekt alle vier domeinen
-// (baten · vermogen · inspanningen); de Systeem & Data-schets blijft als
-// sessie-voorbereiding beschikbaar.
+// Sessie-schetsen. Het definitieve KPI-model heeft een eigen kop op de
+// hoofdpagina (/kpi-model) en hoort hier niet meer bij.
 const PAGINAS = [
-  {
-    titel: "KPI-model — baten · vermogen · inspanningen",
-    slug: "kpi-model",
-    kleur: "#0066cc",
-    desc: "Definitieve set: baten-KPI's (vastgesteld in de stakeholdersessie), het gedeelde vermogen met de route naar indicatoren, en de inspanningen van de analysefase 2026 (goedgekeurd 3sides-voorstel). Levend document.",
-  },
   {
     titel: "Systeem & Data — sessievoorbereiding",
     slug: "systeem-data",
@@ -26,10 +19,9 @@ export default function SchetsenPage() {
           <Link href="/" className="text-blue-200 text-sm hover:text-white">
             ← Terug
           </Link>
-          <h1 className="text-3xl font-bold mt-1">Schetsen & modellen</h1>
+          <h1 className="text-3xl font-bold mt-1">Schetsen</h1>
           <p className="text-blue-200 mt-1">
-            Sessie-visuals en het KPI-model — levende documenten van het
-            programma Klant in Zicht.
+            Sessie-visuals van het programma Klant in Zicht.
           </p>
         </div>
       </header>
