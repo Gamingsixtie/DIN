@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // ============================================================
 // Actielijst vakantie — levend document (apart tabblad)
@@ -140,6 +140,7 @@ function OpmerkingVeld({
 }
 
 export default function ActielijstPagina() {
+  const router = useRouter();
   const [stand, setStand] = useState<Stand>({});
   const [geladen, setGeladen] = useState(false);
 
@@ -163,9 +164,15 @@ export default function ActielijstPagina() {
     <main className="min-h-screen bg-cito-bg pb-16">
       <header className="bg-cito-blue text-white px-6 py-6">
         <div className="max-w-3xl mx-auto">
-          <Link href="/" className="text-blue-200 text-sm hover:text-white">
-            ← Terug
-          </Link>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) router.back();
+              else router.push("/");
+            }}
+            className="text-blue-200 text-sm hover:text-white"
+          >
+            ← Terug naar de sessie
+          </button>
           <h1 className="text-3xl font-bold mt-1">Actielijst vakantie</h1>
           <p className="text-blue-200 mt-1">
             Te bespreken met Sanne: wat er tijdens mijn afwezigheid gedaan kan
