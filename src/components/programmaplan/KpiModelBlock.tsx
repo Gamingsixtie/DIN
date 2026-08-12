@@ -95,8 +95,7 @@ const INSPANNINGEN: {
     topKleur: "border-t-[#7c3aed]",
     items: [
       { tekst: "Klantinformatie-landschap + huidig CRM in kaart", detail: "wat werkt · wat loopt vast · kosten & kansen; álle systemen waar klantdata zit (o.a. Topdesk · CRM · Dynax · Maileon · Webinargeek · Umbraco · SurveyMonkey · gebruikersplatform)", tags: ["Q3", "3sides"] },
-      { tekst: "Quick wins — doorlopend spoor", detail: "signaleren zodra ze zich aandienen → prioriteren op impact × uitvoerbaarheid → direct implementeren", tags: ["doorlopend", "3sides"] },
-      { tekst: "Contactgegevens centraliseren + koppeling Maileon ↔ CRM", detail: 'eerste quick win — "klein beginnen"', tags: ["doorlopend", "3sides"] },
+      { tekst: "Quick wins — doorlopend spoor", detail: 'signaleren zodra ze zich aandienen → prioriteren op impact × uitvoerbaarheid → direct implementeren. Al benoemd: de marketing/sales-funnel · contactgegevens centraliseren + koppeling Maileon ↔ CRM ("klein beginnen")', tags: ["doorlopend", "sessie", "3sides"] },
       { tekst: "Funnelontwerp + datakwaliteit-eisen", tags: ["2026", "sessie", "3sides"] },
       { tekst: "Klantreis vertaald naar CRM-requirements", detail: "input voor het CRM (huidig of nieuw) rond data en integratie", tags: ["Q4", "3sides"] },
       { tekst: "Platformopties in kaart", detail: "richting CRM bepaald in Q4 · formele keuze ~april '27", tags: ["2026", "sessie", "3sides"] },
