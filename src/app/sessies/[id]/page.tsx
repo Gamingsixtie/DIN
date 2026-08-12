@@ -86,6 +86,13 @@ function SessionFlow() {
               Stap {currentStepIndex + 1} van {APP_STEPS.length}
             </span>
             <a
+              href="/actielijst"
+              className="text-blue-200 hover:text-white text-sm transition-colors"
+              title="Actielijst vakantie — te bespreken met Sanne"
+            >
+              Actielijst ↗
+            </a>
+            <a
               href="/methodiek"
               className="text-blue-200 hover:text-white text-sm transition-colors"
               title="Methodiek-toelichting"

@@ -1245,6 +1245,11 @@ function SectorBlocks({ session, sectionNumbers }: { session: DINSession; sectio
               {/* Baten met volledig profiel */}
               {sectorBenefits.length > 0 && (
                 <SubSection title="Baten">
+                  <p className="text-[11px] text-gray-500 mb-2 leading-relaxed">
+                    De <strong>vastgestelde KPI-set</strong> staat in §3.1. Onderstaande profielen zijn de
+                    oorspronkelijke werkprofielen per sector; start- en doelwaarden worden na de nulmeting
+                    (Q3) en de vervolgsessie bijgewerkt.
+                  </p>
                   <div className="overflow-x-auto">
                     <div className="overflow-hidden border border-gray-200 rounded-lg">
                       <table className="w-full text-xs">
@@ -2007,19 +2012,22 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
     <>
       <IntroPanel title="Wat staat hieronder?">
         <p>
-          De vermogens zijn samengebracht in cross-sectorale clusters (zie het schema hierboven). Per
-          sector waaraan een vermogen is gekoppeld, dragen de <strong>Sectormanager</strong> én de{" "}
-          <strong>Commercieel manager</strong> van die sector samen de verantwoordelijkheid voor de
-          opbouw — beide rollen, voor élke sector waar het vermogen aan raakt.
+          In <strong>§3.1</strong> staat het gedeelde vermogen met de in de sessie vastgestelde ambitie
+          (alle sectoren → 5) en de route naar de meet-indicatoren. Hieronder de{" "}
+          <strong>kwalitatieve profielen per oorspronkelijk sector-vermogen</strong> — de huidige situatie
+          (AS-IS) en gewenste situatie (TO-BE) — waaruit dat gedeelde vermogen is samengevoegd. Per sector
+          dragen de <strong>Sectormanager</strong> én de <strong>Commercieel manager</strong> samen de
+          verantwoordelijkheid voor de opbouw.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
         <table className="w-full text-sm">
           <thead className="bg-cito-blue/5">
             <tr>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Vermogen</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Sectoren</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Verantwoordelijk</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider w-[22%]">Vermogen</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Huidige situatie (AS-IS)</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Gewenste situatie (TO-BE)</th>
+              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider w-[18%]">Verantwoordelijk</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -2030,11 +2038,14 @@ function VermogensprofielenBlock({ session }: { session: DINSession }) {
                 <tr key={c.id} className="hover:bg-gray-50 align-top">
                   <td className="px-3 py-2">
                     <p className="text-sm font-semibold text-gray-800 leading-snug">{c.title || c.description}</p>
-                    {c.title && c.description && c.description !== c.title && (
-                      <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{c.description}</p>
-                    )}
+                    <p className="text-[10px] text-gray-400 mt-0.5">{sectoren}</p>
                   </td>
-                  <td className="px-3 py-2 text-xs text-gray-700">{sectoren}</td>
+                  <td className="px-3 py-2 text-[11px] text-gray-600 leading-relaxed">
+                    {c.profiel?.huidieSituatie || <span className="text-gray-400 italic">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-gray-600 leading-relaxed">
+                    {c.profiel?.gewensteSituatie || <span className="text-gray-400 italic">—</span>}
+                  </td>
                   <td className="px-3 py-2 text-xs">
                     {verantwLijst.length > 0 ? (
                       <ul className="space-y-0.5">
@@ -2126,7 +2137,8 @@ function InspanningsleidersBlock({ session }: { session: DINSession }) {
           De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein zijn twee rollen
           gekoppeld: een <strong>eigenaar</strong> (de domeineigenaar uit de programma-organisatie —
           eindverantwoordelijk voor de samenhang binnen het domein) en een of meer{" "}
-          <strong>inspanningsleiders</strong> (de trekkers die de dagelijkse uitvoering aansturen).
+          <strong>inspanningsleiders</strong> (de trekkers die de dagelijkse uitvoering aansturen). Dit is
+          de operationele uitwerking van de bemensing die in <strong>§3.1</strong> is samengevat.
         </p>
       </IntroPanel>
       <div className="overflow-x-auto border border-gray-200 rounded-lg">

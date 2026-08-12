@@ -86,6 +86,59 @@ function bewaarStand(stand: Stand) {
   }
 }
 
+function OpmerkingVeld({
+  waarde,
+  onOpslaan,
+}: {
+  waarde: string;
+  onOpslaan: (v: string) => void;
+}) {
+  const [tekst, setTekst] = useState(waarde);
+  const [flash, setFlash] = useState(false);
+
+  // Sync als de opgeslagen waarde van buitenaf verandert (eerste load).
+  useEffect(() => {
+    setTekst(waarde);
+  }, [waarde]);
+
+  const gewijzigd = tekst !== waarde;
+
+  return (
+    <div className="mt-3">
+      <textarea
+        value={tekst}
+        onChange={(e) => setTekst(e.target.value)}
+        placeholder="Opmerkingen…"
+        rows={2}
+        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cito-blue/30 focus:border-cito-blue placeholder:text-gray-400"
+      />
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          onClick={() => {
+            onOpslaan(tekst);
+            setFlash(true);
+            setTimeout(() => setFlash(false), 2000);
+          }}
+          disabled={!gewijzigd}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+            gewijzigd
+              ? "bg-cito-blue text-white border-cito-blue hover:bg-cito-blue-light"
+              : "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
+          }`}
+        >
+          Opslaan
+        </button>
+        {flash && (
+          <span className="text-[11px] text-emerald-600 font-medium">✓ opgeslagen</span>
+        )}
+        {gewijzigd && !flash && (
+          <span className="text-[11px] text-amber-600">niet-opgeslagen wijziging</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ActielijstPagina() {
   const [stand, setStand] = useState<Stand>({});
   const [geladen, setGeladen] = useState(false);
@@ -173,16 +226,9 @@ export default function ActielijstPagina() {
                   <p className="text-sm text-gray-600 mt-1 leading-relaxed">
                     {a.detail}
                   </p>
-                  <textarea
-                    defaultValue={s.opmerking}
-                    onBlur={(e) => {
-                      if (e.target.value !== s.opmerking) {
-                        patch(a.id, { opmerking: e.target.value });
-                      }
-                    }}
-                    placeholder="Opmerkingen…"
-                    rows={2}
-                    className="mt-3 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cito-blue/30 focus:border-cito-blue placeholder:text-gray-400"
+                  <OpmerkingVeld
+                    waarde={s.opmerking}
+                    onOpslaan={(v) => patch(a.id, { opmerking: v })}
                   />
                 </div>
               </div>

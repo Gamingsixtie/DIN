@@ -302,7 +302,7 @@ export default function KpiModelBlock() {
         </p>
         <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-5 leading-relaxed">
           <li><strong>3sides:</strong> topic leads voor Processen en Data &amp; Systemen — senior stuurt op richting, medior op uitvoering; specialisten op afroep</li>
-          <li><strong>Inspanningsleiders Cito</strong> (kernteam): Cultuur &amp; Mens — <strong>HR-manager</strong> · Data &amp; Systemen — <strong>SIO</strong> · Processen — <strong>nog te benoemen</strong></li>
+          <li><strong>Inspanningsleiders Cito</strong> (kernteam): Cultuur &amp; Mens — <strong>HR-manager</strong> · Data &amp; Systemen — <strong>SIO</strong> · Processen — <strong>nog te benoemen</strong> (volledig overzicht per domein: §3.3)</li>
           <li><strong>Domeineigenaar Data &amp; Systemen:</strong> Manager Data &amp; Technologie</li>
           <li><strong>Curriculum vaardigheidstraining:</strong> samen met HR ontworpen — HR-manager (inspanningsleider Mens) + HR-medewerker voor curriculum &amp; integratie</li>
           <li><strong>Cultuurlijn:</strong> gedragen door het volledige &ldquo;MT&rdquo; — sectormanagers, commercieel manager én HR-manager: voorleven, en het &ldquo;MT-besluit&rdquo; over de leiderschapsaanpak</li>
