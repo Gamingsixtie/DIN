@@ -15,6 +15,7 @@ import { BerekeningenView } from "@/components/steps/BerekeningenStep";
 import type { EffortDomain, DINSession, SectorName, IntegratieAdviesResult } from "@/lib/types";
 import DINNetworkGraph from "@/components/din/DINNetworkGraph";
 import StapSectorVertaling from "@/components/cross-analyse/StapSectorVertaling";
+import KpiModelBlock from "@/components/programmaplan/KpiModelBlock";
 import type { Stap2Result, Stap4Result, Stap5Result } from "@/lib/types";
 import {
   getAantalForRol,
@@ -1982,87 +1983,6 @@ const SCENARIO_KLEUR: Record<ScenarioKey, { ring: string; bg: string; accent: st
 };
 
 const SCENARIO_ORDER_GLOBAL: ScenarioKey[] = ["optimaal", "plus20", "min20", "advies"];
-
-// --- H3.1 Batenprofielen — eigenaar, indicator, meetmoment ---
-function BatenprofielenBlock({ session }: { session: DINSession }) {
-  const benefits = session.benefits ?? [];
-  if (benefits.length === 0) {
-    return <p className="text-sm text-gray-400 italic">Geen baten beschikbaar.</p>;
-  }
-  // Sorteer: per sector, per goal, per omschrijving
-  const sorted = [...benefits].sort((a, b) => {
-    if (a.sectorId !== b.sectorId) return a.sectorId.localeCompare(b.sectorId);
-    return (a.title || a.description).localeCompare(b.title || b.description);
-  });
-  return (
-    <>
-      <IntroPanel title="Wat staat hieronder?">
-        <p>
-          Per cross-sectorale baat leggen we hieronder vast wie er <strong>eindverantwoordelijk</strong> voor
-          is, hoe we de realisatie <strong>meten</strong> (indicator) en op welk moment dat plaatsvindt.
-          Zonder die drie elementen is een baat niet stuurbaar — er is dan niemand die wakker ligt van het
-          resultaat, geen indicator om voortgang aan af te lezen, en geen moment waarop &ldquo;klaar&rdquo;
-          is vastgesteld.
-        </p>
-        <p className="mt-2 italic text-gray-700">
-          De onderstaande batenprofielen zijn een <strong>voorstel</strong> — definitieve indicatoren,
-          waarden en meetmomenten moeten nog in de stuurgroep worden besproken. Dit is één mogelijke
-          uitwerking om de discussie te voeden.
-        </p>
-      </IntroPanel>
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm">
-          <thead className="bg-cito-blue/5">
-            <tr>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Baat</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Sector</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Eigenaar</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Indicator</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Huidig → Doel</th>
-              <th className="text-left px-3 py-2 text-[10px] font-semibold text-cito-blue uppercase tracking-wider">Meetmoment</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sorted.map((b) => {
-              const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "";
-              const indicator = b.profiel.indicator?.trim() || "";
-              const cur = sanitizeMeetjaarTekst(b.profiel.currentValue?.trim() || "");
-              const tgt = b.profiel.targetValue?.trim() || "";
-              const meet = sanitizeMeetjaarTekst(b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim() || "");
-              return (
-                <tr key={b.id} className="hover:bg-gray-50 align-top">
-                  <td className="px-3 py-2">
-                    <p className="text-sm font-semibold text-gray-800 leading-snug">{b.title || b.description}</p>
-                    {b.title && b.description && b.description !== b.title && (
-                      <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{b.description}</p>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-700">{b.sectorId}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {eigenaar ? (
-                      <span className="text-gray-800">{eigenaar}</span>
-                    ) : (
-                      <span className="text-amber-700 italic">— nog te benoemen</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-700">
-                    {indicator || <span className="text-amber-700 italic">— nog te bepalen</span>}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-700 tabular-nums">
-                    {cur || tgt ? <>{cur || "?"} <span className="text-gray-400">→</span> {tgt || "?"}</> : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-700">
-                    {meet || <span className="text-gray-400">—</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-}
 
 // --- H3.2 Vermogensprofielen — verantwoordelijk + niveau ---
 // Per sector waaraan een vermogen is gekoppeld, dragen Sectormanager én
@@ -4042,8 +3962,8 @@ export function ProgrammaplanDocument({ session }: { session: DINSession }) {
             </div>
           </Kern>
 
-          <SubSection title="3.1 Batenprofielen" id="3-1-batenprofielen">
-            <BatenprofielenBlock session={session} />
+          <SubSection title="3.1 KPI-model — baten · vermogen · inspanningen" id="3-1-batenprofielen">
+            <KpiModelBlock />
           </SubSection>
 
           <SubSection title="3.2 Vermogensprofielen" id="3-2-vermogensprofielen">

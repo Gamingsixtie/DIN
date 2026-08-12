@@ -17,7 +17,7 @@ const TOC: Array<{ id: string; nummer: string; titel: string; sub?: Array<{ id: 
     nummer: "3.",
     titel: "Cross-sectorale uitkomst — de kern",
     sub: [
-      { id: "3-1-batenprofielen", titel: "3.1 Batenprofielen" },
+      { id: "3-1-batenprofielen", titel: "3.1 KPI-model — baten · vermogen · inspanningen" },
       { id: "3-2-vermogensprofielen", titel: "3.2 Vermogensprofielen" },
       { id: "3-3-inspanningsleiders-per-domein", titel: "3.3 Eigenaar en inspanningsleider per domein" },
       { id: "3-4-veranderstrategie", titel: "3.4 Veranderstrategie" },
