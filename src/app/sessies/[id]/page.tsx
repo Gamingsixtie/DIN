@@ -104,7 +104,7 @@ function SessionFlow() {
       </header>
 
       <nav className="bg-white border-b border-cito-border px-6 py-3">
-        <div className="max-w-6xl mx-auto flex gap-1">
+        <div className="max-w-6xl mx-auto flex gap-1 flex-wrap items-center">
           {APP_STEPS.map((step) => {
             const completion = completions.find((c) => c.step === step.key);
             const hasData = completion && completion.percentage > 0;
@@ -131,6 +131,13 @@ function SessionFlow() {
               </button>
             );
           })}
+          <a
+            href="/actielijst"
+            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
+            title="Actielijst vakantie — te bespreken met Sanne"
+          >
+            Actielijst
+          </a>
         </div>
       </nav>
 
