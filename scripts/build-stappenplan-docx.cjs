@@ -352,7 +352,7 @@ const doc = new Document({
       domkop("Fundament — programma-breed", "3sides · programmamanagers", CITO),
       stappenTabel([
         stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "3sides · MT · sectormanagers · teams", "Q3"),
-        stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren. Dit stellen we "), b("samen met 3sides"), r(" samen — zij weten wat de analysefase per domein aan mensen vraagt.")], "3sides · sectormanagers · inspanningsleiders", "Q3"),
+        stap(2, CITO, [b("Inspanningsleiders & teams bepalen")], [r("De "), b("domeineigenaren zijn al belegd"), r(" — die nemen we hierin mee. In deze stap bepalen we per domein de "), b("inspanningsleider"), r(" (beoogd: Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — nog te benoemen) en stellen we het "), b("team daarvan"), r(" samen: teamleden uit de sectoren (marketeers, productmanagers — op te halen via de sectormanagers). Dit doen we samen met 3sides — zij weten wat de analysefase per domein aan mensen vraagt.")], "3sides · domeineigenaren · sectormanagers", "Q3"),
         stap(3, CITO, [b("Meetprotocol per baten-KPI — afspreken hóé we meten")], [
           b("Wat we doen: "),
           r("per baten-KPI vullen we sámen met de sectormanagers het meetprotocol in — vijf vragen per KPI: "),
