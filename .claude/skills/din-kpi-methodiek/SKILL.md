@@ -69,6 +69,8 @@ Aanvullend:
 - **Inspanningsleiders (besluiten Pim, 2026-08-19)**: Cultuur & Mens — HR-manager · Data & Systemen — **Product Owner** (NIET de SIO; de SIO doet wel de A5-analyse) · Processen — nog te benoemen. De **domeineigenaren zijn al belegd** en worden meegenomen; de inspanningsleiders zijn **beoogd** (niet vastgesteld) — in fundament-stap 2 worden per domein de inspanningsleider en het team formeel bepaald, samen met 3sides.
 - **3sides zichtbaar bij Cito (wens Pim, 2026-08-19)**: onderdeel van de opdracht aan 3sides — regelmatig op locatie werken, aansluiten bij overleggen, aanspreekbaar zijn; zichtbaarheid = draagvlak.
 
+- **Terminologie "topic" (besluit Pim, 2026-08-19)**: het 3sides-jargon "topic (lead)" NIET gebruiken in deelbare stukken — schrijf **"inhoudelijk trekker 3sides"** en spreek van **domeinen**. Onderscheid: inspanningsleider = Cito-rol (eigenaar per domein) · inhoudelijk trekker = 3sides-rol (senior op richting, medior op uitvoering, specialisten op afroep).
+
 ## 6. Werkstijl
 
 - Bij grensgevallen: **eerst onderbouwd voorstel** (theorie + bron), dan vragen — nooit stilzwijgend zelf invullen.

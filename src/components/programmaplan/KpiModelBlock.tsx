@@ -384,7 +384,7 @@ export default function KpiModelBlock() {
             <b className="text-gray-900">Bemensing zoals nu belegd:</b>
             <ul className="mt-1.5 space-y-1.5">
               {[
-                <><b className="text-gray-900">3sides:</b> topic leads voor Processen en Data &amp; Systemen — senior stuurt op richting, medior op uitvoering; specialisten op afroep</>,
+                <><b className="text-gray-900">3sides:</b> inhoudelijk trekkers voor de domeinen Processen en Data &amp; Systemen — senior stuurt op richting, medior op uitvoering; specialisten op afroep</>,
                 <><b className="text-gray-900">Inspanningsleiders Cito</b> (kernteam, programmaplan): Cultuur &amp; Mens — <b className="text-gray-900">HR-manager</b> · Data &amp; Systemen — <b className="text-gray-900">Product Owner</b> · Processen — <b className="text-gray-900">nog te benoemen</b> (volledig overzicht per domein: §3.3)</>,
                 <><b className="text-gray-900">Domeineigenaar Data &amp; Systemen:</b> Manager Data &amp; Technologie</>,
                 <><b className="text-gray-900">Curriculum vaardigheidstraining:</b> wordt samen met HR ontworpen — de HR-manager (inspanningsleider Mens) plus een HR-medewerker voor curriculum &amp; integratie (kernteam)</>,

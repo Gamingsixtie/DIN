@@ -382,10 +382,14 @@ const doc = new Document({
       spacer(70),
       domkop("De analysefase per domein — op prioriteit", "prio 1 → 4 · alle vier lopen in 2026 tegelijk", CITO),
       p([
-        b("Topic leads & teams: "),
-        r("3sides levert voor Data & Systemen en Processen een "),
-        b("topic lead"),
-        r(" — een inhoudelijke trekker die de activiteiten van dat domein aanstuurt en het tempo bewaakt (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van deze activiteiten stellen we per domein ook de "),
+        b("Dit zijn de onderwerpen van de analysefase: "),
+        r("per domein staat hieronder uitgespecificeerd wat we precies in kaart brengen en oppakken — van het klantinformatie-landschap (prio 1, punt 1) tot de quick wins die parallel lopen."),
+      ]),
+      p([
+        b("Trekkers & teams per domein: "),
+        r("3sides levert voor de domeinen Data & Systemen en Processen een "),
+        b("inhoudelijk trekker"),
+        r(" — die stuurt de activiteiten van dat domein aan en bewaakt het tempo (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van deze activiteiten stellen we per domein ook de "),
         b("inspanningsteams"),
         r(" samen (fundament, stap 2) — inclusief het team voor de analysefase. Die kunnen in samenstelling "),
         b("verschillen"),
@@ -396,7 +400,7 @@ const doc = new Document({
         borders: NO_BORDERS,
         rows: [
           new TableRow({ cantSplit: true, children: [
-            domCard("Prio 1 · Data & Systemen", "topic lead 3sides · inspanningsleider: Product Owner", PAARS, [
+            domCard("Prio 1 · Data & Systemen", "inhoudelijk trekker 3sides · inspanningsleider: Product Owner", PAARS, [
               { n: "1", t: "Klantinformatie-landschap + huidig CRM in kaart (8 bronnen)", q: "Q3" },
               { n: "2", t: "Quick wins: contactgegevens + Maileon ↔ CRM", q: "doorlopend" },
               { n: "3", t: "Klantreis als vertrekpunt → welke data hebben wíj nodig", q: "Q3–Q4" },
@@ -404,7 +408,7 @@ const doc = new Document({
               { n: "5", t: "Klantreis → CRM-requirements (data · integratie)", q: "Q4" },
               { n: "6", t: "Platformopties → richting CRM (keuze ~april '27)", q: "Q4" },
             ]),
-            domCard("Prio 2 · Processen", "topic lead 3sides · inspanningsleider: n.t.b.", GROEN, [
+            domCard("Prio 2 · Processen", "inhoudelijk trekker 3sides · inspanningsleider: n.t.b.", GROEN, [
               { n: "1", t: "Klantreizen → funnelprocessen, incl. customer loops", q: "Q3–Q4" },
               { n: "2", t: "Eenduidig Customer Success-proces + contactmomenten", q: "Q4" },
             ]),
@@ -432,7 +436,7 @@ const doc = new Document({
       // ===== 4 OPDRACHT 3SIDES =====
       secband("4", "Onze opdracht aan 3sides — wij voeren de regie", PAARS),
       spacer(60),
-      p([r("Cito is opdrachtgever: wíj bepalen wat er nodig is, 3sides levert daarop — niet andersom. 3sides levert de topic leads voor Data & Systemen en Processen (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van dit plan verwachten wij binnen de eerste weken:")]),
+      p([r("Cito is opdrachtgever: wíj bepalen wat er nodig is, 3sides levert daarop — niet andersom. 3sides levert de inhoudelijk trekkers voor de domeinen Data & Systemen en Processen (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van dit plan verwachten wij binnen de eerste weken:")]),
       stappenTabel([
         stap(1, PAARS, [b("Assistentie bij élke stap van het fundament")], [r("Óók bij „iedereen opnieuw meenemen”: voorbereiden, faciliteren en tempo houden. Zo benutten we de samenwerking optimaal en zetten we elke stap goed voorbereid en in het juiste tempo.")], null, null),
         stap(2, PAARS, [b("Plan van aanpak per domein volgens ónze prioritering")], [r("Wie, wat, wanneer — per week/maand in Q3–Q4.")], null, null),
