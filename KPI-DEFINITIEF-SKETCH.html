@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KPI-model Klant in Zicht — definitief</title>
+<style>
+  :root{
+    --cito:#003366; --baten:#0066cc; --vermogens:#0891b2; --tracker:#6d28d9;
+    --mens:#2563eb; --proces:#059669; --data:#7c3aed; --cultuur:#d97706;
+    --ink:#111827; --ink-2:#5b6573; --ink-3:#9aa3b0;
+    --line:#e7ebf0; --line-2:#dde3ea; --canvas:#eef1f5;
+    --amber:#b45309;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 26px 80px}
+
+  header.top{background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:16px;padding:22px 28px;box-shadow:var(--shadow)}
+  header.top .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9db9d6;font-weight:700}
+  header.top h1{font-size:24px;letter-spacing:-.02em;margin-top:5px}
+  header.top p{color:#cdddf0;font-size:12.5px;margin-top:7px}
+
+  /* leeswijzer */
+  .leeswijzer{display:flex;gap:0;align-items:stretch;margin-top:18px;flex-wrap:wrap}
+  .lw{flex:1;min-width:200px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 15px;box-shadow:var(--shadow);border-top:4px solid var(--line-2)}
+  .lw.b1{border-top-color:var(--baten)} .lw.b2{border-top-color:var(--vermogens)} .lw.b3{border-top-color:var(--tracker)}
+  .lw .n{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+  .lw.b1 .n{color:var(--baten)} .lw.b2 .n{color:var(--vermogens)} .lw.b3 .n{color:var(--tracker)}
+  .lw .t{font-size:12.5px;font-weight:700;color:var(--ink)}
+  .lw .s{font-size:11px;color:var(--ink-2);margin-top:2px;line-height:1.4}
+  .lwarr{display:flex;align-items:center;color:#b6c0cc;font-size:17px;font-weight:800;padding:0 9px}
+
+  .sec{margin-top:26px}
+  .sechead{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .sechead .num{font-size:11px;font-weight:800;color:#fff;border-radius:6px;padding:2px 9px}
+  .sechead h2{font-size:18px;letter-spacing:-.01em}
+  .secuitleg{font-size:12px;color:var(--ink-2);margin-bottom:13px;line-height:1.5;max-width:860px}
+  .secuitleg b{color:var(--ink)}
+
+  .npsban{background:linear-gradient(135deg,#0c6b7a,#0891b2);color:#fff;border-radius:12px;padding:12px 18px;box-shadow:var(--shadow);font-size:12.5px}
+  .npsban b{color:#fff}
+
+  /* baten */
+  .baat{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-top:14px;overflow:hidden}
+  .baathead{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .baathead h3{font-size:14px;letter-spacing:-.01em}
+  .baathead .wie{margin-left:auto;font-size:10.5px;color:var(--ink-3);text-align:right}
+  .baathead .wie b{color:var(--ink-2)}
+  .stag{display:inline-block;font-size:9px;font-weight:800;color:#fff;padding:2px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em}
+  .stag.za{background:#6d28d9} .stag.po{background:#0369a1} .stag.vo{background:#047857}
+  table.kpit{width:100%;border-collapse:collapse}
+  table.kpit th{background:#f7f9fc;text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);padding:7px 18px;border-bottom:1px solid var(--line-2)}
+  table.kpit td{padding:9px 18px;border-bottom:1px solid var(--line);vertical-align:top;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+  table.kpit tr:last-child td{border-bottom:none}
+  table.kpit td.naam{font-weight:600;color:var(--ink);width:24%}
+  .ster{color:var(--amber);font-weight:800;margin-right:3px}
+  td.startcel{width:20%;font-size:11.5px}
+  .startcel b{color:var(--ink)}
+  .startcel .q3{color:var(--amber);font-weight:600}
+  td.doelcel{background:#fffdf7;border-left:1px solid var(--line);width:25%;font-size:11.5px;vertical-align:top}
+  .doelcel .tb{font-weight:700;color:var(--amber);display:block;margin-bottom:7px;line-height:1.4}
+  .doelcel .eish{display:block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-bottom:4px}
+  .doelcel .eis{display:block;color:var(--ink-2);padding-left:15px;position:relative;margin-top:3px;line-height:1.35}
+  .doelcel .eis::before{content:"✓";position:absolute;left:0;color:#047857;font-weight:800}
+  .doelcel .eis b{color:var(--ink)}
+
+  /* vermogen */
+  .vermcard{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .vermblok{padding:15px 18px;border-bottom:1px solid var(--line)}
+  .vermblok:last-child{border-bottom:none}
+  .vermvraag{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .vermuitleg{font-size:11.5px;color:var(--ink-2);line-height:1.55}
+  .vermuitleg b{color:var(--ink)}
+  .vermlabel{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;background:var(--vermogens);color:#fff;border-radius:5px;padding:2px 8px;margin:9px 0 5px}
+  .vermtitel{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.35}
+  .vermdoms{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .vermdoms span{font-size:10px;font-weight:700;border-radius:6px;padding:3px 9px}
+  .vd-cultuur{background:#fdf1e3;color:#b45309;border:1px solid #f6ddb9}
+  .vd-data{background:#f3ecfe;color:#6d28d9;border:1px solid #e4d8fb}
+  .vd-proces{background:#e7f6ef;color:#047857;border:1px solid #c7f0dd}
+  .vd-mens{background:#e0edff;color:#1d4ed8;border:1px solid #c3d9fc}
+  .vermgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:11px}
+  .vsec .vs-h{display:flex;align-items:center;gap:8px}
+  .bollen{display:flex;align-items:center;gap:4px}
+  .bol{width:14px;height:14px;border-radius:50%;border:2px solid var(--line-2);background:#fff}
+  .bol.nu{background:var(--vermogens);border-color:var(--vermogens)}
+  .bol.doel{border-color:var(--vermogens);border-style:dashed}
+  .vscore{font-size:11px;color:var(--ink-2)}
+  .vscore b{color:var(--vermogens)}
+  .bollegend{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink-3)}
+  .bollegend .bol{width:11px;height:11px}
+  .route{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin-top:11px}
+  .rstep{flex:1;min-width:170px;display:flex;gap:9px;align-items:flex-start;padding-right:8px}
+  .rstep .rn{flex:none;width:20px;height:20px;border-radius:50%;background:var(--vermogens);color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:800;margin-top:1px}
+  .rstep p{font-size:11px;color:var(--ink-2);line-height:1.4}
+  .rstep p b{color:var(--ink)}
+  .rarr{display:flex;align-items:center;color:#cbd3dd;font-weight:800;padding:0 8px}
+
+  /* inspanningen */
+  .domgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .dom{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 17px;box-shadow:var(--shadow);border-top:4px solid var(--line-2)}
+  .dom.cultuur{border-top-color:var(--cultuur)}
+  .dom.data{border-top-color:var(--data)}
+  .dom.proces{border-top-color:var(--proces)}
+  .dom.mens{border-top-color:var(--mens)}
+  .dom h3{font-size:13.5px;margin-bottom:10px}
+  .dom ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .dom li{font-size:12px;color:var(--ink-2);line-height:1.45;padding-left:20px;position:relative}
+  .dom li::before{content:"☐";position:absolute;left:0;top:0;font-size:12px;color:var(--ink-3)}
+  .dom li.done::before{content:"☑";color:#047857}
+  .dom li b{color:var(--ink)}
+  .qtag{display:inline-block;font-size:8px;font-weight:800;background:#f1f5f9;color:#475569;border:1px solid #dde3ea;border-radius:4px;padding:1px 6px;margin-left:5px;vertical-align:1px;letter-spacing:.03em}
+  .s3{display:inline-block;font-size:8px;font-weight:800;background:#efe9fd;color:#6d28d9;border:1px solid #e0d3fb;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px;letter-spacing:.03em}
+  .schip{display:inline-block;font-size:8px;font-weight:800;background:#e0edff;color:#1d4ed8;border:1px solid #c3d9fc;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px;letter-spacing:.03em}
+  .strip2027{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 16px;box-shadow:var(--shadow);margin-top:14px;font-size:11.5px;color:var(--ink-2);line-height:1.6}
+  .strip2027 b{color:var(--ink)}
+  .strip2027 .jr{display:inline-block;font-size:9px;font-weight:800;background:var(--cito);color:#fff;border-radius:5px;padding:2px 8px;margin-right:7px;vertical-align:1px}
+
+  .rvw{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 17px;box-shadow:var(--shadow);font-size:12px;color:var(--ink-2);line-height:1.6}
+  .rvw b{color:var(--ink)}
+  .rvw .sub2{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-2);font-size:11.5px}
+  .rvw ul{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:7px}
+  .rvw li{font-size:11.5px;color:var(--ink-2);line-height:1.5;padding-left:14px;position:relative}
+  .rvw li::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--ink-3)}
+  .rvw li b{color:var(--ink)}
+
+  .foot{margin-top:24px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  @media(max-width:860px){.domgrid,.vermgrid{grid-template-columns:1fr}.leeswijzer,.route{flex-direction:column}.lwarr,.rarr{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Programma Klant in Zicht</div>
+    <h1>KPI-model — baten · vermogen · inspanningen</h1>
+    <p>Baten-KPI's vastgesteld in de stakeholdersessie · inspanningen uit het goedgekeurde 3sides-voorstel · startwaarden volgen uit de nulmeting (Q3).</p>
+  </header>
+
+  <!-- LEESWIJZER -->
+  <div class="leeswijzer">
+    <div class="lw b1"><div class="n">1 · Baten</div><div class="t">Wat het moet opleveren</div><div class="s">De KPI's waarop we sturen — vastgesteld</div></div>
+    <div class="lwarr">←</div>
+    <div class="lw b2"><div class="n">2 · Vermogen</div><div class="t">Wat we daarvoor moeten kunnen</div><div class="s">Eén gedeeld vermogen — meting in opbouw</div></div>
+    <div class="lwarr">←</div>
+    <div class="lw b3"><div class="n">3 · Inspanningen</div><div class="t">Wat we gaan doen</div><div class="s">Bouwen het vermogen op — 3sides voert uit</div></div>
+  </div>
+
+  <!-- NPS -->
+  <div class="sec" style="margin-top:16px">
+    <div class="npsban"><b>NPS &amp; klanttevredenheid = strategische resultante</b> (kwartaal/jaar) — geen stuur-KPI. Je stuurt op de KPI's hieronder; de NPS meet of het werkt.</div>
+  </div>
+
+  <!-- 1. BATEN -->
+  <div class="sec">
+    <div class="sechead"><span class="num" style="background:var(--baten)">1</span><h2>Baten-KPI's — waarop we sturen</h2></div>
+    <p class="secuitleg">Per sector één baat met de bijbehorende KPI's, <b>vastgesteld in de stakeholdersessie</b>. De startwaarden meten we in Q3 (nulmeting); de doelwaarden bepalen we daarna in de vervolgsessie — de eisen daarvoor staan alvast in de laatste kolom.</p>
+
+    <div class="baat">
+      <div class="baathead"><span class="stag za">Zakelijk</span><h3>Sterkere klantgerichtheid bij opdrachtgevers &amp; kandidaten</h3>
+        <div class="wie">Eigenaar: <b>Commercieel Manager</b> · Meet: <b>Strategisch Marketeer</b></div></div>
+      <table class="kpit">
+        <thead><tr><th>KPI</th><th>Definitie</th><th>Startwaarde → waar naartoe</th><th>Doelwaarde</th></tr></thead>
+        <tr><td class="naam">Funnel-conversieratio per stap</td><td>Succespercentage per overgang: lead → opportunity → offerte → deal</td>
+          <td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>uitval in lange leadtrajecten minimaliseren</b></td>
+          <td class="doelcel" rowspan="5"><span class="tb">Te bepalen — vervolgsessie, ná nulmeting Q3</span><span class="eish">Eisen per doelwaarde</span><span class="eis">Concreet getal <b>mét meetmoment</b></span><span class="eis"><b>Meetbaar</b></span><span class="eis"><b>Toetsbaar</b></span><span class="eis"><b>Motiverend</b></span><span class="eis"><b>Haalbaar</b> t.o.v. de startwaarde</span><span class="eis">Roept het <b>gewenste gedrag</b> op</span></td></tr>
+        <tr><td class="naam">Offertes: aantal + % → opdracht</td><td>Volume-driver in lange trajecten én het percentage dat opdracht wordt</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>meer offertes, hogere slaagkans</b></td></tr>
+        <tr><td class="naam">Conversie uit bezoeken</td><td>Bezoeken waar een call-to-action of vervolg uit voortkomt</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>meer vervolg uit bezoeken</b></td></tr>
+        <tr><td class="naam">Serviceniveau &amp; reactietijden</td><td>Reactietijd op klantvragen (mail/telefoon)</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>sneller reageren</b></td></tr>
+        <tr><td class="naam">Churn / klantbehoud</td><td>Verloren klanten per jaar</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>churn omlaag</b></td></tr>
+      </table>
+    </div>
+
+    <div class="baat">
+      <div class="baathead"><span class="stag po">PO</span><h3>Intensiever partnership</h3>
+        <div class="wie">Eigenaar: <b>Commercieel Manager</b> · Meet: <b>Strategisch Marketeer</b></div></div>
+      <table class="kpit">
+        <thead><tr><th>KPI</th><th>Definitie</th><th>Startwaarde → waar naartoe</th><th>Doelwaarde</th></tr></thead>
+        <tr><td class="naam">Groei productgebruik (cross-/up-sell)</td><td>% scholen dat upgradet van basis naar compleet, of extra trainingen/diensten afneemt</td>
+          <td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>meer cross-/up-sell conversie</b></td>
+          <td class="doelcel" rowspan="5"><span class="tb">Te bepalen — vervolgsessie, ná nulmeting Q3</span><span class="eish">Eisen per doelwaarde</span><span class="eis">Concreet getal <b>mét meetmoment</b></span><span class="eis"><b>Meetbaar</b></span><span class="eis"><b>Toetsbaar</b></span><span class="eis"><b>Motiverend</b></span><span class="eis"><b>Haalbaar</b> t.o.v. de startwaarde</span><span class="eis">Roept het <b>gewenste gedrag</b> op</span></td></tr>
+        <tr><td class="naam">Gebruiksintensiteit volledige lijn</td><td>% scholen met de volledige doorlopende lijn: Toets + LVS + DST</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>meer scholen op de volledige lijn</b></td></tr>
+        <tr><td class="naam">Raamcontracten grote besturen</td><td>Aantal totaalpakket-contracten voor alle scholen tegelijk</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>alle accountmanagers voeren dit uit</b></td></tr>
+        <tr><td class="naam">Ontwikkeldeadlines &amp; beloftes gehaald</td><td>% productbeloftes en deadlines richting klanten gehaald — meting bij productmanagers</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>beloftes waarmaken</b></td></tr>
+        <tr><td class="naam">Churn / klantbehoud</td><td>Verloren scholen/besturen per schooljaar</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>churn omlaag</b></td></tr>
+      </table>
+    </div>
+
+    <div class="baat">
+      <div class="baathead"><span class="stag vo">VO</span><h3>Hogere voorspelbaarheid commerciële begroting</h3>
+        <div class="wie">Eigenaar: <b>Commercieel Manager</b> · Meet: <b>Strategisch Marketeer</b></div></div>
+      <table class="kpit">
+        <thead><tr><th>KPI</th><th>Definitie</th><th>Startwaarde → waar naartoe</th><th>Doelwaarde</th></tr></thead>
+        <tr><td class="naam">Prognose-nauwkeurigheid</td><td>Afwijking tussen de zomerprognose en de gerealiseerde omzet</td>
+          <td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>afwijking minimaliseren</b></td>
+          <td class="doelcel" rowspan="4"><span class="tb">Te bepalen — vervolgsessie, ná nulmeting Q3</span><span class="eish">Eisen per doelwaarde</span><span class="eis">Concreet getal <b>mét meetmoment</b></span><span class="eis"><b>Meetbaar</b></span><span class="eis"><b>Toetsbaar</b></span><span class="eis"><b>Motiverend</b></span><span class="eis"><b>Haalbaar</b> t.o.v. de startwaarde</span><span class="eis">Roept het <b>gewenste gedrag</b> op</span></td></tr>
+        <tr><td class="naam">% meerjarige (3-jr) licenties</td><td>Aandeel licenties omgezet van 1-jarig naar 3-jarig</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>aandeel 3-jarig omhoog</b></td></tr>
+        <tr><td class="naam">Inzicht in toetskeuzemomenten</td><td>Markt-/klantreisdata op productniveau → voedt prognose en propositieontwikkeling</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>geïntegreerd in prognosemodellen</b></td></tr>
+        <tr><td class="naam">Churn / klantbehoud</td><td>Verloren scholen per schooljaar</td><td class="startcel"><span class="q3">Nulmeting Q3</span> → <b>churn omlaag</b></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. VERMOGEN -->
+  <div class="sec">
+    <div class="sechead"><span class="num" style="background:var(--vermogens)">2</span><h2>Het gedeelde vermogen — wat we moeten kunnen</h2></div>
+    <p class="secuitleg">De baten hierboven komen er alleen als de organisatie iets nieuws <b>kan</b>. Dat "kunnen" heet in het programma het <b>vermogen</b>.</p>
+    <div class="vermcard">
+
+      <div class="vermblok">
+        <div class="vermvraag">Welk vermogen bouwen we op?</div>
+        <p class="vermuitleg">Elke sector formuleerde eerder een eigen vermogen; die drie zijn samengevoegd tot één gedeeld vermogen voor het hele programma:</p>
+        <span class="vermlabel">Gedeeld vermogen</span>
+        <div class="vermtitel">"Klantgericht commercieel vermogen op basis van betrouwbare klantdata"</div>
+        <p class="vermuitleg" style="margin-top:5px;font-style:italic">— outside-in handelen, gedragen door CRM-fundament, eenduidige funnelprocessen, getrainde medewerkers en een cultuur van eigenaarschap. <span style="font-style:normal;color:var(--ink-3)">(letterlijke tekst programmaplan)</span></p>
+        <p class="vermuitleg" style="margin-top:8px">We bouwen het op langs de <b>vier domeinen</b>. Wát er per domein precies nodig is, weten we nu nog niet — <b>dat komt uit de analysefase</b> (deel 3):</p>
+        <div class="vermdoms"><span class="vd-cultuur">Cultuur</span><span class="vd-mens">Mens</span><span class="vd-data">Data &amp; Systemen</span><span class="vd-proces">Processen</span></div>
+      </div>
+
+      <div class="vermblok">
+        <div class="vermvraag">Waar staan we — en waar willen we naartoe?</div>
+        <p class="vermuitleg">In de sessie scoorde elke sector zichzelf op dit vermogen (schaal 1–5, gevoelsmeting). De <b>nulmeting in Q3</b> maakt die inschatting objectief. &nbsp;<span class="bollegend"><span class="bol nu"></span> = nu &nbsp;·&nbsp; <span class="bol doel"></span> = ambitie</span></p>
+        <div class="vermgrid">
+          <div class="vsec"><div class="vs-h"><span class="stag za">Zakelijk</span><span class="bollen"><span class="bol nu"></span><span class="bol nu"></span><span class="bol nu"></span><span class="bol doel"></span><span class="bol doel"></span></span><span class="vscore"><b>3 → 5</b></span></div><div style="font-size:10px;color:var(--ink-3);margin-top:4px;line-height:1.35">sector-vermogen (programmaplan): "Klantgerichte commerciële slagkracht"</div></div>
+          <div class="vsec"><div class="vs-h"><span class="stag po">PO</span><span class="bollen"><span class="bol nu"></span><span class="bol nu"></span><span class="bol doel"></span><span class="bol doel"></span><span class="bol doel"></span></span><span class="vscore"><b>2 → 5</b></span></div><div style="font-size:10px;color:var(--ink-3);margin-top:4px;line-height:1.35">sector-vermogen (programmaplan): "Strategisch klantpartnerschap"</div></div>
+          <div class="vsec"><div class="vs-h"><span class="stag vo">VO</span><span class="bollen"><span class="bol nu"></span><span class="bol nu"></span><span class="bol doel"></span><span class="bol doel"></span><span class="bol doel"></span></span><span class="vscore"><b>2 → 5</b></span></div><div style="font-size:10px;color:var(--ink-3);margin-top:4px;line-height:1.35">sector-vermogen (programmaplan): "Klantfasegericht commercieel relatievermogen"</div></div>
+        </div>
+      </div>
+
+      <div class="vermblok">
+        <div class="vermvraag">Hoe komen we van 2–3 naar 5?</div>
+        <p class="vermuitleg">Niet in één sprong. Volgens de methodiek volgen de inspanningen uit de <b>gap tussen waar we staan (AS-IS) en waar we naartoe willen (TO-BE)</b> — en om die gap scherp te krijgen, moet je eerst analyseren. Dat is precies wat we in <b>2026</b> doen:</p>
+        <div class="route">
+          <div class="rstep"><span class="rn">1</span><p><b>Analysefase 2026 + quick wins</b><br>de inspanningen in deel 3: maken per domein en per rol scherp wát er moet veranderen; de nulmeting meet objectief waar we staan</p></div>
+          <div class="rarr">→</div>
+          <div class="rstep"><span class="rn">2</span><p><b>Uitkomst van de analyse</b><br>wat er nodig is om naar 5 te groeien → de vervolg-inspanningen voor 2027 · én hoe we die groei gaan meten → de vermogen-indicatoren</p></div>
+          <div class="rarr">→</div>
+          <div class="rstep"><span class="rn">3</span><p><b>Vervolgsessie</b><br>indicatoren en doelwaarden vaststellen, mét een eigenaar per indicator</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. INSPANNINGEN -->
+  <div class="sec">
+    <div class="sechead"><span class="num" style="background:var(--tracker)">3</span><h2>Inspanningen — wat we gaan doen</h2></div>
+    <p class="secuitleg">Dit zijn de acties van de <b>analysefase 2026</b> (+ quick wins), uit het <b>goedgekeurde 3sides-voorstel</b> en de sessie; 3sides voert uit. Elke inspanning is afvinkbaar: <b>opgeleverd, ja of nee</b> — dat is meteen de KPI voor 3sides. <b>Als deze inspanningen klaar zijn, weten we wat er in 2027 nodig is om het vermogen naar 5 te brengen — en hoe we die groei meten.</b> Dit overzicht is een <b>levend document</b>: uit de analysefase komen naar verwachting nieuwe inspanningen bij.</p>
+    <div class="domgrid">
+
+      <div class="dom" style="grid-column:1/-1;border-top-color:var(--cito)">
+        <h3>Programma-breed — de analysefase<span class="qtag">Q3</span></h3>
+        <ul>
+          <li class="done"><b>Kickoff &amp; stakeholder-alignment</b> — gedaan<span class="s3">3sides</span></li>
+          <li><b>Adoptie-framework</b> — gedrag &amp; competenties per rol + de meetaanpak; gereed &amp; gedragen door het programmateam<span class="s3">3sides</span></li>
+          <li><b>Nulmeting</b> — de startwaarden van alle KPI's + de objectieve stand van het vermogen<span class="s3">3sides</span></li>
+          <li><b>Pilotgroep starten</b> in 1 sector (sectorkeuze: nog te bepalen)<span class="s3">3sides</span></li>
+        </ul>
+      </div>
+
+      <div class="dom cultuur">
+        <h3>Cultuur</h3>
+        <ul>
+          <li><b>Rituelen</b> ontworpen &amp; ingevoerd — klantverhalen delen · reflectiesessies · klantbezoeken<span class="qtag">2026</span><span class="s3">3sides</span></li>
+          <li><b>Ambassadeurs</b> per sector geïdentificeerd &amp; aangehaakt<span class="qtag">Q4</span><span class="s3">3sides</span></li>
+        </ul>
+      </div>
+
+      <div class="dom data">
+        <h3>Data &amp; Systemen</h3>
+        <ul>
+          <li><b>Klantinformatie-landschap + huidig CRM in kaart</b> — wat werkt · wat loopt vast · kosten &amp; kansen; álle systemen waar klantdata zit (o.a. Topdesk · CRM · Dynax · Maileon · Webinargeek · Umbraco · SurveyMonkey · gebruikersplatform)<span class="qtag">Q3</span><span class="s3">3sides</span></li>
+          <li><b>Quick wins — doorlopend spoor</b> — signaleren zodra ze zich aandienen → prioriteren op impact × uitvoerbaarheid → direct implementeren. Al benoemd: <b>de marketing/sales-funnel</b> · <b>contactgegevens centraliseren + koppeling Maileon ↔ CRM</b> ("klein beginnen")<span class="qtag">doorlopend</span><span class="schip">sessie</span><span class="s3">3sides</span></li>
+          <li><b>Funnelontwerp + datakwaliteit-eisen</b><span class="qtag">2026</span><span class="schip">sessie</span><span class="s3">3sides</span></li>
+          <li><b>Klantreis vertaald naar CRM-requirements</b> — input voor het CRM (huidig of nieuw) rond data en integratie<span class="qtag">Q4</span><span class="s3">3sides</span></li>
+          <li><b>Platformopties in kaart</b> — richting CRM bepaald in Q4 · formele keuze ~april '27<span class="qtag">2026</span><span class="schip">sessie</span><span class="s3">3sides</span></li>
+          <li><b>Op orde brengen &amp; uitvoeren</b> — inrichting, integraties en het borgen van datakwaliteit; niet alleen advies, ook realisatie<span class="qtag">2026</span><span class="s3">3sides</span></li>
+          <li><b>A5 "Centrale datavoorziening klantcommunicatie"</b> — dit project loopt al en hangt onder Data &amp; Systemen. Tijdens de analysefase moet blijken wat we uit dit project halen: <b>wat onder de scope van Klant in Zicht gaat hangen en wat niet</b><span class="qtag">2026</span><span class="qtag" style="background:#eef4fb;color:#1d4ed8;border-color:#d5e4f5">SIO</span></li>
+        </ul>
+      </div>
+
+      <div class="dom proces">
+        <h3>Processen</h3>
+        <ul>
+          <li><b>Klantreizen → funnelprocessen</b> — fases · triggers · acties, incl. customer loops (retentie · migratie · nieuw)<span class="qtag">Q4</span><span class="s3">3sides</span></li>
+          <li><b>Eenduidig Customer Success-proces</b> · proactieve contactmomenten per klantreis<span class="qtag">2026</span><span class="s3">3sides</span></li>
+        </ul>
+      </div>
+
+      <div class="dom mens">
+        <h3>Mens</h3>
+        <ul>
+          <li><b>Eerste intervisiegroepen live</b> — coaching &amp; intervisie op de werkvloer<span class="qtag">Q4</span><span class="s3">3sides</span></li>
+          <li><b>Curriculumontwerp vaardigheidstraining</b> — met HR, o.b.v. echte klantcases (training 2027)<span class="qtag">2026</span><span class="schip">sessie</span><span class="s3">3sides</span></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="strip2027"><span class="jr">2027</span><b>Vooruitblik — nemen we later samen door</b> (dan toetsen we ook of we iets missen): uitrol 3e sector · training- &amp; coachingsprogramma live (met HR) · <b>eerste KPI-rapportage (Q1)</b> — de eerste meting van dit model tegen de nulmeting · borging &amp; co-creatie met klanten · KPI's aangescherpt voor de volgende cyclus · van CRM naar CSM · 3sides → sparringpartner.</div>
+
+    <div class="rvw" style="margin-top:14px">
+      <b>Wat elke inspanning nodig heeft:</b> een <b>inspanningsleider</b> (trekker) · <b>teamleden &amp; capaciteit</b> uit de sectoren · een heldere <b>output-definitie</b> (wanneer is het klaar j/n) · een plek in de <b>planning</b>.
+      <div class="sub2"><b>Bemensing zoals nu belegd:</b>
+        <ul>
+          <li><b>3sides:</b> inhoudelijk trekkers voor de domeinen Processen en Data &amp; Systemen — senior stuurt op richting, medior op uitvoering; specialisten op afroep</li>
+          <li><b>Inspanningsleiders Cito</b> (kernteam, programmaplan): Cultuur &amp; Mens — <b>HR-manager</b> · Data &amp; Systemen — <b>Product Owner</b> · Processen — <b>nog te benoemen</b></li>
+          <li><b>Domeineigenaar Data &amp; Systemen:</b> Manager Data &amp; Technologie</li>
+          <li><b>Curriculum vaardigheidstraining:</b> wordt samen met HR ontworpen — de HR-manager (inspanningsleider Mens) plus een HR-medewerker voor curriculum &amp; integratie (kernteam)</li>
+          <li><b>Cultuurlijn:</b> gedragen door het <b>volledige "MT"</b> — sectormanagers, commercieel manager én HR-manager: voorleven in gedrag, en het <b>"MT-besluit"</b> over de leiderschapsaanpak<span class="schip">sessie</span></li>
+          <li style="color:var(--amber)"><b>Nog te bepalen:</b> inspanningsleider Processen + teamleden per inspanning</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANDVOORWAARDEN -->
+  <div class="sec">
+    <div class="sechead"><span class="num" style="background:#64748b">✓</span><h2>Randvoorwaarden</h2></div>
+    <p class="secuitleg">Deze punten meet je niet — je <b>regelt</b> ze. Zonder deze voorwaarden stokt alles hierboven.</p>
+    <div class="rvw">
+      <ul style="margin-top:0">
+        <li><b>Mandaat &amp; escalatiepad</b> naar de directie — actiemodus, niet stilvallen op de interne organisatie</li>
+        <li><b>Beschikbaarheid &amp; commitment</b> vooraf afgesproken — afwezigheid is hoge uitzondering</li>
+        <li><b>Regie &amp; programmaleiding</b> bij 3sides — voortgang, tempo en verbinding tussen de sectoren</li>
+        <li><b>Doorlopende leiderschapsondersteuning</b> door 3sides — voorbeeldgedrag, silo's verbinden</li>
+        <li><b>Commitment van alle sectormanagers</b></li>
+        <li><b>Juiste mensen op de juiste plek</b> — rollen/profielen kritisch bekijken, gericht werven waar nodig</li>
+        <li><b>Scope: lopende projecten aanhaken</b> — het lopende A5-project <b>"Centrale datavoorziening klantcommunicatie"</b> hangt onder Data &amp; Systemen; de analysefase bepaalt wat ervan binnen de scope van Klant in Zicht valt en wat niet. Daarnaast blijven inventariseren welke andere lopende initiatieven hieronder horen — samenhang bewaken is onderdeel van de 3sides-regierol</li>
+      </ul>
+      <div class="sub2"><b>Inkoop:</b> 3sides-as-a-service-abonnement voor <b>6 maanden</b> (jul–dec 2026, 232 u/mnd); voor <b>2027 worden de uren herijkt</b> op basis van de opgedane ervaring.</div>
+    </div>
+  </div>
+
+  <!-- VERVOLG -->
+  <div class="sec">
+    <div class="sechead"><span class="num" style="background:var(--cito)">→</span><h2>Vervolg</h2></div>
+    <div class="domgrid">
+      <div class="dom" style="border-top-color:var(--cito)">
+        <h3>Nu, ná deze sessie (Q3)</h3>
+        <ul style="list-style:none">
+          <li style="padding-left:0"><b>1.</b> KPI-set delen &amp; valideren met de stakeholders/eigenaren (dit document)</li>
+          <li style="padding-left:0"><b>2.</b> Analysefase draait: nulmeting · adoptie-framework · klantinformatie-landschap &amp; CRM in kaart · eerste quick win</li>
+        </ul>
+      </div>
+      <div class="dom" style="border-top-color:var(--baten)">
+        <h3>Eén gecombineerde vervolgsessie (na nulmeting + adoptie-framework)</h3>
+        <ul style="list-style:none">
+          <li style="padding-left:0"><b>1.</b> Doelwaarden vaststellen per baten-KPI — langs de eisen</li>
+          <li style="padding-left:0"><b>2.</b> Vermogen-indicatoren kiezen — per domein, mét eigenaar</li>
+          <li style="padding-left:0"><b>3.</b> ❓ Kwaliteit van gesprekken als extra PO-KPI (3sides noemt deze; sessie besloot dit nog niet)</li>
+          <li style="padding-left:0"><b>4.</b> Meetritme afspreken — wie rapporteert wat, wanneer (→ eerste KPI-rapportage Q1 '27)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Bronnen: stakeholdersessie (leidend) · goedgekeurd 3sides-voorstel · DIN-netwerk/programmaplan · Werken aan Programma's H8 · KPI-model Excel (geauditeerd)<br>
+    Na de vervolgsessie: doorvoeren in programmaplan &amp; app
+  </div>
+
+</div>
+</body>
+</html>

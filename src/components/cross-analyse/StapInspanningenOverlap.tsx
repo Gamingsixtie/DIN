@@ -16,6 +16,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string; bar: strin
   processen: { bg: "bg-green-50", text: "text-green-700", bar: "#059669" },
   data_systemen: { bg: "bg-purple-50", text: "text-purple-700", bar: "#7c3aed" },
   cultuur: { bg: "bg-amber-50", text: "text-amber-700", bar: "#d97706" },
+  overig: { bg: "bg-gray-50", text: "text-gray-700", bar: "#6b7280" },
 };
 
 // No-op handlers for read-only ClusterCard

@@ -13,6 +13,7 @@ export const EffortDomainSchema = z.enum([
   "processen",
   "data_systemen",
   "cultuur",
+  "overig",
 ]);
 
 /** Normaliseert AI-varianten van domeinnamen naar de juiste enum waarde */
@@ -28,6 +29,10 @@ function normalizeDomain(val: unknown): string | undefined {
     data_en_systemen: "data_systemen",
     datasystemen: "data_systemen",
     cultuur: "cultuur",
+    overig: "overig",
+    overige: "overig",
+    onvoorzien: "overig",
+    programma_breed: "overig",
   };
   return map[lower] ?? undefined;
 }
@@ -67,6 +72,8 @@ export const AppStepSchema = z.enum([
   "governance",
   "prioritering",
   "export",
+  "berekeningen",
+  "kpi-meetbaarheid",
 ]);
 
 // ============================================================
@@ -81,12 +88,22 @@ export const BatenProfielSchema = z.object({
   targetValue: z.string(),
   meetmethode: z.string().optional(),
   measurementMoment: z.string().optional(),
+  // KPI-sessie (stap 9): gefaseerde horizon + afstem-status
+  horizon: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const VermogensProfielSchema = z.object({
   eigenaar: z.string(),
   huidieSituatie: z.string(),
   gewensteSituatie: z.string(),
+  // KPI-sessie (stap 9): meetvariabelen voor het vermogen (optioneel, achterwaarts compatibel)
+  indicator: z.string().optional(),
+  meetmethode: z.string().optional(),
+  currentValue: z.string().optional(),
+  targetValue: z.string().optional(),
+  measurementMoment: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const InspanningsDossierSchema = z.object({
@@ -376,7 +393,7 @@ export const BusinessCaseStateSchema = z.object({
 export const SubEffortAdviesSchema = z.object({
   // Phase 17 — bestaande velden (NIET wijzigen)
   groepId: z.string(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   actie: z.enum(["combineren", "apart_houden"]),
   items: z.array(z.string()),
   reden: z.string(),
@@ -535,7 +552,7 @@ export const Stap4ResultSchema = z.object({
     context: z.string().optional(),
   })).optional().default([]),
   citobreedInzicht: z.array(z.object({
-    domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+    domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
     titel: z.string(),
     beschrijving: z.string(),
     onderbouwing: z.string(),
@@ -607,7 +624,7 @@ export const PlanningVoorstelSchema = z.object({
 export const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   totaalEuro: z.number(),
   percentageTotaal: z.number(),
   motivatie: z.string(),
@@ -651,6 +668,12 @@ export const BegrotingAdviesSchema = z.object({
   }),
   vergelijking: z.string().optional().default(""),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de begroting-advies route bij elke succesvolle
+  // generatie via de huidige prompt (regel 10: geen absolute jaartallen).
+  // Als true: motivatie/samenvatting/prioriteitAdvies zijn scenario-bewust
+  // hergeschreven en de "tekst-coherentie"-banner in §4.1 verdwijnt. Sessies
+  // van vóór deze flag krijgen geen vlag = banner blijft tonen.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Interne uren (stap 7) — per domein × jaar, gekoppeld aan stap 6 scenario's
@@ -709,6 +732,11 @@ export const Stap7InterneUrenSchema = z.object({
     advies: InterneUrenScenarioSchema.nullable().optional(),
   }),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de interne-uren-advies route bij elke
+  // succesvolle generatie via de huidige prompt. Als true: samenvatting
+  // (top-level) + motivatie (per domein) zijn scenario-bewust hergeschreven
+  // en de "tekst-coherentie"-banner in §4.2 verdwijnt.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Totaaloverzicht (stap 8) — combineert stap 6 + stap 7
@@ -725,6 +753,26 @@ export const ScenarioTotaalSchema = z.object({
   totaalGeraamd: z.number(),
 });
 
+// Notitie-velden in Stap 8 die de gebruiker (programmamanager) noteert
+// als feedback voor Claude tussen sessies door. Per scenario en globaal.
+// Niet bedoeld voor stakeholders — verschijnt niet in export.
+export const ClaudeNotitieSchema = z.object({
+  id: z.string(),
+  tekst: z.string(),
+  createdAt: z.string(),
+  status: z.enum(["open", "opgepakt"]).default("open"),
+});
+
+export const Stap8ClaudeNotesSchema = z.object({
+  globaal: z.array(ClaudeNotitieSchema).optional().default([]),
+  perScenario: z.object({
+    optimaal: z.array(ClaudeNotitieSchema).optional().default([]),
+    plus20: z.array(ClaudeNotitieSchema).optional().default([]),
+    min20: z.array(ClaudeNotitieSchema).optional().default([]),
+    advies: z.array(ClaudeNotitieSchema).optional().default([]),
+  }).optional(),
+});
+
 export const Stap8TotaaloverzichtSchema = z.object({
   scenarios: z.object({
     optimaal: ScenarioTotaalSchema.nullable(),
@@ -733,6 +781,13 @@ export const Stap8TotaaloverzichtSchema = z.object({
     advies: ScenarioTotaalSchema.nullable().optional(),
   }),
   actiefScenario: z.enum(["optimaal", "plus20", "min20", "advies"]).optional(),
+  // Vrije tekst-notitie van programmamanager na stuurgroep-overleg.
+  // Wordt boven §4.3 in de export gerenderd zodat stuurgroep-input
+  // expliciet meegenomen wordt zonder dat er getallen herrekend hoeven worden.
+  stuurgroepNotitie: z.string().optional(),
+  // Privé feedback-notities van programmamanager voor Claude.
+  // Niet voor stakeholders, niet in export.
+  claudeNotes: Stap8ClaudeNotesSchema.optional(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({
@@ -769,6 +824,10 @@ export const ProgrammaorganisatieSchema = z.object({
   programmamanager: ProgrammaRolSchema.optional(),
   kerngroep: z.array(ProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(ProgrammaRolSchema).optional().default([]),
+  // Adviesgroep: intern, gezaghebbend/inhoudelijk advies aan opdrachtgever + stuurgroep,
+  // GEEN besluitmandaat. Onderscheiden van de klankbordgroep (externe klant-/buitenwereld-
+  // reflectie). Beide adviseren, maar vanuit een andere positie.
+  adviesgroep: z.array(ProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(ProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(ProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),
@@ -822,6 +881,7 @@ export const AIProgrammaorganisatieSchema = z.object({
   programmamanager: AIProgrammaRolSchema.optional(),
   kerngroep: z.array(AIProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  adviesgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(AIProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),
@@ -926,6 +986,10 @@ export const DINSessionSchema = z.object({
   externalProjects: z.array(ExternalProjectSchema).optional(),
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies: z.record(z.string(), z.unknown()).optional(),
+  // KPI-sessie (stap 9): bewerkbare 3sides-tracker — klaar-status + tekst per deliverable, key = "domein:index"
+  threesidesOverrides: z
+    .record(z.string(), z.object({ klaar: z.boolean().optional(), tekst: z.string().optional() }))
+    .optional(),
   // Doel-voor-doel voortgang: welke doelen zijn afgerond
   completedGoals: z.array(z.string()).optional().default([]),
   // Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)
@@ -1334,6 +1398,8 @@ export type BegrotingScenario = z.infer<typeof BegrotingScenarioSchema>;
 export type BegrotingAdvies = z.infer<typeof BegrotingAdviesSchema>;
 export type ScenarioTotaal = z.infer<typeof ScenarioTotaalSchema>;
 export type Stap8Totaaloverzicht = z.infer<typeof Stap8TotaaloverzichtSchema>;
+export type ClaudeNotitie = z.infer<typeof ClaudeNotitieSchema>;
+export type Stap8ClaudeNotes = z.infer<typeof Stap8ClaudeNotesSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
 export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
 export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;

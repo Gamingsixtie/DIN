@@ -13,6 +13,8 @@ import DINMappingStep from "@/components/steps/DINMappingStep";
 import GovernanceStep from "@/components/steps/GovernanceStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
+import BerekeningenStep from "@/components/steps/BerekeningenStep";
+import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -30,6 +32,10 @@ function StepContent({ step }: { step: AppStep }) {
       return <PrioriteringStep />;
     case "export":
       return <ExportStep />;
+    case "berekeningen":
+      return <BerekeningenStep />;
+    case "kpi-meetbaarheid":
+      return <KPIMeetbaarheidStep />;
   }
 }
 
@@ -80,6 +86,13 @@ function SessionFlow() {
               Stap {currentStepIndex + 1} van {APP_STEPS.length}
             </span>
             <a
+              href="/actielijst"
+              className="text-blue-200 hover:text-white text-sm transition-colors"
+              title="Actielijst vakantie — te bespreken met Sanne"
+            >
+              Actielijst ↗
+            </a>
+            <a
               href="/methodiek"
               className="text-blue-200 hover:text-white text-sm transition-colors"
               title="Methodiek-toelichting"
@@ -91,7 +104,7 @@ function SessionFlow() {
       </header>
 
       <nav className="bg-white border-b border-cito-border px-6 py-3">
-        <div className="max-w-6xl mx-auto flex gap-1">
+        <div className="max-w-6xl mx-auto flex gap-1 flex-wrap items-center">
           {APP_STEPS.map((step) => {
             const completion = completions.find((c) => c.step === step.key);
             const hasData = completion && completion.percentage > 0;
@@ -118,6 +131,13 @@ function SessionFlow() {
               </button>
             );
           })}
+          <a
+            href="/actielijst"
+            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
+            title="Actielijst vakantie — te bespreken met Sanne"
+          >
+            Actielijst
+          </a>
         </div>
       </nav>
 

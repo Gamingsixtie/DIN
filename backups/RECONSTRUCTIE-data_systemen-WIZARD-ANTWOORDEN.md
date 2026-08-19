@@ -18,20 +18,18 @@ keuze is onderdeel van de architectuur-fase 2026 en mede afhankelijk
 van de uitkomsten van de bronsystemen-scan en de impact op Stichting Cito
 (zie hieronder).
 
-Geraamde licentiebehoefte: circa 83 gebruikers (alle medewerkers met
-klantcontact over PO, VO en Professionals/Zakelijk samen). Indicatieve
-licentiekosten: €25.000–€35.000 per jaar structureel — afhankelijk van
-het uiteindelijke platform.
+Geraamde licentiebehoefte: circa 85 gebruikers (alle medewerkers met
+klantcontact over PO, VO en Professionals/Zakelijk samen). 
 
 KOSTENVERHOGENDE FACTOREN OM EXPLICIET MEE TE NEMEN:
 
 1. Tijdens de herstructurering moet het huidige Dynamics-platform in
    stand blijven tot het nieuwe CRM live gaat. Daardoor lopen er twee
    licentie- en beheerstromen parallel gedurende circa 6–12 maanden in
-   2027–2028 (raming: €30.000–€60.000 dubbele licentielast).
+   2027–2028 
 
 2. Cito BV en Stichting Cito hangen aan hetzelfde CRM-fundament. De
-   integratie kan technisch en juridisch niet eenvoudig worden
+   integratie kan technisch en organisatorisch wellicht niet eenvoudig worden
    ontvlecht. Het is goed mogelijk dat een nieuw CRM ook bij Stichting
    Cito moet worden ingevoerd — dat verdubbelt potentieel de licentie-
    en migratiescope. Deze afhankelijkheid moet in de architectuur-fase

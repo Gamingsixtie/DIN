@@ -26,6 +26,11 @@ interface StapSectorVertalingProps {
   result?: Stap5Result;
   stap2Result?: Stap2Result;
   stap4Result?: Stap4Result;
+  // Compact mode voor inbedding in het programmaplan-export.
+  // Toont alleen: focusdoel, baten per sector, drieluik per VermogenGelijkenisGroep.
+  // Verbergt: sector-impact tabel, AI-samenvatting, buiten-scope details,
+  // overeenkomsten-analyse, vermogens-per-sector overzicht.
+  compact?: boolean;
 }
 
 const SECTORS_ORDER: readonly SectorName[] = ["PO", "VO", "Zakelijk"] as const;
@@ -35,6 +40,7 @@ const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+  overig: "Overig",
 };
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string }> = {
@@ -42,6 +48,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
   processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
   data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
   cultuur: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  overig: { bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700" },
 };
 
 const DOMEIN_ORDER: readonly EffortDomain[] = ["mens", "processen", "data_systemen", "cultuur"] as const;
@@ -278,6 +285,7 @@ export default function StapSectorVertaling({
   result,
   stap2Result,
   stap4Result,
+  compact = false,
 }: StapSectorVertalingProps) {
   const [buitenScopeOpen, setBuitenScopeOpen] = useState(false);
 
@@ -631,6 +639,9 @@ export default function StapSectorVertaling({
         </div>
       )}
 
+      {/* ====== Onderstaande secties zijn alleen voor de wizard, niet voor het programmaplan-export ====== */}
+      {!compact && (
+        <>
       {/* ===== SECTOR-IMPACT TABEL ===== */}
       {batenBySector.length > 0 && (
         <section className="mt-8">
@@ -780,6 +791,8 @@ export default function StapSectorVertaling({
         focusCaps={focusCaps}
         vermogenGelijkenisGroepen={vermogenGelijkenisGroepen}
       />
+        </>
+      )}
     </div>
   );
 }

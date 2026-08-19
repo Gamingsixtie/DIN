@@ -177,6 +177,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
   processen: { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", dot: "bg-green-500" },
   data_systemen: { bg: "bg-purple-50", border: "border-purple-300", text: "text-purple-700", dot: "bg-purple-500" },
   cultuur: { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", dot: "bg-amber-500" },
+  overig: { bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700", dot: "bg-gray-500" },
 };
 
 const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
@@ -184,6 +185,7 @@ const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
   processen: "Werkwijzen, procedures, governance, samenwerking",
   data_systemen: "IT-systemen, data-infrastructuur, tooling, integraties",
   cultuur: "Gedrag, mindset, waarden, leiderschapsontwikkeling",
+  overig: "Programma-brede posten (zoals onvoorzien)",
 };
 
 interface DomeinRecommendation {

@@ -409,7 +409,7 @@ ${CITO_STRATEGISCH_FUNDAMENT}
 
 EXTRA CONTROLE-CHECK: Toets elk voorstel tegen bovenstaand Cito-strategisch kader.
 - Past het binnen de kerndoelen 2026 (omzetgroei, winstgevendheid 10%, commerciële slagkracht, nieuwe producten in bestaande markten, medewerker-ontwikkeling)?
-- Respecteert het het formatie-kader (2027-2028 stabiel, geen groei)?
+- Past het binnen de huidige formatie zonder dat structurele uitbreiding van het personeelsbestand noodzakelijk is?
 - Past het bij de positionering (maatschappelijke onderneming, onafhankelijk, drie pijlers)?
 - Vult het een aandachtspunt in (portfolio-balans, microniveau, IT-afstand, innovatieruimte)?
 - Respecteert het kostenefficiëntie?

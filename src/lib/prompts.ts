@@ -217,7 +217,7 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
       "id": "g1",
       "vermogenIds": ["<cap-po-id>", "<cap-vo-id>", "<cap-zak-id>"],
       "gezamenlijkeOmschrijving": "Medewerker-wendbaarheid bij digitalisering",
-      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen.>"
+      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen. **NIET toegestaan**: claims dat één bepaalde sector 'geen data- en procesinspanningen heeft' of 'achterloopt' (vrijwel altijd onjuist en stigmatiserend); claims over Cito-kerndoelen ('medewerker-ontwikkeling', 'commerciële slagkracht'), formatie-kader of FTE-beleid; redeneringen over kostenefficiëntie via 'één ontwerp-traject voor drie sectorvarianten'. Houd het bij hefboom/afhankelijkheid/coverage van de drieluik zelf.>"
     }
   ],
   "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"
@@ -501,7 +501,7 @@ VARIANT 2-VAN-3 DRIELUIK:
 Wanneer de gelijkenisgroep maar 2 sectoren expliciet bevat en de 3e sector impliciet meedoet via cultuur/mindset: produceer ALSNOG alle vier domein-entries. In \`vermogenImpact\` neem je voor de impliciete sector een ontwerp-impact op gebaseerd op het \`profielGewenst\` en het focusdoel. In \`beargumentatie\` benoem je expliciet dat de derde sector via de cultuur-onderlaag aansluit.
 
 EXTRA CONTROLE-CHECK — CITO-STRATEGISCH FUNDAMENT:
-Het Cito-kader is hierna toegevoegd als achtergrondcontext. Dit kader is NIET leidend (focusdoel en programmaboek blijven primair) maar dient wél als validatie. Toets je bundel tegen het kader: past de voorgestelde inspanning bij de kerndoelen 2026, de positionering (onafhankelijk, maatschappelijke onderneming, drie pijlers data-gedreven/innovatie/deskundigheid), het formatie-kader (2027-2028 stabiel) en de kostenefficiëntie? Vult het een aandachtspunt in (portfolio-balans, microniveau in de klas, IT-afstand, innovatieruimte)? Signaleer in \`beargumentatie\` expliciet waar de bundel het Cito-kader raakt of ermee spant.
+Het Cito-kader is hierna toegevoegd als achtergrondcontext. Dit kader is NIET leidend (focusdoel en programmaboek blijven primair) maar dient wél als validatie. Toets je bundel tegen het kader: past de voorgestelde inspanning bij de kerndoelen 2026, de positionering (onafhankelijk, maatschappelijke onderneming, drie pijlers data-gedreven/innovatie/deskundigheid), de huidige formatie (zonder structurele uitbreiding van personeel) en de kostenefficiëntie? Vult het een aandachtspunt in (portfolio-balans, microniveau in de klas, IT-afstand, innovatieruimte)? Signaleer in \`beargumentatie\` expliciet waar de bundel het Cito-kader raakt of ermee spant.
 
 Produceer ALLEEN geldige JSON, geen prose errom. Antwoord in het Nederlands.`;
 
@@ -1119,6 +1119,7 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
   "programmamanager":{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""},
   "kerngroep":       [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "stuurgroep":      [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
+  "adviesgroep":     [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "klankbordgroep":  [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "domeineigenaren": [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "besluitvormingsritme":"",
