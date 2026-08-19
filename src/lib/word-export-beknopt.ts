@@ -478,9 +478,10 @@ export interface BundelBeknopt {
 
 export interface VermogensProfielBeknopt {
   titel: string;
+  sectoren: string;
   asIs: string;
   toBe: string;
-  eigenaar: string;
+  verantwoordelijk: string;
 }
 
 export interface FaseBeknopt {
@@ -520,8 +521,6 @@ export interface BeknoptData {
   planning: {
     toelichting: string;
     bundels: BundelBeknopt[];
-    /** Zin die de startvolgorde uit de cyclusnummers benoemt. */
-    volgordeZin: string;
   } | null;
   organisatie: { rijen: [string, string, string][]; ritme: string; escalatie: string } | null;
   gaps: {
@@ -840,22 +839,8 @@ function bouwPlanning(session: DINSession) {
     );
   });
 
-  // De startvolgorde uit de cyclusnummers — dat is de harde bron, niet het proza.
-  const volgorde = gesorteerd
-    .filter((bd) => cyclusNr(bd.cyclusLabel) < 99)
-    .map((bd) => `${tekst(bd.cyclusLabel)}: ${DOMAIN_LABELS[bd.domein as EffortDomain]}`);
-  const eersteTwee = gesorteerd.slice(0, 2).map((bd) => DOMAIN_LABELS[bd.domein as EffortDomain]);
-  const volgordeZin =
-    eersteTwee.length === 2
-      ? `Het zwaartepunt ligt vooraan: ${eersteTwee[0]} en ${eersteTwee[1]} starten als eerste. ` +
-        `Volgorde van de cycli — ${volgorde.join(" · ")}.`
-      : volgorde.length > 0
-        ? `Volgorde van de cycli — ${volgorde.join(" · ")}.`
-        : "";
-
   return {
     toelichting: tekst(planning.toelichting),
-    volgordeZin,
     bundels: gesorteerd.map((bd) => {
       const start = tekst(bd.startKwartaal);
       const eind = tekst(bd.eindKwartaal);
@@ -1006,14 +991,30 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
       const t = THREESIDES_DOMEINEN.find((x) => x.domein === domein);
       return t ? { domein, fase2026: t.fase2026, budget2026: t.budget2026 } : null;
     }).filter((f): f is FaseBeknopt => f !== null),
-    vermogensprofielen: getActiveCaps(session)
-      .map((c) => ({
-        titel: tekst(c.title) || tekst(c.description),
-        asIs: tekst(c.profiel?.huidieSituatie),
-        toBe: tekst(c.profiel?.gewensteSituatie),
-        eigenaar: tekst(c.profiel?.eigenaar),
-      }))
-      .filter((v) => v.titel.length > 0 && (v.asIs.length > 0 || v.toBe.length > 0)),
+    // 1-op-1 als VermogensprofielenBlock in het volledige programmaplan:
+    // alfabetisch op titel, sectoren onder de naam, "—" waar niets staat, en
+    // dezelfde afleiding van de verantwoordelijken (sectormanager + commercieel
+    // manager per sector).
+    vermogensprofielen: [...getActiveCaps(session)]
+      .sort((a, b) =>
+        (a.title || a.description).localeCompare(b.title || b.description, "nl")
+      )
+      .map((c) => {
+        const sectoren =
+          c.relatedSectors && c.relatedSectors.length > 0 ? c.relatedSectors : c.sectorId ? [c.sectorId] : [];
+        const uniek = Array.from(new Set(sectoren.map((x) => x.trim()).filter(Boolean)));
+        return {
+          titel: tekst(c.title) || tekst(c.description),
+          sectoren: uniek.join(", "),
+          asIs: tekst(c.profiel?.huidieSituatie) || "—",
+          toBe: tekst(c.profiel?.gewensteSituatie) || "—",
+          verantwoordelijk:
+            uniek.length > 0
+              ? uniek.map((x) => `Sectormanager ${x} + Commercieel manager ${x}`).join("; ")
+              : "— nog te benoemen",
+        };
+      })
+      .filter((v) => v.titel.length > 0),
     planning: bouwPlanning(session),
     organisatie: bouwOrganisatie(session),
     gaps: {
@@ -1143,6 +1144,42 @@ function opsomming(text: string): Paragraph {
 
 function bronRegel(text: string): Paragraph {
   return bodyText(text, { italic: true, size: 18, color: TEXT_MUTED });
+}
+
+/**
+ * Cel met een kleine tweede regel eronder (bijv. de sectoren onder een
+ * vermogensnaam). Een "
+" in een TextRun levert in docx geen regelafbreking op,
+ * dus dit moeten twee alinea's zijn.
+ */
+function celMetSubregel(titel: string, sub: string, breedte: number): TableCell {
+  return new TableCell({
+    width: { size: breedte, type: WidthType.PERCENTAGE },
+    borders: {
+      top: KAART_LIJN,
+      bottom: KAART_LIJN,
+      left: KAART_LIJN,
+      right: KAART_LIJN,
+    },
+    children: [
+      new Paragraph({
+        spacing: { before: 50, after: sub ? 20 : 50 },
+        children: [
+          new TextRun({ text: titel, bold: true, size: 20, font: "Calibri", color: TEXT_PRIMARY }),
+        ],
+      }),
+      ...(sub
+        ? [
+            new Paragraph({
+              spacing: { after: 50 },
+              children: [
+                new TextRun({ text: sub, size: 16, font: "Calibri", color: TEXT_MUTED }),
+              ],
+            }),
+          ]
+        : []),
+    ],
+  });
 }
 
 function tabel(kolommen: { kop: string; breedte: number }[], rijen: TableCell[][]): Table {
@@ -1509,10 +1546,10 @@ function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie 
           { kop: "Verantwoordelijk", breedte: 18 },
         ],
         data.vermogensprofielen.map((v) => [
-          styledCell(v.titel, { bold: true, width: 22 }),
+          celMetSubregel(v.titel, v.sectoren, 22),
           styledCell(v.asIs, { width: 30 }),
           styledCell(v.toBe, { width: 30 }),
-          styledCell(v.eigenaar, { width: 18 }),
+          styledCell(v.verantwoordelijk, { width: 18 }),
         ])
       )
     );
@@ -1711,7 +1748,6 @@ function planningSectie(data: BeknoptData, state: NumberingState): Sectie | null
     children.push(emptyLine(120));
   }
 
-  if (planning.volgordeZin) children.push(bodyText(planning.volgordeZin, { bold: true, size: 20 }));
   if (planning.toelichting) children.push(methodiekIntro(planning.toelichting));
 
   children.push(
