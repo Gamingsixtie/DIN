@@ -351,7 +351,7 @@ const doc = new Document({
 
       domkop("Fundament — programma-breed", "3sides · programmamanagers", CITO),
       stappenTabel([
-        stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "MT · sectormanagers · teams", "Q3"),
+        stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "3sides · MT · sectormanagers · teams", "Q3"),
         stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren. Dit stellen we "), b("samen met 3sides"), r(" samen — zij weten wat de analysefase per domein aan mensen vraagt.")], "3sides · sectormanagers · inspanningsleiders", "Q3"),
         stap(3, CITO, [b("Meetprotocol per baten-KPI — afspreken hóé we meten")], [
           b("Wat we doen: "),
@@ -366,12 +366,13 @@ const doc = new Document({
           b("Resultaat: "),
           r("een ingevuld en geaccordeerd meetprotocol per KPI, vastgelegd bij het KPI-model ("),
           new ExternalHyperlink({ children: [new TextRun({ text: "stap 9 in de app", style: "Hyperlink" })], link: "https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" }),
-          r(" · programmaplan H3.1) — daarmee kan de nulmeting (stap 5) direct draaien. Zonder deze afspraken meet iedereen iets anders en zijn metingen niet vergelijkbaar."),
-        ], "eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager → MT", "Q3"),
-        stap(4, CITO, [b("Adoptie-framework")], [r("Vaste vertaallogica: klantreis → klantbehoefte → contactmoment → gewenst gedrag → competenties → KPI's — die KPI's worden de vermogen-indicatoren. Adoptie Team & ambassadeurs borgen het.")], "sectormanagers + teamleden per rol (marketeers, productmanagers)", "Q3"),
+          r(" · programmaplan H3.1) — daarmee kan de nulmeting (stap 5) direct draaien. "),
+          b("Voorbeeld"), r(" — voor de KPI „churn / klantbehoud” spreken we af: wat telt precies als „verloren klant”, uit welk systeem het aantal komt, dat we in aantallen per jaar meten en wie het cijfer aanlevert. Zonder die afspraken meet iedereen iets anders en zijn metingen niet vergelijkbaar."),
+        ], "3sides · eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager → MT", "Q3"),
+        stap(4, CITO, [b("Adoptie-framework")], [r("Vaste vertaallogica: klantreis → klantbehoefte → contactmoment → gewenst gedrag → competenties → KPI's — die KPI's worden de vermogen-indicatoren. Adoptie Team & ambassadeurs borgen het.")], "3sides · sectormanagers + teamleden per rol (marketeers, productmanagers)", "Q3"),
         stap(5, CITO, [b("Nulmeting")], [r("Levert de startwaarde van elke KPI + de echte stand per domein.")], "3sides voert uit · meetverantwoordelijken leveren de bronnen", "Q3"),
-        stap(6, CITO, [b("Vervolgsessie — direct na de nulmeting")], [r("Doelwaarden per KPI (haalbaar, mét datum) + vermogen-indicatoren, mét eigenaar.")], "eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager", "Q3/Q4"),
-        stap(7, CITO, [b("Pilot in 1 sector")], [r("Klein beginnen, bewijzen, uitrollen (2e sector Q4 · 3e Q1 '27): werkwijze toepassen, klantcontact vastleggen, gedrag oefenen → eerste gedragsdata.")], "sectormanager pilotsector + team", "Q3"),
+        stap(6, CITO, [b("Vervolgsessie — direct na de nulmeting")], [r("Doelwaarden per KPI (haalbaar, mét datum) + vermogen-indicatoren, mét eigenaar.")], "3sides · eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager", "Q3/Q4"),
+        stap(7, CITO, [b("Pilot in 1 sector")], [r("Klein beginnen, bewijzen, uitrollen (2e sector Q4 · 3e Q1 '27): werkwijze toepassen, klantcontact vastleggen, gedrag oefenen → eerste gedragsdata.")], "3sides · sectormanager pilotsector + team", "Q3"),
       ]),
       spacer(50),
       notitie([
