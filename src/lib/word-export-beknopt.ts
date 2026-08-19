@@ -59,7 +59,11 @@ import {
 } from "./word-export-shared";
 import type { NumberingState } from "./word-export-shared";
 import { computeFocusView } from "./stap5-focus";
-import { THREESIDES_DOMEINEN, THREESIDES_MIJLPAAL } from "./threesides-data";
+import {
+  ANALYSEFASE_DOELEN,
+  ANALYSEFASE_DOMEINEN,
+  ANALYSEFASE_PRIORITEIT_NOOT,
+} from "./analysefase-plan";
 import {
   BATEN_KPIS,
   DOELWAARDE_EISEN,
@@ -476,19 +480,6 @@ export interface VermogensProfielBeknopt {
   verantwoordelijk: string;
 }
 
-/** Planning per domein, uit de 3sides-tracker in stap 9 (KPI's & Meetbaarheid). */
-export interface FaseBeknopt {
-  domein: EffortDomain;
-  fase2026: string;
-  budget2026: string;
-  /** 2026-opleveringen (3sides-KPI = deliverable opgeleverd). */
-  deliverables: string[];
-  verdereJaren: string;
-  funnel: string;
-  quickWins: string[];
-  budgetTotaalPlus20: string;
-}
-
 export interface BeknoptData {
   naam: string;
   visie: string;
@@ -515,7 +506,6 @@ export interface BeknoptData {
   looptijd: { startJaar: number; eindJaar: number; aantalJaren: number } | null;
   /** Aandeel van de harde kant (Data & Systemen + Processen) in de raming. */
   zwaartepunt: { euro: number; aandeel: number } | null;
-  fasering: FaseBeknopt[];
   vermogensprofielen: VermogensProfielBeknopt[];
   organisatie: { rijen: [string, string, string][]; ritme: string; escalatie: string } | null;
   gaps: {
@@ -938,31 +928,6 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     geld,
     looptijd,
     zwaartepunt,
-    // De planning komt uit stap 9 (KPI's & Meetbaarheid): de 3sides-tracker met
-    // de 2026-fase, de opleveringen per domein en wat er in latere jaren volgt.
-    // In prioriteitsvolgorde, gelijk aan de rest van het document.
-    fasering: PRIORITEIT_ORDER.map((domein) => {
-      const t = THREESIDES_DOMEINEN.find((x) => x.domein === domein);
-      if (!t) return null;
-      // Handmatige aanpassingen uit de app gaan voor op de standaardtekst.
-      const overrides = session.threesidesOverrides ?? {};
-      return {
-        domein,
-        fase2026: t.fase2026,
-        budget2026: t.budget2026,
-        deliverables: t.deliverables.map(
-          (d, i) => tekst(overrides[`${domein}:${i}`]?.tekst) || d.label
-        ),
-        verdereJaren: tekst(t.verdereJaren),
-        funnel: tekst(t.funnel),
-        quickWins: t.quickWins ?? [],
-        budgetTotaalPlus20: t.budgetTotaalPlus20,
-      };
-    }).filter((f): f is FaseBeknopt => f !== null),
-    // 1-op-1 als VermogensprofielenBlock in het volledige programmaplan:
-    // alfabetisch op titel, sectoren onder de naam, "—" waar niets staat, en
-    // dezelfde afleiding van de verantwoordelijken (sectormanager + commercieel
-    // manager per sector).
     vermogensprofielen: [...getActiveCaps(session)]
       .sort((a, b) =>
         (a.title || a.description).localeCompare(b.title || b.description, "nl")
@@ -1107,6 +1072,11 @@ function opsomming(text: string): Paragraph {
       new TextRun({ text, size: 20, font: "Calibri", color: TEXT_PRIMARY }),
     ],
   });
+}
+
+/** Eén regel onder de hoofdstukkop: waar dit hoofdstuk over gaat. */
+function kern(text: string): Paragraph {
+  return bodyText(text, { italic: true, size: 20, color: TEXT_SECONDARY });
 }
 
 function bronRegel(text: string): Paragraph {
@@ -1266,6 +1236,9 @@ function titelSectie(data: BeknoptData): Sectie {
 
 function visieScopeSectie(data: BeknoptData, state: NumberingState): Sectie {
   const children: Inhoud = [...kop("Programmavisie en scope", state)];
+  children.push(kern(
+    "Waartoe het programma bestaat, en wat er in deze cyclus wel en niet wordt opgepakt."
+  ));
 
   if (data.visie) {
     children.push(subKop("Programmavisie", state));
@@ -1291,6 +1264,9 @@ function visieScopeSectie(data: BeknoptData, state: NumberingState): Sectie {
 
 function doelenSectie(data: BeknoptData, state: NumberingState): Sectie {
   const children: Inhoud = [...kop("Programmadoelen", state)];
+  children.push(kern(
+    "De drie programmadoelen, en op welk doel deze cyclus zich richt. De andere twee volgen later — niet omdat ze minder belangrijk zijn, maar om focus te houden."
+  ));
 
   if (data.focusDoel) {
     children.push(
@@ -1322,6 +1298,9 @@ function doelenSectie(data: BeknoptData, state: NumberingState): Sectie {
 function kernSectie(data: BeknoptData, state: NumberingState): Sectie {
   const breedte = KAARTJES_LIGGEND ? BREEDTE_LIGGEND : BREEDTE_STAAND;
   const children: Inhoud = [...kop("Cross-sectorale uitkomst — de kern", state)];
+  children.push(kern(
+    "De DIN-keten op één plaat: het focusdoel leidt tot baten per sector, die vragen om één gedeeld vermogen, en dat vermogen wordt opgebouwd door vier gezamenlijke inspanningen — één per domein."
+  ));
 
   children.push(
     bodyText(
@@ -1443,6 +1422,11 @@ function kernSectie(data: BeknoptData, state: NumberingState): Sectie {
 
 function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie {
   const children: Inhoud = [subKop("KPI-model — baten · vermogen · inspanningen", state)];
+  children.push(
+    kern(
+      "Waarop we sturen: de baten zijn het effect bij de klant, en de KPI's maken dat effect meetbaar."
+    )
+  );
 
   children.push(
     bodyText(
@@ -1505,6 +1489,11 @@ function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie 
   if (data.vermogensprofielen.length > 0) {
     children.push(subKop("Vermogensprofielen", state));
     children.push(
+      kern(
+        "Wat de organisatie moet kunnen: per sector-vermogen de huidige situatie (AS-IS) en de gewenste situatie (TO-BE) waaruit het gedeelde vermogen is samengevoegd."
+      )
+    );
+    children.push(
       tabel(
         [
           { kop: "Vermogen", breedte: 22 },
@@ -1524,6 +1513,9 @@ function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie 
 
   if (data.inspanningen.length > 0) {
     children.push(subKop("Eigenaar en inspanningsleider per domein", state));
+    children.push(
+      kern("Wie per domein eigenaar is van de gezamenlijke inspanning, en wie de uitvoering leidt.")
+    );
     children.push(
       tabel(
         [
@@ -1546,6 +1538,9 @@ function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie 
 
   // Letterlijk de veranderstrategie uit het volledige programmaplan (§3.4).
   children.push(subKop("Veranderstrategie", state));
+  children.push(
+    kern("Waarom de inspanningen zo over de vier domeinen zijn verdeeld.")
+  );
   children.push(
     bodyText(
       "De inspanningen zijn niet willekeurig over de vier domeinen verdeeld. Het programma kiest " +
@@ -1576,6 +1571,9 @@ function ramingSectie(data: BeknoptData, state: NumberingState): Sectie | null {
   if (!geld) return null;
 
   const children: Inhoud = [...kop("Raming", state)];
+  children.push(kern(
+    "Wat het programma kost: externe uitgaven (out-of-pocket) plus de tijd van Cito-medewerkers, omgerekend naar interne kosten."
+  ));
   children.push(
     kaartje({
       accent: CITO_BLUE,
@@ -1654,6 +1652,9 @@ function organisatieSectie(data: BeknoptData, state: NumberingState): Sectie | n
   if (!org) return null;
 
   const children: Inhoud = [...kop("Programma-organisatie", state)];
+  children.push(kern(
+    "Wie waarvoor verantwoordelijk is, hoe besluiten worden genomen en langs welke weg wordt geëscaleerd."
+  ));
   children.push(
     tabel(
       [
@@ -1683,44 +1684,68 @@ function organisatieSectie(data: BeknoptData, state: NumberingState): Sectie | n
 
 // --- 6. Planning en roadmap ---
 
-function planningSectie(data: BeknoptData, state: NumberingState): Sectie | null {
-  if (data.fasering.length === 0) return null;
-
+function planningSectie(_data: BeknoptData, state: NumberingState): Sectie {
   const children: Inhoud = [...kop("Planning en roadmap", state)];
 
   children.push(
-    bodyText(
-      "2026 is de analysefase met quick wins: per domein brengen we de startsituatie in kaart en " +
-        "maken we de gap tussen huidige en gewenste situatie meetbaar. Wat daaruit komt, bepaalt de " +
-        "vervolg-inspanningen voor 2027 en de indicatoren waarmee we de groei volgen.",
-      { size: 20 }
+    kern(
+      "2026 is de analysefase: de schakel tussen de vastgestelde KPI's en de baten. In deze fase " +
+        "maken we de KPI's meetbaar én gemeten, brengen we per domein in kaart waar de organisatie " +
+        "werkelijk staat, en vertalen we de gap naar een concreet pakket vervolg-inspanningen voor 2027."
     )
   );
-  children.push(bodyText(THREESIDES_MIJLPAAL + ".", { bold: true, size: 20 }));
   children.push(emptyLine(120));
 
-  // Alleen de planning zelf: fase, opleveringen en vervolg. De budgetten staan
-  // in hoofdstuk 4 en de inspanningen in hoofdstuk 3 — hier niet herhalen.
-  children.push(
-    tabel(
-      [
-        { kop: "Domein", breedte: 20 },
-        { kop: "Fase in 2026", breedte: 18 },
-        { kop: "Wat we in 2026 opleveren", breedte: 40 },
-        { kop: "Latere jaren", breedte: 22 },
-      ],
-      data.fasering.map((f) => [
-        styledCell(DOMAIN_LABELS[f.domein], { shading: DOMAIN_COLORS[f.domein], width: 20 }),
-        styledCell(f.fase2026, { bold: true, width: 18 }),
-        styledCell(f.deliverables.join(" · "), { width: 40 }),
-        styledCell(f.verdereJaren || "—", { width: 22 }),
-      ])
-    )
-  );
+  // Deel 2 van het stappenplan: waar de analysefase op uitkomt.
+  children.push(subKop("Waar de analysefase op uitkomt", state));
+  ANALYSEFASE_DOELEN.forEach((blok) => {
+    children.push(
+      kaartje({
+        accent: CITO_BLUE,
+        breedte: BREEDTE_STAAND,
+        compact: true,
+        eyebrow: blok.kenmerk,
+        titel: blok.periode,
+        secties: [{ label: "Dan ligt er", bullets: blok.doelen }],
+        meta: [["Mijlpaal 3sides", blok.mijlpaal]],
+      })
+    );
+    children.push(emptyLine(120));
+  });
+
+  // Deel 3: het plan per domein, op prioriteit.
+  children.push(subKop("Het plan per domein, op prioriteit", state));
+  children.push(bodyText(ANALYSEFASE_PRIORITEIT_NOOT, { size: 20 }));
+  children.push(emptyLine(120));
+
+  ANALYSEFASE_DOMEINEN.forEach((dom) => {
+    const meta: [string, string][] = [];
+    if (dom.inspanningsleider) meta.push(["Inspanningsleider", dom.inspanningsleider]);
+    if (dom.trekker3sides) meta.push(["Inhoudelijk trekker", "3sides"]);
+    children.push(
+      kaartje({
+        accent: DOMAIN_ACCENT[dom.domein],
+        breedte: BREEDTE_STAAND,
+        compact: true,
+        eyebrow: `Prioriteit ${dom.prioriteit}`,
+        titel: DOMAIN_LABELS[dom.domein],
+        secties: [
+          {
+            label: "In de analysefase",
+            bullets: dom.activiteiten.map((a) => `${a.omschrijving} — ${a.wanneer}`),
+          },
+        ],
+        meta: meta.length > 0 ? meta : undefined,
+        vulling: DOMAIN_COLORS[dom.domein],
+      })
+    );
+    children.push(emptyLine(120));
+  });
+
   children.push(
     bronRegel(
-      "Bron: de 3sides-tracker uit stap 9 (KPI's & Meetbaarheid). Een oplevering geldt als gereed " +
-        "wanneer het product er ligt — dat is iets anders dan het klanteffect, dat via de baten wordt gemeten."
+      "Bron: het stappenplan van de analysefase (deel 2 en 3), afgeleid uit de stakeholdersessie en " +
+        "het goedgekeurde 3sides-voorstel."
     )
   );
 

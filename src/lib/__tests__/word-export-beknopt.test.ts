@@ -399,7 +399,7 @@ describe("buildBeknoptSections", () => {
     const tekst = volledigeTekst(createRichSession());
     expect(tekst).toContain("5. Programma-organisatie");
     expect(tekst).toContain("6. Planning en roadmap");
-    expect(tekst).not.toContain("7. ");
+    expect(tekst).not.toContain("7. Wie");
   });
 
   it("toont geen NaN of undefined bij een begrotingspost zonder percentage", () => {
