@@ -354,8 +354,13 @@ describe("buildBeknoptSections", () => {
   });
 
   it("resolveert effort-IDs naar leesbare titels", () => {
-    const tekst = volledigeTekst(createRichSession());
-    expect(tekst).toContain("Sector-inspanning PO");
+    // De gebundelde sector-inspanningen staan niet meer in het beknopte document
+    // (te lang), maar de resolutie moet blijven werken: geen UUID's in de data.
+    const data = verzamelBeknoptData(createRichSession());
+    const processen = data.inspanningen.find((i) => i.domein === "processen");
+    expect(processen?.gebundeld).toContain("Sector-inspanning PO");
+    // De onbekende UUID uit items[] is weggefilterd, niet doorgegeven.
+    expect(processen?.gebundeld).toHaveLength(1);
   });
 
   it("sorteert de domeinen outside-in: cultuur, mens, data & systemen, processen", () => {

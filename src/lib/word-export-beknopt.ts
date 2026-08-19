@@ -174,8 +174,8 @@ function kaartLabel(tekst: string, kleur: string, compact?: boolean): Paragraph 
   });
 }
 
-/** Eén kaartje: accentbalk links + inhoudscel. */
-export function kaartje(o: KaartjeOpts): Table {
+/** De alinea's van een kaartje — gedeeld door kaartje() en kaartRij(). */
+function kaartInhoud(o: KaartjeOpts): Paragraph[] {
   const titelKleur = o.titelKleur ?? CITO_BLUE;
   const tekstKleur = o.tekstKleur ?? TEXT_PRIMARY;
   const inhoud: Paragraph[] = [];
@@ -281,7 +281,7 @@ export function kaartje(o: KaartjeOpts): Table {
       new Paragraph({
         spacing: o.compact ? { before: 10, after: 0 } : { before: 40, after: 0 },
         children: [
-          new TextRun({ text: `${k}: `, bold: true, size: 16, color: o.accent, font: "Calibri" }),
+          new TextRun({ text: `${k}: `, bold: true, size: 16, color: TEXT_SECONDARY, font: "Calibri" }),
           new TextRun({
             text: v,
             size: 16,
@@ -294,101 +294,89 @@ export function kaartje(o: KaartjeOpts): Table {
     );
   }
 
-  const lijn = o.gestippeld ? KAART_STIPPEL : KAART_LIJN;
-  const randen = { top: lijn, bottom: lijn, right: lijn, left: NIL_BORDER };
-  const inhoudBreedte = Math.max(o.breedte - ACCENT_BREEDTE, 600);
+  return inhoud;
+}
 
+function accentCel(kleur: string): TableCell {
+  return new TableCell({
+    width: { size: ACCENT_BREEDTE, type: WidthType.DXA },
+    shading: { fill: kleur },
+    borders: { top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
+  });
+}
+
+function inhoudCel(o: KaartjeOpts, breedte: number): TableCell {
+  const lijn = o.gestippeld ? KAART_STIPPEL : KAART_LIJN;
+  return new TableCell({
+    width: { size: breedte, type: WidthType.DXA },
+    shading: { fill: o.vulling ?? "FFFFFF" },
+    borders: { top: lijn, bottom: lijn, right: lijn, left: NIL_BORDER },
+    margins: o.compact
+      ? { top: 60, bottom: 60, left: 130, right: 130 }
+      : { top: 110, bottom: 110, left: 170, right: 170 },
+    children: kaartInhoud(o),
+  });
+}
+
+/** Eén kaartje over de volle breedte: accentbalk links + inhoudscel. */
+export function kaartje(o: KaartjeOpts): Table {
+  const inhoudBreedte = Math.max(o.breedte - ACCENT_BREEDTE, 600);
   return new Table({
     width: { size: ACCENT_BREEDTE + inhoudBreedte, type: WidthType.DXA },
     layout: TableLayoutType.FIXED,
     columnWidths: [ACCENT_BREEDTE, inhoudBreedte],
-    borders: { ...randen, insideHorizontal: NIL_BORDER, insideVertical: NIL_BORDER },
-    rows: [
-      new TableRow({
-        children: [
-          // Accentbalk links — docx-equivalent van border-l-3.
-          new TableCell({
-            width: { size: ACCENT_BREEDTE, type: WidthType.DXA },
-            shading: { fill: o.accent },
-            borders: { top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
-          }),
-          new TableCell({
-            width: { size: inhoudBreedte, type: WidthType.DXA },
-            shading: { fill: o.vulling ?? "FFFFFF" },
-            borders: randen,
-            margins: o.compact
-              ? { top: 30, bottom: 30, left: 110, right: 110 }
-              : { top: 100, bottom: 100, left: 160, right: 160 },
-            children: inhoud,
-          }),
-        ],
-      }),
-    ],
+    borders: {
+      top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER,
+      insideHorizontal: NIL_BORDER, insideVertical: NIL_BORDER,
+    },
+    rows: [new TableRow({ cantSplit: true, children: [accentCel(o.accent), inhoudCel(o, inhoudBreedte)] })],
   });
 }
 
 /**
- * Zet kaartjes naast elkaar in een raster. De kaartjes worden zelf zonder
- * expliciete breedte aangemaakt en vullen hun cel; de kolombreedtes staan vast
- * zodat Word en LibreOffice hetzelfde renderen.
+ * Meerdere kaartjes naast elkaar als ÉÉN platte tabel: per kaart twee kolommen
+ * (accentbalk + inhoud), met een lege tussenkolom als tussenruimte.
+ *
+ * Bewust niet genest: in één tabelrij delen alle cellen dezelfde rijhoogte, dus
+ * de kaartjes lijnen onderaan uit en de accentbalken lopen over de volle hoogte.
+ * Met geneste tabellen hield elk kaartje zijn eigen hoogte en werd de rij rafelig.
  */
-export function kaartjesRaster(
-  bouwers: ((breedte: number) => Table)[],
-  kolommen: number,
-  totaleBreedte: number,
-  compact?: boolean
-): Table[] {
-  if (bouwers.length === 0) return [];
-  const kolBreedte = Math.floor(totaleBreedte / kolommen);
-  // De kaartjes moeten binnen de celmarges passen, anders rekt Word de kolom op.
-  const kaarten = bouwers.map((bouw) => bouw(kolBreedte - RASTER_MARGE));
-  const rijen: TableRow[] = [];
+export function kaartRij(kaarten: KaartjeOpts[], totaleBreedte: number): Table {
+  const tussen = 150;
+  const n = kaarten.length;
+  const kaartBreedte = Math.floor((totaleBreedte - (n - 1) * tussen) / n);
+  const inhoudBreedte = Math.max(kaartBreedte - ACCENT_BREEDTE, 600);
 
-  for (let i = 0; i < kaarten.length; i += kolommen) {
-    const groep = kaarten.slice(i, i + kolommen);
-    const cellen = groep.map(
-      (k) =>
-        new TableCell({
-          width: { size: kolBreedte, type: WidthType.DXA },
-          borders: { top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER },
-          margins: compact
-            ? { top: 0, bottom: 0, left: 60, right: 60 }
-            : { top: 40, bottom: 40, left: 60, right: 60 },
-          children: [k],
-        })
-    );
-    // Rij aanvullen tot volledige breedte, anders rekt Word de laatste cel op.
-    while (cellen.length < kolommen) {
+  const kolommen: number[] = [];
+  const cellen: TableCell[] = [];
+  kaarten.forEach((k, index) => {
+    if (index > 0) {
+      kolommen.push(tussen);
       cellen.push(
         new TableCell({
-          width: { size: kolBreedte, type: WidthType.DXA },
+          width: { size: tussen, type: WidthType.DXA },
           borders: { top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER },
-          margins: { top: 40, bottom: 40, left: 60, right: 60 },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
           children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
         })
       );
     }
-    rijen.push(new TableRow({ children: cellen }));
-  }
+    kolommen.push(ACCENT_BREEDTE, inhoudBreedte);
+    cellen.push(accentCel(k.accent), inhoudCel(k, inhoudBreedte));
+  });
 
-  return [
-    new Table({
-      width: { size: totaleBreedte, type: WidthType.DXA },
-      layout: TableLayoutType.FIXED,
-      columnWidths: Array(kolommen).fill(kolBreedte),
-      borders: {
-        top: NIL_BORDER,
-        bottom: NIL_BORDER,
-        left: NIL_BORDER,
-        right: NIL_BORDER,
-        insideHorizontal: NIL_BORDER,
-        insideVertical: NIL_BORDER,
-      },
-      rows: rijen,
-    }),
-  ];
+  return new Table({
+    width: { size: kolommen.reduce((a, b) => a + b, 0), type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: kolommen,
+    borders: {
+      top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER,
+      insideHorizontal: NIL_BORDER, insideVertical: NIL_BORDER,
+    },
+    rows: [new TableRow({ cantSplit: true, children: cellen })],
+  });
 }
 
 /** Volle-breedte accentbalk in Cito-blauw met witte tekst (focusdoel). */
@@ -435,6 +423,8 @@ export interface InspanningBeknopt {
   actie: "combineren" | "apart_houden";
   vermogenImpact: { sector: string; impact: string }[];
   dossier: { label: string; waarde: string }[];
+  eigenaar: string;
+  inspanningsleider: string;
   gebundeld: string[];
   investering: string;
   periode: string;
@@ -516,8 +506,14 @@ export function kiesActiefScenario(session: DINSession): ScenarioK {
   const stap8 = stepResults?.stap8;
   const actief = stap8?.actiefScenario as ScenarioK | undefined;
   if (actief && stap8?.scenarios?.[actief]) return actief;
-  const begroting = stepResults?.stap4?.begrotingAdvies;
-  if (begroting?.scenarios?.advies) return "advies";
+
+  const scenarios = stepResults?.stap4?.begrotingAdvies?.scenarios;
+  // Plus20 is het scenario waarop het programma is vastgesteld: het volledige
+  // programmaplan hanteert het in §4.3 als aanbeveling aan de stuurgroep, de
+  // presentatie rekent ermee en threesides-data.ts is erop gebaseerd
+  // (budgetTotaalPlus20). Alleen een expliciete keuze in stap 8 gaat hier boven.
+  if (scenarios?.plus20) return "plus20";
+  if (scenarios?.advies) return "advies";
   return "optimaal";
 }
 
@@ -657,7 +653,9 @@ function bouwGeld(session: DINSession, open: OpenPunt[]): GeldBeknopt | null {
   if (!vastgelegd) {
     open.push({
       hoofdstuk: "4. Wat het kost",
-      tekst: `Er is nog geen scenario vastgelegd in cross-analyse stap 8; dit document rekent met "${SCENARIO_LABELS[scenario]}".`,
+      tekst:
+        `Het scenario is nog niet vastgelegd in cross-analyse stap 8. Dit document rekent met ` +
+        `"${SCENARIO_LABELS[scenario]}" — het scenario waarop het programma is vastgesteld.`,
     });
   }
 
@@ -751,6 +749,13 @@ function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBekn
           veld(dossier?.randvoorwaarden, hoofdstuk, `Randvoorwaarden van "${titel}"`, open),
         ],
       ].map(([label, waarde]) => ({ label, waarde })),
+      eigenaar: veld(dossier?.eigenaar, hoofdstuk, `Eigenaar van "${titel}"`, open),
+      inspanningsleider: veld(
+        dossier?.inspanningsleider,
+        hoofdstuk,
+        `Inspanningsleider van "${titel}"`,
+        open
+      ),
       gebundeld,
       investering,
       periode,
@@ -963,6 +968,57 @@ const PAGINA_LIGGEND = {
   },
 };
 
+/** Rij kerncijfers: groot getal met label eronder, naast elkaar. */
+function kerncijfers(tegels: { waarde: string; label: string }[], breedte: number): Table {
+  const kol = Math.floor(breedte / tegels.length);
+  return new Table({
+    width: { size: breedte, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: Array(tegels.length).fill(kol),
+    borders: {
+      top: NIL_BORDER, bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER,
+      insideHorizontal: NIL_BORDER, insideVertical: NIL_BORDER,
+    },
+    rows: [
+      new TableRow({
+        children: tegels.map(
+          (t) =>
+            new TableCell({
+              width: { size: kol, type: WidthType.DXA },
+              shading: { fill: "F4F7FA" },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 14, color: CITO_BLUE },
+                bottom: NIL_BORDER, left: NIL_BORDER, right: NIL_BORDER,
+              },
+              margins: { top: 140, bottom: 140, left: 160, right: 160 },
+              children: [
+                new Paragraph({
+                  spacing: { after: 40 },
+                  children: [
+                    new TextRun({ text: t.waarde, bold: true, size: 30, color: CITO_BLUE, font: "Calibri" }),
+                  ],
+                }),
+                new Paragraph({
+                  spacing: { after: 0 },
+                  children: [
+                    new TextRun({
+                      text: t.label.toUpperCase(),
+                      bold: true,
+                      size: 13,
+                      color: TEXT_SECONDARY,
+                      font: "Calibri",
+                      characterSpacing: 20,
+                    }),
+                  ],
+                }),
+              ],
+            })
+        ),
+      }),
+    ],
+  });
+}
+
 /** Strak laag-label op de overzichtsplaat — subHeading kost 12pt ruimte erboven. */
 function plaatLabel(text: string): Paragraph {
   return new Paragraph({
@@ -980,8 +1036,16 @@ function plaatLabel(text: string): Paragraph {
   });
 }
 
-function kop(text: string, state: NumberingState): Paragraph {
-  return numberedHeading(text, "h1", state);
+function kop(text: string, state: NumberingState): Inhoud {
+  return [
+    numberedHeading(text, "h1", state),
+    // Dunne accentlijn onder elke hoofdstukkop — geeft het document ritme.
+    new Paragraph({
+      spacing: { before: 0, after: 160 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 10, color: CITO_BLUE, space: 2 } },
+      children: [],
+    }),
+  ];
 }
 
 /** Bullet met hangende inspringing — vervolgregels lijnen uit onder de tekst. */
@@ -1119,7 +1183,40 @@ function titelSectie(data: BeknoptData): Sectie {
 function besluitenSectie(data: BeknoptData): Sectie {
   // Ongenummerde kop: bewust NIET plainH1 — dat advanceert de h1-teller,
   // waardoor de hoofdstukken op 2 zouden beginnen.
-  const children: Inhoud = [heading("Besluiten in het kort", HeadingLevel.HEADING_1)];
+  const children: Inhoud = [
+    heading("Besluiten in het kort", HeadingLevel.HEADING_1),
+    new Paragraph({
+      spacing: { before: 0, after: 200 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 10, color: CITO_BLUE, space: 2 } },
+      children: [],
+    }),
+    emptyLine(200),
+  ];
+
+  // Kerncijfers bovenaan — waar de programma-eigenaar het eerst naar kijkt.
+  const tegels: { waarde: string; label: string }[] = [];
+  if (data.geld) {
+    tegels.push({
+      waarde: formatEuro(data.geld.totaal),
+      label: data.geld.aantalJaren ? `totaal over ${data.geld.aantalJaren} jaar` : "totaal geraamd",
+    });
+  }
+  if (data.inspanningen.length > 0) {
+    tegels.push({ waarde: `${data.inspanningen.length}`, label: "gezamenlijke inspanningen" });
+  }
+  const periodes = (data.planning?.bundels ?? [])
+    .map((b) => b.periode)
+    .filter((x) => x !== TE_BEPALEN);
+  if (periodes.length > 0) {
+    const start = periodes.map((x) => x.split(" – ")[0]).sort()[0];
+    const eind = periodes.map((x) => x.split(" – ")[1] ?? x).sort().slice(-1)[0];
+    tegels.push({ waarde: `${start} – ${eind}`, label: "doorlooptijd" });
+  }
+  if (tegels.length > 0) {
+    children.push(kerncijfers(tegels, BREEDTE_STAAND));
+    children.push(emptyLine(240));
+  }
+
   const punten: string[] = [];
 
   if (data.focusDoel) {
@@ -1146,8 +1243,8 @@ function besluitenSectie(data: BeknoptData): Sectie {
   if (data.geld) {
     const jaren = data.geld.aantalJaren ? ` over ${data.geld.aantalJaren} jaar` : "";
     punten.push(
-      `Raming (${data.geld.label}): ${formatEuro(data.geld.totaal)}${jaren} — ` +
-        `${formatEuro(data.geld.outOfPocket)} out-of-pocket en ${formatEuro(data.geld.interneKosten)} interne uren.`
+      `Gerekend met het ${data.geld.label}${jaren}: ${formatEuro(data.geld.outOfPocket)} out-of-pocket ` +
+        `en ${formatEuro(data.geld.interneKosten)} interne uren.`
     );
   }
 
@@ -1193,7 +1290,7 @@ function besluitenSectie(data: BeknoptData): Sectie {
 // --- 1. Waar het programma over gaat ---
 
 function waarOverSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [kop("Waar het programma over gaat", state)];
+  const children: Inhoud = [...kop("Waar het programma over gaat", state)];
 
   if (data.visie) {
     children.push(subHeading("Programmavisie"));
@@ -1233,8 +1330,7 @@ function waarOverSectie(data: BeknoptData, state: NumberingState): Sectie {
 
 function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
   const breedte = KAARTJES_LIGGEND ? BREEDTE_LIGGEND : BREEDTE_STAAND;
-  const children: Inhoud = [kop("Het DIN in één beeld", state)];
-
+  const children: Inhoud = [...kop("Het DIN in één beeld", state)];
 
   children.push(
     bodyText(
@@ -1245,96 +1341,110 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
   );
 
   if (data.focusDoel) {
-    children.push(kaartje({ accent: "001F3F", breedte, compact: true, eyebrow: "Focusdoel — prioriteit 1", titel: data.focusDoel.naam, vulling: CITO_BLUE, titelKleur: "FFFFFF", tekstKleur: "E8EDF3" }));
+    children.push(
+      kaartje({
+        accent: "001F3F",
+        breedte,
+        compact: true,
+        eyebrow: "Focusdoel — prioriteit 1",
+        titel: data.focusDoel.naam,
+        vulling: CITO_BLUE,
+        titelKleur: "FFFFFF",
+        tekstKleur: "E8EDF3",
+      })
+    );
     children.push(connector(true));
   }
 
   // Laag 2 — baten per sector
   if (data.batenPerSector.length > 0) {
     children.push(plaatLabel("Baten per sector"));
-    const baatKaarten = data.batenPerSector.map((s) => {
-      const pill = SECTOR_PILL[s.sector] ?? { bg: "E5E7EB", kleur: "374151" };
-      const eerste = s.kaarten[0];
-      const pills: KaartjePill[] = [{ tekst: s.sector, bg: pill.bg, kleur: pill.kleur }];
-      if (eerste?.dekking === "geraakt") pills.push({ tekst: "geraakt", bg: "D1FAE5", kleur: "065F46" });
-      if (eerste?.dekking === "risico") pills.push({ tekst: "risico", bg: "FEE2E2", kleur: "991B1B" });
-      return (kaartBreedte: number) => kaartje({
-        accent: ACCENT_BATEN,
-        breedte: kaartBreedte,
-        compact: true,
-        pills,
-        titel: eerste?.titel ?? TE_BEPALEN,
-        body: [
-          ...s.kaarten.slice(1).map((k) => k.titel),
-          ...(eerste?.risico ? [eerste.risico] : []),
-        ],
-      });
-    });
-    children.push(...kaartjesRaster(baatKaarten, Math.max(data.batenPerSector.length, 1), breedte));
+    children.push(
+      kaartRij(
+        data.batenPerSector.map((s) => {
+          const pill = SECTOR_PILL[s.sector] ?? { bg: "E5E7EB", kleur: "374151" };
+          const eerste = s.kaarten[0];
+          const pills: KaartjePill[] = [{ tekst: s.sector, bg: pill.bg, kleur: pill.kleur }];
+          if (eerste?.dekking === "risico") pills.push({ tekst: "risico", bg: "FEE2E2", kleur: "991B1B" });
+          return {
+            accent: ACCENT_BATEN,
+            breedte,
+            compact: true,
+            pills,
+            titel: eerste?.titel ?? TE_BEPALEN,
+            body: s.kaarten.slice(1).map((k) => k.titel),
+          };
+        }),
+        breedte
+      )
+    );
     children.push(connector(true));
   }
 
-  // Laag 3 — gedeelde vermogens (kop-kaartje + raster, max 2 niveaus diep)
+  // Laag 3 — gedeeld vermogen: kop over de volle breedte, daaronder de sectorkaartjes
   data.vermogensGroepen.forEach((groep) => {
     children.push(
       kaartje({
         accent: ACCENT_VERMOGENS,
         breedte,
         compact: true,
-        eyebrow: "Gedeelde vermogens — hefboomgroep",
+        eyebrow: "Gedeeld vermogen — hefboomgroep",
         titel: groep.omschrijving || TE_BEPALEN,
         meta: [["Domeinbalans", groep.dekkingTekst]],
         vulling: VERMOGEN_VULLING,
       })
     );
     if (groep.vermogens.length > 0) {
-      const vermogenKaarten = groep.vermogens.map((v) => {
-        const pill = SECTOR_PILL[v.sector] ?? { bg: "E5E7EB", kleur: "374151" };
-        return (kaartBreedte: number) => kaartje({
-          accent: ACCENT_VERMOGENS,
-          breedte: kaartBreedte,
-          compact: true,
-          pills: [{ tekst: v.sector, bg: pill.bg, kleur: pill.kleur }],
-          titel: v.titel,
-        });
-      });
-      children.push(...kaartjesRaster(vermogenKaarten, Math.min(groep.vermogens.length, 3), breedte));
+      children.push(
+        kaartRij(
+          groep.vermogens.map((v) => {
+            const pill = SECTOR_PILL[v.sector] ?? { bg: "E5E7EB", kleur: "374151" };
+            return {
+              accent: ACCENT_VERMOGENS,
+              breedte,
+              compact: true,
+              pills: [{ tekst: v.sector, bg: pill.bg, kleur: pill.kleur }],
+              titel: v.titel,
+            };
+          }),
+          breedte
+        )
+      );
     }
     children.push(connector(true));
   });
 
   // Laag 4 — de vier inspanningen
   children.push(plaatLabel("Cross-sectorale inspanningen — de hefboomlaag"));
-  const inspanningKaarten = DOMEIN_OUTSIDE_IN_ORDER.map((domein) => {
-    const insp = data.inspanningen.find((i) => i.domein === domein);
-    if (!insp) {
-      return (kaartBreedte: number) => kaartje({
-        accent: BORDER_COLOR,
-        breedte: kaartBreedte,
-        compact: true,
-        pills: [{ tekst: DOMAIN_LABELS[domein], bg: DOMAIN_COLORS[domein], kleur: DOMAIN_ACCENT[domein] }],
-        titel: "Geen gezamenlijke inspanning",
-        gestippeld: true,
-        tekstKleur: TEXT_MUTED,
-        titelKleur: TEXT_MUTED,
-      });
-    }
-    return (kaartBreedte: number) => kaartje({
-      accent: DOMAIN_ACCENT[domein],
-      breedte: kaartBreedte,
-      compact: true,
-      vulling: DOMAIN_COLORS[domein],
-      pills: [
-        { tekst: DOMAIN_LABELS[domein], bg: "FFFFFF", kleur: DOMAIN_ACCENT[domein] },
-        insp.actie === "combineren"
-          ? { tekst: "Combineren", bg: "D1FAE5", kleur: "065F46" }
-          : { tekst: "Apart", bg: "E5E7EB", kleur: "374151" },
-      ],
-      titel: insp.titel,
-      meta: insp.investering !== TE_BEPALEN ? [["Investering", insp.investering]] : undefined,
-    });
-  });
-  children.push(...kaartjesRaster(inspanningKaarten, 4, breedte, true));
+  children.push(
+    kaartRij(
+      DOMEIN_OUTSIDE_IN_ORDER.map((domein) => {
+        const insp = data.inspanningen.find((i) => i.domein === domein);
+        if (!insp) {
+          return {
+            accent: BORDER_COLOR,
+            breedte,
+            compact: true,
+            pills: [{ tekst: DOMAIN_LABELS[domein], bg: DOMAIN_COLORS[domein], kleur: DOMAIN_ACCENT[domein] }],
+            titel: "Geen gezamenlijke inspanning",
+            gestippeld: true,
+            tekstKleur: TEXT_MUTED,
+            titelKleur: TEXT_MUTED,
+          };
+        }
+        return {
+          accent: DOMAIN_ACCENT[domein],
+          breedte,
+          compact: true,
+          vulling: DOMAIN_COLORS[domein],
+          pills: [{ tekst: DOMAIN_LABELS[domein], bg: "FFFFFF", kleur: DOMAIN_ACCENT[domein] }],
+          titel: insp.titel,
+          meta: insp.investering !== TE_BEPALEN ? ([["Investering", insp.investering]] as [string, string][]) : undefined,
+        };
+      }),
+      breedte
+    )
+  );
 
   return { properties: KAARTJES_LIGGEND ? PAGINA_LIGGEND : PAGINA_STAAND, children };
 }
@@ -1342,7 +1452,7 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
 // --- 3. De vier inspanningen ---
 
 function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [kop("De vier inspanningen", state)];
+  const children: Inhoud = [...kop("De vier inspanningen", state)];
 
   if (data.inspanningen.length === 0) {
     children.push(
@@ -1355,32 +1465,14 @@ function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
 
   children.push(
     bodyText(
-      "Per domein één gezamenlijke inspanning, met het dossier zoals dat in de sessie is vastgelegd.",
-      { size: 20, color: TEXT_SECONDARY }
+      "Per domein één gezamenlijke inspanning: wat we gaan doen, wat het kost en wanneer. " +
+        "De volledige onderbouwing — waarom cross-sectoraal, wat het per sector oplevert en de " +
+        "randvoorwaarden — staat in het complete programmaplan.",
+      { size: 18, color: TEXT_SECONDARY }
     )
   );
-  children.push(emptyLine(120));
 
   data.inspanningen.forEach((insp) => {
-    const secties: KaartjeSectie[] = [];
-    if (insp.beargumentatie) {
-      secties.push({ label: "Waarom cross-sectoraal opbouwen?", tekst: insp.beargumentatie });
-    }
-    if (insp.vermogenImpact.length > 0) {
-      secties.push({
-        label: "Wat dit per sector oplevert",
-        bullets: insp.vermogenImpact.map((vi) => `${vi.sector} — ${vi.impact}`),
-      });
-    }
-
-    const meta: [string, string][] = [
-      ["Investering", insp.investering],
-      ["Periode", insp.periode],
-    ];
-    if (insp.gebundeld.length > 0) {
-      meta.push(["Gebundelde sector-inspanningen", insp.gebundeld.join("; ")]);
-    }
-
     children.push(
       kaartje({
         accent: DOMAIN_ACCENT[insp.domein],
@@ -1388,15 +1480,17 @@ function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
         eyebrow: `${DOMAIN_LABELS[insp.domein]} · cross-sectorale hefboom`,
         titel: insp.titel,
         body: insp.beschrijving ? [insp.beschrijving] : undefined,
-        secties,
-        profiel: {
-          label: "Inspanningsdossier",
-          rijen: insp.dossier.map((d) => [d.label, d.waarde] as [string, string]),
-        },
-        meta,
+        // Bewust alleen wie/wat: de argumentatie en randvoorwaarden maakten dit
+        // hoofdstuk vier pagina's lang en verdrongen de bedoeling.
+        meta: [
+          ["Investering", insp.investering],
+          ["Periode", insp.periode],
+          ["Eigenaar", insp.eigenaar],
+          ["Inspanningsleider", insp.inspanningsleider],
+        ],
       })
     );
-    children.push(emptyLine(200));
+    children.push(emptyLine(140));
   });
 
   return { properties: PAGINA_STAAND, children };
@@ -1405,7 +1499,7 @@ function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
 // --- 4. Wat het kost ---
 
 function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [kop("Wat het kost", state)];
+  const children: Inhoud = [...kop("Wat het kost", state)];
   const geld = data.geld;
 
   if (!geld) {
@@ -1496,7 +1590,7 @@ function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
 // --- 5. Wanneer ---
 
 function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [kop("Wanneer", state)];
+  const children: Inhoud = [...kop("Wanneer", state)];
   const planning = data.planning;
 
   if (!planning) {
@@ -1548,7 +1642,7 @@ function bemensingSectie(data: BeknoptData, state: NumberingState): Sectie | nul
   const org = data.organisatie;
   if (!org) return null;
 
-  const children: Inhoud = [kop("Wie", state)];
+  const children: Inhoud = [...kop("Wie", state)];
   children.push(
     tabel(
       [
@@ -1580,7 +1674,7 @@ function bemensingSectie(data: BeknoptData, state: NumberingState): Sectie | nul
 // --- 7. Wat nog open staat ---
 
 function openstaandSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [kop("Wat nog open staat", state)];
+  const children: Inhoud = [...kop("Wat nog open staat", state)];
   const open = verzamelOpenstaand(data);
   const gaps = data.gaps;
   const heeftGaps =
