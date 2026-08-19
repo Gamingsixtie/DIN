@@ -307,9 +307,12 @@ const doc = new Document({
       ]),
       // ===== 2 DOELEN (start op eigen pagina, past dan op 1 pagina) =====
       new Paragraph({ pageBreakBefore: true, spacing: { after: 0 }, children: [] }),
-      secband("2", "De doelen van de analysefase   —   voorstel, vaststellen met de programma-eigenaar", TEAL),
+      secband("2", "De doelen van de analysefase   —   vaststellen met de programma-eigenaar", TEAL),
       spacer(60),
-      p([r("Toetsbare einddoelen, klaar j/n — geen verzonnen getallen. De mijlpalen komen uit het goedgekeurde 3sides-voorstel.")]),
+      p([
+        b("Dit is de kern van dit document — deze doelen zijn waar we naartoe werken. "),
+        r("Ze zijn een voorstel voor de analysefase: in de gesprekken die volgen — zoals we die eerder rond de KPI's voerden — kunnen ze nog concreter worden. Toetsbare einddoelen, klaar j/n — geen verzonnen getallen. De mijlpalen komen uit het goedgekeurde 3sides-voorstel."),
+      ]),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: NO_BORDERS,
