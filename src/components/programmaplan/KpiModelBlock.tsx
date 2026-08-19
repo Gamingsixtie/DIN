@@ -8,55 +8,7 @@
 // nulmeting Q3 · doelwaarden = vervolgsessie (eisen staan erbij).
 // ============================================================
 
-interface KpiRij {
-  naam: string;
-  definitie: string;
-  start: string; // "Nulmeting Q3" of afwijkende starttekst
-  richting: string;
-}
-
-const BATEN: {
-  sector: string;
-  stagKleur: string;
-  titel: string;
-  rijen: KpiRij[];
-}[] = [
-  {
-    sector: "Zakelijk",
-    stagKleur: "bg-[#6d28d9]",
-    titel: "Sterkere klantgerichtheid bij opdrachtgevers & kandidaten",
-    rijen: [
-      { naam: "Funnel-conversieratio per stap", definitie: "Succespercentage per overgang: lead → opportunity → offerte → deal", start: "Nulmeting Q3", richting: "uitval in lange leadtrajecten minimaliseren" },
-      { naam: "Offertes: aantal + % → opdracht", definitie: "Volume-driver in lange trajecten én het percentage dat opdracht wordt", start: "Nulmeting Q3", richting: "meer offertes, hogere slaagkans" },
-      { naam: "Conversie uit bezoeken", definitie: "Bezoeken waar een call-to-action of vervolg uit voortkomt", start: "Nulmeting Q3", richting: "meer vervolg uit bezoeken" },
-      { naam: "Serviceniveau & reactietijden", definitie: "Reactietijd op klantvragen (mail/telefoon)", start: "Nulmeting Q3", richting: "sneller reageren" },
-      { naam: "Churn / klantbehoud", definitie: "Verloren klanten per jaar", start: "Nulmeting Q3", richting: "churn omlaag" },
-    ],
-  },
-  {
-    sector: "PO",
-    stagKleur: "bg-[#0369a1]",
-    titel: "Intensiever partnership",
-    rijen: [
-      { naam: "Groei productgebruik (cross-/up-sell)", definitie: "% scholen dat upgradet van basis naar compleet, of extra trainingen/diensten afneemt", start: "Nulmeting Q3", richting: "meer cross-/up-sell conversie" },
-      { naam: "Gebruiksintensiteit volledige lijn", definitie: "% scholen met de volledige doorlopende lijn: Toets + LVS + DST", start: "Nulmeting Q3", richting: "meer scholen op de volledige lijn" },
-      { naam: "Raamcontracten grote besturen", definitie: "Aantal totaalpakket-contracten voor alle scholen tegelijk", start: "Nulmeting Q3", richting: "alle accountmanagers voeren dit uit" },
-      { naam: "Ontwikkeldeadlines & beloftes gehaald", definitie: "% productbeloftes en deadlines richting klanten gehaald — meting bij productmanagers", start: "Nulmeting Q3", richting: "beloftes waarmaken" },
-      { naam: "Churn / klantbehoud", definitie: "Verloren scholen/besturen per schooljaar", start: "Nulmeting Q3", richting: "churn omlaag" },
-    ],
-  },
-  {
-    sector: "VO",
-    stagKleur: "bg-[#047857]",
-    titel: "Hogere voorspelbaarheid commerciële begroting",
-    rijen: [
-      { naam: "Prognose-nauwkeurigheid", definitie: "Afwijking tussen de zomerprognose en de gerealiseerde omzet", start: "Nulmeting Q3", richting: "afwijking minimaliseren" },
-      { naam: "% meerjarige (3-jr) licenties", definitie: "Aandeel licenties omgezet van 1-jarig naar 3-jarig", start: "Nulmeting Q3", richting: "aandeel 3-jarig omhoog" },
-      { naam: "Inzicht in toetskeuzemomenten", definitie: "Markt-/klantreisdata op productniveau → voedt prognose en propositieontwikkeling", start: "Nulmeting Q3", richting: "geïntegreerd in prognosemodellen" },
-      { naam: "Churn / klantbehoud", definitie: "Verloren scholen per schooljaar", start: "Nulmeting Q3", richting: "churn omlaag" },
-    ],
-  },
-];
+import { BATEN_KPIS as BATEN } from "@/lib/kpi-model-data";
 
 interface Inspanning {
   done?: boolean;

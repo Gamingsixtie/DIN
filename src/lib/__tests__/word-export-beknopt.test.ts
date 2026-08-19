@@ -405,7 +405,7 @@ describe("buildBeknoptSections", () => {
     expect(tekst).toContain("Besluiten in het kort");
     expect(tekst).toContain("Het DIN in één beeld");
     expect(tekst).toContain("De vier inspanningen");
-    expect(tekst).toContain("Wat nog open staat");
+    expect(tekst).toContain("Hoe we meten of het werkt");
   });
 
   it("nummert de hoofdstukken 1 t/m 7 — de ongenummerde besluitenpagina schuift niets op", () => {
@@ -417,7 +417,6 @@ describe("buildBeknoptSections", () => {
     expect(tekst).toContain("5. Wat het kost");
     expect(tekst).toContain("6. Wanneer");
     expect(tekst).toContain("7. Wie");
-    expect(tekst).toContain("8. Wat nog open staat");
   });
 
   it("toont geen NaN of undefined bij een begrotingspost zonder percentage", () => {

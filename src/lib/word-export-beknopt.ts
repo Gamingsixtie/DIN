@@ -59,6 +59,13 @@ import {
 import type { NumberingState } from "./word-export-shared";
 import { computeFocusView } from "./stap5-focus";
 import { THREESIDES_DOMEINEN } from "./threesides-data";
+import {
+  BATEN_KPIS,
+  DOELWAARDE_EISEN,
+  DOELWAARDE_STATUS,
+  KPI_EIGENAAR,
+  KPI_MEETVERANTWOORDELIJKE,
+} from "./kpi-model-data";
 
 // ============================================================
 // Constanten
@@ -473,18 +480,6 @@ export interface BundelBeknopt {
   mijlpalen: string[];
 }
 
-export interface KpiBeknopt {
-  sector: string;
-  baat: string;
-  indicator: string;
-  startwaarde: string;
-  doelwaarde: string;
-  meetmoment: string;
-  eigenaar: string;
-  meetverantwoordelijke: string;
-  afgestemd: boolean;
-}
-
 export interface FaseBeknopt {
   domein: EffortDomain;
   fase2026: string;
@@ -517,7 +512,6 @@ export interface BeknoptData {
   looptijd: { startJaar: number; eindJaar: number; aantalJaren: number } | null;
   /** Aandeel van de harde kant (Data & Systemen + Processen) in de raming. */
   zwaartepunt: { euro: number; aandeel: number } | null;
-  kpis: KpiBeknopt[];
   fasering: FaseBeknopt[];
   planning: {
     samenvatting: string;
@@ -931,14 +925,30 @@ function bouwOrganisatie(session: DINSession, open: OpenPunt[]) {
   if (!po) return null;
 
   const rijen: [string, string, string][] = [];
-  const voegToe = (rolLabel: string, rol: { rol?: string; naam?: string; functie?: string } | undefined) => {
+  const gezien = new Set<string>();
+  const voegToe = (
+    rolLabel: string,
+    rol: { id?: string; rol?: string; naam?: string; functie?: string } | undefined
+  ) => {
     if (!rol) return;
+    const sleutel = `${tekst(rol.rol) || rolLabel}|${tekst(rol.naam)}`;
+    if (gezien.has(sleutel)) return;
+    gezien.add(sleutel);
     const naam = veld(rol.naam, "Wie", `Naam van de ${rolLabel.toLowerCase()}`, open);
     rijen.push([tekst(rol.rol) || rolLabel, naam, tekst(rol.functie) || "—"]);
   };
 
   voegToe("Opdrachtgever", po.opdrachtgever);
   voegToe("Programmamanager", po.programmamanager);
+
+  // Er kan meer dan één programmamanager zijn. Het schema kent maar één veld,
+  // dus extra programmamanagers staan in de kern- of stuurgroep; die halen we
+  // hier op zodat ze naast elkaar in de tabel komen.
+  const isProgrammamanager = (r: { rol?: string }) => /programmamanager/i.test(r.rol ?? "");
+  [...(po.kerngroep ?? []), ...(po.stuurgroep ?? [])]
+    .filter(isProgrammamanager)
+    .forEach((r) => voegToe("Programmamanager", r));
+
   (po.domeineigenaren ?? []).forEach((d) => voegToe("Domeineigenaar", d));
 
   if (rijen.length === 0) return null;
@@ -948,31 +958,6 @@ function bouwOrganisatie(session: DINSession, open: OpenPunt[]) {
     ritme: tekst(po.besluitvormingsritme),
     escalatie: tekst(po.escalatiepad),
   };
-}
-
-function bouwKpis(session: DINSession): KpiBeknopt[] {
-  const focus = computeFocusView(session);
-  const baten = focus?.focusBenefits ?? session.benefits;
-  return baten
-    .map((b) => {
-      const pr = b.profiel;
-      if (!pr) return null;
-      return {
-        sector: b.sectorId,
-        baat: tekst(b.title) || tekst(b.description),
-        indicator: sanitizeMeetjaarTekst(pr.indicator),
-        startwaarde: sanitizeMeetjaarTekst(pr.currentValue),
-        doelwaarde: sanitizeMeetjaarTekst(pr.targetValue),
-        meetmoment: sanitizeMeetjaarTekst(pr.measurementMoment),
-        eigenaar: tekst(pr.bateneigenaar),
-        meetverantwoordelijke: tekst(pr.indicatorOwner),
-        // Zonder expliciete afstemming is een doelwaarde een voorstel, geen besluit
-        // (H8: doelwaarden pas vaststellen ná de nulmeting).
-        afgestemd: pr.kpiStatus === "afgestemd",
-      };
-    })
-    .filter((k): k is KpiBeknopt => k !== null && k.indicator.length > 0)
-    .sort((a, b) => SECTORS.indexOf(a.sector as never) - SECTORS.indexOf(b.sector as never));
 }
 
 /** Alles wat de beknopte export nodig heeft, één keer geresolved. */
@@ -1071,7 +1056,6 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     geld,
     looptijd,
     zwaartepunt,
-    kpis: bouwKpis(session),
     // 2026-fasen per domein uit de Plus20-raming (threesides-data.ts), in
     // prioriteitsvolgorde: Analyse → Inventarisatie → Behoefte → Bewustwording.
     fasering: PRIORITEIT_ORDER.map((domein) => {
@@ -1228,7 +1212,8 @@ function tabel(kolommen: { kop: string; breedte: number }[], rijen: TableCell[][
     width: { size: 100, type: WidthType.PERCENTAGE },
     margins: { left: 80, right: 80 },
     rows: [
-      new TableRow({ children: kolommen.map((k) => headerCell(k.kop, k.breedte)) }),
+      // tableHeader: kopregel herhaalt zich als de tabel over een pagina breekt.
+      new TableRow({ tableHeader: true, children: kolommen.map((k) => headerCell(k.kop, k.breedte)) }),
       ...rijen.map((cellen) => new TableRow({ children: cellen })),
     ],
   });
@@ -1436,7 +1421,7 @@ function besluitenSectie(data: BeknoptData): Sectie {
   const open = verzamelOpenstaand(data);
   if (open.length > 0) {
     punten.push(
-      `${open.length} ${open.length === 1 ? "punt is" : "punten zijn"} nog niet vastgelegd — zie het laatste hoofdstuk.`
+      `${open.length} ${open.length === 1 ? "punt is" : "punten zijn"} nog niet vastgelegd; die staan in dit document als “te bepalen”.`
     );
   }
 
@@ -1666,9 +1651,10 @@ function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
         body: insp.beschrijving ? [insp.beschrijving] : undefined,
         // Bewust alleen wie/wat: de argumentatie en randvoorwaarden maakten dit
         // hoofdstuk vier pagina's lang en verdrongen de bedoeling.
+        // Periode bewust weggelaten: die staat per bundel in het hoofdstuk
+        // "Wanneer" en was hier meestal "te bepalen".
         meta: [
           ["Investering", insp.investering],
-          ["Periode", insp.periode],
           ["Eigenaar", insp.eigenaar],
           ["Inspanningsleider", insp.inspanningsleider],
         ],
@@ -1685,57 +1671,68 @@ function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
 function kpiSectie(data: BeknoptData, state: NumberingState): Sectie {
   const children: Inhoud = [...kop("Hoe we meten of het werkt", state)];
 
-  if (data.kpis.length === 0) {
-    children.push(
-      tebepalenRegel("De baten-KPI's zijn nog niet vastgelegd — werk de batenprofielen uit in stap 9.")
-    );
-    return { properties: PAGINA_STAAND, children };
-  }
-
   children.push(
     bodyText(
-      "We sturen op de baten: het effect bij de klant. Per sector één baat met de bijbehorende " +
-        "indicator. De startwaarden komen uit de nulmeting; de doelwaarden worden pas ná die " +
-        "nulmeting vastgesteld — een doelwaarde zonder startwaarde is niet toetsbaar op haalbaarheid.",
+      "Per sector één baat met de bijbehorende KPI's, vastgesteld in de stakeholdersessie. " +
+        "De startwaarden meten we in Q3 (nulmeting); de doelwaarden bepalen we daarna in de " +
+        "vervolgsessie — een doelwaarde zonder startwaarde is niet toetsbaar op haalbaarheid.",
       { size: 20, color: TEXT_SECONDARY }
     )
   );
   children.push(emptyLine(110));
 
-  data.kpis.forEach((k) => {
-    const pill = SECTOR_PILL[k.sector] ?? { bg: "E5E7EB", kleur: "374151" };
+  BATEN_KPIS.forEach((baat) => {
+    const pill = SECTOR_PILL[baat.sector] ?? { bg: "E5E7EB", kleur: "374151" };
+    // Kop van de baat — zelfde opbouw als de kaartkop in KpiModelBlock.
     children.push(
       kaartje({
         accent: ACCENT_BATEN,
         breedte: BREEDTE_STAAND,
-        pills: [
-          { tekst: k.sector, bg: pill.bg, kleur: pill.kleur },
-          k.afgestemd
-            ? { tekst: "afgestemd", bg: "D1FAE5", kleur: "065F46" }
-            : { tekst: "voorstel", bg: "FEF3C7", kleur: "92400E" },
+        compact: true,
+        pills: [{ tekst: baat.sector, bg: pill.bg, kleur: pill.kleur }],
+        titel: baat.titel,
+        meta: [
+          ["Eigenaar", KPI_EIGENAAR],
+          ["Meetverantwoordelijke", KPI_MEETVERANTWOORDELIJKE],
         ],
-        titel: k.baat,
-        profiel: {
-          label: "Batenprofiel",
-          rijen: [
-            ["Indicator", k.indicator || TE_BEPALEN],
-            ["Startwaarde", k.startwaarde || TE_BEPALEN],
-            ["Doelwaarde", k.doelwaarde || TE_BEPALEN],
-            ["Meetmoment", k.meetmoment || TE_BEPALEN],
-            ["Eigenaar", k.eigenaar || TE_BEPALEN],
-            ["Meetverantwoordelijke", k.meetverantwoordelijke || TE_BEPALEN],
-          ],
-        },
       })
     );
-    children.push(emptyLine(110));
+    // KPI-tabel: exact de kolommen uit de app (KPI · Definitie · Startwaarde → waar naartoe).
+    children.push(
+      tabel(
+        [
+          { kop: "KPI", breedte: 26 },
+          { kop: "Definitie", breedte: 44 },
+          { kop: "Startwaarde → waar naartoe", breedte: 30 },
+        ],
+        baat.rijen.map((r) => [
+          styledCell(r.naam, { bold: true, width: 26 }),
+          styledCell(r.definitie, { width: 44 }),
+          styledCell(`${r.start} → ${r.richting}`, { width: 30 }),
+        ])
+      )
+    );
+    children.push(emptyLine(140));
   });
+
+  // Doelwaarden: één keer, met de eisen uit H8 — niet per baat herhalen.
+  children.push(
+    kaartje({
+      accent: "B45309",
+      breedte: BREEDTE_STAAND,
+      eyebrow: "Doelwaarden",
+      titel: DOELWAARDE_STATUS,
+      secties: [{ label: "Eisen per doelwaarde", bullets: DOELWAARDE_EISEN }],
+      vulling: "FFFDF7",
+    })
+  );
+  children.push(emptyLine(110));
 
   children.push(
     bronRegel(
       "NPS is een resultante, geen stuur-KPI: je stuurt op de onderliggende indicatoren en meet met " +
         "NPS of het werkt. De indicatoren per vermogen worden bepaald in de vervolgsessie, na de " +
-        "nulmeting. Bron: de batenprofielen uit deze sessie."
+        "nulmeting. Bron: de KPI-set uit de stakeholdersessie (stap 9)."
     )
   );
 
@@ -1880,9 +1877,6 @@ function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
   if (planning.volgordeZin) {
     children.push(bodyText(planning.volgordeZin, { bold: true, size: 20 }));
   }
-  if (planning.samenvatting) {
-    children.push(bodyText(planning.samenvatting, { size: 19, color: TEXT_SECONDARY }));
-  }
   if (planning.toelichting) {
     children.push(subHeading("Toelichting programma-eigenaar"));
     children.push(methodiekIntro(planning.toelichting));
@@ -1951,67 +1945,6 @@ function bemensingSectie(data: BeknoptData, state: NumberingState): Sectie | nul
   return { properties: PAGINA_STAAND, children };
 }
 
-// --- 7. Wat nog open staat ---
-
-function openstaandSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("Wat nog open staat", state)];
-  const open = verzamelOpenstaand(data);
-  const gaps = data.gaps;
-  const heeftGaps =
-    gaps.volgendeCyclus.length > 0 ||
-    gaps.echteGaps.length > 0 ||
-    gaps.batenZonderVermogen.length > 0 ||
-    gaps.vermogensZonderInspanning.length > 0;
-
-  if (open.length === 0 && !heeftGaps) {
-    children.push(
-      bodyText("Alles wat dit document toont, is in de sessie vastgelegd. Er staan geen punten open.", {
-        size: 20,
-      })
-    );
-    return { properties: PAGINA_STAAND, children };
-  }
-
-  children.push(
-    bodyText(
-      "Onderstaande punten zijn nog niet vastgelegd. Ze verschijnen in dit document als “te bepalen”.",
-      { size: 20, color: TEXT_SECONDARY }
-    )
-  );
-
-  if (heeftGaps) {
-    children.push(subHeading("Onvolledige ketens"));
-    gaps.volgendeCyclus.forEach((g) =>
-      children.push(opsomming(`Doel zonder baten (volgende cyclus): ${g}`))
-    );
-    gaps.echteGaps.forEach((g) => children.push(opsomming(`Doel met onvolledige uitwerking: ${g}`)));
-    gaps.batenZonderVermogen.forEach((b) => children.push(opsomming(`Baat zonder vermogen: ${b}`)));
-    gaps.vermogensZonderInspanning.forEach((c) =>
-      children.push(opsomming(`Vermogen zonder inspanning: ${c}`))
-    );
-  }
-
-  const perHoofdstuk = new Map<string, string[]>();
-  open.forEach((p) => {
-    const lijst = perHoofdstuk.get(p.hoofdstuk) ?? [];
-    lijst.push(p.tekst);
-    perHoofdstuk.set(p.hoofdstuk, lijst);
-  });
-  perHoofdstuk.forEach((punten, hoofdstuk) => {
-    children.push(subHeading(`Nog te bepalen — ${hoofdstuk}`));
-    punten.forEach((t) => children.push(opsomming(t)));
-  });
-
-  children.push(emptyLine(120));
-  children.push(
-    bronRegel(
-      "Volledige onderbouwing: het complete programmaplan — knop “Downloaden (.docx)” in de stap Export."
-    )
-  );
-
-  return { properties: PAGINA_STAAND, children };
-}
-
 // ============================================================
 // Assemblage
 // ============================================================
@@ -2036,7 +1969,6 @@ export function buildBeknoptSections(session: DINSession): Sectie[] {
     ramingSectie(data, state),
     planningSectie(data, state),
     bemensingSectie(data, state),
-    openstaandSectie(data, state),
   ];
 
   return secties.filter((s): s is Sectie => s !== null);
