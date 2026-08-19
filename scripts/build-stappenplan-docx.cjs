@@ -354,7 +354,11 @@ const doc = new Document({
         stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "MT · sectormanagers · teams", "Q3"),
         stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren.")], "sectormanagers · inspanningsleiders", "Q3"),
         stap(3, CITO, [b("Meetprotocol per baten-KPI")], [
-          r("Per KPI: definitie · databron · eenheid · frequentie · wie levert. De KPI's staan in "),
+          r("Per KPI: definitie · databron · eenheid · frequentie · wie levert. Daarbij lopen we de "),
+          b("KPI's zélf nog één keer langs met de sectormanagers"),
+          r(" — samen met het meetprotocol — zodat "),
+          b("iedereen er expliciet akkoord op geeft"),
+          r(" vóórdat de nulmeting start. De KPI's staan in "),
           new ExternalHyperlink({ children: [new TextRun({ text: "stap 9 in de app", style: "Hyperlink" })], link: "https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" }),
           r(" en programmaplan H3.1."),
         ], "eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager → MT", "Q3"),
