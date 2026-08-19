@@ -381,6 +381,16 @@ const doc = new Document({
       ], TEAL_BG, TEAL),
       spacer(70),
       domkop("De analysefase per domein — op prioriteit", "prio 1 → 4 · alle vier lopen in 2026 tegelijk", CITO),
+      p([
+        b("Topic leads & teams: "),
+        r("3sides levert voor Data & Systemen en Processen een "),
+        b("topic lead"),
+        r(" — een inhoudelijke trekker die de activiteiten van dat domein aanstuurt en het tempo bewaakt (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van deze activiteiten stellen we per domein ook de "),
+        b("inspanningsteams"),
+        r(" samen (fundament, stap 2) — inclusief het team voor de analysefase. Die kunnen in samenstelling "),
+        b("verschillen"),
+        r(": de analyse vraagt deels andere mensen dan de uitvoering daarna."),
+      ]),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: NO_BORDERS,
