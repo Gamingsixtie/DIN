@@ -43,6 +43,7 @@ import {
   formatGetal,
   resolveItemLabels,
   sanitizeMeetjaarTekst,
+  getActiveCaps,
   categorizeGaps,
   createNumberingState,
   numberedHeading,
@@ -231,7 +232,7 @@ function kaartInhoud(o: KaartjeOpts): Paragraph[] {
         new TextRun({
           text: o.titel,
           bold: true,
-          size: o.compact ? 21 : 23,
+          size: o.compact ? 20 : 22,
           color: titelKleur,
           font: "Calibri",
         }),
@@ -255,7 +256,7 @@ function kaartInhoud(o: KaartjeOpts): Paragraph[] {
       inhoud.push(
         new Paragraph({
           spacing: { after: 40, line: 270 },
-          children: [new TextRun({ text: s.tekst, size: 19, color: tekstKleur, font: "Calibri" })],
+          children: [new TextRun({ text: s.tekst, size: 20, color: tekstKleur, font: "Calibri" })],
         })
       );
     }
@@ -265,8 +266,8 @@ function kaartInhoud(o: KaartjeOpts): Paragraph[] {
           spacing: { after: 20, line: 260 },
           indent: { left: 180 },
           children: [
-            new TextRun({ text: "•  ", color: o.accent, font: "Calibri", size: 19 }),
-            new TextRun({ text: b, size: 19, color: tekstKleur, font: "Calibri" }),
+            new TextRun({ text: "•  ", color: o.accent, font: "Calibri", size: 20 }),
+            new TextRun({ text: b, size: 20, color: tekstKleur, font: "Calibri" }),
           ],
         })
       );
@@ -281,10 +282,10 @@ function kaartInhoud(o: KaartjeOpts): Paragraph[] {
         new Paragraph({
           spacing: { after: 20, line: 260 },
           children: [
-            new TextRun({ text: `${k}: `, bold: true, size: 19, color: TEXT_SECONDARY, font: "Calibri" }),
+            new TextRun({ text: `${k}: `, bold: true, size: 20, color: TEXT_SECONDARY, font: "Calibri" }),
             new TextRun({
               text: v,
-              size: 19,
+              size: 20,
               color: ontbreekt ? TEXT_MUTED : tekstKleur,
               italics: ontbreekt,
               font: "Calibri",
@@ -430,11 +431,6 @@ export function connector(compact?: boolean): Paragraph {
 
 export type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
 
-export interface OpenPunt {
-  hoofdstuk: string;
-  tekst: string;
-}
-
 export interface InspanningBeknopt {
   domein: EffortDomain;
   titel: string;
@@ -480,6 +476,13 @@ export interface BundelBeknopt {
   mijlpalen: string[];
 }
 
+export interface VermogensProfielBeknopt {
+  titel: string;
+  asIs: string;
+  toBe: string;
+  eigenaar: string;
+}
+
 export interface FaseBeknopt {
   domein: EffortDomain;
   fase2026: string;
@@ -513,8 +516,8 @@ export interface BeknoptData {
   /** Aandeel van de harde kant (Data & Systemen + Processen) in de raming. */
   zwaartepunt: { euro: number; aandeel: number } | null;
   fasering: FaseBeknopt[];
+  vermogensprofielen: VermogensProfielBeknopt[];
   planning: {
-    samenvatting: string;
     toelichting: string;
     bundels: BundelBeknopt[];
     /** Zin die de startvolgorde uit de cyclusnummers benoemt. */
@@ -527,8 +530,6 @@ export interface BeknoptData {
     batenZonderVermogen: string[];
     vermogensZonderInspanning: string[];
   };
-  focusConflict: string;
-  openstaand: OpenPunt[];
 }
 
 /**
@@ -563,9 +564,9 @@ function tekst(waarde: string | null | undefined): string {
  * Sorteersleutel voor domeinen: outside-in, en alles wat niet in de vier
  * inspanningsdomeinen valt (zoals "overig" — de post onvoorzien) achteraan.
  */
-function domeinVolgorde(domein: EffortDomain): number {
-  const i = DOMEIN_OUTSIDE_IN_ORDER.indexOf(domein);
-  return i === -1 ? DOMEIN_OUTSIDE_IN_ORDER.length : i;
+function prioriteitVolgorde(domein: EffortDomain): number {
+  const i = PRIORITEIT_ORDER.indexOf(domein);
+  return i === -1 ? PRIORITEIT_ORDER.length : i;
 }
 
 /**
@@ -598,17 +599,14 @@ function isPlaceholder(waarde: string): boolean {
   return PLACEHOLDERS.has(waarde.toLowerCase().replace(/\s+/g, " ").trim());
 }
 
-/** Verplicht veld: leeg of een placeholder → "te bepalen" én een punt in hoofdstuk 7. */
-function veld(
-  waarde: string | null | undefined,
-  hoofdstuk: string,
-  label: string,
-  open: OpenPunt[]
-): string {
+/**
+ * Waarde van een veld, of een lege string als er niets (bruikbaars) staat.
+ * De beknopte versie is een samenvatting van het vastgestelde programmaplan:
+ * daar horen geen openstaande punten in. Wat leeg is, valt weg.
+ */
+function veld(waarde: string | null | undefined): string {
   const v = tekst(waarde);
-  if (v.length > 0 && !isPlaceholder(v)) return v;
-  open.push({ hoofdstuk, tekst: label });
-  return TE_BEPALEN;
+  return v.length > 0 && !isPlaceholder(v) ? v : "";
 }
 
 /** Interne uren: canonieke leesweg is stap4.stap7InterneUren; stap7 is legacy fallback. */
@@ -617,7 +615,7 @@ function leesInterneUren(session: DINSession) {
   return stepResults?.stap4?.stap7InterneUren ?? stepResults?.stap7 ?? undefined;
 }
 
-function bouwGeld(session: DINSession, open: OpenPunt[]): GeldBeknopt | null {
+function bouwGeld(session: DINSession): GeldBeknopt | null {
   const stepResults = session.crossAnalyseWizard?.stepResults;
   const begroting = stepResults?.stap4?.begrotingAdvies;
   const interneUren = leesInterneUren(session);
@@ -685,17 +683,9 @@ function bouwGeld(session: DINSession, open: OpenPunt[]): GeldBeknopt | null {
       // tonen dat niet in de bron staat.
       aandeel: Number.isFinite(insp.percentageTotaal) ? insp.percentageTotaal : null,
     }))
-    .sort((x, y) => domeinVolgorde(x.domein) - domeinVolgorde(y.domein));
+    .sort((x, y) => prioriteitVolgorde(x.domein) - prioriteitVolgorde(y.domein));
 
   const vastgelegd = Boolean(stap8?.actiefScenario && stap8?.scenarios?.[stap8.actiefScenario as ScenarioK]);
-  if (!vastgelegd) {
-    open.push({
-      hoofdstuk: "Wat het kost",
-      tekst:
-        `Het scenario is nog niet vastgelegd in cross-analyse stap 8. Dit document rekent met ` +
-        `"${SCENARIO_LABELS[scenario]}" — het scenario waarop het programma is vastgesteld.`,
-    });
-  }
 
   return {
     scenario,
@@ -712,7 +702,7 @@ function bouwGeld(session: DINSession, open: OpenPunt[]): GeldBeknopt | null {
   };
 }
 
-function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBeknopt[] {
+function bouwInspanningen(session: DINSession): InspanningBeknopt[] {
   const stepResults = session.crossAnalyseWizard?.stepResults;
   const subEfforts = stepResults?.stap4?.subEffortAnalysis ?? [];
   const begroting = stepResults?.stap4?.begrotingAdvies;
@@ -746,8 +736,7 @@ function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBekn
     } else if (tekst(dossier?.kostenraming) && !isPlaceholder(tekst(dossier?.kostenraming))) {
       investering = tekst(dossier?.kostenraming);
     } else {
-      investering = TE_BEPALEN;
-      open.push({ hoofdstuk, tekst: `Investering voor "${titel}" (${DOMAIN_LABELS[domein]})` });
+      investering = "";
     }
 
     // Nooit effort.quarter gebruiken: dat staat in de praktijk op "Nader te bepalen".
@@ -759,8 +748,7 @@ function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBekn
       const cyclus = tekst(bundel?.cyclusLabel);
       periode = `${start} – ${eind}${cyclus ? ` (${cyclus})` : ""}`;
     } else {
-      periode = TE_BEPALEN;
-      open.push({ hoofdstuk, tekst: `Periode voor "${titel}" (${DOMAIN_LABELS[domein]})` });
+      periode = "";
     }
 
     resultaat.push({
@@ -773,27 +761,22 @@ function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBekn
         .map((vi) => ({ sector: vi.sectorId as string, impact: tekst(vi.impact) }))
         .filter((vi) => vi.impact.length > 0),
       dossier: [
-        ["Eigenaar", veld(dossier?.eigenaar, hoofdstuk, `Eigenaar van "${titel}"`, open)],
+        ["Eigenaar", veld(dossier?.eigenaar)],
         [
           "Inspanningsleider",
-          veld(dossier?.inspanningsleider, hoofdstuk, `Inspanningsleider van "${titel}"`, open),
+          veld(dossier?.inspanningsleider),
         ],
         [
           "Verwacht resultaat",
-          veld(dossier?.verwachtResultaat, hoofdstuk, `Verwacht resultaat van "${titel}"`, open),
+          veld(dossier?.verwachtResultaat),
         ],
         [
           "Randvoorwaarden",
-          veld(dossier?.randvoorwaarden, hoofdstuk, `Randvoorwaarden van "${titel}"`, open),
+          veld(dossier?.randvoorwaarden),
         ],
       ].map(([label, waarde]) => ({ label, waarde })),
-      eigenaar: veld(dossier?.eigenaar, hoofdstuk, `Eigenaar van "${titel}"`, open),
-      inspanningsleider: veld(
-        dossier?.inspanningsleider,
-        hoofdstuk,
-        `Inspanningsleider van "${titel}"`,
-        open
-      ),
+      eigenaar: veld(dossier?.eigenaar),
+      inspanningsleider: veld(dossier?.inspanningsleider),
       gebundeld,
       investering,
       periode,
@@ -835,14 +818,10 @@ function bouwVermogensGroepen(session: DINSession) {
   });
 }
 
-function bouwPlanning(session: DINSession, open: OpenPunt[]) {
+function bouwPlanning(session: DINSession) {
   const planning = session.planningVoorstel;
   const bundels = planning?.bundelPlanning ?? [];
   if (!planning || bundels.length === 0) {
-    open.push({
-      hoofdstuk: "Wanneer",
-      tekst: "De planning is nog niet vastgesteld — genereer het voorstel in stap 6 van de cross-analyse.",
-    });
     return null;
   }
 
@@ -874,34 +853,7 @@ function bouwPlanning(session: DINSession, open: OpenPunt[]) {
         ? `Volgorde van de cycli — ${volgorde.join(" · ")}.`
         : "";
 
-  // De AI-toelichting noemt soms een andere volgorde dan de cyclusnummers.
-  // Niet stilzwijgend gladstrijken: als de domeinen in de tekst in een andere
-  // volgorde staan dan de cycli, is dat een punt om vast te leggen.
-  const proza = tekst(planning.samenvatting);
-  if (proza) {
-    const inTekst = gesorteerd
-      .map((bd) => ({
-        domein: bd.domein as EffortDomain,
-        positie: proza.indexOf(DOMAIN_LABELS[bd.domein as EffortDomain]),
-      }))
-      .filter((x) => x.positie >= 0);
-    if (inTekst.length >= 2) {
-      const volgensTekst = [...inTekst].sort((a, b) => a.positie - b.positie).map((x) => x.domein);
-      const volgensCyclus = inTekst.map((x) => x.domein);
-      if (volgensTekst.join() !== volgensCyclus.join()) {
-        open.push({
-          hoofdstuk: "Wanneer",
-          tekst:
-            `De toelichting bij de planning noemt de domeinen in een andere volgorde ` +
-            `(${volgensTekst.map((d) => DOMAIN_LABELS[d]).join(" → ")}) dan de cyclusnummers ` +
-            `(${volgensCyclus.map((d) => DOMAIN_LABELS[d]).join(" → ")}). Leg vast welke leidend is.`,
-        });
-      }
-    }
-  }
-
   return {
-    samenvatting: proza,
     toelichting: tekst(planning.toelichting),
     volgordeZin,
     bundels: gesorteerd.map((bd) => {
@@ -910,8 +862,8 @@ function bouwPlanning(session: DINSession, open: OpenPunt[]) {
       return {
         domein: bd.domein as EffortDomain,
         titel: tekst(bd.titel),
-        cyclus: tekst(bd.cyclusLabel) || TE_BEPALEN,
-        periode: start && eind ? `${start} – ${eind}` : TE_BEPALEN,
+        cyclus: tekst(bd.cyclusLabel),
+        periode: start && eind ? `${start} – ${eind}` : "",
         mijlpalen: (bd.mijlpalen ?? [])
           .map((m) => `${tekst(m.periode)}: ${tekst(m.mijlpaal)}`)
           .filter((s) => s.length > 2),
@@ -920,7 +872,7 @@ function bouwPlanning(session: DINSession, open: OpenPunt[]) {
   };
 }
 
-function bouwOrganisatie(session: DINSession, open: OpenPunt[]) {
+function bouwOrganisatie(session: DINSession) {
   const po = session.programmaorganisatie;
   if (!po) return null;
 
@@ -934,7 +886,7 @@ function bouwOrganisatie(session: DINSession, open: OpenPunt[]) {
     const sleutel = `${tekst(rol.rol) || rolLabel}|${tekst(rol.naam)}`;
     if (gezien.has(sleutel)) return;
     gezien.add(sleutel);
-    const naam = veld(rol.naam, "Wie", `Naam van de ${rolLabel.toLowerCase()}`, open);
+    const naam = veld(rol.naam);
     rijen.push([tekst(rol.rol) || rolLabel, naam, tekst(rol.functie) || "—"]);
   };
 
@@ -962,7 +914,6 @@ function bouwOrganisatie(session: DINSession, open: OpenPunt[]) {
 
 /** Alles wat de beknopte export nodig heeft, één keer geresolved. */
 export function verzamelBeknoptData(session: DINSession): BeknoptData {
-  const open: OpenPunt[] = [];
   const focus = computeFocusView(session);
   const stepResults = session.crossAnalyseWizard?.stepResults;
   const subEfforts = stepResults?.stap4?.subEffortAnalysis ?? [];
@@ -972,7 +923,7 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     ? { naam: tekst(focus.focusGoal.name), beschrijving: tekst(focus.focusGoal.description) }
     : null;
 
-  const geld = bouwGeld(session, open);
+  const geld = bouwGeld(session);
 
   // Looptijd komt uit de RAMING, niet uit de bundelplanning: die laatste dekt
   // alleen de eerste cycli en is korter, wat een tegenstrijdige pagina opleverde.
@@ -1026,13 +977,6 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     subEfforts.filter((s) => s.actie === "apart_houden").map((s) => s.domein)
   );
 
-  const focusDoelNaam = tekst(stepResults?.stap5?.focusDoelNaam);
-  const focusConflict =
-    focusDoelNaam && focusDoel && focusDoelNaam !== focusDoel.naam
-      ? `Het focusdoel uit stap 5 ("${focusDoelNaam}") wijkt af van het doel met prioriteit 1 ("${focusDoel.naam}"). Leg vast welke van de twee leidend is.`
-      : "";
-  if (focusConflict) open.push({ hoofdstuk: "Waar het programma over gaat", tekst: focusConflict });
-
   return {
     naam: session.name,
     visie: tekst(session.vision?.beknopt),
@@ -1050,7 +994,7 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     buitenCyclus,
     batenPerSector,
     vermogensGroepen: bouwVermogensGroepen(session),
-    inspanningen: bouwInspanningen(session, open),
+    inspanningen: bouwInspanningen(session),
     domeinenGecombineerd: gecombineerdeDomeinen.size,
     domeinenApart: aparteDomeinen.size,
     geld,
@@ -1062,8 +1006,16 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
       const t = THREESIDES_DOMEINEN.find((x) => x.domein === domein);
       return t ? { domein, fase2026: t.fase2026, budget2026: t.budget2026 } : null;
     }).filter((f): f is FaseBeknopt => f !== null),
-    planning: bouwPlanning(session, open),
-    organisatie: bouwOrganisatie(session, open),
+    vermogensprofielen: getActiveCaps(session)
+      .map((c) => ({
+        titel: tekst(c.title) || tekst(c.description),
+        asIs: tekst(c.profiel?.huidieSituatie),
+        toBe: tekst(c.profiel?.gewensteSituatie),
+        eigenaar: tekst(c.profiel?.eigenaar),
+      }))
+      .filter((v) => v.titel.length > 0 && (v.asIs.length > 0 || v.toBe.length > 0)),
+    planning: bouwPlanning(session),
+    organisatie: bouwOrganisatie(session),
     gaps: {
       volgendeCyclus: gaps.volgendeCyclus.map((g) => tekst(g.name)).filter((s) => s.length > 0),
       echteGaps: gaps.echteGapsGoals.map((g) => tekst(g.name)).filter((s) => s.length > 0),
@@ -1074,20 +1026,7 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
         .map((c) => (c ? tekst(c.title) || tekst(c.description) : ""))
         .filter((s) => s.length > 0),
     },
-    focusConflict,
-    openstaand: open,
   };
-}
-
-/** De punten voor hoofdstuk 7, ontdubbeld met behoud van volgorde. */
-export function verzamelOpenstaand(data: BeknoptData): OpenPunt[] {
-  const gezien = new Set<string>();
-  return data.openstaand.filter((p) => {
-    const sleutel = `${p.hoofdstuk}|${p.tekst}`;
-    if (gezien.has(sleutel)) return false;
-    gezien.add(sleutel);
-    return true;
-  });
 }
 
 // ============================================================
@@ -1107,7 +1046,6 @@ const PAGINA_LIGGEND = {
   },
 };
 
-/** Rij kerncijfers: groot getal met label eronder, naast elkaar. */
 function kerncijfers(tegels: { waarde: string; label: string }[], breedte: number): Table {
   const kol = Math.floor(breedte / tegels.length);
   return new Table({
@@ -1175,6 +1113,10 @@ function plaatLabel(text: string): Paragraph {
   });
 }
 
+function subKop(text: string, state: NumberingState): Paragraph {
+  return numberedHeading(text, "h2", state);
+}
+
 function kop(text: string, state: NumberingState): Inhoud {
   return [
     numberedHeading(text, "h1", state),
@@ -1193,18 +1135,14 @@ function opsomming(text: string): Paragraph {
     spacing: { after: 60, line: 280 },
     indent: { left: 400, hanging: 220 },
     children: [
-      new TextRun({ text: "•  ", color: CITO_BLUE, font: "Calibri", size: 22 }),
-      new TextRun({ text, size: 22, font: "Calibri", color: TEXT_PRIMARY }),
+      new TextRun({ text: "•  ", color: CITO_BLUE, font: "Calibri", size: 20 }),
+      new TextRun({ text, size: 20, font: "Calibri", color: TEXT_PRIMARY }),
     ],
   });
 }
 
 function bronRegel(text: string): Paragraph {
-  return bodyText(text, { italic: true, size: 17, color: TEXT_MUTED });
-}
-
-function tebepalenRegel(text: string): Paragraph {
-  return bodyText(text, { italic: true, size: 20, color: TEXT_MUTED });
+  return bodyText(text, { italic: true, size: 18, color: TEXT_MUTED });
 }
 
 function tabel(kolommen: { kop: string; breedte: number }[], rijen: TableCell[][]): Table {
@@ -1214,7 +1152,9 @@ function tabel(kolommen: { kop: string; breedte: number }[], rijen: TableCell[][
     rows: [
       // tableHeader: kopregel herhaalt zich als de tabel over een pagina breekt.
       new TableRow({ tableHeader: true, children: kolommen.map((k) => headerCell(k.kop, k.breedte)) }),
-      ...rijen.map((cellen) => new TableRow({ children: cellen })),
+      // cantSplit: een rij mag niet over de paginarand breken — anders blijven er
+      // lege cellen achter op de vervolgpagina.
+      ...rijen.map((cellen) => new TableRow({ cantSplit: true, children: cellen })),
     ],
   });
 }
@@ -1302,7 +1242,7 @@ function titelSectie(data: BeknoptData): Sectie {
       emptyLine(280),
       subHeading("De DIN-keten in één oogopslag"),
       leeswijzer,
-      emptyLine(200),
+      emptyLine(120),
       bodyText(
         "Hoe-vraag (van links naar rechts): hoe bereiken we dit doel? " +
           "Waartoe-vraag (van rechts naar links): waartoe dient deze inspanning?",
@@ -1318,190 +1258,72 @@ function titelSectie(data: BeknoptData): Sectie {
   };
 }
 
-// --- Besluiten in het kort ---
+// --- 1. Programmavisie en scope ---
 
-function besluitenSectie(data: BeknoptData): Sectie {
-  // Ongenummerde kop: bewust NIET plainH1 — dat advanceert de h1-teller,
-  // waardoor de hoofdstukken op 2 zouden beginnen.
-  const children: Inhoud = [
-    heading("Besluiten in het kort", HeadingLevel.HEADING_1),
-    new Paragraph({
-      spacing: { before: 0, after: 200 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 10, color: CITO_BLUE, space: 2 } },
-      children: [],
-    }),
-    emptyLine(140),
-  ];
+function visieScopeSectie(data: BeknoptData, state: NumberingState): Sectie {
+  const children: Inhoud = [...kop("Programmavisie en scope", state)];
 
-  // Kerncijfers bovenaan — waar de programma-eigenaar het eerst naar kijkt.
-  const tegels: { waarde: string; label: string }[] = [];
-  if (data.geld) {
-    tegels.push({
-      waarde: formatEuro(data.geld.totaal),
-      label: data.geld.aantalJaren ? `totaal over ${data.geld.aantalJaren} jaar` : "totaal geraamd",
-    });
-  }
-  if (data.inspanningen.length > 0) {
-    tegels.push({ waarde: `${data.inspanningen.length}`, label: "gezamenlijke inspanningen" });
-  }
-  if (data.looptijd) {
-    tegels.push({
-      waarde: `${data.looptijd.startJaar} – ${data.looptijd.eindJaar}`,
-      label: `looptijd raming (${data.looptijd.aantalJaren} jaar)`,
-    });
-  }
-  if (tegels.length > 0) {
-    children.push(kerncijfers(tegels, BREEDTE_STAAND));
-    children.push(emptyLine(110));
+  if (data.visie) {
+    children.push(subKop("Programmavisie", state));
+    children.push(bodyText(data.visie, { bold: true, size: 24 }));
   }
 
-  // Waar het zwaartepunt ligt — de eerste vraag van de programma-eigenaar.
-  if (data.zwaartepunt) {
-    children.push(
-      kaartje({
-        accent: DOMAIN_ACCENT.data_systemen,
-        breedte: BREEDTE_STAAND,
-        eyebrow: "Zwaartepunt in deze cyclus",
-        titel: "Data & Systemen en Processen",
-        body: [
-          `Samen ${formatEuro(data.zwaartepunt.euro)} van de raming (${data.zwaartepunt.aandeel}% ` +
-            `van de out-of-pocket kosten). Dit is de harde kant van de veranderstrategie: eerst het ` +
-            `klantbeeld en de werkprocessen op orde, zodat Mens en Cultuur daarop kunnen bouwen.`,
-        ],
-        vulling: "F7F5FD",
-      })
-    );
-    children.push(emptyLine(110));
-  }
-
-  const punten: string[] = [];
-
-  if (data.focusDoel) {
-    const rest =
-      data.overigeDoelen.length > 0
-        ? ` De overige ${data.overigeDoelen.length} ${data.overigeDoelen.length === 1 ? "doelstelling volgt" : "doelstellingen volgen"} in een volgende cyclus.`
-        : "";
-    punten.push(`Focus ligt op één doel: ${data.focusDoel.naam}.${rest}`);
-  }
-
-  if (data.domeinenGecombineerd > 0) {
-    punten.push(
-      `${data.domeinenGecombineerd} van de 4 inspanningsdomeinen worden cross-sectoraal opgepakt` +
-        (data.domeinenApart > 0 ? `; ${data.domeinenApart} blijven per sector apart.` : ".")
-    );
-  }
-
-  if (data.inspanningen.length > 0) {
-    punten.push(
-      `De gezamenlijke inspanningen: ${data.inspanningen.map((i) => i.titel).join("; ")}.`
-    );
-  }
-
-  if (data.geld) {
-    const jaren = data.geld.aantalJaren ? ` over ${data.geld.aantalJaren} jaar` : "";
-    punten.push(
-      `Gerekend met het ${data.geld.label}${jaren}: ${formatEuro(data.geld.outOfPocket)} out-of-pocket ` +
-        `en ${formatEuro(data.geld.interneKosten)} interne uren.`
-    );
-  }
-
-  if (data.planning && data.planning.bundels.length > 0) {
-    const periodes = data.planning.bundels.map((b) => b.periode).filter((p) => p !== TE_BEPALEN);
-    if (periodes.length > 0) {
-      const start = periodes.map((p) => p.split(" – ")[0]).sort()[0];
-      const eind = periodes.map((p) => p.split(" – ")[1] ?? p).sort().slice(-1)[0];
-      punten.push(
-        `De eerste cycli lopen van ${start} tot en met ${eind}, verdeeld over ` +
-          `${data.planning.bundels.length} ${data.planning.bundels.length === 1 ? "bundel" : "bundels"}. ` +
-          `De raming kijkt verder vooruit (zie de looptijd hierboven).`
-      );
+  if (data.inScope.length > 0 || data.buitenCyclus.length > 0) {
+    children.push(subKop("Scope", state));
+    if (data.inScope.length > 0) {
+      children.push(subHeading("Binnen scope"));
+      data.inScope.forEach((x) => children.push(opsomming(x)));
+    }
+    if (data.buitenCyclus.length > 0) {
+      children.push(subHeading("Buiten deze cyclus"));
+      data.buitenCyclus.forEach((x) => children.push(opsomming(x)));
     }
   }
 
-  const open = verzamelOpenstaand(data);
-  if (open.length > 0) {
-    punten.push(
-      `${open.length} ${open.length === 1 ? "punt is" : "punten zijn"} nog niet vastgelegd; die staan in dit document als “te bepalen”.`
-    );
-  }
-
-  if (punten.length === 0) {
-    children.push(
-      tebepalenRegel(
-        "Er is nog te weinig vastgelegd om besluiten samen te vatten. Werk de cross-analyse verder uit."
-      )
-    );
-  } else {
-    punten.forEach((p) => children.push(opsomming(p)));
-  }
-
-  children.push(emptyLine(120));
-  children.push(
-    bronRegel(
-      "Alle cijfers en namen op deze pagina komen uit deze sessie: het DIN-netwerk, de cross-analyse " +
-        "(stap 2, 4, 6, 7 en 8) en het planningsvoorstel. Er is niets bijgeschat."
-    )
-  );
-
   return { properties: PAGINA_STAAND, children };
 }
 
-// --- 1. Waar het programma over gaat ---
+// --- 2. Programmadoelen ---
 
-function waarOverSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("Waar het programma over gaat", state)];
-
-  if (data.visie) {
-    children.push(subHeading("Programmavisie"));
-    children.push(bodyText(data.visie, { bold: true, size: 24 }));
-    children.push(emptyLine(120));
-  }
+function doelenSectie(data: BeknoptData, state: NumberingState): Sectie {
+  const children: Inhoud = [...kop("Programmadoelen", state)];
 
   if (data.focusDoel) {
     children.push(
-      balk("Focusdoel — prioriteit 1", data.focusDoel.naam, BREEDTE_STAAND, data.focusDoel.beschrijving)
+      kaartje({
+        accent: "001F3F",
+        breedte: BREEDTE_STAAND,
+        eyebrow: "Focusdoel — prioriteit 1",
+        titel: data.focusDoel.naam,
+        body: data.focusDoel.beschrijving ? [data.focusDoel.beschrijving] : undefined,
+        vulling: CITO_BLUE,
+        titelKleur: "FFFFFF",
+        tekstKleur: "E8EDF3",
+      })
     );
-    children.push(emptyLine(110));
+    children.push(emptyLine(120));
   }
 
-  if (data.alleDoelen.length > 0) {
-    // Alle drie de doelen tonen, met de focus gemarkeerd. Alleen "overige doelen"
-    // laten zien liet de lijst bij 2 beginnen, wat las alsof doel 1 ontbrak.
-    children.push(subHeading("De programmadoelen"));
-    data.alleDoelen.forEach((g) =>
-      children.push(
-        opsomming(
-          `${g.rank}. ${g.naam} — ${g.isFocus ? "focus in deze cyclus" : "volgt in een volgende cyclus"}`
-        )
-      )
+  data.alleDoelen
+    .filter((g) => !g.isFocus)
+    .forEach((g) =>
+      children.push(opsomming(`${g.rank}. ${g.naam} — wordt in een volgende cyclus uitgewerkt`))
     );
-    children.push(emptyLine(110));
-  }
-
-  if (data.inScope.length > 0) {
-    children.push(subHeading("Binnen scope"));
-    data.inScope.forEach((s) => children.push(opsomming(s)));
-  }
-
-  if (data.buitenCyclus.length > 0) {
-    children.push(subHeading("Buiten deze cyclus"));
-    data.buitenCyclus.forEach((s) => children.push(opsomming(s)));
-  }
 
   return { properties: PAGINA_STAAND, children };
 }
 
-// --- 2. Het DIN in één beeld — de kaartjes ---
+// --- 3. Cross-sectorale uitkomst — de kern (de plaat, liggend) ---
 
-function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
+function kernSectie(data: BeknoptData, state: NumberingState): Sectie {
   const breedte = KAARTJES_LIGGEND ? BREEDTE_LIGGEND : BREEDTE_STAAND;
-  const children: Inhoud = [...kop("Het DIN in één beeld", state)];
+  const children: Inhoud = [...kop("Cross-sectorale uitkomst — de kern", state)];
 
   children.push(
     bodyText(
-      "Van focusdoel naar baten per sector, via het gedeelde vermogen naar de vier cross-sectorale " +
-        "inspanningen. De uitwerking per inspanning staat in hoofdstuk 3.",
-      { size: 18, color: TEXT_SECONDARY }
+      "Van het focusdoel naar de baten per sector, via het gedeelde vermogen naar de vier " +
+        "cross-sectorale inspanningen.",
+      { size: 20, color: TEXT_SECONDARY }
     )
   );
 
@@ -1521,23 +1343,20 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
     children.push(connector(true));
   }
 
-  // Laag 2 — baten per sector
   if (data.batenPerSector.length > 0) {
     children.push(plaatLabel("Baten per sector"));
     children.push(
       kaartRij(
-        data.batenPerSector.map((s) => {
-          const pill = SECTOR_PILL[s.sector] ?? { bg: "E5E7EB", kleur: "374151" };
-          const eerste = s.kaarten[0];
-          const pills: KaartjePill[] = [{ tekst: s.sector, bg: pill.bg, kleur: pill.kleur }];
-          if (eerste?.dekking === "risico") pills.push({ tekst: "risico", bg: "FEE2E2", kleur: "991B1B" });
+        data.batenPerSector.map((sec) => {
+          const pill = SECTOR_PILL[sec.sector] ?? { bg: "E5E7EB", kleur: "374151" };
+          const eerste = sec.kaarten[0];
           return {
             accent: ACCENT_BATEN,
             breedte,
             compact: true,
-            pills,
-            titel: eerste?.titel ?? TE_BEPALEN,
-            body: s.kaarten.slice(1).map((k) => k.titel),
+            pills: [{ tekst: sec.sector, bg: pill.bg, kleur: pill.kleur }],
+            titel: eerste ? eerste.titel : "",
+            body: sec.kaarten.slice(1).map((k) => k.titel),
           };
         }),
         breedte
@@ -1546,7 +1365,6 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
     children.push(connector(true));
   }
 
-  // Laag 3 — gedeeld vermogen: kop over de volle breedte, daaronder de sectorkaartjes
   data.vermogensGroepen.forEach((groep) => {
     children.push(
       kaartje({
@@ -1554,7 +1372,7 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
         breedte,
         compact: true,
         eyebrow: "Gedeeld vermogen — hefboomgroep",
-        titel: groep.omschrijving || TE_BEPALEN,
+        titel: groep.omschrijving,
         meta: [["Domeinbalans", groep.dekkingTekst]],
         vulling: VERMOGEN_VULLING,
       })
@@ -1579,18 +1397,19 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
     children.push(connector(true));
   });
 
-  // Laag 4 — de vier inspanningen
   children.push(plaatLabel("Cross-sectorale inspanningen — de hefboomlaag"));
   children.push(
     kaartRij(
-      DOMEIN_OUTSIDE_IN_ORDER.map((domein) => {
+      PRIORITEIT_ORDER.map((domein) => {
         const insp = data.inspanningen.find((i) => i.domein === domein);
         if (!insp) {
           return {
             accent: BORDER_COLOR,
             breedte,
             compact: true,
-            pills: [{ tekst: DOMAIN_LABELS[domein], bg: DOMAIN_COLORS[domein], kleur: DOMAIN_ACCENT[domein] }],
+            pills: [
+              { tekst: DOMAIN_LABELS[domein], bg: DOMAIN_COLORS[domein], kleur: DOMAIN_ACCENT[domein] },
+            ],
             titel: "Geen gezamenlijke inspanning",
             gestippeld: true,
             tekstKleur: TEXT_MUTED,
@@ -1604,7 +1423,9 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
           vulling: DOMAIN_COLORS[domein],
           pills: [{ tekst: DOMAIN_LABELS[domein], bg: "FFFFFF", kleur: DOMAIN_ACCENT[domein] }],
           titel: insp.titel,
-          meta: insp.investering !== TE_BEPALEN ? ([["Investering", insp.investering]] as [string, string][]) : undefined,
+          meta: insp.investering
+            ? ([["Investering", insp.investering]] as [string, string][])
+            : undefined,
         };
       }),
       breedte
@@ -1614,76 +1435,21 @@ function kaartjesSectie(data: BeknoptData, state: NumberingState): Sectie {
   return { properties: KAARTJES_LIGGEND ? PAGINA_LIGGEND : PAGINA_STAAND, children };
 }
 
-// --- 3. De vier inspanningen ---
+// --- 3.1 KPI-model · 3.2 Vermogensprofielen · 3.3 Inspanningsleiders · 3.4 Veranderstrategie ---
 
-function inspanningenSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("De vier inspanningen", state)];
-
-  if (data.inspanningen.length === 0) {
-    children.push(
-      tebepalenRegel(
-        "De cross-sectorale inspanningen zijn nog niet uitgewerkt — doorloop stap 4 van de cross-analyse."
-      )
-    );
-    return { properties: PAGINA_STAAND, children };
-  }
+function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie {
+  const children: Inhoud = [subKop("KPI-model — baten · vermogen · inspanningen", state)];
 
   children.push(
     bodyText(
-      "Per domein één gezamenlijke inspanning: wat we gaan doen, wat het kost, wanneer en wie. " +
-        "Op volgorde van prioriteit — Data & Systemen eerst, daarna Processen, Mens en Cultuur. " +
-        "De volledige onderbouwing staat in het complete programmaplan.",
-      { size: 18, color: TEXT_SECONDARY }
-    )
-  );
-
-  // Op prioriteit, niet outside-in: Data & Systemen → Processen → Mens → Cultuur.
-  const opPrioriteit = [...data.inspanningen].sort(
-    (a, b) => PRIORITEIT_ORDER.indexOf(a.domein) - PRIORITEIT_ORDER.indexOf(b.domein)
-  );
-  opPrioriteit.forEach((insp, index) => {
-    children.push(
-      kaartje({
-        accent: DOMAIN_ACCENT[insp.domein],
-        breedte: BREEDTE_STAAND,
-        eyebrow: `${index + 1}. ${DOMAIN_LABELS[insp.domein]} · cross-sectorale hefboom`,
-        titel: insp.titel,
-        body: insp.beschrijving ? [insp.beschrijving] : undefined,
-        // Bewust alleen wie/wat: de argumentatie en randvoorwaarden maakten dit
-        // hoofdstuk vier pagina's lang en verdrongen de bedoeling.
-        // Periode bewust weggelaten: die staat per bundel in het hoofdstuk
-        // "Wanneer" en was hier meestal "te bepalen".
-        meta: [
-          ["Investering", insp.investering],
-          ["Eigenaar", insp.eigenaar],
-          ["Inspanningsleider", insp.inspanningsleider],
-        ],
-      })
-    );
-    children.push(emptyLine(110));
-  });
-
-  return { properties: PAGINA_STAAND, children };
-}
-
-// --- Hoe we meten of het werkt (baten-KPI's) ---
-
-function kpiSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("Hoe we meten of het werkt", state)];
-
-  children.push(
-    bodyText(
-      "Per sector één baat met de bijbehorende KPI's, vastgesteld in de stakeholdersessie. " +
-        "De startwaarden meten we in Q3 (nulmeting); de doelwaarden bepalen we daarna in de " +
-        "vervolgsessie — een doelwaarde zonder startwaarde is niet toetsbaar op haalbaarheid.",
+      "Per sector één baat met de bijbehorende KPI's, vastgesteld in de stakeholdersessie. De " +
+        "startwaarden meten we in Q3 (nulmeting); de doelwaarden bepalen we daarna in de vervolgsessie.",
       { size: 20, color: TEXT_SECONDARY }
     )
   );
-  children.push(emptyLine(110));
 
   BATEN_KPIS.forEach((baat) => {
     const pill = SECTOR_PILL[baat.sector] ?? { bg: "E5E7EB", kleur: "374151" };
-    // Kop van de baat — zelfde opbouw als de kaartkop in KpiModelBlock.
     children.push(
       kaartje({
         accent: ACCENT_BATEN,
@@ -1697,7 +1463,6 @@ function kpiSectie(data: BeknoptData, state: NumberingState): Sectie {
         ],
       })
     );
-    // KPI-tabel: exact de kolommen uit de app (KPI · Definitie · Startwaarde → waar naartoe).
     children.push(
       tabel(
         [
@@ -1712,10 +1477,9 @@ function kpiSectie(data: BeknoptData, state: NumberingState): Sectie {
         ])
       )
     );
-    children.push(emptyLine(140));
+    children.push(emptyLine(120));
   });
 
-  // Doelwaarden: één keer, met de eisen uit H8 — niet per baat herhalen.
   children.push(
     kaartje({
       accent: "B45309",
@@ -1726,34 +1490,88 @@ function kpiSectie(data: BeknoptData, state: NumberingState): Sectie {
       vulling: "FFFDF7",
     })
   );
-  children.push(emptyLine(110));
-
+  children.push(emptyLine(120));
   children.push(
     bronRegel(
       "NPS is een resultante, geen stuur-KPI: je stuurt op de onderliggende indicatoren en meet met " +
-        "NPS of het werkt. De indicatoren per vermogen worden bepaald in de vervolgsessie, na de " +
-        "nulmeting. Bron: de KPI-set uit de stakeholdersessie (stap 9)."
+        "NPS of het werkt."
+    )
+  );
+
+  if (data.vermogensprofielen.length > 0) {
+    children.push(subKop("Vermogensprofielen", state));
+    children.push(
+      tabel(
+        [
+          { kop: "Vermogen", breedte: 22 },
+          { kop: "Huidige situatie (AS-IS)", breedte: 30 },
+          { kop: "Gewenste situatie (TO-BE)", breedte: 30 },
+          { kop: "Verantwoordelijk", breedte: 18 },
+        ],
+        data.vermogensprofielen.map((v) => [
+          styledCell(v.titel, { bold: true, width: 22 }),
+          styledCell(v.asIs, { width: 30 }),
+          styledCell(v.toBe, { width: 30 }),
+          styledCell(v.eigenaar, { width: 18 }),
+        ])
+      )
+    );
+  }
+
+  if (data.inspanningen.length > 0) {
+    children.push(subKop("Eigenaar en inspanningsleider per domein", state));
+    children.push(
+      tabel(
+        [
+          { kop: "Domein", breedte: 22 },
+          { kop: "Gezamenlijke inspanning", breedte: 38 },
+          { kop: "Eigenaar", breedte: 20 },
+          { kop: "Inspanningsleider", breedte: 20 },
+        ],
+        [...data.inspanningen]
+          .sort((a, b) => PRIORITEIT_ORDER.indexOf(a.domein) - PRIORITEIT_ORDER.indexOf(b.domein))
+          .map((i) => [
+            styledCell(DOMAIN_LABELS[i.domein], { shading: DOMAIN_COLORS[i.domein], width: 22 }),
+            styledCell(i.titel, { width: 38 }),
+            styledCell(i.eigenaar, { width: 20 }),
+            styledCell(i.inspanningsleider, { width: 20 }),
+          ])
+      )
+    );
+  }
+
+  // Letterlijk de veranderstrategie uit het volledige programmaplan (§3.4).
+  children.push(subKop("Veranderstrategie", state));
+  children.push(
+    bodyText(
+      "De inspanningen zijn niet willekeurig over de vier domeinen verdeeld. Het programma kiest " +
+        "bewust voor een dubbele aanpak: parallel werken aan de zachte kant — cultuur (waarden, gedrag, " +
+        "leiderschap) en mens (competenties, vakmanschap, opleiding) — én aan de harde kant — data & " +
+        "systemen (CRM, registratie, infrastructuur) en processen (werkwijzen, governance, samenwerking).",
+      { size: 20 }
+    )
+  );
+  children.push(
+    bodyText(
+      "Wie alleen aan cultuur en gedrag werkt, ontwikkelt een klantgerichte mindset zonder de " +
+        "instrumenten om die mindset waar te maken. Wie alleen aan systemen en processen sleutelt, " +
+        "krijgt een stelsel dat technisch klopt maar door medewerkers niet wordt gedragen. Pas wanneer " +
+        "beide kanten gelijktijdig opschuiven, ontstaat verandering die beklijft. De roadmap in " +
+        "hoofdstuk 6 plant de zachte en harde inspanningen daarom parallel, niet sequentieel.",
+      { size: 20 }
     )
   );
 
   return { properties: PAGINA_STAAND, children };
 }
 
-// --- 4. Wat het kost ---
+// --- 4. Raming ---
 
-function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("Wat het kost", state)];
+function ramingSectie(data: BeknoptData, state: NumberingState): Sectie | null {
   const geld = data.geld;
+  if (!geld) return null;
 
-  if (!geld) {
-    children.push(
-      tebepalenRegel(
-        "De raming is nog niet doorgerekend — doorloop stap 6 (out-of-pocket) en stap 7 (interne uren) van de cross-analyse."
-      )
-    );
-    return { properties: PAGINA_STAAND, children };
-  }
-
+  const children: Inhoud = [...kop("Raming", state)];
   children.push(
     kaartje({
       accent: CITO_BLUE,
@@ -1769,32 +1587,8 @@ function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
   );
   children.push(emptyLine(120));
 
-  if (geld.perJaar.length > 0) {
-    children.push(subHeading("Per jaar"));
-    children.push(
-      tabel(
-        [
-          { kop: "Jaar", breedte: 16 },
-          { kop: "Out-of-pocket", breedte: 28 },
-          { kop: "Interne uren", breedte: 28 },
-          { kop: "Totaal", breedte: 28 },
-        ],
-        geld.perJaar.map((p) => [
-          styledCell(String(p.jaar), { bold: true, width: 16 }),
-          styledCell(formatEuro(p.outOfPocket), { width: 28 }),
-          styledCell(
-            formatEuro(p.interneKosten) + (p.interneUren > 0 ? ` (${formatGetal(p.interneUren)} u)` : ""),
-            { width: 28 }
-          ),
-          styledCell(formatEuro(p.totaal), { bold: true, width: 28 }),
-        ])
-      )
-    );
-    children.push(emptyLine(120));
-  }
-
   if (geld.perInspanning.length > 0) {
-    children.push(subHeading("Per inspanning"));
+    children.push(subKop("Out-of-pocket kosten", state));
     children.push(
       tabel(
         [
@@ -1803,54 +1597,99 @@ function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
           { kop: "Bedrag", breedte: 20 },
           { kop: "Aandeel", breedte: 16 },
         ],
-        geld.perInspanning.map((p) => [
-          styledCell(DOMAIN_LABELS[p.domein], { shading: DOMAIN_COLORS[p.domein], width: 20 }),
-          styledCell(p.titel, { width: 44 }),
-          styledCell(formatEuro(p.euro), { width: 20 }),
-          styledCell(p.aandeel === null ? "—" : `${Math.round(p.aandeel)}%`, { width: 16 }),
+        geld.perInspanning.map((x) => [
+          styledCell(DOMAIN_LABELS[x.domein], { shading: DOMAIN_COLORS[x.domein], width: 20 }),
+          styledCell(x.titel, { width: 44 }),
+          styledCell(formatEuro(x.euro), { width: 20 }),
+          styledCell(x.aandeel === null ? "—" : `${Math.round(x.aandeel)}%`, { width: 16 }),
         ])
       )
     );
-    children.push(emptyLine(120));
   }
 
-  if (geld.stuurgroepNotitie) {
-    children.push(subHeading("Notitie uit de stuurgroep"));
-    children.push(methodiekIntro(geld.stuurgroepNotitie));
+  if (geld.perJaar.length > 0) {
+    children.push(subKop("Totaaloverzicht per jaar", state));
+    children.push(
+      tabel(
+        [
+          { kop: "Jaar", breedte: 16 },
+          { kop: "Out-of-pocket", breedte: 28 },
+          { kop: "Interne uren", breedte: 28 },
+          { kop: "Totaal", breedte: 28 },
+        ],
+        geld.perJaar.map((j) => [
+          styledCell(String(j.jaar), { bold: true, width: 16 }),
+          styledCell(formatEuro(j.outOfPocket), { width: 28 }),
+          styledCell(
+            formatEuro(j.interneKosten) + (j.interneUren > 0 ? ` (${formatGetal(j.interneUren)} u)` : ""),
+            { width: 28 }
+          ),
+          styledCell(formatEuro(j.totaal), { bold: true, width: 28 }),
+        ])
+      )
+    );
   }
 
+  if (geld.stuurgroepNotitie) children.push(methodiekIntro(geld.stuurgroepNotitie));
+  children.push(emptyLine(120));
   children.push(bodyText("Dit is een raming, geen vastgestelde begroting.", { bold: true, size: 20 }));
   children.push(
     bronRegel(
-      `Bron: cross-analyse stap 6, 7 en 8 — scenario "${geld.label}". Drie alternatieve scenario's zijn ` +
-        "doorgerekend; de vergelijking staat in het volledige programmaplan (§4.3)."
+      `Bron: cross-analyse stap 6, 7 en 8 — scenario "${geld.label}". De vergelijking met de andere ` +
+        "scenario's staat in het volledige programmaplan (§4.3)."
     )
   );
 
   return { properties: PAGINA_STAAND, children };
 }
 
-// --- 5. Wanneer ---
+// --- 5. Programma-organisatie ---
 
-function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [...kop("Wanneer", state)];
+function organisatieSectie(data: BeknoptData, state: NumberingState): Sectie | null {
+  const org = data.organisatie;
+  if (!org) return null;
+
+  const children: Inhoud = [...kop("Programma-organisatie", state)];
+  children.push(
+    tabel(
+      [
+        { kop: "Rol", breedte: 30 },
+        { kop: "Naam", breedte: 32 },
+        { kop: "Functie", breedte: 38 },
+      ],
+      org.rijen.map(([rol, naam, functie]) => [
+        styledCell(rol, { bold: true, width: 30 }),
+        styledCell(naam, { width: 32 }),
+        styledCell(functie, { width: 38 }),
+      ])
+    )
+  );
+  children.push(emptyLine(120));
+  if (org.ritme) children.push(bodyText(`Besluitvormingsritme: ${org.ritme}`, { size: 20 }));
+  if (org.escalatie) children.push(bodyText(`Escalatiepad: ${org.escalatie}`, { size: 20 }));
+  children.push(
+    bronRegel(
+      "De volledige programmaorganisatie en de RASCI-matrix staan in hoofdstuk 5 van het complete " +
+        "programmaplan."
+    )
+  );
+
+  return { properties: PAGINA_STAAND, children };
+}
+
+// --- 6. Planning en roadmap ---
+
+function planningSectie(data: BeknoptData, state: NumberingState): Sectie | null {
   const planning = data.planning;
+  if (!planning) return null;
 
-  if (!planning) {
-    children.push(
-      tebepalenRegel(
-        "De planning is nog niet vastgesteld — te bepalen. Genereer het planningsvoorstel in stap 6 van de cross-analyse."
-      )
-    );
-    return { properties: PAGINA_STAAND, children };
-  }
+  const children: Inhoud = [...kop("Planning en roadmap", state)];
 
   if (data.fasering.length > 0) {
-    children.push(subHeading("2026 — de analysefase"));
     children.push(
       bodyText(
         "2026 is de analysefase met quick wins: per domein brengen we de startsituatie in kaart en " +
-          "maken we de gap tussen huidige en gewenste situatie meetbaar. Wat daar uitkomt, bepaalt de " +
+          "maken we de gap tussen huidige en gewenste situatie meetbaar. Wat daaruit komt, bepaalt de " +
           "vervolg-inspanningen voor 2027 en de indicatoren waarmee we de groei volgen.",
         { size: 20 }
       )
@@ -1869,18 +1708,11 @@ function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
         ])
       )
     );
-    children.push(bronRegel("Bron: fasering en budgetten 2026 uit de Plus20-raming."));
-    children.push(emptyLine(110));
-    children.push(subHeading("De bundels in de tijd"));
+    children.push(emptyLine(120));
   }
 
-  if (planning.volgordeZin) {
-    children.push(bodyText(planning.volgordeZin, { bold: true, size: 20 }));
-  }
-  if (planning.toelichting) {
-    children.push(subHeading("Toelichting programma-eigenaar"));
-    children.push(methodiekIntro(planning.toelichting));
-  }
+  if (planning.volgordeZin) children.push(bodyText(planning.volgordeZin, { bold: true, size: 20 }));
+  if (planning.toelichting) children.push(methodiekIntro(planning.toelichting));
 
   children.push(
     tabel(
@@ -1898,7 +1730,6 @@ function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
       ])
     )
   );
-  children.push(emptyLine(120));
 
   planning.bundels
     .filter((b) => b.mijlpalen.length > 0)
@@ -1906,41 +1737,6 @@ function planningSectie(data: BeknoptData, state: NumberingState): Sectie {
       children.push(subHeading(`Mijlpalen — ${b.titel}`));
       b.mijlpalen.forEach((m) => children.push(opsomming(m)));
     });
-
-  return { properties: PAGINA_STAAND, children };
-}
-
-// --- 6. Wie ---
-
-function bemensingSectie(data: BeknoptData, state: NumberingState): Sectie | null {
-  const org = data.organisatie;
-  if (!org) return null;
-
-  const children: Inhoud = [...kop("Wie", state)];
-  children.push(
-    tabel(
-      [
-        { kop: "Rol", breedte: 30 },
-        { kop: "Naam", breedte: 32 },
-        { kop: "Functie", breedte: 38 },
-      ],
-      org.rijen.map(([rol, naam, functie]) => [
-        styledCell(rol, { bold: true, width: 30 }),
-        styledCell(naam, { width: 32, color: naam === TE_BEPALEN ? TEXT_MUTED : TEXT_PRIMARY }),
-        styledCell(functie, { width: 38 }),
-      ])
-    )
-  );
-  children.push(emptyLine(120));
-
-  if (org.ritme) children.push(bodyText(`Besluitvormingsritme: ${org.ritme}`, { size: 20 }));
-  if (org.escalatie) children.push(bodyText(`Escalatiepad: ${org.escalatie}`, { size: 20 }));
-  children.push(
-    bronRegel(
-      "De volledige programmaorganisatie — kerngroep, stuurgroep, adviesgroep, klankbordgroep en de " +
-        "RASCI-matrix — staat in hoofdstuk 5 van het complete programmaplan."
-    )
-  );
 
   return { properties: PAGINA_STAAND, children };
 }
@@ -1959,19 +1755,19 @@ export function buildBeknoptSections(session: DINSession): Sectie[] {
   // gedeeld worden met generateWordDocument.
   const state = createNumberingState();
 
+  // Zelfde hoofdstukindeling als het volledige programmaplan, alleen ingedikt.
   const secties: (Sectie | null)[] = [
     titelSectie(data),
-    besluitenSectie(data),
-    waarOverSectie(data, state),
-    kaartjesSectie(data, state),
-    inspanningenSectie(data, state),
-    kpiSectie(data, state),
+    visieScopeSectie(data, state),
+    doelenSectie(data, state),
+    kernSectie(data, state),
+    kernSubsectiesSectie(data, state),
     ramingSectie(data, state),
+    organisatieSectie(data, state),
     planningSectie(data, state),
-    bemensingSectie(data, state),
   ];
 
-  return secties.filter((s): s is Sectie => s !== null);
+  return secties.filter((x): x is Sectie => x !== null);
 }
 
 export async function generateBeknoptWordDocument(session: DINSession): Promise<Blob> {

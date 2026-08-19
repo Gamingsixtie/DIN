@@ -3,7 +3,6 @@ import type { DINSession } from "@/lib/types";
 import {
   kiesActiefScenario,
   verzamelBeknoptData,
-  verzamelOpenstaand,
   buildBeknoptSections,
   TE_BEPALEN,
 } from "@/lib/word-export-beknopt";
@@ -330,23 +329,6 @@ describe("kiesActiefScenario", () => {
   });
 });
 
-describe("verzamelOpenstaand", () => {
-  it("meldt een leeg verplicht dossierveld", () => {
-    const session = createRichSession();
-    const data = verzamelBeknoptData(session);
-    // programmamanager heeft een lege naam
-    const punten = verzamelOpenstaand(data).map((p) => p.tekst);
-    expect(punten.some((t) => t.toLowerCase().includes("programmamanager"))).toBe(true);
-  });
-
-  it("ontdubbelt identieke punten", () => {
-    const data = verzamelBeknoptData(createRichSession());
-    const punten = verzamelOpenstaand(data);
-    const sleutels = punten.map((p) => `${p.hoofdstuk}|${p.tekst}`);
-    expect(new Set(sleutels).size).toBe(sleutels.length);
-  });
-});
-
 describe("buildBeknoptSections", () => {
   it("bevat geen enkele UUID (CLAUDE.md-regel 9)", () => {
     const tekst = volledigeTekst(createRichSession());
@@ -363,24 +345,27 @@ describe("buildBeknoptSections", () => {
     expect(processen?.gebundeld).toHaveLength(1);
   });
 
-  it("sorteert de domeinen outside-in: cultuur, mens, data & systemen, processen", () => {
+  it("sorteert de inspanningen op prioriteit: data & systemen, processen, mens, cultuur", () => {
     const tekst = volledigeTekst(createRichSession());
-    const cultuur = tekst.indexOf("Cultuur-inspanning");
-    const mens = tekst.indexOf("Mens-inspanning");
     const data = tekst.indexOf("Data-inspanning");
     const processen = tekst.indexOf("Processen-inspanning");
-    expect(cultuur).toBeGreaterThan(-1);
-    expect(cultuur).toBeLessThan(mens);
-    expect(mens).toBeLessThan(data);
+    const mens = tekst.indexOf("Mens-inspanning");
+    const cultuur = tekst.indexOf("Cultuur-inspanning");
+    expect(data).toBeGreaterThan(-1);
     expect(data).toBeLessThan(processen);
+    expect(processen).toBeLessThan(mens);
+    expect(mens).toBeLessThan(cultuur);
   });
 
-  it("gooit niet op een kale sessie en toont 'te bepalen'", () => {
+  it("gooit niet op een kale sessie", () => {
     const session = createMinimalSession();
     expect(() => buildBeknoptSections(session)).not.toThrow();
-    const secties = buildBeknoptSections(session);
-    expect(secties.length).toBeGreaterThan(0);
-    expect(volledigeTekst(session)).toContain(TE_BEPALEN);
+    expect(buildBeknoptSections(session).length).toBeGreaterThan(0);
+  });
+
+  it("bevat nergens openstaande punten — het plan is vastgesteld", () => {
+    expect(volledigeTekst(createMinimalSession())).not.toContain(TE_BEPALEN);
+    expect(volledigeTekst(createRichSession())).not.toContain(TE_BEPALEN);
   });
 
   it("laat hoofdstuk 6 (Wie) weg zonder programmaorganisatie", () => {
@@ -400,23 +385,21 @@ describe("buildBeknoptSections", () => {
     expect(tekst).not.toContain("SAMENVATTING-ONGESCHOOND");
   });
 
-  it("noemt de vier hoofdstuktitels", () => {
+  it("houdt de hoofdstukindeling van het volledige programmaplan aan", () => {
     const tekst = volledigeTekst(createRichSession());
-    expect(tekst).toContain("Besluiten in het kort");
-    expect(tekst).toContain("Het DIN in één beeld");
-    expect(tekst).toContain("De vier inspanningen");
-    expect(tekst).toContain("Hoe we meten of het werkt");
+    expect(tekst).toContain("1. Programmavisie en scope");
+    expect(tekst).toContain("2. Programmadoelen");
+    expect(tekst).toContain("3. Cross-sectorale uitkomst — de kern");
+    expect(tekst).toContain("3.1 KPI-model");
+    expect(tekst).toContain("Veranderstrategie");
+    expect(tekst).toContain("4. Raming");
   });
 
-  it("nummert de hoofdstukken 1 t/m 7 — de ongenummerde besluitenpagina schuift niets op", () => {
+  it("nummert de hoofdstukken door zonder gaten", () => {
     const tekst = volledigeTekst(createRichSession());
-    expect(tekst).toContain("1. Waar het programma over gaat");
-    expect(tekst).toContain("2. Het DIN in één beeld");
-    expect(tekst).toContain("3. De vier inspanningen");
-    expect(tekst).toContain("4. Hoe we meten of het werkt");
-    expect(tekst).toContain("5. Wat het kost");
-    expect(tekst).toContain("6. Wanneer");
-    expect(tekst).toContain("7. Wie");
+    expect(tekst).toContain("5. Programma-organisatie");
+    expect(tekst).toContain("6. Planning en roadmap");
+    expect(tekst).not.toContain("7. ");
   });
 
   it("toont geen NaN of undefined bij een begrotingspost zonder percentage", () => {
@@ -442,21 +425,14 @@ describe("buildBeknoptSections", () => {
     );
   });
 
-  it("behandelt getypte placeholders zoals 'ntb' als nog niet ingevuld", () => {
+  it("toont getypte placeholders zoals 'ntb' niet als antwoord", () => {
     const session = createRichSession();
     const subs = session.crossAnalyseWizard!.stepResults!.stap4!.subEffortAnalysis as unknown as {
-      dossier: { verwachtResultaat: string; eigenaar: string };
+      dossier: { eigenaar: string };
     }[];
-    subs[0].dossier.verwachtResultaat = "NTB";
-    subs[1].dossier.eigenaar = "nader te bepalen";
-
+    subs[0].dossier.eigenaar = "NTB";
     const data = verzamelBeknoptData(session);
-    const punten = verzamelOpenstaand(data).map((p) => p.tekst.toLowerCase());
-    expect(punten.some((t) => t.includes("verwacht resultaat"))).toBe(true);
-    expect(punten.some((t) => t.includes("eigenaar"))).toBe(true);
-
-    const tekst = volledigeTekst(session);
-    expect(tekst).not.toContain("NTB");
-    expect(tekst).toContain(TE_BEPALEN);
+    const processen = data.inspanningen.find((i) => i.domein === "processen");
+    expect(processen?.eigenaar).toBe("");
   });
 });
