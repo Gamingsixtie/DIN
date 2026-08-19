@@ -26,6 +26,7 @@ import {
   BorderStyle,
   TableLayoutType,
   PageOrientation,
+  HeadingLevel,
 } from "docx";
 import type { DINSession, EffortDomain, SectorName } from "./types";
 import { SECTORS, DOMAIN_LABELS } from "./types";
@@ -44,7 +45,7 @@ import {
   categorizeGaps,
   createNumberingState,
   numberedHeading,
-  plainH1,
+  heading,
   subHeading,
   bodyText,
   bullet,
@@ -424,7 +425,7 @@ export interface GeldBeknopt {
   totaal: number;
   aantalJaren: number | null;
   perJaar: PerJaarBeknopt[];
-  perInspanning: { domein: EffortDomain; titel: string; euro: number; aandeel: number }[];
+  perInspanning: { domein: EffortDomain; titel: string; euro: number; aandeel: number | null }[];
   stuurgroepNotitie: string;
 }
 
@@ -491,7 +492,46 @@ function tekst(waarde: string | null | undefined): string {
   return (waarde ?? "").trim();
 }
 
-/** Verplicht veld: leeg → "te bepalen" én een punt in hoofdstuk 7. */
+/**
+ * Sorteersleutel voor domeinen: outside-in, en alles wat niet in de vier
+ * inspanningsdomeinen valt (zoals "overig" — de post onvoorzien) achteraan.
+ */
+function domeinVolgorde(domein: EffortDomain): number {
+  const i = DOMEIN_OUTSIDE_IN_ORDER.indexOf(domein);
+  return i === -1 ? DOMEIN_OUTSIDE_IN_ORDER.length : i;
+}
+
+/**
+ * Waarden die in de praktijk als "nog niet ingevuld" worden getypt. In de sessie
+ * staan die als gewone tekst ("ntb", "NTB", "nader te bepalen"), waardoor ze
+ * anders als vastgelegd antwoord in het document zouden belanden én uit de
+ * openstaande-puntenlijst zouden vallen. Bewust géén "n.v.t." — dat is een
+ * besluit, geen openstaand punt.
+ */
+const PLACEHOLDERS = new Set([
+  "ntb",
+  "n.t.b.",
+  "n.t.b",
+  "tbd",
+  "t.b.d.",
+  "te bepalen",
+  "nader te bepalen",
+  "nog te bepalen",
+  "nader te bepalen.",
+  "nog niet bekend",
+  "volgt",
+  "volgt nog",
+  "?",
+  "-",
+  "--",
+  "—",
+]);
+
+function isPlaceholder(waarde: string): boolean {
+  return PLACEHOLDERS.has(waarde.toLowerCase().replace(/\s+/g, " ").trim());
+}
+
+/** Verplicht veld: leeg of een placeholder → "te bepalen" én een punt in hoofdstuk 7. */
 function veld(
   waarde: string | null | undefined,
   hoofdstuk: string,
@@ -499,7 +539,7 @@ function veld(
   open: OpenPunt[]
 ): string {
   const v = tekst(waarde);
-  if (v.length > 0) return v;
+  if (v.length > 0 && !isPlaceholder(v)) return v;
   open.push({ hoofdstuk, tekst: label });
   return TE_BEPALEN;
 }
@@ -573,12 +613,12 @@ function bouwGeld(session: DINSession, open: OpenPunt[]): GeldBeknopt | null {
       domein: insp.domein as EffortDomain,
       titel: tekst(insp.inspanningTitel),
       euro: insp.totaalEuro,
-      aandeel: insp.percentageTotaal,
+      // De begroting kent posten zonder percentage (bijv. "Post onvoorzien",
+      // domein "overig"). Niet zelf uitrekenen — dan zou het document een getal
+      // tonen dat niet in de bron staat.
+      aandeel: Number.isFinite(insp.percentageTotaal) ? insp.percentageTotaal : null,
     }))
-    .sort(
-      (x, y) =>
-        DOMEIN_OUTSIDE_IN_ORDER.indexOf(x.domein) - DOMEIN_OUTSIDE_IN_ORDER.indexOf(y.domein)
-    );
+    .sort((x, y) => domeinVolgorde(x.domein) - domeinVolgorde(y.domein));
 
   const vastgelegd = Boolean(stap8?.actiefScenario && stap8?.scenarios?.[stap8.actiefScenario as ScenarioK]);
   if (!vastgelegd) {
@@ -634,7 +674,7 @@ function bouwInspanningen(session: DINSession, open: OpenPunt[]): InspanningBekn
     let investering: string;
     if (post) {
       investering = `${formatEuro(post.totaalEuro)} (${Math.round(post.percentageTotaal)}% van het totaal)`;
-    } else if (tekst(dossier?.kostenraming)) {
+    } else if (tekst(dossier?.kostenraming) && !isPlaceholder(tekst(dossier?.kostenraming))) {
       investering = tekst(dossier?.kostenraming);
     } else {
       investering = TE_BEPALEN;
@@ -729,9 +769,7 @@ function bouwPlanning(session: DINSession, open: OpenPunt[]) {
   }
 
   const gesorteerd = [...bundels].sort(
-    (a, b) =>
-      DOMEIN_OUTSIDE_IN_ORDER.indexOf(a.domein as EffortDomain) -
-      DOMEIN_OUTSIDE_IN_ORDER.indexOf(b.domein as EffortDomain)
+    (a, b) => domeinVolgorde(a.domein as EffortDomain) - domeinVolgorde(b.domein as EffortDomain)
   );
 
   return {
@@ -1011,8 +1049,10 @@ function titelSectie(data: BeknoptData): Sectie {
 
 // --- Besluiten in het kort ---
 
-function besluitenSectie(data: BeknoptData, state: NumberingState): Sectie {
-  const children: Inhoud = [plainH1("Besluiten in het kort", state)];
+function besluitenSectie(data: BeknoptData): Sectie {
+  // Ongenummerde kop: bewust NIET plainH1 — dat advanceert de h1-teller,
+  // waardoor de hoofdstukken op 2 zouden beginnen.
+  const children: Inhoud = [heading("Besluiten in het kort", HeadingLevel.HEADING_1)];
   const punten: string[] = [];
 
   if (data.focusDoel) {
@@ -1359,7 +1399,7 @@ function ramingSectie(data: BeknoptData, state: NumberingState): Sectie {
           styledCell(DOMAIN_LABELS[p.domein], { shading: DOMAIN_COLORS[p.domein], width: 20 }),
           styledCell(p.titel, { width: 44 }),
           styledCell(formatEuro(p.euro), { width: 20 }),
-          styledCell(`${Math.round(p.aandeel)}%`, { width: 16 }),
+          styledCell(p.aandeel === null ? "—" : `${Math.round(p.aandeel)}%`, { width: 16 }),
         ])
       )
     );
@@ -1543,7 +1583,7 @@ export function buildBeknoptSections(session: DINSession): Sectie[] {
 
   const secties: (Sectie | null)[] = [
     titelSectie(data),
-    besluitenSectie(data, state),
+    besluitenSectie(data),
     waarOverSectie(data, state),
     kaartjesSectie(data, state),
     inspanningenSectie(data, state),

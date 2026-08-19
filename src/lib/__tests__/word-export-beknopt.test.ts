@@ -402,4 +402,57 @@ describe("buildBeknoptSections", () => {
     expect(tekst).toContain("De vier inspanningen");
     expect(tekst).toContain("Wat nog open staat");
   });
+
+  it("nummert de hoofdstukken 1 t/m 7 — de ongenummerde besluitenpagina schuift niets op", () => {
+    const tekst = volledigeTekst(createRichSession());
+    expect(tekst).toContain("1. Waar het programma over gaat");
+    expect(tekst).toContain("2. Het DIN in één beeld");
+    expect(tekst).toContain("3. De vier inspanningen");
+    expect(tekst).toContain("4. Wat het kost");
+    expect(tekst).toContain("5. Wanneer");
+    expect(tekst).toContain("6. Wie");
+    // Hoofdstuk 7 moet kloppen: de besluitenpagina verwijst ernaar.
+    expect(tekst).toContain("7. Wat nog open staat");
+  });
+
+  it("toont geen NaN of undefined bij een begrotingspost zonder percentage", () => {
+    const session = createRichSession();
+    const begroting = session.crossAnalyseWizard!.stepResults!.stap4!.begrotingAdvies!;
+    // Post onvoorzien: domein "overig", geen percentageTotaal — komt echt zo voor.
+    (begroting.scenarios.optimaal!.inspanningen as unknown[]).push({
+      inspanningTitel: "Post onvoorzien (programma-breed)",
+      domein: "overig",
+      totaalEuro: 57000,
+      percentageTotaal: undefined,
+      motivatie: "m",
+      verdelingPerJaar: [],
+      volgorde: { rank: 9, reden: "r" },
+    });
+    const tekst = volledigeTekst(session);
+    expect(tekst).not.toContain("NaN");
+    expect(tekst).not.toContain("undefined");
+    expect(tekst).toContain("Post onvoorzien (programma-breed)");
+    // "overig" hoort achteraan, niet vóór cultuur.
+    expect(tekst.indexOf("Cultuur-inspanning")).toBeLessThan(
+      tekst.indexOf("Post onvoorzien (programma-breed)")
+    );
+  });
+
+  it("behandelt getypte placeholders zoals 'ntb' als nog niet ingevuld", () => {
+    const session = createRichSession();
+    const subs = session.crossAnalyseWizard!.stepResults!.stap4!.subEffortAnalysis as unknown as {
+      dossier: { verwachtResultaat: string; eigenaar: string };
+    }[];
+    subs[0].dossier.verwachtResultaat = "NTB";
+    subs[1].dossier.eigenaar = "nader te bepalen";
+
+    const data = verzamelBeknoptData(session);
+    const punten = verzamelOpenstaand(data).map((p) => p.tekst.toLowerCase());
+    expect(punten.some((t) => t.includes("verwacht resultaat"))).toBe(true);
+    expect(punten.some((t) => t.includes("eigenaar"))).toBe(true);
+
+    const tekst = volledigeTekst(session);
+    expect(tekst).not.toContain("NTB");
+    expect(tekst).toContain(TE_BEPALEN);
+  });
 });

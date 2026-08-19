@@ -4271,6 +4271,7 @@ export default function ExportStep() {
   const { session } = useSession();
   const { addToast } = useToast();
   const [isExportingWord, setIsExportingWord] = useState(false);
+  const [isExportingBeknopt, setIsExportingBeknopt] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showGapModal, setShowGapModal] = useState(false);
 
@@ -4366,6 +4367,31 @@ export default function ExportStep() {
     }
   }
 
+  // Beknopte kernversie — geen gap-modal ervoor: hoofdstuk 7 van het document
+  // toont exact dezelfde categorizeGaps-data, dus de waarschuwing zit erin.
+  async function handleBeknoptExport() {
+    setIsExportingBeknopt(true);
+    setExportSuccess(false);
+    try {
+      const { generateBeknoptWordDocument } = await import("@/lib/word-export-beknopt");
+      const blob = await generateBeknoptWordDocument(session!);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `programmaplan-beknopt-${session!.name.replace(/\s+/g, "-").toLowerCase()}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportSuccess(true);
+      addToast("Beknopt programmaplan geëxporteerd", "success");
+      setTimeout(() => setExportSuccess(false), 4000);
+    } catch (e) {
+      console.error("Beknopte Word-export mislukt:", e);
+      addToast("Beknopte export mislukt. Probeer het opnieuw.", "error");
+    } finally {
+      setIsExportingBeknopt(false);
+    }
+  }
+
   const activeCaps = getActiveCaps(session);
   const activeEfforts = getActiveEfforts(session);
 
@@ -4394,7 +4420,8 @@ export default function ExportStep() {
         <div>
           <h3 className="text-base font-bold text-cito-blue mb-1">Programmaplan delen of downloaden</h3>
           <p className="text-xs text-gray-500">
-            Deel een leesversie via een link, of download als Word-bestand voor offline gebruik.
+            Deel een leesversie via een link, of download als Word-bestand — beknopt (de kern, ~8 pagina&apos;s)
+            of volledig (met alle onderbouwing).
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -4421,8 +4448,32 @@ export default function ExportStep() {
             Open leesversie + kopieer link
           </button>
           <button
+            onClick={handleBeknoptExport}
+            disabled={isExportingBeknopt || !hasContent}
+            title="Kernversie voor de programma-eigenaar — visie, de kaartjes, raming, planning en openstaande besluiten"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-cito-blue text-cito-blue rounded-lg text-sm font-medium hover:bg-cito-blue/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isExportingBeknopt ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Document aanmaken...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Beknopte versie (.docx)
+              </>
+            )}
+          </button>
+          <button
             onClick={handleExportClick}
             disabled={isExportingWord || !hasContent}
+            title="Het volledige programmaplan met alle onderbouwing — batenprofielen, RASCI, interne uren en alle vier de scenario's"
             className="flex items-center gap-2 px-5 py-2.5 bg-cito-blue text-white rounded-lg text-sm font-medium hover:bg-cito-blue-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isExportingWord ? (
