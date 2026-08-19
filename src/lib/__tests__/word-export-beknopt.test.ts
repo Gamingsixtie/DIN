@@ -413,11 +413,11 @@ describe("buildBeknoptSections", () => {
     expect(tekst).toContain("1. Waar het programma over gaat");
     expect(tekst).toContain("2. Het DIN in één beeld");
     expect(tekst).toContain("3. De vier inspanningen");
-    expect(tekst).toContain("4. Wat het kost");
-    expect(tekst).toContain("5. Wanneer");
-    expect(tekst).toContain("6. Wie");
-    // Hoofdstuk 7 moet kloppen: de besluitenpagina verwijst ernaar.
-    expect(tekst).toContain("7. Wat nog open staat");
+    expect(tekst).toContain("4. Hoe we meten of het werkt");
+    expect(tekst).toContain("5. Wat het kost");
+    expect(tekst).toContain("6. Wanneer");
+    expect(tekst).toContain("7. Wie");
+    expect(tekst).toContain("8. Wat nog open staat");
   });
 
   it("toont geen NaN of undefined bij een begrotingspost zonder percentage", () => {
