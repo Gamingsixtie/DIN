@@ -91,7 +91,7 @@ function stap(nr, kleur, titelRuns, tekstRuns, metWie, tag) {
   if (metWie) {
     inhoud.push(new Paragraph({
       spacing: { after: 0 },
-      children: [new TextRun({ text: "Met wie:  ", bold: true, color: kleur, size: 18 }), new TextRun({ text: metWie, color: INK2, size: 18 })],
+      children: [new TextRun({ text: "Met wie:  ", bold: true, color: kleur, size: 18 }), new TextRun({ text: metWie, bold: true, color: INK, size: 18 })],
     }));
   }
   return new TableRow({
