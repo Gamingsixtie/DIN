@@ -321,7 +321,7 @@ const doc = new Document({
           children: [
             doelKolom("Eind Q3 2026", "meetbaar, gemeten & gericht", [
               [b("Élke baten-KPI compleet ingevuld"), r(" — per KPI vijf dingen op papier: "), b("wat"), r(" meten we (definitie) · "), b("waar"), r(" komt het getal vandaan · "), b("hoe vaak"), r(" · "), b("waar staan we nu"), r(" (startwaarde) · "), b("waar willen we heen en wanneer"), r(" (doelwaarde mét datum). Doelwaarden + vermogen-indicatoren: in één vervolgsessie direct na de nulmeting.")],
-              [b("Inspanningsteam per domein samengesteld"), r(" — inspanningsleider + teamleden uit de sectoren, die de activiteiten daadwerkelijk uitvoeren.")],
+              [b("Inspanningsleider & inspanningsteam per domein vastgesteld"), r(" — bepaald mét de domeineigenaren (fundament, stap 2): leider + teamleden uit de sectoren; het analysefase-team kan in samenstelling verschillen van het team dat daarna uitvoert.")],
               [b("De echte stand per onderdeel bekend"), r(" — data & systemen · processen · mens · cultuur: gemeten, in plaats van op gevoel.")],
               [b("Pilotgroep gestart"), r(" in 1 sector.")],
             ], "adoptie-framework gereed & gedragen door het programmateam"),
