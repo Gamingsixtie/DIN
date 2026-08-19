@@ -59,7 +59,7 @@ import {
 } from "./word-export-shared";
 import type { NumberingState } from "./word-export-shared";
 import { computeFocusView } from "./stap5-focus";
-import { THREESIDES_DOMEINEN } from "./threesides-data";
+import { THREESIDES_DOMEINEN, THREESIDES_MIJLPAAL } from "./threesides-data";
 import {
   BATEN_KPIS,
   DOELWAARDE_EISEN,
@@ -468,14 +468,6 @@ export interface GeldBeknopt {
   stuurgroepNotitie: string;
 }
 
-export interface BundelBeknopt {
-  domein: EffortDomain;
-  titel: string;
-  cyclus: string;
-  periode: string;
-  mijlpalen: string[];
-}
-
 export interface VermogensProfielBeknopt {
   titel: string;
   sectoren: string;
@@ -484,10 +476,17 @@ export interface VermogensProfielBeknopt {
   verantwoordelijk: string;
 }
 
+/** Planning per domein, uit de 3sides-tracker in stap 9 (KPI's & Meetbaarheid). */
 export interface FaseBeknopt {
   domein: EffortDomain;
   fase2026: string;
   budget2026: string;
+  /** 2026-opleveringen (3sides-KPI = deliverable opgeleverd). */
+  deliverables: string[];
+  verdereJaren: string;
+  funnel: string;
+  quickWins: string[];
+  budgetTotaalPlus20: string;
 }
 
 export interface BeknoptData {
@@ -518,10 +517,6 @@ export interface BeknoptData {
   zwaartepunt: { euro: number; aandeel: number } | null;
   fasering: FaseBeknopt[];
   vermogensprofielen: VermogensProfielBeknopt[];
-  planning: {
-    toelichting: string;
-    bundels: BundelBeknopt[];
-  } | null;
   organisatie: { rijen: [string, string, string][]; ritme: string; escalatie: string } | null;
   gaps: {
     volgendeCyclus: string[];
@@ -817,46 +812,6 @@ function bouwVermogensGroepen(session: DINSession) {
   });
 }
 
-function bouwPlanning(session: DINSession) {
-  const planning = session.planningVoorstel;
-  const bundels = planning?.bundelPlanning ?? [];
-  if (!planning || bundels.length === 0) {
-    return null;
-  }
-
-  // Op cyclus, niet op domein: een planningstabel leest chronologisch. Valt terug
-  // op de prioriteitsvolgorde als er geen cyclusnummer in het label staat.
-  const cyclusNr = (label: string): number => {
-    const m = /(\d+)/.exec(label ?? "");
-    return m ? Number(m[1]) : 99;
-  };
-  const gesorteerd = [...bundels].sort((a, b) => {
-    const verschil = cyclusNr(a.cyclusLabel) - cyclusNr(b.cyclusLabel);
-    if (verschil !== 0) return verschil;
-    return (
-      PRIORITEIT_ORDER.indexOf(a.domein as EffortDomain) -
-      PRIORITEIT_ORDER.indexOf(b.domein as EffortDomain)
-    );
-  });
-
-  return {
-    toelichting: tekst(planning.toelichting),
-    bundels: gesorteerd.map((bd) => {
-      const start = tekst(bd.startKwartaal);
-      const eind = tekst(bd.eindKwartaal);
-      return {
-        domein: bd.domein as EffortDomain,
-        titel: tekst(bd.titel),
-        cyclus: tekst(bd.cyclusLabel),
-        periode: start && eind ? `${start} – ${eind}` : "",
-        mijlpalen: (bd.mijlpalen ?? [])
-          .map((m) => `${tekst(m.periode)}: ${tekst(m.mijlpaal)}`)
-          .filter((s) => s.length > 2),
-      };
-    }),
-  };
-}
-
 function bouwOrganisatie(session: DINSession) {
   const po = session.programmaorganisatie;
   if (!po) return null;
@@ -932,11 +887,9 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     .map((g) => ({ rank: g.rank ?? 0, naam: tekst(g.name) }))
     .filter((g) => g.naam.length > 0);
 
-  // Buiten deze cyclus — zelfde afleiding als overviewSection in het volledige plan.
-  const buitenCyclus = [
-    ...gaps.volgendeCyclus.map((g) => `Doel: ${tekst(g.name)} — wordt in volgende cyclus uitgewerkt`),
-    ...(session.scope?.outScope ?? []).map((s) => tekst(s)),
-  ].filter((s) => s.length > 0);
+  // Alleen de expliciete scope-uitsluitingen. De doelen die pas in een volgende
+  // cyclus aan bod komen staan in hoofdstuk 2 — hier zouden ze dubbel staan.
+  const buitenCyclus = (session.scope?.outScope ?? []).map((x) => tekst(x)).filter((x) => x.length > 0);
 
   const dekking = stepResults?.stap5?.batenDekking ?? [];
   const focusBenefits = focus?.focusBenefits ?? [];
@@ -985,11 +938,26 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
     geld,
     looptijd,
     zwaartepunt,
-    // 2026-fasen per domein uit de Plus20-raming (threesides-data.ts), in
-    // prioriteitsvolgorde: Analyse → Inventarisatie → Behoefte → Bewustwording.
+    // De planning komt uit stap 9 (KPI's & Meetbaarheid): de 3sides-tracker met
+    // de 2026-fase, de opleveringen per domein en wat er in latere jaren volgt.
+    // In prioriteitsvolgorde, gelijk aan de rest van het document.
     fasering: PRIORITEIT_ORDER.map((domein) => {
       const t = THREESIDES_DOMEINEN.find((x) => x.domein === domein);
-      return t ? { domein, fase2026: t.fase2026, budget2026: t.budget2026 } : null;
+      if (!t) return null;
+      // Handmatige aanpassingen uit de app gaan voor op de standaardtekst.
+      const overrides = session.threesidesOverrides ?? {};
+      return {
+        domein,
+        fase2026: t.fase2026,
+        budget2026: t.budget2026,
+        deliverables: t.deliverables.map(
+          (d, i) => tekst(overrides[`${domein}:${i}`]?.tekst) || d.label
+        ),
+        verdereJaren: tekst(t.verdereJaren),
+        funnel: tekst(t.funnel),
+        quickWins: t.quickWins ?? [],
+        budgetTotaalPlus20: t.budgetTotaalPlus20,
+      };
     }).filter((f): f is FaseBeknopt => f !== null),
     // 1-op-1 als VermogensprofielenBlock in het volledige programmaplan:
     // alfabetisch op titel, sectoren onder de naam, "—" waar niets staat, en
@@ -1015,7 +983,6 @@ export function verzamelBeknoptData(session: DINSession): BeknoptData {
         };
       })
       .filter((v) => v.titel.length > 0),
-    planning: bouwPlanning(session),
     organisatie: bouwOrganisatie(session),
     gaps: {
       volgendeCyclus: gaps.volgendeCyclus.map((g) => tekst(g.name)).filter((s) => s.length > 0),
@@ -1287,9 +1254,9 @@ function titelSectie(data: BeknoptData): Sectie {
       ),
       emptyLine(280),
       bronRegel(
-        "Dit is de kernversie voor de programma-eigenaar. De volledige onderbouwing — batenprofielen, " +
-          "vermogensprofielen, RASCI, interne uren per rol en alle vier de scenario's — staat in het " +
-          "complete programmaplan."
+        "Dit is de kernversie voor de programma-eigenaar. De volledige onderbouwing — de complete " +
+          "batenprofielen, de RASCI-matrix, de interne uren per rol en alle vier de doorgerekende " +
+          "scenario's — staat in het complete programmaplan."
       ),
     ],
   };
@@ -1717,62 +1684,45 @@ function organisatieSectie(data: BeknoptData, state: NumberingState): Sectie | n
 // --- 6. Planning en roadmap ---
 
 function planningSectie(data: BeknoptData, state: NumberingState): Sectie | null {
-  const planning = data.planning;
-  if (!planning) return null;
+  if (data.fasering.length === 0) return null;
 
   const children: Inhoud = [...kop("Planning en roadmap", state)];
 
-  if (data.fasering.length > 0) {
-    children.push(
-      bodyText(
-        "2026 is de analysefase met quick wins: per domein brengen we de startsituatie in kaart en " +
-          "maken we de gap tussen huidige en gewenste situatie meetbaar. Wat daaruit komt, bepaalt de " +
-          "vervolg-inspanningen voor 2027 en de indicatoren waarmee we de groei volgen.",
-        { size: 20 }
-      )
-    );
-    children.push(
-      tabel(
-        [
-          { kop: "Domein", breedte: 26 },
-          { kop: "Fase in 2026", breedte: 40 },
-          { kop: "Budget 2026", breedte: 34 },
-        ],
-        data.fasering.map((f) => [
-          styledCell(DOMAIN_LABELS[f.domein], { shading: DOMAIN_COLORS[f.domein], width: 26 }),
-          styledCell(f.fase2026, { width: 40 }),
-          styledCell(f.budget2026, { width: 34 }),
-        ])
-      )
-    );
-    children.push(emptyLine(120));
-  }
+  children.push(
+    bodyText(
+      "2026 is de analysefase met quick wins: per domein brengen we de startsituatie in kaart en " +
+        "maken we de gap tussen huidige en gewenste situatie meetbaar. Wat daaruit komt, bepaalt de " +
+        "vervolg-inspanningen voor 2027 en de indicatoren waarmee we de groei volgen.",
+      { size: 20 }
+    )
+  );
+  children.push(bodyText(THREESIDES_MIJLPAAL + ".", { bold: true, size: 20 }));
+  children.push(emptyLine(120));
 
-  if (planning.toelichting) children.push(methodiekIntro(planning.toelichting));
-
+  // Alleen de planning zelf: fase, opleveringen en vervolg. De budgetten staan
+  // in hoofdstuk 4 en de inspanningen in hoofdstuk 3 — hier niet herhalen.
   children.push(
     tabel(
       [
-        { kop: "Domein", breedte: 18 },
-        { kop: "Gezamenlijke inspanning", breedte: 42 },
-        { kop: "Cyclus", breedte: 18 },
-        { kop: "Periode", breedte: 22 },
+        { kop: "Domein", breedte: 20 },
+        { kop: "Fase in 2026", breedte: 18 },
+        { kop: "Wat we in 2026 opleveren", breedte: 40 },
+        { kop: "Latere jaren", breedte: 22 },
       ],
-      planning.bundels.map((b) => [
-        styledCell(DOMAIN_LABELS[b.domein], { shading: DOMAIN_COLORS[b.domein], width: 18 }),
-        styledCell(b.titel, { width: 42 }),
-        styledCell(b.cyclus, { width: 18 }),
-        styledCell(b.periode, { width: 22 }),
+      data.fasering.map((f) => [
+        styledCell(DOMAIN_LABELS[f.domein], { shading: DOMAIN_COLORS[f.domein], width: 20 }),
+        styledCell(f.fase2026, { bold: true, width: 18 }),
+        styledCell(f.deliverables.join(" · "), { width: 40 }),
+        styledCell(f.verdereJaren || "—", { width: 22 }),
       ])
     )
   );
-
-  planning.bundels
-    .filter((b) => b.mijlpalen.length > 0)
-    .forEach((b) => {
-      children.push(subHeading(`Mijlpalen — ${b.titel}`));
-      b.mijlpalen.forEach((m) => children.push(opsomming(m)));
-    });
+  children.push(
+    bronRegel(
+      "Bron: de 3sides-tracker uit stap 9 (KPI's & Meetbaarheid). Een oplevering geldt als gereed " +
+        "wanneer het product er ligt — dat is iets anders dan het klanteffect, dat via de baten wordt gemeten."
+    )
+  );
 
   return { properties: PAGINA_STAAND, children };
 }
