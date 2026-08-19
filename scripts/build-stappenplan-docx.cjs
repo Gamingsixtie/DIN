@@ -16,7 +16,7 @@ const {
 // ---- kleuren (zelfde systeem als de sketch) ----
 const CITO = "003366", BATEN = "0066CC", TEAL = "0891B2", PAARS = "6D28D9";
 const AMBER = "B45309", GROEN = "047857", BLAUW = "2563EB", ORANJE = "D97706";
-const INK = "111827", INK2 = "5B6573", INK3 = "9AA3B0";
+const INK = "111827", INK2 = "3D4654", INK3 = "667085";
 const AMBER_BG = "FFF7E6", TEAL_BG = "E6F6FA", GRIJS_BG = "F4F6F9";
 
 const NB = { style: BorderStyle.NIL };
@@ -81,7 +81,7 @@ function stap(nr, kleur, titelRuns, tekstRuns, metWie, tag) {
       spacing: { after: 40 },
       children: [
         ...titelRuns,
-        ...(tag ? [new TextRun({ text: "   " + tag, bold: true, color: INK3, size: 15 })] : []),
+        ...(tag ? [new TextRun({ text: "   " + tag, bold: true, color: INK3, size: 16 })] : []),
       ],
     }),
   ];
@@ -91,7 +91,7 @@ function stap(nr, kleur, titelRuns, tekstRuns, metWie, tag) {
   if (metWie) {
     inhoud.push(new Paragraph({
       spacing: { after: 0 },
-      children: [new TextRun({ text: "Met wie:  ", bold: true, color: kleur, size: 17 }), new TextRun({ text: metWie, color: INK2, size: 17 })],
+      children: [new TextRun({ text: "Met wie:  ", bold: true, color: kleur, size: 18 }), new TextRun({ text: metWie, color: INK2, size: 18 })],
     }));
   }
   return new TableRow({
@@ -108,16 +108,24 @@ function stap(nr, kleur, titelRuns, tekstRuns, metWie, tag) {
         })],
       }),
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: "FFFFFF" },
-        margins: { top: 110, bottom: 110, left: 170, right: 170 },
-        borders: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "E7EBF0" } },
+        shading: { type: ShadingType.CLEAR, fill: "F5F7FA" },
+        margins: { top: 130, bottom: 130, left: 190, right: 190 },
         children: inhoud,
       }),
     ],
   });
 }
 function stappenTabel(rows) {
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows });
+  const uit = [];
+  const legeCel = () => new TableCell({
+    borders: NO_BORDERS,
+    children: [new Paragraph({ spacing: { after: 0, line: 130 }, children: [new TextRun({ text: "", size: 8 })] })],
+  });
+  rows.forEach((rij, i) => {
+    uit.push(rij);
+    if (i < rows.length - 1) uit.push(new TableRow({ children: [legeCel(), legeCel()] }));
+  });
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows: uit });
 }
 
 // ---- domeinkop (subkop met kleuraccent) ----
@@ -216,16 +224,16 @@ function doelKolom(titel, sub, items, mijlpaal) {
 // ---- domeinkaart (compact, voor 2x2 raster) ----
 function domCard(titel, meta, kleur, items) {
   const kids = [
-    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: titel, bold: true, color: INK, size: 20 })] }),
-    new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: meta, color: INK3, size: 15 })] }),
+    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: titel, bold: true, color: kleur, size: 21 })] }),
+    new Paragraph({ spacing: { after: 90 }, children: [new TextRun({ text: meta, color: INK2, size: 16 })] }),
   ];
   for (const item of items) {
     kids.push(new Paragraph({
       spacing: { after: 50 },
       children: [
-        new TextRun({ text: item.n + "  ", bold: true, color: kleur, size: 17 }),
-        new TextRun({ text: item.t, color: INK2, size: 17 }),
-        new TextRun({ text: "  [" + item.q + "]", color: INK3, size: 14 }),
+        new TextRun({ text: item.n + "  ", bold: true, color: kleur, size: 19 }),
+        new TextRun({ text: item.t, color: INK, size: 19 }),
+        new TextRun({ text: "  " + item.q, bold: true, color: INK3, size: 15 }),
       ],
     }));
   }
@@ -246,7 +254,7 @@ function vmCel(titel, tekst) {
     shading: { type: ShadingType.CLEAR, fill: "FFFDF8" },
     children: [
       new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: titel, bold: true, color: "92400E", size: 19 })] }),
-      new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: tekst, color: INK2, size: 17 })] }),
+      new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: tekst, color: INK2, size: 18 })] }),
     ],
   });
 }
@@ -276,7 +284,7 @@ const doc = new Document({
       notitie([
         b("Levend document — ", { color: AMBER }),
         r("na elk gesprek werken we dit bij.  ", ),
-        r("Laatst bijgewerkt: 13 augustus 2026 (eerste versie).", { color: INK3 }),
+        r("Laatst bijgewerkt: 19 augustus 2026.", { color: INK3 }),
       ]),
       spacer(60),
 
