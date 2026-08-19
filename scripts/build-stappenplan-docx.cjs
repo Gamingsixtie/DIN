@@ -352,7 +352,7 @@ const doc = new Document({
       domkop("Fundament — programma-breed", "3sides · programmamanagers", CITO),
       stappenTabel([
         stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "MT · sectormanagers · teams", "Q3"),
-        stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren.")], "sectormanagers · inspanningsleiders", "Q3"),
+        stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren. Dit stellen we "), b("samen met 3sides"), r(" samen — zij weten wat de analysefase per domein aan mensen vraagt.")], "3sides · sectormanagers · inspanningsleiders", "Q3"),
         stap(3, CITO, [b("Meetprotocol per baten-KPI — afspreken hóé we meten")], [
           r("De KPI's zíjn gedefinieerd (zie "),
           new ExternalHyperlink({ children: [new TextRun({ text: "stap 9 in de app", style: "Hyperlink" })], link: "https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" }),
