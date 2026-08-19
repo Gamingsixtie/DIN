@@ -353,14 +353,19 @@ const doc = new Document({
       stappenTabel([
         stap(1, CITO, [b("Iedereen opnieuw meenemen")], [r("Het verhaal vertellen — wat, waarom, wat merk je ervan — en de visie & missie kort hervalideren.")], "MT · sectormanagers · teams", "Q3"),
         stap(2, CITO, [b("Inspanningsteams samenstellen")], [r("De domeineigenaren zijn al belegd — nu per domein het uitvoerende team compleet maken: inspanningsleider (Cultuur & Mens — HR-manager · Data & Systemen — Product Owner · Processen — n.t.b.) + teamleden uit de sectoren.")], "sectormanagers · inspanningsleiders", "Q3"),
-        stap(3, CITO, [b("Meetprotocol per baten-KPI")], [
-          r("Per KPI: definitie · databron · eenheid · frequentie · wie levert. Daarbij lopen we de "),
+        stap(3, CITO, [b("Meetprotocol per baten-KPI — afspreken hóé we meten")], [
+          r("De KPI's zíjn gedefinieerd (zie "),
+          new ExternalHyperlink({ children: [new TextRun({ text: "stap 9 in de app", style: "Hyperlink" })], link: "https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" }),
+          r(" en programmaplan H3.1), maar een KPI-naam alleen is nog niet meetbaar. Daarom maken we per KPI één korte meetafspraak — het meetprotocol — die vijf vragen beantwoordt: "),
+          b("wát"), r(" meten we precies (definitie: wat telt wel en niet mee) · "),
+          b("wáár"), r(" komt het getal vandaan (welk systeem of welke bron) · "),
+          b("in welke eenheid"), r(" (aantal, percentage, dagen) · "),
+          b("hoe vaak"), r(" meten we · "),
+          b("wie"), r(" levert het getal aan. Zonder deze afspraken meet iedereen iets anders en zijn metingen niet vergelijkbaar. Daarbij lopen we de "),
           b("KPI's zélf nog één keer langs met de sectormanagers"),
           r(" — samen met het meetprotocol — zodat "),
           b("iedereen er expliciet akkoord op geeft"),
-          r(" vóórdat de nulmeting start. De KPI's staan in "),
-          new ExternalHyperlink({ children: [new TextRun({ text: "stap 9 in de app", style: "Hyperlink" })], link: "https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" }),
-          r(" en programmaplan H3.1."),
+          r(". Pas daarna kan de nulmeting (stap 5) dit protocol voor het eerst uitvoeren."),
         ], "eerst sectormanagers (akkoord) → strategisch marketeer + commercieel manager → MT", "Q3"),
         stap(4, CITO, [b("Adoptie-framework")], [r("Vaste vertaallogica: klantreis → klantbehoefte → contactmoment → gewenst gedrag → competenties → KPI's — die KPI's worden de vermogen-indicatoren. Adoptie Team & ambassadeurs borgen het.")], "sectormanagers + teamleden per rol (marketeers, productmanagers)", "Q3"),
         stap(5, CITO, [b("Nulmeting")], [r("Levert de startwaarde van elke KPI + de echte stand per domein.")], "3sides voert uit · meetverantwoordelijken leveren de bronnen", "Q3"),
@@ -373,6 +378,7 @@ const doc = new Document({
         r("draagvlak → protocol → framework → nulmeting → vervolgsessie → pilot. 3sides assisteert bij élke stap — voorbereiden, faciliteren, tempo houden. En het adoptie-framework ligt als paraplu óver alle vier de domeinen: ook techniek (CRM) heeft een adoptiekant — zó gaat de verandering leven in de organisatie."),
       ], TEAL_BG, TEAL),
       spacer(70),
+      domkop("De analysefase per domein — op prioriteit", "prio 1 → 4 · alle vier lopen in 2026 tegelijk", CITO),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: NO_BORDERS,
