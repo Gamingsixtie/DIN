@@ -454,7 +454,7 @@ const doc = new Document({
         rows: [
           new TableRow({
             children: [
-              vmCel("1 · Richting en commitment vanuit het MT", "Het MT geeft de richting: het „MT-besluit” over de leiderschapsaanpak, en heldere afspraken over mandaat en prioriteit. Zo ziet de organisatie dat dit programma er écht toe doet — en kunnen de teams met vertrouwen aan de slag."),
+              vmCel("1 · Richting en commitment vanuit het MT", "Het MT geeft de richting: het bekrachtigt de programmaprioriteit — 1 Data & Systemen · 2 Processen · 3 Mens · 4 Cultuur —, neemt het „MT-besluit” over de leiderschapsaanpak en geeft de teams helder mandaat. Zo ziet de organisatie dat dit programma er écht toe doet — en kunnen de teams met vertrouwen aan de slag."),
               vmCel("2 · Beweging van binnenuit", "Een Adoptie Team met ambassadeurs per sector zorgt voor draagvlak en borging, aangevuld met intervisiegroepen (Q4) — „verandering beklijft als mensen het zelf dragen.” Sector voor sector via de pilot: niet alleen koplopers, het hele team."),
             ],
           }),
