@@ -112,6 +112,7 @@ function emptyOrganisatie(): Programmaorganisatie {
     programmamanager: undefined,
     kerngroep: [],
     stuurgroep: [],
+    adviesgroep: [],
     klankbordgroep: [],
     domeineigenaren: [],
     besluitvormingsritme: "",
@@ -127,6 +128,7 @@ function collectRollen(po: Programmaorganisatie | undefined): ProgrammaRol[] {
   if (po.programmamanager) all.push(po.programmamanager);
   all.push(...(po.kerngroep ?? []));
   all.push(...(po.stuurgroep ?? []));
+  all.push(...(po.adviesgroep ?? []));
   all.push(...(po.domeineigenaren ?? []));
   all.push(...(po.klankbordgroep ?? []));
   return all;
@@ -200,6 +202,7 @@ export default function GovernanceStep() {
       po.programmamanager?.rol ||
       (po.kerngroep ?? []).length > 0 ||
       (po.stuurgroep ?? []).length > 0 ||
+      (po.adviesgroep ?? []).length > 0 ||
       (po.domeineigenaren ?? []).length > 0 ||
       (po.klankbordgroep ?? []).length > 0;
     if (heeftBestaandeInvoer) {
@@ -234,6 +237,7 @@ export default function GovernanceStep() {
         programmamanager: hydrateAIRol(ai.programmamanager),
         kerngroep: hydrateAIRolList(ai.kerngroep),
         stuurgroep: hydrateAIRolList(ai.stuurgroep),
+        adviesgroep: hydrateAIRolList(ai.adviesgroep),
         klankbordgroep: hydrateAIRolList(ai.klankbordgroep),
         domeineigenaren: hydrateAIRolList(ai.domeineigenaren),
         besluitvormingsritme: ai.besluitvormingsritme ?? "",
@@ -747,7 +751,7 @@ function OrganisatieTab({
   }
 
   function updateList(
-    field: "kerngroep" | "stuurgroep" | "klankbordgroep" | "domeineigenaren",
+    field: "kerngroep" | "stuurgroep" | "adviesgroep" | "klankbordgroep" | "domeineigenaren",
     list: ProgrammaRol[]
   ) {
     onUpdate((prev) => ({ ...prev, [field]: list }));
@@ -824,9 +828,16 @@ function OrganisatieTab({
 
       <RolListCard
         titel="Stuurgroep"
-        subtitle="Strategische sturing — opdrachtgever + sectordirecteuren + senior stakeholders"
+        subtitle="Besluitvormend gremium — klein & besluitvaardig: de sectormanagers (geen inspanningsleiders)"
         rollen={po.stuurgroep ?? []}
         onChange={(list) => updateList("stuurgroep", list)}
+      />
+
+      <RolListCard
+        titel="Adviesgroep"
+        subtitle="Intern, gezaghebbend advies aan opdrachtgever + stuurgroep — géén besluitmandaat (bv. directeuren, Finance)"
+        rollen={po.adviesgroep ?? []}
+        onChange={(list) => updateList("adviesgroep", list)}
       />
 
       <RolListCard
@@ -838,7 +849,7 @@ function OrganisatieTab({
 
       <RolListCard
         titel="Klankbordgroep"
-        subtitle="Reflectie, advies — zonder besluitvormingsmandaat"
+        subtitle="Externe reflectie vanuit klant/buitenwereld (outside-in) — géén besluitmandaat"
         rollen={po.klankbordgroep ?? []}
         onChange={(list) => updateList("klankbordgroep", list)}
       />
@@ -2003,6 +2014,7 @@ export function OrganigramView({ po }: { po: Programmaorganisatie }) {
     po.programmamanager ||
     (po.kerngroep ?? []).length > 0 ||
     (po.stuurgroep ?? []).length > 0 ||
+    (po.adviesgroep ?? []).length > 0 ||
     (po.domeineigenaren ?? []).length > 0 ||
     (po.klankbordgroep ?? []).length > 0;
 
@@ -2110,14 +2122,22 @@ export function OrganigramView({ po }: { po: Programmaorganisatie }) {
           </div>
         </div>
 
-        {/* Rechterkolom: Stuurgroep */}
-        <div className="col-span-3">
+        {/* Rechterkolom: Stuurgroep + Adviesgroep */}
+        <div className="col-span-3 space-y-4">
           <GroupBox
             titel="Stuurgroep"
             rollen={po.stuurgroep ?? []}
             variant="side"
-            emptyHint="Strategische sturing"
+            emptyHint="Besluitvormend — sectormanagers"
           />
+          {(po.adviesgroep ?? []).length > 0 && (
+            <GroupBox
+              titel="Adviesgroep"
+              rollen={po.adviesgroep ?? []}
+              variant="side"
+              emptyHint="Intern advies"
+            />
+          )}
         </div>
       </div>
 

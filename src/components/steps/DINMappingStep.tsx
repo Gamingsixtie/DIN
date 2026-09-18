@@ -51,6 +51,7 @@ const DOMAIN_DOT_COLORS: Record<EffortDomain, string> = {
   processen: "bg-domain-processen",
   data_systemen: "bg-domain-data",
   cultuur: "bg-domain-cultuur",
+  overig: "bg-gray-500",
 };
 
 const DOMAIN_DOT_BG: Record<EffortDomain, string> = {
@@ -58,6 +59,7 @@ const DOMAIN_DOT_BG: Record<EffortDomain, string> = {
   processen: "bg-domain-processen/15",
   data_systemen: "bg-domain-data/15",
   cultuur: "bg-domain-cultuur/15",
+  overig: "bg-gray-500/15",
 };
 
 const DOMAIN_EFFORT_BTN: Record<EffortDomain, string> = {
@@ -65,6 +67,7 @@ const DOMAIN_EFFORT_BTN: Record<EffortDomain, string> = {
   processen: "bg-domain-processen/10 hover:bg-domain-processen/20 border-domain-processen/20",
   data_systemen: "bg-domain-data/10 hover:bg-domain-data/20 border-domain-data/20",
   cultuur: "bg-domain-cultuur/10 hover:bg-domain-cultuur/20 border-domain-cultuur/20",
+  overig: "bg-gray-500/10 hover:bg-gray-500/20 border-gray-500/20",
 };
 
 // Domein-beschrijvingen conform methodiek (Wijnen & Van der Tak)
@@ -73,6 +76,7 @@ const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
   processen: "Werkwijzen, procedures, governance, samenwerking",
   data_systemen: "IT-systemen, data-infrastructuur, tooling, integraties",
   cultuur: "Gedrag, mindset, waarden, leiderschapsontwikkeling",
+  overig: "Programma-brede posten (zoals onvoorzien)",
 };
 
 
@@ -86,6 +90,7 @@ function getDomainChipStyle(domain: EffortDomain): string {
     processen: "bg-green-600/10 text-green-600 border border-green-600/30",
     data_systemen: "bg-purple-600/10 text-purple-600 border border-purple-600/30",
     cultuur: "bg-amber-600/10 text-amber-600 border border-amber-600/30",
+    overig: "bg-gray-500/10 text-gray-700 border border-gray-300",
   };
   return styles[domain] || "bg-gray-100 text-gray-600";
 }

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Actielijst programmamanagement — Klant in Zicht</title>
+<style>
+  :root{
+    --cito:#003366; --baten:#0066cc; --tracker:#6d28d9;
+    --ink:#111827; --ink-2:#5b6573; --ink-3:#9aa3b0;
+    --line:#e7ebf0; --line-2:#dde3ea; --canvas:#eef1f5;
+    --amber:#b45309; --groen:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 26px 80px}
+
+  header.top{background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:16px;padding:20px 26px;box-shadow:var(--shadow)}
+  header.top .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9db9d6;font-weight:700}
+  header.top h1{font-size:23px;letter-spacing:-.02em;margin-top:5px}
+  header.top p{color:#cdddf0;font-size:12.5px;margin-top:6px}
+
+  /* speerpunt */
+  .speer{background:#fff;border:1px solid var(--line);border-left:6px solid var(--amber);border-radius:var(--r);padding:16px 20px;box-shadow:var(--shadow);margin-top:20px}
+  .speer .sp-label{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;background:var(--amber);color:#fff;border-radius:5px;padding:2px 9px;margin-bottom:7px}
+  .speer h2{font-size:16px;letter-spacing:-.01em}
+  .speer p{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.55}
+  .speer p b{color:var(--ink)}
+  .speer .stappen{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+  .speer .stap{font-size:12px;color:var(--ink-2);display:flex;gap:9px;line-height:1.45}
+  .speer .stap .sn{flex:none;width:19px;height:19px;border-radius:50%;background:var(--amber);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:800;margin-top:1px}
+  .speer .stap b{color:var(--ink)}
+
+  .sec{margin-top:22px}
+  .sechead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+  .sechead h2{font-size:17px;letter-spacing:-.01em}
+  .sechead .sub{font-size:11.5px;color:var(--ink-3);margin-left:auto}
+
+  .acties{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f7f9fc;text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);padding:8px 16px;border-bottom:1px solid var(--line-2)}
+  td{padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+  tr:last-child td{border-bottom:none}
+  td.st{width:34px;font-size:14px;color:var(--ink-3);padding-right:0}
+  td.actie b{color:var(--ink)}
+  td.wie{width:110px}
+  td.wanneer{width:130px}
+  .chip{display:inline-block;font-size:9px;font-weight:800;border-radius:5px;padding:2px 8px;letter-spacing:.03em}
+  .chip.pim{background:#e0edff;color:#1d4ed8;border:1px solid #c3d9fc}
+  .chip.sanne{background:#fdf1e3;color:#b45309;border:1px solid #f6ddb9}
+  .chip.samen{background:#e7f6ef;color:#047857;border:1px solid #c7f0dd}
+  .chip.vak{background:#fef2f2;color:#b42318;border:1px solid #fbd5d5}
+  .chip.q3{background:#f1f5f9;color:#475569;border:1px solid #dde3ea}
+
+  .foot{margin-top:22px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Programma Klant in Zicht · programmamanagement</div>
+    <h1>Actielijst — levend document</h1>
+    <p>Acties van de twee programmamanagers (Pim &amp; Sanne). Wordt doorlopend bijgehouden: actie erbij, vinkje erop.</p>
+  </header>
+
+  <!-- SPEERPUNT -->
+  <div class="speer">
+    <span class="sp-label">Speerpunt</span>
+    <h2>Adoptie-framework — afspraken met de stakeholders</h2>
+    <p>Het adoptie-framework (Q3, 3sides) is de basis van alles wat volgt: gedrag &amp; competenties per rol + de meetaanpak. Om het <b>gedragen</b> te krijgen, leggen we het verhaal nu voor aan de stakeholders:</p>
+    <div class="stappen">
+      <div class="stap"><span class="sn">1</span><span>Afspraken inplannen en het verhaal voorleggen aan de <b>HR-manager</b>, de <b>sectormanagers</b> en de <b>commercieel manager</b></span></div>
+      <div class="stap"><span class="sn">2</span><span>Via de sectormanagers ophalen <b>welke teamleden</b> we kunnen benaderen — bijvoorbeeld <b>marketeers en productmanagers</b></span></div>
+    </div>
+  </div>
+
+  <!-- ACTIES -->
+  <div class="sec">
+    <div class="sechead"><h2>Acties</h2><span class="sub">☐ open · ☑ gedaan</span></div>
+    <div class="acties">
+      <table>
+        <thead><tr><th></th><th>Actie</th><th>Wie</th><th>Wanneer</th></tr></thead>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Stakeholder-afspraken adoptie-framework</b> — verhaal voorleggen aan HR-manager · sectormanagers · commercieel manager; teamleden ophalen via de sectormanagers (marketeers, productmanagers)</td>
+          <td class="wie"><span class="chip pim">Pim</span> <span class="chip sanne">Sanne</span></td>
+          <td class="wanneer"><span class="chip vak">vóór de vakantie</span></td>
+        </tr>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Quick wins valideren</b> — staan in het KPI-model (Data &amp; Systemen: contactgegevens centraliseren + koppeling Maileon ↔ CRM, doorlopend spoor): kloppen ze en lopen ze?</td>
+          <td class="wie"><span class="chip samen">samen</span></td>
+          <td class="wanneer"><span class="chip q3">Q3</span></td>
+        </tr>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Gesprek met 3sides: Cultuur &amp; Mens bewaken</b> — de 3sides-prio ligt bij Data &amp; Systemen en Processen; voor Cultuur &amp; Mens staan wél inspanningen → actief in de gaten houden</td>
+          <td class="wie"><span class="chip sanne">Sanne</span></td>
+          <td class="wanneer"><span class="chip vak">vóór de vakantie</span></td>
+        </tr>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Check analysefase 2026</b> — loopt de analyse volgens de planning: nulmeting · adoptie-framework · klantinformatie-landschap &amp; CRM in kaart?</td>
+          <td class="wie"><span class="chip samen">samen</span></td>
+          <td class="wanneer"><span class="chip q3">Q3</span></td>
+        </tr>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Projectorganisatie &amp; meetingritme opzetten</b> — overlegstructuur organiseren: meetings met 3sides en de overige overleggen/gremia</td>
+          <td class="wie"><span class="chip sanne">Sanne</span></td>
+          <td class="wanneer"><span class="chip vak">vóór de vakantie</span></td>
+        </tr>
+        <tr>
+          <td class="st">☐</td>
+          <td class="actie"><b>Evaluatie Klant in Beeld</b> — inplannen en opnemen in de lijst; belangrijk actiepunt</td>
+          <td class="wie"><span class="chip sanne">Sanne</span></td>
+          <td class="wanneer"><span class="chip vak">vóór de vakantie</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    Sketch — na akkoord krijgt dit een eigen tab in de app als levend document (acties toevoegen · afvinken)<br>
+    Bron: afstemming programmamanagement 13-08-2026
+  </div>
+
+</div>
+</body>
+</html>

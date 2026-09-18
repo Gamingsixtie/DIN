@@ -67,6 +67,8 @@ export type {
   GezamenlijkRasciItem,
   Stap7InterneUren,
   Stap8Totaaloverzicht,
+  ClaudeNotitie,
+  Stap8ClaudeNotes,
   DomeinInterneUren,
   InterneUrenScenario,
   InterneUrenRol,
@@ -105,6 +107,7 @@ export const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+  overig: "Overig",
 };
 
 // --- Status labels & stijlen (single source of truth) ---
@@ -156,6 +159,8 @@ export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "governance", label: "Programmaorganisatie", nummer: 5 },
   { key: "prioritering", label: "Roadmap & Planning", nummer: 6 },
   { key: "export", label: "Export", nummer: 7 },
+  { key: "berekeningen", label: "Berekeningen", nummer: 8 },
+  { key: "kpi-meetbaarheid", label: "KPI's & Meetbaarheid", nummer: 9 },
 ];
 
 // --- Domein-kleuren voor roadmap-visualisatie ---
@@ -165,6 +170,7 @@ export const DOMAIN_COLORS: Record<EffortDomain, { bar: string; bg: string; text
   processen: { bar: "#059669", bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
   data_systemen: { bar: "#7c3aed", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
   cultuur: { bar: "#d97706", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  overig: { bar: "#6b7280", bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-300" },
 };
 
 // --- RASCI labels (single source of truth) ---

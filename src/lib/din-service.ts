@@ -210,6 +210,7 @@ export function getDomainBalance(
     processen: efforts.filter((e) => e.domain === "processen").length,
     data_systemen: efforts.filter((e) => e.domain === "data_systemen").length,
     cultuur: efforts.filter((e) => e.domain === "cultuur").length,
+    overig: efforts.filter((e) => e.domain === "overig").length,
   };
 }
 
@@ -575,6 +576,7 @@ export function getEffortsByDomainAllSectors(
     processen: efforts.filter((e) => e.domain === "processen"),
     data_systemen: efforts.filter((e) => e.domain === "data_systemen"),
     cultuur: efforts.filter((e) => e.domain === "cultuur"),
+    overig: efforts.filter((e) => e.domain === "overig"),
   };
 }
 
@@ -631,6 +633,11 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       step: "export",
       percentage: 0,
       details: "Export wanneer gereed",
+    },
+    {
+      step: "berekeningen",
+      percentage: 0,
+      details: "Audit van out-of-pocket berekeningen",
     },
   ];
 }
@@ -720,6 +727,7 @@ function governanceDetails(session: DINSession): string {
     (po.programmamanager ? 1 : 0) +
     (po.kerngroep?.length ?? 0) +
     (po.stuurgroep?.length ?? 0) +
+    (po.adviesgroep?.length ?? 0) +
     (po.domeineigenaren?.length ?? 0) +
     (po.klankbordgroep?.length ?? 0);
   const itemTotal = items.length;
