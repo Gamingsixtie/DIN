@@ -15,6 +15,7 @@ import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
 import BerekeningenStep from "@/components/steps/BerekeningenStep";
 import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
+import OrganigramStep from "@/components/steps/OrganigramStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -36,6 +37,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <BerekeningenStep />;
     case "kpi-meetbaarheid":
       return <KPIMeetbaarheidStep />;
+    case "organigram":
+      return <OrganigramStep />;
   }
 }
 
@@ -47,6 +50,16 @@ function SessionFlow() {
   useEffect(() => {
     if (id) loadSession(id);
   }, [id, loadSession]);
+
+  // Deep-link naar een stap: /sessies/<id>?stap=organigram
+  useEffect(() => {
+    if (!session) return;
+    const gevraagd = new URLSearchParams(window.location.search).get("stap");
+    if (!gevraagd) return;
+    const stap = APP_STEPS.find((s) => s.key === gevraagd);
+    if (stap && stap.key !== currentStep) setCurrentStep(stap.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
 
   const completions = useMemo(() => {
     if (!session) return [];

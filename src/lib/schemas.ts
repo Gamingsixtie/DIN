@@ -74,6 +74,7 @@ export const AppStepSchema = z.enum([
   "export",
   "berekeningen",
   "kpi-meetbaarheid",
+  "organigram",
 ]);
 
 // ============================================================

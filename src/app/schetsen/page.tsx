@@ -4,6 +4,12 @@ import Link from "next/link";
 // hoofdpagina (/kpi-model) en hoort hier niet meer bij.
 const PAGINAS = [
   {
+    titel: "Organigram — regie en inhoud in de programmaleiding",
+    slug: "organigram-programmaleiding",
+    kleur: "#003366",
+    desc: "Voorstel programmaorganisatie: programmamanager, programma-architect, de vier werkstromen, inspanningsleiders, domeineigenaren en 3sides.",
+  },
+  {
     titel: "Systeem & Data — sessievoorbereiding",
     slug: "systeem-data",
     kleur: "#7c3aed",
