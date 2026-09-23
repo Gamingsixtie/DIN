@@ -25,7 +25,9 @@
       "Skill(gsd:add-phase)",
       "Skill(gsd:add-phase:*)",
       "Skill(gsd:debug)",
-      "Skill(gsd:debug:*)"
+      "Skill(gsd:debug:*)",
+      "Bash(npx tsx *)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/lib/demo-snapshot.json','utf8'\\)\\); console.log\\('valid JSON'\\)\")"
     ]
   }
 }

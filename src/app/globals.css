@@ -51,3 +51,27 @@
 .collapse-wrapper > div {
   overflow: hidden;
 }
+
+/* Print-optimalisaties voor de programmaplan-leesversie */
+@media print {
+  /* Voorkom dat tabellen midden door een pagina worden afgebroken */
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Houd headings bij de daaropvolgende inhoud */
+  h1, h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  /* Houd Conclusie/Aanbeveling/IntroPanel-blokken bij elkaar */
+  details[open] summary,
+  .scroll-mt-24 {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Open alle <details>-elementen voor printen */
+  details {
+    break-inside: avoid;
+  }
+}

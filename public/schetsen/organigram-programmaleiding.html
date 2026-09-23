@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Regie en inhoud in de programmaleiding — organigram</title>
+<style>
+  :root{
+    --cito:#003366; --baten:#0066cc; --vermogens:#0891b2; --tracker:#6d28d9;
+    --mens:#2563eb; --proces:#059669; --data:#7c3aed; --cultuur:#d97706;
+    --ink:#111827; --ink-2:#5b6573; --ink-3:#9aa3b0;
+    --line:#e7ebf0; --line-2:#dde3ea; --canvas:#eef1f5;
+    --amber:#b45309; --groen:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 26px 80px}
+
+  .sketchlabel{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;background:var(--amber);color:#fff;border-radius:6px;padding:3px 10px;margin-bottom:10px}
+  header.top{background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:16px;padding:20px 26px;box-shadow:var(--shadow)}
+  header.top .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9db9d6;font-weight:700}
+  header.top h1{font-size:22px;letter-spacing:-.02em;margin-top:5px}
+  header.top p{color:#cdddf0;font-size:12.5px;margin-top:6px;font-style:italic}
+
+  .begrip{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 15px;box-shadow:var(--shadow);font-size:11.5px;color:var(--ink-2);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .begrip .bl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+  .begrip b{color:var(--ink)}
+  .begrip .eq{font-size:11px;background:#f1f5f9;border:1px solid var(--line-2);border-radius:6px;padding:2px 8px}
+
+  .sec{margin-top:26px}
+  .seckop{font-size:16.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:3px}
+  .seckop .vs{font-size:11px;font-weight:600;color:var(--amber)}
+  .secsub{font-size:11.5px;color:var(--ink-3);margin-bottom:12px}
+  .secsub b{color:var(--ink)}
+
+  /* ===== organigram (spiegelt OrganigramView in stap 5) ===== */
+  .orgwrap{background:linear-gradient(180deg,#f2f6fb,#fff);border:1px solid rgba(0,51,102,.18);border-radius:16px;padding:20px 22px 18px;box-shadow:var(--shadow)}
+  .orgtitle{font-size:12.5px;font-weight:800;color:var(--cito);margin-bottom:2px}
+  .orgsub{font-size:11px;color:var(--ink-2);margin-bottom:16px}
+  .sponsor{margin:0 auto 6px;max-width:300px;text-align:center;border:1.5px dashed rgba(0,51,102,.35);border-radius:9px;padding:6px 10px;background:#fff}
+  .sponsor .gl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:rgba(0,51,102,.6)}
+  .sponsor .gs{font-size:10px;color:var(--ink-2)}
+  .orggrid{display:grid;grid-template-columns:3fr 6fr 3fr;gap:16px;align-items:start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .grouplabel{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--cito);text-align:center;margin-bottom:4px}
+  .box{border:2px solid var(--line-2);border-radius:8px;padding:8px 11px;background:#fff;box-shadow:var(--shadow);width:100%;position:relative}
+  .box .r{font-size:11.5px;font-weight:700;line-height:1.3}
+  .box .n{font-size:10px;opacity:.85;margin-top:2px}
+  .box .s{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.7;margin-top:2px}
+  .box.primary{background:var(--cito);border-color:var(--cito);color:#fff}
+  .box.primary .n,.box.primary .s{color:#dbe7f5;opacity:1}
+  .box.side{background:#f8fafc;border-color:#cbd5e1;color:#334155}
+  .box.domein{background:#fffbeb;border-color:#fcd34d;color:#78350f}
+  .box.ontwerp{background:#f0fbfd;border:2.5px solid var(--vermogens);color:#083b44}
+  .box.ontwerp .n{color:#0c5460;opacity:1}
+  .box.ontwerp .s{color:#0e7490;opacity:1}
+  .box.open{border-style:dashed;background:#fff;color:var(--ink-2)}
+  .box.ws{background:#f8f5ff;border-color:#c4b5fd;color:#3b1d78}
+  .box.ws .n{color:#4c1d95;opacity:1}
+  .box.ws .s{color:#6d28d9;opacity:1}
+  .badge{position:absolute;top:-9px;right:10px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:2px 8px;border:1px solid;background:#fff}
+  .badge.regie{background:#e0edff;color:#1d4ed8;border-color:#c3d9fc}
+  .badge.inhoud{background:#e6f6fa;color:#0c5460;border-color:#b7e3ec}
+  .badge.vraag{background:#fffbeb;color:#b45309;border-color:#fde9c8}
+  .badge.prio{background:#f8f5ff;color:#6d28d9;border-color:#c4b5fd;left:10px;right:auto}
+  .vline{width:2px;height:18px;background:rgba(0,51,102,.4)}
+  .vline.short{height:12px}
+  .group{width:100%;border:2px solid #cbd5e1;border-radius:9px;background:#f8fafc;padding:8px}
+  .group .gt{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:#475569;text-align:center;margin-bottom:7px}
+  .group .gt small{font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink-3)}
+  .group .stack{display:flex;flex-direction:column;gap:6px}
+  .group.team{border-color:var(--cito);background:#fff;padding:10px}
+  .group.team .gt{color:var(--cito)}
+  .group.wsg{border-color:#c4b5fd;background:#fbfaff}
+  .group.wsg .gt{color:#5b21b6}
+  .ring{display:grid;grid-template-columns:1fr;gap:6px}
+  .ring .box.ontwerp{padding:10px 13px}
+  .ring .box.ontwerp .r{font-size:12.5px}
+  .ring .box.ontwerp .n{font-size:10.5px;margin-top:3px}
+  .ring2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .ring4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .maxw{width:100%;max-width:300px}
+  .lower{display:grid;grid-template-columns:2fr 1fr;gap:6px;width:100%}
+  .lower .box .r{font-size:10.5px}
+  .operatie{margin-top:10px;width:100%;text-align:center;font-size:10.5px;color:var(--ink-2);background:#f1f5f9;border:1px solid var(--line-2);border-radius:8px;padding:6px 10px}
+  .operatie b{color:var(--ink)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:10px;border-top:1px solid rgba(0,51,102,.1);font-size:10px;color:var(--ink-2)}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;border:2px solid}
+  .hier{margin-top:12px;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:11px;padding:10px 14px;font-size:12px;color:#0c5460;line-height:1.55}
+  .hier b{color:#083b44}
+  .duopill{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#083b44;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .connector{display:flex;flex-direction:column;align-items:center;gap:2px}
+
+  /* ===== uitleg onder het organigram ===== */
+  .uitleg{margin-top:14px;display:grid;grid-template-columns:1fr;gap:13px}
+  .ukaart{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+  .ukaart h3{font-size:13px;margin-bottom:3px}
+  .ukaart .us{font-size:11px;color:var(--ink-3);margin-bottom:10px;line-height:1.5}
+  .ukaart .us b{color:var(--ink)}
+  .stappen{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+  .stappen div{font-size:11.5px;color:var(--ink-2);line-height:1.5;display:flex;gap:8px}
+  .stappen div .n{flex:none;width:18px;height:18px;border-radius:50%;background:var(--cito);color:#fff;display:grid;place-items:center;font-size:9.5px;font-weight:800;margin-top:2px}
+  .stappen div b{color:var(--ink)}
+  .ezin{margin-top:10px;font-size:12px;font-weight:600;color:#083b44;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:9px;padding:8px 12px;line-height:1.5}
+  .route{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+  .rstap{background:#f8fafc;border:1px solid var(--line-2);border-radius:9px;padding:8px 7px;display:flex;flex-direction:column;gap:4px}
+  .rstap .rn{font-size:9px;font-weight:800;color:var(--ink-3)}
+  .rstap .rt{font-size:10.5px;font-weight:700;line-height:1.3;color:var(--ink)}
+  .rstap .rd{font-size:9.5px;color:var(--ink-2);line-height:1.35}
+  .rstap .wie{align-self:flex-start;font-size:7.5px;letter-spacing:.02em;overflow-wrap:anywhere;padding:2px 5px;white-space:normal}
+  .rstap.pm{border-top:3px solid var(--cito)} .rstap.ow{border-top:3px solid var(--vermogens)} .rstap.tr{border-top:3px solid #7c3aed} .rstap.de{border-top:3px solid var(--cultuur)} .rstap.sg{border-top:3px solid #64748b}
+  .terug{margin-top:6px;font-size:10px;color:var(--ink-3)}
+  .matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:10.5px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .matrix th{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);padding:7px 8px;background:#f8fafc;border-bottom:1px solid var(--line);text-align:left}
+  .matrix th.c{text-align:center}
+  .matrix td{padding:7px 8px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top;line-height:1.4}
+  .matrix tr:last-child td{border-bottom:0}
+  .matrix td.c{text-align:center;font-size:13px}
+  .matrix td b{color:var(--ink)}
+  .voorbeeld{background:#f0fbfd;border:1px solid #b7e3ec;border-left:6px solid var(--vermogens);border-radius:12px;padding:11px 15px;font-size:11.5px;color:#0c5460;line-height:1.6}
+  .voorbeeld b{color:#083b44}
+  .voorbeeld .vstap{display:flex;gap:8px;align-items:flex-start;margin-bottom:5px}
+  .voorbeeld .vstap:last-child{margin-bottom:0}
+  .voorbeeld .st{flex:none;display:inline-block;min-width:26px;text-align:center;font-size:8.5px;font-weight:800;background:#fff;border:1px solid #b7e3ec;border-radius:4px;padding:2px 5px;color:#0e7490;margin-top:2px}
+
+  /* ===== twee rollen ===== */
+  .rolgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .rolkaart{background:#fff;border:1px solid var(--line);border-top:5px solid var(--line-2);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .rolkaart.regie{border-top-color:var(--cito)}
+  .rolkaart.inhoud{border-top-color:var(--vermogens)}
+  .rolkaart h3{font-size:13.5px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .rolkaart h3 .wie{margin-left:auto;font-size:10px;color:var(--ink-3);font-weight:500}
+  .rolkaart .boek{font-size:10.5px;color:var(--ink-3);margin:2px 0 9px;font-style:italic}
+  .rolkaart .kv{font-size:11.5px;color:#0c5460;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:7px;padding:6px 9px;margin-bottom:9px;line-height:1.45}
+  .rolkaart.regie .kv{color:#1e3a8a;background:#e0edff;border-color:#c3d9fc}
+  .rolkaart .kv b{color:inherit}
+  .rolkaart dl{display:grid;grid-template-columns:104px 1fr;gap:5px 8px;font-size:11px}
+  .rolkaart dt{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);padding-top:3px;overflow-wrap:anywhere}
+  .rolkaart dd{color:var(--ink-2);line-height:1.45}
+  .rolkaart dd b{color:var(--ink)}
+  .rolkaart .valkuil{margin-top:9px;font-size:10.5px;color:#92400e;background:#fffbeb;border:1px solid #fde9c8;border-radius:7px;padding:6px 9px;line-height:1.45}
+  .rolkaart .valkuil b{color:#78350f}
+
+  /* ===== verhouding ===== */
+  .verh{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .verh .kern{font-size:13px;font-weight:700;color:var(--cito);margin-bottom:10px}
+  .verh .blok{margin-bottom:11px}
+  .verh .blok h4{font-size:11.5px;margin-bottom:3px}
+  .verh .blok p{font-size:11.5px;color:var(--ink-2);line-height:1.55}
+  .verh .blok p b{color:var(--ink)}
+  .stroom{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 11px}
+  .stroom .sk{border-radius:10px;padding:10px 12px;border:1px solid}
+  .stroom .sk.naarpim{background:#e0edff;border-color:#c3d9fc}
+  .stroom .sk.naarsanne{background:#e6f6fa;border-color:#b7e3ec}
+  .stroom .sk h5{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin-bottom:5px}
+  .stroom .sk.naarpim h5{color:#1d4ed8}
+  .stroom .sk.naarsanne h5{color:#0e7490}
+  .stroom .sk ul{list-style:none;display:flex;flex-direction:column;gap:3px}
+  .stroom .sk li{font-size:11px;color:var(--ink);line-height:1.4;padding-left:12px;position:relative}
+  .stroom .sk li::before{content:"→";position:absolute;left:0;font-weight:800;color:var(--ink-3)}
+  .breekt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .breekt .bk{font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde9c8;border-radius:8px;padding:8px 10px;line-height:1.45}
+  .breekt .bk b{color:#78350f}
+  .sgarg{margin-top:8px;background:#f4f8fd;border:1px solid #c3d9fc;border-left:6px solid var(--cito);border-radius:10px;padding:11px 14px}
+  .sgarg h4{font-size:12px;color:var(--cito);margin-bottom:2px}
+  .sgarg .lead{font-size:11px;color:var(--ink-2);margin-bottom:8px;line-height:1.5}
+  .sgarg ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .sgarg li{font-size:11px;color:var(--ink-2);line-height:1.5;display:flex;gap:8px}
+  .sgarg li .n{flex:none;width:17px;height:17px;border-radius:50%;background:#e0edff;border:1px solid #c3d9fc;color:#1d4ed8;display:grid;place-items:center;font-size:9.5px;font-weight:800;margin-top:2px}
+  .sgarg li b{color:var(--ink)}
+
+  /* ===== overlap ===== */
+  .venn{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#fff}
+  .venn .zone{padding:13px 15px}
+  .venn .zone h4{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin-bottom:3px}
+  .venn .zone .wiez{font-size:10.5px;color:var(--ink-3);margin-bottom:8px;line-height:1.4}
+  .venn .zone ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+  .venn .zone li{font-size:11px;color:var(--ink-2);line-height:1.4;padding-left:12px;position:relative}
+  .venn .zone li::before{content:"·";position:absolute;left:2px;font-weight:800}
+  .venn .regiez{background:#f4f8fd;border-right:1px solid var(--line)}
+  .venn .regiez h4{color:#1d4ed8}
+  .venn .gedeeld{background:linear-gradient(90deg,#e8f1fb,#e6f6fa)}
+  .venn .gedeeld h4{color:var(--cito)}
+  .venn .gedeeld li{color:var(--ink)}
+  .venn .gedeeld .regel{margin-top:9px;font-size:10.5px;font-weight:700;color:#083b44;background:#fff;border:1px solid #b7e3ec;border-radius:7px;padding:5px 8px}
+  .venn .inhoudz{background:#f2fbfc;border-left:1px solid var(--line)}
+  .venn .inhoudz h4{color:#0e7490}
+  .ras{display:inline-block;min-width:18px;text-align:center;font-size:9.5px;font-weight:800;border-radius:4px;padding:1px 5px;border:1px solid;margin-right:2px}
+  .ras.R{background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+  .ras.A{background:#fef3c7;color:#78350f;border-color:#f59e0b;font-weight:900}
+  .ras.S{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .ras.C{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}
+  .ras.I{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
+  .ras.V{background:#ecfeff;color:#155e75;border-color:#a5f3fc}
+  table.besl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);font-size:11.5px}
+  table.besl th{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:9px 12px;background:#f8fafc;border-bottom:1px solid var(--line)}
+  table.besl td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top;line-height:1.45}
+  table.besl tr:last-child td{border-bottom:0}
+  table.besl td b{color:var(--ink)}
+  table.besl.rasci td{padding:7px 9px;font-size:10.5px}
+  table.besl.rasci th{padding:7px 9px}
+  .raslegend{font-size:10px;color:var(--ink-3);margin-top:6px;line-height:1.45}
+  .wie{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:4px;padding:2px 7px;border:1px solid;white-space:nowrap}
+  .wie.pe{background:#f1f5f9;color:#334155;border-color:#cbd5e1}
+  .wie.pm{background:#e0edff;color:#1d4ed8;border-color:#c3d9fc}
+  .wie.ow{background:#e6f6fa;color:#0c5460;border-color:#b7e3ec}
+  .wie.il{background:#f8f5ff;color:#5b21b6;border-color:#c4b5fd}
+  .wie.be{background:#efe9fd;color:#6d28d9;border-color:#e0d3fb}
+  .wie.de{background:#fffbeb;color:#92400e;border-color:#fcd34d}
+
+  /* ===== lagen ===== */
+  .lagen{display:flex;flex-direction:column;align-items:stretch}
+  .laag{background:#fff;border:1px solid var(--line);border-left:6px solid var(--line-2);border-radius:12px;padding:11px 15px;box-shadow:var(--shadow)}
+  .laag.l1{border-left-color:var(--vermogens)}
+  .laag.l2{border-left-color:#7c3aed}
+  .laag.l3{border-left-color:var(--cultuur)}
+  .laag h4{font-size:12px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .laag h4 .wie{margin-left:auto;font-size:10px;color:var(--ink-3);font-weight:500;text-transform:none;letter-spacing:0;border:0;background:none;padding:0}
+  .laag p{font-size:11px;color:var(--ink-2);line-height:1.5;margin-top:3px}
+  .laag p b{color:var(--ink)}
+  .laagpijl{display:flex;justify-content:space-between;align-items:center;padding:4px 18px;font-size:10px;color:var(--ink-3)}
+
+  /* ===== werkstromen ===== */
+  .wsgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .wskaart{background:#fff;border:1px solid var(--line);border-top:5px solid var(--line-2);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
+  .wskaart.w1{border-top-color:var(--data)}
+  .wskaart.w2{border-top-color:var(--proces)}
+  .wskaart.w3{border-top-color:var(--mens)}
+  .wskaart.w4{border-top-color:var(--cultuur)}
+  .wskaart.w5{border-top-color:var(--cito)}
+  .wskaart h3{font-size:13px;margin-bottom:1px;display:flex;gap:8px;align-items:baseline}
+  .wskaart h3 .pr{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:4px;padding:2px 7px;background:#f8f5ff;color:#6d28d9;border:1px solid #c4b5fd}
+  .wskaart .act{font-size:10.5px;color:var(--ink-2);line-height:1.5;margin:4px 0 8px}
+  .wskaart .act b{color:var(--ink)}
+  .wskaart .meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+  .wskaart .meta span{font-size:9px;font-weight:700;border-radius:5px;padding:2px 7px;border:1px solid;background:#f8fafc;color:#475569;border-color:#dde3ea}
+  .wskaart .meta span.d{background:#fffbeb;color:#92400e;border-color:#fcd34d}
+  .wskaart .meta span.t{background:#f8f5ff;color:#5b21b6;border-color:#c4b5fd}
+  .wskaart .rol{font-size:10.5px;line-height:1.5;border-left:4px solid #cbd5e1;border-radius:0 8px 8px 0;padding:6px 9px;margin-bottom:6px;background:#f8fafc;color:var(--ink-2)}
+  .wskaart .rol b{color:var(--ink)}
+  .wskaart .rol.ow{border-color:var(--vermogens);background:#f0fbfd}
+  .wskaart .rol.ts{border-color:#7c3aed;background:#f8f5ff}
+  .wskaart .rol.il{border-color:#64748b}
+  .wskaart .rol.pm{border-color:var(--cito);background:#f4f8fd}
+  .wskaart .prak{font-size:10.5px;color:#083b44;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:8px;padding:7px 9px;line-height:1.5}
+  .wskaart .prak b{color:#083b44}
+  .wsover{margin-top:13px;background:#f0fbfd;border:1px solid #b7e3ec;border-left:6px solid var(--vermogens);border-radius:12px;padding:11px 15px;font-size:11.5px;color:#0c5460;line-height:1.55}
+  .wsover b{color:#083b44}
+
+  /* ===== werkafspraken ===== */
+  .kaart{background:#fff;border:1px solid var(--line);border-left:6px solid var(--vermogens);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+  .kaart p.intro{font-size:12px;color:var(--ink-2);line-height:1.55;margin-bottom:9px}
+  .kaart p.intro b{color:var(--ink)}
+  .kaart ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .kaart li{font-size:11.5px;color:var(--ink-2);line-height:1.5;display:flex;gap:8px}
+  .kaart li .n{flex:none;width:17px;height:17px;border-radius:50%;background:#e6f6fa;border:1px solid #b7e3ec;color:#0c5460;display:grid;place-items:center;font-size:9.5px;font-weight:800;margin-top:2px}
+  .kaart li b{color:var(--ink)}
+  .kaart.regiek{border-left-color:var(--cito)}
+  .kaart.regiek li .n{background:#e0edff;border-color:#c3d9fc;color:#1d4ed8}
+  .tweekol{display:grid;grid-template-columns:1.2fr 1fr;gap:13px}
+  .open{background:#fff;border:1px solid #fde9c8;border-left:6px solid var(--amber);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+  .open h3{font-size:12.5px;color:#7c4a06;margin-bottom:8px}
+  .open ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .open li{font-size:11px;color:#7c4a06;line-height:1.45;padding-left:16px;position:relative}
+  .open li::before{content:"❓";position:absolute;left:-2px;top:1px;font-size:9px}
+  .open li b{color:#5a370a}
+
+  .foot{margin-top:22px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  @media(max-width:820px){.orggrid{grid-template-columns:1fr}.rolgrid,.tweekol,.stroom,.breekt,.wsgrid,.stappen{grid-template-columns:1fr}.route{grid-template-columns:1fr 1fr}.ring4{grid-template-columns:1fr 1fr}.lower{grid-template-columns:1fr}.venn{grid-template-columns:1fr}.duopill{white-space:normal;text-align:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="sketchlabel">Sketch — voorstel · vast te stellen door de programma-eigenaar</span>
+  <header class="top">
+    <div class="eyebrow">Programma Klant in Zicht · programmaorganisatie · stap 5 &amp; programmaplan</div>
+    <h1>Regie en inhoud in de programmaleiding — het organigram</h1>
+    <p>"Twee mensen in de programmaleiding: één die het programma leidt en stuurt, één die de inhoud draagt. Wie gaat waarover, wie legt aan wie verantwoording af, waar werken ze verplicht samen — en hoe ziet dat eruit in het organigram?"</p>
+  </header>
+
+  <div class="begrip">
+    <span class="bl">Begrippen</span>
+    <span><b>De vier werkstromen</b> = de vier domeinen van het vermogen: <b>Data &amp; Systemen · Processen · Mens · Cultuur</b>. Een werkstroom is de bundel inspanningen van één domein, met één inspanningsleider en een team uit de sectoren.</span>
+    <span class="eq">inspanningsleider bouwt (plan, team, uitvoering)</span>
+    <span class="eq">domeineigenaar = bateneigenaar: draagt het in de lijn en zit in de stuurgroep</span>
+    <span class="eq">3sides = inhoudelijk betrokken als consultant · inhoudelijk verantwoordelijk namens Cito: de architect</span>
+    <span>De vier onderdelen uit de presentatie van 3sides — <b>Blueprint Klantreis · Nulmeting · Adoptie · Technologielandschap</b> — zijn in dit voorstel geen aparte werkstromen maar de 3sides-onderdelen van de analysefase die in de werkstromen landen.</span>
+  </div>
+
+  <!-- ===== 1. ORGANIGRAM ===== -->
+  <div class="sec">
+    <div class="seckop">1 · Het organigram <span class="vs">(spiegelt het organigram in stap 5 — nieuw: de binnenring van het programmateam en de werkstromen)</span></div>
+    <div class="secsub">Het boek kent voor onze situatie twee rollen: de <b>programmamanager</b> (leiding en sturing van het programma, verantwoording aan de programma-eigenaar) en in het programmateam de <b>ontwerper van verandering</b>, bij Cito de <b>programma-architect</b> (veranderstrategie, DIN, vermogens, routekaart, samenhang).</div>
+
+    <div class="orgwrap">
+      <div class="orgtitle">Organigram programmaorganisatie</div>
+      <div class="orgsub">Hiërarchische weergave volgens "Werken aan Programma's" — één lijn omhoog, één lijn naar 3sides, twee vaste ontmoetingsplekken (duo-overleg, ontwerpoverleg per werkstroom).</div>
+
+      <div class="sponsor"><div class="gl">Sponsorgroep · MT <span style="color:var(--amber)">❓ te bevestigen</span></div><div class="gs">prioriteit in de portfolio · middelen · benoemt de programma-eigenaar</div></div>
+      <div class="col"><div class="vline short"></div></div>
+
+      <div class="orggrid">
+        <!-- links -->
+        <div class="col">
+          <div class="group" style="border-style:dashed">
+            <div class="gt">Adviesgroep</div>
+            <div class="stack"><div class="box side"><div class="r">Intern advies</div><div class="n">bv. directeuren · Finance</div><div class="s">geen besluitmandaat</div></div></div>
+          </div>
+        </div>
+
+        <!-- midden -->
+        <div class="col">
+          <div class="maxw">
+            <div class="grouplabel">Programma-eigenaar (opdrachtgever)</div>
+            <div class="box primary"><div class="r">Programma-eigenaar</div><div class="n">eindverantwoordelijk · voorzitter stuurgroep · scharnier naar de lijn · opdrachtgever 3sides</div><div class="s">exact 1</div></div>
+          </div>
+          <div class="vline"></div>
+          <div class="maxw">
+            <div class="grouplabel">Programmamanager</div>
+            <div class="box primary"><span class="badge regie">regie</span><div class="r">Programmamanager</div><div class="n">Sanne · leiding en sturing van het programma · aanvoerder programmateam · opdrachtgever werkstromen · regie 3sides</div><div class="s">exact 1 · lid stuurgroep · verantwoording aan programma-eigenaar</div></div>
+          </div>
+          <div class="connector"><div class="vline short"></div><span class="duopill">duo-overleg wekelijks · gedeelde zone (deel 4)</span><div class="vline short"></div></div>
+
+          <div class="group team">
+            <div class="gt">Programmateam · binnenring <small>· onder aanvoering van de programmamanager</small></div>
+            <div class="ring">
+              <div class="box ontwerp"><span class="badge inhoud">inhoud · eigen mandaat</span><div class="r">Programma-architect</div><div class="n">Pim de Burger · namens Cito inhoudelijk verantwoordelijk voor de vier werkstromen · DIN · veranderstrategie · vermogens · adoptie-framework · blueprint-kaders · samenhang · inhoudelijke toets en acceptatie</div><div class="s">boekrol: ontwerper van verandering · vaste deelnemer stuurgroep (adviserend)</div></div>
+              <div class="box open"><span class="badge vraag">te beleggen</span><div class="r">Communicatie</div><div class="n">bij programmamanager · specialist op afroep</div></div>
+            </div>
+          </div>
+          <div class="vline"></div>
+
+          <div class="group">
+            <div class="gt">Kerngroep · programmateam buitenring <small>· inspanningsleider (Cito) + 3sides per werkstroom</small></div>
+            <div class="ring2">
+              <div class="box"><div class="r">Data &amp; Systemen</div><div class="n">inspanningsleider: Product Owner (beoogd) · SIO doet de analyse centrale datavoorziening · 3sides inhoudelijk trekker (Strategie &amp; Technologie)</div></div>
+              <div class="box open"><div class="r">Processen</div><div class="n">inspanningsleider: nog te benoemen ❓ (besluit stuurgroep) · 3sides inhoudelijk trekker (Klantreis &amp; Adoptie, Strategie &amp; Design)</div></div>
+              <div class="box"><div class="r">Mens</div><div class="n">inspanningsleider: HR-manager (beoogd), tevens domeineigenaar · 3sides Klantreis &amp; Adoptie</div></div>
+              <div class="box"><div class="r">Cultuur</div><div class="n">inspanningsleider: HR-manager (beoogd), gedragen door het MT · 3sides Klantreis &amp; Adoptie</div></div>
+            </div>
+          </div>
+          <div class="connector"><div class="vline short"></div><span class="duopill">ontwerpoverleg per werkstroom · architect + inspanningsleider + domeineigenaar + 3sides (deel 5)</span><div class="vline short"></div></div>
+
+          <div class="group wsg">
+            <div class="gt">De vier werkstromen · eenheid van uitvoering <small>· alle vier lopen in 2026 tegelijk · prioriteit = nadruk en capaciteit · architect = inhoud · inspanningsleider = plan en uitvoering · 3sides = doet</small></div>
+            <div class="ring4">
+              <div class="box ws"><span class="badge prio">prio 1</span><div class="r" style="margin-top:4px">Data &amp; Systemen</div><div class="n">team uit de sectoren</div><div class="s">technologielandschap · CRM-richting</div></div>
+              <div class="box ws"><span class="badge prio">prio 2</span><div class="r" style="margin-top:4px">Processen</div><div class="n">team uit de sectoren</div><div class="s">blueprint klantreis · funnelprocessen</div></div>
+              <div class="box ws"><span class="badge prio">prio 3</span><div class="r" style="margin-top:4px">Mens</div><div class="n">team uit de sectoren</div><div class="s">adoptie · curriculum · intervisie</div></div>
+              <div class="box ws"><span class="badge prio">prio 4</span><div class="r" style="margin-top:4px">Cultuur</div><div class="n">team uit de sectoren</div><div class="s">leiderschap · rituelen · ambassadeurs</div></div>
+            </div>
+            <div class="n" style="font-size:10px;color:#4c1d95;margin-top:7px;text-align:center">de vier onderdelen uit de presentatie van 3sides landen erin: <b>Technologielandschap</b> → Data &amp; Systemen · <b>Blueprint Klantreis</b> → Processen, basis voor alle vier · <b>Adoptie</b> → Mens en Cultuur · <b>Nulmeting</b> → fundament</div>
+            <div class="box ws" style="margin-top:8px"><span class="badge prio" style="left:auto;right:10px">programma-breed</span><div class="r" style="margin-top:2px">Fundament · Nulmeting</div><div class="n">over alle vier de werkstromen heen — Sanne trekt, Pim draagt de inhoud, 3sides assisteert bij elke stap: iedereen opnieuw meenemen · inspanningsleiders en teams bepalen · meetprotocol per baten-KPI · adoptie-framework · <b>Nulmeting</b> (3sides-onderdeel: "zodat we weten waar we nu staan", startwaarden baten-KPI's en stand per werkstroom) · vervolgsessie doelwaarden en indicatoren · pilot in één sector</div></div>
+          </div>
+          <div class="vline"></div>
+
+          <div class="lower">
+            <div class="box domein"><div class="r">Landt in de lijn bij de domeineigenaar</div><div class="n">dezelfde vier domeinen, in de lijn: de domeineigenaar (= bateneigenaar in de stuurgroep) accepteert voor gebruik en laat het werken</div></div>
+            <div class="box side" style="border-color:#fcd34d"><div class="r">Veranderteam</div><div class="n">Adoptie Team + ambassadeurs per sector · stemt inhoudelijk af met de architect</div></div>
+          </div>
+          <div class="operatie"><b>Staande organisatie</b> — sectoren PO · VO · Zakelijk · klantcontact · marketing: daar landen de vermogens en worden de baten gerealiseerd</div>
+        </div>
+
+        <!-- rechts -->
+        <div class="col">
+          <div class="group">
+            <div class="gt">Stuurgroep <small>· besluitvormend</small></div>
+            <div class="stack">
+              <div class="box side"><div class="r">Programma-eigenaar</div><div class="s">voorzitter · lid</div></div>
+              <div class="box side"><div class="r">Programmamanager</div><div class="s">lid · presenteert · legt verantwoording af</div></div>
+              <div class="box domein"><div class="r">Bateneigenaren = domeineigenaren</div><div class="n">Data &amp; Systemen · Processen · Mens · Cultuur — in deze situatie dezelfde personen</div><div class="s">leden · dragen baten én domein</div></div>
+              <div class="box ontwerp" style="border-width:2px"><div class="r">Programma-architect</div><div class="n">vaste deelnemer · licht de inhoud toe · adviseert</div><div class="s">geen lid, geen stem · waarom: deel 3</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><i style="background:var(--cito);border-color:var(--cito)"></i> leidende rollen (exact 1)</span>
+        <span><i style="background:#f0fbfd;border-color:var(--vermogens)"></i> inhoudelijk mandaat</span>
+        <span><i style="background:#f8f5ff;border-color:#c4b5fd"></i> werkstromen</span>
+        <span><i style="background:#fffbeb;border-color:#fcd34d"></i> baten-/domeineigenaren</span>
+        <span><i style="background:#fff;border-color:#cbd5e1;border-style:dashed"></i> te beleggen / n.t.b.</span>
+        <span><i style="background:#f8fafc;border-color:#cbd5e1"></i> gremia en teams</span>
+      </div>
+      <div class="hier"><b>Hiërarchie in één zin:</b> de programmamanager staat één laag hoger — zij is de enige die verantwoording aflegt aan de programma-eigenaar en de enige uit het team die lid is van de stuurgroep; de architect legt binnen het programmateam verantwoording af aan de programmamanager, met een <b>eigen, vooraf vastgelegd mandaat op de inhoud van de vier werkstromen</b> binnen de kaders van het programmaplan en een <b>vaste plek aan de stuurgroeptafel</b> als adviserend deelnemer. De baten-/domeineigenaren zitten in de stuurgroep en dragen het resultaat in hun eigen domein. Geen tweede programmamanager, geen co-leiding.</div>
+    </div>
+
+    <div class="uitleg">
+
+      <div class="ukaart">
+        <h3>Zo lees je het organigram — van boven naar beneden</h3>
+        <div class="us">Voor wie het boek niet kent: zes stappen, elke laag één taak. De twee lichtblauwe labels op de verbindingslijnen zijn de vaste ontmoetingen waar de lagen elkaar raken.</div>
+        <div class="stappen">
+          <div><span class="n">1</span><span><b>Programma-eigenaar en stuurgroep.</b> De programma-eigenaar geeft de opdracht en zit de stuurgroep voor. In de stuurgroep zitten de baten-/domeineigenaren van de vier domeinen: zij besluiten mee over richting, kaders en middelen en zijn verantwoordelijk voor de baten en de verandering in hun eigen domein. De programmamanager is lid; de architect zit aan tafel als adviseur.</span></div>
+          <div><span class="n">2</span><span><b>Programmamanager (Sanne) — zorgt dát het gebeurt.</b> Zij leidt en stuurt het programma: vertaalt besluiten in plannen, geeft opdracht aan de werkstromen, voert de regie op 3sides, bewaakt tempo, capaciteit en risico's en is het ene aanspreekpunt naar boven.</span></div>
+          <div><span class="n">3</span><span><b>Programma-architect (Pim) — zorgt dat het klópt.</b> Hij bepaalt wát elke werkstroom moet opleveren, bewaakt de samenhang en toetst of elk resultaat past in de keten doel → baat → vermogen → werkstroom. Hij zit één laag onder de programmamanager, met een eigen mandaat op de inhoud.</span></div>
+          <div><span class="n">4</span><span><b>Kerngroep — maakt het plan en doet het werk.</b> Per werkstroom een inspanningsleider van Cito en een 3sides-team. De inspanningsleider is verantwoordelijk voor plan en uitvoering; 3sides brengt expertise en capaciteit als consultant en ontwerpt mee.</span></div>
+          <div><span class="n">5</span><span><b>De vier werkstromen — de eenheden van uitvoering.</b> Data &amp; Systemen, Processen, Mens en Cultuur, elk met een team uit de sectoren. De vier onderdelen uit de presentatie van 3sides — Technologielandschap, Blueprint Klantreis, Adoptie, Nulmeting — landen erin; het fundament (meetprotocol, nulmeting, adoptie-framework, pilot) loopt over alle vier heen.</span></div>
+          <div><span class="n">6</span><span><b>Staande organisatie — daar landt het.</b> Het resultaat van elke werkstroom landt in hetzelfde domein in de lijn. De domeineigenaar, die als bateneigenaar ook in de stuurgroep zit, accepteert het voor gebruik en laat het werken; daar ontstaan de baten in de sectoren.</span></div>
+        </div>
+        <div class="ezin">In één zin: Sanne zorgt dát het gebeurt · Pim zorgt dat het klópt · de inspanningsleiders en 3sides dóén het · de baten-/domeineigenaren laten het wérken in de lijn en bewaken in de stuurgroep dat de báten komen.</div>
+      </div>
+
+      <div class="ukaart">
+        <h3>Hoe een werkstroom in het geheel past — de route van één resultaat</h3>
+        <div class="us">Elk resultaat van een werkstroom (een technologie-advies, een blueprint, een curriculum, een leiderschapsaanpak, een nulmeting) legt dezelfde route af langs de rollen. Zo grijpt regie, inhoud, uitvoering en domein in elkaar.</div>
+        <div class="route">
+          <div class="rstap sg"><div class="rn">1</div><div class="rt">Kaders en prioriteit</div><span class="wie pe">stuurgroep</span><div class="rd">programmaplan en cyclusplan: wat, waarom, met welke middelen</div></div>
+          <div class="rstap pm"><div class="rn">2</div><div class="rt">Opdracht en plan</div><span class="wie pm">Sanne</span><div class="rd">wie, wat, wanneer; inzet 3sides; capaciteit uit de lijn</div></div>
+          <div class="rstap ow"><div class="rn">3</div><div class="rt">Inhoudelijke kaders</div><span class="wie ow">Pim, met 3sides</span><div class="rd">wat moet het opleveren, welke baat, toetscriteria</div></div>
+          <div class="rstap tr"><div class="rn">4</div><div class="rt">Uitvoering</div><span class="wie il">inspanningsleider + 3sides</span><div class="rd">werksessies, tussenresultaten, versie 1</div></div>
+          <div class="rstap ow"><div class="rn">5</div><div class="rt">Ontwerpoverleg</div><span class="wie ow">Pim zit voor</span><div class="rd">met inspanningsleider, domeineigenaar, 3sides: samenhang met de andere werkstromen</div></div>
+          <div class="rstap ow"><div class="rn">6</div><div class="rt">Inhoudelijke acceptatie</div><span class="wie ow">Pim</span><div class="rd">klopt het, past het in de keten — anders terug naar stap 4</div></div>
+          <div class="rstap de"><div class="rn">7</div><div class="rt">Landing in de lijn</div><span class="wie de">domeineigenaar</span><div class="rd">acceptatie voor gebruik; werkt het in ons domein</div></div>
+          <div class="rstap pm"><div class="rn">8</div><div class="rt">Voortgang en mijlpaal</div><span class="wie pm">Sanne</span><div class="rd">rapportage naar stuurgroep; Pim licht de inhoud toe; stuurgroep bewaakt de baten</div></div>
+        </div>
+        <div class="terug">Stap 2 en 8 zijn regie, stap 3, 5 en 6 zijn inhoud, stap 4 is uitvoering, stap 7 is het domein. Raakt een stap tempo, capaciteit of scope, dan beslist Sanne; raakt het de kaders van het programmaplan, dan gaat het terug naar stap 1.</div>
+      </div>
+
+      <div class="ukaart">
+        <h3>Waar de vier onderdelen uit de presentatie van 3sides landen — Blueprint Klantreis, Nulmeting, Adoptie, Technologielandschap — en hoe de werkstromen elkaar voeden</h3>
+        <div class="us">● = landt in deze werkstroom en wordt door de inspanningsleider gebouwd en door de domeineigenaar gedragen · ◐ = basis of input. De rechterkolom laat zien hoe de werkstromen elkaar nodig hebben; daarom bewaakt één rol (de architect) de samenhang.</div>
+        <table class="matrix">
+          <thead><tr><th>3sides-onderdeel (naam uit de presentatie)</th><th class="c">Data &amp; Systemen</th><th class="c">Processen</th><th class="c">Mens</th><th class="c">Cultuur</th><th>Voedt ook</th></tr></thead>
+          <tbody>
+            <tr><td><b>Technologielandschap</b> — "dat ons ondersteunt in plaats van tegenwerkt"</td><td class="c">●</td><td class="c">◐</td><td class="c">◐</td><td class="c">◐</td><td>de <b>CRM-richting</b> (keuze rond april 2027) en de datakwaliteitseisen die uit het funnelontwerp volgen</td></tr>
+            <tr><td><b>Blueprint Klantreis</b> — "zodat iedereen dezelfde reis voor ogen heeft"</td><td class="c">◐</td><td class="c">●</td><td class="c">◐</td><td class="c">◐</td><td>de datavraag voor <b>Data &amp; Systemen</b> en het gewenste gedrag voor <b>Mens en Cultuur</b>; de funnelprocessen en Customer Success in Processen</td></tr>
+            <tr><td><b>Adoptie</b> (framework en teams) — "zodat we het toepassen in de praktijk"</td><td class="c">◐</td><td class="c">◐</td><td class="c">●</td><td class="c">●</td><td>de kandidaat-indicatoren per werkstroom; ook techniek heeft een adoptiekant: het framework ligt als paraplu over alle vier</td></tr>
+            <tr><td><b>Nulmeting</b> (fundament) — "zodat we weten waar we nu staan"</td><td class="c">●</td><td class="c">●</td><td class="c">●</td><td class="c">●</td><td>startwaarden van de baten-KPI's; de gap AS-IS → TO-BE per werkstroom als basis voor het <b>pakket vervolg-inspanningen 2027</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ukaart">
+        <h3>Eén ronde als voorbeeld: de blueprint klantreis, versie 1 (werkstroom Processen)</h3>
+        <div class="voorbeeld">
+          <div class="vstap"><span class="st">1–2</span><span>De stuurgroep heeft de analysefase en de prioriteit vastgesteld; <b>Sanne</b> plant de sessies met de sectoren, geeft 3sides de opdracht voor versie 1 en regelt de beschikbaarheid van de sectormedewerkers.</span></div>
+          <div class="vstap"><span class="st">3</span><span><b>Pim</b> legt met 3sides vooraf vast wat versie 1 moet bevatten: de fasen en klantdoelen, de kritische contactmomenten, de customer loops (retentie · migratie · nieuw) en per fase de koppeling aan de baat van de sector.</span></div>
+          <div class="vstap"><span class="st">4</span><span>Het 3sides-team werkt met de sectoren versie 1 uit; de inspanningsleider Processen bewaakt plan en voortgang.</span></div>
+          <div class="vstap"><span class="st">5</span><span>In het ontwerpoverleg met de inspanningsleider, de domeineigenaar Processen en 3sides toetst Pim of de blueprint de datavraag voor Data &amp; Systemen en het gedrag voor Mens en Cultuur oplevert.</span></div>
+          <div class="vstap"><span class="st">6</span><span>Klopt het, dan accepteert Pim de inhoud; ontbreekt bijvoorbeeld de migratiefase, dan gaat versie 1 terug naar 3sides.</span></div>
+          <div class="vstap"><span class="st">7</span><span>De domeineigenaar Processen neemt de blueprint over als basis voor de funnelprocessen en het Customer Success-proces.</span></div>
+          <div class="vstap"><span class="st">8</span><span><b>Sanne</b> meldt de mijlpaal in de stuurgroep; <b>Pim</b> licht toe wat de blueprint betekent voor de baten en wat de volgende stap in de andere werkstromen is.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 2. DE TWEE ROLLEN ===== -->
+  <div class="sec">
+    <div class="seckop">2 · De twee rollen naast elkaar</div>
+    <div class="secsub">Het zijn de twee assen uit het boek: <b>invloed op de vormgeving</b> (inhoud) en <b>invloed op de uitvoering</b> (sturing). Klant in Zicht is sterk op beide — dat vraagt beide kanten stevig bemenst.</div>
+    <div class="rolgrid">
+
+      <div class="rolkaart regie">
+        <h3>Programmamanager · regie <span class="wie">Sanne</span></h3>
+        <div class="boek">Boek: "spin in het web — niet degene die alles zelf doet, wel degene die ervoor zorgt dat het programma wordt uitgevoerd"</div>
+        <div class="kv"><b>Kernvraag:</b> gebeurt het, op tijd, haalbaar, met de juiste mensen?</div>
+        <dl>
+          <dt>Leidt</dt><dd><b>Sturen</b> op doeltreffendheid, tempo, haalbaarheid, wendbaarheid, efficiëntie: cyclusplan, monitoring, bijsturen, rapporteren. <b>Organiseren</b>: rollen bemensen, mandaten, capaciteit met de lijn. <b>Besluitproces</b>: voorstel → review → besluit, stuurgroepstukken. <b>Opdrachtgever</b> richting de werkstromen; <b>regie</b> op 3sides namens de programma-eigenaar (die opdrachtgever van 3sides is).</dd>
+          <dt>Blik</dt><dd>Naar buiten en rondom: programma-eigenaar, stuurgroep, lijn, 3sides, stakeholders.</dd>
+          <dt>Instrumenten</dt><dd>Cyclusplan · dashboard vijf stuurparameters · besluitenregister · risicoregister · rapportage · escalatiepad.</dd>
+          <dt>Gezag</dt><dd>Positie: voorzitterschap programmateam, opdrachtgeverschap, mandaat. Hakt de knoop door als inhoudelijke experts er niet uitkomen.</dd>
+          <dt>Stuurgroep</dt><dd>Lid; presenteert en legt verantwoording af.</dd>
+          <dt>Verantwoording</dt><dd>Aan de <b>programma-eigenaar</b>.</dd>
+        </dl>
+      </div>
+
+      <div class="rolkaart inhoud">
+        <h3>Programma-architect · inhoud <span class="wie">Pim de Burger</span></h3>
+        <div class="boek">Boek: ontwerper van verandering, "ook wel architect" — "maakt de (verander)strategie en het ontwerp: doelen-inspanningennetwerk, vermogens, houtskoolschets, routekaart; geeft weer wat het programma moet realiseren"</div>
+        <div class="kv"><b>Kernvraag:</b> klopt het, hangt het samen, leidt dit tot de baten?</div>
+        <dl>
+          <dt>Leidt</dt><dd><b>Inhoud van de vier werkstromen</b>: wat elke werkstroom moet opleveren, kaders, toetscriteria, inhoudelijke acceptatie (deel 6). <b>Vormgeven</b>: visie → doelen → baten → vermogens → inspanningen (DIN), veranderstrategie, vermogensprofielen, routekaart. <b>Adoptie-framework</b> en <b>blueprint-kaders</b>. <b>Inhoudelijke toets</b> van elk 3sides-resultaat vóór besluit. Ontwerpoverleg per werkstroom.</dd>
+          <dt>Blik</dt><dd>Naar de kern: klantreis, gedrag, vermogens, samenhang tussen de vier werkstromen.</dd>
+          <dt>Instrumenten</dt><dd>DIN · batenprofielen · vermogensprofielen · veranderstrategie · adoptie-framework · blueprint klantreis · routekaart · inspanningendossiers.</dd>
+          <dt>Gezag</dt><dd>Inhoud: "leider voor een deel" op basis van inhoudelijke autoriteit. Mandaat op de inhoud binnen het programmaplan.</dd>
+          <dt>Stuurgroep</dt><dd>Vaste deelnemer; licht de inhoud toe en adviseert, geen stem.</dd>
+          <dt>Verantwoording</dt><dd>Binnen het programmateam, aan de <b>programmamanager</b>.</dd>
+        </dl>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 3. VERHOUDING ===== -->
+  <div class="sec">
+    <div class="seckop">3 · De verhouding programmamanager ↔ architect in één beeld</div>
+    <div class="secsub">Wat het boek zegt over hoe deze twee rollen zich tot elkaar verhouden, en waarom de architect aan de stuurgroeptafel zit.</div>
+    <div class="verh">
+      <div class="kern">De programmamanager is de integrator; de architect is de inhoudelijke autoriteit binnen haar team.</div>
+
+      <div class="blok"><h4>De lijn</h4><p>De architect is een rol in het programmateam, en dat team werkt "onder aanvoering van de programmamanager"; alle rollen daarin leggen verantwoording aan haar af. Het is een <b>rol-lijn, geen functie-lijn</b>: Sanne is niet de leidinggevende van Pim, maar in het programma stuurt zij het geheel en draagt hij de inhoud. Naar buiten is er één gezicht: zij. In de stuurgroep is zij lid en is hij vaste deelnemer.</p></div>
+
+      <div class="blok"><h4>De wederzijdse afhankelijkheid</h4><p>Zonder ontwerp heeft zij niets te sturen: een programma zonder doorleefde inhoud verwordt tot "een collectie inspanningen, baten en doelen waarin maar weinig leven zit". Zonder sturing landt zijn ontwerp niet: haalbaarheid, capaciteit, besluiten en doorzettingsmacht komen van haar. Het boek vergelijkt dit met het <b>IPM-model</b> van Rijkswaterstaat: een projectmanager naast een technisch manager, een manager projectbeheersing en een omgevingsmanager. De technisch manager is een volwaardige rol met eigen mandaat op de inhoud; de projectmanager is integraal verantwoordelijk. Het boek noemt de ontwerper ook letterlijk <b>"architect"</b>.</p></div>
+
+      <div class="blok"><h4>Wat er over en weer stroomt</h4>
+        <div class="stroom">
+          <div class="sk naarpim"><h5>Van programmamanager naar architect</h5><ul>
+            <li>kaders: tempo, capaciteit, budget, scope</li>
+            <li>prioriteiten en besluiten (eigen mandaat en die van de stuurgroep)</li>
+            <li>vragen uit stuurgroep, lijn en 3sides</li>
+            <li>signalen uit de voortgang: "dit lukt niet in dit tempo, ontwerp het anders"</li>
+            <li>agenda en besluitvragen voor stuurgroep en programmateam</li></ul></div>
+          <div class="sk naarsanne"><h5>Van architect naar programmamanager</h5><ul>
+            <li>het ontwerp: DIN, vermogens, routekaart, adoptie-framework, blueprint-kaders</li>
+            <li>inhoudelijke opties mét consequenties</li>
+            <li>toetsuitkomsten op de resultaten van de werkstromen</li>
+            <li>inhoudelijke risico's en aannames in het ontwerp</li>
+            <li>de waartoe-toets per werkstroom en per nieuwe inspanning</li></ul></div>
+        </div>
+      </div>
+
+      <div class="blok"><h4>Wie de pen heeft</h4><p>De architect op de inhoud binnen de kaders van het programmaplan; de programmamanager op de sturing; in de gedeelde zone beiden (deel 4). Zij kan zijn ontwerp <b>niet op inhoudelijke gronden overrulen</b>, wel op sturingsgronden een ander ontwerp vragen. Raakt dat de kaders van het programmaplan, dan gaat het naar de stuurgroep. Komen inhoudelijke experts er niet uit, dan hakt zij de knoop door: "van een leider wordt verwacht dat deze uiteindelijk een keuze maakt, zeker als de experts er met elkaar niet uitkomen". Zij hoeft daarvoor geen expert te zijn, wel gesprekspartner op de inhoud.</p></div>
+
+      <div class="sgarg">
+        <h4>Waarom de architect aan de stuurgroeptafel zit</h4>
+        <div class="lead">Als vaste deelnemer, niet als lid: de programmamanager is en blijft het lid dat het programma vertegenwoordigt en verantwoording aflegt. Zes redenen uit het boek.</div>
+        <ol>
+          <li><span class="n">1</span><span><b>De stuurgroep stuurt op baten en verandering.</b> Zij "houdt in de gaten of het programma de gewenste verandering faciliteert en de baten tot stand komen". Het beeld daarvan — de keten doel → baat → vermogen → werkstroom — is het werk van de architect. Wie dat beeld maakt, hoort erbij als het wordt beoordeeld.</span></li>
+          <li><span class="n">2</span><span><b>Kwaliteit en tempo van besluiten.</b> De stuurgroep moet "de inhoudelijke discussie niet opnieuw voeren" en werken met "een goed voorbereid stuk". De architect staat voor de inhoudelijke kwaliteit van dat stuk en beantwoordt inhoudelijke vragen ter plekke. Zonder hem schuiven inhoudelijke vragen door naar een volgend overleg: de "decision latency" die het boek wil voorkomen.</span></li>
+          <li><span class="n">3</span><span><b>Rolzuiverheid in het besluitproces.</b> Beeldvorming gaat vooraf aan oordeelsvorming en besluitvorming. De architect dient de beeldvorming, de programmamanager leidt het proces en presenteert, de stuurgroep oordeelt en besluit. Ieder zijn deel.</span></li>
+          <li><span class="n">4</span><span><b>De baten-/domeineigenaren zitten er ook.</b> Zij operationaliseren hun baten "in samenwerking met en ondersteund door" het programma. Die inhoudelijke samenwerking is de architect; hij moet horen wat zij aan tafel zeggen om het ontwerp daarop aan te passen.</span></li>
+          <li><span class="n">5</span><span><b>Het patroon staat in het boek.</b> De programmamanager is lid; anderen nemen deel zonder lid te zijn. En: "naarmate de verandercomponent groter is, zoek je er een veranderkundige bij die vanuit dat perspectief een leidende rol neemt" — die hoort aan tafel bij besluiten over de verandering.</span></li>
+          <li><span class="n">6</span><span><b>Het versterkt de programmamanager.</b> Zij hoeft geen inhoudelijk expert te zijn en houdt haar handen vrij voor wat haar rol is: leiding, sturing en het besluitproces. Zij presenteert, hij licht toe. Hetzelfde principe waarmee het boek de programma-eigenaar ontlast: doordat bateneigenaren de belangen vertegenwoordigen, "heeft de programma-eigenaar de handen vrij om de afweging zuiver te maken".</span></li>
+        </ol>
+      </div>
+
+      <div class="blok" style="margin:11px 0 0"><h4>Wat het laat werken, en wat het breekt</h4><p style="margin-bottom:8px">Het boek is scherp op eigenaarschap: "toon je zelf te veel eigenaarschap, dan gaat dit ten koste van het eigenaarschap van anderen". Dat geldt beide kanten op. Het wekelijkse duo-overleg en de regel "één A, de ander minimaal C" (deel 4) zijn bedoeld om het te voorkomen.</p>
+        <div class="breekt">
+          <div class="bk"><b>Het breekt</b> als de sturing de inhoud gaat invullen, of als de inhoud de sturing gaat invullen.</div>
+          <div class="bk"><b>Het breekt ook</b> als een van beiden naast de ander naar de programma-eigenaar loopt — één lijn omhoog.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 4. OVERLAP ===== -->
+  <div class="sec">
+    <div class="seckop">4 · De overlap — waar regie en inhoud elkaar altijd raken</div>
+    <div class="secsub">Scheiden zonder overlap geeft twee silo's. Het programmateam is een collectief met "interesse in elkaars stukken van de puzzel" en vooraf is afgesproken wie over welk besluit meepraat. Daarom een vaste <b>gedeelde zone</b>: onderdelen waarin geen van beiden alleen beslist.</div>
+    <div class="venn">
+      <div class="zone regiez"><h4>Alleen regie</h4><div class="wiez">Sanne beslist · Pim geïnformeerd</div><ul>
+        <li>planning en voortgang</li><li>registers: risico's, issues, besluiten, acties</li><li>agenda en verslag programmateam</li><li>werkafspraken, planning en escalatie 3sides</li><li>capaciteit met de lijn</li><li>rapportage en dashboard</li><li>stakeholderoverzicht</li></ul></div>
+      <div class="zone gedeeld"><h4>Gedeelde zone — beiden nodig</h4><div class="wiez">één A, de ander minimaal C · niets gaat naar stuurgroep, 3sides of organisatie zonder vier ogen</div><ul>
+        <li>cyclusplan / masterplan Q3–Q4</li><li>stuurgroepstukken en besluitvragen</li><li>plan van aanpak 3sides per werkstroom</li><li>pakket vervolg-inspanningen 2027</li><li>adoptie-framework (gedragen door het programmateam)</li><li>één verhaal naar de organisatie</li><li>programmareview per cyclus</li><li>inhoudelijke risico's en aannames in het ontwerp</li></ul>
+        <div class="regel">Wekelijks duo-overleg = de gedeelde zone doorlopen</div></div>
+      <div class="zone inhoudz"><h4>Alleen inhoud</h4><div class="wiez">Pim beslist · Sanne geïnformeerd</div><ul>
+        <li>DIN en vermogensprofielen</li><li>inhoudelijke kaders en toetscriteria per werkstroom</li><li>blueprint-kaders, adoptie-framework, meetprotocol-inhoud, requirements uit de klantreis</li><li>inhoudelijke toets en acceptatie van de resultaten van de werkstromen</li><li>batenprofielen (met de bateneigenaren)</li><li>inhoudelijke werksessies</li><li>ontwerpoverleg per werkstroom</li></ul></div>
+    </div>
+
+    <div class="secsub" style="margin-top:14px"><b>RASCI voor de gedeelde zone</b> — letters zoals in stap 5 van de app.</div>
+    <table class="besl rasci">
+      <thead><tr><th>Onderdeel</th><th>Architect</th><th>Programmamanager</th><th>Baten-/domeineigenaren</th><th>Inspanningsleiders</th><th>3sides</th><th>Stuurgroep</th></tr></thead>
+      <tbody>
+        <tr><td><b>Cyclusplan / masterplan analysefase</b></td><td><span class="ras S">S</span></td><td><span class="ras A">A</span><span class="ras R">R</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td>besluit</td></tr>
+        <tr><td><b>Stuurgroepstukken en besluitvragen</b></td><td><span class="ras R">R</span> inhoud · licht toe</td><td><span class="ras A">A</span><span class="ras R">R</span> sturing · presenteert</td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td><span class="ras I">I</span></td><td>ontvangt</td></tr>
+        <tr><td><b>Plan van aanpak 3sides per werkstroom</b></td><td><span class="ras C">C</span> toets</td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras S">S</span></td><td><span class="ras R">R</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td><b>Adoptie-framework</b></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras I">I</span> · team <span class="ras V">V</span></td></tr>
+        <tr><td><b>Pakket vervolg-inspanningen 2027</b></td><td><span class="ras V">V</span> waartoe</td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td><td><span class="ras R">R</span></td><td>besluit</td></tr>
+        <tr><td><b>Eén verhaal naar de organisatie</b></td><td><span class="ras R">R</span></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td><span class="ras S">S</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td><b>Programmareview per cyclus</b></td><td><span class="ras R">R</span></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td></tr>
+      </tbody>
+    </table>
+    <div class="raslegend">R voert uit · A eindverantwoordelijk (één per regel) · S ondersteunt · C vooraf geraadpleegd · I geïnformeerd · V verifieert</div>
+
+    <div class="secsub" style="margin-top:14px"><b>Overlegritme</b> — uitgewerkt zoals het boek het vraagt (functie, voorzitter, deelnemers, ritme); niet meer dan dit. Ritmes met ❓ zijn voorstel.</div>
+    <table class="besl rasci">
+      <thead><tr><th>Overleg</th><th>Functie</th><th>Voorzitter</th><th>Deelnemers</th><th>Ritme</th></tr></thead>
+      <tbody>
+        <tr><td><b>Duo-overleg regie ↔ inhoud</b></td><td>gedeelde zone doorlopen; programmateam en stuurgroep voorbereiden</td><td>programmamanager</td><td>programmamanager, architect</td><td>wekelijks ❓</td></tr>
+        <tr><td><b>Programmateam binnenring</b></td><td>vaste agenda: acties, besluiten, raakvlakken, verandering en baten, planning, eigenaarschap</td><td>programmamanager</td><td>programmamanager, architect, communicatie zodra belegd</td><td>wekelijks ❓ · valt samen met het duo-overleg zolang de binnenring uit twee personen bestaat</td></tr>
+        <tr><td><b>Programmateam breed / kerngroep</b></td><td>voortgang werkstromen, raakvlakken tussen werkstromen</td><td>programmamanager</td><td>binnenring, inspanningsleiders, 3sides, baten-/domeineigenaren op uitnodiging</td><td>tweewekelijks ❓ · 3sides is op dinsdagen aanwezig</td></tr>
+        <tr><td><b>Ontwerpoverleg per werkstroom</b></td><td>inhoud van de werkstroom toetsen aan het ontwerp: samenhang, waartoe, raakvlakken</td><td>architect</td><td>inspanningsleider, domeineigenaar, 3sides</td><td>per mijlpaal, min. maandelijks ❓</td></tr>
+        <tr><td><b>Werkmoment architect + 3sides</b></td><td>samen ontwerpen en tussentijds toetsen</td><td>architect</td><td>architect, 3sides-teams</td><td>op de dinsdag dat 3sides bij Cito is ❓</td></tr>
+        <tr><td><b>Regieoverleg 3sides</b></td><td>afspraken, planning, deliverables, voortgang, escalatie</td><td>programmamanager</td><td>3sides; architect bij inhoudelijke punten</td><td>wekelijks + kwartaalritme (bron: opdracht 3sides)</td></tr>
+        <tr><td><b>Programmastuurgroep</b></td><td>strategische sturing, besluiten buiten de kaders</td><td>programma-eigenaar</td><td>leden: programma-eigenaar, programmamanager, baten-/domeineigenaren · vaste deelnemer: architect (adviserend)</td><td>conform het programmaplan</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 5. LAGEN ===== -->
+  <div class="sec">
+    <div class="seckop">5 · Architect ↔ werkstromen ↔ domeineigenaren</div>
+    <div class="secsub">Drie lagen inhoud, elk met een eigen eigenaar. Leidend blijft de afspraak uit de stakeholdersessie van 24 juni 2026: <b>het programma zet het frame en bewaakt de keten (waartoe-toets); de "hoe" ligt bij de domeineigenaar met 3sides.</b> Aanscherping: de architect is inhoudelijk verantwoordelijk voor wát elke werkstroom oplevert en of het klopt; de domeineigenaar blijft eigenaar van de uitwerking in het eigen domein en van de landing in de lijn.</div>
+    <div class="lagen">
+      <div class="laag l1"><h4>Programma-breed · architect <span class="wie">Pim</span></h4><p><b>Inhoud en samenhang:</b> DIN · gedeeld vermogen · inhoud van de vier werkstromen (wat ze moeten opleveren, kaders, toetscriteria, inhoudelijke acceptatie) · samenhang tussen de werkstromen · waartoe-toets · batenprofielen met de bateneigenaren. Verantwoording: programmamanager.</p></div>
+      <div class="laagpijl"><span>▼ kaders en ontwerp</span><span class="duopill">ontwerpoverleg per werkstroom</span><span>▲ uitwerking en signalen</span></div>
+      <div class="laag l2"><h4>Werkstroom · inspanningsleider + 3sides <span class="wie">Data &amp; Systemen · Processen · Mens · Cultuur</span></h4><p><b>Plan en uitvoering</b>, resultaat, alle besluiten binnen het plan van de werkstroom; 3sides is inhoudelijk betrokken als consultant: ontwerpt mee en doet het werk conform de opdracht van Cito; inhoudelijk verantwoordelijk blijft Cito, via de architect. Drie loketten: voortgang en tempo → programmamanager (opdrachtgever) · inhoud → architect · landing en gebruik → domeineigenaar. Geen deelprogramma.</p></div>
+      <div class="laagpijl"><span>▼ resultaat landt in</span><span>▲ acceptatie voor gebruik in de lijn</span></div>
+      <div class="laag l3"><h4>Domein in de lijn · domeineigenaar = bateneigenaar <span class="wie">dezelfde vier, in de lijn én in de stuurgroep</span></h4><p><b>Eigenaar van het domein-deel van het vermogen én van de baat</b> ("de mensen die verantwoordelijk zijn voor het goed functioneren van het vermogen"): AS-IS/TO-BE, "de hoe" in het eigen domein, domeinkeuzes, de verandering in de lijn, acceptatie voor gebruik. Zit als bateneigenaar in de stuurgroep: verantwoording daar over baten en verandering in het eigen domein; over resultaten voor het domein aan de programmamanager.</p></div>
+    </div>
+
+    <div class="ukaart" style="margin-top:13px">
+      <h3>Vijf rollen, vijf vragen — programmamanager, architect, inspanningsleider, domeineigenaar en 3sides</h3>
+      <div class="us">Dezelfde inhoud gaat door vijf handen. Wie waarvan is, in één tabel.</div>
+      <table class="matrix" style="font-size:10px">
+        <thead><tr><th></th><th>Programmamanager (Sanne)</th><th>Architect (Pim)</th><th>Inspanningsleider (per werkstroom)</th><th>Domeineigenaar = bateneigenaar (per domein)</th><th>3sides (consultant)</th></tr></thead>
+        <tbody>
+          <tr><td><b>Kernvraag</b></td><td>Gebeurt het, op tijd, haalbaar, met de juiste mensen?</td><td>Klopt het en hangt het samen?</td><td>Wordt het gemaakt, op tijd en goed?</td><td>Werkt het bij ons, landt het, en komt de baat?</td><td>Hoe doen we het, en wat werkt elders?</td></tr>
+          <tr><td><b>Horizon</b></td><td>Het hele programma, cyclus na cyclus: alle werkstromen, 3sides en de lijn</td><td>Programma-breed: alle vier werkstromen</td><td>Eén werkstroom, van opdracht tot oplevering</td><td>Hetzelfde domein in de lijn, blijvend, ook na het programma</td><td>De opdracht van Cito: de analysefase 2026, in alle vier werkstromen en het fundament; op dinsdag bij Cito</td></tr>
+          <tr><td><b>Levert op</b></td><td>Een programma dat loopt: cyclusplan, opdrachten aan de werkstromen, voortgang en rapportage, besluitklare stuurgroepstukken, werkafspraken met 3sides</td><td>De kaders en het ontwerp; de inhoudelijke acceptatie</td><td>Het resultaat van de werkstroom: technologie-advies, blueprint, curriculum, leiderschapsaanpak, adoptie in de teams</td><td>Het werkende vermogen in de lijn: processen, mensen, systemen, gedrag — en daarmee de baat</td><td>Methode, expertise, voorstellen en handen: technologielandschap, blueprint klantreis, adoptie-framework en teambegeleiding, nulmeting</td></tr>
+          <tr><td><b>Beslist over</b></td><td>Tempo, capaciteit, geld en scope binnen de kaders van het programmaplan; opdracht en plan van elke werkstroom; het besluitproces; de knoop bij een patstelling</td><td>Wat een werkstroom moet opleveren en of het klopt in de keten</td><td>Alles binnen het plan van de werkstroom</td><td>Hoe het in het eigen domein wordt uitgewerkt en gebruikt; in de stuurgroep mee over richting, kaders, middelen</td><td>De eigen werkwijze en methode binnen de opdracht; hoe te meten en uit welke bron</td></tr>
+          <tr><td><b>Beslist niet over</b></td><td>De inhoud binnen de kaders (architect); de uitwerking in het domein (domeineigenaar); wat buiten de kaders van het programmaplan valt (stuurgroep)</td><td>Tempo, capaciteit, geld; de uitwerking in het domein</td><td>De inhoudelijke kaders; de landing in de lijn</td><td>De samenhang met andere werkstromen; het tempo van het programma</td><td>De inhoudelijke kaders en acceptatie (architect); planning, prioriteit en scope (programmamanager); de uitwerking in het domein (domeineigenaar)</td></tr>
+          <tr><td><b>Verantwoording aan</b></td><td>Programma-eigenaar</td><td>Programmamanager</td><td>Programmamanager (voortgang), architect (inhoud), domeineigenaar (landing)</td><td>Stuurgroep en lijn, als bateneigenaar</td><td>Programma-eigenaar als opdrachtgever; dagelijks aan de programmamanager (regie) en de architect (inhoud)</td></tr>
+          <tr><td><b>Zit in</b></td><td>Stuurgroep als lid; voorzitter van programmateam en kerngroep; duo-overleg; regieoverleg 3sides</td><td>Binnenring programmateam; stuurgroep als vaste deelnemer</td><td>Kerngroep; ontwerpoverleg van de eigen werkstroom</td><td>Stuurgroep (als bateneigenaar); lijn; ontwerpoverleg van het eigen domein</td><td>Kerngroep; ontwerpoverleg per werkstroom; werkmoment met de architect; regieoverleg met de programmamanager</td></tr>
+          <tr><td><b>Typische zin</b></td><td>“Met deze bezetting halen we de datum niet; ik leg twee opties voor aan de stuurgroep.”</td><td>“Dit past niet bij de baat; zo hoort het in de keten.”</td><td>“We lopen achter; ik heb twee mensen extra nodig.”</td><td>“Zo gaan wij dat in ons domein niet gebruiken; dít wel.”</td><td>“Dit zien we bij andere organisaties werken; zullen we het zo proberen?”</td></tr>
+        </tbody>
+      </table>
+      <div class="raslegend">Waar alle vijf elkaar tegenkomen: het programmateam breed (de kerngroep), met de programmamanager als voorzitter. Waar de inhoudelijke rollen elkaar tegenkomen: het ontwerpoverleg per werkstroom, met de architect als voorzitter. Eén persoon kan twee petten dragen (de HR-manager als inspanningsleider Mens en Cultuur én domeineigenaar); dan wordt per besluit benoemd welke pet spreekt.</div>
+    </div>
+
+    <div class="tweekol" style="margin-top:13px">
+      <div class="kaart">
+        <p class="intro"><b>Spelregels</b></p>
+        <ol>
+          <li><span class="n">1</span><span><b>De architect geeft kaders en ontwerp, geen opdrachten.</b> Opdrachten komen van de opdrachtgever van de werkstroom: de programmamanager. Eigenaarschap boven opdrachten.</span></li>
+          <li><span class="n">2</span><span><b>Ontwerpen mét de domeineigenaren, niet vóór hen.</b> Een ontwerp van experts alleen wordt niet gedragen.</span></li>
+          <li><span class="n">3</span><span><b>Inhoud van de werkstroom is van de architect, uitwerking in het domein van de domeineigenaar.</b> Botsing: eerst ontwerpoverleg, dan programmamanager (proces), buiten de kaders stuurgroep.</span></li>
+          <li><span class="n">4</span><span><b>Inspanningsleiders hebben drie loketten, nooit meer.</b> De architect stuurt nooit op tempo of capaciteit.</span></li>
+          <li><span class="n">5</span><span><b>De waartoe-toets is van de architect.</b> Geen resultaat en geen nieuwe inspanning zonder antwoord op "welke baat wordt hier beter van".</span></li>
+          <li><span class="n">6</span><span><b>Twee petten expliciet maken.</b> Domeineigenaar én inspanningsleider in één persoon mag, maar eigenaar (landing, gebruik) en uitvoerder (resultaat) zijn verschillende petten.</span></li>
+          <li><span class="n">7</span><span><b>Een werkstroom is geen deelprogramma.</b> Eigen plan, inspanningsleider en team; geen eigen sturing, stuurgroep of begroting los van het programma.</span></li>
+          <li><span class="n">8</span><span><b>Cito is inhoudelijk verantwoordelijk, 3sides inhoudelijk betrokken.</b> 3sides adviseert, stelt voor en doet het werk als consultant, samen met de architect; Cito, in de persoon van de architect, bepaalt de kaders en accepteert de inhoud.</span></li>
+        </ol>
+      </div>
+      <div>
+        <table class="besl rasci">
+          <thead><tr><th>Onderdeel per werkstroom</th><th>Arch.</th><th>PM</th><th>Dom.eig.</th><th>Insp.leider</th><th>3sides</th></tr></thead>
+          <tbody>
+            <tr><td><b>Inhoudelijk ontwerp per werkstroom</b> (wat, kaders, toetscriteria)</td><td><span class="ras A">A</span><span class="ras R">R</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td></tr>
+            <tr><td><b>Plan van de werkstroom</b> (wie, wat, wanneer)</td><td><span class="ras C">C</span></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras R">R</span></td></tr>
+            <tr><td><b>Uitvoering en tussenresultaten</b></td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td><span class="ras C">C</span></td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td></tr>
+            <tr><td><b>AS-IS/TO-BE per domein</b> (nulmeting)</td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td><span class="ras A">A</span></td><td><span class="ras S">S</span></td><td><span class="ras R">R</span></td></tr>
+            <tr><td><b>Domeinkeuzes</b> (funnelprocessen, datakwaliteitseisen, curriculum, leiderschapsaanpak)</td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td></tr>
+            <tr><td><b>Inhoudelijke acceptatie</b> (klopt het, past het in de keten)</td><td><span class="ras A">A</span></td><td><span class="ras I">I</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td></tr>
+            <tr><td><b>Acceptatie voor gebruik in de lijn</b> (landt het, werkt het)</td><td><span class="ras V">V</span></td><td><span class="ras I">I</span></td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td></tr>
+            <tr><td><b>Kandidaat-indicatoren per werkstroom</b></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras C">C</span></td><td><span class="ras S">S</span></td></tr>
+            <tr><td><b>Nieuwe inspanning 2027</b></td><td><span class="ras V">V</span></td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td><td><span class="ras R">R</span></td></tr>
+          </tbody>
+        </table>
+        <div class="raslegend">Stuurgroep besluit over nieuwe inspanningen en stelt indicatoren vast in de vervolgsessie; MT-besluit waar het programmaplan dat vraagt (leiderschapsaanpak).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 6. WERKSTROMEN ===== -->
+  <div class="sec">
+    <div class="seckop">6 · De vier werkstromen: wie doet wat, met voorbeelden</div>
+    <div class="secsub">Per werkstroom: de activiteiten uit het stappenplan 2026, het 3sides-onderdeel dat erin landt, en vier rollen naast elkaar — de <b>architect</b> (verantwoordelijk voor de inhoud, lead op de kaders), <b>3sides</b> (actieve inhoudelijke partner), de <b>inspanningsleider</b> (plan, team, uitvoering) en de <b>programmamanager</b> (regie) — en daarna één scenario uit de praktijk waarin alle vier voorkomen.</div>
+    <div class="wsgrid">
+
+      <div class="wskaart w1">
+        <h3>Data &amp; Systemen <span class="pr">prio 1</span></h3>
+        <div class="act"><b>Activiteiten 2026:</b> klantinformatie-landschap en huidig CRM in kaart, acht bronnen (Q3) · quick wins contactgegevens en Maileon ↔ CRM (doorlopend) · klantreis als vertrekpunt: welke data hebben wíj nodig (Q3–Q4) · datakwaliteitseisen vanuit het funnelontwerp (Q3–Q4) · klantreis → CRM-requirements (Q4) · platformopties → richting CRM, formele keuze rond april 2027 (Q4).</div>
+        <div class="meta"><span class="t">3sides-onderdeel: technologielandschap</span><span>inspanningsleider: Product Owner (beoogd) · SIO doet de analyse centrale datavoorziening</span><span class="d">domeineigenaar = bateneigenaar</span></div>
+        <div class="rol ow"><b>Architect (Pim) — verantwoordelijk voor de inhoud, lead op de kaders.</b> Bepaalt de inhoudelijke eisen vanuit de klantreis en de baten: welke klantdata, welke kwaliteit, welke integraties. Toetst het advies "behouden, vervangen, loslaten" per systeem op de vraag welke klantreis-stap en welke baat daar beter van wordt; bewaakt dat Data &amp; Systemen breder blijft dan CRM en dat het past in de CRM-richting. Niet de technische keuze zelf.</div>
+        <div class="rol ts"><b>3sides — actieve inhoudelijke partner.</b> Inventariseert de acht bronnen (Topdesk, CRM, Dynax, Maileon, Webinargeek, Umbraco, SurveyMonkey, gebruikersplatform), adviseert en maakt de shortlist; werkt de requirements samen met Pim uit vanuit de blueprint; legt elk voorstel eerst aan Pim voor (inhoud) en aan de Product Owner en de SIO (techniek).</div>
+        <div class="rol il"><b>Inspanningsleider (Product Owner) — plan, team, uitvoering.</b> Trekt inventarisatie en shortlist met 3sides, regelt toegang tot systemen en beheerders, stelt het werkstroomteam samen, maakt met 3sides de technische afweging en bereidt de CRM-richting voor.</div>
+        <div class="rol pm"><b>Programmamanager (Sanne) — regie.</b> Bewaakt de planning (inventarisatie Q3, richting Q4, keuze rond april 2027), regelt toegang tot mensen en systemen via de lijn, bewaakt de koppeling met het lopende project centrale datavoorziening, brengt het advies besluitklaar naar de stuurgroep en bewaakt de keuze-datum.</div>
+        <div class="prak"><b>In de praktijk.</b> 3sides adviseert een bron te vervangen. Pim vraagt: welke stap in de blueprint heeft deze data nodig en welke baat wordt er beter van; de Product Owner en de SIO toetsen de techniek; Sanne zet het advies met beide toetsen op de stuurgroepagenda en bewaakt dat de CRM-keuze op schema blijft.</div>
+      </div>
+
+      <div class="wskaart w2">
+        <h3>Processen <span class="pr">prio 2</span></h3>
+        <div class="act"><b>Activiteiten 2026:</b> klantreizen → funnelprocessen (fases, triggers, acties, customer loops retentie · migratie · nieuw), start samen met Data &amp; Systemen (Q3–Q4) · eenduidig Customer Success-proces met proactieve contactmomenten (Q4).</div>
+        <div class="meta"><span class="t">3sides-onderdeel: blueprint klantreis — basis voor alle vier</span><span>inspanningsleider: nog te benoemen ❓ (besluit stuurgroep)</span><span class="d">domeineigenaar = bateneigenaar</span></div>
+        <div class="rol ow"><b>Architect (Pim) — verantwoordelijk voor de inhoud, lead op de kaders.</b> Zet vooraf de kaders van de blueprint: de fasen en klantdoelen, één gedeelde reis per sector met sectorspecifieke contactmomenten ("eenduidig waar het kan, sectorspecifiek waar het moet"), de kritische contactmomenten, per fase de koppeling aan de baat van de sector, en de vertaallogica <i>klantreis → klantbehoefte → contactmoment → gedrag → competenties → KPI's</i>. Toetst tussenversies, accepteert versie 1 en bewaakt dat het funnelontwerp de datavraag voor Data &amp; Systemen en het gedrag voor Mens en Cultuur oplevert.</div>
+        <div class="rol ts"><b>3sides — actieve inhoudelijke partner.</b> Ontwerpt de blueprint met de sectoren in werksessies, brengt methode en voorbeelden uit andere organisaties, werkt de vertaallogica samen met Pim uit, werkt de funnelprocessen en het Customer Success-proces uit en verwerkt zijn toets. Signaleert wat in de sessies naar boven komt en niet in de kaders past.</div>
+        <div class="rol il"><b>Inspanningsleider (nog te benoemen) — plan, team, uitvoering.</b> Maakt met 3sides het sessieplan, zorgt dat de juiste mensen uit PO, VO en Zakelijk aan tafel zitten, bewaakt dat versie 1 op tijd komt en brengt blueprint en funnelprocessen naar de domeineigenaar Processen.</div>
+        <div class="rol pm"><b>Programmamanager (Sanne) — regie.</b> Zet de benoeming van de inspanningsleider Processen op de stuurgroepagenda; plant de sessiereeks in de agenda's van de sectoren en regelt de beschikbaarheid met de sectormanagers; geeft 3sides de opdracht voor versie 1 met opleverdatum; grijpt in als een sector niet levert; meldt de mijlpaal in de stuurgroep en zet de vervolgstap op de planning.</div>
+        <div class="prak"><b>In de praktijk.</b> 3sides levert versie 1. Pim toetst: zitten de customer loops erin, is elke fase herleidbaar tot "Intensiever partnership" (PO), "Hogere voorspelbaarheid commerciële begroting" (VO) of "Sterkere klantgerichtheid bij opdrachtgevers &amp; kandidaten" (Zakelijk), en is per contactmoment de data- en gedragsvraag helder. Ontbreekt de migratiefase, dan gaat versie 1 terug naar 3sides; de inspanningsleider plant de extra sessie; Sanne bewaakt of de opleverdatum houdbaar blijft of legt een nieuwe datum voor.</div>
+      </div>
+
+      <div class="wskaart w3">
+        <h3>Mens <span class="pr">prio 3</span></h3>
+        <div class="act"><b>Activiteiten 2026:</b> curriculumontwerp vaardigheidstraining, samen met HR, op echte klantcases; de training zelf volgt in 2027 · eerste intervisiegroepen live (Q4) · de pilot in één sector en het adoptie-framework landen hier (met Cultuur).</div>
+        <div class="meta"><span class="t">3sides-onderdeel: adoptie</span><span>inspanningsleider: HR-manager (beoogd), tevens domeineigenaar</span><span class="d">met de programmamanager actief in de gaten houden</span></div>
+        <div class="rol ow"><b>Architect (Pim) — verantwoordelijk voor de inhoud, lead op de kaders.</b> Eigenaar van het adoptie-framework als inhoud: de vertaallogica, per rol het gewenste gedrag op de kritische contactmomenten, de competenties, als sluitstuk de kandidaat-indicatoren, en de definitie van "adoptie meten": doen mensen mee, doen ze iets anders, heeft het effect. Toetst dat het curriculum hetzelfde gedrag traint dat het framework beschrijft en zet de kaders voor de intervisie.</div>
+        <div class="rol ts"><b>3sides — actieve inhoudelijke partner.</b> Bouwt het framework samen met Pim in werksessies (Pim de logica en de kaders, 3sides de methode en de werkvormen), begeleidt de teams stap voor stap, verzamelt de eerste gedragsdata in de pilot en koppelt terug wat werkt en wat niet.</div>
+        <div class="rol il"><b>Inspanningsleider (HR-manager) — plan, team, uitvoering.</b> Ontwerpt het curriculum met HR, start de intervisiegroepen, trekt de teamsessies en de pilot, verbindt alles met het adoptie-framework. Is ook domeineigenaar: twee petten.</div>
+        <div class="rol pm"><b>Programmamanager (Sanne) — regie.</b> Legt de keuze van de pilotsector en de startdatum voor aan de stuurgroep, zorgt dat de teams zijn vrijgemaakt, bewaakt het ritme van de teamsessies en de uitrol (tweede sector Q4, derde Q1 2027), bewaakt met 3sides dat deze werkstroom niet stilvalt achter prioriteit 1 en 2, rapporteert de adoptie-voortgang.</div>
+        <div class="prak"><b>In de praktijk.</b> In de pilotsector legt Pim met 3sides vast welk gedrag op welke contactmomenten wordt geoefend en hoe adoptie wordt gemeten; 3sides begeleidt de teams; de HR-manager zorgt voor intervisie en koppelt het curriculum aan; Sanne zorgt dat de teamleden vrij zijn en meldt na de eerste ronde de gedragsdata in de stuurgroep.</div>
+      </div>
+
+      <div class="wskaart w4">
+        <h3>Cultuur <span class="pr">prio 4</span></h3>
+        <div class="act"><b>Activiteiten 2026:</b> aanpak leiderschapsontwikkeling ontwerpen → MT-besluit → eerste sessie gepland · rituelen ontwerpen en invoeren: klantverhalen delen, reflectiesessies, klantbezoeken · ambassadeurs per sector geïdentificeerd en aangehaakt (Q4).</div>
+        <div class="meta"><span class="t">3sides-onderdeel: adoptie (ambassadeurs, leven in de organisatie)</span><span>inspanningsleider: HR-manager (beoogd), gedragen door het MT, tevens domeineigenaar</span><span class="d">met de programmamanager actief in de gaten houden</span></div>
+        <div class="rol ow"><b>Architect (Pim) — verantwoordelijk voor de inhoud, lead op de kaders.</b> Zet de kaders van de leiderschapsaanpak en de rituelen vanuit de klantreis en het gewenste gedrag: welk voorbeeldgedrag van leidinggevenden hoort bij de kritische contactmomenten, en hoe ambassadeurs en rituelen aansluiten op het adoptie-framework. Bewaakt de koppeling aan de baten (outside-in als gedeelde waarde).</div>
+        <div class="rol ts"><b>3sides — actieve inhoudelijke partner.</b> Werkt de leiderschapsaanpak en de rituelen mee uit, brengt voorbeelden en werkvormen, begeleidt de ambassadeurs en maakt successen zichtbaar.</div>
+        <div class="rol il"><b>Inspanningsleider (HR-manager) — plan, team, uitvoering.</b> Ontwerpt de aanpak leiderschapsontwikkeling, organiseert de eerste sessie na het MT-besluit, richt de rituelen in en haakt de ambassadeurs per sector aan.</div>
+        <div class="rol pm"><b>Programmamanager (Sanne) — regie.</b> Agendeert het MT-besluit over de leiderschapsaanpak, plant de eerste sessie, bewaakt dat Cultuur meeloopt (lagere prioriteit betekent niet later), rapporteert de voortgang.</div>
+        <div class="prak"><b>In de praktijk.</b> Het MT moet expliciet besluiten dat de leiderschapsaanpak zó gaat gebeuren. Pim legt vast wat de aanpak inhoudelijk moet bevatten (welk voorbeeldgedrag, gekoppeld aan de kritische contactmomenten); de HR-manager ontwerpt met 3sides de aanpak; Sanne zet het besluit op de MT-agenda en plant de eerste sessie; in Q4 haakt de HR-manager de ambassadeurs per sector aan en toetst Pim dat zij hetzelfde gedrag uitdragen dat het framework beschrijft.</div>
+      </div>
+
+      <div class="wskaart w5" style="grid-column:1 / -1">
+        <h3>Fundament, programma-breed <span class="pr" style="background:#e0edff;color:#1d4ed8;border-color:#c3d9fc">over de vier werkstromen heen</span></h3>
+        <div class="act"><b>Stappen uit het stappenplan:</b> iedereen opnieuw meenemen (Q3) · inspanningsleiders en teams bepalen · meetprotocol per baten-KPI · adoptie-framework bouwen en vaststellen · nulmeting · vervolgsessie doelwaarden en indicatoren · pilot starten in één sector. Het 3sides-onderdeel <b>nulmeting</b> ("zodat we weten waar we nu staan") en het adoptie-framework zitten hier. Geen eigen inspanningsleider: Sanne trekt het fundament, Pim draagt de inhoud, 3sides assisteert bij elke stap.</div>
+        <div class="rol ow"><b>Architect (Pim) — verantwoordelijk voor de inhoud.</b> Bepaalt wát er wordt gemeten en wat het betekent: het meetprotocol per baten-KPI (wat telt mee, bron, eenheid, frequentie, wie levert), de AS-IS-dimensies per werkstroom met de domeineigenaren, en de duiding van de uitkomst: wat zegt de startwaarde over de gap naar de ambitie. Houdt de KPI-set zoals vastgesteld: NPS is een resultante, geen stuur-KPI. Eigenaar van het adoptie-framework.</div>
+        <div class="rol ts"><b>3sides — actieve inhoudelijke partner.</b> Assisteert bij elke stap van het fundament (voorbereiden, faciliteren, tempo), stelt samen met Pim het meetprotocol op (Pim: wát; 3sides: hoe te meten en uit welke bron), voert de nulmeting uit (lijn 4 meten, leren, bijsturen), levert de uitkomst per KPI én per werkstroom en duidt die samen met Pim en de domeineigenaren.</div>
+        <div class="rol il"><b>Inspanningsleiders en baten-/domeineigenaren.</b> Leveren de stand van hun werkstroom aan de nulmeting; de meetverantwoordelijke voor de baten-KPI's is de Strategisch Marketeer, de eigenaar de Commercieel Manager.</div>
+        <div class="rol pm"><b>Programmamanager (Sanne) — regie.</b> Trekt het fundament: plant "iedereen opnieuw meenemen", stelt met de domeineigenaren de inspanningsleiders en teams vast, plant de akkoord-ronde van het meetprotocol met de sectormanagers, stelt de deadline voor de data-aanlevering en bewaakt die, plant de vervolgsessie direct na de nulmeting, rapporteert de stand in de stuurgroep.</div>
+        <div class="prak"><b>In de praktijk.</b> Churn per baat: Pim legt vast wat een "verloren klant" is en dat het per sector en per jaar wordt geteld; 3sides bepaalt met de meetverantwoordelijke uit welk systeem het getal komt en haalt het op; Sanne bewaakt de deadline en zet de vervolgsessie in de agenda. Stelt 3sides voor om NPS als stuur-KPI toe te voegen, dan houdt Pim vast aan het besluit uit de stakeholdersessie.</div>
+      </div>
+
+    </div>
+    <div class="wsover"><b>Over de vier werkstromen heen.</b> De blueprint (Processen) bepaalt de datavraag (Data &amp; Systemen) en het gedrag (Mens en Cultuur); de nulmeting meet wat blueprint en adoptie-framework definiëren; het adoptie-framework ligt als paraplu over alle vier, want ook techniek heeft een adoptiekant. 3sides is in alle vier inhoudelijk betrokken als consultant; de inhoudelijke verantwoordelijkheid namens Cito ligt bij de architect. De architect is de enige rol die over de vier heen kijkt en de raakvlakken bewaakt — dat is de reden voor het ontwerpoverleg per werkstroom en voor zijn plek in het duo-overleg en de stuurgroep. Wat hij daarbij níét doet: plannen, capaciteit regelen, 3sides aansturen op tempo, en de uitwerking in de domeinen overnemen.</div>
+
+    <div class="ukaart" style="margin-top:13px">
+      <h3>Architect en 3sides: samen op de inhoud, architect in de lead</h3>
+      <div class="us">3sides is geen leverancier op afstand maar een inhoudelijke partner die mee-ontwerpt. De architect heeft de lead in het zetten en bewaken van de kaders.</div>
+      <div class="stappen">
+        <div><span class="n">1</span><span><b>Samen.</b> 3sides maakt, Pim kadert en toetst tussentijds — niet pas aan het eind. Werksessies worden samen voorbereid en nabesproken. Niets gaat naar Sanne of de stuurgroep zonder dat beiden erachter staan.</span></div>
+        <div><span class="n">2</span><span><b>Lead.</b> Pim zet vooraf de inhoudelijke kaders (wat, waartoe, toetscriteria) en bewaakt ze. Bij verschil van inzicht op de inhoud beslist Pim binnen de kaders; raakt het de kaders van het programmaplan, dan via Sanne naar de stuurgroep.</span></div>
+        <div><span class="n">3</span><span><b>3sides actief.</b> 3sides brengt eigen voorstellen, methode en voorbeelden, signaleert wat niet in de kaders past en welke lopende initiatieven onder Klant in Zicht horen.</span></div>
+        <div><span class="n">4</span><span><b>Ritme ❓ voorstel.</b> Een vast inhoudelijk werkmoment van Pim met 3sides op de dinsdag dat 3sides bij Cito is, naast het ontwerpoverleg per werkstroom. Regie blijft bij Sanne: afspraken, planning, opleverdata en escalatie; inhoud via Pim — 3sides krijgt dit als één bericht.</span></div>
+      </div>
+    </div>
+
+    <div class="ukaart" style="margin-top:13px">
+      <h3>De inspanningsleiders: waar ze aan bod komen</h3>
+      <div class="us">De inspanningsleiders zijn de Cito-rol die in het stappenplan per werkstroom is beoogd en die het boek zo noemt: degene die "ervoor zorgt dat een inspanning in al haar facetten vorm krijgt en wordt uitgevoerd, in samenhang met andere inspanningen", aanspreekbaar op resultaat en bijdrage aan de baat. <b>Elke werkstroom heeft één inspanningsleider van Cito</b>, naast het 3sides-team. In fundament stap 2 worden zij formeel vastgesteld, samen met hun team uit de sectoren. In 2027 leidt dezelfde persoon de vervolg-inspanningen in de eigen werkstroom.</div>
+      <table class="matrix">
+        <thead><tr><th>Werkstroom</th><th>Inspanningsleider (Cito)</th><th>Wat de inspanningsleider hier doet</th></tr></thead>
+        <tbody>
+          <tr><td><b>Data &amp; Systemen</b></td><td>Product Owner (beoogd) · SIO doet de analyse centrale datavoorziening</td><td>trekt de inventarisatie van de acht bronnen en de shortlist met 3sides, regelt toegang tot systemen en beheerders, bereidt de CRM-richting voor</td></tr>
+          <tr><td><b>Processen</b></td><td>Nog te benoemen ❓ (besluit stuurgroep)</td><td>plant met 3sides de sessies met de sectoren, bewaakt voortgang en resultaat van de blueprint en de funnelprocessen, brengt ze naar de domeineigenaar</td></tr>
+          <tr><td><b>Mens</b></td><td>HR-manager (beoogd), tevens domeineigenaar</td><td>ontwerpt het curriculum met HR, start intervisiegroepen, trekt de teamsessies en de pilot samen met 3sides</td></tr>
+          <tr><td><b>Cultuur</b></td><td>HR-manager (beoogd), gedragen door het MT, tevens domeineigenaar</td><td>ontwerpt de leiderschapsaanpak, organiseert de eerste sessie na het MT-besluit, richt rituelen in, haakt ambassadeurs per sector aan</td></tr>
+        </tbody>
+      </table>
+      <div class="stappen" style="margin-top:12px">
+        <div><span class="n">1</span><span><b>Plan en team.</b> Maakt het plan van de werkstroom (wie, wat, wanneer) en stelt het werkstroomteam samen uit de sectoren; de programmamanager is opdrachtgever.</span></div>
+        <div><span class="n">2</span><span><b>Uitvoering.</b> Stuurt de uitvoering aan, samen met het 3sides-team (senior op richting, medior op uitvoering, specialisten op afroep).</span></div>
+        <div><span class="n">3</span><span><b>Resultaat.</b> Aanspreekbaar op het resultaat en de bijdrage aan de baat; neemt alle besluiten binnen het plan van de werkstroom.</span></div>
+        <div><span class="n">4</span><span><b>Drie loketten.</b> Voortgang, tempo en capaciteit naar Sanne · inhoud naar Pim · landing en gebruik naar de domeineigenaar.</span></div>
+        <div><span class="n">5</span><span><b>Overleg.</b> Zit in de kerngroep (programmateam breed) en in het ontwerpoverleg van de eigen werkstroom.</span></div>
+        <div><span class="n">6</span><span><b>Twee petten.</b> Waar inspanningsleider en domeineigenaar samenvallen (HR-manager): uitvoerder (resultaat) en eigenaar (landing, gebruik) apart benoemen.</span></div>
+      </div>
+      <div class="ezin" style="font-weight:500">Wat de inspanningsleider mag verwachten — <b>van Sanne:</b> een heldere opdracht, capaciteit uit de lijn, prioriteit bij conflicten, rugdekking bij escalatie · <b>van Pim:</b> inhoudelijke kaders vóórdat het werk start, snelle toets op tussenresultaten, de waartoe-koppeling per resultaat · <b>van de domeineigenaar:</b> acceptatie voor gebruik en landing in de lijn · <b>van 3sides:</b> expertise, voorstellen en uitvoering conform de opdracht van Cito, wekelijkse rapportage.</div>
+    </div>
+  </div>
+
+  <!-- ===== 7. WIE BESLIST WAT ===== -->
+  <div class="sec">
+    <div class="seckop">7 · Wie beslist wat <span class="vs">(mandaten vooraf vastleggen)</span></div>
+    <div class="secsub">Besluiten liggen bij personen, zo laag als mogelijk en zo hoog als nodig; een besluit volgt altijd het proces.</div>
+    <table class="besl">
+      <thead><tr><th style="width:44%">Besluit</th><th>Voorbereid door</th><th>Besluit bij</th></tr></thead>
+      <tbody>
+        <tr><td><b>Programmaplan, cyclusplan, middelen</b>, wijzigingen buiten de kaders</td><td><span class="wie pm">programmamanager</span> inhoud door <span class="wie ow">architect</span></td><td><span class="wie pe">programma-eigenaar / stuurgroep</span> architect licht toe en adviseert</td></tr>
+        <tr><td><b>Contract en opdracht aan 3sides</b></td><td><span class="wie pm">programmamanager</span> regie · <span class="wie ow">architect</span> inhoud</td><td><span class="wie pe">programma-eigenaar</span> opdrachtgever 3sides</td></tr>
+        <tr><td><b>Plan van aanpak per werkstroom (3sides)</b>, wijzigingen buiten de kaders van een werkstroom, afsluiting van een werkstroom</td><td><span class="wie ow">architect</span> toetst de inhoud vooraf</td><td><span class="wie pm">programmamanager</span> opdrachtgever werkstromen · regie 3sides</td></tr>
+        <tr><td><b>Inhoud van de werkstromen</b>: wat elke werkstroom moet opleveren, kaders en toetscriteria, adoptie-framework, blueprint-kaders, meetprotocol-inhoud, requirements uit de klantreis, inhoudelijke acceptatie</td><td><span class="wie ow">architect</span> met inspanningsleiders, domeineigenaren en 3sides</td><td><span class="wie ow">architect</span> gedelegeerd inhoudelijk mandaat · <span class="wie pm">programmamanager</span> toetst op stuurparameters</td></tr>
+        <tr><td><b>Domein-uitwerking ("de hoe")</b>: AS-IS/TO-BE van het eigen domein, domeinkeuzes, landing en acceptatie voor gebruik in de lijn</td><td><span class="wie de">domeineigenaar</span> met 3sides en inspanningsleider</td><td><span class="wie de">domeineigenaar</span> · <span class="wie ow">architect</span> toetst op samenhang en waartoe</td></tr>
+        <tr><td><b>Patstelling tussen experts</b>, of inhoud raakt tempo, capaciteit, geld of scope</td><td><span class="wie ow">architect</span> legt opties voor</td><td><span class="wie pm">programmamanager</span> · buiten kaders → stuurgroep</td></tr>
+        <tr><td><b>Alles binnen een werkstroom</b>, binnen het plan van die werkstroom</td><td>—</td><td><span class="wie il">inspanningsleider</span></td></tr>
+        <tr><td><b>Baten en doelwaarden</b></td><td><span class="wie ow">architect</span> profiel · 3sides lijn 4 protocol</td><td><span class="wie be">bateneigenaar</span> vastgesteld in de stuurgroep</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 8. WERKAFSPRAKEN + OPEN PUNTEN ===== -->
+  <div class="sec">
+    <div class="seckop">8 · Werkafspraken voor het duo en open punten</div>
+    <div class="tweekol">
+      <div class="kaart regiek">
+        <p class="intro"><b>Werkafspraken voor het duo</b></p>
+        <ol>
+          <li><span class="n">1</span><span><b>Eén aanspreekpunt per lijn.</b> Programma-eigenaar, stuurgroep, lijn, regie 3sides: programmamanager (contract 3sides: programma-eigenaar). Inhoud met 3sides, inspanningsleiders, domeineigenaren, Adoptie Team: architect. 3sides krijgt dit als één bericht.</span></li>
+          <li><span class="n">2</span><span><b>Wekelijkse duo-afstemming.</b> Sturing (stand, tempo, risico's, besluiten) naast inhoud (uitgewerkt, te toetsen, besluitklaar); de gedeelde zone is de agenda.</span></li>
+          <li><span class="n">3</span><span><b>Stuurgroep: samen aan tafel, één die verantwoording aflegt.</b> De architect is vaste deelnemer. Stukken in twee delen: inhoud en opties (architect), sturingsparagraaf, advies en besluitvraag (programmamanager). Zij presenteert; hij licht de inhoud toe en adviseert.</span></li>
+          <li><span class="n">4</span><span><b>Mandaten op papier</b> in het programmaplan: inhoudelijk mandaat (inhoud van de vier werkstromen), sturingsmandaat, gedeelde zone (deel 4), stuurgroep-deelname en de escalatieregel uit deel 7.</span></li>
+          <li><span class="n">5</span><span><b>Programmateam wekelijks</b>, voorzitter programmamanager; de architect agendeert vraagstukken die meerdere werkstromen raken.</span></li>
+          <li><span class="n">6</span><span><b>Ontwerpoverleg per werkstroom, voorzitter architect.</b> Inspanningsleider, domeineigenaar en 3sides aan tafel; de programmamanager krijgt het verslag (deel 5).</span></li>
+          <li><span class="n">7</span><span><b>Roltitel:</b> programma-architect — de boekterm is ontwerper van verandering, en het boek noemt die rol zelf ook architect. Niet "tweede programmamanager".</span></li>
+        </ol>
+      </div>
+      <div class="open">
+        <h3>Open punten — te besluiten</h3>
+        <ul>
+          <li><b>Vaststellen van beide rollen, mandaten, gedeelde zone en stuurgroep-deelname</b> — programma-eigenaar</li>
+          <li><b>Inspanningsleider Processen</b> — nog niet benoemd; de andere drie zijn beoogd; vaststellen in fundament stap 2 met de domeineigenaren</li>
+          <li><b>Opdrachtgever per werkstroom</b>: programmamanager of baten-/domeineigenaar — bepaalt aan wie inspanningsleiders verantwoording afleggen; voorstel: programmamanager, domeineigenaar als senior gebruiker</li>
+          <li><b>Communicatiemanager-rol</b> — vier verandermanagement-lijnen vragen een eigenaar</li>
+          <li><b>Sponsorgroep</b> benoemen (MT?)</li>
+          <li><b>Ritme</b> van duo-overleg, programmateam breed, ontwerpoverleg en werkmoment architect + 3sides vastleggen</li>
+          <li><b>App stap 5</b> — rol programma-architect toevoegen (binnenring + vaste deelnemer stuurgroep), werkstromen = domeinen met inspanningsleider én domeineigenaar (= bateneigenaar), RASCI uit deel 4 en 5 als items</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Sketch — na akkoord: rol programma-architect toevoegen aan stap 5 Programmaorganisatie in de app + programmaplan, en één bericht naar 3sides en de inspanningsleiders (wie bel je waarvoor)<br>Bronnen: Werken aan Programma's (Prevaas &amp; Van Loon) H8 baten · H11 samenhang · H12 rollen · H13 organisatievorm · H14 overleggen · H15 programmateam · H23 beslissen · H30–31 leiderschap · stappenplan analysefase 2026 · Opdracht Sanne (projectleider analysefase, 23-09-2026) · 3sides-deck (teams en onderdelen van de aanpak) · stakeholdersessie 24-06-2026 · voorstel-document VOORSTEL-ORGANIGRAM-PROGRAMMALEIDING.md</div>
+
+</div>
+</body>
+</html>

@@ -44,7 +44,7 @@ const VerdelingPerJaarItemSchema = z.object({
 const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   totaalEuro: z.number().optional(),
   percentageTotaal: z.number().min(-5).max(110).optional(),
   motivatie: z.string(),
@@ -82,7 +82,7 @@ type Scenario = {
   inspanningen: Array<{
     inspanningTitel: string;
     groepId?: string;
-    domein: "mens" | "processen" | "data_systemen" | "cultuur";
+    domein: "mens" | "processen" | "data_systemen" | "cultuur" | "overig";
     totaalEuro: number;
     percentageTotaal: number;
     motivatie: string;
@@ -105,7 +105,8 @@ function scenarioPrompt(
   jaarlijksBudget: number,
   fixedAantalJaren: number,
   dossierMetaTekst: string,
-  finetune?: { instructie: string; vorigeScenario: unknown }
+  finetune?: { instructie: string; vorigeScenario: unknown },
+  zwaartepuntInjectie?: string
 ): string {
   const intro =
     label === "optimaal"
@@ -114,13 +115,21 @@ function scenarioPrompt(
       ? "SCENARIO +20% — 20% méér budget per jaar; daardoor minder jaren nodig."
       : label === "min20"
       ? "SCENARIO −20% — 20% mínder budget per jaar; daardoor meer jaren nodig."
-      : `SCENARIO OPTIMAAL (ADVIES) — server koos het kortste haalbare aantal jaren binnen [3,5] dat nog bekostbaar is voor Cito (max ~+40% boven huidig budget). In jouw \`samenvatting\` MOET je expliciet motiveren waarom precies dit aantal jaren (${fixedAantalJaren}) optimaal is. Gebruik kwalitatieve argumenten zoals:\n  - Cultuurverandering vraagt minimaal 3 jaar voor verankering (Kotter / ADKAR-cycli);\n  - CRM-implementatie kan technisch in 2-3 jaar maar adoptie + datakwaliteit vergt nog 1 extra jaar;\n  - Outside-in gespreksvaardigheid vraagt 2 trainingsblokken + praktijkborging — minimaal 18-24 maanden actieve uitvoering;\n  - Bekostigingsrealisme: het benodigde jaarlijks budget moet binnen acceptabele groei (typisch +30-40%) blijven van het huidige budget om door Finance gedragen te worden.\nVerzin GEEN concrete cijfers die niet uit dossier-aannames volgen — blijf kwalitatief in de motivatie.`;
+      : `SCENARIO SNELSTE — server koos het kortste haalbare aantal jaren binnen [3,5] dat realistisch op te brengen is voor Cito gegeven het huidige budgetniveau. In jouw \`samenvatting\` MOET je expliciet motiveren waarom precies dit aantal jaren (${fixedAantalJaren}) het snelste haalbare scenario is. Gebruik kwalitatieve argumenten zoals:\n  - Cultuurverandering vraagt minimaal 3 jaar voor verankering (bewustwording → adoptie → verankering vergt meerdere praktijkcycli);\n  - CRM-implementatie kan technisch in 2-3 jaar maar adoptie + datakwaliteit vergt nog 1 extra jaar;\n  - Outside-in gespreksvaardigheid vraagt 2 trainingsblokken + praktijkborging — minimaal 18-24 maanden actieve uitvoering;\n  - Bekostigingsrealisme: de benodigde jaarlijkse uitgaven moeten substantieel maar verantwoord zijn ten opzichte van het huidige budget — een uitlegbare stijging die binnen de programmabegroting past en niet afhankelijk is van een buiten-budgettaire dekking.\nVerzin GEEN concrete cijfers die niet uit dossier-aannames volgen — blijf kwalitatief in de motivatie. Vermijd expliciet het noemen van een formatie-kader, vaste percentage-grenzen of "stabiele jaren" — zulke framings horen niet thuis in de samenvatting.`;
 
   const finetuneBlock = finetune
     ? `\n\n**FINETUNE-VERZOEK VAN DE GEBRUIKER:**\n"${finetune.instructie}"\n\nDe gebruiker heeft een eerdere versie van dit scenario gezien en wil aanpassingen. Vorige versie:\n${JSON.stringify(finetune.vorigeScenario, null, 2)}\n\nRespecteer de instructie en pas de juiste velden aan (verdelingPerJaar, fasering, motivatie, prioriteitAdvies, samenvatting). Houd onveranderde delen consistent met de vorige versie. **aantalJaren staat vast — pas die NIET aan.**\n`
     : "";
 
-  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}
+  // Server-side berekend zwaartepunt per inspanning + relatieve positie-label.
+  // Voorkomt dat AI verkeerde zwaartepunt-claims maakt (bijv. "richting slotjaar"
+  // terwijl top-2 jaren in middenjaren liggen). AI hoeft niet te redeneren —
+  // de positie-label staat letterlijk in de prompt.
+  const zwaartepuntBlock = zwaartepuntInjectie
+    ? `\n\n**SERVER-BEREKEND ZWAARTEPUNT PER INSPANNING (gebruik exact deze positie-labels in motivatie/samenvatting):**\n${zwaartepuntInjectie}\n`
+    : "";
+
+  return `Je bent een programma-controller/begrotingsexpert binnen Cito BV (DIN-methodiek — Werken aan Programma's, Prevaas & Van Loon). Je produceert ÉÉN begrotingsscenario.${finetuneBlock}${zwaartepuntBlock}
 
 **MENTAL MODEL — DOSSIER IS HEILIG, JAREN ZIJN BEREKEND:**
 Het aantal jaren én de totaalkosten per inspanning zijn al SERVER-SIDE berekend uit \`dossierKostenraming\` + \`businessCaseAannames\`. Jouw taak is **alleen verdelen**: hoe loopt elke inspanning over de gegeven jaren? Je mag de dossier-totalen NOOIT verlagen om in een budget-cap te passen — als het krap is, is dat al verwerkt in het aantal jaren.
@@ -175,7 +184,7 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "inspanningTitel": "...",
       "groepId": "...",
       "domein": "mens|processen|data_systemen|cultuur",
-      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames + dossier-totaal>",
+      "motivatie": "<1-2 zinnen — verwijs naar businessCaseAannames + dossier-totaal. GEEN absolute jaartallen (geen '2027-2028'), GEEN looptijd-claims ('over X jaar', 'X-jarige cyclus'), GEEN claim over wanneer het zwaartepunt valt in jaartallen. Gebruik relatieve aanduidingen: 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar', 'tegen het einde'. Reden: jaartallen en looptijd worden door scenario bepaald, dus alleen relatieve aanduidingen blijven kloppen wanneer guards bedragen verschuiven.>",
       "verdelingPerJaar": [
         { "jaar": <startJaar>, "euro": <afgerond op duizend>, "fase": "<domein-passende fase, zie regel 7>", "activiteit": "<1-2 ZINNEN concreet wat er DIT JAAR voor DEZE inspanning gebeurt — geen herhaling tussen jaren>" },
         ...één item per jaar tot en met startJaar+${fixedAantalJaren}−1 (= ${fixedAantalJaren} items totaal)
@@ -183,8 +192,8 @@ Taak — lever EXACT dit JSON-object (één Scenario, MINIMAAL veld-set):
       "volgorde": { "rank": <1..N uniek>, "reden": "<1 zin>" }
     }
   ],
-  "prioriteitAdvies": "<4-6 zinnen: motiveer de BUDGET-VERHOUDING data/systemen > cultuur > mens > processen vanuit outside-in perspectief — leg uit waarom CRM het fundament is (grootste eenmalige post + technisch enabler), waarom cultuur #2 budget krijgt (zonder draagvlak geen adoptie van CRM en geen waarde uit outside-in), waarom mens #3 (gespreksvaardigheid vertaalt cultuur naar klant), en waarom processen het minst krijgen (borgings-werk in laatste fase). Sluit af met: alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.>",
-  "samenvatting": "<1-2 zinnen executive summary van dít scenario>"
+  "prioriteitAdvies": "<4-6 zinnen: motiveer de BUDGET-VERHOUDING data/systemen > cultuur > mens > processen vanuit outside-in perspectief — leg uit waarom CRM het fundament is (grootste eenmalige post + technisch enabler), waarom cultuur #2 budget krijgt (zonder draagvlak geen adoptie van CRM en geen waarde uit outside-in), waarom mens #3 (gespreksvaardigheid vertaalt cultuur naar klant), en waarom processen het minst krijgen (borgings-werk in laatste fase). Sluit af met: alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment. GEEN absolute jaartallen, GEEN looptijd-aantallen.>",
+  "samenvatting": "<1-2 zinnen executive summary van dít scenario. GEEN absolute jaartallen, GEEN looptijd-aantallen — gebruik relatieve aanduidingen.>"
 }
 
 **LET OP:**
@@ -219,7 +228,7 @@ HARDE REGELS:
 6. **RANKING — gebaseerd op totaalEuro descending; CRM altijd #1:**
    - rank 1 = **Data/Systemen** ALTIJD (grootste budget — CRM is technisch fundament en grootste eenmalige post; zonder werkend CRM blijft outside-in onuitvoerbaar op schaal).
    - rank 2-4 = de overige drie domeinen op basis van \`totaalEuro\` descending. In Cito-context betekent dit dat cultuur in € klein blijft (dossier-bedrag van 9 leidinggevenden + extern), terwijl mens en processen iets groter zijn — dus ranking volgt €.
-   - **In \`prioriteitAdvies\` MOET je expliciet uitleggen dat cultuur in EURO klein is (omdat de cultuur-Q&A 9 leidinggevenden bedient, 4-jarige cyclus) maar in BELANG #2 staat: zonder cultuurverandering en draagvlak wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.** Eurogrootte ≠ inhoudelijk belang — beide moeten in de motivatie staan, separaat.
+   - **In \`prioriteitAdvies\` MOET je expliciet uitleggen dat cultuur in EURO klein is (omdat de cultuur-Q&A een kleine doelgroep van leidinggevenden bedient) maar in BELANG #2 staat: zonder cultuurverandering en draagvlak wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.** Eurogrootte ≠ inhoudelijk belang — beide moeten in de motivatie staan, separaat.
    - De rank bepaalt de \`volgorde.rank\` waarde en de display-volgorde in de tabel. Alle 4 domeinen starten parallel in jaar 1, ranking gaat over budget-aandeel niet over startmoment.
 7. **Realistische fasering per inspanning + activiteits-tekst per jaar — ALLE DOMEINEN STARTEN PARALLEL IN JAAR 1:**
    - Cultuur: START jaar 1 met piek (bewustwording, leiderschapsworkshops), afnemend (borging) → meest budget jaar 1-2
@@ -228,13 +237,53 @@ HARDE REGELS:
    - Processen: START jaar 1 (eerste proces-mapping en quick-wins), uitrol middenjaren, standaardisatie + borging eind → NIET wachten tot mens "klaar" is
    - **Activiteit-tekst per jaar moet hierbij aansluiten** en is concreet: "Bewustwordingsworkshops PO-leiders + waardenverkenning kerngroep" voor cultuur jaar 1; "CRM-leverancier selectie + architectuur-besluit" voor data/systemen jaar 1; "Quick-win procesmapping + standaard-template ontwerp" voor processen jaar 1. Geen herhaling tussen jaren — elke activiteit-tekst is uniek per (inspanning × jaar).
    - **FASE-TERMINOLOGIE — methodologisch en domein-passend (geen generiek "Voorbereiding/Uitrol/Borging" herhalen).** Kies per inspanning × jaar een fase-label uit de methodiek die bij dat domein past. Richtlijn:
-     - **Cultuur** (veranderkundige fases — Kotter / ADKAR): Bewustwording → Acceptatie → Adoptie → Verankering. Of: Urgentiebesef → Coalitievorming → Waardenverankering → Rolmodel-gedrag.
+     - **Cultuur** (veranderkundige fases): Bewustwording → Acceptatie → Adoptie → Verankering. Of: Urgentiebesef → Coalitievorming → Waardenverankering → Rolmodel-gedrag.
      - **Mens** (competentie-ontwikkeling): Behoeftestelling → Curriculumontwerp → Basistraining → Vaardigheidstraining → Toepassing in praktijk → Borging (e-learning/nazorg).
      - **Data/Systemen** (IT-lifecycle — PRINCE2 / BiSL): Analyse → Ontwerp (architectuur) → Leverancier-selectie → Realisatie (bouw) → Acceptatie (tests/pilot) → In beheer → Optimalisatie.
      - **Processen** (BPM-lifecycle): Inventarisatie (as-is) → Herontwerp (to-be) → Pilot → Uitrol → Standaardisatie → Continu verbeteren.
    - Kies het fase-label dat beste past bij de concrete activiteit van dat jaar, niet willekeurig. Elk jaar mag een ander label hebben binnen dezelfde inspanning — het sjabloon-effect ("Voorbereiding/Uitrol/Borging" telkens) is expliciet verboden.
-8. Alle euros als integers (75000, niet "€75K").
-9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.`;
+8. Alle euros als integers (75000, niet "€75K"). In activiteit-teksten en samenvattingen: schrijf bedragen voluit ("€ 63.000") of voorgevoegd met "circa" wanneer benaderend ("circa € 63.000"). Gebruik **GEEN** tilde "~" als afkorting voor "circa", **GEEN** afkortingen als "€63K", en **GEEN** voorgaand minteken. Bedragen zijn altijd positief; uitgaven worden zonder minteken weergegeven.
+9. Antwoord in Nederlands. ALLEEN JSON, geen markdown, geen prose eromheen.
+10. **GEEN ABSOLUTE JAARTALLEN OF LOOPTIJD-CLAIMS in \`motivatie\`, \`prioriteitAdvies\` en \`samenvatting\`.**
+    Schrijf in deze drie velden NOOIT:
+    - Concrete jaartallen ("in 2027", "vanaf 2028", "zwaartepunt 2027–2028", "tot en met 2029").
+    - Looptijd-aantallen ("over 4 jaar", "in 5 jaar", "× 9 jaar", "in jaar 4").
+    - Cyclus-claims ("4-jarige cyclus", "3-jarige aanpak").
+    - Specifieke jaar-tot-jaar fasering ("in 2026 starten we, in 2028 piekt het").
+    Schrijf WEL relatief:
+    - "in het startjaar", "in het slotjaar", "in de bouwjaren", "in de uitrol-jaren", "rond het midden van de looptijd", "in de achterste derde", "tegen het einde", "in de eerste twee jaren", "in de laatste fase".
+    - Bij zwaartepunt: "het zwaartepunt valt in de bouw- en migratiefase" — niet "het zwaartepunt valt in 2027–2028".
+    REDEN: jaartallen en looptijd verschillen per scenario (4/5/7/10 jaar), en server-guards kunnen bedragen tussen jaren verschuiven NA jouw tekst. Absolute jaartallen worden dan onwaar. Relatieve aanduidingen blijven onder alle scenario's en alle guard-mutaties kloppen.
+    UITZONDERING: \`verdelingPerJaar[].activiteit\` (regel 7) is per definitie aan één specifiek jaar gebonden — daar mag je wel concreet over dat jaar schrijven, maar zonder andere jaartallen erin te noemen.
+11. **VANGNET — INTERNE UREN HOREN NIET IN DEZE OUT-OF-POCKET RAMING.**
+    De \`dossierKostenraming\`-tekst per inspanning kan in oudere data nog interne uren-componenten bevatten (bv. "interne capaciteitskosten 1.466 uur × €74/uur = €110K", "interne werkgroepuren €20K-€30K", "interne uren 740u à €77/u"). Deze posten zijn opportunity-kosten en horen in §4.2 Interne uren — NIET in de out-of-pocket-tabel die jij hier maakt.
+    - Als de dossier-tekst dergelijke interne componenten noemt: TREK ZE AF van het eenmalig + structureel totaal voordat je verdelingPerJaar opstelt.
+    - Voorbeelden van wel meenemen: externe partner, externe trainer, externe procesbegeleider, externe consultant (ook als ingehuurd voor "interne capaciteit"), licenties, software, hardware, dubbele licentielast tijdens transitie, externe materialen.
+    - Voorbeelden van NIET meenemen: interne FTE-tarief × uren, interne werkgroepuren, intern projectleiderschap-uren, interne curricuulumontwikkeling, interne proceseigenaarschap-tijd.
+    - In je \`motivatie\`: noem de interne uren NIET als onderdeel van het out-of-pocket-totaal. Eventueel mag je opmerken "(interne uren staan in §4.2)" als duidelijkheidshalve toelichting, maar reken ze niet mee.
+12. **CONSISTENTE FASE-ACTIVITEITEN PER INSPANNING OVER SCENARIOS — geen verwarring tussen scenarios.**
+    Dezelfde inspanning is in elk scenario hetzelfde project met dezelfde scope en dezelfde lifecycle-fases. Alleen het TEMPO verschilt per scenario (4 jr = sneller, 7 jr = uitgesmeerder). De ACTIVITEITEN PER FASE moeten daarom inhoudelijk consistent zijn over alle scenarios — alleen welk JAAR een fase landt verschilt.
+    - **CRM (data_systemen)**: in elk scenario start je met "Analyse + ontwerp + leverancier-selectie" (analyse-fase), gevolgd door "Realisatie + integratie van bronsystemen" (realisatie-fase), dan "Acceptatie + uitrol naar 85 gebruikers" (uitrol-fase), eindigend met "In beheer + optimalisatie" (beheer-fase). De volgorde + activiteiten-set is identiek; alleen welke jaren gepland staat schuift.
+    - **Mens (training)**: in elk scenario "Behoeftestelling + curriculumontwerp" → "Basistraining" → "Vaardigheidstraining + toepassing in praktijk" → "Borging via e-learning". Niet plotseling in 4-jarig "alleen training" en in 7-jarig "ontwerp + training + nazorg".
+    - **Cultuur (leiderschap)**: in elk scenario "Bewustwording + coalitievorming" → "Leiderschapsworkshops + kerngroep" → "Acceptatie + adoptie via rolmodel-gedrag" → "Verankering in HR-instrumenten".
+    - **Processen (BPM)**: in elk scenario "Inventarisatie as-is" → "Herontwerp to-be + pilot" → "Uitrol cross-sectoraal" → "Standaardisatie + continu verbeteren".
+    - REDEN: als de gebruiker advies-scenario en optimaal-scenario naast elkaar leest, ziet hij voor dezelfde inspanning dezelfde fase-keten — alleen versneld of uitgesmeerd. Verschillende activiteiten per scenario voor dezelfde inspanning = verwarring + ondermijnt geloofwaardigheid.
+    - Concreet: als advies-scenario voor CRM jaar 2 "Realisatie van CRM-platform + 7 bronsysteemintegraties" zegt, dan moet optimaal-scenario voor CRM-realisatie ook praten over hetzelfde aantal bronsysteemintegraties + dezelfde scope, alleen in een ander jaar.
+13. **CONSISTENTE MOTIVATIE + POSITIE PER INSPANNING OVER SCENARIOS — geen scenario-noise.**
+    Per inspanning is \`motivatie\` en \`volgorde.reden\` (positie-label) IDENTIEK over alle scenarios. Dezelfde inspanning beschrijft hetzelfde dossier — waarom we dit doen, business case, scope. Dat staat los van scenario-tempo.
+    - **Wat WEL per scenario verschilt**: \`samenvatting\` (beschrijft dit scenario als geheel) en \`prioriteitAdvies\` (welke domein-volgorde gegeven dit budget-cap). Die mogen scenario-specifiek zijn.
+    - **Wat NIET per scenario verschilt**: \`motivatie\` per inspanning (= waarom doen we deze inspanning, dossier-onderbouwing) en \`volgorde.reden\` (= positie-label, waarom is deze rangorde).
+    - Concreet: schrijf de \`motivatie\` voor CRM één keer; gebruik EXACT dezelfde tekst in advies, plus20, optimaal en min20. Idem voor \`volgorde.reden\`. AI vertaalt scenario-context in samenvatting/prioriteitAdvies, NIET in motivatie/positie.
+    - REDEN: lezer vergelijkt scenarios kolom-voor-kolom. Als motivatie van CRM in advies "Het CRM is het technische fundament" zegt en in plus20 "Het dossier raamt €440K-€640K" → onverklaarbaar onderscheid → vragen over geloofwaardigheid.
+    - **GEEN SCENARIO-TOTALEN IN MOTIVATIE.** Noem in \`motivatie\` GEEN cumulatieve scenario-bedragen ("doel-totaal circa € 910.000", "totaal € 1.125.000", "deze post bedraagt € 817K"). Die verschillen per scenario en zijn fout als 1-op-1 gekopieerd. Noem WEL dossier-bedragen die heilig zijn ongeacht scenario: eenmalig (€ 440-640K) en jaarlijks structureel (€ 92.500/jaar). Sluit eventueel af met "Het scenario-totaal in de tabel hangt af van de looptijd". Het scenario-totaal staat al in de tabel rechts; hoeft niet in motivatie.
+14. **GEEN AANLOOPPUNT-DISCUSSIE OF BUDGET-DOORKANTELEN IN \`samenvatting\` EN \`prioriteitAdvies\`.**
+    Schrijf in deze velden NOOIT:
+    - "Aanlooppunt", "het programma start juni 2026 staat vast", "doorkantelen", "kantelt door naar", "doorschuiving naar Q1 2027", "in een half jaar productief landen".
+    - Discussie over wat in 6 maanden wel/niet haalbaar is, of over € 200-220K productief versus € 30-50K doorkantelen.
+    - Stuurgroep-vragen of "te bespreken in stuurgroep"-sluitformuleringen.
+    - "Vrijval"-claims of redeneringen over wat onderbesteding doet met het budget van een volgend jaar.
+    REDEN: uitgangspunt is dat het volledige jaarbudget 2026 productief wordt opgemaakt; uiterlijk juni 2026 starten is de randvoorwaarde. Dat is een vaststaand programma-randpunt, geen scenario-keuze. Hier hoort geen tekst over het wegschuiven van budget naar volgende jaren.
+    WEL toegestaan in \`samenvatting\`: éénmaal "uiterlijk juni 2026 starten is randvoorwaarde voor volledige opmaak van het 2026-budget" als kort feit, indien relevant — niet als uitgebreide discussie.`;
 }
 
 const VergelijkingSchema = z.object({
@@ -271,6 +320,7 @@ export async function POST(request: NextRequest) {
       inspanningen,
       finetuneInstructie,
       previousAdvies,
+      forceAantalJaren,
     } = body as {
       jaarlijksBudgetEuro?: number;
       cyclusMaanden?: number;
@@ -279,6 +329,11 @@ export async function POST(request: NextRequest) {
       inspanningen?: unknown;
       finetuneInstructie?: string;
       previousAdvies?: unknown;
+      // Optioneel: per scenario expliciet aantal jaren forceren. Wordt
+      // gebruikt voor de "A2"-flow waarbij dossier-correcties worden
+      // toegepast zonder dat de looptijden inkrimpen — methodische zuiverheid:
+      // de fysieke uitvoeringstijd verandert niet door een rekenkundige fix.
+      forceAantalJaren?: Partial<Record<"optimaal" | "plus20" | "min20" | "advies", number>>;
     };
 
     if (!jaarlijksBudgetEuro || typeof jaarlijksBudgetEuro !== "number" || jaarlijksBudgetEuro <= 0) {
@@ -733,6 +788,74 @@ export async function POST(request: NextRequest) {
     const trimmedInstructie = (finetuneInstructie ?? "").trim();
     const isFinetune = trimmedInstructie.length > 0 && !!prevScenarios;
 
+    // TEKST_ONLY-modus: prefix in finetune-instructie betekent dat AI alleen
+    // motivatie/prioriteitAdvies/samenvatting mag herschrijven. Server kopieert
+    // ALLE cijfers, fase-labels en activiteit-teksten LETTERLIJK terug uit
+    // previousAdvies — zodat bedragen heilig blijven ongeacht wat AI of guards
+    // doen. Gebruikt door de "🔁 Herschrijf alleen teksten"-knop in de wizard.
+    const TEKST_ONLY_PREFIX = "TEKST_ONLY:";
+    const isTekstOnly =
+      isFinetune && trimmedInstructie.startsWith(TEKST_ONLY_PREFIX);
+
+    // Bereken server-side zwaartepunt per inspanning vanuit previousAdvies.
+    // Wordt alleen geïnjecteerd in TEKST_ONLY-mode of bij finetune zodat
+    // AI de top-2 jaren niet hoeft te raden. Bij eerste generatie (geen
+    // previousAdvies) is er nog geen verdeling om uit te lezen.
+    type PrevInsp = {
+      inspanningTitel?: string;
+      verdelingPerJaar?: { jaar: number; euro: number }[];
+    };
+    type PrevScen = { aantalJaren?: number; startJaar?: number; inspanningen?: PrevInsp[] };
+    function zwaartepuntTekst(label: "optimaal" | "plus20" | "min20" | "advies"): string {
+      const prev = (prevScenarios?.[label] as PrevScen | null | undefined);
+      if (!prev?.inspanningen || !prev.aantalJaren) return "";
+      const aantalJaren = prev.aantalJaren;
+      const startJ = prev.startJaar ?? effectiefStartJaar;
+      const eindJ = startJ + aantalJaren - 1;
+
+      function positieLabel(top2Jaren: number[]): string {
+        // Sorteer en bepaal positie binnen 3 segmenten: vroeg / midden / laat.
+        const eersteDerde = startJ + Math.floor(aantalJaren / 3);
+        const tweedeDerde = startJ + Math.floor((2 * aantalJaren) / 3);
+        const inEerste = top2Jaren.filter((j) => j < eersteDerde).length;
+        const inMidden = top2Jaren.filter((j) => j >= eersteDerde && j < tweedeDerde).length;
+        const inLaatste = top2Jaren.filter((j) => j >= tweedeDerde).length;
+        if (inEerste === 2) return "vroeg in de looptijd (in de eerste twee jaren)";
+        if (inLaatste === 2) {
+          // Onderscheid 'achterste derde' vs 'in het slotjaar'
+          if (top2Jaren.every((j) => j === eindJ)) return "in het slotjaar";
+          return "in de achterste derde van de looptijd";
+        }
+        if (inMidden === 2) return "rond het midden van de looptijd";
+        if (inEerste === 1 && inLaatste === 1) return "zowel vroeg als laat in de looptijd (start-piek plus structurele uitloop)";
+        if (inEerste === 1 && inMidden === 1) return "in de eerste helft van de looptijd";
+        if (inMidden === 1 && inLaatste === 1) return "in de tweede helft van de looptijd";
+        return "verspreid over de looptijd";
+      }
+
+      const lijnen: string[] = [];
+      for (const insp of prev.inspanningen) {
+        if (!insp.verdelingPerJaar?.length || !insp.inspanningTitel) continue;
+        const sorted = [...insp.verdelingPerJaar].sort((a, b) => (b.euro ?? 0) - (a.euro ?? 0));
+        const top2 = sorted.slice(0, 2).filter((c) => (c.euro ?? 0) > 0);
+        if (top2.length === 0) continue;
+        const top2Jaren = top2.map((c) => c.jaar).sort((a, b) => a - b);
+        const totaal = insp.verdelingPerJaar.reduce((s, c) => s + (c.euro ?? 0), 0);
+        const top2Pct = top2.map((c) => (totaal > 0 ? Math.round(((c.euro ?? 0) / totaal) * 100) : 0));
+        const label2 = positieLabel(top2Jaren);
+        lijnen.push(
+          `- **${insp.inspanningTitel}**: top-2 jaren met hoogste bedrag = jaar ${top2Jaren.join(" + ")} (${top2Pct.join("% + ")}%). Positie-label: "${label2}". Beschrijf het zwaartepunt voor deze inspanning EXACT als "${label2}" — geen jaartallen, geen andere positie-bewoordingen.`
+        );
+      }
+      if (lijnen.length === 0) return "";
+      const looptijdLabel =
+        aantalJaren <= 4 ? "compact"
+        : aantalJaren <= 6 ? "evenwichtig"
+        : aantalJaren <= 8 ? "ruim"
+        : "lang uitgesmeerd";
+      return `Looptijd dit scenario: ${aantalJaren} jaar (${looptijdLabel}). VOLLEDIG programma loopt binnen deze jaren — GEEN aanloop-fase, GEEN vervolgfinanciering nodig.\n\n${lijnen.join("\n")}`;
+    }
+
     async function genereer(
       label: "optimaal" | "plus20" | "min20" | "advies",
       jaarlijksBudget: number,
@@ -746,8 +869,9 @@ export async function POST(request: NextRequest) {
           ? { instructie: trimmedInstructie, vorigeScenario: prevScenarios?.[label] ?? null }
           : undefined;
         const dossierMd = dossierMetaTekst(fixedAantalJaren);
+        const zwInj = isFinetune ? zwaartepuntTekst(label) : "";
         const systemPrompt = assembleSystemPrompt(
-          scenarioPrompt(label, jaarlijksBudget, fixedAantalJaren, dossierMd, finetuneArg),
+          scenarioPrompt(label, jaarlijksBudget, fixedAantalJaren, dossierMd, finetuneArg, zwInj),
           "cross-analyse",
           undefined,
           kibContext
@@ -778,7 +902,39 @@ export async function POST(request: NextRequest) {
           // Forceer aantalJaren naar de server-berekende waarde —
           // AI mag deze niet overrulen, ook al staat het in het schema.
           const overruled = { ...res.data, aantalJaren: fixedAantalJaren };
-          return enrichScenario(overruled, jaarlijksBudget);
+          const enriched = enrichScenario(overruled, jaarlijksBudget);
+
+          // TEKST_ONLY-garantie: in deze modus mag AI alleen de drie tekst-
+          // velden veranderen. Server kopieert ALLE cijfers, fase-labels en
+          // activiteit-teksten letterlijk terug uit previousAdvies.
+          if (isTekstOnly) {
+            const prev = (prevScenarios?.[label] ?? null) as Scenario | null;
+            if (prev) {
+              // Alleen samenvatting + prioriteitAdvies (top-level) en
+              // motivatie (per inspanning) uit de nieuwe AI-output overnemen.
+              // Alle cijfers, fase-labels, activiteit-teksten, totalen,
+              // percentages, looptijd: letterlijk uit previousAdvies.
+              return {
+                ...prev,
+                samenvatting: enriched.samenvatting,
+                prioriteitAdvies: enriched.prioriteitAdvies,
+                inspanningen: prev.inspanningen.map((prevInsp) => {
+                  const match = enriched.inspanningen.find(
+                    (i) =>
+                      i.inspanningTitel === prevInsp.inspanningTitel ||
+                      i.inspanningTitel.toLowerCase() ===
+                        prevInsp.inspanningTitel.toLowerCase()
+                  );
+                  return {
+                    ...prevInsp,
+                    motivatie: match?.motivatie ?? prevInsp.motivatie,
+                  };
+                }),
+              };
+            }
+          }
+
+          return enriched;
         }
         console.error(`[begroting-advies] ${label} validation failed:`, res.error);
         return null;
@@ -788,12 +944,80 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Per scenario: gebruik geforceerde aantalJaren als opgegeven, anders
+    // server-berekend minimum. Geforceerde waarden komen uit de A2-flow
+    // (dossier-correctie zonder looptijd-verkorting).
+    const jOptimaal = forceAantalJaren?.optimaal ?? minOptimaal.jaren;
+    const jPlus20 = forceAantalJaren?.plus20 ?? minPlus20.jaren;
+    const jMin20 = forceAantalJaren?.min20 ?? minMin20.jaren;
+    const jAdvies = forceAantalJaren?.advies ?? adviesKeuze.jaren;
     const [optimaal, plus20, min20, advies] = await Promise.all([
-      genereer("optimaal", budgetOptimaal, minOptimaal.jaren, 0),
-      genereer("plus20", budgetPlus20, minPlus20.jaren, 200),
-      genereer("min20", budgetMin20, minMin20.jaren, 400),
-      genereer("advies", adviesKeuze.benodigdJaarlijks, adviesKeuze.jaren, 600),
+      genereer("optimaal", budgetOptimaal, jOptimaal, 0),
+      genereer("plus20", budgetPlus20, jPlus20, 200),
+      genereer("min20", budgetMin20, jMin20, 400),
+      genereer("advies", adviesKeuze.benodigdJaarlijks, jAdvies, 600),
     ]);
+
+    // === Cross-scenario consistentie-enforcer ===
+    // Per inspanning: motivatie + volgorde.reden IDENTIEK over alle scenarios.
+    // Canonical = optimaal scenario (richtlijn HARDE REGEL 13).
+    // Beschermt tegen AI die regel 13 negeert.
+    {
+      const scenarios: Record<string, Scenario | null> = { optimaal, plus20, min20, advies };
+      const canonical = scenarios.optimaal;
+      if (canonical?.inspanningen) {
+        const motByInsp: Record<string, string> = {};
+        const posByInsp: Record<string, string> = {};
+        for (const i of canonical.inspanningen) {
+          if (i.motivatie) motByInsp[i.inspanningTitel] = i.motivatie;
+          if (i.volgorde?.reden) posByInsp[i.inspanningTitel] = i.volgorde.reden;
+        }
+        for (const [k, sc] of Object.entries(scenarios)) {
+          if (!sc || k === "optimaal") continue;
+          for (const ins of sc.inspanningen ?? []) {
+            const newMot = motByInsp[ins.inspanningTitel];
+            const newPos = posByInsp[ins.inspanningTitel];
+            if (newMot) ins.motivatie = newMot;
+            if (newPos && ins.volgorde) ins.volgorde.reden = newPos;
+          }
+        }
+      }
+    }
+
+    // Per fase: activiteit IDENTIEK per inspanning waar zelfde fase-naam voorkomt.
+    // Eerste cell met die fase is canonical voor die inspanning.
+    {
+      const scenarios: Record<string, Scenario | null> = { optimaal, plus20, min20, advies };
+      // Bouw per inspanning een map: fase-naam -> activiteit (uit eerste keer dat fase voorkomt)
+      // Dan in tweede pass: hervul activiteit per cell met die canonical
+      const activiteitPerInspFase: Record<string, Record<string, string>> = {};
+      for (const sc of Object.values(scenarios)) {
+        if (!sc?.inspanningen) continue;
+        for (const ins of sc.inspanningen) {
+          if (!activiteitPerInspFase[ins.inspanningTitel]) {
+            activiteitPerInspFase[ins.inspanningTitel] = {};
+          }
+          const lib = activiteitPerInspFase[ins.inspanningTitel];
+          for (const cell of ins.verdelingPerJaar ?? []) {
+            if (cell.fase && cell.activiteit && !lib[cell.fase]) {
+              lib[cell.fase] = cell.activiteit;
+            }
+          }
+        }
+      }
+      for (const sc of Object.values(scenarios)) {
+        if (!sc?.inspanningen) continue;
+        for (const ins of sc.inspanningen) {
+          const lib = activiteitPerInspFase[ins.inspanningTitel];
+          if (!lib) continue;
+          for (const cell of ins.verdelingPerJaar ?? []) {
+            if (cell.fase && lib[cell.fase]) {
+              cell.activiteit = lib[cell.fase];
+            }
+          }
+        }
+      }
+    }
 
     // Server-side validatie per inspanning: totaalEuro moet ≥ 90% × dossier-
     // ondergrens zijn. Onder die drempel is het scenario verdacht (AI heeft
@@ -884,6 +1108,11 @@ export async function POST(request: NextRequest) {
         scenarios: { optimaal, plus20, min20, advies },
         vergelijking,
         partialFailures: falend.length > 0 ? falend : undefined,
+        // Tekst-coherentie vlag: alle motivatie/samenvatting/prioriteitAdvies
+        // velden komen uit de huidige prompt (regel 10: geen absolute jaartallen
+        // of looptijd-claims). Dit signaleert aan de export dat de
+        // "tekst-coherentie"-banner in §4.1 verborgen mag worden.
+        tekstenSchoon: true,
         // Server-side gebruikersfeedback over budget-haalbaarheid
         budgetAdvies: budgetAdviesData,
         dossierValidatie,

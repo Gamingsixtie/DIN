@@ -198,9 +198,37 @@ export default function CrossAnalyseWizard() {
         completedSteps = completedSteps.map((s: number) => s + 1);
       }
 
+      // Auto-derive: als stap-resultaten aanwezig zijn maar de display-stap
+      // ontbreekt in completedSteps, voeg hem toe. Voorkomt dat een
+      // (gestaalde of half-geüpdatete) wizard-state de stappen verbergt
+      // terwijl de data al maandenlang is opgeslagen.
+      const sr = (wizData.stepResults ?? {}) as Record<string, unknown>;
+      const stap4Obj = (sr.stap4 ?? {}) as Record<string, unknown>;
+      const derived = new Set<number>(completedSteps);
+      if (sr.stap1) derived.add(2);
+      if (sr.stap2) derived.add(3);
+      if (sr.stap3) derived.add(4);
+      if (sr.stap4) {
+        derived.add(5);
+        derived.add(8);
+        if (stap4Obj.begrotingAdvies) derived.add(6);
+        if (stap4Obj.stap7InterneUren) derived.add(7);
+      }
+      if (restoredStap5) derived.add(9);
+      // Display 1 (Lopende projecten) markeren als data van latere stappen
+      // aanwezig is — die fase moet sowieso al doorlopen zijn.
+      if (derived.size > 0) derived.add(1);
+
+      // currentStep: minimaal de hoogste voltooide stap zodat user direct
+      // op de laatste actieve stap landt i.p.v. terug naar 1.
+      if (derived.size > 0) {
+        const hoogste = Math.max(...derived);
+        if (currentStep < hoogste) currentStep = hoogste;
+      }
+
       setWizardState({
         currentStep,
-        completedSteps: new Set(completedSteps),
+        completedSteps: derived,
         stepResults: {
           ...(wizData.stepResults || {}),
           stap5: restoredStap5,
