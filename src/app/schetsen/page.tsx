@@ -4,10 +4,16 @@ import Link from "next/link";
 // hoofdpagina (/kpi-model) en hoort hier niet meer bij.
 const PAGINAS = [
   {
-    titel: "Organigram — regie en inhoud in de programmaleiding",
-    slug: "organigram-programmaleiding",
+    titel: "Organigram — in het kort",
+    slug: "organigram-kort",
     kleur: "#003366",
-    desc: "Voorstel programmaorganisatie: programmamanager, programma-architect, de vier werkstromen, inspanningsleiders, domeineigenaren en 3sides.",
+    desc: "Programmaorganisatie Klant in Zicht op één pagina: programmamanagement, de vier werkstromen met 3sides-lead en Cito-lead, domeineigenaren, stuurgroep, KPI's per laag en de afspraken uit de meeting.",
+  },
+  {
+    titel: "Organigram — uitgebreide onderbouwing",
+    slug: "organigram-programmaleiding",
+    kleur: "#0e7490",
+    desc: "De onderbouwing uit Werken aan Programma's: verhouding programmamanager en architect, gedeelde zone en RASCI, de vier werkstromen met voorbeelden, wie beslist wat.",
   },
   {
     titel: "Systeem & Data — sessievoorbereiding",

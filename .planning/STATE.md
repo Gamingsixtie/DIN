@@ -208,3 +208,4 @@ Resume file: None
 | Datum | Taak | Status | Map |
 |---|---|---|---|
 | 2026-09-24 | Organigram-schets als stap 10 in de sessieflow + /schetsen-pagina | complete | .planning/quick/260924-1nw-organigram-tab-in-sessieflow |
+| 2026-09-29 | Organigram v3: meetingresultaat verwerkt, korte schets als stap 10, uitgebreide versie via knop | complete | .planning/quick/260929-dke-organigram-v3-kort-en-meeting |
