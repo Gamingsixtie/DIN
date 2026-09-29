@@ -992,6 +992,119 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     kolommen: z.array(z.string()),
     lagen: z.array(DocLaagSchema),
   }),
+  // DIN-plaat: doel → baten → gedeeld vermogen → domeinen → werkstromen (inspanningen),
+  // met per werkstroom de domeinen waarin hij bouwt en de stand van het plan van aanpak.
+  z.object({
+    type: z.literal("dinplaat"),
+    // rol = wie dit niveau draagt (bijv. "Bateneigenaar: sectormanager PO")
+    doel: z.object({
+      titel: z.string(),
+      tekst: z.string().optional().default(""),
+      rol: z.string().optional().default(""),
+    }),
+    baten: z.array(
+      z.object({
+        titel: z.string(),
+        tekst: z.string().optional().default(""),
+        rol: z.string().optional().default(""),
+      })
+    ),
+    vermogen: z.object({
+      titel: z.string(),
+      tekst: z.string().optional().default(""),
+      rol: z.string().optional().default(""),
+    }),
+    // regie over de hele keten (programmamanagement)
+    regie: z.string().optional().default(""),
+    domeinen: z.array(
+      z.object({
+        id: z.string(),
+        naam: z.string(),
+        kleur: z.string().optional().default(""),
+        vermogensdeel: z.string().optional().default(""),
+        eigenaar: z.string().optional().default(""),
+        inspanningen: z.string().optional().default(""),
+      })
+    ),
+    werkstromen: z.array(
+      z.object({
+        naam: z.string(),
+        anker: z.string().optional().default(""),
+        // domein-ids waarin de werkstroom bouwt; alle ids = over de hele breedte
+        domeinen: z.array(z.string()),
+        leads: z.string().optional().default(""),
+        oplevert: z.string().optional().default(""),
+        planVanAanpak: z.string().optional().default(""),
+      })
+    ),
+    voet: z.string().optional().default(""),
+  }),
+  // Werkstroomkaarten: per werkstroom één visuele kaart met het plan van aanpak,
+  // ingepast in het DIN. id = anker (#wk-<id>) waar de DIN-plaat naar linkt.
+  z.object({
+    type: z.literal("werkstromen"),
+    kaarten: z.array(
+      z.object({
+        id: z.string(),
+        naam: z.string(),
+        bijnaam: z.string().optional().default(""), // zo heet de werkstroom bij 3sides
+        domeinen: z.array(z.string()), // cultuur | mens | data | processen
+        leads: z.string().optional().default(""),
+        bron: z.string().optional().default(""),
+        waarom: z.string().optional().default(""),
+        resultaten: z.array(z.string()),
+        planning: z.array(z.object({ wanneer: z.string(), wat: z.string() })),
+        dinPad: z.array(z.string()), // van inspanning via vermogen naar baat
+        aanvullen: z.array(z.string()),
+      })
+    ),
+  }),
+  // Tijdlijn (Gantt), letterlijk uit een projecttijdlijn: per activiteit per maand
+  // een markering. id van een groep = anker (#tl-<anker>).
+  z.object({
+    type: z.literal("tijdlijn"),
+    titel: z.string().optional().default(""),
+    jaren: z.array(z.object({ label: z.string(), maanden: z.number().int() })),
+    maanden: z.array(z.string()),
+    nu: z.string().optional().default(""), // maandlabel waarin de standlijn valt
+    nuLabel: z.string().optional().default(""),
+    groepen: z.array(
+      z.object({
+        naam: z.string(),
+        bijnaam: z.string().optional().default(""),
+        anker: z.string().optional().default(""),
+        domeinen: z.array(z.string()).optional().default([]),
+        rijen: z.array(
+          z.object({
+            activiteit: z.string(),
+            // één cel per maand: "" | "start" | "loopt" | "oplevering"
+            cellen: z.array(z.string()),
+            voortgang: z.string().optional().default(""),
+            status: z.string().optional().default(""), // "+" | "+/-" | "-" | ""
+          })
+        ),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // Matrix met gekleurde kolomkoppen; rijen als tekst, domein-chips of chips.
+  z.object({
+    type: z.literal("matrix"),
+    titel: z.string().optional().default(""),
+    hoek: z.string().optional().default(""),
+    kolommen: z.array(z.object({ titel: z.string(), kleur: z.string().optional().default("") })),
+    rijen: z.array(
+      z.object({
+        label: z.string(),
+        sublabel: z.string().optional().default(""),
+        // tekst · domeinen (cel = domein-ids, gescheiden door komma's) · chips (gescheiden door " · ")
+        soort: z.enum(["tekst", "domeinen", "chips"]).optional().default("tekst"),
+        accent: z.boolean().optional().default(false),
+        cellen: z.array(z.string()),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
 ]);
 
 export const DocSectieSchema = z.object({

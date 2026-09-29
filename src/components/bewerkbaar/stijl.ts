@@ -102,8 +102,10 @@ export const OK_CSS = `
 `;
 
 // Generiek document: altijd samen met OK_CSS gebruiken (wrapper-klassen "ok okd").
-// Brede tabellen en lagen scrollen binnen hun eigen container (.ok-scroll); de
-// pagina zelf krijgt nooit een horizontale scrollbalk.
+// Brede tabellen, lagen en de DIN-plaat (.okd-dp-*) scrollen binnen hun eigen
+// container (.ok-scroll); de pagina zelf krijgt nooit een horizontale scrollbalk.
+// DIN-plaat: de kleur van een domein (en van een werkstroom) komt binnen als
+// CSS-variabele --dpk en kleurt rand, tint en titel.
 export const DOC_CSS = `
 .okd{overflow-wrap:anywhere}
 .okd .okd-top h2{margin-top:6px}
@@ -164,6 +166,50 @@ export const DOC_CSS = `
 .okd .okd-vraag button{font-weight:700;text-decoration:underline;cursor:pointer}
 .okd .okd-plus{display:block;width:100%;margin-top:22px;border:1.5px dashed #cbd5e1;border-radius:12px;background:rgba(255,255,255,.6);padding:10px;font-size:12px;font-weight:700;color:#334155;cursor:pointer}
 .okd .okd-plus:hover{background:#fff;border-color:var(--cito);color:var(--cito)}
+.okd .okd-dp-paneel{margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px 12px}
+.okd .okd-dp{--dpk:#64748b;display:grid;column-gap:8px;row-gap:4px;padding-bottom:2px}
+.okd .okd-dp-rl{align-self:center;padding-right:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.35;color:var(--ink3)}
+.okd .okd-dp-pijl{text-align:center;font-size:10px;font-weight:600;line-height:1.3;color:var(--ink3);padding:2px 0}
+.okd .okd-dp-pijl span{font-size:12px;font-weight:800;color:#94a3b8}
+.okd .okd-dp-t{font-size:11.5px;font-weight:700;line-height:1.35;color:var(--ink)}
+.okd .okd-dp-tk{font-size:11px;line-height:1.45;color:var(--ink2);margin-top:2px}
+.okd div.okd-dp-tk,.okd div.okd-dp-v,.okd div.okd-dp-leads{white-space:pre-line}
+.okd .okd-dp-doel{background:var(--cito);border-radius:10px;padding:10px 14px}
+.okd .okd-dp-doel div.okd-dp-t{font-size:13px;color:#fff}
+.okd .okd-dp-doel div.okd-dp-tk{color:#dbe7f5}
+.okd .okd-dp-baten{display:grid;gap:8px}
+.okd .okd-dp-baat{display:flex;flex-direction:column;background:#f0f6fd;border:1px solid #cfe0f4;border-left:4px solid #0066cc;border-radius:8px;padding:8px 10px}
+.okd .okd-dp-verm{background:#ecf8fb;border:1.5px solid var(--verm);border-radius:10px;padding:9px 13px}
+.okd .okd-dp-dom{background:color-mix(in srgb,var(--dpk) 7%,#fff);border:1.5px solid color-mix(in srgb,var(--dpk) 28%,#fff);border-top:5px solid var(--dpk);border-radius:10px;padding:9px 11px 11px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+.okd .okd-dp-dom-t{font-size:13px;font-weight:800;line-height:1.3;color:color-mix(in srgb,var(--dpk) 80%,#000)}
+.okd .okd-dp-r{display:block;margin-top:6px}
+.okd .okd-dp-l{display:block;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.3;color:var(--ink3);margin-bottom:1px}
+.okd .okd-dp-v{font-size:10.5px;line-height:1.45;color:var(--ink2)}
+.okd .okd-dp-dom .okd-dp-v{font-size:11px;color:#334155}
+.okd .okd-dp-ws{background:#fff;border:1.5px solid #cbd5e1;border-left:5px solid var(--dpk);border-radius:9px;padding:8px 11px 9px}
+.okd .okd-dp-ws-heel{border-style:dashed;border-color:#94a3b8;border-left:5px solid var(--dpk)}
+.okd .okd-dp-ws-t{font-size:12px;font-weight:700;line-height:1.35;color:var(--cito)}
+.okd .okd-dp-ws-t a{color:inherit;text-decoration:none}
+.okd .okd-dp-ws-t a:hover,.okd .okd-dp-ws-t a:focus-visible{text-decoration:underline}
+.okd .okd-dp-leads{font-size:10.5px;line-height:1.4;color:var(--ink2);margin-top:1px}
+.okd .okd-dp-velden{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));column-gap:14px}
+.okd .okd-dp-voet{margin-top:8px}
+.okd .okd-dp-icoon{flex:none;width:11px;height:11px}
+.okd .okd-dp-rolrij{margin-top:auto;padding-top:7px}
+.okd .okd-dp-rol{display:flex;align-items:flex-start;gap:5px;width:fit-content;max-width:100%;font-size:10.5px;line-height:1.35;color:#1e3a5f;background:#fff;border:1px solid rgba(0,51,102,.2);border-radius:8px;padding:3px 8px 3px 6px}
+.okd .okd-dp-rol .okd-dp-icoon{margin-top:1px;color:var(--cito)}
+.okd .okd-dp-rol b{color:var(--cito)}
+.okd .okd-dp-doel .okd-dp-rol{color:#e6eef8;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.32)}
+.okd .okd-dp-doel .okd-dp-rol b,.okd .okd-dp-doel .okd-dp-rol .okd-dp-icoon{color:#fff}
+.okd .okd-dp-verm .okd-dp-rol{border-color:rgba(8,145,178,.4)}
+.okd .okd-dp-rol.okd-dp-rol-edit{width:100%;align-items:center;background:none;border:0;padding:0}
+.okd .okd-dp-paneel textarea.ok-in{field-sizing:content;min-height:2.6em}
+.okd .okd-dp-regie{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;background:#eef3f9;border:1px solid rgba(0,51,102,.2);border-left:5px solid var(--cito);border-radius:10px;padding:7px 12px;margin-bottom:6px}
+.okd .okd-dp-regie-l{display:inline-flex;align-items:center;gap:5px;flex:none;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.35;color:var(--cito);white-space:nowrap}
+.okd .okd-dp-regie-t{flex:1 1 320px;min-width:0;font-size:11.5px;line-height:1.45;color:var(--ink)}
+.okd .okd-dp-regie-t b{color:var(--cito)}
+.okd div.okd-dp-regie-t{white-space:pre-line}
+.okd [id^="wk-"],.okd [id^="tl-"]{scroll-margin-top:16px}
 @media(max-width:820px){.okd .okd-kaarten{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:480px){.okd .ok-card dl{grid-template-columns:minmax(0,1fr)}.okd .ok-card dd{margin-bottom:4px}}
 `;

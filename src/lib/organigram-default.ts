@@ -91,7 +91,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Blueprint klantreis versie 1 met de sectoren; funnelprocessen met customer loops (Q3–Q4); eenduidig Customer Success-proces (Q4)",
       outputKpi: "Blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
-      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Saila toetst op resultaat, Pim op de kaders; Sanne stelt vast",
+      planVanAanpak: "Ligt er (3sides, p. 10–11); aanvullen: output-KPI, capaciteit Cito en eigenaar. 3sides (Sasja) vult aan; Saila toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
     {
       id: "datavoorziening",
@@ -105,7 +105,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Klantinformatie-landschap en huidig CRM in kaart, acht bronnen (Q3); quick wins (doorlopend); klantreis → CRM-requirements (Q4); richting CRM (Q4, formele keuze rond april 2027)",
       outputKpi: "Inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
-      planVanAanpak: "Te maken ❓ — 3sides (Lammert) stelt op; Jama toetst op resultaat, Pim op de kaders; Sanne stelt vast",
+      planVanAanpak: "Ligt er (3sides, p. 6–7); aanvullen: output-KPI en capaciteit Cito. 3sides (Lammert) vult aan; Jama toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
     {
       id: "nulmeting",
@@ -117,9 +117,9 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       landtIn: "Alle vier · startwaarden baten-KPI's",
       kaders: "Pim, programma-architect (tevens Cito-lead) — meetprotocol-inhoud, AS-IS-dimensies en duiding",
       resultaat:
-        "Meetprotocol per baten-KPI geaccordeerd met de sectormanagers (Q3); startwaarde per KPI en stand per domein (Q3); advies over de gap als basis voor de vervolgsessie en het pakket 2027",
+        "Meetprotocol per baten-KPI geaccordeerd met de sectormanagers (Q3); startwaarde per KPI en stand per domein (Q3; tijdlijn 3sides 28-09: oplevering oktober); advies over de gap als basis voor de vervolgsessie en het pakket 2027",
       outputKpi: "Elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
-      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Pim toetst op resultaat en kaders; Sanne stelt vast",
+      planVanAanpak: "Ligt er (3sides, p. 8–9); aanvullen: meetprotocol per baten-KPI en eigenaar per datapunt. 3sides (Sasja) vult aan; Pim toetst op resultaat en kaders; Sanne stelt vast",
     },
     {
       id: "adoptie",
@@ -131,9 +131,9 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       landtIn: "Mens en Cultuur · paraplu over alle vier",
       kaders: "Pim, programma-architect — vertaallogica, gedrag per rol, kandidaat-indicatoren; toets en acceptatie",
       resultaat:
-        "Framework gereed en gedragen door het programmateam (Q3); pilot in één sector (Q3), tweede sector Q4, derde Q1 2027; ambassadeurs per sector (Q4)",
+        "Framework gereed en gedragen door het programmateam (Q3; tijdlijn 3sides 28-09: oktober); pilot in één sector (Q3), tweede sector Q4, derde Q1 2027 (tijdlijn 3sides 28-09: 1e sector januari–februari 2027, 2e februari–maart, 3e april–mei); ambassadeurs per sector (Q4)",
       outputKpi: "Framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt",
-      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Sanne toetst op resultaat, Pim op de kaders; Sanne stelt vast",
+      planVanAanpak: "Ligt er (3sides, p. 12–13); aanvullen: scope, eerste pilotsector, output-KPI en capaciteit Cito en HR. 3sides (Sasja) vult aan; Sanne toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
   ],
 
@@ -306,7 +306,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     "Geen extra overleggen: het voortgangsoverleg per werkstroom is ook de plek voor kaders en inhoud; de duo-afstemming Sanne–Pim is de voorbereiding van het programmateam.",
   ],
   openPunten: [
-    "Plan van aanpak per werkstroom: opstellen (3sides), toetsen (Cito-lead op resultaat, architect op kaders), vaststellen (programmamanager)",
+    "Plan van aanpak per werkstroom: ligt er van 3sides; aanvullen (3sides), toetsen (Cito-lead op resultaat, architect op kaders), vaststellen (programmamanager)",
     "Domeineigenaar Processen en Cultuur benoemen",
     "Sponsorgroep (MT?) bevestigen",
     "Rollen, mandaten en Cito-leads vaststellen door de programma-eigenaar",

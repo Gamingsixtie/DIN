@@ -1,21 +1,26 @@
 // Generieke, bewerkbare documentweergave (o.a. stap 11 "Programma × 3sides") in de
 // beeldtaal van het organigram: kop met titel, ondertitel en status, een compacte
-// inhoudsopgave en per sectie blokken (tekst, kader, lijst, tabel, kaarten, lagen).
-// In bewerkmodus is elke tekst aanpasbaar en voeg je secties, regels, rijen,
-// kaarten en lagen toe of haal je ze weg. Wijzigingen gaan onveranderlijk
+// inhoudsopgave en per sectie blokken (tekst, kader, lijst, tabel, kaarten, lagen,
+// DIN-plaat). In bewerkmodus is elke tekst aanpasbaar en voeg je secties, regels,
+// rijen, kaarten en lagen toe of haal je ze weg; de DIN-plaat houdt een vaste opbouw
+// (alleen de teksten zijn aanpasbaar). Wijzigingen gaan onveranderlijk
 // (kopie → aanpassen) via onChange naar de ouder; die bepaalt wanneer er wordt
 // opgeslagen. Alleen gebruiken binnen een client-component.
 
-import { Fragment, memo, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { isVerwijderd, kloon, verwijderdeSectie } from "@/lib/bewerkbaar-document";
-import { Keuze, Lijst, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
+import { Keuze, Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { DOC_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
+import { domein } from "@/components/bewerkbaar/blok-typen";
+import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-typen";
+import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
+import WerkstroomKaartenBlok, { WERKSTROOM_CSS } from "@/components/bewerkbaar/blokken/WerkstroomKaartenBlok";
+import MatrixBlok, { MATRIX_CSS } from "@/components/bewerkbaar/blokken/MatrixBlok";
 
-type BlokVan<T extends DocBlok["type"]> = Extract<DocBlok, { type: T }>;
-/** Past een kopie van het blok aan; de wijziging gaat via de sectie naar boven. */
-type Zet<T> = (fn: (x: T) => void) => void;
-type BlokProps<T extends DocBlok["type"]> = { b: BlokVan<T>; edit: boolean; zet: Zet<BlokVan<T>> };
+/** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
+type BlokProps<T extends DocBlok["type"]> = Omit<LosBlokProps<T>, "ankers">;
 type Toon = BlokVan<"callout">["toon"];
 
 // Kleur per laag van de kapstok: doel → baat → vermogen → gedrag → inspanning.
@@ -50,12 +55,19 @@ function laagKleur(kleur: string): string {
   return LAAG_KLEUREN.get(laagToken(kleur)) ?? NEUTRAAL;
 }
 
-/** Kleur van een oordeel-chip op basis van de tekst. */
+/**
+ * Kleur van een oordeel-chip op basis van de tekst (bevat, hoofdletterongevoelig).
+ * Volgorde: groen → blauw → amber → grijs. "Aanvulling" (blauw) en "aanvullen"
+ * (amber) zijn verschillende woorden en worden elk apart herkend. "Ligt er" telt niet
+ * als groen bij een ontkenning ("ligt er nog niet").
+ */
 function chipSoort(v: string): "groen" | "blauw" | "amber" | "grijs" {
   const t = v.toLowerCase();
-  if (t.includes("sluit aan")) return "groen";
-  if (t.includes("aanvulling")) return "blauw";
-  if (t.includes("verschil")) return "amber";
+  const bevat = (...woorden: string[]) => woorden.some((w) => t.includes(w));
+  const ligtEr = t.includes("ligt er") && !/\bniet\b/.test(t);
+  if (bevat("sluit aan", "staat erin") || ligtEr) return "groen";
+  if (bevat("aanvulling", "deels")) return "blauw";
+  if (bevat("verschil", "ontbreekt", "aanvullen")) return "amber";
   return "grijs";
 }
 
@@ -347,6 +359,461 @@ function LagenBlok({ b, edit, zet }: BlokProps<"lagen">) {
   );
 }
 
+// ---------- DIN-plaat ----------
+// Doel → baten → vermogen → domeinen → werkstromen (inspanningen), van boven naar
+// beneden; de pijlen lezen van onder naar boven (waartoe). Eerste kolom: rijlabels,
+// daarna één kolom per domein. Een werkstroom staat onder de domeinen waarin hij bouwt.
+// Rollen: bovenaan een band "Regie over de hele keten"; in doel, baten en vermogen een
+// rol-label (wie dat niveau draagt); domeineigenaar en leads staan in hun eigen vak.
+// Een werkstroom linkt naar zijn werkstroomkaart (#wk-), anders naar een sectie (#sec-).
+// Vaste opbouw: in bewerkmodus zijn alleen de teksten aanpasbaar, niet de domeinen,
+// kleuren, koppelingen of ankers.
+
+type Plaat = BlokVan<"dinplaat">;
+
+/** Plek van een werkstroom onder de domeinen (kolomnummers vanaf 0, tot = inclusief). */
+type WsPlek = {
+  wi: number;
+  /** kolommen van de domeinen waarin de werkstroom bouwt, in de volgorde van de plaat */
+  idx: number[];
+  van: number;
+  tot: number;
+  /** bouwt in alle domeinen: eigen rij over de hele breedte, gestippelde rand */
+  overal: boolean;
+  /** domeinen niet aaneengesloten: het vak loopt over het gat heen, dus "Bouwt in" tonen */
+  los: boolean;
+};
+
+const CITO = "#003366";
+const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/** Kleur van een domein: uit de inhoud (hex), anders de vaste DIN-kleur bij het id, anders grijs. */
+function domeinKleur(d: { id: string; kleur: string }): string {
+  const t = d.kleur.trim();
+  if (HEX.test(t)) return t;
+  return domein(d.id)?.kleur ?? NEUTRAAL;
+}
+
+/**
+ * Linkdoel van een werkstroom in de plaat: zijn werkstroomkaart (#wk-), anders een
+ * sectie met dat id (#sec-), anders geen link (geen dode links).
+ */
+function werkstroomDoel(anker: string, ankers: ReadonlySet<string>): string | null {
+  if (!anker) return null;
+  if (ankers.has("wk-" + anker)) return "wk-" + anker;
+  if (ankers.has("sec-" + anker)) return "sec-" + anker;
+  return null;
+}
+
+/** Stijl van een vak plus de kleur als CSS-variabele --dpk (rand, tint en titel). */
+function metKleur(kleur: string, stijl: CSSProperties): CSSProperties {
+  return { ...stijl, "--dpk": kleur } as CSSProperties;
+}
+
+/**
+ * Verdeelt de werkstromen in rijen onder de domeinen. Een werkstroom staat onder zijn
+ * eerste t/m laatste domein; overlapt hij met een werkstroom die al in een rij staat,
+ * dan schuift hij door naar de eerste rij waar hij wel past. Werkstromen over alle
+ * domeinen (of zonder bekend domein) krijgen onderaan elk een eigen rij over de hele breedte.
+ */
+function plaatsWerkstromen(p: Plaat): WsPlek[][] {
+  const ids = p.domeinen.map((d) => d.id);
+  const deel: WsPlek[][] = [];
+  const heel: WsPlek[][] = [];
+  p.werkstromen.forEach((w, wi) => {
+    const idx = Array.from(new Set(w.domeinen.map((id) => ids.indexOf(id)).filter((i) => i >= 0))).sort(
+      (a, b) => a - b
+    );
+    if (idx.length === 0 || (ids.length > 1 && idx.length === ids.length)) {
+      heel.push([{ wi, idx, van: 0, tot: Math.max(0, ids.length - 1), overal: idx.length > 0, los: false }]);
+      return;
+    }
+    const van = idx[0];
+    const tot = idx[idx.length - 1];
+    const plek: WsPlek = { wi, idx, van, tot, overal: false, los: tot - van + 1 > idx.length };
+    const rij = deel.find((r) => r.every((q) => q.tot < van || q.van > tot));
+    if (rij) rij.push(plek);
+    else deel.push([plek]);
+  });
+  return [...deel, ...heel];
+}
+
+/** Verbinding tussen twee lagen van de plaat, te lezen van onder naar boven. */
+function Pijl({ rij, kolom, children }: { rij: number; kolom: string; children: ReactNode }) {
+  return (
+    <div className="okd-dp-pijl" style={{ gridRow: rij, gridColumn: kolom }}>
+      <span aria-hidden="true">↑</span> {children}
+    </div>
+  );
+}
+
+/** Klein label met tekst in een vak; in weergave weggelaten als de tekst leeg is. */
+function PlaatRegel(p: {
+  label: string;
+  v: string;
+  on: (s: string) => void;
+  edit: boolean;
+  ml?: boolean;
+  ph: string;
+}) {
+  if (!p.edit && !p.v) return null;
+  // In bewerkmodus een <label>, zodat het invoerveld zijn label heeft.
+  const Tag = p.edit ? "label" : "div";
+  return (
+    <Tag className="okd-dp-r">
+      <span className="okd-dp-l">{p.label}</span>
+      <V v={p.v} on={p.on} edit={p.edit} ml={p.ml} block cls="okd-dp-v" ph={p.ph} />
+    </Tag>
+  );
+}
+
+/** Rijnummers in de plaat; de pijlen staan ertussen. Met de regieband schuift alles één rij op. */
+function plaatRijen(metRegie: boolean) {
+  const o = metRegie ? 1 : 0;
+  return { doel: 1 + o, baten: 3 + o, vermogen: 5 + o, domeinen: 7 + o, werkstromen: 9 + o };
+}
+
+/** Klein persoonsicoon bij een rol. */
+function PersoonIcoon() {
+  return (
+    <svg className="okd-dp-icoon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="4.6" r="3.1" fill="currentColor" />
+      <path d="M1.8 15c0-3.6 2.8-6 6.2-6s6.2 2.4 6.2 6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * Wie een niveau van de plaat draagt, als klein label onderin het vak:
+ * "Bateneigenaar: sectormanager PO" met het deel vóór de dubbele punt vet.
+ */
+function Rol(p: { v: string; on: (s: string) => void; edit: boolean; ph: string }) {
+  if (!p.edit && !p.v) return null;
+  return (
+    <div className="okd-dp-rolrij">
+      {p.edit ? (
+        <label className="okd-dp-rol okd-dp-rol-edit">
+          <PersoonIcoon />
+          <V v={p.v} on={p.on} edit ph={p.ph} />
+        </label>
+      ) : (
+        <div className="okd-dp-rol">
+          <PersoonIcoon />
+          <span>{metLabel(p.v)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
+  const kolommen = Math.max(1, b.domeinen.length);
+  const breed = `2 / ${kolommen + 2}`;
+  const rijen = plaatsWerkstromen(b);
+  const perId = new Map(b.domeinen.map((d) => [d.id, d] as const));
+  const toonRegie = edit || b.regie !== "";
+  const R = plaatRijen(toonRegie);
+  // Binnen de eigen scrollcontainer; in bewerkmodus breder zodat de velden leesbaar blijven
+  // (900 past nog zonder scrollen in het document bij een scherm van 1280 breed).
+  const minBreedte = edit ? Math.max(900, 120 + kolommen * 195) : Math.max(760, 120 + kolommen * 160);
+
+  return (
+    <figure className="okd-dp-paneel" aria-label="Doelen-Inspanningennetwerk (DIN) in één plaat">
+      <div className="ok-scroll">
+        <div
+          className="okd-dp"
+          style={{ gridTemplateColumns: `112px repeat(${kolommen}, minmax(0, 1fr))`, minWidth: minBreedte }}
+        >
+          {toonRegie && (
+            <div className="okd-dp-regie" style={{ gridRow: 1, gridColumn: "1 / -1" }}>
+              <span className="okd-dp-regie-l">
+                <PersoonIcoon />
+                Regie over de hele keten
+              </span>
+              {edit ? (
+                <V
+                  v={b.regie}
+                  on={(x) => zet((n) => void (n.regie = x))}
+                  edit
+                  ml
+                  cls="okd-dp-regie-t"
+                  ph="Bijv. Programmamanagement: naam (rol) · naam (rol)"
+                />
+              ) : (
+                <div className="okd-dp-regie-t">{metLabel(b.regie)}</div>
+              )}
+            </div>
+          )}
+
+          <div className="okd-dp-rl" style={{ gridRow: R.doel, gridColumn: 1 }}>
+            Doel
+          </div>
+          <div className="okd-dp-doel" style={{ gridRow: R.doel, gridColumn: breed }}>
+            <V
+              v={b.doel.titel}
+              on={(x) => zet((n) => void (n.doel.titel = x))}
+              edit={edit}
+              block
+              cls="okd-dp-t"
+              ph="Doel"
+            />
+            {(edit || b.doel.tekst) && (
+              <V
+                v={b.doel.tekst}
+                on={(x) => zet((n) => void (n.doel.tekst = x))}
+                edit={edit}
+                ml
+                block
+                cls="okd-dp-tk"
+                ph="Toelichting op het doel (optioneel)"
+              />
+            )}
+            <Rol
+              v={b.doel.rol}
+              on={(x) => zet((n) => void (n.doel.rol = x))}
+              edit={edit}
+              ph="Rol, bijv. Programma-eigenaar: naam · functie"
+            />
+          </div>
+
+          <Pijl rij={R.doel + 1} kolom={breed}>
+            draagt bij aan
+          </Pijl>
+
+          <div className="okd-dp-rl" style={{ gridRow: R.baten, gridColumn: 1 }}>
+            Baten
+          </div>
+          <div
+            className="okd-dp-baten"
+            style={{
+              gridRow: R.baten,
+              gridColumn: breed,
+              gridTemplateColumns: `repeat(${Math.max(1, b.baten.length)}, minmax(0, 1fr))`,
+            }}
+          >
+            {b.baten.map((baat, i) => (
+              <div key={i} className="okd-dp-baat">
+                <V
+                  v={baat.titel}
+                  on={(x) => zet((n) => void (n.baten[i].titel = x))}
+                  edit={edit}
+                  block
+                  cls="okd-dp-t"
+                  ph="Baat"
+                />
+                {(edit || baat.tekst) && (
+                  <V
+                    v={baat.tekst}
+                    on={(x) => zet((n) => void (n.baten[i].tekst = x))}
+                    edit={edit}
+                    ml
+                    block
+                    cls="okd-dp-tk"
+                    ph="Toelichting, bijv. baten-KPI's (optioneel)"
+                  />
+                )}
+                <Rol
+                  v={baat.rol}
+                  on={(x) => zet((n) => void (n.baten[i].rol = x))}
+                  edit={edit}
+                  ph="Rol, bijv. Bateneigenaar: sectormanager"
+                />
+              </div>
+            ))}
+          </div>
+
+          <Pijl rij={R.baten + 1} kolom={breed}>
+            levert
+          </Pijl>
+
+          <div className="okd-dp-rl" style={{ gridRow: R.vermogen, gridColumn: 1 }}>
+            Vermogen
+          </div>
+          <div className="okd-dp-verm" style={{ gridRow: R.vermogen, gridColumn: breed }}>
+            <V
+              v={b.vermogen.titel}
+              on={(x) => zet((n) => void (n.vermogen.titel = x))}
+              edit={edit}
+              block
+              cls="okd-dp-t"
+              ph="Vermogen"
+            />
+            {(edit || b.vermogen.tekst) && (
+              <V
+                v={b.vermogen.tekst}
+                on={(x) => zet((n) => void (n.vermogen.tekst = x))}
+                edit={edit}
+                ml
+                block
+                cls="okd-dp-tk"
+                ph="Toelichting op het vermogen (optioneel)"
+              />
+            )}
+            <Rol
+              v={b.vermogen.rol}
+              on={(x) => zet((n) => void (n.vermogen.rol = x))}
+              edit={edit}
+              ph="Rol, bijv. Eigenaar van het vermogen: naam · functie"
+            />
+          </div>
+
+          <Pijl rij={R.vermogen + 1} kolom={breed}>
+            samen het vermogen
+          </Pijl>
+
+          <div className="okd-dp-rl" style={{ gridRow: R.domeinen, gridColumn: 1 }}>
+            Domeinen
+          </div>
+          {b.domeinen.map((d, i) => (
+            <div
+              key={i}
+              className="okd-dp-dom"
+              style={metKleur(domeinKleur(d), { gridRow: R.domeinen, gridColumn: i + 2 })}
+            >
+              <V
+                v={d.naam}
+                on={(x) => zet((n) => void (n.domeinen[i].naam = x))}
+                edit={edit}
+                block
+                cls="okd-dp-dom-t"
+                ph="Naam van het domein"
+              />
+              <PlaatRegel
+                label="Bouwt aan"
+                v={d.vermogensdeel}
+                on={(x) => zet((n) => void (n.domeinen[i].vermogensdeel = x))}
+                edit={edit}
+                ml
+                ph="Welk deel van het vermogen"
+              />
+              <PlaatRegel
+                label="Domeineigenaar"
+                v={d.eigenaar}
+                on={(x) => zet((n) => void (n.domeinen[i].eigenaar = x))}
+                edit={edit}
+                ph="Naam, of 'te bepalen'"
+              />
+              <PlaatRegel
+                label="In het DIN"
+                v={d.inspanningen}
+                on={(x) => zet((n) => void (n.domeinen[i].inspanningen = x))}
+                edit={edit}
+                ml
+                ph="Inspanningen in dit domein"
+              />
+            </div>
+          ))}
+
+          {rijen.length > 0 && (
+            <>
+              <Pijl rij={R.domeinen + 1} kolom={breed}>
+                bouwt aan
+              </Pijl>
+              <div
+                className="okd-dp-rl"
+                style={{ gridRow: `${R.werkstromen} / span ${rijen.length}`, gridColumn: 1 }}
+              >
+                Werkstromen (inspanningen)
+              </div>
+            </>
+          )}
+          {rijen.flatMap((rij, ri) =>
+            rij.map((plek) => {
+              const wi = plek.wi;
+              const w = b.werkstromen[wi];
+              const eerste = w.domeinen.map((id) => perId.get(id)).find((d) => d !== undefined);
+              const kleur = plek.overal ? CITO : eerste ? domeinKleur(eerste) : NEUTRAAL;
+              const doel = edit ? null : werkstroomDoel(w.anker, ankers);
+              return (
+                <div
+                  key={wi}
+                  className={plek.overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
+                  style={metKleur(kleur, {
+                    gridRow: R.werkstromen + ri,
+                    gridColumn: `${plek.van + 2} / ${plek.tot + 3}`,
+                  })}
+                >
+                  <div className="okd-dp-ws-t">
+                    {edit ? (
+                      <V
+                        v={w.naam}
+                        on={(x) => zet((n) => void (n.werkstromen[wi].naam = x))}
+                        edit
+                        ph="Naam van de werkstroom"
+                      />
+                    ) : doel ? (
+                      <a href={"#" + doel}>
+                        {w.naam} <span aria-hidden="true">→</span>
+                      </a>
+                    ) : (
+                      w.naam
+                    )}
+                  </div>
+                  {(edit || w.leads) && (
+                    <V
+                      v={w.leads}
+                      on={(x) => zet((n) => void (n.werkstromen[wi].leads = x))}
+                      edit={edit}
+                      ml
+                      block
+                      cls="okd-dp-leads"
+                      ph="Leads, bijv. Cito-lead · 3sides-lead"
+                    />
+                  )}
+                  {plek.los && (
+                    <div className="okd-dp-r">
+                      <span className="okd-dp-l">Bouwt in</span>
+                      <div className="okd-dp-v">{plek.idx.map((i) => b.domeinen[i].naam).join(" · ")}</div>
+                    </div>
+                  )}
+                  <div className="okd-dp-velden">
+                    <PlaatRegel
+                      label="Levert op"
+                      v={w.oplevert}
+                      on={(x) => zet((n) => void (n.werkstromen[wi].oplevert = x))}
+                      edit={edit}
+                      ml
+                      ph="Wat de werkstroom oplevert"
+                    />
+                    <PlaatRegel
+                      label="Plan van aanpak"
+                      v={w.planVanAanpak}
+                      on={(x) => zet((n) => void (n.werkstromen[wi].planVanAanpak = x))}
+                      edit={edit}
+                      ml
+                      ph="Stand van het plan van aanpak"
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+      {(edit || b.voet) && (
+        <figcaption className="ok-legend okd-dp-voet">
+          <V
+            v={b.voet}
+            on={(x) => zet((n) => void (n.voet = x))}
+            edit={edit}
+            ml
+            ph="Voetnoot, bijv. bron en stand (optioneel)"
+          />
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+/**
+ * Uitputtende switch over de bloktypen: een nieuw type zonder weergave geeft hier een
+ * typefout. Een onbekend type uit oude opslag toont niets.
+ */
+function geenWeergave(b: never): null {
+  void b;
+  return null;
+}
+
 // ---------- sectie ----------
 
 // Gememoiseerd: bij typen in één sectie renderen de andere secties niet opnieuw.
@@ -356,10 +823,12 @@ const Sectie = memo(function Sectie(p: {
   edit: boolean;
   /** verwijder-bevestiging open voor deze sectie */
   vraag: boolean;
+  /** element-ids die in het document bestaan: "sec-…", "wk-…", "tl-…" (linkdoelen) */
+  ankers: ReadonlySet<string>;
   onZet: (i: number, s: DocSectie) => void;
   onVraag: (id: string | null) => void;
 }) {
-  const { s, i, edit, vraag, onZet, onVraag } = p;
+  const { s, i, edit, vraag, ankers, onZet, onVraag } = p;
 
   const upd = (fn: (n: DocSectie) => void) => {
     const n = kloon(s);
@@ -389,8 +858,18 @@ const Sectie = memo(function Sectie(p: {
         return <KaartenBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "kaarten")} />;
       case "lagen":
         return <LagenBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "lagen")} />;
+      case "dinplaat":
+        return <DinPlaatBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "dinplaat")} ankers={ankers} />;
+      case "werkstromen":
+        return (
+          <WerkstroomKaartenBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "werkstromen")} ankers={ankers} />
+        );
+      case "tijdlijn":
+        return <TijdlijnBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "tijdlijn")} ankers={ankers} />;
+      case "matrix":
+        return <MatrixBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "matrix")} ankers={ankers} />;
       default:
-        return null;
+        return geenWeergave(b);
     }
   }
 
@@ -439,6 +918,22 @@ const Sectie = memo(function Sectie(p: {
 
 // ---------- het document ----------
 
+/**
+ * Element-ids in een sectie waar naartoe gelinkt kan worden: de sectie zelf ("sec-"),
+ * de kaarten van een werkstromen-blok ("wk-") en de tijdlijngroepen met een anker ("tl-").
+ */
+function linkdoelen(s: DocSectie): string[] {
+  const ids = ["sec-" + s.id];
+  for (const b of s.blokken) {
+    if (b.type === "werkstromen") {
+      for (const k of b.kaarten) if (k.id) ids.push("wk-" + k.id);
+    } else if (b.type === "tijdlijn") {
+      for (const g of b.groepen) if (g.anker) ids.push("tl-" + g.anker);
+    }
+  }
+  return ids;
+}
+
 export default function BewerkbaarDocument({
   doc,
   edit,
@@ -471,9 +966,15 @@ export default function BewerkbaarDocument({
   // de index blijft die in doc.secties.
   const zichtbaar = doc.secties.flatMap((s, i) => (isVerwijderd(s) ? [] : [{ s, i }]));
 
+  // Element-ids die in het document bestaan (secties, werkstroomkaarten, tijdlijngroepen),
+  // als linkdoelen. Gememoiseerd op een sleutel van de ids zelf, zodat typen in een sectie
+  // de gememoiseerde secties ongemoeid laat.
+  const idSleutel = zichtbaar.flatMap(({ s }) => linkdoelen(s)).join("\n");
+  const ankers = useMemo(() => new Set(idSleutel.split("\n")), [idSleutel]);
+
   return (
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-      <style>{OK_CSS + DOC_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (
@@ -520,6 +1021,7 @@ export default function BewerkbaarDocument({
           i={i}
           edit={edit}
           vraag={vraag === s.id}
+          ankers={ankers}
           onZet={zetSectie}
           onVraag={setVraag}
         />
