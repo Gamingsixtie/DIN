@@ -867,6 +867,78 @@ export const ClusterRasciSchema = z.object({
   overrides: z.array(RasciOverrideSchema).optional().default([]),
 });
 
+// ============================================================
+// Stap 10 — Organigram (korte versie, per kop en per naam bewerkbaar)
+// Standaardinhoud staat in src/lib/organigram-default.ts; de sessie bewaart
+// alleen wat de gebruiker heeft aangepast (volledig object bij opslaan).
+// ============================================================
+
+export const OrganigramSectieSchema = z.object({
+  titel: z.string(),
+  intro: z.string().optional().default(""),
+});
+
+export const OrganigramPersoonSchema = z.object({
+  naam: z.string(),
+  rol: z.string().optional().default(""),
+  toelichting: z.string().optional().default(""),
+});
+
+export const OrganigramWerkstroomSchema = z.object({
+  id: z.string(),
+  naam: z.string(),
+  citoLead: z.string().optional().default(""),
+  citoLeadFunctie: z.string().optional().default(""),
+  sidesLead: z.string().optional().default(""),
+  domeineigenaar: z.string().optional().default(""),
+  landtIn: z.string().optional().default(""),
+  resultaat: z.string().optional().default(""),
+  outputKpi: z.string().optional().default(""),
+  planVanAanpak: z.string().optional().default(""),
+});
+
+export const OrganigramRijSchema = z.object({
+  label: z.string(),
+  cellen: z.array(z.string()),
+});
+
+export const OrganigramSchema = z.object({
+  secties: z.object({
+    organigram: OrganigramSectieSchema,
+    rollen: OrganigramSectieSchema,
+    werkstromen: OrganigramSectieSchema,
+    kpi: OrganigramSectieSchema,
+    rasci: OrganigramSectieSchema,
+    meeting: OrganigramSectieSchema,
+  }),
+  begrippen: z.array(z.string()),
+  sponsorgroep: z.string(),
+  programmaEigenaar: OrganigramPersoonSchema,
+  programmamanager: OrganigramPersoonSchema,
+  architect: OrganigramPersoonSchema,
+  pmToelichting: z.string(),
+  overlegritme: z.array(z.object({ naam: z.string(), ritme: z.string() })),
+  werkstromen: z.array(OrganigramWerkstroomSchema),
+  domeinen: z.array(z.object({ domein: z.string(), eigenaar: z.string() })),
+  staandeOrganisatie: z.string(),
+  stuurgroep: z.array(z.object({ naam: z.string(), rol: z.string() })),
+  stuurgroepNoot: z.string(),
+  hierarchie: z.string(),
+  rollenKolommen: z.array(z.string()),
+  rollenRijen: z.array(OrganigramRijSchema),
+  rollenLegenda: z.string(),
+  werkstromenLegenda: z.string(),
+  kpiKolommen: z.array(z.string()),
+  kpiRijen: z.array(OrganigramRijSchema),
+  rasciKolommen: z.array(z.string()),
+  rasciRijen: z.array(OrganigramRijSchema),
+  rasciLegenda: z.string(),
+  meeting: z.array(z.string()),
+  advies: z.array(z.string()),
+  openPunten: z.array(z.string()),
+  bronnen: z.string(),
+});
+
 // AI response schemas voor governance-mapping route
 export const AIProgrammaRolSchema = z.object({
   rol: z.string().optional().default(""),
@@ -1002,6 +1074,9 @@ export const DINSessionSchema = z.object({
   gezamenlijkeRasci: z.array(GezamenlijkRasciItemSchema).optional().default([]),
   // Phase 20: AI-planning-voorstel (roadmap obv cross-analyse stap 6+7)
   planningVoorstel: PlanningVoorstelSchema.optional(),
+  // Stap 10: Organigram (korte versie), handmatig aangepaste namen en teksten.
+  // Partial zodat een later toegevoegde kop nooit een bestaande sessie ongeldig maakt.
+  organigram: OrganigramSchema.partial().optional(),
 });
 
 // ============================================================
@@ -1407,6 +1482,9 @@ export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;
 
 export type ProgrammaRol = z.infer<typeof ProgrammaRolSchema>;
 export type Programmaorganisatie = z.infer<typeof ProgrammaorganisatieSchema>;
+export type OrganigramData = z.infer<typeof OrganigramSchema>;
+export type OrganigramWerkstroom = z.infer<typeof OrganigramWerkstroomSchema>;
+export type OrganigramRij = z.infer<typeof OrganigramRijSchema>;
 export type RasciLetter = z.infer<typeof RasciLetterSchema>;
 export type RasciRij = z.infer<typeof RasciRijSchema>;
 export type RasciOnderdeelType = z.infer<typeof RasciOnderdeelTypeSchema>;
