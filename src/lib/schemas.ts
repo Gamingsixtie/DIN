@@ -75,6 +75,7 @@ export const AppStepSchema = z.enum([
   "berekeningen",
   "kpi-meetbaarheid",
   "organigram",
+  "integratie",
 ]);
 
 // ============================================================
@@ -941,6 +942,72 @@ export const OrganigramSchema = z.object({
   bronnen: z.string(),
 });
 
+// ============================================================
+// Bewerkbaar document (generiek) — o.a. stap 11 "Programma × 3sides".
+// Standaardinhoud per document staat in src/lib/*-default.ts; de sessie
+// bewaart onder session.documenten[<sleutel>] wat de gebruiker aanpaste.
+// ============================================================
+
+export const DocRegelSchema = z.object({ label: z.string(), waarde: z.string() });
+
+export const DocKaartSchema = z.object({
+  titel: z.string(),
+  ondertitel: z.string().optional().default(""),
+  regels: z.array(DocRegelSchema),
+});
+
+export const DocLaagSchema = z.object({
+  naam: z.string(),
+  // kleurtoken: doel | baat | vermogen | gedrag | inspanning (leeg = neutraal)
+  kleur: z.string().optional().default(""),
+  cellen: z.array(z.string()),
+});
+
+export const DocBlokSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("tekst"), tekst: z.string() }),
+  z.object({
+    type: z.literal("callout"),
+    toon: z.enum(["info", "let-op", "besluit"]).optional().default("info"),
+    titel: z.string().optional().default(""),
+    tekst: z.string(),
+  }),
+  z.object({
+    type: z.literal("lijst"),
+    titel: z.string().optional().default(""),
+    items: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal("tabel"),
+    titel: z.string().optional().default(""),
+    kolommen: z.array(z.string()),
+    rijen: z.array(z.array(z.string())),
+    // index van de kolom waarvan de cellen als gekleurde chip worden getoond
+    // (bijv. "Sluit aan" / "Aanvulling" / "Verschil")
+    chipKolom: z.number().int().optional(),
+    legenda: z.string().optional().default(""),
+  }),
+  z.object({ type: z.literal("kaarten"), kaarten: z.array(DocKaartSchema) }),
+  z.object({
+    type: z.literal("lagen"),
+    kolommen: z.array(z.string()),
+    lagen: z.array(DocLaagSchema),
+  }),
+]);
+
+export const DocSectieSchema = z.object({
+  id: z.string(),
+  titel: z.string(),
+  intro: z.string().optional().default(""),
+  blokken: z.array(DocBlokSchema),
+});
+
+export const BewerkbaarDocumentSchema = z.object({
+  titel: z.string(),
+  ondertitel: z.string().optional().default(""),
+  status: z.string().optional().default(""),
+  secties: z.array(DocSectieSchema),
+});
+
 // AI response schemas voor governance-mapping route
 export const AIProgrammaRolSchema = z.object({
   rol: z.string().optional().default(""),
@@ -1079,6 +1146,9 @@ export const DINSessionSchema = z.object({
   // Stap 10: Organigram (korte versie), handmatig aangepaste namen en teksten.
   // Partial zodat een later toegevoegde kop nooit een bestaande sessie ongeldig maakt.
   organigram: OrganigramSchema.partial().optional(),
+  // Generieke bewerkbare documenten per sleutel (stap 11: "integratie-3sides").
+  // Partial zodat een later toegevoegde sectie een bestaande sessie niet ongeldig maakt.
+  documenten: z.record(z.string(), BewerkbaarDocumentSchema.partial()).optional(),
 });
 
 // ============================================================
@@ -1487,6 +1557,11 @@ export type Programmaorganisatie = z.infer<typeof ProgrammaorganisatieSchema>;
 export type OrganigramData = z.infer<typeof OrganigramSchema>;
 export type OrganigramWerkstroom = z.infer<typeof OrganigramWerkstroomSchema>;
 export type OrganigramRij = z.infer<typeof OrganigramRijSchema>;
+export type BewerkbaarDocument = z.infer<typeof BewerkbaarDocumentSchema>;
+export type DocSectie = z.infer<typeof DocSectieSchema>;
+export type DocBlok = z.infer<typeof DocBlokSchema>;
+export type DocKaart = z.infer<typeof DocKaartSchema>;
+export type DocLaag = z.infer<typeof DocLaagSchema>;
 export type RasciLetter = z.infer<typeof RasciLetterSchema>;
 export type RasciRij = z.infer<typeof RasciRijSchema>;
 export type RasciOnderdeelType = z.infer<typeof RasciOnderdeelTypeSchema>;

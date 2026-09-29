@@ -162,6 +162,7 @@ export const APP_STEPS: { key: AppStep; label: string; nummer: number }[] = [
   { key: "berekeningen", label: "Berekeningen", nummer: 8 },
   { key: "kpi-meetbaarheid", label: "KPI's & Meetbaarheid", nummer: 9 },
   { key: "organigram", label: "Organigram", nummer: 10 },
+  { key: "integratie", label: "Programma × 3sides", nummer: 11 },
 ];
 
 // --- Domein-kleuren voor roadmap-visualisatie ---

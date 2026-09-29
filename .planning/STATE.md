@@ -210,3 +210,4 @@ Resume file: None
 | 2026-09-24 | Organigram-schets als stap 10 in de sessieflow + /schetsen-pagina | complete | .planning/quick/260924-1nw-organigram-tab-in-sessieflow |
 | 2026-09-29 | Organigram v3: meetingresultaat verwerkt, korte schets als stap 10, uitgebreide versie via knop | complete | .planning/quick/260929-dke-organigram-v3-kort-en-meeting |
 | 2026-09-29 | Organigram v4: Cito-framing, plan van aanpak per werkstroom, stap 10 bewerkbaar (namen en tekst per kop in de sessie) | complete | .planning/quick/260929-evk-organigram-v4-cito-framing-bewerkbaar |
+| 2026-09-29 | Stap 11 "Programma × 3sides": integratie-analyse programmaplan en 3sides, generiek bewerkbaar document | complete | .planning/quick/260929-v4o-integratie-analyse-3sides-programma |

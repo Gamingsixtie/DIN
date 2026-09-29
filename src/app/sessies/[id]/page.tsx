@@ -16,6 +16,7 @@ import ExportStep from "@/components/steps/ExportStep";
 import BerekeningenStep from "@/components/steps/BerekeningenStep";
 import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
 import OrganigramStep from "@/components/steps/OrganigramStep";
+import IntegratieStep from "@/components/steps/IntegratieStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -39,6 +40,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <KPIMeetbaarheidStep />;
     case "organigram":
       return <OrganigramStep />;
+    case "integratie":
+      return <IntegratieStep />;
   }
 }
 
