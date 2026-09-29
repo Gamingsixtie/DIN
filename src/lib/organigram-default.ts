@@ -25,7 +25,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     kpi: {
       titel: "4 · KPI's en doelen per laag",
       intro:
-        "Doelen staan alleen op programmaniveau. Daaronder werken we met KPI's, streefniveaus en resultaten; anders raakt de keten doel → baat → vermogen → inspanning vervuild.",
+        "Doelen staan alleen op programmaniveau. Daaronder werken we met KPI's, streefniveaus en resultaten; anders raakt de keten doel → baat → vermogen → inspanning vervuild. Op werkstroomniveau is het plan van aanpak de drager: daarin staan resultaat, output-KPI, aanpak, planning en capaciteit.",
     },
     rasci: {
       titel: "5 · Wie beslist wat — de gedeelde zone",
@@ -87,6 +87,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       sidesLead: "Sasja",
       domeineigenaar: "Processen: n.t.b. ❓",
       landtIn: "Processen · basis voor alle vier",
+      kaders: "Pim, programma-architect — inhoudelijke kaders van de blueprint, toets en acceptatie",
       resultaat:
         "Blueprint klantreis versie 1 met de sectoren; funnelprocessen met customer loops (Q3–Q4); eenduidig Customer Success-proces (Q4)",
       outputKpi: "Blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
@@ -100,6 +101,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       sidesLead: "Lammert",
       domeineigenaar: "Cornelis (Data & Systemen)",
       landtIn: "Data & Systemen · technologielandschap",
+      kaders: "Pim, programma-architect — inhoudelijke eisen vanuit klantreis en baten, toets en acceptatie",
       resultaat:
         "Klantinformatie-landschap en huidig CRM in kaart, acht bronnen (Q3); quick wins (doorlopend); klantreis → CRM-requirements (Q4); richting CRM (Q4, formele keuze rond april 2027)",
       outputKpi: "Inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
@@ -113,6 +115,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       sidesLead: "Sasja",
       domeineigenaar: "Alle vier: Cornelis, Yara, Processen n.t.b., Cultuur n.t.b.",
       landtIn: "Alle vier · startwaarden baten-KPI's",
+      kaders: "Pim, programma-architect (tevens Cito-lead) — meetprotocol-inhoud, AS-IS-dimensies en duiding",
       resultaat:
         "Meetprotocol per baten-KPI geaccordeerd met de sectormanagers (Q3); startwaarde per KPI en stand per domein (Q3); advies over de gap als basis voor de vervolgsessie en het pakket 2027",
       outputKpi: "Elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
@@ -122,10 +125,11 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       id: "adoptie",
       naam: "Adoptieframework",
       citoLead: "Sanne",
-      citoLeadFunctie: "programmamanager; plan van aanpak, pilot en uitrol — inhoudelijke kaders bij Pim",
+      citoLeadFunctie: "programmamanager; leidt de werkstroom: plan van aanpak, pilot en uitrol",
       sidesLead: "Sasja",
       domeineigenaar: "Yara (Mens) · Cultuur: n.t.b. ❓",
       landtIn: "Mens en Cultuur · paraplu over alle vier",
+      kaders: "Pim, programma-architect — vertaallogica, gedrag per rol, kandidaat-indicatoren; toets en acceptatie",
       resultaat:
         "Framework gereed en gedragen door het programmateam (Q3); pilot in één sector (Q3), tweede sector Q4, derde Q1 2027; ambassadeurs per sector (Q4)",
       outputKpi: "Framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt",
@@ -243,7 +247,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     {
       label: "Doelen (programma)",
       cellen: [
-        "De programmadoelen uit Klant in Beeld",
+        "De programmadoelen van Klant in Zicht",
         "Impact op lange termijn; geen aparte doelen per domein of werkstroom",
         "Programma-eigenaar, stuurgroep",
       ],
@@ -265,11 +269,11 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       ],
     },
     {
-      label: "Werkstroom (inspanning)",
+      label: "Werkstroom (inspanning) — plan van aanpak",
       cellen: [
-        "Resultaat: wat is af, wanneer — definitief in het plan van aanpak",
-        "Output-KPI: klaar ja/nee, mijlpaal gehaald",
-        "Cito-lead met de 3sides-lead; programmamanagement bewaakt",
+        "Plan van aanpak per werkstroom: resultaat (wat is af, wanneer), output-KPI, aanpak, planning, capaciteit, betrokken domeineigenaar",
+        "Output-KPI uit het plan van aanpak: klaar ja/nee, mijlpaal gehaald",
+        "Cito-lead met de 3sides-lead stelt het plan van aanpak op · architect toetst de kaders · programmamanager stelt vast en bewaakt",
       ],
     },
   ],
@@ -319,6 +323,19 @@ export function mergeOrganigram(opgeslagen?: Partial<OrganigramData> | null): Or
   const resultaat: OrganigramData = { ...basis, ...(opgeslagen as OrganigramData) };
   // secties per kop mergen, zodat een nieuw toegevoegde kop nooit ontbreekt
   resultaat.secties = { ...basis.secties, ...(opgeslagen.secties ?? {}) };
+  // per werkstroom (op id) ontbrekende velden uit de standaard aanvullen, zodat een
+  // later toegevoegd veld (bijv. kaders) ook in een eerder opgeslagen sessie verschijnt
+  if (opgeslagen.werkstromen) {
+    resultaat.werkstromen = opgeslagen.werkstromen.map((w) => {
+      const std = basis.werkstromen.find((s) => s.id === w.id);
+      if (!std) return w;
+      const gevuld = { ...w };
+      for (const k of Object.keys(std) as (keyof typeof std)[]) {
+        if (gevuld[k] === undefined || gevuld[k] === "") gevuld[k] = std[k];
+      }
+      return gevuld;
+    });
+  }
   return resultaat;
 }
 

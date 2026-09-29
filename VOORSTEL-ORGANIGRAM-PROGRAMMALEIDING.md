@@ -502,14 +502,14 @@ Het boek raadt af dat de programmamanager zelf een inspanning leidt: het kost aa
 
 ## 13. KPI's en doelen per laag
 
-Doelen staan alleen op programmaniveau. Daaronder werken we met KPI's, streefniveaus en resultaten; anders raakt de keten doel → baat → vermogen → inspanning vervuild en gaan drie lagen "doelen" langs elkaar heen.
+Doelen staan alleen op programmaniveau. Daaronder werken we met KPI's, streefniveaus en resultaten; anders raakt de keten doel → baat → vermogen → inspanning vervuild en gaan drie lagen "doelen" langs elkaar heen. Op werkstroomniveau is het **plan van aanpak** de drager: daarin staan resultaat, output-KPI, aanpak, planning en capaciteit, opgesteld door de Cito-lead met de 3sides-lead, getoetst door de architect op de kaders en vastgesteld door de programmamanager.
 
 | Laag | Wat staat er | Waarop sturen we | Wie | Bron |
 |---|---|---|---|---|
-| **Doelen (programma)** | De programmadoelen uit Klant in Beeld | Impact op lange termijn; geen aparte doelen per domein of werkstroom | Programma-eigenaar, stuurgroep | DIN, programmaplan |
+| **Doelen (programma)** | De programmadoelen van Klant in Zicht | Impact op lange termijn; geen aparte doelen per domein of werkstroom | Programma-eigenaar, stuurgroep | DIN, programmaplan |
 | **Baten (per sector)** | Baten-KPI's, vastgesteld in de KPI-sessies | Outcome: startwaarde uit de 0-meting, doelwaarde met datum in de vervolgsessie | Bateneigenaren: sectormanagers · meetverantwoordelijke: Strategisch Marketeer | batenprofielen, KPI-sessies |
 | **Domein (vermogen)** | Streefniveau: van AS-IS naar TO-BE | Vermogen-indicator, pas na de 0-meting in de vervolgsessie vast te stellen; niet in overdraagbare stukken benoemen | Domeineigenaar; afleiding door de architect | vermogensprofielen |
-| **Werkstroom (inspanning)** | Resultaat uit het plan van aanpak: wat is af, wanneer | Output-KPI uit het plan van aanpak: klaar ja/nee, mijlpaal gehaald | Cito-lead en 3sides-lead; programmamanagement bewaakt | plan van aanpak, inspanningendossier, stappenplan |
+| **Werkstroom (inspanning) — plan van aanpak** | **Plan van aanpak per werkstroom**: resultaat (wat is af, wanneer), output-KPI, aanpak, planning, capaciteit, betrokken domeineigenaar | Output-KPI uit het plan van aanpak: klaar ja/nee, mijlpaal gehaald | Cito-lead met de 3sides-lead stelt het plan van aanpak op · architect toetst de kaders · programmamanager stelt vast en bewaakt | plan van aanpak, inspanningendossier, stappenplan |
 
 Gebruik de woorden precies: **doel** (programma), **baten-KPI** (sector), **streefniveau** (domein), **resultaat** en **output-KPI** (werkstroom). Een werkstroom heeft dus geen "doel" maar een resultaat; een domein heeft geen "doel" maar een streefniveau. De KPI-cascade uit de KPI-sessies (output → maturity → outcome → impact, van kort naar lang) blijft daarmee intact.
 

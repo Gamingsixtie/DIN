@@ -24,3 +24,9 @@ status: complete
 
 - Sessie-tab (bewerkbaar): `/sessies/1f71df73-f372-4638-8bc6-d70d8c3c575e?stap=organigram`
 - Statisch: `/schetsen/organigram-kort` · uitgebreid: `/schetsen/organigram-programmaleiding`
+
+## Nagekomen (zelfde dag)
+
+- Deel 3: per werkstroom een regel "Inhoudelijke kaders: Pim, programma-architect" (veld `kaders`; `mergeOrganigram` vult het per werkstroom aan in eerder opgeslagen sessies).
+- Programmadoelen "van Klant in Zicht" (was "uit Klant in Beeld") in alle stukken.
+- Deel 4: het plan van aanpak als drager van de werkstroomlaag (intro + rij "Werkstroom — plan van aanpak").

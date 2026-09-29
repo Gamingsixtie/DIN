@@ -892,6 +892,8 @@ export const OrganigramWerkstroomSchema = z.object({
   sidesLead: z.string().optional().default(""),
   domeineigenaar: z.string().optional().default(""),
   landtIn: z.string().optional().default(""),
+  // Inhoudelijke kaders per werkstroom: altijd de programma-architect
+  kaders: z.string().optional().default(""),
   resultaat: z.string().optional().default(""),
   outputKpi: z.string().optional().default(""),
   planVanAanpak: z.string().optional().default(""),

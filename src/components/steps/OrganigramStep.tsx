@@ -752,6 +752,14 @@ export default function OrganigramStep() {
                       <b>{w.sidesLead}</b>
                     )}
                   </dd>
+                  <dt>Inhoudelijke kaders</dt>
+                  <dd>
+                    {edit ? (
+                      <V v={w.kaders} on={(x) => upd((n) => void (n.werkstromen[i].kaders = x))} edit ml />
+                    ) : (
+                      metLabel(w.kaders, " — ")
+                    )}
+                  </dd>
                   <dt>Domeineigenaar</dt>
                   <dd>
                     <V v={w.domeineigenaar} on={(x) => upd((n) => void (n.werkstromen[i].domeineigenaar = x))} edit={edit} />
@@ -791,6 +799,7 @@ export default function OrganigramStep() {
                         sidesLead: "",
                         domeineigenaar: "",
                         landtIn: "",
+                        kaders: "Pim, programma-architect — inhoudelijke kaders, toets en acceptatie",
                         resultaat: "",
                         outputKpi: "",
                         planVanAanpak: "Te maken ❓",
