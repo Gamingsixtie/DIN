@@ -30,3 +30,4 @@ status: complete
 - Deel 3: per werkstroom een regel "Inhoudelijke kaders: Pim, programma-architect" (veld `kaders`; `mergeOrganigram` vult het per werkstroom aan in eerder opgeslagen sessies).
 - Programmadoelen "van Klant in Zicht" (was "uit Klant in Beeld") in alle stukken.
 - Deel 4: het plan van aanpak als drager van de werkstroomlaag (intro + rij "Werkstroom — plan van aanpak").
+- Plan van aanpak: 3sides (de 3sides-lead) stelt het op; Cito-lead toetst op resultaat, architect op kaders; programmamanager stelt vast. RASCI: Sanne A · Pim V · Cito-lead V · 3sides R.

@@ -11,7 +11,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     organigram: {
       titel: "1 · Het organigram",
       intro:
-        "Eén lijn omhoog (programmamanagement → programma-eigenaar), één lijn naar 3sides, en per werkstroom een Cito-lead die de werkstroom namens Cito leidt naast een 3sides-lead die het plan van aanpak uitvoert.",
+        "Eén lijn omhoog (programmamanagement → programma-eigenaar), één lijn naar 3sides, en per werkstroom een Cito-lead die de werkstroom namens Cito leidt naast een 3sides-lead die het plan van aanpak opstelt en uitvoert.",
     },
     rollen: {
       titel: "2 · Vijf rollen, vijf vragen",
@@ -41,8 +41,8 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
   begrippen: [
     "Programmamanagement = Sanne (regie) + Pim (inhoud, programma-architect), één blok",
     "Werkstroom = een van de vier werkstromen van de analysefase; Cito bepaalt wat het resultaat moet zijn en accepteert het, 3sides levert daarop. Elke werkstroom heeft een Cito-lead en een 3sides-lead",
-    "Cito-lead = leidt de werkstroom namens Cito: bepaalt binnen de kaders van de programma-architect wat het resultaat moet zijn, maakt met de 3sides-lead het plan van aanpak en bewaakt kaders en resultaat (boekterm: inspanningsleider)",
-    "3sides-lead = brengt methode, expertise en handen en voert het plan van aanpak uit met het team",
+    "Cito-lead = leidt de werkstroom namens Cito: bepaalt binnen de kaders van de programma-architect wat het resultaat moet zijn, toetst het plan van aanpak dat 3sides opstelt op het afgesproken resultaat en bewaakt kaders en resultaat (boekterm: inspanningsleider)",
+    "3sides-lead = brengt methode, expertise en handen en stelt het plan van aanpak op en voert het uit met het team",
     "Domein = onderdeel van het vermogen waarin het resultaat landt; de domeineigenaar draagt het in de lijn",
     "Bateneigenaren = de sectormanagers, in de stuurgroep",
   ],
@@ -91,7 +91,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Blueprint klantreis versie 1 met de sectoren; funnelprocessen met customer loops (Q3–Q4); eenduidig Customer Success-proces (Q4)",
       outputKpi: "Blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
-      planVanAanpak: "Te maken ❓ — Saila met Sasja; Pim toetst de kaders; Sanne stelt vast",
+      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Saila toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
     {
       id: "datavoorziening",
@@ -105,7 +105,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Klantinformatie-landschap en huidig CRM in kaart, acht bronnen (Q3); quick wins (doorlopend); klantreis → CRM-requirements (Q4); richting CRM (Q4, formele keuze rond april 2027)",
       outputKpi: "Inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
-      planVanAanpak: "Te maken ❓ — Jama met Lammert; Pim toetst de kaders; Sanne stelt vast",
+      planVanAanpak: "Te maken ❓ — 3sides (Lammert) stelt op; Jama toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
     {
       id: "nulmeting",
@@ -119,13 +119,13 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Meetprotocol per baten-KPI geaccordeerd met de sectormanagers (Q3); startwaarde per KPI en stand per domein (Q3); advies over de gap als basis voor de vervolgsessie en het pakket 2027",
       outputKpi: "Elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
-      planVanAanpak: "Te maken ❓ — Pim met Sasja; Sanne stelt vast",
+      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Pim toetst op resultaat en kaders; Sanne stelt vast",
     },
     {
       id: "adoptie",
       naam: "Adoptieframework",
       citoLead: "Sanne",
-      citoLeadFunctie: "programmamanager; leidt de werkstroom: plan van aanpak, pilot en uitrol",
+      citoLeadFunctie: "programmamanager; leidt de werkstroom: toets plan van aanpak, pilot en uitrol",
       sidesLead: "Sasja",
       domeineigenaar: "Yara (Mens) · Cultuur: n.t.b. ❓",
       landtIn: "Mens en Cultuur · paraplu over alle vier",
@@ -133,7 +133,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       resultaat:
         "Framework gereed en gedragen door het programmateam (Q3); pilot in één sector (Q3), tweede sector Q4, derde Q1 2027; ambassadeurs per sector (Q4)",
       outputKpi: "Framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt",
-      planVanAanpak: "Te maken ❓ — Sanne met Sasja; Pim toetst de kaders",
+      planVanAanpak: "Te maken ❓ — 3sides (Sasja) stelt op; Sanne toetst op resultaat, Pim op de kaders; Sanne stelt vast",
     },
   ],
 
@@ -155,7 +155,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
   stuurgroepNoot: "Domeineigenaren op uitnodiging, bij besluiten over hun domein",
 
   hierarchie:
-    "Meryl geeft de opdracht en zit de stuurgroep voor · programmamanagement leidt het programma, met Sanne als aanspreekpunt en Pim als inhoudelijke autoriteit · per werkstroom leidt de Cito-lead de werkstroom namens Cito, binnen de kaders van de architect, en voert de 3sides-lead het plan van aanpak uit met het team · de domeineigenaren laten het werken in de lijn · de sectormanagers bewaken als bateneigenaren dat de baten komen.",
+    "Meryl geeft de opdracht en zit de stuurgroep voor · programmamanagement leidt het programma, met Sanne als aanspreekpunt en Pim als inhoudelijke autoriteit · per werkstroom leidt de Cito-lead de werkstroom namens Cito, binnen de kaders van de architect, en stelt de 3sides-lead het plan van aanpak op en voert het uit met het team · de domeineigenaren laten het werken in de lijn · de sectormanagers bewaken als bateneigenaren dat de baten komen.",
 
   rollenKolommen: [
     "Programmamanager (Sanne)",
@@ -180,7 +180,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       cellen: [
         "Cyclusplan, opdrachten aan de werkstromen, voortgang en rapportage, besluitklare stuurgroepstukken, werkafspraken met 3sides",
         "De kaders en het ontwerp (DIN, vermogens, adoptie-framework-logica, blueprint-kaders); de inhoudelijke acceptatie",
-        "Het plan van aanpak (met de 3sides-lead), sturing op kaders en resultaat, signalen naar programmamanagement",
+        "Toets van het plan van aanpak van 3sides, sturing op kaders en resultaat, signalen naar programmamanagement",
         "Het werkende vermogen in de lijn; de baat per sector",
         "Methode, expertise en handen: blueprint, technologielandschap, 0-meting, adoptieframework en teambegeleiding, volgens het plan van aanpak",
       ],
@@ -190,7 +190,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       cellen: [
         "Tempo, capaciteit, geld en scope binnen het programmaplan; opdracht en plan van aanpak per werkstroom; het besluitproces; de knoop bij een patstelling",
         "Wat een werkstroom moet opleveren en of het klopt in de keten",
-        "Wat binnen de kaders van de architect nodig is om het resultaat te halen; het plan van aanpak samen met de 3sides-lead",
+        "Wat binnen de kaders van de architect nodig is om het resultaat te halen; akkoord op het plan van aanpak van 3sides vóór vaststelling",
         "Hoe het in het eigen domein wordt uitgewerkt en gebruikt; als bateneigenaar mee over richting en middelen",
         "De eigen werkwijze en methode binnen de opdracht; hoe te meten en uit welke bron",
       ],
@@ -240,7 +240,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     "Cito-lead is een rol naast de eigen functie; wie hem vervult, is geen domeineigenaar van hetzelfde domein: eigenaar (lijn, landing, baat) en leider van de uitvoering (kaders, resultaat) blijven twee mensen.",
 
   werkstromenLegenda:
-    "Over de vier heen: de blueprint bepaalt de datavraag (centrale datavoorziening) en het gedrag (adoptieframework); de 0-meting meet wat blueprint en framework definiëren. Daarom bewaakt de architect de samenhang over alle vier. Het plan van aanpak per werkstroom wordt opgesteld door de Cito-lead met de 3sides-lead, getoetst door de architect op de kaders en vastgesteld door de programmamanager; het bevat resultaat, output-KPI, aanpak, planning, capaciteit en de betrokken domeineigenaar.",
+    "Over de vier heen: de blueprint bepaalt de datavraag (centrale datavoorziening) en het gedrag (adoptieframework); de 0-meting meet wat blueprint en framework definiëren. Daarom bewaakt de architect de samenhang over alle vier. Het plan van aanpak per werkstroom wordt opgesteld door 3sides (de 3sides-lead), getoetst door de Cito-lead op het resultaat en door de architect op de kaders, en vastgesteld door de programmamanager; het bevat resultaat, output-KPI, aanpak, planning, capaciteit en de betrokken domeineigenaar.",
 
   kpiKolommen: ["Laag", "Wat staat er", "Waarop sturen we", "Wie"],
   kpiRijen: [
@@ -273,7 +273,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
       cellen: [
         "Plan van aanpak per werkstroom: resultaat (wat is af, wanneer), output-KPI, aanpak, planning, capaciteit, betrokken domeineigenaar",
         "Output-KPI uit het plan van aanpak: klaar ja/nee, mijlpaal gehaald",
-        "Cito-lead met de 3sides-lead stelt het plan van aanpak op · architect toetst de kaders · programmamanager stelt vast en bewaakt",
+        "3sides stelt het plan van aanpak op · Cito-lead toetst op resultaat, architect op de kaders · programmamanager stelt vast en bewaakt",
       ],
     },
   ],
@@ -282,7 +282,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
   rasciRijen: [
     { label: "Cyclusplan / masterplan analysefase", cellen: ["A R", "S", "C", "C", "S", "besluit"] },
     { label: "Inhoudelijke kaders per werkstroom", cellen: ["C", "A R", "C", "C", "S", "I"] },
-    { label: "Plan van aanpak per werkstroom", cellen: ["A", "C toetst kaders", "R", "C", "R", "I"] },
+    { label: "Plan van aanpak per werkstroom", cellen: ["A", "V kaders", "V resultaat", "C", "R stelt op", "I"] },
     { label: "Uitvoering van het plan van aanpak", cellen: ["I", "C", "A", "C", "R", "I"] },
     { label: "Inhoudelijke acceptatie van een resultaat", cellen: ["I", "A", "R", "C", "S", "I"] },
     { label: "Acceptatie voor gebruik in de lijn", cellen: ["I", "V", "S", "A", "S", "I"] },
@@ -299,14 +299,14 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     "Cito-leads uit programmamanagement: Pim voor de 0-meting (analyse met advies), Sanne voor het adoptieframework.",
   ],
   advies: [
-    "Pim staat als programma-architect op de inhoud over alle vier de werkstromen: elke Cito-lead werkt binnen de kaders van de programma-architect, ook Sanne voor het adoptieframework en Pim zelf voor de 0-meting. De 0-meting is een analyse met een advies als uitkomst en past daarmee bij de architect; voor het adoptieframework leidt Sanne als Cito-lead het plan van aanpak, de pilot en de uitrol. De voortgang van deze twee werkstromen komt in de tweewekelijkse afstemming met Meryl.",
-    "Cito bepaalt, 3sides levert: de Cito-lead leidt de werkstroom namens Cito en de 3sides-lead voert het plan van aanpak uit; geen resultaat gaat naar de stuurgroep zonder inhoudelijke acceptatie door de architect.",
+    "Pim staat als programma-architect op de inhoud over alle vier de werkstromen: elke Cito-lead werkt binnen de kaders van de programma-architect, ook Sanne voor het adoptieframework en Pim zelf voor de 0-meting. De 0-meting is een analyse met een advies als uitkomst en past daarmee bij de architect; voor het adoptieframework leidt Sanne als Cito-lead de werkstroom: toets van het plan van aanpak, pilot en uitrol. De voortgang van deze twee werkstromen komt in de tweewekelijkse afstemming met Meryl.",
+    "Cito bepaalt, 3sides levert: de Cito-lead leidt de werkstroom namens Cito en de 3sides-lead stelt het plan van aanpak op en voert het uit, Cito toetst en stelt vast; geen resultaat gaat naar de stuurgroep zonder inhoudelijke acceptatie door de architect.",
     "Cito-leads zijn geen domeineigenaar van hetzelfde domein: eigenaar (lijn) en leider van de uitvoering uit elkaar houden voorkomt twee petten.",
     "Stuurgroep klein houden: domeineigenaren op uitnodiging bij besluiten over hun domein.",
     "Geen extra overleggen: het voortgangsoverleg per werkstroom is ook de plek voor kaders en inhoud; de duo-afstemming Sanne–Pim is de voorbereiding van het programmateam.",
   ],
   openPunten: [
-    "Plan van aanpak per werkstroom: opstellen (Cito-lead met 3sides-lead), toetsen (architect), vaststellen (programmamanager)",
+    "Plan van aanpak per werkstroom: opstellen (3sides), toetsen (Cito-lead op resultaat, architect op kaders), vaststellen (programmamanager)",
     "Domeineigenaar Processen en Cultuur benoemen",
     "Sponsorgroep (MT?) bevestigen",
     "Rollen, mandaten en Cito-leads vaststellen door de programma-eigenaar",
