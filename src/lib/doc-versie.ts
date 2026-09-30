@@ -33,7 +33,11 @@ export const BEKENDE_BASISSEN: ReadonlySet<string> = new Set<string>([
 
 // ---------- vingerafdruk ----------
 
-/** Levende gegevens per bloktype: in weergave bijgehouden, geen voorsteltekst. */
+/**
+ * Levende gegevens per bloktype: in weergave bijgehouden, geen voorsteltekst. Krijgt een
+ * blok een nieuw veld dat de gebruiker in weergave zet, zet het dan hier en in `overnemen`;
+ * anders telt het als eigen tekst en krijgt de sessie de melding.
+ */
 const LEVEND: Partial<Record<DocBlok["type"], string>> = {
   voortgangsbord: "klaar", // vinkjes bij "nog nodig" en "programmabreed"
   tijdlijn: "voortgang", // Loopt, Niet gestart, Afgerond per onderdeel
