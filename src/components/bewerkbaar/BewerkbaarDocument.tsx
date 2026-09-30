@@ -25,6 +25,7 @@ import VanNaarBlok, { VANNAAR_CSS } from "@/components/bewerkbaar/blokken/VanNaa
 import StroomPlaatBlok, { STROOMPLAAT_CSS } from "@/components/bewerkbaar/blokken/StroomPlaatBlok";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 import StappenBlok, { STAPPEN_CSS } from "@/components/bewerkbaar/blokken/StappenBlok";
+import ModelVergelijkingBlok, { MODELVERGELIJKING_CSS } from "@/components/bewerkbaar/blokken/ModelVergelijkingBlok";
 import { DocContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
@@ -152,6 +153,7 @@ const BLOK_NAMEN: Record<DocBlok["type"], string> = {
   vannaar: "Van-naar",
   stroomplaat: "Stroomplaat",
   voortgangsbord: "Voortgangsbord",
+  modelvergelijking: "Modelvergelijking",
 };
 
 /** Bloktypen die je in een sectie kunt toevoegen ("+ blok"). */
@@ -1403,6 +1405,10 @@ const Sectie = memo(function Sectie(p: {
         );
       case "tijdlijn":
         return <TijdlijnBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "tijdlijn")} ankers={ankers} />;
+      case "modelvergelijking":
+        return (
+          <ModelVergelijkingBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "modelvergelijking")} ankers={ankers} />
+        );
       case "stappen":
         return <StappenBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "stappen")} ankers={ankers} />;
       case "kpiplaat":
@@ -1588,7 +1594,7 @@ export default function BewerkbaarDocument({
     <DocContext.Provider value={doc}>
     <SectieProvider secties={secties}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (

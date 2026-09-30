@@ -964,6 +964,31 @@ export const DocLaagSchema = z.object({
   cellen: z.array(z.string()),
 });
 
+// Modelvergelijking: een laag (bijv. "Baten (Effect)") en een zijvak (bijv. de vijf
+// kernprincipes naast de piramide). vorm "piramide" = de lagen als piramide, zoals een
+// partij het model zelf tekent; "keten" = gestapelde lagen, zoals het DIN.
+const ModelLaagSchema = z.object({
+  id: z.string(),
+  naam: z.string(),
+  sub: z.string().optional().default(""),
+  kleur: z.string().optional().default(""),
+});
+const ModelZijvakSchema = z.object({
+  id: z.string(),
+  kop: z.string().optional().default(""),
+  items: z.array(z.string()),
+  // ids van de lagen waar het vak naast staat
+  bij: z.array(z.string()),
+  kant: z.enum(["links", "rechts"]).optional().default("rechts"),
+});
+const ModelKantSchema = z.object({
+  kop: z.string(),
+  sub: z.string().optional().default(""),
+  vorm: z.enum(["piramide", "keten"]).optional().default("keten"),
+  lagen: z.array(ModelLaagSchema),
+  zijvakken: z.array(ModelZijvakSchema).optional().default([]),
+});
+
 export const DocBlokSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("tekst"), tekst: z.string() }),
   z.object({
@@ -1134,6 +1159,8 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         van: z.string(),
         naar: z.string(),
         bron: z.string().optional().default(""),
+        // korte argumentatie: waarom zo in het DIN
+        waarom: z.string().optional().default(""),
       })
     ),
     legenda: z.string().optional().default(""),
@@ -1192,6 +1219,23 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     uitkomsten: z.array(z.object({ label: z.string(), toon: z.string().optional().default("") })), // groen | amber | grijs
     legenda: z.string().optional().default(""),
   }),
+  // Modelvergelijking: links het model zoals de ander het tekent, rechts het DIN, met lijnen
+  // tussen lagen en zijvakken die laten zien wat gelijk blijft en wat verschuift.
+  z.object({
+    type: z.literal("modelvergelijking"),
+    titel: z.string().optional().default(""),
+    links: ModelKantSchema,
+    rechts: ModelKantSchema,
+    koppelingen: z.array(
+      z.object({
+        van: z.string(), // id van een laag of zijvak links
+        naar: z.string(), // id van een laag of zijvak rechts
+        soort: z.enum(["gelijk", "verschuift", "voorstel"]).optional().default("gelijk"),
+        label: z.string().optional().default(""),
+      })
+    ),
+    voet: z.string().optional().default(""),
+  }),
   // Matrix met gekleurde kolomkoppen; rijen als tekst, domein-chips of chips.
   z.object({
     type: z.literal("matrix"),
@@ -1220,6 +1264,8 @@ export const DocSectieSchema = z.object({
 });
 
 export const BewerkbaarDocumentSchema = z.object({
+  // vingerafdruk van de voorsteltekst waarop deze opgeslagen versie is gebaseerd (zie doc-versie.ts)
+  basis: z.string().optional(),
   titel: z.string(),
   ondertitel: z.string().optional().default(""),
   status: z.string().optional().default(""),

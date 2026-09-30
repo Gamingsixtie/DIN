@@ -27,7 +27,7 @@ function Pijl() {
 // Wijzigingen aan het blok (bewerkmodus); ze werken op de kopie die zet() aanreikt.
 
 function voegRijToe(n: Blok) {
-  n.rijen.push({ onderwerp: "", van: "", naar: "", bron: "" });
+  n.rijen.push({ onderwerp: "", van: "", naar: "", bron: "", waarom: "" });
 }
 
 export default function VanNaarBlok({ b, edit, zet }: LosBlokProps<"vannaar">) {
