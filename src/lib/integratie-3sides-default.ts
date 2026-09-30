@@ -604,7 +604,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         DIN_PLAAT,
       {
         type: "stappen",
-        titel: "Zo toetsen we werk aan de structuur (voorstel programmamanagement)",
+        titel: "Hoort het bij het programma? De toets voor lopend werk en voor wat uit de analyse komt (voorstel)",
         stappen: [
           { kop: "Welk deel van het vermogen, in welk domein?", tekst: "Bouwt het aan geen van de vier delen, dan valt het buiten het programma.", icoon: "domein" },
           { kop: "Welke werkstroom, en staat het in het plan van aanpak?", tekst: "Zo niet: aanvullen in het plan van aanpak, of naar de parkeerlijst.", icoon: "werkstroom" },
@@ -612,41 +612,12 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           { kop: "Controle via de keten: welke baat volgt?", tekst: "Dat bevestigt de plek, het bepaalt hem niet.", icoon: "baat" },
         ],
         uitkomsten: [
-          { label: "Hoort erbij: domein, werkstroom, plan van aanpak", toon: "groen" },
+          { label: "Hoort erbij: opnemen of doorgaan, met domein, werkstroom en plan van aanpak", toon: "groen" },
           { label: "Parkeerlijst: de programmamanager weegt af", toon: "amber" },
-          { label: "Buiten het programma", toon: "grijs" },
+          { label: "Buiten het programma: niet opnemen, of stoppen of overdragen", toon: "grijs" },
         ],
-        legenda: "",
+        legenda: "We toetsen twee soorten werk met dezelfde vier vragen: wat nu loopt (de onderdelen in de tijdlijn en lopende projecten buiten het programma, zoals A5) en wat uit de analyse komt, zoals het pakket vervolg-inspanningen voor 2027. Voorstel: lopend werk elke zes weken, in het ritme van de stuurgroep.",
       },
-        tabel(
-          ["Rol", "Wie", "Wat"],
-          [
-            ["Programma-eigenaar", "Meryl", "Geeft de opdracht en zit de stuurgroep voor"],
-            [
-              "Programmamanager",
-              "Sanne",
-              "Leidt het programma: regie, planning, capaciteit en scope; aanspreekpunt naar de programma-eigenaar en de stuurgroep",
-            ],
-            [
-              "Programma-architect",
-              "Pim",
-              "Bewaakt de inhoudelijke kaders over alle vier de werkstromen; geen resultaat naar de stuurgroep zonder zijn inhoudelijke acceptatie",
-            ],
-            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk", "Bewaken dat de baten komen; lid van de stuurgroep"],
-            [
-              "Domeineigenaren",
-              "Cornelis (Data & Systemen) · Yara (Mens) · Processen en Cultuur: n.t.b.",
-              "Beslist hoe het resultaat van een werkstroom in het eigen domein wordt uitgewerkt en gebruikt; zorgt dat het in de lijn landt en blijft werken; denkt mee over wie uit het domein in het team van een werkstroom meewerkt (stappenplan stap 2, met 3sides en de sectormanagers); werkt mee aan de 0-meting van het eigen domein, waarbij 3sides de stand per domein meet (stappenplan stap 5); schuift aan in de stuurgroep bij besluiten over het eigen domein. Is nooit tegelijk Cito-lead van een werkstroom in hetzelfde domein",
-            ],
-            [
-              "Cito-lead per werkstroom",
-              "Saila · Jama · Pim · Sanne",
-              "Leidt de werkstroom namens Cito, binnen de kaders; toetst het plan van aanpak op resultaat",
-            ],
-            ["3sides-lead per werkstroom", "Sasja · Lammert", "Stelt het plan van aanpak op en voert het uit met het team"],
-          ],
-          { titel: "Wie doet wat", legenda: "Bron: organigram (stap 10, voorstel v4)." }
-        ),
         tabel(
           ["Onderdeel", "Stand", "Toelichting"],
           [
@@ -675,6 +646,35 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             chipKolom: 1,
             legenda: "Bronnen: DIN in de app, KPI-model, organigram, plan van aanpak en tijdlijn van 3sides.",
           }
+        ),
+        tabel(
+          ["Rol", "Wie", "Wat"],
+          [
+            ["Programma-eigenaar", "Meryl", "Geeft de opdracht en zit de stuurgroep voor"],
+            [
+              "Programmamanager",
+              "Sanne",
+              "Leidt het programma: regie, planning, capaciteit en scope; aanspreekpunt naar de programma-eigenaar en de stuurgroep",
+            ],
+            [
+              "Programma-architect",
+              "Pim",
+              "Bewaakt de inhoudelijke kaders over alle vier de werkstromen; geen resultaat naar de stuurgroep zonder zijn inhoudelijke acceptatie",
+            ],
+            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk", "Bewaken dat de baten komen; lid van de stuurgroep"],
+            [
+              "Domeineigenaren",
+              "Cornelis (Data & Systemen) · Yara (Mens) · Processen en Cultuur: n.t.b.",
+              "Beslist hoe het resultaat van een werkstroom in het eigen domein wordt uitgewerkt en gebruikt; zorgt dat het in de lijn landt en blijft werken; denkt mee over wie uit het domein in het team van een werkstroom meewerkt (stappenplan stap 2, met 3sides en de sectormanagers); werkt mee aan de 0-meting van het eigen domein, waarbij 3sides de stand per domein meet (stappenplan stap 5); schuift aan in de stuurgroep bij besluiten over het eigen domein. Is nooit tegelijk Cito-lead van een werkstroom in hetzelfde domein",
+            ],
+            [
+              "Cito-lead per werkstroom",
+              "Saila · Jama · Pim · Sanne",
+              "Leidt de werkstroom namens Cito, binnen de kaders; toetst het plan van aanpak op resultaat",
+            ],
+            ["3sides-lead per werkstroom", "Sasja · Lammert", "Stelt het plan van aanpak op en voert het uit met het team"],
+          ],
+          { titel: "Wie doet wat", legenda: "Bron: organigram (stap 10, voorstel v4)." }
         ),
         lijst(
           [
