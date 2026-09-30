@@ -13,6 +13,10 @@
 // (useBlok("werkstromen")) en de vindplaatsen in de sessie (useBron).
 // Afvinken van "nog nodig" werkt ook in weergavemodus: het vinkje gaat via zet() naar het
 // document (de host bewaart het). Berekende delen zijn niet bewerkbaar.
+// "Nog nodig" (per werkstroom en programmabreed) staat in weergave in twee groepjes: "Van
+// 3sides" en "Door Cito" (regels die met "Cito:" beginnen, getoond zonder voorvoegsel);
+// in bewerkmodus één lijst met het voorvoegsel zichtbaar. De werkstroomkaarten gebruiken
+// dezelfde indeling (nodigGroepen).
 // Werkt ook los van BewerkbaarDocument (eigen tabblad): links naar #tl-… en #wk-… worden
 // dan ?stap=integratie&tab=analyse#… als het anker niet op de huidige pagina staat.
 
@@ -128,6 +132,52 @@ function opSchema(t: Telling): number | null {
 
 function procent(x: number | null): string {
   return x === null ? "—" : Math.round(x * 100) + "%";
+}
+
+// ---------- nog nodig: van 3sides of door Cito ----------
+
+/** Hint in bewerkmodus bij elke lijst "nog nodig" (bord en werkstroomkaart). */
+export const CITO_HINT = "Begin een regel met 'Cito:' voor iets wat Cito zelf moet doen.";
+
+/** De twee groepjes van "nog nodig", in deze volgorde. */
+export const NODIG_GROEPEN = [
+  { sleutel: "van3sides", kop: "Van 3sides" },
+  { sleutel: "doorCito", kop: "Door Cito" },
+] as const;
+
+/** Voorvoegsel van een regel die Cito zelf moet doen: "Cito:" (hoofdletters en spaties rond de dubbele punt maken niet uit). */
+const CITO_VOORVOEGSEL = /^\s*cito\s*:\s*/i;
+
+/** De tekst zonder het voorvoegsel "Cito:" als de regel bij Cito hoort; anders null. */
+export function citoTekst(s: string): string | null {
+  const m = CITO_VOORVOEGSEL.exec(s);
+  return m ? s.slice(m[0].length) : null;
+}
+
+/** Eén regel "nog nodig" in een groepje: het item, zijn plek in de oorspronkelijke lijst en de tekst om te tonen. */
+export interface NodigRegel<T> {
+  x: T;
+  i: number;
+  tekst: string;
+}
+
+/** De regels per groepje ("van3sides", "doorCito"). */
+export type NodigGroepen<T> = Record<(typeof NODIG_GROEPEN)[number]["sleutel"], NodigRegel<T>[]>;
+
+/**
+ * Deelt "nog nodig" in: regels die met "Cito:" beginnen bij "Door Cito" (tekst zonder
+ * voorvoegsel), de rest bij "Van 3sides". De index blijft die in de oorspronkelijke lijst,
+ * zodat afvinken de oorspronkelijke regel raakt (het voorvoegsel blijft in de data).
+ */
+export function nodigGroepen<T>(items: readonly T[], tekstVan: (x: T) => string): NodigGroepen<T> {
+  const uit: NodigGroepen<T> = { van3sides: [], doorCito: [] };
+  items.forEach((x, i) => {
+    const t = tekstVan(x);
+    const cito = citoTekst(t);
+    if (cito === null) uit.van3sides.push({ x, i, tekst: t });
+    else uit.doorCito.push({ x, i, tekst: cito });
+  });
+  return uit;
 }
 
 /**
@@ -302,52 +352,72 @@ function OnderdeelRegel({ o, metWerkstroom = false, verstreken = false }: { o: O
 
 /**
  * Afvinkbare lijst "nog nodig". Het vinkje werkt in beide modi en gaat via zetLijst
- * naar het document; in bewerkmodus zijn de teksten aanpasbaar met × en "+ regel".
+ * naar het document, altijd op de oorspronkelijke regel. Weergave: in de groepjes "Van
+ * 3sides" en "Door Cito" (elk alleen als er regels in staan; Cito-regels zonder het
+ * voorvoegsel). Bewerkmodus: één lijst met het voorvoegsel zichtbaar, teksten aanpasbaar
+ * met × en "+ regel", en de hint over "Cito:".
  */
 function NodigLijst({ items, edit, zetLijst, ph }: { items: Nodig[]; edit: boolean; zetLijst: (fn: (xs: Nodig[]) => void) => void; ph: string }) {
+  const vink = (i: number, aan: boolean) =>
+    zetLijst((xs) => {
+      if (xs[i]) xs[i].klaar = aan;
+    });
+  const regel = (x: Nodig, i: number, getoond: string) => {
+    const klaar = x.klaar === true;
+    return (
+      <li key={i} className={"vb-nodig-item" + (klaar ? " vb-klaar" : "")}>
+        <label className="vb-vink">
+          <input
+            type="checkbox"
+            checked={klaar}
+            onChange={(e) => vink(i, e.target.checked)}
+            aria-label={(klaar ? "Afgevinkt: " : "Nog nodig: ") + (getoond.trim() || "zonder tekst")}
+          />
+          {edit ? (
+            <V
+              v={tekst(x.tekst)}
+              on={(s) =>
+                zetLijst((xs) => {
+                  if (xs[i]) xs[i].tekst = s;
+                })
+              }
+              edit
+              ph={ph}
+            />
+          ) : (
+            <span className="vb-vink-t">{metBronlinks(getoond)}</span>
+          )}
+        </label>
+        {edit && <WegKnop titel="Regel verwijderen" on={() => zetLijst((xs) => void xs.splice(i, 1))} />}
+      </li>
+    );
+  };
+
+  if (!edit) {
+    const groepen = nodigGroepen(items, (x) => tekst(x.tekst));
+    return (
+      <div className="vb-nodig-groepen">
+        {NODIG_GROEPEN.map(({ sleutel, kop }) =>
+          groepen[sleutel].length === 0 ? null : (
+            <div key={sleutel} className="vb-nodig-groep">
+              <h6 className="vb-groep-kop">{kop}</h6>
+              <ul className="vb-lijst vb-nodig">{groepen[sleutel].map((r) => regel(r.x, r.i, r.tekst))}</ul>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
   return (
-    <ul className={"vb-lijst vb-nodig" + (edit ? " vb-nodig-edit" : "")}>
-      {items.map((x, i) => {
-        const klaar = x.klaar === true;
-        return (
-          <li key={i} className={"vb-nodig-item" + (klaar ? " vb-klaar" : "")}>
-            <label className="vb-vink">
-              <input
-                type="checkbox"
-                checked={klaar}
-                onChange={(e) => {
-                  const aan = e.target.checked;
-                  zetLijst((xs) => {
-                    if (xs[i]) xs[i].klaar = aan;
-                  });
-                }}
-                aria-label={(klaar ? "Afgevinkt: " : "Nog nodig: ") + (x.tekst || "zonder tekst")}
-              />
-              {edit ? (
-                <V
-                  v={tekst(x.tekst)}
-                  on={(s) =>
-                    zetLijst((xs) => {
-                      if (xs[i]) xs[i].tekst = s;
-                    })
-                  }
-                  edit
-                  ph={ph}
-                />
-              ) : (
-                <span className="vb-vink-t">{metBronlinks(x.tekst)}</span>
-              )}
-            </label>
-            {edit && <WegKnop titel="Regel verwijderen" on={() => zetLijst((xs) => void xs.splice(i, 1))} />}
-          </li>
-        );
-      })}
-      {edit && (
+    <>
+      <ul className="vb-lijst vb-nodig vb-nodig-edit">
+        {items.map((x, i) => regel(x, i, tekst(x.tekst)))}
         <li>
           <PlusKnop label="+ regel" on={() => zetLijst((xs) => void xs.push({ tekst: "", klaar: false }))} />
         </li>
-      )}
-    </ul>
+      </ul>
+      <p className="vb-hint">{CITO_HINT}</p>
+    </>
   );
 }
 
@@ -454,7 +524,7 @@ function Werkstroom(p: {
           ))}
         </Kolom>
         <div className="vb-kolom vb-kolom-nodig">
-          <h5 className="vb-kk">Nog nodig van 3sides</h5>
+          <h5 className="vb-kk">Nog nodig</h5>
           {(w.nodig ?? []).length === 0 && !edit ? (
             <p className="vb-leeg">niets open</p>
           ) : (
@@ -642,7 +712,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 
       <div className="vb-onder">
         <div className="vb-paneel">
-          <h5 className="vb-kk">Programmabreed nodig van 3sides</h5>
+          <h5 className="vb-kk">Programmabreed nog nodig</h5>
           {programmabreed.length === 0 && !edit ? (
             <p className="vb-leeg">niets open</p>
           ) : (
@@ -773,6 +843,10 @@ a.vb-ws-link:hover,a.vb-ws-link:focus-visible{text-decoration:underline;text-und
 .vb-klaar .vb-vink-t{text-decoration:line-through;color:var(--ink3,#9aa3b0)}
 .vb-klaar .vb-vink-t .ok-bron{color:inherit}
 .vb-nodig-edit .vb-vink .ok-in{flex:1}
+.vb-nodig-groepen{display:flex;flex-direction:column;gap:7px}
+.vb-groep-kop{display:flex;align-items:center;gap:6px;margin:0 0 3px;font-size:9px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3,#9aa3b0)}
+.vb-groep-kop::after{content:"";flex:1;height:1px;background:var(--vb-lijn)}
+.vb-hint{margin:5px 0 0;font-size:10.5px;line-height:1.4;color:var(--ink2,#5b6573)}
 .vb-ws-voet{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:8px;border-top:1px solid var(--vb-lijn)}
 .vb-docs{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-width:0}
 .vb-doc{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;padding:2px 8px;border-radius:6px;border:1px solid color-mix(in srgb,var(--vb-cito) 38%,#fff);background:#fff;color:var(--vb-cito);font-size:10.5px;font-weight:600;line-height:1.35;text-decoration:none;overflow-wrap:anywhere}
