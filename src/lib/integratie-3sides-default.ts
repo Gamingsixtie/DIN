@@ -3,7 +3,7 @@
 // Inspanningennetwerk, DIN); met de juiste rollen in het framework maken we het concreet.
 // Verhaallijn: de kern → wat we hebben (plaat met rollen) → wat 3sides heeft en waar het
 // hoort → het meetmodel (werkstromen bouwen, kernprincipes meten) → de vier werkstromen
-// → de planning → overeenkomsten en verschillen → hoe verder → uitleggen → bronnen.
+// → de planning → overeenkomsten en verschillen → hoe verder → voortgang → bronnen.
 // Standaardinhoud; in de app per kop en cel aanpasbaar en opgeslagen onder
 // session.documenten[INTEGRATIE_SLEUTEL].
 //
@@ -19,7 +19,7 @@
 // Regel: niets verzinnen — datums en waarden alleen uit deze bronnen, anders "te bepalen";
 // koppelingen die het programma voorstelt, staan als "voorstel".
 
-import type { BewerkbaarDocument, DocBlok, DocLaag, DocSectie } from "@/lib/schemas";
+import type { BewerkbaarDocument, DocBlok, DocKaart, DocLaag, DocSectie } from "@/lib/schemas";
 
 export const INTEGRATIE_SLEUTEL = "integratie-3sides";
 
@@ -45,6 +45,12 @@ const tabel = (
   ...(opts.chipKolom !== undefined ? { chipKolom: opts.chipKolom } : {}),
 });
 const laag = (naam: string, kleur: string, cellen: string[]): DocLaag => ({ naam, kleur, cellen });
+const kaart = (titel: string, ondertitel: string, regels: [string, string][]): DocKaart => ({
+  titel,
+  ondertitel,
+  regels: regels.map(([label, waarde]) => ({ label, waarde })),
+});
+const kaarten = (k: DocKaart[]): DocBlok => ({ type: "kaarten", kaarten: k });
 const lagen = (kolommen: string[], l: DocLaag[]): DocBlok => ({ type: "lagen", kolommen, lagen: l });
 const sectie = (id: string, titel: string, intro: string, blokken: DocBlok[]): DocSectie => ({
   id,
@@ -67,7 +73,7 @@ const DIN_PLAAT: DocBlok = {
       titel: "Zakelijk",
       tekst: "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten · 5 baten-KPI's",
       rol: "Bateneigenaar: sectormanager Zakelijk",
-      kpi: "5 baten-KPI's: funnel-conversie per stap · offertes en % opdracht · conversie uit bezoeken · serviceniveau en reactietijden · churn",
+      kpi: "5 baten-KPI's: funnel-conversie per stap · offertes: aantal en % dat opdracht wordt · conversie uit bezoeken · serviceniveau en reactietijden · churn",
     },
     {
       titel: "PO",
@@ -79,7 +85,7 @@ const DIN_PLAAT: DocBlok = {
       titel: "VO",
       tekst: "Hogere voorspelbaarheid commerciële begroting · 4 baten-KPI's",
       rol: "Bateneigenaar: sectormanager VO",
-      kpi: "4 baten-KPI's: prognose-nauwkeurigheid · % meerjarige licenties · inzicht in toetskeuzemomenten · churn",
+      kpi: "4 baten-KPI's: prognose-nauwkeurigheid · % meerjarige (3-jr) licenties · inzicht in toetskeuzemomenten · churn",
     },
   ],
   vermogen: {
@@ -115,7 +121,7 @@ const DIN_PLAAT: DocBlok = {
       leads: "Cito-lead Jama · 3sides-lead Lammert",
       oplevert: "Overzicht van systemen, advies per systeem, roadmap",
       planVanAanpak: "Ligt er (3sides, p. 6–7)",
-      kpi: "Output: inventarisatie af · advies behouden, vervangen of loslaten opgeleverd · richting CRM besluitklaar",
+      kpi: "Output: inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
     },
     {
       naam: "Klantreizen",
@@ -205,7 +211,7 @@ const KERNPRINCIPES: DocBlok = {
       soort: "chips",
       accent: true,
       cellen: [
-        "Klantreizen · Adoptieframework",
+        "Adoptieframework",
         "Centrale datavoorziening klantcontact",
         "Adoptieframework",
         "Centrale datavoorziening klantcontact",
@@ -459,7 +465,7 @@ const TIJDLIJN: DocBlok = {
     },
   ],
   legenda:
-    "Bron: projecttijdlijn 3sides, tab v3, stand 28-09-2026 (28 activiteiten). Namen in gewone taal; voortgang en status (+, +/-, -) zoals 3sides ze rapporteert. Volgorde van de werkstromen als in de plaat.",
+    "Bron: projecttijdlijn 3sides, tab v3, stand 28-09-2026: 28 onderdelen van de vier werkstromen, met per onderdeel de oplevering. Namen in gewone taal; voortgang en status (+, +/-, -) zoals 3sides ze rapporteert. Volgorde van de werkstromen als in de plaat.",
 };
 
 // ---------- de analyse ----------
@@ -476,18 +482,32 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         "De programmastructuur staat",
         "Het programmaplan met het Doelen-Inspanningennetwerk (DIN) staat: doel, baten, een gedeeld vermogen in vier domeinen met per domein een inspanning, en vier werkstromen die die inspanningen uitvoeren, met op elk niveau een rol. 3sides werkt met hetzelfde framework en dezelfde vier werkstromen. We vinden het niet opnieuw uit; we maken het concreet."
       ),
-      tekst(
-        "Waar we staan. Klant in Zicht loopt sinds juli 2026 met 3sides als uitvoeringspartner, in vier werkstromen. Na drie maanden ligt er per werkstroom een plan van aanpak, een tijdlijn en een reeks eerste resultaten, in concept: een blueprint van de klantreis, een meetinstrument voor de 0-meting, een adoptieframework en een eerste beeld van het technologielandschap. Tegelijk zagen we in het overleg van 29-09 dat begrippen door elkaar lopen, dat onderwerpen overlappen en dat niet voor iedereen duidelijk is wie wat doet."
-      ),
-      tekst(
-        "Wat het DIN is, in gewone taal. Het Doelen-Inspanningennetwerk is één keten met vier niveaus. Het doel zegt waar we naartoe willen. De baten zeggen wat de klant en Cito daarvan merken; daar sturen we op, met 14 baten-KPI's. Het vermogen zegt wat we daarvoor blijvend moeten kunnen, in vier domeinen: cultuur, mens, data en systemen, processen. De inspanningen zijn wat we doen om dat vermogen op te bouwen; de vier werkstromen voeren ze uit. Je leest de keten van onder naar boven om te bouwen, en van boven naar onder om te sturen."
-      ),
-      tekst(
-        "Waarom de structuur staat. Doel, baten, vermogen en inspanningen zijn vastgelegd in het programmaplan en in het DIN in de app, de baten-KPI's in het KPI-model, de rollen in het organigram. 3sides werkt met hetzelfde framework en dezelfde vier werkstromen, en opent het meetinstrument met onze keten. Er hoeft dus niets opnieuw uitgevonden te worden. Wat er wél moet gebeuren, is concretiseren: wie draagt welk niveau, welke werkstroom bouwt aan welk deel van het vermogen, en waar hangt alles wat 3sides oplevert."
-      ),
-      tekst(
-        "Hoe de rollen dat oplossen. Op elk niveau staat één rol die het draagt: de programma-eigenaar voor het doel, een bateneigenaar per baat, een domeineigenaar per domein, en per werkstroom een Cito-lead die leidt en een 3sides-lead die het plan van aanpak opstelt en uitvoert. Programmamanagement, Sanne op regie en Pim op de inhoudelijke kaders, houdt de hele keten bij elkaar. Zo weet iedereen bij elk onderwerp wie erover gaat, en ontstaat er geen tweede structuur ernaast. De rollen staan als voorstel in het organigram (v4) en worden vastgesteld door de programma-eigenaar."
-      ),
+      kaarten([
+        kaart("Waar we staan", "stand 29-09-2026", [
+          ["Sinds", "juli 2026, met 3sides als uitvoeringspartner, in vier werkstromen"],
+          ["Ligt er", "een plan van aanpak per werkstroom (p. 6–13), één tijdlijn (tab v3) en de datapuntenlijst voor de 0-meting"],
+          ["In concept", "blueprint klantreis, meetinstrument 0-meting, adoptieframework, Data & Tech-plaat en praatplaten"],
+          ["Knelt", "begrippen lopen door elkaar, onderwerpen overlappen, niet iedereen weet wie wat doet (overleg 29-09)"],
+        ]),
+        kaart("Wat het DIN is", "in gewone taal", [
+          ["Doel", "waar we naartoe willen"],
+          ["Baten", "wat de klant en Cito ervan merken; daar sturen we op, met 14 baten-KPI's"],
+          ["Vermogen", "wat we daarvoor blijvend moeten kunnen, in vier domeinen"],
+          ["Inspanningen", "wat we doen om dat vermogen op te bouwen; de vier werkstromen voeren ze uit (voorstel)"],
+          ["Lezen", "van onder naar boven om te bouwen, van boven naar onder om te sturen"],
+        ]),
+        kaart("Waarom de structuur staat", "niets opnieuw uitvinden", [
+          ["Vastgelegd", "doel, baten, vermogen en inspanningen in het programmaplan en het DIN; de KPI's in het KPI-model; de rollen als voorstel in het organigram"],
+          ["3sides", "hetzelfde framework en dezelfde vier werkstromen; het meetinstrument opent met onze keten"],
+          ["Wat wél moet", "concretiseren: wie draagt welk niveau, welke werkstroom bouwt welk deel van het vermogen, waar hangt wat 3sides oplevert"],
+        ]),
+        kaart("Hoe de rollen dat oplossen", "één rol per niveau", [
+          ["Per niveau", "programma-eigenaar, bateneigenaar, domeineigenaar, en per werkstroom een Cito-lead en een 3sides-lead"],
+          ["Over de keten", "programmamanagement: Sanne op regie en aanspreekpunt, Pim op de inhoudelijke kaders"],
+          ["Effect", "bij elk onderwerp is duidelijk wie erover gaat; er ontstaat geen tweede structuur"],
+          ["Status", "voorstel in het organigram (v4), vast te stellen door de programma-eigenaar"],
+        ]),
+      ]),
       tabel(
         ["Wat nu knelt", "Hoe de structuur dat oplost"],
         [
@@ -501,7 +521,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ],
           [
             "We doen veel tegelijk en het is niet duidelijk wat voorgaat",
-            "Elke activiteit bouwt aan een van de vier delen van het vermogen. Wat het meest bijdraagt aan het vermogensdeel dat nu nodig is, gaat voor. Bouwt iets aan geen van de vier, dan valt het buiten het programma",
+            "Elk onderdeel van het werk bouwt aan een van de vier delen van het vermogen. Wat het meest bijdraagt aan het vermogensdeel dat nu nodig is, gaat voor. Bouwt iets aan geen van de vier, dan valt het buiten het programma",
           ],
           [
             "Elke sessie begint met uitleggen wat er al ligt",
@@ -514,15 +534,22 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         ],
         { legenda: "Bron: programmamanagement; overleg van 29-09." }
       ),
-      lijst(
-        [
-          "1: welk deel van het vermogen bouwt het op, in welk domein? Aan geen van de vier: dan valt het buiten het programma.",
-          "2: in welke werkstroom hoort het, en staat het in het plan van aanpak van die werkstroom? Zo niet: aanvullen of parkeerlijst.",
-          "3: past het in tijd en capaciteit? Zo niet: de programmamanager weegt af; bij afwijking van het plan besluit de stuurgroep.",
-          "4: controle via de keten: welke baat volgt hieruit? Dat bevestigt de plek, het bepaalt hem niet.",
+      {
+        type: "stappen",
+        titel: "Zo gebruik je de plaat bij een nieuw project of een nieuwe vraag (voorstel programmamanagement)",
+        stappen: [
+          { kop: "Welk deel van het vermogen, in welk domein?", tekst: "Bouwt het aan geen van de vier delen, dan valt het buiten het programma.", icoon: "domein" },
+          { kop: "Welke werkstroom, en staat het in het plan van aanpak?", tekst: "Zo niet: aanvullen in het plan van aanpak, of naar de parkeerlijst.", icoon: "werkstroom" },
+          { kop: "Past het in tijd en capaciteit?", tekst: "Zo niet: de programmamanager weegt af; bij afwijking van het plan besluit de stuurgroep.", icoon: "tijd" },
+          { kop: "Controle via de keten: welke baat volgt?", tekst: "Dat bevestigt de plek, het bepaalt hem niet.", icoon: "baat" },
         ],
-        "Zo gebruik je de plaat bij een nieuw project of een nieuwe vraag (voorstel programmamanagement)"
-      ),
+        uitkomsten: [
+          { label: "Hoort erbij: domein, werkstroom, plan van aanpak", toon: "groen" },
+          { label: "Parkeerlijst: de programmamanager weegt af", toon: "amber" },
+          { label: "Buiten het programma", toon: "grijs" },
+        ],
+        legenda: "",
+      },
     ]),
 
     // 2
@@ -592,7 +619,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         ),
         lijst(
           [
-            "Eén keten van doel tot werkstroom: van elke activiteit is na te gaan waartoe hij dient.",
+            "Eén keten van doel tot werkstroom: van elk onderdeel is na te gaan waartoe het dient.",
             "Samenhang: groeperen naar vermogens in plaats van deelprogramma's houdt het programma bij elkaar; vier domeinen, één programma.",
             "Het programma bakent af, het team werkt uit: het plan van aanpak van 3sides is die uitwerking, geen nieuw kader.",
           ],
@@ -640,11 +667,39 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ]),
           ]
         ),
-        callout(
-          "let-op",
-          "Het belangrijkste verschil in taal",
-          "Bij 3sides betekent 'inspanning' het gedrag van medewerkers: wat ze doen per kernprincipe ('Vermogens & Inspanningen (Kunnen en Doen)', plan van aanpak p. 8; meetinstrument p. 5 en 11–12). In het DIN is een inspanning een activiteit die een vermogen opbouwt; er staan er vier in het netwerk, één per domein, en de vier werkstromen voeren ze uit. Gedrag hoort bij het vermogen. Zonder deze afspraak praten we langs elkaar heen; het advies staat in deel 4."
-        ),
+        {
+          type: "vannaar",
+          titel: "Het belangrijkste verschil in taal, en hoe we het gelijktrekken",
+          vanKop: "Zo staat het bij 3sides",
+          naarKop: "Zo komt het in het DIN",
+          rijen: [
+            {
+              onderwerp: "Het woord inspanning",
+              van: "Inspanningen (Concreet Doen): wat medewerkers en teams doen per kernprincipe, dus gedrag",
+              naar: "Inspanning = de vier inspanningen in het DIN, één per domein, uitgevoerd door de werkstromen. Doen hoort bij het vermogen",
+              bron: "Plan van aanpak p. 2 en 8 · meetinstrument p. 5 en 11–12",
+            },
+            {
+              onderwerp: "Kunnen en doen",
+              van: "Vermogens & Inspanningen (Kunnen en Doen) als één laag, gemeten met de vijf kernprincipes",
+              naar: "Vermogen = kunnen én doen; de vijf kernprincipes zijn de meetlat van ons vermogen, geen vijfde onderdeel van het framework",
+              bron: "Plan van aanpak p. 8 · meetinstrument p. 11–12",
+            },
+            {
+              onderwerp: "Label van de vermogens",
+              van: "Meetinstrument p. 6: 'Vermogens (Waartoe)'; elders 'Vermogens (Kunnen)'",
+              naar: "Doelen = waartoe, vermogens = kunnen",
+              bron: "Plan van aanpak p. 2 · meetinstrument p. 5 en 6",
+            },
+            {
+              onderwerp: "Werkstromen",
+              van: "Vier werkstromen of stromen; nergens inspanningen genoemd",
+              naar: "De vier werkstromen zijn de uitvoering van de inspanningen in het DIN (voorstel)",
+              bron: "Plan van aanpak p. 3 · tijdlijn · organigram",
+            },
+          ],
+          legenda: "Zonder deze afspraak praten we langs elkaar heen. Vraag aan 3sides: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken; dan is het één model.",
+        },
       ]
     ),
 
@@ -654,61 +709,122 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
       "4 · Het meetmodel: werkstromen bouwen, kernprincipes meten",
       "Per niveau één soort meting, ook op het niveau van het vermogen en van de werkstromen. De werkstromen bouwen het vermogen, de vijf kernprincipes van 3sides meten hoe ver het vermogen is, en de baten-KPI's laten zien of de klant het merkt.",
       [
-        lagen(
-          ["De vraag", "Wat we meten", "Van 3sides", "Wanneer"],
-          [
-            laag("Doel · impact", "doel", [
-              "Is de organisatie veranderd?",
-              "Het organisatiebrede beeld; indicator te bepalen",
-              "Vier organisatiebrede KPI's: NPS, conversie, omzet, retentie/churn (bij 3sides onder de baten; voorstel: hier)",
-              "Jaarlijks (voorstel)",
-            ]),
-            laag("Baat · uitkomst", "baat", [
-              "Merkt de klant het?",
-              "De 14 baten-KPI's per sector: de stuurlaag. Bateneigenaar: de sectormanager (organigram); het KPI-model noemt de Commercieel Manager als KPI-eigenaar ❓",
-              "Dezelfde 14 KPI's, met startwaarde uit de 0-meting en doelwaarde in een vervolgsessie",
-              "0-meting: oplevering okt · tussenmeting: jan–feb 2027",
-            ]),
-            laag("Vermogen · leidend", "vermogen", [
-              "Kunnen we het nu?",
-              "Stand per domein; start- en doelwaarde na de 0-meting",
-              "Vijf kernprincipes: kunnen en doen, één score van 1 tot 10 per kernprincipe; KPI's per klantreisfase",
-              "0-meting: oplevering okt · tussenmeting: jan–feb 2027",
-            ]),
-            laag("Inspanning · output", "inspanning", [
-              "Hebben we het gedaan?",
-              "Per werkstroom: is het resultaat opgeleverd? Output-KPI per resultaat: aanvullen in het plan van aanpak",
-              "De tijdlijn: per activiteit start, oplevering en status (+, +/-, -)",
-              "Doorlopend",
-            ]),
-          ]
-        ),
-        tekst(
-          "Bron: KPI-model (stap 9), meetinstrument p. 7–12 en de tijdlijn. Voorstel: de plek van de organisatiebrede KPI's op doelniveau en de meetfrequentie van het doel."
-        ),
-        tabel(
-          ["Niveau", "KPI's, concreet", "Bron"],
-          [
-            ["Doel · impact", "Organisatiebreed beeld: NPS, conversie, omzet, retentie/churn; NPS als resultante (voorstel)", "Meetinstrument p. 8 · KPI-model"],
-            ["Baat · uitkomst", "De 14 baten-KPI's: Zakelijk 5, PO 5, VO 4. Startwaarde uit de 0-meting, doelwaarde in de vervolgsessie", "KPI-model · meetinstrument p. 7"],
-            [
-              "Vermogen · leidend",
-              "Per kernprincipe één score van 1 tot 10, kunnen en doen samen; de stand per domein, van huidige naar gewenste situatie; verdere indicatoren per domein na de 0-meting (voorstel)",
-              "Meetinstrument p. 12 · stappenplan · KPI-sessie",
-            ],
-            ["Werkstroom Klantreizen · output", "Blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven", "Organigram; tot nu toe besproken, definitief uit het plan van aanpak"],
-            ["Werkstroom Centrale datavoorziening klantcontact · output", "Inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar", "Organigram; tot nu toe besproken, definitief uit het plan van aanpak"],
-            ["Werkstroom 0-meting · output", "Elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd", "Organigram; tot nu toe besproken, definitief uit het plan van aanpak"],
-            ["Werkstroom Adoptieframework · output", "Framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt", "Organigram; tot nu toe besproken, definitief uit het plan van aanpak"],
+        {
+          type: "kpiplaat",
+          titel: "KPI's per niveau: van doel tot werkstroom",
+          niveaus: [
+            {
+              naam: "Doel",
+              kleur: "doel",
+              soort: "impact",
+              vraag: "Is de organisatie veranderd?",
+              wanneer: "Jaarlijks (voorstel)",
+              groepen: [
+                { titel: "Organisatiebreed beeld, NPS als resultante (bij 3sides onder de baten)", chips: ["NPS", "Conversie", "Omzet", "Retentie/churn"], toon: "voorstel" },
+              ],
+              bron: "Meetinstrument p. 8 · KPI-model",
+            },
+            {
+              naam: "Baat",
+              kleur: "baat",
+              soort: "uitkomst",
+              vraag: "Merkt de klant het?",
+              wanneer: "Startwaarde uit de 0-meting (okt), doelwaarde in de vervolgsessie; tussenmeting jan–feb 2027",
+              groepen: [
+                { titel: "Zakelijk: sterkere klantgerichtheid bij opdrachtgevers en kandidaten", chips: ["Funnel-conversieratio per stap", "Offertes: aantal en % dat opdracht wordt", "Conversie uit bezoeken", "Serviceniveau en reactietijden", "Churn / klantbehoud"], toon: "" },
+                { titel: "PO: intensiever partnership", chips: ["Groei productgebruik (cross- en upsell)", "Gebruiksintensiteit volledige lijn", "Raamcontracten grote besturen", "Ontwikkeldeadlines en beloftes gehaald", "Churn / klantbehoud"], toon: "" },
+                { titel: "VO: hogere voorspelbaarheid commerciële begroting", chips: ["Prognose-nauwkeurigheid", "% meerjarige (3-jr) licenties", "Inzicht in toetskeuzemomenten", "Churn / klantbehoud"], toon: "" },
+              ],
+              bron: "KPI-model (stap 9) · meetinstrument p. 7. Bateneigenaar: sectormanager (organigram); het KPI-model noemt de Commercieel Manager ❓",
+            },
+            {
+              naam: "Vermogen",
+              kleur: "vermogen",
+              soort: "leidend",
+              vraag: "Kunnen we het nu?",
+              wanneer: "0-meting (okt) en tussenmeting (jan–feb 2027)",
+              groepen: [
+                { titel: "Vijf kernprincipes, elk één score van 1 tot 10 (kunnen en doen samen)", chips: ["Klant begrijpen", "Klantinformatie benutten", "Eigenaarschap nemen", "Data-gedreven werken", "Samenwerken rond en met de klant"], toon: "" },
+                { titel: "Stand per domein, van huidige naar gewenste situatie", chips: ["Cultuur", "Mens", "Data & Systemen", "Processen"], toon: "" },
+                { titel: "Verdere indicatoren per domein, na de 0-meting", chips: ["Te bepalen in de vervolgsessie"], toon: "voorstel" },
+              ],
+              bron: "Meetinstrument p. 11–12 · stappenplan stap 5 en 6 · KPI-sessie",
+            },
+            {
+              naam: "Inspanning",
+              kleur: "inspanning",
+              soort: "output",
+              vraag: "Hebben we het gedaan? Per werkstroom: is het resultaat opgeleverd?",
+              wanneer: "Doorlopend, via de tijdlijn (deel 6) en het voortgangsbord (deel 9)",
+              groepen: [
+                { titel: "Werkstroom Klantreizen", chips: ["Blueprint geaccepteerd", "Funnelprocessen vastgesteld", "Customer Success-proces beschreven"], toon: "" },
+                { titel: "Werkstroom Centrale datavoorziening klantcontact", chips: ["Inventarisatie af", "Advies behouden/vervangen/loslaten opgeleverd", "Richting CRM besluitklaar"], toon: "" },
+                { titel: "Werkstroom 0-meting", chips: ["Elke baten-KPI compleet (definitie, bron, startwaarde)", "Stand per domein opgeleverd", "Advies opgeleverd"], toon: "" },
+                { titel: "Werkstroom Adoptieframework", chips: ["Framework vastgesteld", "Pilot gestart", "Eerste gedragsdata", "Ambassadeurs aangehaakt"], toon: "" },
+              ],
+              bron: "Organigram (stap 10): tot nu toe besproken; definitief uit het plan van aanpak, 3sides vult aan",
+            },
           ],
-          {
-            titel: "KPI's per niveau, ook op het vermogen en per werkstroom",
-            legenda: "Baten-KPI's zijn de stuurlaag. Vermogen-KPI's zijn leidend: ze bewegen als eerste. Werkstroom-KPI's zeggen of het resultaat er is (opgeleverd ja/nee); 3sides vult ze aan in het plan van aanpak.",
-          }
+          legenda: "Baten-KPI's zijn de stuurlaag. Vermogen-KPI's zijn leidend: ze bewegen als eerste. Werkstroom-KPI's zeggen of het resultaat er is, opgeleverd ja of nee. Voorstel: de plek van het organisatiebrede beeld op doelniveau en de meetfrequentie van het doel.",
+        },
+        callout(
+          "info",
+          "Waarom de kernprincipes bij het vermogen horen",
+          "De vijf kernprincipes van 3sides zijn geen vijfde onderdeel van het framework. Ze beschrijven ons vermogen in vijf principes, elk met een kunnen-kant en een doen-kant, en ze krijgen in de 0-meting een score. Daarmee zijn ze de meetlat op het niveau van het vermogen: de werkstromen bouwen het vermogen op in de vier domeinen, de kernprincipes meten hoe ver het is. In de plaat staan ze daarom bij het vermogen. Dit is onze lezing, als voorstel; 3sides zet de kernprincipes bij 'Vermogens & Inspanningen (Kunnen en Doen)' en zegt niets over domeinen of werkstromen. De kunnen- en doen-teksten hieronder zijn letterlijk van 3sides."
         ),
-        tekst(
-          "Waarom hier de kernprincipes. De vijf kernprincipes van 3sides zijn geen vijfde onderdeel van het framework. Ze beschrijven ons vermogen in vijf principes, elk met een kunnen-kant en een doen-kant, en ze krijgen in de 0-meting een score. Daarmee zijn ze de meetlat op het niveau van het vermogen. In de plaat staan ze daarom alleen bij het vermogen; hier in het meetmodel werken we ze uit: welk kernprincipe hoort bij welk deel van ons vermogen, in welk domein, en welke werkstroom bouwt eraan. Zo sluiten de vier domeinen en de vijf kernprincipes op elkaar aan zonder dat er een tweede indeling ontstaat. Dit is onze lezing, als voorstel: 3sides zelf zet de kernprincipes bij 'Vermogens & Inspanningen (Kunnen en Doen)' en zegt niets over domeinen of werkstromen; de kunnen- en doen-teksten in de matrix zijn wel letterlijk van 3sides."
-        ),
+        {
+          type: "stroomplaat",
+          titel: "Werkstromen bouwen, kernprincipes meten (voorstel)",
+          kolommen: [
+            {
+              kop: "Werkstromen",
+              sub: "bouwen het vermogen op",
+              items: [
+                { id: "ws-adoptie", naam: "Adoptieframework", kleur: "cultuur", sub: "Cultuur en Mens" },
+                { id: "ws-data", naam: "Centrale datavoorziening klantcontact", kleur: "data", sub: "Data & Systemen" },
+                { id: "ws-klantreizen", naam: "Klantreizen", kleur: "processen", sub: "Processen" },
+                { id: "ws-meting", naam: "0-meting", kleur: "#003366", sub: "meet alle domeinen" },
+              ],
+            },
+            {
+              kop: "Vermogen in vier domeinen",
+              sub: "wat we blijvend moeten kunnen",
+              items: [
+                { id: "d-cultuur", naam: "Cultuur", kleur: "cultuur", sub: "een cultuur van eigenaarschap" },
+                { id: "d-mens", naam: "Mens", kleur: "mens", sub: "getrainde medewerkers" },
+                { id: "d-data", naam: "Data & Systemen", kleur: "data", sub: "CRM-fundament en betrouwbare klantdata" },
+                { id: "d-processen", naam: "Processen", kleur: "processen", sub: "eenduidige funnelprocessen" },
+              ],
+            },
+            {
+              kop: "Kernprincipes",
+              sub: "meten het vermogen, score 1 tot 10",
+              items: [
+                { id: "k-begrijpen", naam: "Klant begrijpen", kleur: "#c4f3dd", sub: "kunnen en doen" },
+                { id: "k-benutten", naam: "Klantinformatie benutten", kleur: "#fdd8b5", sub: "kunnen en doen" },
+                { id: "k-eigenaarschap", naam: "Eigenaarschap nemen", kleur: "#fcd6db", sub: "kunnen en doen" },
+                { id: "k-data", naam: "Data-gedreven werken", kleur: "#dcccf9", sub: "kunnen en doen" },
+                { id: "k-samenwerken", naam: "Samenwerken rond en met de klant", kleur: "#bff0f7", sub: "kunnen en doen" },
+              ],
+            },
+          ],
+          verbindingen: [
+            ["ws-adoptie", "d-cultuur"],
+            ["ws-adoptie", "d-mens"],
+            ["ws-data", "d-data"],
+            ["ws-klantreizen", "d-processen"],
+            ["ws-meting", "d-cultuur"],
+            ["ws-meting", "d-mens"],
+            ["ws-meting", "d-data"],
+            ["ws-meting", "d-processen"],
+            ["d-mens", "k-begrijpen"],
+            ["d-data", "k-benutten"],
+            ["d-cultuur", "k-eigenaarschap"],
+            ["d-data", "k-data"],
+            ["d-processen", "k-samenwerken"],
+          ],
+          voet: "Lees van links naar rechts: een werkstroom bouwt in een of meer domeinen aan het vermogen; de 0-meting meet elk domein met de kernprincipes. De koppeling kernprincipe naar domein is een voorstel; de uitwerking staat in de matrix hieronder.",
+        },
         KERNPRINCIPES,
         lijst(
           [
@@ -760,7 +876,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "planning",
       "6 · De planning van 3sides in één beeld",
-      "De projecttijdlijn van 3sides: per werkstroom de activiteiten, van start tot oplevering, met de stand van 28-09.",
+      "De projecttijdlijn van 3sides: per werkstroom de onderdelen, van start tot oplevering. De standlijn staat op vandaag; de gegevens zijn van 28-09.",
       [
         TIJDLIJN,
         lijst(
@@ -769,7 +885,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             "Adoptie: het stappenplan had een pilot in één sector in Q3 2026, de tweede sector in Q4 en de derde in Q1 2027. In de tijdlijn start de eerste sector pas in januari 2027, de tweede in februari en de derde in april. Het plan van aanpak zet de playbooks in Q4 2026 en de pilots in Q1 2027; de tijdlijn laat de playbook-workshops lopen van december 2026 tot mei 2027. Drie documenten, drie ritmes: vaststellen welk ritme geldt.",
             "Centrale datavoorziening: de tijdlijn zet de CRM-richting in november; het stappenplan houdt de formele CRM-keuze rond april 2027. Dat sluit aan, zolang richting (advies) en keuze (besluit) uit elkaar blijven.",
             "Klantreizen: alle onderdelen van de blueprint leveren op tussen augustus en december 2026. De vertaling naar CRM-input en funnelprocessen heeft geen startmaand, staat op niet gestart en levert in november op: die hangt dus aan de blueprint-onderdelen die in december klaar zijn.",
-            "Open einden: interventies, communicatieplan, adoptieframework toetsen en ambassadeurs hebben geen oplevermaand; 0-meting en de klantreisvertaling hebben geen startmaand. Vraag aan 3sides om die in te vullen.",
+            "Open einden: vier onderdelen hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs) en twee geen startmaand (0-meting, klantreisvertaling). Vraag aan 3sides om die in te vullen.",
           ],
           "Wat opvalt"
         ),
@@ -821,9 +937,9 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         [
           [
             "Het woord inspanning",
-            "Activiteit die een vermogen opbouwt: de werkstromen",
+            "De vier inspanningen in het DIN, één per domein; de werkstromen voeren ze uit",
             "Wat medewerkers doen: gedrag per kernprincipe",
-            "Inspanning alleen voor de werkstromen; kunnen en doen horen bij het vermogen (deel 4)",
+            "Inspanning = de vier inspanningen in het DIN, uitgevoerd door de werkstromen; kunnen en doen horen bij het vermogen (deel 4)",
             "Plan van aanpak p. 2 en 8 · meetinstrument p. 5 en 11–12",
           ],
           [
@@ -871,8 +987,10 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
       lijst(
         [
           "Framework: het DIN blijft het enige framework; de termen van 3sides zijn synoniemen (deel 3).",
-          "Woorden: inspanning = werkstroomactiviteit; kunnen en doen horen bij het vermogen (deel 4).",
+          "Woorden: inspanning = de vier inspanningen in het DIN, uitgevoerd door de werkstromen; kunnen en doen horen bij het vermogen (deel 4).",
           "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen.",
+          "Vermogen-KPI's: per domein vaststellen waar we naartoe willen (gewenste situatie) en per kernprincipe de doelscore, in de vervolgsessie na de 0-meting.",
+          "Plan van aanpak: per werkstroom finaliseren, met output-KPI, capaciteit van Cito en eigenaar.",
           "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaar gelijktrekken (sectormanager of Commercieel Manager).",
           "Planning: de verschuiving van pilot en 0-meting vaststellen.",
         ],
@@ -886,14 +1004,85 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ["Blueprint valideren met product- en sectormanagers", ""],
           ["Salesfunnel en -proces definiëren met Meryl en Jasper", ""],
           ["Begrippenlijst met gangbare termen", ""],
-          ["Plan van aanpak aanvullen per werkstroom (deel 5)", ""],
+          ["Plan van aanpak per werkstroom finaliseren: 3sides vult aan, de Cito-lead toetst op resultaat, Pim op de kaders, Sanne stelt vast (deel 5)", ""],
+          ["Vermogen-KPI's vaststellen: gewenste situatie per domein en doelscore per kernprincipe, in de vervolgsessie na de 0-meting", ""],
         ],
         { titel: "Volgende stappen", legenda: "Wie: samen in te vullen." }
       ),
     ]),
 
     // 9
-    sectie("documenten", "9 · Bronnen", "", [
+    sectie(
+      "voortgang",
+      "9 · Voortgang, en wat we nog van 3sides nodig hebben",
+      "Hoe ver we zijn per werkstroom, berekend uit de tijdlijn op de dag van vandaag, en wat het programma nog nodig heeft. Ook los te openen via het tabblad Voortgang.",
+      [
+        {
+          type: "voortgangsbord",
+          titel: "Voortgangsbord",
+          werkstromen: [
+            {
+              anker: "adoptie",
+              naam: "Adoptieframework",
+              geleverd: ["SMILE-aanpak uitgewerkt en opzet besproken met Pim", "Adoptieframework als werkdocument (PDF)"],
+              nodig: [
+                { tekst: "Scope in het plan van aanpak (ontbreekt als enige werkstroom)", klaar: false },
+                { tekst: "Voorstel eerste pilotsector met datum; planning gelijktrekken: stappenplan Q3, plan van aanpak Q1 2027, tijdlijn januari–februari 2027", klaar: false },
+                { tekst: "Einddatum voor communicatieplan, toetsen en ambassadeurs", klaar: false },
+                { tekst: "Output-KPI's en capaciteit van Cito en HR per resultaat", klaar: false },
+              ],
+            },
+            {
+              anker: "data",
+              naam: "Centrale datavoorziening klantcontact",
+              geleverd: ["Praatplaten funnel en salesproces", "Data & Tech-plaat (draft)", "Eerste conclusies over de CRM-inrichting en het landschap"],
+              nodig: [
+                { tekst: "Advies per systeem en roadmap met kostenindicatie (resultaten plan van aanpak, Q4)", klaar: false },
+                { tekst: "CRM-richting besluitklaar in november, los van de formele keuze rond april 2027", klaar: false },
+                { tekst: "Funneldefinities lead, MQL en verkoopkans, samen met Meryl en Jasper", klaar: false },
+                { tekst: "Output-KPI's en capaciteit van Cito per resultaat", klaar: false },
+              ],
+            },
+            {
+              anker: "klantreizen",
+              naam: "Klantreizen",
+              geleverd: ["Klant in Beeld-klantreizen samengevoegd", "Blueprint draft: 6 fasen, 11 subfasen, kernwaarden en kernprincipes", "Eerste KPI's per klantfase"],
+              nodig: [
+                { tekst: "Validatie van de blueprint met product- en sectormanagers (Q4) met datum", klaar: false },
+                { tekst: "Startmaand van de vertaling naar CRM-input en funnelprocessen", klaar: false },
+                { tekst: "Selectie uit het meetkader van 55 KPI's: welke gaan mee naar de 0-meting", klaar: false },
+                { tekst: "Eigenaar van de blueprint na het programma", klaar: false },
+                { tekst: "Output-KPI's en capaciteit van Cito per resultaat", klaar: false },
+              ],
+            },
+            {
+              anker: "meting",
+              naam: "0-meting",
+              geleverd: ["Meetmodel-opzet met KPI's per niveau", "Meetinstrument als werkdocument (16 p.)", "Datapuntenlijst, circa 85 datapunten", "Advies over de inzet van de 0-meting"],
+              nodig: [
+                { tekst: "Meetmodel valideren met Meryl en het MT, met datum vóór de 0-meting", klaar: false },
+                { tekst: "Meetprotocol per baten-KPI: definitie, bron, eenheid, frequentie, wie levert; eigenaar per datapunt", klaar: false },
+                { tekst: "0-meting starten en in oktober opleveren: startwaarde per baten-KPI en score per kernprincipe", klaar: false },
+                { tekst: "In het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken", klaar: false },
+              ],
+            },
+          ],
+          programmabreed: [
+            { tekst: "Jira-bord delen met de bredere groep (actiepunt 29-09) en de link onder Vindplaatsen zetten", klaar: false },
+            { tekst: "Plan van aanpak aanvullen per werkstroom: output-KPI, capaciteit van Cito, eigenaar; 3sides vult aan, Cito toetst en stelt vast", klaar: false },
+            { tekst: "Eén set namen voor de vier werkstromen, in alle documenten", klaar: false },
+            { tekst: "Begrippenlijst met gangbare termen (actiepunt 29-09)", klaar: false },
+            { tekst: "Eén planning: de verschuiving van pilot en 0-meting expliciet vaststellen", klaar: false },
+            { tekst: "Projectgroepen per werkstroom in plaats van één-op-één-gesprekken", klaar: false },
+            { tekst: "Vindplaats van de documenten: één map, zodat elke paginaverwijzing naar het document zelf springt", klaar: false },
+          ],
+          legenda: "Voortgang en opleveringen komen uit de tijdlijn (deel 6) op de dag van vandaag; zet daar een onderdeel op 'afgerond' en het bord telt mee. 'Geleverd volgens 3sides' komt van de statuspagina van 29-09. 'Nog nodig' is een voorstel van het programma; vink af wat binnen is.",
+        },
+      ]
+    ),
+
+    // 10
+    sectie("documenten", "10 · Bronnen", "", [
       lijst(
         [
           "Plan van aanpak 3sides (PDF, 13 p.), gedeeld 29-09-2026",

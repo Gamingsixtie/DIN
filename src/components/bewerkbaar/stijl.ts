@@ -89,6 +89,7 @@ export const OK_CSS = `
 .ok .ok-openk li::before{content:"❓";font-size:9px;left:-1px;top:1px}
 .ok .ok-foot{margin-top:18px;text-align:center;font-size:10.5px;color:var(--ink3);line-height:1.6}
 .ok .ok-in{font:inherit;font-size:inherit;color:var(--ink);background:#fffbeb;border:1px solid #f59e0b;border-radius:5px;padding:2px 5px;width:100%;box-sizing:border-box;line-height:1.4;resize:vertical;display:block}
+.ok .ok-in.ok-groei{resize:none;overflow:hidden;min-height:1.9em;white-space:pre-wrap;overflow-wrap:anywhere}
 .ok .ok-prim .ok-in,.ok .ok-arch .ok-in{background:#fff;color:var(--ink)}
 .ok .ok-knopje{font-size:10px;font-weight:700;border:1px solid #cbd5e1;background:#fff;border-radius:5px;padding:1px 7px;color:#334155;cursor:pointer;line-height:1.6;white-space:nowrap}
 .ok .ok-knopje:hover{background:#f1f5f9}

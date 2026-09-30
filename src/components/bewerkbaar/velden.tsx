@@ -5,11 +5,16 @@
 // p. 10–11") links, zodra de map met documenten is ingevuld (zie ./bron-context.tsx).
 // Alleen gebruiken binnen een client-component (de props bevatten functies).
 
+import { useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { OrganigramRij } from "@/lib/schemas";
 import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 
-/** Tekst; in bewerkmodus een invoerveld (ml = meerregelig). */
+/**
+ * Tekst; in bewerkmodus een invoerveld dat met de inhoud meegroeit (ook een kort veld
+ * breekt af en wordt hoger in plaats van af te kappen). ml = meerregelig: nieuwe regels
+ * toegestaan; anders wordt een regeleinde een spatie.
+ */
 export function V(p: {
   v: string;
   on: (s: string) => void;
@@ -24,20 +29,32 @@ export function V(p: {
     const inhoud = metBronlinks(p.v);
     return p.block ? <div className={p.cls}>{inhoud}</div> : <span className={p.cls}>{inhoud}</span>;
   }
-  const cls = "ok-in " + (p.cls ?? "");
-  if (p.ml) {
-    const rows = Math.min(8, Math.max(2, Math.ceil(p.v.length / 55)));
-    return (
-      <textarea
-        className={cls}
-        value={p.v}
-        rows={rows}
-        placeholder={p.ph}
-        onChange={(e) => p.on(e.target.value)}
-      />
-    );
-  }
-  return <input className={cls} value={p.v} placeholder={p.ph} onChange={(e) => p.on(e.target.value)} />;
+  return <Groeiveld v={p.v} on={p.on} ml={!!p.ml} cls={"ok-in ok-groei " + (p.cls ?? "")} ph={p.ph} />;
+}
+
+/** Tekstveld dat zijn hoogte aan de inhoud aanpast (werkt in alle browsers). */
+function Groeiveld(p: { v: string; on: (s: string) => void; ml: boolean; cls: string; ph?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = el.scrollHeight + 2 + "px";
+  }, [p.v]);
+  return (
+    <textarea
+      ref={ref}
+      className={p.cls}
+      value={p.v}
+      rows={1}
+      placeholder={p.ph}
+      spellCheck={false}
+      onChange={(e) => p.on(p.ml ? e.target.value : e.target.value.replace(/\s*[\r\n]+\s*/g, " "))}
+      onKeyDown={(e) => {
+        if (!p.ml && e.key === "Enter") e.preventDefault();
+      }}
+    />
+  );
 }
 
 /** "Label: rest" → vet label; verwijzingen in label en rest worden apart links. */
