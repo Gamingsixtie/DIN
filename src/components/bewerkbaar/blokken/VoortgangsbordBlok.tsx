@@ -7,7 +7,7 @@
 // Alles wat geteld wordt, komt uit het tijdlijn-blok in hetzelfde document (useBlok):
 //   per werkstroom (tijdlijngroep met hetzelfde anker) het aantal onderdelen, afgerond,
 //   loopt, niet gestart; "verstreken" = oplevermaand voorbij en niet op Afgerond gezet;
-//   "komend" = oplevering binnen 60 dagen; voortgang = (afgerond + ½ × loopt) / totaal;
+//   "komend" = oplevering binnen 60 dagen; voortgang = afgerond / totaal (loopt telt niet mee, wel zichtbaar als lichtere balk);
 //   "op schema" = 1 − verstreken / opleveringen met datum.
 // De koppelingen (documenten, Jira) komen van de werkstroomkaart met hetzelfde anker
 // (useBlok("werkstromen")) en de vindplaatsen in de sessie (useBron).
@@ -118,7 +118,7 @@ function telOp(t: Telling, o: Onderdeel) {
 
 /** Voortgang 0..1: afgerond telt heel, loopt half; null zonder onderdelen. */
 function voortgangPct(t: Telling): number | null {
-  return t.totaal > 0 ? (t.afgerond + 0.5 * t.loopt) / t.totaal : null;
+  return t.totaal > 0 ? t.afgerond / t.totaal : null;
 }
 
 /** Op schema 0..1: het deel van de opleveringen met datum dat niet verstreken is; null zonder datums. */
@@ -245,7 +245,7 @@ function Teller({ n, label, toon = "" }: { n: number; label: string; toon?: stri
 function Balk({ t, kleur }: { t: Telling; kleur: string }) {
   const pct = voortgangPct(t);
   const af = t.totaal > 0 ? t.afgerond / t.totaal : 0;
-  const lo = t.totaal > 0 ? (0.5 * t.loopt) / t.totaal : 0;
+  const lo = t.totaal > 0 ? t.loopt / t.totaal : 0;
   const label = pct === null ? "geen onderdelen in de tijdlijn" : `${t.afgerond} van ${t.totaal} afgerond, ${t.loopt} loopt`;
   return (
     <div className="vb-balk" style={{ "--vb-k": kleur } as CSSProperties}>
@@ -682,7 +682,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 
       <footer className="vb-voet">
         <p className="vb-legenda-vast">
-          Tellers per werkstroom uit de tijdlijngroep met hetzelfde anker, op de dag van vandaag. Voortgang = (afgerond + ½ × loopt) / onderdelen;
+          Tellers per werkstroom uit de tijdlijngroep met hetzelfde anker, op de dag van vandaag. Voortgang = afgerond / onderdelen (wat loopt staat als lichtere balk, telt niet mee);
           op schema = het deel van de opleveringen met datum dat niet verstreken is. Verstreken = de oplevermaand is voorbij en het onderdeel staat in de
           tijdlijn niet op Afgerond; komt eraan = oplevering binnen {HORIZON_DAGEN} dagen. Zet een onderdeel in de tijdlijn op Afgerond en de tellers volgen.
         </p>
