@@ -88,7 +88,10 @@ export const OK_CSS = `
 .ok .ok-openk{border-left-color:var(--amber)}
 .ok .ok-openk li::before{content:"❓";font-size:9px;left:-1px;top:1px}
 .ok .ok-foot{margin-top:18px;text-align:center;font-size:10.5px;color:var(--ink3);line-height:1.6}
-.ok .ok-in{font:inherit;font-size:inherit;color:var(--ink);background:#fffbeb;border:1px solid #f59e0b;border-radius:5px;padding:2px 5px;width:100%;box-sizing:border-box;line-height:1.4;resize:vertical;display:block}
+.ok .ok-in{font:inherit;font-size:inherit;font-weight:inherit;font-style:inherit;letter-spacing:inherit;text-transform:inherit;line-height:inherit;color:inherit;background:transparent;border:1px dashed rgba(217,119,6,.65);border-radius:5px;padding:1px 5px;margin:-2px -6px;width:calc(100% + 12px);box-sizing:border-box;resize:vertical;display:block;transition:background .12s,border-color .12s}
+.ok .ok-in:hover{background:rgba(245,158,11,.06)}
+.ok .ok-in:focus{outline:none;border-style:solid;border-color:#d97706;background:rgba(245,158,11,.08);box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.ok .ok-in::placeholder{color:currentColor;opacity:.45;font-style:italic}
 .ok .ok-in.ok-groei{resize:none;overflow:hidden;min-height:1.9em;white-space:pre-wrap;overflow-wrap:anywhere}
 .okd dt.okd-accent{color:#b45309}
 .okd dd.okd-accent{font-weight:700;color:#7c2d12;background:#fffbeb;border-left:3px solid #f59e0b;padding-left:8px;border-radius:0 6px 6px 0}
@@ -123,9 +126,6 @@ export const DOC_CSS = `
 .okd .okd-top .ok-in{font-style:normal}
 .okd .okd-status{display:inline-block;max-width:100%;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;line-height:1.5;color:#dbe7f5;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:2px 10px}
 .okd .okd-status-edit{max-width:560px}
-.okd .okd-toc{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 13px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.okd .okd-toc a{display:inline-block;max-width:min(100%,340px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.6;color:var(--ink2);text-decoration:none;background:#f1f5f9;border:1px solid var(--line2);border-radius:999px;padding:1px 10px}
-.okd .okd-toc a:hover,.okd .okd-toc a:focus-visible{color:var(--cito);background:#e8f0f8;border-color:rgba(0,51,102,.35)}
 .okd .okd-sec{margin-top:26px;scroll-margin-top:16px}
 .okd .okd-sec + .okd-sec{border-top:1px solid var(--line2);padding-top:22px}
 .okd .okd-kop{display:flex;gap:8px;align-items:flex-start}
@@ -134,6 +134,19 @@ export const DOC_CSS = `
 .okd div.ok-sub{white-space:pre-line}
 .okd .okd-blokken{display:flex;flex-direction:column;gap:12px;margin-top:10px}
 .okd .okd-p{font-size:12.5px;line-height:1.6;color:var(--ink2);max-width:860px;white-space:pre-line}
+.okd .okd-toc{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px 16px}
+.okd .okd-toc-kop{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin:0 0 10px 2px}
+.okd .okd-toc-lijst{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.okd .okd-toc-lijst a{display:flex;align-items:flex-start;gap:10px;height:100%;padding:10px 12px;border:1px solid #e3e9f1;border-radius:10px;background:#f8fafc;text-decoration:none;color:var(--ink);transition:border-color .15s,background .15s,transform .15s}
+.okd .okd-toc-lijst a:hover,.okd .okd-toc-lijst a:focus-visible{border-color:rgba(0,51,102,.4);background:#eef4fb;transform:translateY(-1px)}
+.okd .okd-toc-nr{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--cito);color:#fff;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.okd .okd-toc-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.okd .okd-toc-t b{font-size:13.5px;line-height:1.3;color:var(--cito)}
+.okd .okd-toc-t span{font-size:12px;line-height:1.35;color:var(--ink2)}
+@media (max-width:560px){.okd .okd-toc-lijst{grid-template-columns:1fr}}
+.okd .okd-blokken .okd-bt,.okd .okd-blokken .kp-titel,.okd .okd-blokken .mx-titel,.okd .okd-blokken .st-titel,.okd .okd-blokken .sp-titel,.okd .okd-blokken .vn-titel,.okd .okd-blokken .mv-titel{font-size:16.5px;font-weight:800;line-height:1.3;letter-spacing:-.005em;color:var(--cito);border-left:4px solid var(--cito);padding-left:10px;margin:6px 0 12px}
+.okd .okd-potlood{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:12px;font-weight:600;color:var(--cito);background:#fff;border:1px solid #c7d7ea;border-radius:999px;padding:3px 10px;cursor:pointer;opacity:.75;transition:opacity .15s,background .15s}
+.okd .okd-potlood:hover,.okd .okd-potlood:focus-visible{opacity:1;background:#eef4fb}
 .okd .okd-bt{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
 .okd .ok-kaart h4{font-size:12.5px;font-weight:700;margin-bottom:6px}
 .okd .ok-kaart li{font-size:12px;line-height:1.5;white-space:pre-line}

@@ -74,6 +74,18 @@ export default function VanNaarBlok({ b, edit, zet }: LosBlokProps<"vannaar">) {
               <span className="vn-l">{naarKop}</span>
               <V v={r.naar} on={(x) => zet((m) => void (m.rijen[i].naar = x))} edit={edit} ml block cls="vn-tekst" ph="Zo wordt het / zo komt het in het DIN" />
             </div>
+            {(edit || r.waarom) && (
+              <div className="vn-waarom">
+                <span className="vn-waarom-l">Waarom</span>
+                <V
+                  v={r.waarom ?? ""}
+                  on={(x) => zet((m) => void (m.rijen[i].waarom = x))}
+                  edit={edit}
+                  ml
+                  ph="Waarom zo in het DIN (kort)"
+                />
+              </div>
+            )}
             {(edit || r.bron) && (
               <div className="vn-bron">
                 {!edit && <span className="vn-bron-l">Bron</span>}
@@ -107,7 +119,7 @@ export const VANNAAR_CSS = `
 .okd .vn-koppen{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:12px}
 .okd .vn-kop-veld{display:flex;flex-direction:column;gap:2px}
 .okd .vn-rijen{display:flex;flex-direction:column;gap:10px}
-.okd .vn-rij{display:grid;grid-template-columns:150px minmax(0,1fr) 34px minmax(0,1fr);grid-template-areas:"o van p naar" ". bron bron bron";column-gap:10px;row-gap:4px;align-items:stretch;padding-top:10px;border-top:1px dashed #dde3ea}
+.okd .vn-rij{display:grid;grid-template-columns:150px minmax(0,1fr) 34px minmax(0,1fr);grid-template-areas:"o van p naar" ". waarom waarom waarom" ". bron bron bron";column-gap:10px;row-gap:4px;align-items:stretch;padding-top:10px;border-top:1px dashed #dde3ea}
 .okd .vn-rij:first-child{padding-top:0;border-top:0}
 .okd .vn-onderwerp{grid-area:o;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding-top:9px}
 .okd .vn-onderwerp-t{font-size:12.5px;font-weight:700;line-height:1.35;color:var(--ink)}
@@ -120,6 +132,8 @@ export const VANNAAR_CSS = `
 .okd .vn-naar .vn-tekst{font-weight:500}
 .okd .vn-pijl{grid-area:p;display:flex;align-items:center;justify-content:center;color:var(--cito)}
 .okd .vn-pijl-svg{width:28px;height:20px}
+.okd .vn-waarom{grid-area:waarom;display:flex;align-items:baseline;gap:8px;font-size:12.5px;line-height:1.5;color:var(--ink2);background:#fbfcfe;border:1px dashed #d6e2ef;border-radius:8px;padding:7px 10px}
+.okd .vn-waarom-l{flex:none;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--cito);background:#e8f0f8;border-radius:4px;padding:2px 6px}
 .okd .vn-bron{grid-area:bron;display:flex;align-items:baseline;gap:5px;font-size:10.5px;line-height:1.4;color:var(--ink3);padding:0 2px}
 .okd .vn-bron-l{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
 .okd .vn-rij .ok-in{font-size:12px;font-weight:400}
@@ -127,7 +141,7 @@ export const VANNAAR_CSS = `
 .okd .vn-plus{padding-top:6px}
 .okd .vn-legenda{margin-top:10px}
 @media(max-width:700px){
-.okd .vn-rij{grid-template-columns:minmax(0,1fr);grid-template-areas:"o" "van" "p" "naar" "bron";row-gap:6px}
+.okd .vn-rij{grid-template-columns:minmax(0,1fr);grid-template-areas:"o" "van" "p" "naar" "waarom" "bron";row-gap:6px}
 .okd .vn-onderwerp{padding-top:0}
 .okd .vn-pijl{padding:0}
 .okd .vn-pijl-svg{transform:rotate(90deg)}

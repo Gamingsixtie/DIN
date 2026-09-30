@@ -1352,6 +1352,15 @@ function geenWeergave(b: never): null {
 // ---------- sectie ----------
 
 // Gememoiseerd: bij typen in één sectie renderen de andere secties niet opnieuw.
+/** "4 · De vier werkstromen: wat 3sides doet" → nr 4, hoofd "De vier werkstromen", sub "wat 3sides doet". */
+function tocDelen(titel: string, volgnr: number): { nr: string; hoofd: string; sub: string } {
+  const m = /^\s*(\d+)\s*·\s*(.*)$/.exec(titel ?? "");
+  const nr = m ? m[1] : String(volgnr);
+  const rest = (m ? m[2] : titel ?? "").trim() || "Zonder titel";
+  const i = rest.indexOf(":");
+  return i > 0 ? { nr, hoofd: rest.slice(0, i).trim(), sub: rest.slice(i + 1).trim() } : { nr, hoofd: rest, sub: "" };
+}
+
 const Sectie = memo(function Sectie(p: {
   s: DocSectie;
   i: number;
@@ -1362,8 +1371,10 @@ const Sectie = memo(function Sectie(p: {
   ankers: ReadonlySet<string>;
   onZet: (i: number, s: DocSectie) => void;
   onVraag: (id: string | null) => void;
+  /** in weergave: potlood bij de sectiekop, om alleen deze sectie te bewerken */
+  onBewerk?: (id: string) => void;
 }) {
-  const { s, i, edit, vraag, ankers, onZet, onVraag } = p;
+  const { s, i, edit, vraag, ankers, onZet, onVraag, onBewerk } = p;
   // Welk blok om bevestiging van verwijderen vraagt, en het soort van een nieuw blok.
   const [vraagBlok, setVraagBlok] = useState<number | null>(null);
   const [nieuwSoort, setNieuwSoort] = useState<NieuwSoort>("tekst");
@@ -1432,6 +1443,14 @@ const Sectie = memo(function Sectie(p: {
         <h3 className="ok-kop">
           <V v={s.titel} on={(x) => upd((n) => void (n.titel = x))} edit={edit} ph="Titel van de sectie" />
         </h3>
+        {!edit && onBewerk && (
+          <button type="button" className="okd-potlood" onClick={() => onBewerk(s.id)} title="Dit deel bewerken">
+            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+              <path d="M11.3 2.3a1.5 1.5 0 0 1 2.1 2.1l-7.6 7.6-3 .9.9-3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+            Bewerken
+          </button>
+        )}
         {edit &&
           (vraag ? (
             <span className="okd-vraag" role="alert">
@@ -1551,10 +1570,16 @@ export default function BewerkbaarDocument({
   doc,
   edit,
   onChange,
+  editSectie = null,
+  onBewerk,
 }: {
   doc: DocData;
   edit: boolean;
   onChange: (doc: DocData) => void;
+  /** alleen deze sectie in bewerkmodus (de rest blijft weergave); null = volgt `edit` */
+  editSectie?: string | null;
+  /** potlood per sectie in weergave: begin met bewerken van alleen die sectie */
+  onBewerk?: (id: string) => void;
 }) {
   // Welke sectie vraagt om bevestiging van verwijderen; vervalt bij wisselen van modus.
   const [vraag, setVraag] = useState<string | null>(null);
@@ -1634,12 +1659,23 @@ export default function BewerkbaarDocument({
 
       {zichtbaar.length > 0 && (
         <nav className="okd-toc" aria-label="Inhoud">
-          <span className="ok-bl">Inhoud</span>
-          {zichtbaar.map(({ s }) => (
-            <a key={s.id} href={"#sec-" + s.id} title={s.titel}>
-              {s.titel || "Zonder titel"}
-            </a>
-          ))}
+          <span className="okd-toc-kop">Inhoud</span>
+          <ol className="okd-toc-lijst">
+            {zichtbaar.map(({ s }, n) => {
+              const d = tocDelen(s.titel, n + 1);
+              return (
+                <li key={s.id}>
+                  <a href={"#sec-" + s.id} title={s.titel}>
+                    <span className="okd-toc-nr">{d.nr}</span>
+                    <span className="okd-toc-t">
+                      <b>{d.hoofd}</b>
+                      {d.sub && <span>{d.sub}</span>}
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
         </nav>
       )}
 
@@ -1648,11 +1684,12 @@ export default function BewerkbaarDocument({
           key={s.id}
           s={s}
           i={i}
-          edit={edit}
+          edit={edit || editSectie === s.id}
           vraag={vraag === s.id}
           ankers={ankers}
           onZet={zetSectie}
           onVraag={setVraag}
+          onBewerk={edit || editSectie ? undefined : onBewerk}
         />
       ))}
 
