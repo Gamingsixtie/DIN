@@ -1,18 +1,22 @@
 // Tijdlijn (Gantt) van een projecttijdlijn, letterlijk uit de bron (bijv. de
 // projecttijdlijn-Excel van 3sides). Per werkstroom een groep met een kop (naam, naam
-// bij 3sides, domeinstrook); per activiteit één balk over de maanden:
+// bij 3sides, domeinstrook); per onderdeel van de werkstroom één balk over de maanden:
 //   ▶ = start · balk = loopt · ruit = oplevering (daar eindigt de balk);
 //   geen start gemarkeerd → het begin vervaagt; geen oplevering → het eind vervaagt,
 //   of de balk loopt als pijl door na de laatste maand.
-// Standlijn (nu) gestippeld met label, jaargrens als sterkere lijn, status (+, +/-, -)
-// als gekleurde stip met het teken, voortgang als klein label. Balkkleur = het eerste
-// domein van de werkstroom; alle vier de domeinen = Cito-blauw.
+// Standlijn gestippeld met label: zonder ingestelde maand (nu leeg of "vandaag") op de
+// dag van vandaag (maand plus de positie binnen de maand, label "vandaag dd-mm"), anders
+// aan de rechterrand van de gekozen maand met het eigen label. Jaargrens als sterkere
+// lijn, status (+, +/-, -) als gekleurde stip met het teken, voortgang (Loopt, Niet
+// gestart, Afgerond) als klein label; een afgerond onderdeel krijgt een vollere balk.
+// Balkkleur = het eerste domein van de werkstroom; alle vier de domeinen = Cito-blauw.
 // Bewerkmodus: teksten aanpasbaar, een maandcel klik je door (leeg → start → loopt →
 // oplevering → leeg), regels en groepen (werkstromen) toevoegen en verwijderen; per
 // groep vink je de domeinen aan (kleur van strook en balken volgt) en kies je de
 // werkstroomkaart waar de groep bij hoort (anker); de maanden liggen vast.
-// Eigen scrollcontainer (min. ca. 920px breed) waarin de activiteitkolom blijft staan;
+// Eigen scrollcontainer (min. ca. 920px breed) waarin de onderdeelkolom blijft staan;
 // de pagina zelf scrolt nooit zijwaarts.
+// Voor andere blokken (het voortgangsbord): `tijdlijnRijen` en `maandDatum` onderaan.
 
 import { useId } from "react";
 import type { CSSProperties } from "react";
@@ -44,9 +48,31 @@ type Plan = {
   eind: "oplevering" | "door" | "open";
 };
 type StatusSoort = "plus" | "plusmin" | "min" | "leeg" | "anders";
+/** Waar de standlijn staat: positie op de maandschaal (0..1), de maand (of −1 buiten het bereik) en het label. */
+type Stand = { frac: number; idx: number; label: string; vandaag: boolean };
+export type VoortgangSoort = "afgerond" | "loopt" | "niet" | "anders";
 
 const CITO = "#003366";
 const NEUTRAAL = "#64748b";
+
+/** Voortgang zoals de tijdlijn die kent; een andere (oude) waarde blijft als eigen keuze staan. */
+const VOORTGANG_OPTIES: readonly string[] = ["", "Loopt", "Niet gestart", "Afgerond"];
+
+// Nederlandse maandnamen en -afkortingen (ook de Engelse uit de Excel) → maandnummer 0..11.
+const MAAND_NUMMERS: Record<string, number> = {
+  jan: 0, januari: 0, january: 0,
+  feb: 1, februari: 1, february: 1,
+  mrt: 2, maa: 2, mar: 2, maart: 2, march: 2,
+  apr: 3, april: 3,
+  mei: 4, may: 4,
+  jun: 5, juni: 5, june: 5,
+  jul: 6, juli: 6, july: 6,
+  aug: 7, augustus: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  okt: 9, oct: 9, oktober: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11,
+};
 
 /** Volgorde bij het doorklikken van een maandcel in bewerkmodus. */
 const VOLGENDE: Record<Cel, Cel> = { "": "start", start: "loopt", loopt: "oplevering", oplevering: "" };
@@ -134,9 +160,129 @@ function statusSoort(s: string): StatusSoort {
   return "anders";
 }
 
-function nietGestart(v: string): boolean {
-  const t = v.trim().toLowerCase();
-  return t === "niet gestart" || t === "not started";
+/** Soort voortgang van een onderdeel: Afgerond, Loopt, Niet gestart of iets anders (ook leeg). */
+export function voortgangSoort(v: string | undefined): VoortgangSoort {
+  const t = tekst(v).trim().toLowerCase();
+  if (t === "afgerond" || t === "gereed" || t === "klaar" || t === "done" || t === "completed") return "afgerond";
+  if (t === "loopt" || t === "in uitvoering" || t === "running" || t === "in progress") return "loopt";
+  if (t === "niet gestart" || t === "not started") return "niet";
+  return "anders";
+}
+
+/** Keuzes voor de voortgang; een afwijkende bestaande waarde blijft kiesbaar. */
+function voortgangOpties(huidig: string): { waarde: string; label: string }[] {
+  const opties = VOORTGANG_OPTIES.map((v) => ({ waarde: v, label: v || "geen" }));
+  const h = huidig.trim();
+  if (h && !VOORTGANG_OPTIES.includes(h)) opties.push({ waarde: h, label: h });
+  return opties;
+}
+
+// ---------- maanden als datums ----------
+
+/** Maandnummer (0..11) bij een maandlabel als "jul", "sept", "maart" of "jul 2026"; −1 als onbekend. */
+function maandNummer(label: string | undefined): number {
+  const m = tekst(label).trim().toLowerCase().match(/^[a-z]+/);
+  return m ? (MAAND_NUMMERS[m[0]] ?? -1) : -1;
+}
+
+/** Jaartal bij maand i uit `jaren` (label "2026" → 2026); NaN als het er niet uit te halen is. */
+function jaarNummer(jaren: Tijdlijn["jaren"], n: number, i: number): number {
+  const label = jaarIndeling(jaren, n).find((j) => i >= j.van && i < j.van + j.aantal)?.label;
+  const m = label?.match(/\d{4}/);
+  return m ? Number(m[0]) : NaN;
+}
+
+/** Eerste dag van maand `index` van de tijdlijn (jaar uit `jaren`); ongeldige datum als het niet te bepalen is. */
+export function maandDatum(b: Tijdlijn, index: number): Date {
+  const maanden = b.maanden ?? [];
+  const jaar = jaarNummer(b.jaren, maanden.length, index);
+  const maand = maandNummer(maanden[index]);
+  if (!Number.isFinite(jaar) || maand < 0) return new Date(NaN);
+  return new Date(jaar, maand, 1);
+}
+
+/** Laatste dag van de maand waarin `d` valt (lokale tijd, 00:00). */
+function laatsteDag(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
+/** dd-mm van een datum, zoals in het label van de standlijn. */
+function ddmm(d: Date): string {
+  const p = (x: number) => String(x).padStart(2, "0");
+  return `${p(d.getDate())}-${p(d.getMonth() + 1)}`;
+}
+
+/**
+ * Waar de standlijn staat. `nu` leeg of "vandaag": de dag van vandaag, in de maand op
+ * de positie dag/aantal dagen; vóór of na het bereik aan de linker- of rechterrand.
+ * `nu` een maandlabel: de rechterrand van die maand, met `nuLabel`. "geen": geen lijn.
+ */
+function standlijn(b: Tijdlijn, maanden: string[], n: number, vandaag: Date): Stand | null {
+  const sleutel = tekst(b.nu).trim().toLowerCase();
+  if (n === 0 || sleutel === "geen") return null;
+  if (sleutel !== "" && sleutel !== "vandaag") {
+    const idx = maanden.findIndex((m) => m.trim().toLowerCase() === sleutel);
+    if (idx < 0) return null;
+    return { frac: (idx + 1) / n, idx, label: tekst(b.nuLabel).trim(), vandaag: false };
+  }
+  const label = "vandaag " + ddmm(vandaag);
+  const dag = new Date(vandaag.getFullYear(), vandaag.getMonth(), vandaag.getDate());
+  const datums = maanden.map((_, i) => maandDatum(b, i));
+  const idx = datums.findIndex((d) => !Number.isNaN(d.getTime()) && d.getFullYear() === dag.getFullYear() && d.getMonth() === dag.getMonth());
+  if (idx >= 0) {
+    const dagen = laatsteDag(dag).getDate();
+    return { frac: (idx + dag.getDate() / dagen) / n, idx, label, vandaag: true };
+  }
+  const geldig = datums.filter((d) => !Number.isNaN(d.getTime()));
+  if (geldig.length === 0) return null;
+  // buiten het bereik: vóór de eerste maand links, na de laatste rechts
+  return dag < geldig[0] ? { frac: 0, idx: -1, label, vandaag: true } : { frac: 1, idx: n, label, vandaag: true };
+}
+
+// ---------- voor andere blokken ----------
+
+/** Eén onderdeel van een werkstroom uit de tijdlijn, met de planning als indexen en datum. */
+export interface TijdlijnRij {
+  groepAnker: string;
+  groepNaam: string;
+  /** naam van het onderdeel */
+  activiteit: string;
+  /** maand van de start (de ▶-cel, anders de eerste gemarkeerde maand); null zonder markering */
+  startIndex: number | null;
+  /** maand van de oplevering (de laatste ⚑-cel); null zonder oplevering */
+  opleverIndex: number | null;
+  /** de laatste gemarkeerde cel is "loopt" en er is geen oplevering */
+  loopt: boolean;
+  voortgang: string;
+  status: string;
+  /** laatste dag van de oplevermaand; null zonder oplevering of zonder bruikbaar jaar */
+  opleverDatum: Date | null;
+}
+
+/** Alle onderdelen van alle groepen, in de volgorde van de tijdlijn. */
+export function tijdlijnRijen(b: Tijdlijn): TijdlijnRij[] {
+  const n = (b.maanden ?? []).length;
+  const uit: TijdlijnRij[] = [];
+  for (const g of b.groepen ?? []) {
+    for (const rij of g.rijen ?? []) {
+      const cellen = Array.from({ length: n }, (_, i) => celVan((rij.cellen ?? [])[i]));
+      const plan = planVan(cellen);
+      const opleverIndex = plan && plan.opleveringen.length > 0 ? plan.opleveringen[plan.opleveringen.length - 1] : null;
+      const eerste = maandDatum(b, opleverIndex ?? 0);
+      uit.push({
+        groepAnker: tekst(g.anker).trim(),
+        groepNaam: tekst(g.naam).trim(),
+        activiteit: tekst(rij.activiteit).trim(),
+        startIndex: plan ? (plan.starts[0] ?? plan.eerste) : null,
+        opleverIndex,
+        loopt: plan !== null && opleverIndex === null && cellen[plan.laatste] === "loopt",
+        voortgang: tekst(rij.voortgang).trim(),
+        status: tekst(rij.status).trim(),
+        opleverDatum: opleverIndex !== null && !Number.isNaN(eerste.getTime()) ? laatsteDag(eerste) : null,
+      });
+    }
+  }
+  return uit;
 }
 
 function domeinenVan(g: Groep): Domein[] {
@@ -211,9 +357,9 @@ function strook(ds: Domein[]): { breedte: number; beeld: string } {
 
 /**
  * Achtergrond van de maandbaan in elke regel: een haarlijn per maand, een sterkere lijn
- * op de jaargrens en een lichte tint tot en met de maand van de standlijn.
+ * op de jaargrens en een lichte tint tot aan de standlijn (positie 0..1 op de schaal).
  */
-function raster(n: number, grenzen: number[], nuIdx: number): string {
+function raster(n: number, grenzen: number[], nuFrac: number | null): string {
   if (n <= 0) return "none";
   const lijnen = (posities: number[], dikte: number, kleur: string) =>
     "linear-gradient(to right, " +
@@ -227,8 +373,8 @@ function raster(n: number, grenzen: number[], nuIdx: number): string {
   const lagen: string[] = [];
   if (grenzen.length > 0) lagen.push(lijnen(grenzen, 2, "var(--tl-jaar)"));
   lagen.push(lijnen(Array.from({ length: n }, (_, i) => i), 1, "var(--tl-lijn)"));
-  if (nuIdx >= 0) {
-    const p = pct((nuIdx + 1) / n);
+  if (nuFrac !== null && nuFrac > 0) {
+    const p = pct(nuFrac);
     lagen.push(`linear-gradient(to right, var(--tl-verleden) ${p}, transparent ${p})`);
   }
   return lagen.join(", ");
@@ -279,8 +425,17 @@ function Ruit({ style, los = false }: { style?: CSSProperties; los?: boolean }) 
   );
 }
 
+/** Vinkje bij een afgerond onderdeel. */
+function Vink() {
+  return (
+    <svg className="tl-vink-af" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      <path d="M1.5 5.5L4 8L8.5 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
- * De balk van één activiteit: loopt van de eerste tot de laatste gemarkeerde maand.
+ * De balk van één onderdeel: loopt van de eerste tot de laatste gemarkeerde maand.
  * Lege maanden daartussen worden een dunne verbindingslijn. Posities zijn relatief
  * binnen de balk (de .tl-greep beslaat precies die maanden).
  */
@@ -289,7 +444,8 @@ function Balk(p: {
   n: number;
   naam: string;
   maand: (i: number) => string;
-  niet: boolean;
+  /** voortgang: niet gestart (gearceerd) of afgerond (voller, donkerder) */
+  soort: VoortgangSoort;
   edit: boolean;
 }) {
   const { plan, n } = p;
@@ -299,11 +455,12 @@ function Balk(p: {
   const laatste = plan.lopen.length - 1;
   // Tooltip rechts uitlijnen als de balk vooral in de tweede helft ligt, zodat hij in beeld blijft.
   const rechts = plan.eerste + w / 2 > n / 2;
+  const toon = p.soort === "niet" ? " tl-niet" : p.soort === "afgerond" ? " tl-af" : "";
   return (
     <div
-      className={"tl-greep" + (p.niet ? " tl-niet" : "")}
+      className={"tl-greep" + toon}
       role="img"
-      aria-label={`${p.naam}: ${delen.join(", ")}`}
+      aria-label={`Onderdeel ${p.naam}: ${delen.join(", ")}${p.soort === "afgerond" ? ", afgerond" : ""}`}
       style={{ left: pct(plan.eerste / n), width: pct(w / n) }}
     >
       {plan.lopen.map((l, li) => {
@@ -365,18 +522,25 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
   const jaarVan = (i: number) => jaren.find((j) => i >= j.van && i < j.van + j.aantal)?.label ?? "";
   const maand = (i: number) => `${maanden[i] ?? ""} ${jaarVan(i)}`.trim();
   const grenzen = jaren.map((j) => j.van).filter((i) => i > 0 && i < n);
+  // Standlijn: op de dag van vandaag, of aan de rechterrand van de ingestelde maand.
   const nuSleutel = tekst(b.nu).trim().toLowerCase();
-  const nuIdx = nuSleutel ? maanden.findIndex((m) => m.trim().toLowerCase() === nuSleutel) : -1;
-  const nuLabel = tekst(b.nuLabel).trim();
+  const stand = standlijn(b, maanden, n, new Date());
+  const nuIdx = stand?.idx ?? -1;
+  const nuFrac = stand?.frac ?? null;
+  const nuLabel = stand?.label ?? "";
+  // een maand is voorbij als hij helemaal links van de standlijn ligt
+  const voorbij = (i: number) => nuFrac !== null && (i + 1) / n <= nuFrac + 1e-9;
 
   // Per regel de genormaliseerde cellen en het plan, en wat de legenda moet tonen.
-  const vlag = { niet: false, vaag: false, door: false };
+  const vlag = { niet: false, af: false, vaag: false, door: false };
   const regels = groepen.map((g) =>
     (g.rijen ?? []).map((rij) => {
       const cellen = Array.from({ length: n }, (_, i) => celVan((rij.cellen ?? [])[i]));
       const plan = planVan(cellen);
       if (plan) {
-        if (nietGestart(tekst(rij.voortgang))) vlag.niet = true;
+        const soort = voortgangSoort(rij.voortgang);
+        if (soort === "niet") vlag.niet = true;
+        if (soort === "afgerond") vlag.af = true;
         if (!plan.startGemarkeerd || plan.eind === "open") vlag.vaag = true;
         if (plan.eind === "door") vlag.door = true;
       }
@@ -392,17 +556,25 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
   }
   const domeinSleutel = DOMEINEN.filter((d) => gebruikt.has(d.id));
 
+  // Keuze voor de standlijn: vandaag (automatisch), een maand, of geen lijn.
   const nuOpties = [
-    { waarde: "", label: "geen" },
+    { waarde: "", label: "vandaag (automatisch)" },
     ...maanden.flatMap((m, i) => (m !== "" && maanden.indexOf(m) === i ? [{ waarde: m, label: maand(i) }] : [])),
+    { waarde: "geen", label: "geen standlijn" },
   ];
+  const nuKeuze = nuSleutel === "geen" ? "geen" : stand && !stand.vandaag ? maanden[stand.idx] : "";
 
   const tStijl = {
     "--tl-n": String(Math.max(n, 1)),
-    "--tl-raster": raster(n, grenzen, nuIdx),
-    ...(nuIdx >= 0 ? { "--tl-nu": String((nuIdx + 1) / n) } : {}),
+    "--tl-raster": raster(n, grenzen, nuFrac),
+    ...(nuFrac !== null ? { "--tl-nu": String(nuFrac) } : {}),
   } as CSSProperties;
-  const tKlasse = "tl-t" + (edit ? " tl-edit" : "") + (nuIdx >= 0 && nuLabel ? " tl-met-nu" : "");
+  const tKlasse = "tl-t" + (edit ? " tl-edit" : "") + (nuFrac !== null && nuLabel ? " tl-met-nu" : "");
+  // Label van de standlijn binnen het beeld houden: dicht bij de rechterrand naar links, bij de linkerrand naar rechts.
+  const nuKlasse =
+    "tl-nu" +
+    (nuFrac !== null && nuFrac > 1 - 0.5 / n ? " tl-nu-rand" : "") +
+    (nuFrac !== null && nuFrac < 0.5 / n ? " tl-nu-links" : "");
 
   return (
     <div className="tl">
@@ -420,23 +592,27 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
         {edit && (
           <div className="tl-edit-balk">
             <label className="tl-eb">
-              <span className="ok-bl">Standlijn in</span>
+              <span className="ok-bl">Standlijn</span>
               <Keuze
-                v={nuIdx >= 0 ? maanden[nuIdx] : ""}
+                v={nuKeuze}
                 opties={nuOpties}
                 on={(x) => zet((t) => void (t.nu = x))}
-                titel="Maand waarin de standlijn valt"
+                titel="Waar de standlijn staat: vandaag, een maand, of geen"
               />
             </label>
-            <label className="tl-eb">
-              <span className="ok-bl">Label</span>
-              <V
-                v={tekst(b.nuLabel)}
-                on={(x) => zet((t) => void (t.nuLabel = x))}
-                edit
-                ph="bijv. stand 28-09"
-              />
-            </label>
+            {nuKeuze !== "" && nuKeuze !== "geen" ? (
+              <label className="tl-eb">
+                <span className="ok-bl">Label</span>
+                <V
+                  v={tekst(b.nuLabel)}
+                  on={(x) => zet((t) => void (t.nuLabel = x))}
+                  edit
+                  ph="bijv. stand 28-09"
+                />
+              </label>
+            ) : (
+              nuKeuze === "" && <span className="tl-eb-hint">Label: {stand?.label ?? "vandaag"} (volgt de dag van vandaag).</span>
+            )}
             <span className="tl-eb-hint">
               Klik op een maand om de markering te wisselen: leeg → start → loopt → oplevering → leeg.
             </span>
@@ -454,7 +630,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
             <div role="rowgroup" className="tl-kopgroep">
               <div role="row" className="tl-r tl-kop">
                 <div role="columnheader" className="tl-kh tl-akt">
-                  Activiteit
+                  Onderdeel
                 </div>
                 <div role="columnheader" className="tl-kh tl-kh-st">
                   <span className="tl-kh-t">Status</span>
@@ -483,7 +659,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                         className={
                           "tl-maand" +
                           (grenzen.includes(i) ? " tl-jg" : "") +
-                          (nuIdx >= 0 && i <= nuIdx ? " tl-vl" : "") +
+                          (voorbij(i) ? " tl-vl" : "") +
                           (i === nuIdx ? " tl-nu-m" : "")
                         }
                       >
@@ -589,8 +765,8 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                     const plan = regel?.plan ?? null;
                     const cellen = regel?.cellen ?? [];
                     const voortgang = tekst(rij.voortgang);
-                    const niet = nietGestart(voortgang);
-                    const naam = tekst(rij.activiteit).trim() || "Activiteit zonder naam";
+                    const soort = voortgangSoort(voortgang);
+                    const naam = tekst(rij.activiteit).trim() || "Onderdeel zonder naam";
                     return (
                       <div key={ri} role="row" className="tl-r tl-rij">
                         <div role="rowheader" className="tl-akt">
@@ -602,7 +778,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                                 on={(x) => zet((t) => void (t.groepen[gi].rijen[ri].activiteit = x))}
                                 edit
                                 ml
-                                ph="Activiteit"
+                                ph="Onderdeel"
                               />
                               <WegKnop
                                 titel="Regel verwijderen"
@@ -626,26 +802,32 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                                   ph="+ · +/- · -"
                                 />
                               </div>
-                              <V
+                              <Keuze
                                 v={voortgang}
+                                opties={voortgangOpties(voortgang)}
                                 on={(x) => zet((t) => void (t.groepen[gi].rijen[ri].voortgang = x))}
-                                edit
-                                ph="Loopt · Niet gestart"
+                                titel="Voortgang: Loopt, Niet gestart of Afgerond"
                               />
                             </>
                           ) : (
                             <>
                               <Stip status={tekst(rij.status)} />
-                              {voortgang && (
-                                <span className={niet ? "tl-vg tl-vg-niet" : "tl-vg"}>{voortgang}</span>
-                              )}
+                              {voortgang &&
+                                (soort === "afgerond" ? (
+                                  <span className="tl-vg tl-vg-af">
+                                    <Vink />
+                                    {voortgang}
+                                  </span>
+                                ) : (
+                                  <span className={soort === "niet" ? "tl-vg tl-vg-niet" : "tl-vg"}>{voortgang}</span>
+                                ))}
                             </>
                           )}
                         </div>
 
                         <div role="cell" className="tl-spoor">
                           {plan ? (
-                            <Balk plan={plan} n={n} naam={naam} maand={maand} niet={niet} edit={edit} />
+                            <Balk plan={plan} n={n} naam={naam} maand={maand} soort={soort} edit={edit} />
                           ) : (
                             <span className="tl-sr">geen maand gemarkeerd</span>
                           )}
@@ -716,8 +898,8 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
               </div>
             )}
 
-            {nuIdx >= 0 && (
-              <div className={"tl-nu" + (nuIdx === n - 1 ? " tl-nu-rand" : "")} aria-hidden="true">
+            {nuFrac !== null && (
+              <div className={nuKlasse} aria-hidden="true">
                 {nuLabel && <span className="tl-nu-label">{nuLabel}</span>}
               </div>
             )}
@@ -740,6 +922,11 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                 <i className="tl-sw tl-sw-niet" aria-hidden="true" /> niet gestart
               </span>
             )}
+            {vlag.af && (
+              <span className="tl-sl">
+                <i className="tl-sw tl-sw-af" aria-hidden="true" /> afgerond
+              </span>
+            )}
             {vlag.vaag && (
               <span className="tl-sl">
                 <i className="tl-sw tl-sw-vaag" aria-hidden="true" /> start of oplevering te bepalen
@@ -750,7 +937,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                 <i className="tl-sw tl-sw-door" aria-hidden="true" /> loopt door na {maand(n - 1)}
               </span>
             )}
-            {nuIdx >= 0 && (
+            {nuFrac !== null && (
               <span className="tl-sl">
                 <i className="tl-sw-nu" aria-hidden="true" /> {nuLabel || "standlijn"}
               </span>
@@ -798,7 +985,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
 }
 
 // Stijl; wordt samen met OK_CSS en DOC_CSS in het document gezet (BewerkbaarDocument).
-// Maatvoering in CSS-variabelen: --tl-a (activiteit), --tl-s (status), --tl-m (min.
+// Maatvoering in CSS-variabelen: --tl-a (onderdeel), --tl-s (status), --tl-m (min.
 // breedte per maand) en --tl-n (aantal maanden, inline). De balken, de standlijn en
 // het raster rekenen met dezelfde variabelen, zodat alles op de maandkolommen valt.
 // Lagen binnen .tl-t: balk 1 · standlijn 2 · markering 3 · vaste kolom 4 · knoppen 5 · tooltip 6.
@@ -808,7 +995,7 @@ export const TIJDLIJN_CSS = `
 .tl{--tl-cito:#003366;--tl-rand:#e2e8f0;--tl-lijn:#edf1f5;--tl-jaar:#b6c2d0;--tl-hover:#f6f8fb;--tl-verleden:rgba(0,51,102,.035);min-width:0}
 .tl-paneel{margin:0;min-width:0;background:#fff;border:1px solid var(--tl-rand);border-radius:12px;padding:10px 12px}
 .tl-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:2px;container-type:inline-size}
-.tl-t{--tl-a:264px;--tl-s:108px;--tl-m:46px;--tl-kt:6px;position:relative;isolation:isolate;min-width:calc(var(--tl-a) + var(--tl-s) + var(--tl-n) * var(--tl-m));font-size:11.5px;line-height:1.35;color:var(--ink,#111827)}
+.tl-t{--tl-a:264px;--tl-s:118px;--tl-m:46px;--tl-kt:6px;position:relative;isolation:isolate;min-width:calc(var(--tl-a) + var(--tl-s) + var(--tl-n) * var(--tl-m));font-size:11.5px;line-height:1.35;color:var(--ink,#111827)}
 .tl-t.tl-met-nu{--tl-kt:24px}
 .tl-t.tl-edit{--tl-a:284px;--tl-s:156px}
 .tl-r{display:grid;grid-template-columns:var(--tl-a) var(--tl-s) minmax(0,1fr)}
@@ -864,12 +1051,17 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-stip-leeg{width:13px;height:13px;margin:2px;background:#fff;box-shadow:inset 0 0 0 1.5px #cbd5e1}
 .tl-vg{font-size:10.5px;line-height:1.25;font-weight:600;color:var(--ink,#111827)}
 .tl-vg-niet{font-weight:400;color:var(--ink2,#5b6573)}
+.tl-vg-af{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;border-radius:999px;background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:10px;font-weight:700;white-space:nowrap}
+.tl-vink-af{flex:none}
+.tl-st-edit .ok-keuze{width:100%}
 .tl-spoor{position:relative;min-height:34px;background-image:var(--tl-raster)}
 .tl-edit .tl-spoor{background-color:#fffcf0}
 .tl-greep{position:absolute;top:0;bottom:0}
 .tl-edit .tl-greep{pointer-events:none}
 .tl-balk{position:absolute;top:50%;z-index:1;height:12px;margin-top:-6px;border-radius:4px;background:var(--tl-kb)}
 .tl-niet .tl-balk{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--tl-k) 32%,#fff) 0 3px,color-mix(in srgb,var(--tl-k) 12%,#fff) 3px 6px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tl-k) 40%,#fff)}
+.tl-af .tl-balk{height:14px;margin-top:-7px;background:var(--tl-k)}
+.tl-af .tl-verbind{background:var(--tl-k)}
 .tl-door{border-radius:4px 0 0 4px;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 50%,calc(100% - 7px) 100%,0 100%)}
 .tl-vaag-l{-webkit-mask-image:linear-gradient(to right,transparent,#000 min(24px,45%));mask-image:linear-gradient(to right,transparent,#000 min(24px,45%))}
 .tl-vaag-r{-webkit-mask-image:linear-gradient(to left,transparent,#000 min(24px,45%));mask-image:linear-gradient(to left,transparent,#000 min(24px,45%))}
@@ -890,6 +1082,8 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-nu-label{position:absolute;top:1px;left:0;transform:translateX(-50%);padding:1px 8px;border-radius:999px;background:var(--tl-cito);box-shadow:0 0 0 2px #fff;color:#fff;font-size:9.5px;font-weight:700;line-height:1.5;letter-spacing:.02em;white-space:nowrap}
 .tl-nu-rand::before{left:-2px}
 .tl-nu-rand .tl-nu-label{transform:translateX(-100%)}
+.tl-nu-links::before{left:0}
+.tl-nu-links .tl-nu-label{transform:none}
 .tl-knoppen{position:absolute;inset:0;z-index:5}
 .tl-cel{display:block;margin:0;padding:0;border:0;border-radius:4px;background:transparent;cursor:pointer}
 .tl-cel:hover{background:rgba(245,158,11,.16)}
@@ -908,6 +1102,7 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-sleutel .tl-stip-leeg{width:11px;height:11px}
 .tl-sw{display:inline-block;flex:none;width:24px;height:10px;border-radius:3px;background:#94a3b8}
 .tl-sw-niet{background:repeating-linear-gradient(135deg,#cbd5e1 0 3px,#eef2f6 3px 6px);box-shadow:inset 0 0 0 1px #cbd5e1}
+.tl-sw-af{height:12px;background:#475569}
 .tl-sw-vaag{-webkit-mask-image:linear-gradient(to right,transparent,#000 75%);mask-image:linear-gradient(to right,transparent,#000 75%)}
 .tl-sw-door{border-radius:3px 0 0 3px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%)}
 .tl-sw-nu{display:inline-block;flex:none;width:2px;height:14px;background:repeating-linear-gradient(to bottom,var(--tl-cito) 0 4px,transparent 4px 7px)}
