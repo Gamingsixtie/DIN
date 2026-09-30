@@ -983,8 +983,9 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
   const kolLabel = 1 + o;
   const breed = `${2 + o} / ${kolommen + 2 + o}`;
   const toonWerkstromen = rijen.length > 0 || edit;
-  // Laatste rasterlijn van de plaat: tot daar loopt de beugel.
-  const eindRij = toonWerkstromen ? RIJ.werkstromen + Math.max(1, rijen.length) : RIJ.domeinen + 1;
+  // Laatste rasterlijn van de plaat: tot daar loopt de beugel. De werkstromen staan in één rij
+  // van even brede kaarten; per kaart laten domeinchips zien in welke domeinen hij bouwt.
+  const eindRij = toonWerkstromen ? RIJ.werkstromen + 1 : RIJ.domeinen + 1;
   // Binnen de eigen scrollcontainer; in bewerkmodus breder zodat de velden leesbaar blijven
   // (900 past nog zonder scrollen in het document bij een scherm van 1280 breed).
   const minBreedte =
@@ -1218,27 +1219,27 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
           {toonWerkstromen && (
             <div
               className="okd-dp-rl"
-              style={{ gridRow: `${RIJ.werkstromen} / span ${Math.max(1, rijen.length)}`, gridColumn: kolLabel }}
+              style={{ gridRow: RIJ.werkstromen, gridColumn: kolLabel }}
             >
               Werkstromen (inspanningen)
               {edit && <PlusKnop label="+ werkstroom" on={() => zet(voegWerkstroomToe)} />}
             </div>
           )}
-          {rijen.flatMap((rij, ri) =>
-            rij.map((plek) => {
-              const wi = plek.wi;
-              const w = b.werkstromen[wi];
-              const eerste = w.domeinen.map((id) => perId.get(id)).find((d) => d !== undefined);
-              const kleur = plek.overal ? CITO : eerste ? domeinKleur(eerste) : NEUTRAAL;
+          {toonWerkstromen && b.werkstromen.length > 0 && (
+            <div
+              className="okd-dp-wsrij"
+              style={{ gridRow: RIJ.werkstromen, gridColumn: breed, ["--wsn" as string]: Math.min(4, b.werkstromen.length) } as CSSProperties}
+            >
+            {b.werkstromen.map((w, wi) => {
+              const eigen = w.domeinen.map((id) => perId.get(id)).filter((d): d is NonNullable<typeof d> => d !== undefined);
+              const overal = b.domeinen.length > 1 && b.domeinen.every((d) => w.domeinen.includes(d.id));
+              const kleur = overal ? CITO : eigen[0] ? domeinKleur(eigen[0]) : NEUTRAAL;
               const doel = edit ? null : werkstroomDoel(w.anker, ankers);
               return (
                 <div
                   key={wi}
-                  className={plek.overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
-                  style={metKleur(kleur, {
-                    gridRow: RIJ.werkstromen + ri,
-                    gridColumn: `${plek.van + 2 + o} / ${plek.tot + 3 + o}`,
-                  })}
+                  className={overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
+                  style={metKleur(kleur, {})}
                 >
                   {edit && (
                     <VakKnoppen
@@ -1298,10 +1299,17 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                       </div>
                     </div>
                   ) : (
-                    plek.los && (
-                      <div className="okd-dp-r">
-                        <span className="okd-dp-l">Bouwt in</span>
-                        <div className="okd-dp-v">{plek.idx.map((i) => b.domeinen[i].naam).join(" · ")}</div>
+                    eigen.length > 0 && (
+                      <div className="okd-dp-wsdom" aria-label="Bouwt in">
+                        {overal ? (
+                          <span className="okd-dp-wsdom-chip okd-dp-wsdom-alle">Alle vier de domeinen</span>
+                        ) : (
+                          eigen.map((d) => (
+                            <span key={d.id} className="okd-dp-wsdom-chip" style={metKleur(domeinKleur(d), {})}>
+                              {d.naam}
+                            </span>
+                          ))
+                        )}
                       </div>
                     )
                   )}
@@ -1331,7 +1339,8 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                   />
                 </div>
               );
-            })
+            })}
+            </div>
           )}
         </div>
       </div>

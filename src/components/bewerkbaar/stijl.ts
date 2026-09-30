@@ -216,7 +216,14 @@ export const DOC_CSS = `
 .okd .okd-dp-l{display:block;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.3;color:var(--ink3);margin-bottom:1px}
 .okd .okd-dp-v{font-size:10.5px;line-height:1.45;color:var(--ink2)}
 .okd .okd-dp-dom .okd-dp-v{font-size:11px;color:#334155}
-.okd .okd-dp-ws{background:#fff;border:1.5px solid #cbd5e1;border-left:5px solid var(--dpk);border-radius:9px;padding:8px 11px 9px}
+.okd .okd-dp-wsrij{display:grid;grid-template-columns:repeat(var(--wsn,4),minmax(0,1fr));gap:10px;align-items:stretch}
+.okd .okd-dp-ws{background:#fff;border:1.5px solid #cbd5e1;border-left:5px solid var(--dpk);border-radius:9px;padding:8px 11px 9px;display:flex;flex-direction:column;min-width:0}
+.okd .okd-dp-wsdom{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px}
+.okd .okd-dp-wsdom-chip{font-size:11px;font-weight:700;line-height:1.3;border-radius:999px;padding:2px 8px;color:color-mix(in srgb,var(--dpk) 80%,#000);background:color-mix(in srgb,var(--dpk) 12%,#fff);border:1px solid color-mix(in srgb,var(--dpk) 45%,#fff)}
+.okd .okd-dp-wsdom-alle{color:#003366;background:#eef4fb;border:1px dashed #94a3b8}
+.okd .okd-dp-ws .okd-dp-kpi:not(.okd-dp-kpi-edit) .okd-dp-kpi-l{display:none}
+.okd .okd-dp-ws .okd-dp-kpi{margin-top:auto;padding-top:8px}
+.okd .okd-dp-ws .okd-dp-kpi-chip{font-size:11px}
 .okd .okd-dp-ws-heel{border-style:dashed;border-color:#94a3b8;border-left:5px solid var(--dpk)}
 .okd .okd-dp-ws-t{font-size:12px;font-weight:700;line-height:1.35;color:var(--cito)}
 .okd .okd-dp-ws-t a{color:inherit;text-decoration:none}

@@ -236,10 +236,11 @@ const WERKSTROMEN: DocBlok = {
       bron: "Plan van aanpak p. 12–13",
       waarom: "Iedereen weet wat Klant in Zicht betekent voor de eigen sector, het eigen team en de eigen rol.",
       resultaten: [
-        "Adoptieframework (SMILE) met een veranderprogramma op hoofdlijnen",
-        "Playbook-workshops met een eerste pilotsector; per rol één A4 'Mijn rol in de klantreis'",
-        "Communicatieplan",
-        "Kern-adoptieteam en champions per afdeling in de sectoren",
+        "Adoptieframework gerealiseerd en gevalideerd: het SMILE-framework, met een veranderingsprogramma in hoofdlijnen",
+        "Customer Journey Playbook-workshops: gerealiseerd met de eerste pilotsector of -fase, en per rol op één A4 'Mijn rol in de klantreis'",
+        "Communicatieplan: voor het programma opgesteld",
+        "Kern-adoptieteam: vastgesteld",
+        "Customer Journey Champions: binnen de sectoren per afdeling vastgesteld, verantwoordelijk voor voorbeeldgedrag en verbeteren",
       ],
       planning: [
         { wanneer: "Q3 2026", wat: "inventariseren, analyseren, ontwerpen" },
@@ -274,11 +275,11 @@ const WERKSTROMEN: DocBlok = {
       bron: "Plan van aanpak p. 6–7",
       waarom: "Overzicht en keuzes in een groeiend aantal systemen, tools en koppelingen.",
       resultaten: [
-        "Overzicht van systemen, koppelingen, eigenaren en kosten",
-        "Doelbeeld met ontwerpprincipes",
-        "Advies per systeem: behouden, vervangen, samenvoegen of uitfaseren",
-        "Roadmap met prioriteiten, afhankelijkheden en kostenindicatie",
-        "Werkwijze om het landschap actueel te houden",
+        "Een compleet overzicht van de huidige systemen, koppelingen, eigenaren en kosten",
+        "Een gewenst doelbeeld met een set ontwerpprincipes",
+        "Een advies per systeem: behouden, vervangen, samenvoegen of uitfaseren",
+        "Een roadmap met prioriteiten, afhankelijkheden en een indicatie van de kosten",
+        "Een werkwijze om het landschap actueel te houden",
       ],
       planning: [
         { wanneer: "Q3", wat: "inventarisatie en analyse" },
@@ -312,9 +313,8 @@ const WERKSTROMEN: DocBlok = {
       bron: "Plan van aanpak p. 10–11",
       waarom: "Van een klantreis per sector naar één klantreis voor heel Cito BV, die iedereen herkent.",
       resultaten: [
-        "Blueprint: fasen, klantdoelen, hoofdstappen, kernwaarden en kernprincipes",
-        "Per fase: processen, systeemgebruik, gedrag per rol en KPI's",
-        "Gevalideerd door product- en sectormanagers",
+        "Blueprint als matrix: een compleet overzicht van de klantreisfasen, klantdoelen, hoofdstappen en de bijbehorende kernwaarden en kernprincipes, gevalideerd door productmanagers en sectormanagers",
+        "Per klantreisfase: een verdere koppeling naar processen, systeemgebruik en gedrag door verschillende rollen, en KPI's die inzicht geven in hoe succesvol we zijn vanuit de kernprincipes",
       ],
       planning: [
         { wanneer: "Q3 2026", wat: "inventariseren, analyseren, ontwerpen" },
@@ -347,10 +347,10 @@ const WERKSTROMEN: DocBlok = {
       bron: "Plan van aanpak p. 8–9",
       waarom: "Weten waar we nu staan en of het programma werkt.",
       resultaten: [
-        "Meetmodel: doelen, baten, vermogens en inspanningen",
-        "Verzameling datapunten",
-        "0-meting: de baten-KPI's en een score per kernprincipe",
-        "Tussenmeting om bij te sturen",
+        "Meetmodel: een compleet overzicht, van doelen via baten naar vermogens en inspanningen",
+        "Datapunten: een gedetailleerde verzameling (data ophalen)",
+        "0-meting: op basis van een zeer uitgebreide set programma-KPI's, de baten (effecten) en de KPI's per klantreisfase binnen de vijf kernprincipes",
+        "Tussenmeting: om de voortgang van het programma tussentijds te evalueren en bij te sturen",
       ],
       planning: [
         { wanneer: "Q3 2026", wat: "inventariseren, analyseren, ontwerpen" },
@@ -861,7 +861,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
                 { tekst: "Validatie van de blueprint met product- en sectormanagers (Q4) met datum", klaar: false },
                 { tekst: "Startmaand van de vertaling naar CRM-input en funnelprocessen", klaar: false },
                 { tekst: "Selectie uit het meetkader van 55 KPI's: welke gaan mee naar de 0-meting", klaar: false },
-                { tekst: "Eigenaar van de blueprint na het programma", klaar: false },
                 { tekst: "Cito: domeineigenaar Processen benoemen", klaar: false },
                 { tekst: "Cito: eigenaar van de blueprint na het programma aanwijzen", klaar: false },
                 { tekst: "Output-KPI's en capaciteit van Cito per resultaat", klaar: false },
