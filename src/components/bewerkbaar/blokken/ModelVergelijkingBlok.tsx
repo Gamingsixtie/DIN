@@ -1491,7 +1491,7 @@ export const MODELVERGELIJKING_CSS = `
 .okd .mv-e-velden{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:6px}
 .okd .mv-e-veld{display:flex;flex-direction:column;gap:2px;min-width:0}
 .okd .mv-e-l{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3)}
-.okd .mv-e .ok-in{font-size:12px}
+.okd .mv-e .ok-in{font-size:12px;margin:0;width:100%}
 .okd .mv-e-laag,.okd .mv-e-rij,.okd .mv-e-kp{display:flex;flex-wrap:wrap;align-items:flex-start;gap:5px}
 .okd .mv-e-laag{padding-bottom:5px;border-bottom:1px dashed #e2e8f0}
 .okd .mv-e .mv-e-in{flex:1 1 110px;width:auto;min-width:0}
@@ -1506,7 +1506,9 @@ export const MODELVERGELIJKING_CSS = `
 .okd .mv-e-vink{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;line-height:1.5;color:#334155;background:#fff;border:1px solid #cbd5e1;border-radius:999px;padding:1px 9px 1px 6px;cursor:pointer}
 .okd .mv-e-vink input{margin:0;accent-color:#059669;cursor:pointer}
 .okd .mv-e-vink:has(input:checked){background:#ecfdf5;border-color:#34d399;color:#065f46}
-.okd .mv-e .ok-keuze{font-size:11px;padding:2px 4px;min-width:0;max-width:100%}
+.okd .mv-e .ok-keuze{font-size:11px;padding:2px 4px;width:auto;min-width:0;max-width:100%}
+.okd .mv-e-veld .ok-keuze{width:100%}
+.okd .mv-e-rij .ok-keuze{flex:none}
 .okd .mv-e-kp .ok-keuze{flex:1 1 150px;width:auto}
 .okd .mv-e-kp{padding:6px 0;border-top:1px dashed #e2e8f0}
 .okd .mv-e-pijl{font-weight:800;color:var(--cito);padding-top:3px}
