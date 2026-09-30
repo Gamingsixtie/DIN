@@ -34,7 +34,7 @@ import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
 import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/bewerkbaar/bron-context";
 import { DocContext } from "@/components/bewerkbaar/doc-context";
-import { DOC_CSS, KNOP, OK_CSS } from "@/components/bewerkbaar/stijl";
+import { DOC_CSS, KNOP, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
 const HINT =
@@ -610,7 +610,7 @@ function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => v
       {plek ? (
         <DocContext.Provider value={doc}>
           <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-            <style>{OK_CSS + DOC_CSS + VOORTGANGSBORD_CSS + VOORTGANG_CSS}</style>
+            <style>{OK_CSS + DOC_CSS + VOORTGANGSBORD_CSS + VOORTGANG_CSS + LEESBAAR_CSS}</style>
             <div className="okd-vb-vak">
               <VoortgangsbordBlok b={plek.blok} edit={false} zet={zet} ankers={GEEN_ANKERS} />
             </div>

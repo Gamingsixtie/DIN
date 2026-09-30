@@ -38,6 +38,7 @@ import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { metBronlinks, useBron, useBronUrl, paginaUit, zoekDocument } from "@/components/bewerkbaar/bron-context";
+import { Leads } from "@/components/bewerkbaar/leads";
 import { useBlok, useDocZet } from "@/components/bewerkbaar/doc-context";
 import { tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -147,7 +148,7 @@ function zetKaartDomein(k: Kaart, id: string, aan: boolean) {
 // kapstok elders in het document.
 const NIVEAUS: { woorden: string[]; kleur: string }[] = [
   { woorden: ["inspanning"], kleur: "#b45309" },
-  { woorden: ["vermogen"], kleur: "#0891b2" },
+  { woorden: ["vermogen"], kleur: "#0e7490" },
   { woorden: ["baat", "baten"], kleur: "#0066cc" },
   { woorden: ["doel"], kleur: CITO },
 ];
@@ -989,7 +990,7 @@ function WerkstroomKaart({
         ) : (
           (heeft(k.leads) || heeft(k.bron)) && (
             <p className="wk-meta">
-              {heeft(k.leads) && <span>{k.leads}</span>}
+              {heeft(k.leads) && <Leads tekst={k.leads} />}
               {heeft(k.bron) && (
                 <span className="wk-bron">
                   <span className="wk-bron-l">Bron</span>
@@ -1188,7 +1189,7 @@ export const WERKSTROOM_CSS = `
 @container wkplan (max-width:519px){${staand(".okd .wk-stap.wk-stap-veel")}}
 .okd .wk-pad{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .okd .wk-pad > li{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0}
-.okd .wk-pijl{flex:none;font-size:13px;font-weight:700;line-height:1;color:#94a3b8}
+.okd .wk-pijl{flex:none;font-size:13px;font-weight:700;line-height:1;color:#5f6b7a}
 .okd .wk-schakel{display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:5px;max-width:100%;min-width:0;padding:3px 9px;border-radius:7px;border:1px solid color-mix(in srgb,var(--wk-s) 32%,#fff);background:color-mix(in srgb,var(--wk-s) 9%,#fff);color:color-mix(in srgb,var(--wk-s) 75%,#000);font-size:12.5px;font-weight:600;line-height:1.35}
 .okd .wk-schakel-p{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 .okd .wk-open{display:flex;flex-wrap:wrap;gap:5px}
@@ -1214,7 +1215,7 @@ export const WERKSTROOM_CSS = `
 .okd .wk-tl-r:hover{background:#f8fafc}
 .okd .wk-tl-naam{min-width:0;font-size:12.5px;line-height:1.4;color:#1e293b}
 .okd .wk-tl-m{font-size:11px;font-weight:600;line-height:1.4;color:#475569;white-space:nowrap}
-.okd .wk-tl-pijl{font-weight:500;color:#94a3b8}
+.okd .wk-tl-pijl{font-weight:500;color:#5f6b7a}
 .okd .wk-tl-tb{font-style:italic;font-weight:500;color:#64748b}
 .okd .wk-tl-st{display:flex;align-items:baseline;gap:5px;min-width:0;white-space:nowrap}
 .okd .wk-tl-verstreken,.okd .wk-tl-verstreken:hover{background:#fef2f2}

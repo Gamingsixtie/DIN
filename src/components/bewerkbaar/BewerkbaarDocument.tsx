@@ -13,8 +13,14 @@ import type { CSSProperties, ReactNode } from "react";
 import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { isVerwijderd, kloon, verwijderdeSectie } from "@/lib/bewerkbaar-document";
 import { Keuze, Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
-import { DOC_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
-import { SectieProvider, metBronlinks, sectieKaart } from "@/components/bewerkbaar/bron-context";
+import { DOC_CSS, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
+import {
+  SectieDocumentContext,
+  SectieProvider,
+  documentVanSectie,
+  metBronlinks,
+  sectieKaart,
+} from "@/components/bewerkbaar/bron-context";
 import { domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-typen";
 import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -26,6 +32,8 @@ import StroomPlaatBlok, { STROOMPLAAT_CSS } from "@/components/bewerkbaar/blokke
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 import StappenBlok, { STAPPEN_CSS } from "@/components/bewerkbaar/blokken/StappenBlok";
 import ModelVergelijkingBlok, { MODELVERGELIJKING_CSS } from "@/components/bewerkbaar/blokken/ModelVergelijkingBlok";
+import Actiebord, { ACTIEBORD_CSS } from "@/components/bewerkbaar/blokken/Actiebord";
+import { LEADS_CSS, Leads } from "@/components/bewerkbaar/leads";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
@@ -36,7 +44,7 @@ type Toon = BlokVan<"callout">["toon"];
 const LAAG_KLEUREN = new Map<string, string>([
   ["doel", "#003366"],
   ["baat", "#0066cc"],
-  ["vermogen", "#0891b2"],
+  ["vermogen", "#0e7490"],
   ["gedrag", "#6d28d9"],
   ["inspanning", "#b45309"],
 ]);
@@ -185,13 +193,14 @@ function voegTabelKolomToe(n: BlokVan<"tabel">) {
   for (const rij of n.rijen) while (rij.length < n.kolommen.length) rij.push("");
 }
 
-/** Haalt kolom c weg, ook de cel ervan in elke rij; de chipkolom schuift mee of vervalt. */
+/** Haalt kolom c weg, ook de cel ervan in elke rij; chip-, groep- en invulkolom schuiven mee of vervallen. */
 function verwijderTabelKolom(n: BlokVan<"tabel">, c: number) {
   n.kolommen.splice(c, 1);
   for (const rij of n.rijen) if (rij.length > c) rij.splice(c, 1);
-  if (n.chipKolom === undefined) return;
-  if (n.chipKolom === c) n.chipKolom = undefined;
-  else if (n.chipKolom > c) n.chipKolom -= 1;
+  const schuif = (k: number | undefined) => (k === undefined || k === c ? undefined : k > c ? k - 1 : k);
+  n.chipKolom = schuif(n.chipKolom);
+  n.groepKolom = schuif(n.groepKolom);
+  n.invulKolom = schuif(n.invulKolom);
 }
 
 function voegLaagKolomToe(n: BlokVan<"lagen">) {
@@ -255,6 +264,25 @@ function LijstBlok({ b, edit, zet }: BlokProps<"lijst">) {
 function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
   const chip = b.chipKolom;
   const isChip = (c: number) => !edit && c === chip;
+  // weergave als actiebord (kaart per groep); bewerken blijft de tabel hieronder
+  const bord = !edit && b.groepKolom !== undefined && b.groepKolom >= 0 && b.groepKolom < b.kolommen.length;
+  if (bord) {
+    return (
+      <div>
+        {b.titel && (
+          <h4 className="okd-bt">
+            <V v={b.titel} on={() => {}} edit={false} />
+          </h4>
+        )}
+        <Actiebord b={b} />
+        {b.legenda && (
+          <div className="ok-legend">
+            <V v={b.legenda} on={() => {}} edit={false} ml />
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div>
       {(edit || b.titel) && (
@@ -1154,7 +1182,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             />
           </div>
 
-          <Pijl rij={RIJ.vermogen + 1} kolom={breed} kleur="#0891b2">
+          <Pijl rij={RIJ.vermogen + 1} kolom={breed} kleur="#0e7490">
             samen het vermogen
           </Pijl>
 
@@ -1267,7 +1295,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                       w.naam
                     )}
                   </div>
-                  {(edit || w.leads) && (
+                  {edit ? (
                     <V
                       v={w.leads}
                       on={(x) => zet((n) => void (n.werkstromen[wi].leads = x))}
@@ -1277,6 +1305,8 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                       cls="okd-dp-leads"
                       ph="Leads, bijv. Cito-lead · 3sides-lead"
                     />
+                  ) : (
+                    w.leads && <Leads tekst={w.leads} cls="okd-dp-leads" />
                   )}
                   {edit ? (
                     <div className="okd-dp-r">
@@ -1458,6 +1488,8 @@ const Sectie = memo(function Sectie(p: {
 
   return (
     <section id={"sec-" + s.id} className="okd-sec">
+      {/* in een naslagdeel over één document wijzen kale paginanummers naar dat document */}
+      <SectieDocumentContext.Provider value={documentVanSectie(s.id)}>
       <div className="okd-kop">
         <h3 className="ok-kop">
           <V v={s.titel} on={(x) => upd((n) => void (n.titel = x))} edit={edit} ph="Titel van de sectie" />
@@ -1551,6 +1583,7 @@ const Sectie = memo(function Sectie(p: {
           </div>
         )}
       </div>
+      </SectieDocumentContext.Provider>
     </section>
   );
 });
@@ -1647,7 +1680,7 @@ export default function BewerkbaarDocument({
     <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + LEADS_CSS + LEESBAAR_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (

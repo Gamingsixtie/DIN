@@ -90,11 +90,11 @@ const ZIJ_OPTIES: { waarde: Zij; label: string }[] = [
 
 // Standaardkleur van een nieuwe laag: pastel als op de plaat van 3sides, of de DIN-kleuren.
 const PIRAMIDE_KLEUREN = ["#e5dcef", "#c4f3dd", "#fcd6db", "#bff0f7"];
-const KETEN_KLEUREN = ["#003366", "#0066cc", "#0891b2", "#b45309"];
+const KETEN_KLEUREN = ["#003366", "#0066cc", "#0e7490", "#b45309"];
 const LAAG_TOKENS = new Map<string, string>([
   ["doel", "#003366"],
   ["baat", "#0066cc"],
-  ["vermogen", "#0891b2"],
+  ["vermogen", "#0e7490"],
   ["gedrag", "#6d28d9"],
   ["inspanning", "#b45309"],
 ]);
@@ -1424,7 +1424,7 @@ export const MODELVERGELIJKING_CSS = `
 .okd .mv-balk{position:relative;z-index:1;margin:7px 0;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;border-radius:10px;padding:8px 12px;background:var(--mvk);color:var(--mvt);outline:none;transition:opacity .15s,box-shadow .15s}
 .okd .mv-balk-naam{font-size:13.5px;font-weight:700;line-height:1.25}
 .okd .mv-balk-sub{font-size:11.5px;line-height:1.4;opacity:.92}
-.okd .mv-balk-pijl{position:absolute;left:50%;top:-15px;width:13px;height:13px;margin-left:-6.5px;color:#94a3b8;pointer-events:none}
+.okd .mv-balk-pijl{position:absolute;left:50%;top:-15px;width:13px;height:13px;margin-left:-6.5px;color:#5f6b7a;pointer-events:none}
 .okd .mv-balk.mv-actief,.okd .mv-balk.mv-licht{box-shadow:0 0 0 3px color-mix(in srgb,var(--mvk) 32%,#fff)}
 .okd .mv-balk.mv-dim{opacity:.4}
 .okd .mv-band:focus-visible .mv-band-naam,.okd .mv-balk:focus-visible .mv-balk-naam,.okd .mv-zv:focus-visible .mv-zv-kop{text-decoration:underline}

@@ -22,7 +22,7 @@ type Groep = Niveau["groepen"][number];
 const LAAG_KLEUREN = new Map<string, string>([
   ["doel", "#003366"],
   ["baat", "#0066cc"],
-  ["vermogen", "#0891b2"],
+  ["vermogen", "#0e7490"],
   ["gedrag", "#6d28d9"],
   ["inspanning", "#b45309"],
 ]);
@@ -236,7 +236,7 @@ export const KPIPLAAT_CSS = `
 .okd .kp-blok{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px 12px}
 .okd .kp-titel{font-size:12.5px;font-weight:700;color:var(--ink);margin:0 0 12px}
 .okd .kp-cascade{display:flex;flex-direction:column}
-.okd .kp-pijl{display:flex;justify-content:center;color:#94a3b8;padding:3px 0}
+.okd .kp-pijl{display:flex;justify-content:center;color:#5f6b7a;padding:3px 0}
 .okd .kp-niveau{--kpk:${NEUTRAAL};display:grid;grid-template-columns:150px minmax(0,1fr);border:1px solid color-mix(in srgb,var(--kpk) 30%,#fff);border-radius:12px;overflow:hidden;background:color-mix(in srgb,var(--kpk) 3%,#fff)}
 .okd .kp-links{display:flex;flex-direction:column;align-items:flex-start;gap:7px;background:var(--kpk);color:#fff;padding:12px 12px 12px 14px}
 .okd .kp-naam{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;line-height:1.3}

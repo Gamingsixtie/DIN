@@ -1010,6 +1010,11 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     // index van de kolom waarvan de cellen als gekleurde chip worden getoond
     // (bijv. "Sluit aan" / "Aanvulling" / "Verschil")
     chipKolom: z.number().int().optional(),
+    // weergave als actiebord: één kaart per waarde in deze kolom (bijv. per werkstroom);
+    // bewerken blijft een gewone tabel
+    groepKolom: z.number().int().optional(),
+    // kolom die we samen invullen (bijv. "Wie"): leeg = open vakje, met een teller erboven
+    invulKolom: z.number().int().optional(),
     legenda: z.string().optional().default(""),
   }),
   z.object({ type: z.literal("kaarten"), kaarten: z.array(DocKaartSchema) }),

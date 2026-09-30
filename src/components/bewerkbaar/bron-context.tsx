@@ -207,6 +207,18 @@ const GEEN_SECTIES: readonly SectieKaart[] = [];
 
 export const SectieContext = createContext<readonly SectieKaart[]>(GEEN_SECTIES);
 
+/**
+ * Het document waar een naslagdeel over gaat (sectie "doc-3" → het meetinstrument). Daarin
+ * verwijzen kale paginanummers ("Uitgelicht doel (p. 4)") naar dat document. Buiten zo'n
+ * deel: null, en dan blijft een kale verwijzing tekst.
+ */
+export const SectieDocumentContext = createContext<BronDocument | null>(null);
+
+/** Het document bij een sectie-id uit het naslag ("doc-N", zie `naslagAnker`), anders null. */
+export function documentVanSectie(id: string): BronDocument | null {
+  return BRON_DOCUMENTEN.find((d) => naslagAnker(d) === "sec-" + id) ?? null;
+}
+
 /** Het document vult hiermee de sectiekaart, zodat "deel N" in de teksten een link wordt. */
 export function SectieProvider(p: { secties: readonly SectieKaart[]; children: ReactNode }) {
   return <SectieContext.Provider value={p.secties}>{p.children}</SectieContext.Provider>;
@@ -359,14 +371,18 @@ const BEREIK = "\\d+(?:\\s?[–—-]\\s?\\d+)?";
 const PAGINA = `(?:p|pp|blz)\\.\\s?${BEREIK}(?:(?:,\\s?|\\s+en\\s+(?:(?:p|pp|blz)\\.\\s?)?)${BEREIK})*`;
 // "rij 8", "rij 22, 34, 28"
 const RIJ = `rij\\s?${BEREIK}(?:,\\s?${BEREIK})*`;
-// "tab v3", "tab KPI meetkader", 'tab "Kern Principes"'; eindigt bij · ; , : ( ) " of een punt met spatie
-const TAB = `tab(?:blad)?\\s+(?:"[^"\\n]+"|[^\\s·;,:()"\\n][^·;,:()"\\n]*?)(?=\\s*(?:[·;,:()"\\n]|\\.\\s|\\.$|$))`;
-const VERWIJZING = `(?:${PAGINA}|${RIJ}|${TAB})`;
+// "tab v3", "tab KPI meetkader", 'tab "Kern Principes"'; een naam zonder aanhalingstekens eindigt bij
+// · ; , : ( ) " of een punt met spatie (met aanhalingstekens is het sluitteken de grens)
+const TAB = `tab(?:blad)?\\s+(?:"[^"\\n]+"|[^\\s·;,:()"\\n][^·;,:()"\\n]*?(?=\\s*(?:[·;,:()"\\n]|\\.\\s|\\.$|$)))`;
+// "tab Klantreis fasen, rij 24" is één verwijzing
+const VERWIJZING = `(?:${PAGINA}|${RIJ}|${TAB}(?:,\\s?${RIJ})?)`;
 // tussen naam en verwijzing: " van 3sides", " 3sides", " (", " (Excel, ", ", " of een spatie
 const TUSSEN = "(?:\\s+(?:van\\s+)?3sides)?(?:\\s*\\((?:Excel|PDF)?,?\\s*|,\\s*|\\s+)";
 const MET_VERWIJZING = new RegExp(`${GRENS_VOOR}(${NAAM})${GRENS_NA}(${TUSSEN})(${VERWIJZING})`, "gu");
 /** Een documentnaam of afkorting ergens in een tekst (zonder paginaverwijzing). */
 const NAAM_LOS = new RegExp(`${GRENS_VOOR}${NAAM}${GRENS_NA}`, "u");
+/** Een pagina-, rij- of tabverwijzing zonder documentnaam ervoor: "(p. 7)", "rij 23", 'tab "Competenties"'. */
+const KALE_VERWIJZING = new RegExp(`${GRENS_VOOR}${VERWIJZING}`, "gu");
 
 interface Verwijzing {
   start: number;
@@ -406,8 +422,12 @@ function kaleItems(tekst: string, items: { start: number; end: number }[]): Verw
   return uit;
 }
 
-/** Alle verwijzingen in een tekst, gesorteerd en zonder overlap. */
-export function vindVerwijzingen(tekst: string): Verwijzing[] {
+/**
+ * Alle verwijzingen in een tekst, gesorteerd en zonder overlap. Met `standaard` (de tekst staat
+ * in een naslagdeel over één document) wijst een kale verwijzing als "(p. 7)" of "rij 23" naar
+ * dat document; een verwijzing met een documentnaam ervoor gaat voor.
+ */
+export function vindVerwijzingen(tekst: string, standaard: BronDocument | null = null): Verwijzing[] {
   const uit: Verwijzing[] = [];
   // (a) naam + pagina, rij of tabblad
   for (const m of tekst.matchAll(MET_VERWIJZING)) {
@@ -435,6 +455,14 @@ export function vindVerwijzingen(tekst: string): Verwijzing[] {
   }
   for (const k of kandidaten) {
     if (!uit.some((v) => k.start < v.end && v.start < k.end)) uit.push(k);
+  }
+  // (c) kale pagina-, rij- of tabverwijzing in een naslagdeel over één document
+  if (standaard) {
+    for (const m of tekst.matchAll(KALE_VERWIJZING)) {
+      const start = m.index ?? 0;
+      const end = start + m[0].length;
+      if (!uit.some((v) => start < v.end && v.start < end)) uit.push({ start, end, doc: standaard, pagina: paginaUit(m[0]) });
+    }
   }
   return uit.sort((a, b) => a.start - b.start);
 }
@@ -515,7 +543,12 @@ type Stuk =
  * anders (met terugval) naar het naslag; "deel N" naar de sectie uit de kaart. Bij
  * overlap wint de documentverwijzing. Zonder link blijft het fragment tekst.
  */
-function verdeel(tekst: string, bron: Bron, secties: readonly SectieKaart[]): ReactNode[] {
+function verdeel(
+  tekst: string,
+  bron: Bron,
+  secties: readonly SectieKaart[],
+  standaard: BronDocument | null
+): ReactNode[] {
   const stukken: Stuk[] = [];
   // Expliciet: [[Plan van aanpak]] of [[meetinstrument p. 12]] wordt altijd een link (zonder haken).
   const expliciet: { start: number; end: number; binnen: string }[] = [];
@@ -534,7 +567,7 @@ function verdeel(tekst: string, bron: Bron, secties: readonly SectieKaart[]): Re
   }
   const inExpliciet = (s: number, e: number) => expliciet.some((x) => s < x.end && x.start < e);
   if (bron.documentenBasis !== "" || bron.naslagTerugval) {
-    for (const v of vindVerwijzingen(tekst)) {
+    for (const v of vindVerwijzingen(tekst, standaard)) {
       if (inExpliciet(v.start, v.end)) continue;
       const href = bron.documentenBasis ? bronUrl(bron.documentenBasis, v.doc, v.pagina) : null;
       if (!href && !bron.naslagTerugval) continue;
@@ -590,8 +623,12 @@ function verdeel(tekst: string, bron: Bron, secties: readonly SectieKaart[]): Re
 function Bronlinks({ tekst }: { tekst: string }) {
   const bron = useContext(BronContext);
   const secties = useContext(SectieContext);
+  const standaard = useContext(SectieDocumentContext);
   const actief = tekst !== "" && (bron.documentenBasis !== "" || bron.naslagTerugval || secties.length > 0);
-  const delen = useMemo(() => (actief ? verdeel(tekst, bron, secties) : null), [actief, tekst, bron, secties]);
+  const delen = useMemo(
+    () => (actief ? verdeel(tekst, bron, secties, standaard) : null),
+    [actief, tekst, bron, secties, standaard]
+  );
   if (!delen) return tekst;
   return <>{delen}</>;
 }
