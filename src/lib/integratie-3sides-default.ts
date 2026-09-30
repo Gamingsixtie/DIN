@@ -4,7 +4,7 @@
 // Verhaallijn in tien delen: de kern → de structuur (plaat met rollen, de toets) → 3sides
 // naast het DIN (werkstromen bouwen, kernprincipes meten) → de vier werkstromen → planning,
 // voortgang en het actiebord van Cito → het meetmodel → eerst intern besluiten → de interne
-// evaluatie van 3sides → het gesprek met 3sides (agenda, laatste check) → bronnen.
+// evaluatie van 3sides → het gesprek met 3sides (de agenda) → bronnen.
 // Standaardinhoud; in de app per kop en cel aanpasbaar en opgeslagen onder
 // session.documenten[INTEGRATIE_SLEUTEL].
 //
@@ -1164,7 +1164,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     // 9
     sectie(
       "gesprek",
-      "9 · Het gesprek met 3sides: agenda en laatste check",
+      "9 · Het gesprek met 3sides: de agenda",
       "Na de interne besluiten en de evaluatie: wat we in het maandelijkse gesprek met 3sides bespreken. We kijken vooruit: we hebben alles gelezen, dit zijn de actiepunten, hoe pakken we ze op? De actiepunten per werkstroom staan in het voortgangsbord (deel 5).",
       [
         lijst(
@@ -1177,24 +1177,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ],
           "Agenda voor het maandelijkse gesprek met 3sides (voorstel)"
         ),
-        kaarten([
-          kaart("Hebben we 3sides geëvalueerd?", "deels", [
-            ["Antwoord", "Deels: op drie van de vier punten ligt een eerste beeld als voorstel (deel 8); ons oordeel is nog niet vastgesteld."],
-            ["Wel gedaan", "Per punt wat we toetsen en wat we zien, met bron; een eerste beeld bij aansluiting op het DIN, planning en samenwerking (deel 8)."],
-            ["Nog niet", "Ons oordeel per punt, en een eerste beeld van de inzet: uren tegenover opbrengst.", true],
-            ["Voorstel", "Het oordeel stellen we intern vast, niet in het gesprek met 3sides; wanneer en hoe vaak is een besluitpunt (deel 7).", true],
-          ]),
-          kaart("Weten we wat we zelf willen?", "op hoofdlijnen ja", [
-            ["Antwoord", "Op hoofdlijnen ja: de structuur staat."],
-            ["Staat", "Het DIN met doel, baten en 14 baten-KPI's, het gedeelde vermogen in vier domeinen, de vier werkstromen, de rollen als voorstel en de toets 'Hoort het bij het programma?' (deel 2)."],
-            ["Nog te besluiten", "Rollen vaststellen, domeineigenaren Processen en Cultuur, één set namen en één planning (besluitpunten in deel 7); na de 0-meting de doelwaarden en de vermogen-KPI's.", true],
-            ["Nog te doen", "Wat Cito zelf moet doen, per werkstroom: het actiebord in deel 5.", true],
-          ]),
-          kaart("Weten we wat we met 3sides willen bespreken?", "ja, vijf agendapunten", [
-            ["Antwoord", "Ja: de vijf agendapunten hierboven, in die volgorde."],
-            ["Basis", "Elk punt komt uit deel 3 tot en met 7 of uit de actiepunten van het overleg van 29-09; de evaluatie (deel 8) blijft intern."],
-          ]),
-        ]),
       ]
     ),
 
