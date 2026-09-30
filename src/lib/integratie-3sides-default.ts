@@ -69,7 +69,7 @@ const DIN_PLAAT: DocBlok = {
     titel: "Doel 1 · Integraal klantbeeld en outside-in werken als strategisch fundament",
     tekst: "Het programma richt zich nu op dit doel (focusdoel in de app, stap 5): alle drie de baten hangen eronder. Doel 2 en doel 3 hebben nog geen eigen baten.",
     rol: "Programma-eigenaar: Meryl · voorzitter stuurgroep",
-    kpi: "Impact: organisatiebreed beeld (NPS, conversie, omzet, retentie/churn), jaarlijks · voorstel",
+    kpi: "Impact: organisatiebreed gemeten (NPS, conversie, omzet, retentie/churn); jaarlijks · voorstel",
   },
   baten: [
     {
@@ -521,7 +521,7 @@ const MODELVERGELIJKING: DocBlok = {
   koppelingen: [
     { van: "l-doelen", naar: "r-doel", soort: "gelijk", label: "zelfde" },
     { van: "l-baten", naar: "r-baten", soort: "gelijk", label: "zelfde 14 KPI's per sector" },
-    { van: "z-bv", naar: "r-doel", soort: "voorstel", label: "organisatiebreed beeld; NPS als resultante" },
+    { van: "z-bv", naar: "r-doel", soort: "voorstel", label: "organisatiebreed gemeten; NPS als resultante" },
     { van: "l-vermogens", naar: "r-vermogen", soort: "gelijk", label: "kunnen" },
     { van: "l-inspanningen", naar: "r-vermogen", soort: "verschuift", label: "doen = gedrag, hoort bij het vermogen" },
     { van: "z-kp", naar: "r-vermogen", soort: "voorstel", label: "de meetlat van het vermogen" },
@@ -840,7 +840,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ["Vijf kernprincipes: kunnen en doen", "Vermogen: de meetlat voor ons vermogen (hierboven)", "Meetinstrument p. 11–12"],
             ["KPI's per klantreisfase, van merkbekendheid tot renewal rate", "Vermogen: leidende indicatoren per fase (voorstel; samen met 3sides uit te werken)", "Meetinstrument p. 10 · blueprint"],
             ["Kernwaarden G.O.L.D.: gedreven, ondersteunend, lerend, deskundig", "Vermogen, domein Cultuur", "Blueprint, tab GOLD - Kernwaarden"],
-            ["Vier organisatiebrede KPI's: NPS, conversie, omzet, retentie/churn", "Doel: organisatiebreed beeld (deel 6); NPS als resultante", "Meetinstrument p. 8 · KPI-model"],
+            ["Vier organisatiebrede KPI's: NPS, conversie, omzet, retentie/churn", "Doel: organisatiebreed gemeten (deel 6); NPS als resultante", "Meetinstrument p. 8 · KPI-model"],
           ],
           { titel: "Waar hangt alles wat 3sides oplevert onder?" }
         ),
@@ -988,7 +988,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               vraag: "Is de organisatie veranderd?",
               wanneer: "Jaarlijks (voorstel)",
               groepen: [
-                { titel: "Organisatiebreed beeld, NPS als resultante (bij 3sides onder de baten)", chips: ["NPS", "Conversie", "Omzet", "Retentie/churn"], toon: "voorstel" },
+                { titel: "Organisatiebreed gemeten; NPS meten we (besloten), als resultante; bij 3sides onder de baten", chips: ["NPS", "Conversie", "Omzet", "Retentie/churn"], toon: "voorstel" },
               ],
               bron: "Meetinstrument p. 8 · KPI-model",
             },
@@ -1070,7 +1070,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             "Framework: het DIN blijft het enige framework; de termen van 3sides zijn synoniemen (deel 3).",
             "Woorden: inspanning = de inspanningen in het DIN, uitgevoerd door de werkstromen; kunnen en doen horen bij het vermogen (deel 3).",
             "0-meting: een inspanning over alle vier domeinen, naast de vier domeininspanningen (besluit programma-architect, 30-09; ter bevestiging).",
-            "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen; NPS is een resultante, geen stuur-KPI (deel 6).",
+            "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen; NPS meten we organisatiebreed (besloten), als resultante en niet als stuur-KPI (deel 6).",
             "Vermogen-KPI's: per domein vaststellen waar we naartoe willen (gewenste situatie) en per kernprincipe de doelscore, in de vervolgsessie na de 0-meting.",
             "Plan van aanpak: per werkstroom finaliseren, met output-KPI en de benodigde capaciteit van Cito; 3sides vult aan, Cito toetst, stelt vast en wijst de eigenaar aan (deel 4).",
             "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaren zijn de sectormanagers (besluit programma-architect, 01-10; ter bevestiging).",
@@ -1169,7 +1169,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
       [
         lijst(
           [
-            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken de namen van de werkstromen die we maandag vaststellen (voorstel: die van het organigram); NPS en de andere organisatiebrede KPI's op doelniveau, met NPS als resultante (voorstel; deel 3 en 6).",
+            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken de namen van de werkstromen die we maandag vaststellen (voorstel: die van het organigram); NPS meten we organisatiebreed (besloten): met de andere organisatiebrede KPI's op doelniveau, als resultante (voorstel; deel 3 en 6).",
             "2 · Plan van aanpak per werkstroom aanvullen: output-KPI per resultaat en de capaciteit die 3sides van Cito nodig heeft; bij adoptie een scope-paragraaf binnen de afbakening van het programma; de eigenaar die Cito aanwijst erin opnemen. 3sides vult aan, Cito toetst en stelt vast (deel 4).",
             "3 · Planning: de planning voor 0-meting en pilots die we intern vaststellen in de tijdlijn verwerken, de open start- en opleverdata invullen, en de volgorde van de klantreisvertaling controleren (deel 5 en 7).",
             "4 · Meetkader focussen: in de 0-meting eerst de 14 baten-KPI's, de vijf kernprincipe-scores en de stand per domein; melden dat er KPI's bij komen op vermogensniveau (na de 0-meting) en per werkstroom (output); meetprotocol en een voorstel voor de eigenaar per datapunt (deel 6 en 7).",
