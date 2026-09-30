@@ -704,7 +704,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           }
         ),
         tekst(
-          "Waarom hier de kernprincipes. De vijf kernprincipes van 3sides zijn geen vijfde onderdeel van het framework. Ze beschrijven ons vermogen in vijf principes, elk met een kunnen-kant en een doen-kant, en ze krijgen in de 0-meting een score. Daarmee zijn ze de meetlat op het niveau van het vermogen. In de plaat staan ze daarom alleen bij het vermogen; hier in het meetmodel werken we ze uit: welk kernprincipe hoort bij welk deel van ons vermogen, in welk domein, en welke werkstroom bouwt eraan. Zo sluiten de vier domeinen en de vijf kernprincipes op elkaar aan zonder dat er een tweede indeling ontstaat."
+          "Waarom hier de kernprincipes. De vijf kernprincipes van 3sides zijn geen vijfde onderdeel van het framework. Ze beschrijven ons vermogen in vijf principes, elk met een kunnen-kant en een doen-kant, en ze krijgen in de 0-meting een score. Daarmee zijn ze de meetlat op het niveau van het vermogen. In de plaat staan ze daarom alleen bij het vermogen; hier in het meetmodel werken we ze uit: welk kernprincipe hoort bij welk deel van ons vermogen, in welk domein, en welke werkstroom bouwt eraan. Zo sluiten de vier domeinen en de vijf kernprincipes op elkaar aan zonder dat er een tweede indeling ontstaat. Dit is onze lezing, als voorstel: 3sides zelf zet de kernprincipes bij 'Vermogens & Inspanningen (Kunnen en Doen)' en zegt niets over domeinen of werkstromen; de kunnen- en doen-teksten in de matrix zijn wel letterlijk van 3sides."
         ),
         KERNPRINCIPES,
         lijst(
