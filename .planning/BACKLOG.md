@@ -2,6 +2,17 @@
 
 Verbeteringen die zijn afgesproken maar nog niet gebouwd. Per item: wat, waar, en wat het vraagt. Oppakken via `/gsd:quick`.
 
+## Stand 30-09-2026, na de derde ronde
+
+Afgerond en live (commits t/m de merge van agent/plaat-links-voortgang): deel 1 als vier kaarten plus stappenplaat; van-naar-plaat in deel 3; KPI-plaat, kader en stroomplaat in deel 4; voortgangsbord als deel 9 met eigen tabblad "Voortgang"; tijdlijn met standlijn op vandaag en voortgang "afgerond"; plaat met KPI per niveau, meetlat (kernprincipes) en rustige regieband; keuzemenu voor statuschips; "deel N" en documentverwijzingen altijd klikbaar (terugval naar het naslag-tabblad); rijen en items toevoegen in elk blok; tekstvelden groeien mee; vinkjes in weergave slaan direct op; terminologie onderdelen en opleveringen.
+
+### Open
+
+14. **Documenten in Supabase Storage** (Pim): `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` invullen (regel staat klaar) of zelf een public bucket `3sides-documenten` maken en de 11 bestanden uploaden; daarna `node scripts/upload-3sides-documenten.cjs` en de vindplaats als standaard in de app zetten (bron-context: standaardbasis). Tot dan: terugval naar het naslag-tabblad.
+15. **Statuspagina en overleg 29-09** als bron: staan alleen als tekst in de chat; verwijzingen daarnaar linken naar het naslag-tabblad (secties "Statuspagina" en de actiepunten). Eventueel als eigen naslag-sectie "Overleg 29-09" toevoegen.
+16. **Testscripts** `test-visueel.cjs` en `test-voortgangsbord.cjs` zijn geschreven op een testdocument zonder deze blokken en tellen nu dubbel; vervangen door checks op de echte inhoud (de andere zeven tests zijn groen).
+17. **Sketch-bestand** `SKETCH-3SIDES-NODIG.html` is vervangen door het voortgangsbord in de app; kan weg.
+
 ## Stand 30-09-2026, na de tweede ronde
 
 Afgerond en live: A1 t/m A5 (inhoud), B6 (regieband), B7 (plaat als bord), B8 (koppelingen per werkstroom), C9 (vindplaatsen en paginalinks; werkt zodra Pim de documentenmap invult), rijen en items toevoegen in elk bloktype, deel 9 "Uitleggen" verwijderd, NPS-rij weg, volgende stappen zonder wie en bron.
