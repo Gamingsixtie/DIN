@@ -175,9 +175,19 @@ export function zoekDocument(tekst: string): BronDocument | null {
 }
 
 /**
+ * Paginanummer uit een verwijzing: "p. 12–13" → "12", "plan van aanpak p. 5 en 11" → "5";
+ * null als er geen "p. N" (of "pp.", "blz.") in staat. Gebruik dit voor labels als
+ * "0-meting meetinstrument (PDF)", waar het eerste getal geen pagina is.
+ */
+export function paginaUit(tekst: string): string | null {
+  const m = tekst.match(/(?<![\p{L}\p{N}])(?:p|pp|blz)\.\s?(\d+)/u);
+  return m ? m[1] : null;
+}
+
+/**
  * Link naar een document in de documentenmap: `<basis>/<bestandsnaam>`, bij een pdf met
- * `#page=N` (N = het eerste getal van de paginaverwijzing). Zonder basis of onbekend
- * document: null.
+ * `#page=N` (N = het eerste getal in `pagina`; geef een verwijzing door via `paginaUit`).
+ * Zonder basis of onbekend document: null.
  */
 export function bronUrl(
   basis: string,
@@ -286,8 +296,7 @@ export function vindVerwijzingen(tekst: string): Verwijzing[] {
     let end = start + m[0].length;
     // geopend haakje in het fragment: het sluithaakje hoort erbij
     if (m[2].includes("(") && tekst.charAt(end) === ")") end += 1;
-    const n = m[3].match(/\d+/);
-    uit.push({ start, end, doc, pagina: /^(?:p|pp|blz)\./.test(m[3]) && n ? n[0] : null });
+    uit.push({ start, end, doc, pagina: paginaUit(m[3]) });
   }
   // (b) kale naam als los item in een " · "-opsomming …
   const opsomming = stukken(tekst, /\s+·\s+/g);
