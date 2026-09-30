@@ -189,7 +189,11 @@ export const DOC_CSS = `
 .okd .okd-dp-doel div.okd-dp-t{font-size:13px;color:#fff}
 .okd .okd-dp-doel div.okd-dp-tk{color:#dbe7f5}
 .okd .okd-dp-baten{display:grid;gap:8px}
-.okd .okd-dp-baat{display:flex;flex-direction:column;background:#f0f6fd;border:1px solid #cfe0f4;border-left:4px solid #0066cc;border-radius:8px;padding:8px 10px}
+.okd .okd-dp-baat{display:grid;grid-template-rows:subgrid;grid-row:span 4;row-gap:4px;align-content:start;background:#f0f6fd;border:1px solid #cfe0f4;border-left:4px solid #0066cc;border-radius:8px;padding:8px 10px}
+.okd .okd-dp-baat > .okd-dp-knoppen{grid-row:1;position:absolute;right:6px;top:6px;margin:0}
+.okd .okd-dp-baat{position:relative}
+.okd .okd-dp-baat > .okd-dp-rol{align-self:start}
+@supports not (grid-template-rows: subgrid){.okd .okd-dp-baat{display:flex;flex-direction:column}}
 .okd .okd-dp-verm{background:#ecf8fb;border:1.5px solid var(--verm);border-radius:10px;padding:9px 13px}
 .okd .okd-dp-dom{background:color-mix(in srgb,var(--dpk) 7%,#fff);border:1.5px solid color-mix(in srgb,var(--dpk) 28%,#fff);border-top:5px solid var(--dpk);border-radius:10px;padding:9px 11px 11px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
 .okd .okd-dp-dom-t{font-size:13px;font-weight:800;line-height:1.3;color:color-mix(in srgb,var(--dpk) 80%,#000)}

@@ -1070,7 +1070,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                   cls="okd-dp-t"
                   ph="Baat"
                 />
-                {(edit || baat.tekst) && (
+                {edit || baat.tekst ? (
                   <V
                     v={baat.tekst}
                     on={(x) => zet((n) => void (n.baten[i].tekst = x))}
@@ -1080,6 +1080,8 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                     cls="okd-dp-tk"
                     ph="Toelichting, bijv. baten-KPI's (optioneel)"
                   />
+                ) : (
+                  <div />
                 )}
                 <Rol
                   v={baat.rol}
