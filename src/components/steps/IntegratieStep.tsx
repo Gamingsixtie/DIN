@@ -11,6 +11,10 @@
 // sessie bewaard (session.documenten[sleutel], localStorage-first + Supabase via updateSession).
 // Een wijziging uit een blok in weergavemodus (bijv. een vinkje in het voortgangsbord) wordt
 // meteen opgeslagen; in bewerkmodus loopt alles via het concept en de knop Opslaan.
+// Versies (src/lib/doc-versie.ts): elke opgeslagen versie draagt de vingerafdruk van de
+// voorsteltekst waarop ze rust (basis). Heeft de sessie sinds die basis geen eigen tekst,
+// dan verschijnt een nieuwere voorsteltekst vanzelf, met de vinkjes, afgeronde onderdelen en
+// ingevulde links; met eigen tekst toont het tabblad een melding: overnemen of eigen versie houden.
 // Boven de tabbladen de instelling "Vindplaatsen" (session.koppelingen): de map met de
 // 3sides-documenten en het Jira-bord. Met een ingevulde map worden alle paginaverwijzingen
 // in de documenten links naar het document op die pagina; zonder map linken ze naar het
@@ -24,7 +28,8 @@ import { useSession } from "@/lib/session-context";
 import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { DEFAULT_INTEGRATIE_3SIDES, INTEGRATIE_SLEUTEL } from "@/lib/integratie-3sides-default";
 import { DEFAULT_KERN_3SIDES, KERN_3SIDES_SLEUTEL } from "@/lib/kern-3sides-default";
-import { isVerwijderd, kloon, mergeDocument } from "@/lib/bewerkbaar-document";
+import { isVerwijderd, kloon } from "@/lib/bewerkbaar-document";
+import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
 import { BronProvider, bronUrl } from "@/components/bewerkbaar/bron-context";
@@ -306,23 +311,35 @@ function Vindplaatsen() {
 function DocumentTab({ tab }: { tab: Tabblad }) {
   const { session, updateSession } = useSession();
   const bewaard = session?.documenten?.[tab.sleutel];
-  const opgeslagen = useMemo(() => mergeDocument(tab.standaard, bewaard), [tab.standaard, bewaard]);
+  // Wat getoond wordt: de standaard, de opgeslagen versie, of een nieuwere voorsteltekst die
+  // automatisch is overgenomen omdat de sessie geen eigen tekst had (doc-versie.ts).
+  const versie = useMemo(() => oplossen(tab.standaard, bewaard), [tab.standaard, bewaard]);
+  const opgeslagen = versie.doc;
   const [edit, setEdit] = useState(false);
   // Concept; wordt bij het starten van de bewerkmodus gevuld met de opgeslagen versie.
   const [draft, setDraft] = useState<DocData>(opgeslagen);
+  // De voorsteltekst waarop het concept rust: die van de getoonde versie; na "Terug naar
+  // voorstel-tekst" de huidige.
+  const [draftBasis, setDraftBasis] = useState<string | undefined>(versie.basis);
   const [melding, setMelding] = useMelding();
 
-  function bewerken() {
-    setDraft(kloon(opgeslagen));
-    setEdit(true);
-  }
-  function opslaan() {
-    const klaar = kloon(draft);
+  /** In de sessie bewaren, met de vingerafdruk van de voorsteltekst waarop het document rust. */
+  function bewaar(doc: DocData, basis: string | undefined) {
+    const klaar = metBasis(doc, basis);
     updateSession((prev) => ({
       documenten: { ...(prev.documenten ?? {}), [tab.sleutel]: klaar },
     }));
-    setEdit(false);
     setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
+  }
+
+  function bewerken() {
+    setDraft(kloon(opgeslagen));
+    setDraftBasis(versie.basis);
+    setEdit(true);
+  }
+  function opslaan() {
+    bewaar(draft, draftBasis);
+    setEdit(false);
   }
   function annuleren() {
     setDraft(kloon(opgeslagen));
@@ -330,23 +347,29 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
   }
   function herstel() {
     setDraft(kloon(tab.standaard));
+    setDraftBasis(versie.standaard);
     setMelding({ tekst: "Voorstel-tekst teruggezet — klik op Opslaan om dit te bewaren", soort: "info" });
   }
   /**
    * Wijziging uit het document. In bewerkmodus naar het concept (bewaard bij Opslaan);
    * in weergavemodus meteen in de sessie, want dan komt de wijziging uit een blok dat ook
-   * in weergave bediend wordt (bijv. een vinkje in het voortgangsbord).
+   * in weergave bediend wordt (bijv. een vinkje in het voortgangsbord). De basis blijft die
+   * van de getoonde versie: een vinkje is geen keuze voor of tegen een nieuwere voorsteltekst.
    */
   function wijzig(nieuw: DocData) {
     if (edit) {
       setDraft(nieuw);
       return;
     }
-    const klaar = kloon(nieuw);
-    updateSession((prev) => ({
-      documenten: { ...(prev.documenten ?? {}), [tab.sleutel]: klaar },
-    }));
-    setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
+    bewaar(nieuw, versie.basis);
+  }
+  /** Nieuwere voorsteltekst overnemen; vinkjes, afgeronde onderdelen en ingevulde links blijven. */
+  function neemVoorstelOver() {
+    bewaar(overnemen(tab.standaard, bewaard), versie.standaard);
+  }
+  /** Eigen versie houden; de melding komt pas terug bij een volgende nieuwere voorsteltekst. */
+  function houdEigenVersie() {
+    bewaar(opgeslagen, versie.standaard);
   }
 
   return (
@@ -361,14 +384,89 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
         onHerstel={herstel}
         hint={HINT}
         notitie={
-          bewaard
+          versie.eigenTekst
             ? "Aangepaste versie uit deze sessie. De oorspronkelijke voorstel-tekst zet je terug via ✎ Bewerken → Terug naar voorstel-tekst."
             : null
         }
       />
 
+      {!edit && versie.stand === "eigen" && (
+        <NieuwereVoorsteltekst
+          basisBekend={versie.basis !== undefined}
+          onOvernemen={neemVoorstelOver}
+          onHouden={houdEigenVersie}
+        />
+      )}
+
       <BewerkbaarDocument doc={edit ? draft : opgeslagen} edit={edit} onChange={wijzig} />
     </div>
+  );
+}
+
+/**
+ * Rustige balk boven het document: de voorsteltekst is bijgewerkt en deze sessie heeft eigen
+ * tekst. Overnemen (na bevestiging, want eigen tekstwijzigingen vervallen) of de eigen versie
+ * houden. Zonder bekende basis (opgeslagen vóór de versiecontrole) is "nieuwer" niet zeker.
+ */
+function NieuwereVoorsteltekst(p: { basisBekend: boolean; onOvernemen: () => void; onHouden: () => void }) {
+  const [vraag, setVraag] = useState(false);
+  return (
+    <section
+      aria-label="Nieuwere voorsteltekst"
+      className="rounded-xl border border-cito-border border-l-4 border-l-[#003366] bg-white px-4 py-3"
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="min-w-0 flex-1 basis-72">
+          <p className="text-sm font-semibold text-[#003366]">
+            {p.basisBekend
+              ? "Er is een nieuwere voorsteltekst. Deze sessie heeft eigen aanpassingen."
+              : "De voorsteltekst kan nieuwer zijn dan deze versie. Deze sessie heeft eigen aanpassingen."}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Overnemen: vinkjes, afgeronde onderdelen en ingevulde links blijven; eigen tekstwijzigingen vervallen.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {!vraag ? (
+            <button
+              type="button"
+              onClick={() => setVraag(true)}
+              className={`${KNOP} bg-cito-blue text-white hover:bg-cito-blue/90`}
+            >
+              Nieuwe voorsteltekst overnemen
+            </button>
+          ) : (
+            <span className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Eigen tekstwijzigingen vervallen. Overnemen?
+              <button
+                type="button"
+                onClick={() => {
+                  setVraag(false);
+                  p.onOvernemen();
+                }}
+                className="font-bold underline"
+              >
+                Ja, overnemen
+              </button>
+              <button type="button" onClick={() => setVraag(false)} className="underline">
+                Nee
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setVraag(false);
+              p.onHouden();
+            }}
+            title="De melding verdwijnt tot er weer een nieuwere voorsteltekst is"
+            className={`${KNOP} border border-[#003366] bg-white text-[#003366] hover:bg-[#003366] hover:text-white`}
+          >
+            Mijn versie houden
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -418,21 +516,27 @@ const VOORTGANG_CSS = `
 function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => void; jira: string }) {
   const { session, updateSession } = useSession();
   const bewaard = session?.documenten?.[INTEGRATIE_SLEUTEL];
-  const doc = useMemo(() => mergeDocument(DEFAULT_INTEGRATIE_3SIDES, bewaard), [bewaard]);
+  // dezelfde oplossing als het tabblad Analyse (doc-versie.ts)
+  const versie = useMemo(() => oplossen(DEFAULT_INTEGRATIE_3SIDES, bewaard), [bewaard]);
+  const doc = versie.doc;
   const plek = vindVoortgangsbord(doc);
   const deel = plek ? deelNaam(plek.sectie) : null;
   const anker = plek ? "sec-" + plek.sectie.id : "";
   const [melding, setMelding] = useMelding();
 
-  /** Wijziging uit het bord (vinkje): op een kopie van het hele document, dan opslaan. */
+  /**
+   * Wijziging uit het bord (vinkje): op een kopie van het hele document, dan opslaan, met de
+   * basis van de getoonde versie (de keuze voor een nieuwere voorsteltekst maak je in de analyse).
+   */
   function zet(fn: (b: Voortgangsbord) => void) {
     if (!plek) return;
     const n = kloon(doc);
     const b = n.secties[plek.si]?.blokken[plek.bi];
     if (!b || b.type !== "voortgangsbord") return;
     fn(b);
+    const klaar = metBasis(n, versie.basis);
     updateSession((prev) => ({
-      documenten: { ...(prev.documenten ?? {}), [INTEGRATIE_SLEUTEL]: n },
+      documenten: { ...(prev.documenten ?? {}), [INTEGRATIE_SLEUTEL]: klaar },
     }));
     setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
   }

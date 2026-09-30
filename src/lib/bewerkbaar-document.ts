@@ -1,6 +1,9 @@
 // Generiek bewerkbaar document (o.a. stap 11 "Programma × 3sides"): hulpfuncties
 // om de standaardinhoud (src/lib/*-default.ts) te combineren met wat de gebruiker
 // in de sessie heeft aangepast (session.documenten[<sleutel>]).
+// Of een opgeslagen versie nog op de huidige voorsteltekst rust, en wat er gebeurt als
+// die is bijgewerkt, bepaalt src/lib/doc-versie.ts (oplossen); dit bestand doet alleen
+// het samenvoegen.
 
 import type { BewerkbaarDocument, DocSectie } from "@/lib/schemas";
 
@@ -16,6 +19,8 @@ export function kloon<T>(x: T): T {
  * - secties: de opgeslagen secties in hun eigen volgorde, aangevuld (achteraan)
  *   met elke standaardsectie waarvan de id er nog niet in staat. Zo verschijnt een
  *   later toegevoegde standaardsectie ook in een eerder opgeslagen sessie.
+ * `basis` (de voorsteltekst onder de opgeslagen versie) gaat niet mee: die zet de
+ * aanroeper bij het opslaan (doc-versie.ts, metBasis).
  */
 export function mergeDocument(
   std: BewerkbaarDocument,
