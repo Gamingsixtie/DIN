@@ -20,6 +20,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
+import { metBronlinks, useBron, useBronUrl } from "@/components/bewerkbaar/bron-context";
 
 type Blok = BlokVan<"werkstromen">;
 type Kaart = Blok["kaarten"][number];
@@ -343,7 +344,12 @@ function BordIcoon() {
  */
 function DocChip({ kop }: { kop: Koppeling }) {
   const jira = isJira(kop.label);
-  const url = kop.url.trim();
+  // eigen url gaat voor; anders de vindplaats: Jira uit de instelling, documenten via de naam in het label
+  const bronUrl = useBronUrl();
+  const bron = useBron();
+  const eigen = kop.url.trim();
+  const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, kop.label) ?? "");
+  const url = eigen || auto;
   const tekst = heeft(kop.label) ? kop.label.trim() : url;
   const cls = "wk-doc" + (jira ? " wk-doc-jira" : "");
   if (isLink(url)) {
@@ -576,7 +582,7 @@ function WerkstroomKaart({
               {heeft(k.bron) && (
                 <span className="wk-bron">
                   <span className="wk-bron-l">Bron</span>
-                  {k.bron}
+                  {metBronlinks(k.bron)}
                 </span>
               )}
             </p>
@@ -595,7 +601,7 @@ function WerkstroomKaart({
             ph="Waarom deze werkstroom, in één zin"
           />
         ) : heeft(k.waarom) ? (
-          <p className="wk-waarom">{k.waarom}</p>
+          <p className="wk-waarom">{metBronlinks(k.waarom)}</p>
         ) : (
           <Leeg />
         )}

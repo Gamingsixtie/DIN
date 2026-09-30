@@ -24,7 +24,7 @@ import { BronProvider, bronUrl } from "@/components/bewerkbaar/bron-context";
 import { KNOP } from "@/components/bewerkbaar/stijl";
 
 const HINT =
-  "Bewerkmodus: de gele velden zijn aanpasbaar; met × en + haal je secties, regels, rijen, kaarten en lagen weg of voeg je ze toe. Niets wordt bewaard tot je op Opslaan klikt.";
+  "Bewerkmodus: de gele velden zijn aanpasbaar; met × en + haal je secties, blokken, regels, rijen, kolommen, kaarten, lagen en groepen weg of voeg je ze toe. Niets wordt bewaard tot je op Opslaan klikt.";
 
 const TABBLADEN = [
   {

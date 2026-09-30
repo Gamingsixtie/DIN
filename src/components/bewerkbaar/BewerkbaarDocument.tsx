@@ -14,6 +14,7 @@ import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/sc
 import { isVerwijderd, kloon, verwijderdeSectie } from "@/lib/bewerkbaar-document";
 import { Keuze, Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { DOC_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
+import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 import { domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-typen";
 import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -152,7 +153,7 @@ function verwijderLaagKolom(n: BlokVan<"lagen">, c: number) {
 // ---------- blokken ----------
 
 function TekstBlok({ b, edit, zet }: BlokProps<"tekst">) {
-  if (!edit) return b.tekst ? <p className="okd-p">{b.tekst}</p> : null;
+  if (!edit) return b.tekst ? <p className="okd-p">{metBronlinks(b.tekst)}</p> : null;
   return <V v={b.tekst} on={(x) => zet((n) => void (n.tekst = x))} edit ml ph="Tekst" />;
 }
 
@@ -162,8 +163,8 @@ function CalloutBlok({ b, edit, zet }: BlokProps<"callout">) {
     if (!b.titel && !b.tekst) return null;
     return (
       <div className={cls} role="note">
-        {b.titel && <b className="okd-call-t">{b.titel}</b>}
-        <div className="okd-call-tekst">{b.tekst}</div>
+        {b.titel && <b className="okd-call-t">{metBronlinks(b.titel)}</b>}
+        <div className="okd-call-tekst">{metBronlinks(b.tekst)}</div>
       </div>
     );
   }
@@ -245,7 +246,7 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
                       ) : isChip(c) ? (
                         v ? <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span> : null
                       ) : (
-                        v
+                        metBronlinks(v)
                       )}
                     </td>
                   );
@@ -328,7 +329,7 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
                       />
                     </div>
                   ) : (
-                    r.waarde
+                    metBronlinks(r.waarde)
                   )}
                 </dd>
               </Fragment>
