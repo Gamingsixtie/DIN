@@ -699,68 +699,73 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "3sides",
       "3 · 3sides naast het DIN: hetzelfde model, andere woorden",
-      "3sides liet in het plan van aanpak een eigen piramide zien (p. 2). Het is hetzelfde model als ons DIN, met andere woorden. Eerst die piramide naast het DIN, dan wat hetzelfde is, waar de woorden verschillen en waarom we ze zo gelijktrekken, en tot slot waar alles wat 3sides oplevert onder hangt.",
+      "Links de piramide zoals 3sides hem tekent, rechts ons DIN. Hetzelfde model; alleen een paar woorden verschuiven. Hieronder eerst dat beeld, dan het advies in één zin, en per verschil één regel met de reden.",
       [
         MODELVERGELIJKING,
-        lijst(
-        [
-          "Framework: doelen, baten, vermogens en inspanningen, bij allebei (plan van aanpak p. 2).",
-          "Keten: het meetinstrument opent met de keten van het programma: de drie doelen met hun bouwstenen, onder doel 1 de onderdelen van ons gedeelde vermogen (meetinstrument p. 2).",
-          "Werkstromen: dezelfde vier (plan van aanpak p. 3; organigram); het Jira-bord kent daarnaast 'Quick wins' (p. 5).",
-          "Baten-KPI's: dezelfde 14 per sector, met startwaarde uit de 0-meting en de doelwaarde in een vervolgsessie (meetinstrument p. 7; KPI-model).",
-          "Klantreis: het herontwerp ligt bij de sectoren; de blueprint is het werkmodel dat zij verder invullen (programmascope; plan van aanpak p. 10).",
-          "CRM: eerst een richting als advies, daarna de keuze als besluit (tijdlijn; stappenplan).",
-        ],
-        "Wat hetzelfde is"
-      ),
+        callout(
+          "besluit",
+          "Advies in één zin",
+          "Eén model en één taal: we gebruiken de woorden van het DIN, de begrippen van 3sides zijn synoniemen, en kunnen én doen horen bij het vermogen; de werkstromen voeren de inspanningen uit."
+        ),
         {
           type: "vannaar",
-          titel: "Waar de woorden verschillen, en waarom we ze zo gelijktrekken",
-          vanKop: "Zo staat het bij 3sides",
-          naarKop: "Zo komt het in het DIN",
+          titel: "Wat verschuift, en waarom",
+          vanKop: "Bij 3sides",
+          naarKop: "In het DIN",
           rijen: [
             {
-              onderwerp: "Het woord inspanning",
-              van: "Inspanningen (Concreet Doen): wat medewerkers en teams doen per kernprincipe, dus gedrag",
-              naar: "Inspanning = de vier inspanningen in het DIN, één per domein, uitgevoerd door de werkstromen. Doen hoort bij het vermogen",
-              bron: "Plan van aanpak p. 2 en 8 · meetinstrument p. 5 en 11–12",
-              waarom: "In het programmaplan is een inspanning het werk dat een vermogen opbouwt; daarop plannen en sturen we. Gedrag is wat dat werk moet opleveren, dus het hoort bij het vermogen. Eén woord met twee betekenissen geeft verwarring in elk overleg.",
+              onderwerp: "Inspanning",
+              van: "Wat medewerkers doen: gedrag per kernprincipe",
+              naar: "Het werk dat een vermogen opbouwt; de werkstromen voeren het uit",
+              bron: "Plan van aanpak p. 2 en 8 · meetinstrument p. 5",
+              waarom: "Eén woord, één betekenis. Gedrag is wat het werk oplevert, dus het hoort bij het vermogen.",
             },
             {
               onderwerp: "Kunnen en doen",
-              van: "Vermogens & Inspanningen (Kunnen en Doen) als één laag, gemeten met de vijf kernprincipes",
-              naar: "Vermogen = kunnen én doen; de vijf kernprincipes zijn de meetlat van ons vermogen, geen vijfde onderdeel van het framework",
+              van: "Samen één laag, gemeten met de vijf kernprincipes",
+              naar: "Allebei het vermogen; de kernprincipes zijn de meetlat",
               bron: "Plan van aanpak p. 8 · meetinstrument p. 11–12",
-              waarom: "Een vermogen telt pas als je het terugziet in wat mensen doen; kunnen zonder doen levert geen baat op. Met kunnen én doen bij het vermogen meet de 0-meting per kernprincipe één ding, en blijven de inspanningen werk dat je kunt plannen en afronden.",
+              waarom: "Een vermogen telt pas als je het terugziet in wat mensen doen.",
             },
             {
-              onderwerp: "Label van de vermogens",
-              van: "Meetinstrument p. 6: 'Vermogens (Waartoe)'; elders 'Vermogens (Kunnen)'",
-              naar: "Doelen = waartoe, vermogens = kunnen",
-              bron: "Plan van aanpak p. 2 · meetinstrument p. 5 en 6",
-              waarom: "'Waartoe' is de vraag bij het doel: waarom doen we dit? Bij het vermogen hoort 'wat moeten we kunnen'. 3sides gebruikt zelf beide labels; met één label lopen doel en vermogen niet door elkaar.",
+              onderwerp: "Label vermogens",
+              van: "'Vermogens (Waartoe)'",
+              naar: "Vermogens (Kunnen); waartoe hoort bij het doel",
+              bron: "Meetinstrument p. 6 · plan van aanpak p. 2",
+              waarom: "Zo lopen doel en vermogen niet door elkaar; 3sides gebruikt elders zelf 'Kunnen'.",
             },
             {
               onderwerp: "Werkstromen",
-              van: "Vier werkstromen of stromen; nergens inspanningen genoemd",
-              naar: "De vier werkstromen zijn de uitvoering van de inspanningen in het DIN (voorstel)",
-              bron: "Plan van aanpak p. 3 · tijdlijn · organigram",
-              waarom: "3sides verdeelt het werk in vier werkstromen, het programmaplan in vier domeinen met elk een inspanning. Door de werkstromen te zien als de uitvoering van de inspanningen blijft er één structuur, en hangt elk onderdeel van het werk aan een vermogen.",
+              van: "Vier werkstromen, los van de piramide",
+              naar: "De uitvoering van de inspanningen in het DIN (voorstel)",
+              bron: "Plan van aanpak p. 3 · organigram",
+              waarom: "Eén structuur: elk onderdeel van het werk hangt aan een vermogen.",
             },
             {
-              onderwerp: "Namen van de werkstromen",
+              onderwerp: "Namen",
               van: "Blueprint klantreis · Technologielandschap · Succes meten · Adoptieframework",
-              naar: "Klantreizen · Centrale datavoorziening klantcontact · 0-meting · Adoptieframework: één set namen, in alle documenten (te besluiten, deel 7)",
+              naar: "Klantreizen · Centrale datavoorziening klantcontact · 0-meting · Adoptieframework",
               bron: "Plan van aanpak p. 3 · organigram",
-              waarom: "Twee namen voor dezelfde werkstroom doen denken dat het om iets anders gaat. Eén set namen houdt het overzicht, in de stukken van 3sides en in die van Cito.",
+              waarom: "Twee namen voor hetzelfde geven verwarring; één set namen, in alle stukken (te besluiten, deel 7).",
             },
           ],
-          legenda: "Zonder deze afspraak praten we langs elkaar heen. Vraag aan 3sides: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken; dan is het één model.",
+          legenda: "Vraag aan 3sides: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken; dan is het één model.",
         },
+        lijst(
+          [
+            "Framework: doelen, baten, vermogens en inspanningen (plan van aanpak p. 2).",
+            "Keten: het meetinstrument opent met onze drie doelen (meetinstrument p. 2).",
+            "Werkstromen: dezelfde vier (plan van aanpak p. 3).",
+            "Baten-KPI's: dezelfde 14 per sector (meetinstrument p. 7; KPI-model).",
+            "Klantreis: het herontwerp ligt bij de sectoren (programmascope; plan van aanpak p. 10).",
+            "CRM: eerst een richting als advies, dan de keuze als besluit (tijdlijn; stappenplan).",
+          ],
+          "Wat hetzelfde is"
+        ),
         callout(
           "info",
           "De vijf kernprincipes: de meetlat van ons vermogen",
-          "De vijf kernprincipes van 3sides beschrijven ons vermogen in vijf principes, elk met een kunnen-kant en een doen-kant, en krijgen in de 0-meting een score van 1 tot 10. Ze zijn geen vijfde onderdeel van het framework, maar de meetlat op het niveau van het vermogen: de werkstromen bouwen het vermogen op, de kernprincipes meten hoe ver het is. Hieronder per kernprincipe het kunnen en doen, letterlijk van 3sides, en waar het in ons vermogen hoort. Die koppeling is onze lezing, als voorstel; 3sides zegt zelf niets over domeinen of werkstromen."
+          "Vijf principes, elk met een kunnen-kant en een doen-kant, met in de 0-meting een score van 1 tot 10. Geen vijfde onderdeel van het framework, maar de meetlat van het vermogen. Kunnen en doen hieronder zijn letterlijk van 3sides; de koppeling aan ons vermogen, domein en werkstroom is ons voorstel."
         ),
         KERNPRINCIPES,
         tabel(
@@ -789,15 +794,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ["Vier organisatiebrede KPI's: NPS, conversie, omzet, retentie/churn", "Doel: organisatiebreed beeld (deel 6); NPS als resultante", "Meetinstrument p. 8 · KPI-model"],
           ],
           { titel: "Waar hangt alles wat 3sides oplevert onder?" }
-        ),
-        lijst(
-          [
-            "Eén betekenis per woord: inspanning is wat het programma doet, de vier inspanningen in het DIN, uitgevoerd door de werkstromen; kunnen én doen horen bij het vermogen.",
-            "Werkstromen bouwen, kernprincipes meten: de werkstromen bouwen het vermogen op in de vier domeinen; de vijf kernprincipes zijn de meetlat waarmee de 0-meting laat zien hoe ver dat vermogen is.",
-            "Per niveau één soort meting: output voor de werkstromen, de kernprincipe-score voor het vermogen, de 14 baten-KPI's voor de baten.",
-            "Vraag aan 3sides: noem 'Vermogens & Inspanningen (Kunnen en Doen)' in het meetmodel voortaan 'Vermogen: kunnen en doen', en maak van 'Vermogens (Waartoe)' 'Vermogens (Kunnen)'. Dan is het één model.",
-          ],
-          "Advies: zo komt alles samen"
         ),
       ]
     ),
