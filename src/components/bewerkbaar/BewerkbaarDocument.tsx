@@ -26,7 +26,7 @@ import StroomPlaatBlok, { STROOMPLAAT_CSS } from "@/components/bewerkbaar/blokke
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 import StappenBlok, { STAPPEN_CSS } from "@/components/bewerkbaar/blokken/StappenBlok";
 import ModelVergelijkingBlok, { MODELVERGELIJKING_CSS } from "@/components/bewerkbaar/blokken/ModelVergelijkingBlok";
-import { DocContext } from "@/components/bewerkbaar/doc-context";
+import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
 type BlokProps<T extends DocBlok["type"]> = Omit<LosBlokProps<T>, "ankers">;
@@ -1574,6 +1574,14 @@ export default function BewerkbaarDocument({
     const { doc: d, onChange: wijzig } = laatste.current;
     wijzig({ ...d, secties: d.secties.map((x, j) => (j === i ? s : x)) });
   }, []);
+  // Voor blokken die een ander blok bijwerken (bijv. een vinkje uit het voortgangsbord
+  // op een werkstroomkaart): kopie van het hele document aanpassen en doorgeven.
+  const zetDoc = useCallback((fn: (d: DocData) => void) => {
+    const { doc: d, onChange: wijzig } = laatste.current;
+    const n = kloon(d);
+    fn(n);
+    wijzig(n);
+  }, []);
 
   // Verwijderde secties (lege markering, zie bewerkbaar-document.ts) niet tonen;
   // de index blijft die in doc.secties.
@@ -1592,6 +1600,7 @@ export default function BewerkbaarDocument({
 
   return (
     <DocContext.Provider value={doc}>
+    <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
       <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS}</style>
@@ -1658,6 +1667,7 @@ export default function BewerkbaarDocument({
       )}
     </div>
     </SectieProvider>
+    </DocZetContext.Provider>
     </DocContext.Provider>
   );
 }
