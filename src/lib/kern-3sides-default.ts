@@ -155,22 +155,22 @@ export const DEFAULT_KERN_3SIDES: BewerkbaarDocument = {
           ],
           "rijen": [
             [
-              "Technologielandschap (p. 6–7)",
+              "Technologielandschap ([[PvA p. 6–7]])",
               "Het groeiende aantal systemen in kaart brengen en per systeem adviseren: behouden, vervangen, samenvoegen of uitfaseren. Levert een overzicht met eigenaren en kosten, een doelbeeld met ontwerpprincipes, een roadmap met kostenindicatie en een werkwijze om het landschap actueel te houden. Scope: alle applicaties, platformen, data en integraties die de klantreis raken.",
               "Q3 inventarisatie & analyse · Q3/Q4 doelbeeld en keuzes · Q4 roadmap en overdracht (zonder jaartal)"
             ],
             [
-              "Succes meten (p. 8–9)",
+              "Succes meten ([[PvA p. 8–9]])",
               "In lagen meten: doel → baten (KPI's per sector en BV) → vermogens & inspanningen (KPI's per klantreisfase, gekoppeld aan proces en gedrag). Levert het meetmodel, een verzameling datapunten, een 0-meting op een zeer uitgebreide set KPI's en een tussenmeting.",
               "Q3 2026 inventarisatie, analyse, ontwerp · Q3/Q4 2026 0-meting gerealiseerd · Q1 2027 tussenmeting"
             ],
             [
-              "Blueprint Klantreis (p. 10–11)",
+              "Blueprint Klantreis ([[PvA p. 10–11]])",
               "De sectorklantreizen uit KiB samenvoegen tot één integrale Cito BV-klantreis, gedragen door product- en sectormanagers en bedoeld als werkmodel per sector. De matrix koppelt fasen, klantdoelen, hoofdstappen, kernwaarden, kernprincipes, processen, systeemgebruik, gedrag per rol en KPI's.",
               "Q3 2026 inventarisatie, analyse & ontwerp · Q4 2026 gevalideerd en toegepast binnen eerste pilotgroep"
             ],
             [
-              "Adoptieframework (p. 12–13)",
+              "Adoptieframework ([[PvA p. 12–13]])",
               "Gedragsverandering: \"De klantreis is organisatiebreed, maar gedrag moet rolspecifiek worden.\" Levert het SMILE-framework, Customer Journey Playbook-workshops met een 1e pilot, per rol 1 A4 \"Mijn rol in de klantreis\", een communicatieplan, een kern-adoptieteam en Customer Journey Champions per afdeling.",
               "Q3 2026 inventarisatie, analyse, ontwerp · Q4 2026 Customer Journey Playbooks · Q1 2027 pilots sectoren"
             ]

@@ -26,7 +26,7 @@ import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Keuze, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
 import { useBlok } from "@/components/bewerkbaar/doc-context";
-import { metBronlinks, useBron, useBronUrl } from "@/components/bewerkbaar/bron-context";
+import { metBronlinks, useBron, useBronUrl, paginaUit } from "@/components/bewerkbaar/bron-context";
 import { maandDatum, tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { TijdlijnRij, VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 
@@ -427,7 +427,7 @@ function Koppel({ kop }: { kop: Koppeling }) {
   const bron = useBron();
   const jira = isJira(kop.label);
   const eigen = tekst(kop.url).trim();
-  const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, kop.label) ?? "");
+  const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, paginaUit(kop.label)) ?? "");
   const url = eigen || auto;
   const label = tekst(kop.label).trim() || url;
   if (isLink(url)) {

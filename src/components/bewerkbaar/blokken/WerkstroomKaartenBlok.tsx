@@ -37,7 +37,7 @@ import type { BewerkbaarDocument as DocData, DocBlok } from "@/lib/schemas";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
-import { metBronlinks, useBron, useBronUrl } from "@/components/bewerkbaar/bron-context";
+import { metBronlinks, useBron, useBronUrl, paginaUit } from "@/components/bewerkbaar/bron-context";
 import { useBlok, useDocZet } from "@/components/bewerkbaar/doc-context";
 import { tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -744,7 +744,7 @@ function DocChip({ kop }: { kop: Koppeling }) {
   const bronUrl = useBronUrl();
   const bron = useBron();
   const eigen = kop.url.trim();
-  const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, kop.label) ?? "");
+  const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, paginaUit(kop.label)) ?? "");
   const url = eigen || auto;
   const tekst = heeft(kop.label) ? kop.label.trim() : url;
   const cls = "wk-doc" + (jira ? " wk-doc-jira" : "");
