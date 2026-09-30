@@ -1,9 +1,10 @@
 // Stap 11 — "Programma × 3sides". Kernboodschap: de programmastructuur staat; alles
 // wat 3sides heeft, past onder het ene framework van het programma (het Doelen-
 // Inspanningennetwerk, DIN); met de juiste rollen in het framework maken we het concreet.
-// Verhaallijn: de kern → wat we hebben (plaat met rollen) → wat 3sides heeft en waar het
-// hoort → het meetmodel (werkstromen bouwen, kernprincipes meten) → de vier werkstromen
-// → de planning → overeenkomsten en verschillen → hoe verder → voortgang → bronnen.
+// Verhaallijn in tien delen: de kern → de structuur (plaat met rollen, de toets) → 3sides
+// naast het DIN (werkstromen bouwen, kernprincipes meten) → de vier werkstromen → planning,
+// voortgang en het actiebord van Cito → het meetmodel → eerst intern besluiten → de interne
+// evaluatie van 3sides → het gesprek met 3sides (agenda, laatste check) → bronnen.
 // Standaardinhoud; in de app per kop en cel aanpasbaar en opgeslagen onder
 // session.documenten[INTEGRATIE_SLEUTEL].
 //
@@ -74,19 +75,19 @@ const DIN_PLAAT: DocBlok = {
     {
       titel: "Zakelijk",
       tekst: "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten · 5 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager Zakelijk",
+      rol: "Bateneigenaar: sectormanager Zakelijk ❓",
       kpi: "5 baten-KPI's: funnel-conversie per stap · offertes: aantal en % dat opdracht wordt · conversie uit bezoeken · serviceniveau en reactietijden · churn",
     },
     {
       titel: "PO",
       tekst: "Intensiever partnership · 5 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager PO",
+      rol: "Bateneigenaar: sectormanager PO ❓",
       kpi: "5 baten-KPI's: groei productgebruik (cross- en upsell) · gebruiksintensiteit volledige lijn · raamcontracten grote besturen · ontwikkeldeadlines en beloftes gehaald · churn",
     },
     {
       titel: "VO",
       tekst: "Hogere voorspelbaarheid commerciële begroting · 4 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager VO",
+      rol: "Bateneigenaar: sectormanager VO ❓",
       kpi: "4 baten-KPI's: prognose-nauwkeurigheid · % meerjarige (3-jr) licenties · inzicht in toetskeuzemomenten · churn",
     },
   ],
@@ -145,7 +146,7 @@ const DIN_PLAAT: DocBlok = {
     },
   ],
   voet:
-    "Lees van onder naar boven: elke werkstroom bouwt in een of meer domeinen aan het vermogen; samen levert dat de baten, en die dragen bij aan het doel. Op elk niveau staat wie het draagt. Klik op een werkstroom voor het plan van aanpak. Bronnen: DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
+    "Lees van onder naar boven: elke werkstroom bouwt in een of meer domeinen aan het vermogen; samen levert dat de baten, en die dragen bij aan het doel. Op elk niveau staat wie het draagt. Klik op een werkstroom voor het plan van aanpak. ❓ Bateneigenaar: het organigram noemt de sectormanager, het KPI-model de Commercieel Manager (besluitpunt Rollen, deel 7). Bronnen: DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
 };
 
 // ---------- de vijf kernprincipes van 3sides in ons vermogen ----------
@@ -361,8 +362,8 @@ const WERKSTROMEN: DocBlok = {
         { wanneer: "Q1 2027", wat: "tussenmeting" },
       ],
       dinPad: [
-        "Inspanning: meetmodel, 0-meting en tussenmeting; een inspanning over alle vier de domeinen (voorstel)",
-        "Vermogen: in elk domein gemeten met de vijf kernprincipes",
+        "Inspanning: in het DIN '0-meting: meten van baten en vermogen', over alle vier de domeinen (besluit 30-09); de werkstroom voert haar uit met meetmodel, 0-meting en tussenmeting",
+        "Vermogen: alle vier de delen; de inspanning bouwt het meten van baten en vermogen op en meet het vermogen met de vijf kernprincipes",
         "Baten: de 14 baten-KPI's, met startwaarden uit de 0-meting",
       ],
       aanvullen: [
@@ -468,7 +469,7 @@ const TIJDLIJN: DocBlok = {
     },
   ],
   legenda:
-    "Bron: projecttijdlijn 3sides, tab v3, stand 28-09-2026: 28 onderdelen van de vier werkstromen, met per onderdeel de oplevering. Namen in gewone taal; voortgang en status (+, +/-, -) zoals 3sides ze rapporteert. Volgorde van de werkstromen als in de plaat.",
+    "Bron: projecttijdlijn 3sides, tab v3, stand 28-09-2026: 28 onderdelen van de vier werkstromen, met start en oplevering waar 3sides die noemt. Namen in gewone taal; voortgang en status (+, +/-, -) zoals 3sides ze rapporteert. Volgorde van de werkstromen als in de plaat.",
 };
 
 // ---------- het model van 3sides naast het DIN ----------
@@ -533,8 +534,8 @@ const MODELVERGELIJKING: DocBlok = {
 export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
   titel: "Eén framework, geen nieuw wiel",
   ondertitel:
-    "Klant in Zicht en 3sides in één Doelen-Inspanningennetwerk (DIN): wat er staat, hoe het model van 3sides erin past, wat de werkstromen doen en hoe we meten.",
-  status: "Intern Cito · voorbereiding sessie maandag 5 oktober · stand 30-09-2026",
+    "Klant in Zicht en 3sides in één Doelen-Inspanningennetwerk (DIN): wat er staat, hoe het model van 3sides erin past, wat de werkstromen doen, hoe we meten, wat we intern besluiten en wat we met 3sides bespreken.",
+  status: "Intern Cito · voorbereiding sessie maandag 5 oktober · stand 01-10-2026",
   secties: [
     // 1
     sectie("kort", "1 · De kern: de programmastructuur staat", "", [
@@ -630,8 +631,8 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               "Staat erin",
               "3 sectorbaten met 14 baten-KPI's (KPI-model, stap 9); startwaarden uit de 0-meting, doelwaarden in een vervolgsessie",
             ],
-            ["Vermogen en domeinen", "Staat erin", "Gedeeld vermogen in 4 domeinen, met per domein één inspanning (samengevoegd uit 10 sectorinspanningen)"],
-            ["Werkstromen", "Staat erin", "De vier werkstromen zijn afgesproken (plan van aanpak p. 3), met per werkstroom een 3sides-lead (programmateam) en een Cito-lead als voorstel (organigram; vast te stellen door de programma-eigenaar)"],
+            ["Vermogen en domeinen", "Staat erin", "Gedeeld vermogen in 4 domeinen, met per domein één inspanning (samengevoegd uit 10 sectorinspanningen), plus de 0-meting als inspanning over alle vier (besluit 30-09)"],
+            ["Werkstromen", "Staat erin", "De vier werkstromen zijn afgesproken (plan van aanpak p. 3), met per werkstroom een Cito-lead als voorstel (organigram; vast te stellen door de programma-eigenaar) en een 3sides-lead (programmateam)"],
             [
               "Rollen",
               "Deels",
@@ -640,9 +641,9 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             [
               "Plan van aanpak per werkstroom",
               "Deels",
-              "3sides beschreef per werkstroom doel, resultaten, aanpak en planning (plan van aanpak p. 6–13). Wat er nog bij moet (3sides vult aan, Cito toetst en stelt vast): output-KPI en capaciteit van Cito; bij klantreizen de eigenaar na het programma, bij adoptie de afbakening van de scope en de pilotsector, bij de 0-meting het meetprotocol per baten-KPI en de eigenaar per datapunt (deel 4)",
+              "3sides beschreef per werkstroom doel, resultaten, aanpak en planning (plan van aanpak p. 6–13). Wat er nog bij moet (3sides vult aan, Cito toetst en stelt vast): output-KPI en capaciteit van Cito; bij adoptie de afbakening van de scope en een voorstel voor de pilotsector, bij de 0-meting het meetprotocol per baten-KPI en een voorstel voor de eigenaar per datapunt (deel 4); eigenaren en pilotsector kiest Cito (actiebord, deel 5)",
             ],
-            ["Meetmodel", "Deels", "De KPI's staan; de 0-meting is nog niet gestart (oplevering oktober)"],
+            ["Meetmodel", "Deels", "De 14 baten-KPI's staan; vermogen- en output-KPI's volgen (deel 6); de 0-meting is nog niet gestart (oplevering oktober)"],
           ],
           {
             titel: "Staat de structuur? Stand per onderdeel",
@@ -664,7 +665,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               "Pim",
               "Bewaakt de inhoudelijke kaders over alle vier de werkstromen; geen resultaat naar de stuurgroep zonder zijn inhoudelijke acceptatie",
             ],
-            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk", "Bewaken dat de baten komen; lid van de stuurgroep"],
+            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk ❓ (KPI-model: Commercieel Manager)", "Bewaken dat de baten komen; lid van de stuurgroep"],
             [
               "Domeineigenaren",
               "Cornelis (Data & Systemen) · Yara (Mens) · Processen en Cultuur: n.t.b.",
@@ -827,7 +828,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ],
             [
               "Succes meten: meetmodel, datapunten, 0-meting",
-              "Werkstroom 0-meting: een inspanning over alle vier domeinen; meet baten en vermogen (stappenplan: nulmeting) (voorstel)",
+              "Werkstroom 0-meting; voert de inspanning '0-meting: meten van baten en vermogen' uit, over alle vier domeinen (besluit 30-09; stappenplan: nulmeting)",
               "Plan van aanpak p. 8–9 · meetinstrument · datapunten",
             ],
             [
@@ -891,7 +892,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               geleverd: ["SMILE-aanpak uitgewerkt en opzet besproken met Pim", "Adoptieframework als werkdocument (PDF)"],
               nodig: [
                 { tekst: "Scope afbakenen in het plan van aanpak: de aanleiding noemt de hele organisatie, per sector, team en rol, maar een eigen scope-paragraaf zoals bij de andere werkstromen ontbreekt (plan van aanpak p. 12–13)", klaar: false },
-                { tekst: "Voorstel eerste pilotsector met datum; planning gelijktrekken: stappenplan Q3, plan van aanpak Q1 2027, tijdlijn januari–februari 2027", klaar: false },
+                { tekst: "Voorstel eerste pilotsector met datum, binnen de planning die Cito vaststelt (nu: stappenplan Q3, plan van aanpak Q1 2027, tijdlijn januari–februari 2027)", klaar: false },
                 { tekst: "Einddatum voor communicatieplan, toetsen en ambassadeurs", klaar: false },
                 { tekst: "Output-KPI's en capaciteit van Cito en HR per resultaat", klaar: false },
               ],
@@ -914,7 +915,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               nodig: [
                 { tekst: "Datum voor de validatie van de blueprint met product- en sectormanagers (Q4)", klaar: false },
                 { tekst: "Startmaand van de vertaling naar CRM-input en funnelprocessen", klaar: false },
-                { tekst: "Selectie uit het meetkader van 55 KPI's: welke gaan mee naar de 0-meting", klaar: false },
+                { tekst: "Meetkader van 55 KPI's: in de 0-meting alleen wat de 14 baten-KPI's en de vijf kernprincipe-scores voedt, de rest na de 0-meting (voorstel, deel 7)", klaar: false },
                 { tekst: "Output-KPI's en capaciteit van Cito per resultaat", klaar: false },
               ],
             },
@@ -925,14 +926,14 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               nodig: [
                 { tekst: "Datum voor de validatie van het meetmodel met Meryl en het MT, vóór de 0-meting", klaar: false },
                 { tekst: "Meetprotocol per baten-KPI: definitie, bron, eenheid, frequentie, wie levert; eigenaar per datapunt", klaar: false },
-                { tekst: "0-meting starten en in oktober opleveren: startwaarde per baten-KPI en score per kernprincipe", klaar: false },
+                { tekst: "0-meting starten en in oktober opleveren: startwaarde per baten-KPI, score per kernprincipe en de stand per domein (alle vier)", klaar: false },
                 { tekst: "In het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken", klaar: false },
               ],
             },
           ],
           programmabreed: [
-            { tekst: "Jira-bord delen met de bredere groep (actiepunt 29-09) en de link onder Vindplaatsen zetten", klaar: false },
-            { tekst: "Plan van aanpak aanvullen per werkstroom: output-KPI, capaciteit van Cito, eigenaar; 3sides vult aan, Cito toetst en stelt vast", klaar: false },
+            { tekst: "Jira-bord delen met de bredere groep (actiepunt 29-09)", klaar: false },
+            { tekst: "Plan van aanpak aanvullen per werkstroom: output-KPI, benodigde capaciteit van Cito en de eigenaar die Cito aanwijst; 3sides vult aan, Cito toetst en stelt vast", klaar: false },
             { tekst: "Eén set namen voor de vier werkstromen, in alle documenten", klaar: false },
             { tekst: "Projectgroepen per werkstroom in plaats van één-op-één-gesprekken", klaar: false },
           ],
@@ -946,7 +947,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
                     ["Programmabreed", "Projectgroep per werkstroom samenstellen; capaciteit ophalen bij sector- en afdelingsmanagers", ""],
           ["Programmabreed", "Plan van aanpak per werkstroom toetsen (Cito-lead op resultaat, Pim op de kaders) en vaststellen (Sanne)", ""],
                     ["Programmabreed", "Begrippenlijst met gangbare termen (actiepunt 29-09)", ""],
-          ["Programmabreed", "Besluiten wanneer en hoe vaak we 3sides intern evalueren op de vier punten (voorstel: elke zes weken)", ""],
+          ["Programmabreed", "3sides intern evalueren op de vier punten (deel 8), in het ritme dat we maandag besluiten", ""],
           ["Adoptieframework", "Kern-adoptieteam en champions per afdeling aanwijzen, samen met 3sides (plan van aanpak p. 12; stappenplan: ambassadeurs per sector in Q4)", ""],
           ["Adoptieframework", "Eerste pilotsector kiezen", ""],
           ["Adoptieframework", "Capaciteit van HR vrijmaken voor training en coaching (tijdlijn: april tot juni 2027)", ""],
@@ -963,7 +964,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           titel: "Wat Cito zelf moet doen",
           groepKolom: 0,
           invulKolom: 2,
-          legenda: "Wie: samen in te vullen. Bronnen: overleg 29-09, organigram, stappenplan, plan van aanpak p. 10–13 en de tijdlijn. Wat we 3sides vragen, staat in de agenda in deel 9.",
+          legenda: "Wie: samen in te vullen. Bronnen: overleg 29-09, organigram, stappenplan, plan van aanpak p. 10–13 en de tijdlijn. Wat we van 3sides vragen, staat in het voortgangsbord hierboven en komt op de agenda in deel 9.",
         }
       ),
       ]
@@ -1039,7 +1040,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ["Meetmodel ontwikkelen", "Doelen, baten, vermogens en inspanningen", "jul–sep; loopt, status +/-", "Tijdlijn"],
             ["Meetmodel valideren", "Met Meryl als opdrachtgever, daarna met het MT", "Te bepalen", "Overleg 29-09"],
             ["Data ophalen", "Circa 85 datapunten, deels met eigenaar", "sep–okt; loopt, status -", "Tijdlijn · datapunten"],
-            ["0-meting", "Startwaarde per baten-KPI en een score per kernprincipe", "Oplevering okt; nog niet gestart", "Tijdlijn · plan van aanpak p. 8–9"],
+            ["0-meting", "Startwaarde per baten-KPI, een score per kernprincipe en de stand per domein", "Oplevering okt; nog niet gestart", "Tijdlijn · plan van aanpak p. 8–9"],
             ["Doelwaarden vaststellen", "In een vervolgsessie, na de 0-meting", "Te bepalen", "Meetinstrument p. 7"],
             ["Tussenmeting", "Voortgang evalueren en bijsturen", "jan–feb 2027", "Tijdlijn · plan van aanpak p. 8–9"],
             [
@@ -1067,13 +1068,13 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           [
             "Framework: het DIN blijft het enige framework; de termen van 3sides zijn synoniemen (deel 3).",
             "Woorden: inspanning = de inspanningen in het DIN, uitgevoerd door de werkstromen; kunnen en doen horen bij het vermogen (deel 3).",
-            "0-meting: een inspanning over alle vier domeinen, naast de vier domeininspanningen (voorstel programma-architect, 30-09).",
-            "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen (deel 6).",
+            "0-meting: een inspanning over alle vier domeinen, naast de vier domeininspanningen (besluit programma-architect, 30-09; ter bevestiging).",
+            "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen; NPS is een resultante, geen stuur-KPI (deel 6).",
             "Vermogen-KPI's: per domein vaststellen waar we naartoe willen (gewenste situatie) en per kernprincipe de doelscore, in de vervolgsessie na de 0-meting.",
-            "Plan van aanpak: per werkstroom finaliseren, met output-KPI, capaciteit van Cito en eigenaar; 3sides vult aan, Cito toetst en stelt vast (deel 4).",
+            "Plan van aanpak: per werkstroom finaliseren, met output-KPI en de benodigde capaciteit van Cito; 3sides vult aan, Cito toetst, stelt vast en wijst de eigenaar aan (deel 4).",
             "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaar gelijktrekken (sectormanager of Commercieel Manager).",
             "Planning: de verschuiving van pilot en 0-meting vaststellen (deel 5).",
-            "Namen: één set namen voor de vier werkstromen.",
+            "Namen: één set namen voor de vier werkstromen; kiezen tussen die van het organigram en die van 3sides ❓",
             "Evaluatie van 3sides: intern, op vier punten (deel 8); besluiten wanneer en hoe vaak (voorstel: elke zes weken).",
           ],
           "Besluitpunten voor maandag (intern)"
@@ -1136,7 +1137,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ]),
           kaart("2 · Levert 3sides op volgens planning?", "tempo en betrouwbaarheid", [
             ["Wat we toetsen", "Komen de onderdelen uit de tijdlijn op tijd af, en klopt de planning met het plan van aanpak en ons stappenplan?"],
-            ["Wat we zien", "Van de 28 onderdelen staat er nog geen op afgerond (tijdlijn, stand 28-09). 'Klant in Beeld-klantreizen samenvoegen' had in augustus klaar moeten zijn; drie onderdelen leveren in september op (meetmodel, analyse van data en applicaties, visie en consequenties). De 0-meting is nog niet gestart (oplevering oktober), en de pilots schuiven van Q3 2026 (stappenplan) naar januari 2027 (tijdlijn). Vier onderdelen hebben geen oplevermaand (deel 5)."],
+            ["Wat we zien", "Van de 28 onderdelen staat er nog geen op afgerond (tijdlijn, stand 28-09). 'Klant in Beeld-klantreizen samenvoegen' had in augustus klaar moeten zijn; drie onderdelen hadden in september klaar moeten zijn (meetmodel, analyse van data en applicaties, visie en consequenties). De 0-meting is nog niet gestart (oplevering oktober), en de pilots schuiven van Q3 2026 (stappenplan) naar januari 2027 (tijdlijn). Vier onderdelen hebben geen oplevermaand (deel 5)."],
             ["Eerste beeld", "Deels: het werk loopt, de planning schuift (voorstel)", true],
             ["Wat we vragen", "Eén planning voor 0-meting en pilots, de open start- en opleverdata invullen, en per onderdeel bijhouden wanneer het af is."],
             ["Ons oordeel (intern)", "In te vullen"],
@@ -1163,34 +1164,34 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "gesprek",
       "9 · Het gesprek met 3sides: agenda en laatste check",
-      "Na de interne besluiten en de evaluatie: wat we in het maandelijkse gesprek met 3sides bespreken. We kijken vooruit: we hebben alles gelezen, dit zijn de actiepunten, hoe pakken we ze op?",
+      "Na de interne besluiten en de evaluatie: wat we in het maandelijkse gesprek met 3sides bespreken. We kijken vooruit: we hebben alles gelezen, dit zijn de actiepunten, hoe pakken we ze op? De actiepunten per werkstroom staan in het voortgangsbord (deel 5).",
       [
         lijst(
           [
-            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken dezelfde namen voor de werkstromen (deel 3).",
-            "2 · Plan van aanpak per werkstroom aanvullen: output-KPI per resultaat, capaciteit van Cito en eigenaar; bij adoptie de afbakening van de scope (deel 4).",
-            "3 · Planning gelijktrekken: 0-meting en pilots in één planning, de open start- en opleverdata invullen, en de volgorde van de klantreisvertaling controleren (deel 5).",
-            "4 · Meetkader focussen: eerst de 14 baten-KPI's en de vijf kernprincipe-scores; melden dat er KPI's bij komen op vermogensniveau (na de 0-meting) en per werkstroom (output); meetprotocol en eigenaar per datapunt (deel 6).",
+            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken dezelfde namen voor de werkstromen; NPS en de andere organisatiebrede KPI's op doelniveau, met NPS als resultante (voorstel; deel 3 en 6).",
+            "2 · Plan van aanpak per werkstroom aanvullen: output-KPI per resultaat en de capaciteit die 3sides van Cito nodig heeft; bij adoptie een scope-paragraaf binnen de afbakening van het programma; de eigenaar die Cito aanwijst erin opnemen. 3sides vult aan, Cito toetst en stelt vast (deel 4).",
+            "3 · Planning: de planning voor 0-meting en pilots die we intern vaststellen in de tijdlijn verwerken, de open start- en opleverdata invullen, en de volgorde van de klantreisvertaling controleren (deel 5 en 7).",
+            "4 · Meetkader focussen: in de 0-meting eerst de 14 baten-KPI's, de vijf kernprincipe-scores en de stand per domein; melden dat er KPI's bij komen op vermogensniveau (na de 0-meting) en per werkstroom (output); meetprotocol en een voorstel voor de eigenaar per datapunt (deel 6 en 7).",
             "5 · Werkwijze: per werkstroom een projectgroep met Cito-mensen, het Jira-bord delen met de bredere groep, en keuzes onderbouwen op één A4 (overleg 29-09).",
           ],
           "Agenda voor het maandelijkse gesprek met 3sides (voorstel)"
         ),
         kaarten([
           kaart("Hebben we 3sides geëvalueerd?", "deels", [
-            ["Antwoord", "Deels: we hebben de inhoud getoetst, niet de samenwerking."],
-            ["Wel gedaan", "Hun model en werkstromen passen op ons DIN, met verschillen in taal (deel 3); per werkstroom ligt een eerste versie van het plan van aanpak (deel 4); de planning schuift bij de 0-meting en de pilots (deel 5)."],
-            ["Nog niet", "De samenwerking zelf: werkwijze, tempo en inzet.", true],
-            ["Voorstel", "Evalueer intern op de vier punten van deel 8; het oordeel stellen we zelf vast, niet in het gesprek met 3sides. Wanneer: nog te besluiten.", true],
+            ["Antwoord", "Deels: op drie van de vier punten ligt een eerste beeld als voorstel (deel 8); ons oordeel is nog niet vastgesteld."],
+            ["Wel gedaan", "Per punt wat we toetsen en wat we zien, met bron; een eerste beeld bij aansluiting op het DIN, planning en samenwerking (deel 8)."],
+            ["Nog niet", "Ons oordeel per punt, en een eerste beeld van de inzet: uren tegenover opbrengst.", true],
+            ["Voorstel", "Het oordeel stellen we intern vast, niet in het gesprek met 3sides; wanneer en hoe vaak is een besluitpunt (deel 7).", true],
           ]),
           kaart("Weten we wat we zelf willen?", "op hoofdlijnen ja", [
             ["Antwoord", "Op hoofdlijnen ja: de structuur staat."],
-            ["Staat", "Het DIN met doel, baten en 14 baten-KPI's, het gedeelde vermogen in vier domeinen, de vier werkstromen, de rollen als voorstel en de toets voor nieuw werk (deel 2)."],
+            ["Staat", "Het DIN met doel, baten en 14 baten-KPI's, het gedeelde vermogen in vier domeinen, de vier werkstromen, de rollen als voorstel en de toets 'Hoort het bij het programma?' (deel 2)."],
             ["Nog te besluiten", "Rollen vaststellen, domeineigenaren Processen en Cultuur, bateneigenaar, één set namen en één planning (besluitpunten in deel 7); na de 0-meting de doelwaarden en de vermogen-KPI's.", true],
             ["Nog te doen", "Wat Cito zelf moet doen, per werkstroom: het actiebord in deel 5.", true],
           ]),
           kaart("Weten we wat we met 3sides willen bespreken?", "ja, vijf agendapunten", [
             ["Antwoord", "Ja: de vijf agendapunten hierboven, in die volgorde."],
-            ["Basis", "Alles is terug te voeren op de verschillen (deel 3), de plannen van aanpak (deel 4), de planning (deel 5) en het meetmodel (deel 6)."],
+            ["Basis", "Elk punt komt uit deel 3 tot en met 7 of uit de actiepunten van het overleg van 29-09; de evaluatie (deel 8) blijft intern."],
           ]),
         ]),
       ]
