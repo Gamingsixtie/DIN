@@ -732,7 +732,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
         <div className="vb-paneel">
           <PaneelKop
             titel="Nog nodig voor het hele programma"
-            sub="Wat we van 3sides vragen en wat Cito zelf doet; vink af wat klaar is."
+            sub="Wat we programmabreed van 3sides vragen; vink af wat binnen is. Wat Cito zelf doet, staat in het actiebord."
             aantal={edit ? undefined : programmabreed.filter((x) => !x.klaar).length}
           />
           {programmabreed.length === 0 && !edit ? (

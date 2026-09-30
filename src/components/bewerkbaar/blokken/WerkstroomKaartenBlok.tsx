@@ -39,7 +39,7 @@ import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { metBronlinks, useBron, useBronUrl, paginaUit, zoekDocument } from "@/components/bewerkbaar/bron-context";
 import { Leads } from "@/components/bewerkbaar/leads";
-import { useBlok, useDocZet } from "@/components/bewerkbaar/doc-context";
+import { useBlok, useDoc, useDocZet } from "@/components/bewerkbaar/doc-context";
 import { tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import { CITO_HINT, NODIG_GROEPEN, citoTekst, nodigGroepen } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
@@ -668,6 +668,26 @@ function TijdlijnDeel({ onderdelen, edit, kaartId, link }: { onderdelen: Onderde
 }
 
 /**
+ * Hoeveel acties Cito zelf heeft voor deze werkstroom, uit het actiebord ("Wat Cito zelf moet
+ * doen": een tabel met een groepkolom). Het actiebord is de enige plek voor die acties; de
+ * kaart telt ze alleen en linkt naar het deel waar het actiebord staat.
+ */
+function useCitoActies(namen: string[]): { aantal: number; anker: string | null } {
+  const doc = useDoc();
+  if (!doc) return { aantal: 0, anker: null };
+  const gezocht = namen.map((n) => n.trim().toLowerCase()).filter(Boolean);
+  for (const s of doc.secties) {
+    for (const b of s.blokken) {
+      if (b.type !== "tabel" || b.groepKolom === undefined) continue;
+      const g = b.groepKolom;
+      const aantal = b.rijen.filter((r) => gezocht.includes((r[g] ?? "").trim().toLowerCase())).length;
+      return { aantal, anker: "sec-" + s.id };
+    }
+  }
+  return { aantal: 0, anker: null };
+}
+
+/**
  * Nog nodig: de regels uit het voortgangsbord (afvinkbaar) of, zonder bord of zonder
  * regels, de eigen lijst van de kaart. Het kopje is amber zolang er iets open staat.
  * Bewerkmodus: de eigen lijst blijft bewerkbaar (één lijst, "Cito:" zichtbaar) met hints.
@@ -676,6 +696,7 @@ function NodigDeel({ k, edit, zetK, nodig, bordLink }: { k: Kaart; edit: boolean
   const open = nodig
     ? nodig.items.some((x) => x.klaar !== true && heeft(getoondeTekst(tekst(x.tekst))))
     : k.aanvullen.some((s) => heeft(getoondeTekst(s)));
+  const cito = useCitoActies([k.naam, k.bijnaam]);
   return (
     <Deel titel="Nog nodig" open={open}>
       {nodig && <NodigLijst nodig={nodig} />}
@@ -696,11 +717,18 @@ function NodigDeel({ k, edit, zetK, nodig, bordLink }: { k: Kaart; edit: boolean
       ) : (
         !nodig && <Aanvullen items={k.aanvullen} />
       )}
-      {!edit && nodig && bordLink && (
+      {!edit && ((nodig && bordLink) || (cito.aantal > 0 && cito.anker)) && (
         <p className="wk-voet">
-          <a className="wk-link" href={bordLink}>
-            Voortgangsbord <span aria-hidden="true">↓</span>
-          </a>
+          {cito.aantal > 0 && cito.anker && (
+            <a className="wk-link" href={"#" + cito.anker}>
+              Wat Cito zelf doet: {cito.aantal} {cito.aantal === 1 ? "actie" : "acties"} in het actiebord <span aria-hidden="true">↓</span>
+            </a>
+          )}
+          {nodig && bordLink && (
+            <a className="wk-link" href={bordLink}>
+              Voortgangsbord <span aria-hidden="true">↓</span>
+            </a>
+          )}
         </p>
       )}
     </Deel>
@@ -1205,7 +1233,7 @@ export const WERKSTROOM_CSS = `
 .okd .wk-vink-t{min-width:0}
 .okd .wk-nodig-klaar .wk-vink-t{text-decoration:line-through;text-decoration-color:#94a3b8;color:#9aa3b0}
 .okd .wk-nodig-klaar .wk-vink-t .ok-bron{color:inherit}
-.okd .wk-voet{display:flex;justify-content:flex-end;margin-top:7px}
+.okd .wk-voet{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px 18px;margin-top:7px}
 .okd .wk-hint-los{margin-top:0}
 .okd .wk-hint-kop{margin:8px 0 6px}
 .okd .wk-tl{container:wktl / inline-size}

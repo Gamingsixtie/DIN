@@ -16,7 +16,7 @@ Bron-autoriteit: "Werken aan Programma's" (Prevaas & Van Loon), `docs/programmab
 | **Doel** | Waartoe het programma bestaat; 3 programmadoelen | de baten | programma-eigenaar (Meryl), stuurgroep | impact, jaarlijks (voorstel) |
 | **Baat** | Gewenst effect bij klant of markt; 3 sectorbaten | het vermogen | bateneigenaar per sector | uitkomst: 14 baten-KPI's, de stuurlaag |
 | **Vermogen** | Wat de organisatie blijvend moet kunnen; één gedeeld vermogen in **vier domeinen** (Cultuur · Mens · Data & Systemen · Processen) plus 3 sectorvermogens | de inspanningen | domeineigenaar per domein | leidend: stand per domein, kernprincipe-scores |
-| **Inspanning** | Afgebakende activiteit die een vermogen opbouwt; in het DIN **één per domein**; de vier werkstromen voeren ze uit | het vermogen (naar boven) | Cito-lead en 3sides-lead per werkstroom | output: opgeleverd ja/nee |
+| **Inspanning** | Afgebakende activiteit die een vermogen opbouwt; in het DIN **één per domein**, plus de **0-meting als inspanning over alle vier domeinen** (besluit Pim, 30-09-2026); de vier werkstromen voeren ze uit | het vermogen (naar boven) | Cito-lead en 3sides-lead per werkstroom | output: opgeleverd ja/nee |
 
 Over de hele keten: programmamanagement, Sanne (regie, aanspreekpunt) en Pim (programma-architect, inhoudelijke kaders). Cito bepaalt, 3sides levert.
 
@@ -47,6 +47,7 @@ Uitkomst altijd één van drie: hoort erbij (domein, werkstroom, plan van aanpak
 
 - Eén framework: de woorden van het DIN. Termen van de ander zijn **synoniemen** of **onderdelen**; benoem per term het DIN-niveau waar hij hangt, met bron en paginanummer.
 - Maak taalverschillen expliciet in plaats van ze weg te schrijven. Bij 3sides: "inspanning" is in het meetmodel het **doen** per kernprincipe (gedrag), in het DIN is het de werkstroomactiviteit. Kunnen én doen horen in het DIN bij het **vermogen**; de vijf kernprincipes zijn de **meetlat** voor ons vermogen; de werkstromen zijn in DIN-zin de inspanningen (3sides noemt ze werkstromen of stromen, nergens inspanningen).
+- De evaluatie van 3sides (vier punten) is **intern**; het maandelijkse gesprek met 3sides kijkt vooruit: "we hebben alles gelezen, dit zijn de actiepunten, hoe pakken we ze op?" (besluit Pim, 30-09-2026). Wat Cito zelf doet staat op één plek: het actiebord in stap 11.
 - Wat een ander model op een ander niveau zet (bijvoorbeeld NPS en de organisatiebrede KPI's als baat), neem je over als **voorstel** op ons niveau, met het verschil zichtbaar. NPS is bij ons een resultante, geen stuur-KPI.
 - Een gesourcete zin is nog geen juiste zin op een andere plek: check welke rol de zin in de bron had voordat je hem hergebruikt.
 - Naamgeving: het programma bepaalt; wissel niet per document van namen. Domein heet "Data & Systemen". Vermogenstitels letterlijk citeren, nooit parafraseren in deelbare stukken.
