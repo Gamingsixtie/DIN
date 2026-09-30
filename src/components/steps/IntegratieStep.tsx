@@ -32,7 +32,7 @@ import { isVerwijderd, kloon } from "@/lib/bewerkbaar-document";
 import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
-import { BronProvider, bronUrl } from "@/components/bewerkbaar/bron-context";
+import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/bewerkbaar/bron-context";
 import { DocContext } from "@/components/bewerkbaar/doc-context";
 import { DOC_CSS, KNOP, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
@@ -193,8 +193,13 @@ function Vindplaatsen() {
   const idBasis = useId();
   const idJira = useId();
 
-  const ingevuld = [opgeslagenBasis.trim() && "documentenmap", opgeslagenJira.trim() && "Jira-bord"].filter(Boolean);
-  const stand = ingevuld.length === 0 ? "nog niet ingevuld" : ingevuld.join(" en ") + " ingevuld";
+  // Documenten: een eigen map gaat voor, anders de standaard in Supabase (bron-context.tsx).
+  const docStand = opgeslagenBasis.trim()
+    ? "documenten: eigen map"
+    : STANDAARD_DOCUMENTEN_BASIS
+      ? "documenten: gekoppeld via Supabase"
+      : "documenten: nog niet gekoppeld";
+  const stand = docStand + " · " + (opgeslagenJira.trim() ? "Jira-bord ingevuld" : "Jira-bord nog niet ingevuld");
   const gewijzigd = basis.trim() !== opgeslagenBasis || jira.trim() !== opgeslagenJira;
   const proef = useMemo(() => bronUrl(basis, "plan-van-aanpak", 2), [basis]);
 
@@ -221,10 +226,8 @@ function Vindplaatsen() {
           Vindplaatsen
         </span>
         <span className="text-xs text-gray-500">{stand}</span>
-        {!open && ingevuld.length < 2 && (
-          <span className="text-xs text-gray-400">
-            · vul de links in en paginaverwijzingen worden klikbaar
-          </span>
+        {!open && !opgeslagenJira.trim() && (
+          <span className="text-xs text-gray-400">· vul de link van het Jira-bord in zodra die er is</span>
         )}
       </button>
 
@@ -316,6 +319,9 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
   const versie = useMemo(() => oplossen(tab.standaard, bewaard), [tab.standaard, bewaard]);
   const opgeslagen = versie.doc;
   const [edit, setEdit] = useState(false);
+  // Alleen deze sectie bewerken (potlood bij de sectiekop); null = geen of alles.
+  const [editSectie, setEditSectie] = useState<string | null>(null);
+  const bezig = edit || editSectie !== null;
   // Concept; wordt bij het starten van de bewerkmodus gevuld met de opgeslagen versie.
   const [draft, setDraft] = useState<DocData>(opgeslagen);
   // De voorsteltekst waarop het concept rust: die van de getoonde versie; na "Terug naar
@@ -335,15 +341,25 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
   function bewerken() {
     setDraft(kloon(opgeslagen));
     setDraftBasis(versie.basis);
+    setEditSectie(null);
     setEdit(true);
+  }
+  /** Potlood bij een sectiekop: alleen die sectie wordt bewerkbaar, de rest blijft leesbaar. */
+  function bewerkSectie(id: string) {
+    setDraft(kloon(opgeslagen));
+    setDraftBasis(versie.basis);
+    setEdit(false);
+    setEditSectie(id);
   }
   function opslaan() {
     bewaar(draft, draftBasis);
     setEdit(false);
+    setEditSectie(null);
   }
   function annuleren() {
     setDraft(kloon(opgeslagen));
     setEdit(false);
+    setEditSectie(null);
   }
   function herstel() {
     setDraft(kloon(tab.standaard));
@@ -357,7 +373,7 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
    * van de getoonde versie: een vinkje is geen keuze voor of tegen een nieuwere voorsteltekst.
    */
   function wijzig(nieuw: DocData) {
-    if (edit) {
+    if (bezig) {
       setDraft(nieuw);
       return;
     }
@@ -376,7 +392,7 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
     <div className="space-y-4" role="tabpanel" aria-label={tab.label}>
       <BewerkBalk
         intro={tab.intro}
-        edit={edit}
+        edit={bezig}
         melding={melding}
         onBewerken={bewerken}
         onOpslaan={opslaan}
@@ -390,7 +406,7 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
         }
       />
 
-      {!edit && versie.stand === "eigen" && (
+      {!bezig && versie.stand === "eigen" && (
         <NieuwereVoorsteltekst
           basisBekend={versie.basis !== undefined}
           onOvernemen={neemVoorstelOver}
@@ -398,7 +414,13 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
         />
       )}
 
-      <BewerkbaarDocument doc={edit ? draft : opgeslagen} edit={edit} onChange={wijzig} />
+      <BewerkbaarDocument
+        doc={bezig ? draft : opgeslagen}
+        edit={edit}
+        editSectie={editSectie}
+        onBewerk={bewerkSectie}
+        onChange={wijzig}
+      />
     </div>
   );
 }

@@ -48,8 +48,20 @@ export default function BewerkBalk(p: {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-gray-600 max-w-3xl">{p.intro}</p>
+      <div
+        className={
+          p.edit
+            ? "sticky top-2 z-40 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur"
+            : "flex flex-wrap items-start justify-between gap-3"
+        }
+      >
+        {p.edit ? (
+          <p className="text-sm font-semibold text-amber-900">
+            Je bent aan het bewerken. Opslaan bewaart alles in de sessie; deze balk blijft in beeld.
+          </p>
+        ) : (
+          <p className="text-sm text-gray-600 max-w-3xl">{p.intro}</p>
+        )}
         <div className="flex flex-none flex-wrap gap-2">
           {!p.edit ? (
             <>
