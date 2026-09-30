@@ -130,7 +130,7 @@ function telOp(t: Telling, o: Onderdeel) {
   if (o.komend) t.komend++;
 }
 
-/** Voortgang 0..1: afgerond telt heel, loopt half; null zonder onderdelen. */
+/** Voortgang 0..1: alleen afgeronde onderdelen tellen (wat loopt staat als lichtere balk); null zonder onderdelen. */
 function voortgangPct(t: Telling): number | null {
   return t.totaal > 0 ? t.afgerond / t.totaal : null;
 }

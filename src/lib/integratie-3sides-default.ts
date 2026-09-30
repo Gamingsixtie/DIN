@@ -863,7 +863,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "planning",
       "5 · Planning en voortgang: de tijdlijn als basis",
-      "3sides heeft het werk van elke werkstroom opgedeeld in onderdelen: 28 in totaal, elk met een startmaand en een oplevering. Die tijdlijn is de basis: eerst de tijdlijn, daaronder het voortgangsbord dat ermee rekent, net als de werkstroomkaarten (deel 4). De standlijn staat op vandaag; de gegevens zijn de stand van 3sides van 28-09. Zet je een onderdeel in de tijdlijn op 'afgerond', dan telt het bord mee. Het bord staat ook los in het tabblad Voortgang.",
+      "3sides heeft het werk van elke werkstroom opgedeeld in onderdelen: 28 in totaal, met per onderdeel de start en de oplevering, waar 3sides die noemt. Die tijdlijn is de basis: eerst de tijdlijn, daaronder het voortgangsbord dat ermee rekent, net als de werkstroomkaarten (deel 4), en als laatste wat Cito zelf doet: het actiebord. De standlijn staat op vandaag; de gegevens zijn de stand van 3sides van 28-09. Zet je een onderdeel op Afgerond, in de tijdlijn of in het bord, dan telt het bord mee. Het bord staat ook los in het tabblad Voortgang.",
       [
         TIJDLIJN,
         lijst(
@@ -936,8 +936,36 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             { tekst: "Eén set namen voor de vier werkstromen, in alle documenten", klaar: false },
             { tekst: "Projectgroepen per werkstroom in plaats van één-op-één-gesprekken", klaar: false },
           ],
-          legenda: "'Nog nodig' is wat we van 3sides vragen, een voorstel van het programma; vink af wat binnen is. Wat Cito zelf doet, staat in het actiebord in deel 7. 'Geleverd volgens 3sides' komt van de statuspagina van 29-09.",
+          legenda: "'Nog nodig' is wat we van 3sides vragen, een voorstel van het programma; vink af wat binnen is. Wat Cito zelf doet, staat in het actiebord onder dit bord (deel 5). 'Geleverd volgens 3sides' komt van de statuspagina van 29-09.",
         },
+      tabel(
+        ["Werkstroom", "Wat Cito zelf moet doen", "Wie"],
+        [
+          ["Programmabreed", "Rollen laten vaststellen door de programma-eigenaar (organigram v4)", ""],
+          ["Programmabreed", "Domeineigenaren Processen en Cultuur benoemen", ""],
+                    ["Programmabreed", "Projectgroep per werkstroom samenstellen; capaciteit ophalen bij sector- en afdelingsmanagers", ""],
+          ["Programmabreed", "Plan van aanpak per werkstroom toetsen (Cito-lead op resultaat, Pim op de kaders) en vaststellen (Sanne)", ""],
+                    ["Programmabreed", "Begrippenlijst met gangbare termen (actiepunt 29-09)", ""],
+          ["Programmabreed", "Besluiten wanneer en hoe vaak we 3sides intern evalueren op de vier punten (voorstel: elke zes weken)", ""],
+          ["Adoptieframework", "Kern-adoptieteam en champions per afdeling aanwijzen, samen met 3sides (plan van aanpak p. 12; stappenplan: ambassadeurs per sector in Q4)", ""],
+          ["Adoptieframework", "Eerste pilotsector kiezen", ""],
+          ["Adoptieframework", "Capaciteit van HR vrijmaken voor training en coaching (tijdlijn: april tot juni 2027)", ""],
+          ["Centrale datavoorziening klantcontact", "Funneldefinities (lead, MQL, verkoopkans) vaststellen met Meryl en Jasper, op basis van het voorstel van 3sides", ""],
+          ["Centrale datavoorziening klantcontact", "Afstemmen met het lopende A5-project (centrale datavoorziening klantcommunicatie): wat valt binnen Klant in Zicht", ""],
+          ["Centrale datavoorziening klantcontact", "Het CRM-besluit voorbereiden, rond april 2027", ""],
+          ["Klantreizen", "Blueprint valideren met product- en sectormanagers", ""],
+          ["Klantreizen", "Eigenaar van de blueprint na het programma aanwijzen", ""],
+          ["0-meting", "Meetmodel valideren met Meryl, daarna met het MT", ""],
+          ["0-meting", "Data-aanleveranciers per datapunt aanwijzen", ""],
+          ["0-meting", "Vervolgsessie plannen voor de doelwaarden en de vermogen-KPI's, na de 0-meting", ""],
+        ],
+        {
+          titel: "Wat Cito zelf moet doen",
+          groepKolom: 0,
+          invulKolom: 2,
+          legenda: "Wie: samen in te vullen. Bronnen: overleg 29-09, organigram, stappenplan, plan van aanpak p. 10–13 en de tijdlijn. Wat we 3sides vragen, staat in de agenda in deel 9.",
+        }
+      ),
       ]
     ),
 
@@ -1032,8 +1060,8 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     // 7
     sectie(
       "verder",
-      "7 · Eerst intern: wat we zelf besluiten en doen",
-      "Eerst bespreken we intern wat we besluiten en wat Cito zelf oppakt. Daarna evalueren we 3sides intern (deel 8), en dan volgt het gesprek met 3sides (deel 9).",
+      "7 · Eerst intern: wat we zelf besluiten",
+      "Eerst besluiten we intern, met de verschillen als onderbouwing; wat Cito zelf doet, staat in het actiebord (deel 5). Daarna evalueren we 3sides intern (deel 8), en dan volgt het gesprek met 3sides (deel 9).",
       [
         lijst(
           [
@@ -1084,34 +1112,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ],
           { titel: "Waar het programma en 3sides nog verschillen: de onderbouwing van de besluiten" }
         ),
-      tabel(
-        ["Werkstroom", "Wat Cito zelf moet doen", "Wie"],
-        [
-          ["Programmabreed", "Rollen laten vaststellen door de programma-eigenaar (organigram v4)", ""],
-          ["Programmabreed", "Domeineigenaren Processen en Cultuur benoemen", ""],
-                    ["Programmabreed", "Projectgroep per werkstroom samenstellen; capaciteit ophalen bij sector- en afdelingsmanagers", ""],
-          ["Programmabreed", "Plan van aanpak per werkstroom toetsen (Cito-lead op resultaat, Pim op de kaders) en vaststellen (Sanne)", ""],
-                    ["Programmabreed", "Begrippenlijst met gangbare termen (actiepunt 29-09)", ""],
-          ["Programmabreed", "Besluiten wanneer en hoe vaak we 3sides intern evalueren op de vier punten (voorstel: elke zes weken)", ""],
-          ["Adoptieframework", "Kern-adoptieteam en champions per afdeling aanwijzen, samen met 3sides (plan van aanpak p. 12; stappenplan: ambassadeurs per sector in Q4)", ""],
-          ["Adoptieframework", "Eerste pilotsector kiezen", ""],
-          ["Adoptieframework", "Capaciteit van HR vrijmaken voor training en coaching (tijdlijn: april tot juni 2027)", ""],
-          ["Centrale datavoorziening klantcontact", "Funneldefinities (lead, MQL, verkoopkans) vaststellen met Meryl en Jasper, op basis van het voorstel van 3sides", ""],
-          ["Centrale datavoorziening klantcontact", "Afstemmen met het lopende A5-project (centrale datavoorziening klantcommunicatie): wat valt binnen Klant in Zicht", ""],
-          ["Centrale datavoorziening klantcontact", "Het CRM-besluit voorbereiden, rond april 2027", ""],
-          ["Klantreizen", "Blueprint valideren met product- en sectormanagers", ""],
-          ["Klantreizen", "Eigenaar van de blueprint na het programma aanwijzen", ""],
-          ["0-meting", "Meetmodel valideren met Meryl, daarna met het MT", ""],
-          ["0-meting", "Data-aanleveranciers per datapunt aanwijzen", ""],
-          ["0-meting", "Vervolgsessie plannen voor de doelwaarden en de vermogen-KPI's, na de 0-meting", ""],
-        ],
-        {
-          titel: "Wat Cito zelf moet doen",
-          groepKolom: 0,
-          invulKolom: 2,
-          legenda: "Wie: samen in te vullen. Bronnen: overleg 29-09, organigram, stappenplan, plan van aanpak p. 10–13 en de tijdlijn. Wat we 3sides vragen, staat in de agenda in deel 9.",
-        }
-      ),
       ]
     ),
 
@@ -1186,7 +1186,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ["Antwoord", "Op hoofdlijnen ja: de structuur staat."],
             ["Staat", "Het DIN met doel, baten en 14 baten-KPI's, het gedeelde vermogen in vier domeinen, de vier werkstromen, de rollen als voorstel en de toets voor nieuw werk (deel 2)."],
             ["Nog te besluiten", "Rollen vaststellen, domeineigenaren Processen en Cultuur, bateneigenaar, één set namen en één planning (besluitpunten in deel 7); na de 0-meting de doelwaarden en de vermogen-KPI's.", true],
-            ["Nog te doen", "Wat Cito zelf moet doen, per werkstroom: het actiebord in deel 7.", true],
+            ["Nog te doen", "Wat Cito zelf moet doen, per werkstroom: het actiebord in deel 5.", true],
           ]),
           kaart("Weten we wat we met 3sides willen bespreken?", "ja, vijf agendapunten", [
             ["Antwoord", "Ja: de vijf agendapunten hierboven, in die volgorde."],
