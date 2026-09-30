@@ -246,7 +246,7 @@ export const ACTIEBORD_CSS = `
 .okd .ab-nr{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-top:1px;border-radius:999px;border:1.5px solid var(--ab-k);color:var(--ab-k);font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;background:#fff}
 .okd .ab-t{min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12.5px;line-height:1.45;color:#1f2937}
 .okd .ab-t2{font-size:11px;color:#64748b}
-.okd .ab-wie{display:inline-flex;align-items:center;gap:5px;max-width:45%;font-size:11px;font-weight:600;line-height:1.4;color:#5f6b7a;background:#fff;border:1.5px dashed #cbd5e1;border-radius:999px;padding:1px 10px 1px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.okd .ab-wie{display:inline-flex;align-items:center;gap:5px;max-width:200px;font-size:11px;font-weight:600;line-height:1.4;color:#5f6b7a;background:#fff;border:1.5px dashed #cbd5e1;border-radius:999px;padding:1px 10px 1px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .okd .ab-wie.is-gevuld{color:#0f172a;border-style:solid;border-width:1px;border-color:color-mix(in srgb,var(--ab-k) 35%,#fff);background:color-mix(in srgb,var(--ab-k) 8%,#fff);padding-left:3px}
 .okd .ab-av{flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:999px;background:var(--ab-k);color:#fff;font-size:9.5px;font-weight:800}
 @media (max-width:760px){

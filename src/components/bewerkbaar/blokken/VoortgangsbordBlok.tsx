@@ -316,6 +316,21 @@ function Balk({ t, kleur }: { t: Telling; kleur: string }) {
   );
 }
 
+/** Kop van een paneel onder het bord: titel met teller, en een regel uitleg eronder. */
+function PaneelKop({ titel, sub, aantal }: { titel: string; sub: string; aantal?: number }) {
+  return (
+    <div className="vb-pk">
+      <h5 className="vb-pk-t">{titel}</h5>
+      {aantal !== undefined && (
+        <span className="vb-pk-n" aria-label={aantal + (aantal === 1 ? " punt" : " punten")}>
+          {aantal}
+        </span>
+      )}
+      <p className="vb-pk-sub">{sub}</p>
+    </div>
+  );
+}
+
 /** Kolom met een kop en een korte lijst, of "geen". */
 function Kolom({ kop, leeg, cls = "", children }: { kop: string; leeg: string; cls?: string; children?: ReactNode }) {
   const inhoud = Array.isArray(children) ? children.filter(Boolean) : children;
@@ -516,12 +531,12 @@ function Werkstroom(p: {
       </div>
 
       <div className="vb-ws-kolommen">
-        <Kolom kop="Verstreken, niet afgerond" leeg={stand ? "geen" : "te bepalen"} cls="vb-kolom-verstreken">
+        <Kolom kop="Verstreken en nog niet afgerond" leeg={stand ? "geen" : "te bepalen"} cls="vb-kolom-verstreken">
           {verstreken.map((o, i) => (
             <OnderdeelRegel key={i} o={o} verstreken />
           ))}
         </Kolom>
-        <Kolom kop={`Komt eraan (${HORIZON_DAGEN} dagen)`} leeg={stand ? "geen oplevering gepland" : "te bepalen"}>
+        <Kolom kop={`Komt eraan, komende ${HORIZON_DAGEN} dagen`} leeg={stand ? "geen oplevering gepland" : "te bepalen"}>
           {komend.map((o, i) => (
             <OnderdeelRegel key={i} o={o} />
           ))}
@@ -715,7 +730,11 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 
       <div className="vb-onder">
         <div className="vb-paneel">
-          <h5 className="vb-kk">Programmabreed nog nodig</h5>
+          <PaneelKop
+            titel="Nog nodig voor het hele programma"
+            sub="Wat we van 3sides vragen en wat Cito zelf doet; vink af wat klaar is."
+            aantal={edit ? undefined : programmabreed.filter((x) => !x.klaar).length}
+          />
           {programmabreed.length === 0 && !edit ? (
             <p className="vb-leeg">niets open</p>
           ) : (
@@ -728,7 +747,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
           )}
         </div>
         <div className="vb-paneel">
-          <h5 className="vb-kk">Eerstvolgende opleveringen</h5>
+          <PaneelKop titel="Eerstvolgende opleveringen" sub="Alle werkstromen, vanaf vandaag, uit de tijdlijn." aantal={eerstvolgende.length} />
           {eerstvolgende.length === 0 ? (
             <p className="vb-leeg">{tl ? "geen opleveringen gepland" : "te bepalen"}</p>
           ) : (
@@ -740,7 +759,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
           )}
         </div>
         <div className="vb-paneel vb-paneel-verstreken">
-          <h5 className="vb-kk">Verstreken, niet afgerond (alle werkstromen)</h5>
+          <PaneelKop titel="Verstreken en nog niet afgerond" sub="Alle werkstromen: de opleverdatum is voorbij, het onderdeel staat niet op Afgerond." aantal={verstrekenAlle.length} />
           {verstrekenAlle.length === 0 ? (
             <p className="vb-leeg">{tl ? "geen" : "te bepalen"}</p>
           ) : (
@@ -755,9 +774,10 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 
       <footer className="vb-voet">
         <p className="vb-legenda-vast">
-          Tellers per werkstroom uit de tijdlijngroep met hetzelfde anker, op de dag van vandaag. Voortgang = afgerond / onderdelen (wat loopt staat als lichtere balk, telt niet mee);
-          op schema = het deel van de opleveringen met datum dat niet verstreken is. Verstreken = de oplevermaand is voorbij en het onderdeel staat in de
-          tijdlijn niet op Afgerond; komt eraan = oplevering binnen {HORIZON_DAGEN} dagen. Zet een onderdeel in de tijdlijn op Afgerond en de tellers volgen.
+          Zo rekent het bord: de cijfers per werkstroom komen uit de tijdlijn en gaan uit van vandaag. Voortgang is het aantal afgeronde onderdelen van het
+          totaal; wat loopt, staat als lichtere balk en telt nog niet mee. Op schema zijn de opleveringen waarvan de datum nog niet voorbij is. Verstreken: de
+          opleverdatum is voorbij en het onderdeel staat niet op Afgerond. Komt eraan: oplevering binnen {HORIZON_DAGEN} dagen. Zet je een onderdeel in de
+          tijdlijn op Afgerond, dan lopen de cijfers vanzelf mee.
         </p>
         {(edit || tekst(b.legenda).trim()) && (
           <V v={tekst(b.legenda)} on={(x) => zet((t) => void (t.legenda = x))} edit={edit} ml block cls="ok-legend vb-legenda" ph="Bron en toelichting (optioneel)" />
@@ -818,7 +838,7 @@ a.vb-ws-link:hover,a.vb-ws-link:focus-visible{text-decoration:underline;text-und
 .vb-balk-t{grid-area:t;font-size:10.5px;color:var(--ink2,#4a5565)}
 .vb-ws-kolommen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--vb-lijn)}
 .vb-kolom{min-width:0}
-.vb-kk{margin:0 0 4px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3,#5f6b7a)}
+.vb-kk{margin:0 0 6px;font-size:12.5px;font-weight:800;line-height:1.3;color:var(--ink,#111827)}
 .vb-kk-inline{display:inline;margin:0 6px 0 0}
 .vb-kolom-verstreken .vb-kk{color:var(--vb-amber)}
 .vb-lijst{display:flex;flex-direction:column;gap:3px;margin:0;padding:0;list-style:none}
@@ -847,7 +867,7 @@ a.vb-ws-link:hover,a.vb-ws-link:focus-visible{text-decoration:underline;text-und
 .vb-klaar .vb-vink-t .ok-bron{color:inherit}
 .vb-nodig-edit .vb-vink .ok-in{flex:1}
 .vb-nodig-groepen{display:flex;flex-direction:column;gap:7px}
-.vb-groep-kop{display:flex;align-items:center;gap:6px;margin:0 0 3px;font-size:9px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3,#5f6b7a)}
+.vb-groep-kop{display:flex;align-items:center;gap:6px;margin:4px 0 5px;font-size:10.5px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2,#4a5565)}
 .vb-groep-kop::after{content:"";flex:1;height:1px;background:var(--vb-lijn)}
 .vb-hint{margin:5px 0 0;font-size:10.5px;line-height:1.4;color:var(--ink2,#4a5565)}
 .vb-ws-voet{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:8px;border-top:1px solid var(--vb-lijn)}
@@ -866,6 +886,13 @@ a.vb-doc-jira:hover,a.vb-doc-jira:focus-visible{background:#0066cc;border-color:
 .vb-onder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .vb-paneel{min-width:0;padding:10px 14px;border:1px solid var(--vb-rand);border-radius:12px;background:#fff}
 .vb-paneel-verstreken .vb-kk{color:var(--vb-amber)}
+.vb-pk{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;margin:0 0 10px;padding-bottom:9px;border-bottom:2px solid var(--vb-lijn)}
+.vb-pk-t{margin:0;font-size:14.5px;font-weight:800;line-height:1.3;letter-spacing:-.005em;color:var(--vb-cito)}
+.vb-pk-n{min-width:26px;text-align:center;font-size:12px;font-weight:800;line-height:1.7;font-variant-numeric:tabular-nums;color:var(--vb-cito);background:#eef3f9;border-radius:999px;padding:0 8px}
+.vb-pk-sub{grid-column:1 / -1;margin:3px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink2,#4a5565)}
+.vb-paneel-verstreken .vb-pk-t{color:var(--vb-amber)}
+.vb-paneel-verstreken .vb-pk-n{color:var(--vb-amber);background:#fff7ed}
+.vb-paneel{padding:14px 16px 12px}
 .vb-voet{margin-top:10px}
 .vb-legenda-vast{margin:0;font-size:10px;line-height:1.45;color:var(--ink3,#5f6b7a)}
 .vb-legenda{white-space:pre-line}
