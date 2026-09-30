@@ -1,39 +1,90 @@
 // Werkstroomkaarten (stap 11 "Programma × 3sides"): per werkstroom één kaart met het
 // plan van aanpak, ingepast in het Doelen-Inspanningennetwerk (DIN). Vaste opbouw, op
 // elke kaart op dezelfde plek: kop (naam, 3sides-naam, domeinen, leads, bron) →
-// Waarom → Resultaten → Planning → In het DIN → Nog aanvullen → Documenten en status.
-// Waar de browser het kan (CSS subgrid) staan de onderdelen van kaarten naast elkaar
-// ook op dezelfde hoogte.
-// Element-id "wk-<id>" is het linkdoel van de DIN-plaat. Onderaan, bij "Documenten en
-// status", staan de koppelingen naar de 3sides-documenten en het Jira-bord als chips
-// (met url een link in een nieuw tabblad, zonder url gedempt) en als laatste de link
-// naar de tijdlijn (#tl-<id>) als die in het document staat.
+// Waarom → Resultaten → Planning → Onderdelen in de tijdlijn → In het DIN → Nog nodig →
+// Documenten en status. Waar de browser het kan (CSS subgrid) staan de onderdelen van
+// kaarten naast elkaar ook op dezelfde hoogte.
+//
+// Twee onderdelen komen uit andere blokken in hetzelfde document (DocContext):
+// - Onderdelen in de tijdlijn: de regels van de tijdlijngroep met anker = id van de kaart,
+//   in de volgorde van de tijdlijn. Per onderdeel één regel: naam, maandbereik (▶ start →
+//   ⚑ oplevering; jaartal alleen buiten het eerste jaar van de tijdlijn; "start te
+//   bepalen" of "oplevering te bepalen" waar de tijdlijn geen maand noemt), status (+,
+//   +/-, -) als stip en voortgang (Loopt, Niet gestart, Afgerond) als in de tijdlijn.
+//   Oplevermaand voorbij en niet op Afgerond (op de dag van vandaag): rood, "verstreken".
+//   Onderaan de link naar de hele tijdlijn (#tl-<id>). Staat er geen tijdlijn in het
+//   document, dan valt het onderdeel weg; heeft alleen deze kaart geen groep, dan blijft
+//   zijn rij leeg, zodat de onderdelen eronder op gelijke hoogte blijven met de buren.
+// - Nog nodig: de regels "nodig" van de werkstroom met hetzelfde anker in het
+//   voortgangsbord, afvinkbaar in weergave- én bewerkmodus (het vinkje gaat via useDocZet
+//   naar het bord; de app bewaart het). Zonder bord of zonder regels: de eigen lijst
+//   `aanvullen` van de kaart. In beide gevallen in de groepjes "Van 3sides" en "Door
+//   Cito" (regels die met "Cito:" beginnen), zoals op het voortgangsbord.
+// Element-id "wk-<id>" is het linkdoel van de DIN-plaat en de tijdlijn. Onderaan, bij
+// "Documenten en status", staan de koppelingen naar de 3sides-documenten en het Jira-bord
+// als chips (met url een link in een nieuw tabblad, zonder url gedempt).
 // Bewerkmodus: alle teksten en regels zijn aanpasbaar, koppelingen (naam + url) ook;
 // per kaart vink je de domeinen aan (kleurband en chips volgen), kaarten voeg je toe
 // (+ kaart) en haal je weg (×). Het id van een kaart is het linkdoel (#wk-<id>) voor de
 // DIN-plaat en de tijdlijn: een nieuwe kaart krijgt een uniek id afgeleid van de naam;
-// in bewerkmodus staat het als "Anker" bij de kaart en kun je het aanpassen.
+// in bewerkmodus staat het als "Anker" bij de kaart en kun je het aanpassen. De
+// onderdelen uit de tijdlijn en de teksten uit het voortgangsbord pas je daar aan.
 // Alleen gebruiken binnen een client-component (de props bevatten functies).
 
 import { useId } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import type { BewerkbaarDocument as DocData, DocBlok } from "@/lib/schemas";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { metBronlinks, useBron, useBronUrl } from "@/components/bewerkbaar/bron-context";
+import { useBlok, useDocZet } from "@/components/bewerkbaar/doc-context";
+import { tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
+import type { VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
+import { CITO_HINT, NODIG_GROEPEN, citoTekst, nodigGroepen } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
+import type { NodigGroepen, NodigRegel } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
 type Blok = BlokVan<"werkstromen">;
 type Kaart = Blok["kaarten"][number];
 type Koppeling = Kaart["koppelingen"][number];
+type Tijdlijn = BlokVan<"tijdlijn">;
+type Nodig = BlokVan<"voortgangsbord">["werkstromen"][number]["nodig"][number];
 type Domein = { id: string; label: string; kleur: string };
 /** Past een kopie van één kaart aan; de wijziging gaat via het blok naar boven. */
 type ZetKaart = (fn: (k: Kaart) => void) => void;
+type StatusSoort = "plus" | "plusmin" | "min" | "leeg" | "anders";
+
+/** Eén onderdeel van de werkstroom uit de tijdlijn, klaar om op de kaart te tonen. */
+interface Onderdeel {
+  naam: string;
+  /** startmaand (▶), bijv. "jul" of "jan 2027"; null = start te bepalen */
+  start: string | null;
+  /** oplevermaand (⚑), bijv. "okt" of "mei 2027"; null = oplevering te bepalen */
+  oplevering: string | null;
+  /** in de tijdlijn is voor dit onderdeel geen enkele maand gemarkeerd */
+  zonderMaand: boolean;
+  voortgang: string;
+  soort: VoortgangSoort;
+  status: string;
+  /** de oplevermaand is voorbij en het onderdeel staat niet op Afgerond */
+  verstreken: boolean;
+}
+
+/** De regels "nodig" uit het voortgangsbord voor één kaart, met het afvinken. */
+interface BordNodig {
+  items: Nodig[];
+  /** vinkt regel i (index in het bord) aan of uit; null = kan hier niet (buiten het document) */
+  vink: ((i: number, aan: boolean) => void) | null;
+}
 
 const CITO = "#003366";
 const NEUTRAAL = "#64748b";
-/** Rijen per kaart in het raster (subgrid): kop + zes onderdelen. */
+/** Rijen per kaart in het raster (subgrid): kop + zes onderdelen; met de tijdlijn één meer. */
 const RIJEN = 7;
 const NIEUWE_NAAM = "Nieuwe werkstroom";
+const STATUS_TEKEN: Record<StatusSoort, string> = { plus: "+", plusmin: "±", min: "−", leeg: "", anders: "" };
+/** Zero-width space (U+200B): geeft een stip zonder teken toch een tekstbasislijn. */
+const ZONDER_TEKEN = String.fromCharCode(8203);
 
 /** "Adoptie en gedrag" → "adoptie-en-gedrag": kleine letters en koppeltekens, zonder accenten. */
 function slug(s: string): string {
@@ -157,6 +208,133 @@ function isJira(label: string): boolean {
  */
 function koppelingenVan(k: Kaart): Koppeling[] {
   return (k.koppelingen ??= []);
+}
+
+// ---------- uit de tijdlijn en het voortgangsbord ----------
+
+/** Tekstveld dat in oudere opslag kan ontbreken. */
+function tekst(v: string | undefined): string {
+  return typeof v === "string" ? v : "";
+}
+
+/** Status zoals de tijdlijn die kent: +, +/-, - of leeg; een andere waarde is "anders". */
+function statusSoort(s: string): StatusSoort {
+  const t = s.replace(/[−–—]/g, "-").replace(/\s+/g, "").toLowerCase();
+  if (t === "" || t === "geen") return "leeg";
+  if (t === "+") return "plus";
+  if (t === "+/-" || t === "+-" || t === "±") return "plusmin";
+  if (t === "-") return "min";
+  return "anders";
+}
+
+/** Is deze maandcel een start (▶)? Zelfde herkenning als de tijdlijn: "start" of "▶". */
+function isStart(cel: string | undefined): boolean {
+  const t = tekst(cel).replace(/[︎️]/g, "").trim().toLowerCase();
+  return t === "start" || t === "▶";
+}
+
+/** Jaarlabel bij elke maand van de tijdlijn, uit `jaren` (bijv. 6 × "2026", 6 × "2027"). */
+function jaarPerMaand(tl: Tijdlijn): string[] {
+  const n = (tl.maanden ?? []).length;
+  const uit = Array.from({ length: n }, () => "");
+  let van = 0;
+  for (const j of tl.jaren ?? []) {
+    if (van >= n) break;
+    const aantal = Math.min(Math.max(0, Math.floor(j.maanden)), n - van);
+    for (let i = van; i < van + aantal; i++) uit[i] = tekst(j.label).trim();
+    van += aantal;
+  }
+  return uit;
+}
+
+/**
+ * Start- en oplevermaand in woorden (null waar de tijdlijn geen maand noemt). Het jaartal
+ * staat er alleen bij buiten het eerste jaar van de tijdlijn ("dec → mei 2027"); liggen
+ * start en oplevering in hetzelfde latere jaar, dan één keer achteraan ("jan → feb 2027").
+ */
+function maandBereik(
+  tl: Tijdlijn,
+  jaren: string[],
+  start: number | null,
+  oplevering: number | null
+): { start: string | null; oplevering: string | null } {
+  const maanden = tl.maanden ?? [];
+  const eersteJaar = jaren[0] ?? "";
+  const maand = (i: number) => tekst(maanden[i]).trim() || `maand ${i + 1}`;
+  const jaar = (i: number) => {
+    const j = jaren[i] ?? "";
+    return j !== "" && j !== eersteJaar && !/\d{4}/.test(maand(i)) ? j : "";
+  };
+  const voluit = (i: number) => (jaar(i) ? `${maand(i)} ${jaar(i)}` : maand(i));
+  if (start !== null && oplevering !== null && jaar(start) !== "" && jaar(start) === jaar(oplevering)) {
+    return { start: maand(start), oplevering: voluit(oplevering) };
+  }
+  return {
+    start: start === null ? null : voluit(start),
+    oplevering: oplevering === null ? null : voluit(oplevering),
+  };
+}
+
+/**
+ * De onderdelen uit de tijdlijn per anker (= id van de werkstroomkaart), in de volgorde
+ * van de tijdlijn en beoordeeld op de dag `vandaag` (00:00). Een groep zonder regels geeft
+ * een lege lijst; groepen zonder anker tellen niet mee. De planning (maanden, oplevering,
+ * opleverdatum) komt uit tijdlijnRijen, zodat kaart, tijdlijn en voortgangsbord gelijk rekenen.
+ */
+function onderdelenPerAnker(tl: Tijdlijn, vandaag: Date): Map<string, Onderdeel[]> {
+  // tijdlijnRijen loopt in dezelfde volgorde door de groepen en hun regels als hieronder
+  const rijen = tijdlijnRijen(tl);
+  const jaren = jaarPerMaand(tl);
+  const uit = new Map<string, Onderdeel[]>();
+  let k = 0;
+  for (const g of tl.groepen ?? []) {
+    const anker = tekst(g.anker).trim();
+    let lijst = anker ? uit.get(anker) : undefined;
+    if (anker && !lijst) {
+      lijst = [];
+      uit.set(anker, lijst);
+    }
+    for (const regel of g.rijen ?? []) {
+      const r = rijen[k++];
+      if (!lijst || !r) continue;
+      const soort = voortgangSoort(r.voortgang);
+      // startIndex is de ▶-cel of, zonder start, de eerste gemarkeerde maand: alleen een ▶ telt als start
+      const start = r.startIndex !== null && isStart((regel.cellen ?? [])[r.startIndex]) ? r.startIndex : null;
+      const bereik = maandBereik(tl, jaren, start, r.opleverIndex);
+      lijst.push({
+        naam: r.activiteit,
+        start: bereik.start,
+        oplevering: bereik.oplevering,
+        zonderMaand: r.startIndex === null,
+        voortgang: r.voortgang,
+        soort,
+        status: r.status,
+        verstreken: r.opleverDatum !== null && soort !== "afgerond" && r.opleverDatum < vandaag,
+      });
+    }
+  }
+  return uit;
+}
+
+/** Eerste blok van een type in (een kopie van) het document, zoals useBlok het vindt. */
+function eersteBlok<T extends DocBlok["type"]>(d: DocData, type: T): Extract<DocBlok, { type: T }> | null {
+  for (const s of d.secties) {
+    for (const b of s.blokken) if (b.type === type) return b as Extract<DocBlok, { type: T }>;
+  }
+  return null;
+}
+
+/** Vinkt in (een kopie van) het document regel i van "nodig" aan of uit, bij de werkstroom met dit anker in het voortgangsbord. */
+function vinkInBord(d: DocData, anker: string, i: number, aan: boolean) {
+  const bord = eersteBlok(d, "voortgangsbord");
+  const w = (bord?.werkstromen ?? []).find((x) => tekst(x.anker).trim() === anker);
+  const regel = w?.nodig?.[i];
+  if (regel) regel.klaar = aan;
+}
+
+/** De tekst zoals die getoond wordt: zonder het voorvoegsel "Cito:". */
+function getoondeTekst(s: string): string {
+  return citoTekst(s) ?? s;
 }
 
 // ---------- onderdelen ----------
@@ -298,15 +476,233 @@ function DinPadBewerken({ pad, zetK }: { pad: string[]; zetK: ZetKaart }) {
   );
 }
 
-function Aanvullen({ items }: { items: string[] }) {
-  const zichtbaar = items.filter(heeft);
-  if (zichtbaar.length === 0) return <Leeg tekst="Geen open punten" />;
+/**
+ * "Van 3sides" en "Door Cito" onder elkaar, elk met een klein kopje en alleen als het
+ * groepje regels heeft; de regels zelf tekent `regels`.
+ */
+function Groepjes<T>({ groepen, regels }: { groepen: NodigGroepen<T>; regels: (rs: NodigRegel<T>[]) => ReactNode }) {
   return (
-    <ul className="wk-open">
-      {zichtbaar.map((s, i) => (
-        <li key={i}>{s}</li>
-      ))}
-    </ul>
+    <div className="wk-groepen">
+      {NODIG_GROEPEN.map(({ sleutel, kop }) =>
+        groepen[sleutel].length === 0 ? null : (
+          <div key={sleutel} className="wk-groep">
+            <h6 className="wk-groep-kop">{kop}</h6>
+            {regels(groepen[sleutel])}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+/** De groepjes zonder regels zonder tekst (bijv. een net toegevoegde, nog lege regel). */
+function metTekst<T>(g: NodigGroepen<T>): NodigGroepen<T> {
+  return { van3sides: g.van3sides.filter((r) => heeft(r.tekst)), doorCito: g.doorCito.filter((r) => heeft(r.tekst)) };
+}
+
+/** De eigen lijst van de kaart (zonder regels in het voortgangsbord): amber chips, in groepjes. */
+function Aanvullen({ items }: { items: string[] }) {
+  const groepen = metTekst(nodigGroepen(items, (s) => s));
+  if (groepen.van3sides.length + groepen.doorCito.length === 0) return <Leeg tekst="Geen open punten" />;
+  return (
+    <Groepjes
+      groepen={groepen}
+      regels={(rs) => (
+        <ul className="wk-open">
+          {rs.map((r) => (
+            <li key={r.i}>{r.tekst}</li>
+          ))}
+        </ul>
+      )}
+    />
+  );
+}
+
+/**
+ * De regels "nodig" uit het voortgangsbord, afvinkbaar, in groepjes. Het vinkje gaat naar
+ * de oorspronkelijke regel in het bord; afgevinkt = doorgestreept en gedempt.
+ */
+function NodigLijst({ nodig }: { nodig: BordNodig }) {
+  const groepen = metTekst(nodigGroepen(nodig.items, (x) => tekst(x.tekst)));
+  return (
+    <Groepjes
+      groepen={groepen}
+      regels={(rs) => (
+        <ul className="wk-nodig">
+          {rs.map((r) => {
+            const klaar = r.x.klaar === true;
+            return (
+              <li key={r.i} className={"wk-nodig-r" + (klaar ? " wk-nodig-klaar" : "")}>
+                <label className="wk-vink-r">
+                  <input
+                    type="checkbox"
+                    checked={klaar}
+                    disabled={!nodig.vink}
+                    onChange={(e) => nodig.vink?.(r.i, e.target.checked)}
+                  />
+                  <span className="wk-vink-t">{metBronlinks(r.tekst)}</span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    />
+  );
+}
+
+/** Statusstip met het teken, als in de tijdlijn; leeg = open grijze stip. */
+function Stip({ status }: { status: string }) {
+  const soort = statusSoort(status);
+  const label = soort === "leeg" ? "geen status" : "status " + status.trim();
+  return (
+    <span className={"wk-stip wk-stip-" + soort} role="img" aria-label={label} title={label}>
+      {/* zonder teken een onzichtbaar teken, zodat alle stippen op dezelfde lijn staan */}
+      {STATUS_TEKEN[soort] || ZONDER_TEKEN}
+    </span>
+  );
+}
+
+/** Vinkje in het label Afgerond. */
+function VinkIcoon() {
+  return (
+    <svg className="wk-vg-vink" width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+      <path d="M1.5 5.5L4 8L8.5 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Voortgang als klein label, in de kleuren van de tijdlijn; leeg = niets. */
+function Voortgang({ o }: { o: Onderdeel }) {
+  const v = o.voortgang.trim();
+  if (!v) return null;
+  if (o.soort === "afgerond") {
+    return (
+      <span className="wk-vg wk-vg-af">
+        <VinkIcoon />
+        {v}
+      </span>
+    );
+  }
+  return <span className={"wk-vg" + (o.soort === "niet" ? " wk-vg-niet" : "")}>{v}</span>;
+}
+
+/** Maandbereik "jul → okt"; waar de tijdlijn geen maand noemt: "te bepalen". */
+function Bereik({ o }: { o: Onderdeel }) {
+  if (o.zonderMaand) return <span className="wk-tl-tb">start en oplevering te bepalen</span>;
+  return (
+    <>
+      {o.start ?? <span className="wk-tl-tb">start te bepalen</span>}{" "}
+      <span className="wk-tl-pijl" aria-hidden="true">
+        →
+      </span>
+      <span className="wk-sr">tot</span>{" "}
+      <span className={o.verstreken ? "wk-tl-rood" : undefined}>
+        {o.oplevering ?? <span className="wk-tl-tb">oplevering te bepalen</span>}
+      </span>
+    </>
+  );
+}
+
+/** Eén onderdeel: naam, maandbereik, status en voortgang op één regel (smal: twee regels). */
+function OnderdeelRegel({ o }: { o: Onderdeel }) {
+  return (
+    <li className={"wk-tl-r" + (o.verstreken ? " wk-tl-verstreken" : "")}>
+      <span className="wk-tl-naam">
+        {metBronlinks(o.naam || "Onderdeel zonder naam")}
+        {o.verstreken && (
+          <>
+            <span className="wk-sr">, </span>
+            <span className="wk-tl-tag">verstreken</span>
+          </>
+        )}
+      </span>
+      <span className="wk-tl-m">
+        <Bereik o={o} />
+      </span>
+      <span className="wk-tl-st">
+        <Stip status={o.status} />
+        <Voortgang o={o} />
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Onderdelen in de tijdlijn. onderdelen null = deze kaart heeft geen tijdlijngroep (alleen
+ * in bewerkmodus getoond, met een hint); link = href naar de hele tijdlijn of null.
+ */
+function TijdlijnDeel({ onderdelen, edit, kaartId, link }: { onderdelen: Onderdeel[] | null; edit: boolean; kaartId: string; link: string | null }) {
+  return (
+    <Deel titel="Onderdelen in de tijdlijn">
+      {onderdelen === null ? (
+        <p className="wk-hint wk-hint-los">
+          {kaartId
+            ? `Nog geen tijdlijngroep bij deze kaart: kies in de tijdlijn bij een groep de kaart "${kaartId}".`
+            : "Geef de kaart een anker om er een tijdlijngroep aan te koppelen."}
+        </p>
+      ) : onderdelen.length === 0 ? (
+        <Leeg tekst="Nog geen onderdelen in de tijdlijn" />
+      ) : (
+        <div className="wk-tl">
+          <ul className="wk-tl-lijst">
+            {onderdelen.map((o, i) => (
+              <OnderdeelRegel key={i} o={o} />
+            ))}
+          </ul>
+        </div>
+      )}
+      {edit && onderdelen !== null && (
+        <p className="wk-hint">Uit de tijdlijn; onderdelen, maanden en voortgang pas je daar aan.</p>
+      )}
+      {link && (
+        <p className="wk-voet">
+          <a className="wk-link" href={link}>
+            Hele tijdlijn <span aria-hidden="true">↓</span>
+          </a>
+        </p>
+      )}
+    </Deel>
+  );
+}
+
+/**
+ * Nog nodig: de regels uit het voortgangsbord (afvinkbaar) of, zonder bord of zonder
+ * regels, de eigen lijst van de kaart. Het kopje is amber zolang er iets open staat.
+ * Bewerkmodus: de eigen lijst blijft bewerkbaar (één lijst, "Cito:" zichtbaar) met hints.
+ */
+function NodigDeel({ k, edit, zetK, nodig, bordLink }: { k: Kaart; edit: boolean; zetK: ZetKaart; nodig: BordNodig | null; bordLink: string | null }) {
+  const open = nodig
+    ? nodig.items.some((x) => x.klaar !== true && heeft(getoondeTekst(tekst(x.tekst))))
+    : k.aanvullen.some((s) => heeft(getoondeTekst(s)));
+  return (
+    <Deel titel="Nog nodig" open={open}>
+      {nodig && <NodigLijst nodig={nodig} />}
+      {edit ? (
+        <>
+          {nodig && (
+            <p className="wk-hint wk-hint-kop">
+              Deze regels komen uit het voortgangsbord; teksten pas je daar aan. De eigen lijst hieronder toont de kaart alleen als het bord
+              geen regels voor deze werkstroom heeft.
+            </p>
+          )}
+          <Lijst items={k.aanvullen} edit ml={false} on={(items) => zetK((n) => void (n.aanvullen = items))} />
+          <p className="wk-hint">
+            {nodig ? "" : "Heeft het voortgangsbord regels voor deze werkstroom, dan toont de kaart die in plaats van deze lijst. "}
+            {CITO_HINT}
+          </p>
+        </>
+      ) : (
+        !nodig && <Aanvullen items={k.aanvullen} />
+      )}
+      {!edit && nodig && bordLink && (
+        <p className="wk-voet">
+          <a className="wk-link" href={bordLink}>
+            Voortgangsbord <span aria-hidden="true">↓</span>
+          </a>
+        </p>
+      )}
+    </Deel>
   );
 }
 
@@ -479,15 +875,27 @@ function WerkstroomKaart({
   k,
   edit,
   zetK,
-  tijdlijn,
+  tijdlijnLink,
+  metTijdlijn,
+  onderdelen,
+  nodig,
+  bordLink,
   ankerDubbel,
   onWeg,
 }: {
   k: Kaart;
   edit: boolean;
   zetK: ZetKaart;
-  /** link naar de tijdlijn tonen (het anker bestaat en we zijn niet aan het bewerken) */
-  tijdlijn: boolean;
+  /** "#tl-<id>" als de tijdlijngroep in het document staat en we niet aan het bewerken zijn; anders null */
+  tijdlijnLink: string | null;
+  /** het raster heeft de rij "Onderdelen in de tijdlijn" (zelfde plek op elke kaart) */
+  metTijdlijn: boolean;
+  /** de onderdelen uit de tijdlijngroep van deze kaart; null = geen groep */
+  onderdelen: Onderdeel[] | null;
+  /** de regels "nodig" uit het voortgangsbord; null = geen bord of geen regels (dan de eigen lijst) */
+  nodig: BordNodig | null;
+  /** "#vb-<id>": de werkstroom op het voortgangsbord (weergavemodus); anders null */
+  bordLink: string | null;
   /** een andere kaart in het blok heeft hetzelfde id (bewerkmodus: waarschuwen) */
   ankerDubbel: boolean;
   /** deze kaart weghalen (bewerkmodus) */
@@ -590,7 +998,7 @@ function WerkstroomKaart({
         )}
       </div>
 
-      {/* rij 2 t/m 6: de onderdelen */}
+      {/* rij 2 en verder: de onderdelen, op elke kaart in dezelfde rij */}
       <Deel titel="Waarom">
         {edit ? (
           <V
@@ -619,28 +1027,31 @@ function WerkstroomKaart({
         {edit ? <PlanningBewerken stappen={k.planning} zetK={zetK} /> : <Planning stappen={k.planning} />}
       </Deel>
 
+      {/* zonder eigen tijdlijngroep blijft de rij leeg, zodat de onderdelen eronder gelijk blijven met de buren */}
+      {metTijdlijn &&
+        (onderdelen !== null || edit ? (
+          <TijdlijnDeel
+            onderdelen={onderdelen}
+            edit={edit}
+            kaartId={k.id.trim()}
+            link={onderdelen !== null ? tijdlijnLink : null}
+          />
+        ) : (
+          <div className="wk-deel-leeg" aria-hidden="true" />
+        ))}
+
       <Deel titel="In het DIN">
         {edit ? <DinPadBewerken pad={k.dinPad} zetK={zetK} /> : <DinPad pad={k.dinPad} />}
       </Deel>
 
-      <Deel titel="Nog aanvullen" open>
-        {edit ? (
-          <Lijst
-            items={k.aanvullen}
-            edit
-            ml={false}
-            on={(items) => zetK((n) => void (n.aanvullen = items))}
-          />
-        ) : (
-          <Aanvullen items={k.aanvullen} />
-        )}
-      </Deel>
+      <NodigDeel k={k} edit={edit} zetK={zetK} nodig={nodig} bordLink={bordLink} />
 
       <Deel titel="Documenten en status">
         {edit ? (
           <KoppelingenBewerken kops={k.koppelingen ?? []} zetK={zetK} />
         ) : (
-          <Koppelingen kops={k.koppelingen ?? []} tijdlijn={tijdlijn ? "#tl-" + k.id : null} />
+          // de link naar de tijdlijn staat onder de onderdelen; alleen zonder dat onderdeel hier
+          <Koppelingen kops={k.koppelingen ?? []} tijdlijn={onderdelen === null ? tijdlijnLink : null} />
         )}
       </Deel>
     </article>
@@ -650,27 +1061,59 @@ function WerkstroomKaart({
 // ---------- het blok ----------
 
 export default function WerkstroomKaartenBlok({ b, edit, zet, ankers }: LosBlokProps<"werkstromen">) {
+  // Andere blokken in hetzelfde document: de tijdlijn (onderdelen) en het voortgangsbord (nog nodig).
+  const tl = useBlok("tijdlijn");
+  const bord = useBlok("voortgangsbord");
+  const zetDoc = useDocZet();
   if (!edit && b.kaarten.length === 0) return null;
+
+  const nu = new Date();
+  const perAnker = tl ? onderdelenPerAnker(tl, new Date(nu.getFullYear(), nu.getMonth(), nu.getDate())) : null;
+  const onderdelenVan = (k: Kaart): Onderdeel[] | null => {
+    const id = k.id.trim();
+    return (id && perAnker?.get(id)) || null;
+  };
+  // De rij "Onderdelen in de tijdlijn" staat er zodra een kaart een tijdlijngroep heeft;
+  // in bewerkmodus zodra er een tijdlijn is (kaarten zonder groep krijgen dan een hint).
+  const metTijdlijn = perAnker !== null && (edit || b.kaarten.some((k) => onderdelenVan(k) !== null));
+
+  const nodigVan = (k: Kaart): BordNodig | null => {
+    const id = k.id.trim();
+    if (!bord || !id) return null;
+    const w = (bord.werkstromen ?? []).find((x) => tekst(x.anker).trim() === id);
+    const items = w?.nodig ?? [];
+    if (!items.some((x) => heeft(getoondeTekst(tekst(x.tekst))))) return null;
+    return { items, vink: zetDoc ? (i, aan) => zetDoc((d) => vinkInBord(d, id, i, aan)) : null };
+  };
+
   return (
     <>
       {b.kaarten.length > 0 && (
-        <div className="wk-raster">
-          {b.kaarten.map((k, ki) => (
-            <WerkstroomKaart
-              key={ki}
-              k={k}
-              edit={edit}
-              zetK={(fn) =>
-                zet((n) => {
-                  const x = n.kaarten[ki];
-                  if (x) fn(x);
-                })
-              }
-              tijdlijn={!edit && heeft(k.id) && ankers.has("tl-" + k.id)}
-              ankerDubbel={edit && heeft(k.id) && b.kaarten.some((x, xi) => xi !== ki && x.id === k.id)}
-              onWeg={() => zet((n) => void n.kaarten.splice(ki, 1))}
-            />
-          ))}
+        <div className={"wk-raster" + (metTijdlijn ? " wk-raster-tl" : "")}>
+          {b.kaarten.map((k, ki) => {
+            const id = k.id.trim();
+            const nodig = nodigVan(k);
+            return (
+              <WerkstroomKaart
+                key={ki}
+                k={k}
+                edit={edit}
+                zetK={(fn) =>
+                  zet((n) => {
+                    const x = n.kaarten[ki];
+                    if (x) fn(x);
+                  })
+                }
+                tijdlijnLink={!edit && id && ankers.has("tl-" + id) ? "#tl-" + id : null}
+                metTijdlijn={metTijdlijn}
+                onderdelen={onderdelenVan(k)}
+                nodig={nodig}
+                bordLink={!edit && nodig ? "#vb-" + id : null}
+                ankerDubbel={edit && heeft(k.id) && b.kaarten.some((x, xi) => xi !== ki && x.id === k.id)}
+                onWeg={() => zet((n) => void n.kaarten.splice(ki, 1))}
+              />
+            );
+          })}
         </div>
       )}
       {edit && (
@@ -705,7 +1148,8 @@ function staand(s: string): string {
 export const WERKSTROOM_CSS = `
 .okd .wk-raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(360px,calc(50% - 7px))),1fr));gap:14px}
 .okd .wk-kaart{--wk-k:${NEUTRAAL};position:relative;display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden;background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:12px;padding:20px 18px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px -8px rgba(15,23,42,.14);scroll-margin-top:80px}
-@supports (grid-template-rows:subgrid){.okd .wk-kaart{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:subgrid;grid-row:span ${RIJEN}}}
+.okd .wk-deel-leeg{display:none}
+@supports (grid-template-rows:subgrid){.okd .wk-kaart{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:subgrid;grid-row:span ${RIJEN}}.okd .wk-raster-tl > .wk-kaart{grid-row:span ${RIJEN + 1}}.okd .wk-deel-leeg{display:block}}
 .okd .wk-kaart:target{box-shadow:0 0 0 2px var(--wk-k),0 8px 24px -10px rgba(15,23,42,.3)}
 .okd .wk-band{position:absolute;top:0;left:0;right:0;height:6px;display:flex;gap:2px}
 .okd .wk-band > span{flex:1 1 0}
@@ -746,6 +1190,45 @@ export const WERKSTROOM_CSS = `
 .okd .wk-schakel-p{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 .okd .wk-open{display:flex;flex-wrap:wrap;gap:5px}
 .okd .wk-open > li{max-width:100%;font-size:11.5px;font-weight:600;line-height:1.35;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:7px;padding:3px 9px}
+.okd .wk-groepen{display:flex;flex-direction:column;gap:9px}
+.okd .wk-groep-kop{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:9px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#64748b}
+.okd .wk-groep-kop::after{content:"";flex:1;height:1px;background:#edf1f5}
+.okd .wk-nodig{display:flex;flex-direction:column;gap:5px}
+.okd .wk-vink-r{display:flex;align-items:flex-start;gap:8px;min-width:0;cursor:pointer;font-size:12.5px;line-height:1.4;color:#1e293b}
+.okd .wk-vink-r input{flex:none;width:14px;height:14px;margin:2px 0 0;accent-color:${CITO};cursor:pointer}
+.okd .wk-vink-r:has(input:disabled){cursor:default}
+.okd .wk-vink-r input:disabled{cursor:default}
+.okd .wk-vink-t{min-width:0}
+.okd .wk-nodig-klaar .wk-vink-t{text-decoration:line-through;text-decoration-color:#94a3b8;color:#9aa3b0}
+.okd .wk-nodig-klaar .wk-vink-t .ok-bron{color:inherit}
+.okd .wk-voet{display:flex;justify-content:flex-end;margin-top:7px}
+.okd .wk-hint-los{margin-top:0}
+.okd .wk-hint-kop{margin:8px 0 6px}
+.okd .wk-tl{container:wktl / inline-size}
+.okd .wk-tl-lijst{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:14px}
+.okd .wk-tl-r{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-columns:subgrid;align-items:baseline;margin:0 -6px;padding:5px 6px;border-top:1px solid #f1f5f9}
+.okd .wk-tl-r:first-child{border-top:0}
+.okd .wk-tl-r:hover{background:#f8fafc}
+.okd .wk-tl-naam{min-width:0;font-size:12.5px;line-height:1.4;color:#1e293b}
+.okd .wk-tl-m{font-size:11px;font-weight:600;line-height:1.4;color:#475569;white-space:nowrap}
+.okd .wk-tl-pijl{font-weight:500;color:#94a3b8}
+.okd .wk-tl-tb{font-style:italic;font-weight:500;color:#64748b}
+.okd .wk-tl-st{display:flex;align-items:baseline;gap:5px;min-width:0;white-space:nowrap}
+.okd .wk-tl-verstreken,.okd .wk-tl-verstreken:hover{background:#fef2f2}
+.okd .wk-tl-verstreken .wk-tl-naam{font-weight:600;color:#b91c1c}
+.okd .wk-tl-rood{color:#b91c1c}
+.okd .wk-tl-tag{display:inline-block;margin-left:6px;padding:0 6px;border:1px solid #fca5a5;border-radius:999px;background:#fff;font-size:9px;font-weight:800;line-height:1.5;text-transform:uppercase;letter-spacing:.06em;color:#b91c1c;white-space:nowrap;vertical-align:1px}
+.okd .wk-stip{flex:none;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;font-size:10px;font-weight:800;line-height:1;color:#fff}
+.okd .wk-stip-plus{background:#059669}
+.okd .wk-stip-plusmin{background:#d97706}
+.okd .wk-stip-min{background:#dc2626}
+.okd .wk-stip-anders{background:#94a3b8}
+.okd .wk-stip-leeg{width:11px;height:11px;margin:0 2px;background:#fff;box-shadow:inset 0 0 0 1.5px #cbd5e1}
+.okd .wk-vg{font-size:10.5px;line-height:1.25;font-weight:600;color:#111827}
+.okd .wk-vg-niet{font-weight:400;color:#5b6573}
+.okd .wk-vg-af{display:inline-block;padding:1px 6px 1px 4px;border:1px solid #a7f3d0;border-radius:999px;background:#ecfdf5;font-size:10px;font-weight:700;color:#047857}
+.okd .wk-vg-vink{margin-right:3px;vertical-align:-1px}
+@container wktl (max-width:399px){.okd .wk-tl-lijst{display:flex;flex-direction:column}.okd .wk-tl-r{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}.okd .wk-tl-naam{flex:1 1 100%}}
 .okd .wk-docs{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px}
 .okd .wk-docs > li{display:flex;max-width:100%;min-width:0}
 .okd .wk-doc{display:inline-flex;align-items:center;gap:5px;max-width:100%;min-width:0;font-size:11.5px;font-weight:600;line-height:1.35;padding:3px 9px;border-radius:7px;border:1px solid color-mix(in srgb,${CITO} 38%,#fff);background:#fff;color:${CITO};text-decoration:none}
