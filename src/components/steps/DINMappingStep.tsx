@@ -38,6 +38,7 @@ import type { WizardResult } from "@/components/din/DINCreatieWizard";
 import { generateVerrijktSectorplanDocument } from "@/lib/word-export";
 import ExterneProjectenPanel from "@/components/din/ExterneProjectenPanel";
 import ConsolidatieOverzicht from "@/components/din/ConsolidatieOverzicht";
+import NulmetingBesluit from "@/components/din/NulmetingBesluit";
 
 const DOMAINS: { key: EffortDomain; label: string }[] = [
   { key: "mens", label: "Mens" },
@@ -76,7 +77,7 @@ const DOMAIN_DESCRIPTIONS: Record<EffortDomain, string> = {
   processen: "Werkwijzen, procedures, governance, samenwerking",
   data_systemen: "IT-systemen, data-infrastructuur, tooling, integraties",
   cultuur: "Gedrag, mindset, waarden, leiderschapsontwikkeling",
-  overig: "Programma-brede posten (zoals onvoorzien)",
+  overig: "Programmabreed, over alle domeinen (zoals de 0-meting en onvoorzien)",
 };
 
 
@@ -1097,6 +1098,8 @@ export default function DINMappingStep() {
 
   return (
     <div className="space-y-4">
+      {/* Besluit 30-09: de 0-meting als inspanning over alle vier domeinen (verdwijnt zodra ze er staat) */}
+      <NulmetingBesluit />
       {/* Undo toast */}
       {deletedItem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-lg animate-slide-in-right">

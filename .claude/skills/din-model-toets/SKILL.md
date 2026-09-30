@@ -61,7 +61,7 @@ Uitkomst altijd één van drie: hoort erbij (domein, werkstroom, plan van aanpak
 
 ## 6. Tel- en bronvalkuilen
 
-- **Inspanningen tellen:** de sessie bevat 26 records, maar het DIN heeft 4 inspanningen, één per domein, samengevoegd uit 10 sectorinspanningen. Filter `consolidated` weg en tel unieke titels (zoals `KPIMeetbaarheidStep` doet).
+- **Inspanningen tellen:** de sessie bevat 26 records, maar het DIN heeft 4 inspanningen, één per domein, samengevoegd uit 10 sectorinspanningen. Na het besluit van 30-09-2026 komt daar de 0-meting bij als vijfde, programmabrede inspanning (domein "overig"), zodra de knop in stap 3 (DIN-Mapping) is gebruikt. Filter `consolidated` weg en tel unieke titels (zoals `KPIMeetbaarheidStep` doet).
 - **Datums:** verschillende documenten van dezelfde partij kunnen elkaar tegenspreken (plan van aanpak zegt Q3/Q4, tijdlijn zegt oktober of januari). Noem beide met bron; kies niet stilzwijgend.
 - **Aantallen en pagina's** altijd zelf nagaan: tijdlijn cel voor cel (tab v3, kolommen E t/m P), pdf-pagina's met `pdftotext -layout` en `paginas.py` in de scratchpad.
 - **"Vastgesteld op datum X"** alleen als de bron dat zegt; anders "vastgesteld in het KPI-model" of "te bepalen".
