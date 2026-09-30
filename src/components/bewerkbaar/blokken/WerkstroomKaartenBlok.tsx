@@ -9,7 +9,10 @@
 // (met url een link in een nieuw tabblad, zonder url gedempt) en als laatste de link
 // naar de tijdlijn (#tl-<id>) als die in het document staat.
 // Bewerkmodus: alle teksten en regels zijn aanpasbaar, koppelingen (naam + url) ook;
-// id en domeinen liggen vast en kaarten toevoegen of verwijderen kan niet.
+// per kaart vink je de domeinen aan (kleurband en chips volgen), kaarten voeg je toe
+// (+ kaart) en haal je weg (×). Het id van een kaart is het linkdoel (#wk-<id>) voor de
+// DIN-plaat en de tijdlijn: een nieuwe kaart krijgt een uniek id afgeleid van de naam;
+// in bewerkmodus staat het als "Anker" bij de kaart en kun je het aanpassen.
 // Alleen gebruiken binnen een client-component (de props bevatten functies).
 
 import { useId } from "react";
@@ -18,7 +21,8 @@ import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 
-type Kaart = BlokVan<"werkstromen">["kaarten"][number];
+type Blok = BlokVan<"werkstromen">;
+type Kaart = Blok["kaarten"][number];
 type Koppeling = Kaart["koppelingen"][number];
 type Domein = { id: string; label: string; kleur: string };
 /** Past een kopie van één kaart aan; de wijziging gaat via het blok naar boven. */
@@ -28,6 +32,63 @@ const CITO = "#003366";
 const NEUTRAAL = "#64748b";
 /** Rijen per kaart in het raster (subgrid): kop + zes onderdelen. */
 const RIJEN = 7;
+const NIEUWE_NAAM = "Nieuwe werkstroom";
+
+/** "Adoptie en gedrag" → "adoptie-en-gedrag": kleine letters en koppeltekens, zonder accenten. */
+function slug(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Id dat niet botst met de bezette ids: basis, basis-2, basis-3, … */
+function uniekId(basis: string, bezet: ReadonlySet<string>): string {
+  if (!bezet.has(basis)) return basis;
+  for (let n = 2; ; n++) if (!bezet.has(`${basis}-${n}`)) return `${basis}-${n}`;
+}
+
+/** Een getypt anker: kleine letters, cijfers en koppeltekens (een koppelteken aan het eind mag tijdens het typen). */
+function ankerTekst(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+/, "");
+}
+
+// Wijzigingen aan het blok (bewerkmodus); ze werken op de kopie die zet() aanreikt.
+
+function voegKaartToe(n: Blok) {
+  n.kaarten.push({
+    id: uniekId(slug(NIEUWE_NAAM), new Set(n.kaarten.map((k) => k.id))),
+    naam: NIEUWE_NAAM,
+    bijnaam: "",
+    domeinen: [],
+    leads: "",
+    bron: "",
+    waarom: "",
+    resultaten: [],
+    planning: [],
+    dinPad: [],
+    aanvullen: [],
+    koppelingen: [],
+  });
+}
+
+/** Vinkt een domein aan of uit; de lijst houdt de outside-in volgorde van DOMEINEN. */
+function zetKaartDomein(k: Kaart, id: string, aan: boolean) {
+  const gekozen = new Set(k.domeinen);
+  if (aan) gekozen.add(id);
+  else gekozen.delete(id);
+  const bekend = DOMEINEN.map((d) => d.id).filter((x) => gekozen.has(x));
+  const overig = k.domeinen.filter((x) => !domein(x) && gekozen.has(x));
+  k.domeinen = [...bekend, ...overig];
+}
 
 // Kleur per DIN-niveau, herkend aan het woord vóór de dubbele punt in "In het DIN"
 // ("Vermogen: eenduidige funnelprocessen"). Zelfde kleuren als de lagen van de
@@ -382,6 +443,30 @@ function KoppelingenBewerken({ kops, zetK }: { kops: Koppeling[]; zetK: ZetKaart
   );
 }
 
+/** Bewerkmodus: per DIN-domein een vinkje; de kleurband en de chips van de kaart volgen. */
+function DomeinVinkjes({ k, zetK }: { k: Kaart; zetK: ZetKaart }) {
+  return (
+    <div className="wk-veld wk-vinken-rij" role="group" aria-label="Domeinen">
+      <span className="wk-veld-l">Domeinen</span>
+      <div className="wk-vinken">
+        {DOMEINEN.map((d) => (
+          <label key={d.id} className="wk-vink" style={kleurVar("--wk-d", d.kleur)}>
+            <input
+              type="checkbox"
+              checked={k.domeinen.includes(d.id)}
+              onChange={(e) => {
+                const aan = e.target.checked;
+                zetK((n) => zetKaartDomein(n, d.id, aan));
+              }}
+            />
+            {d.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---------- kaart ----------
 
 function WerkstroomKaart({
@@ -389,12 +474,18 @@ function WerkstroomKaart({
   edit,
   zetK,
   tijdlijn,
+  ankerDubbel,
+  onWeg,
 }: {
   k: Kaart;
   edit: boolean;
   zetK: ZetKaart;
   /** link naar de tijdlijn tonen (het anker bestaat en we zijn niet aan het bewerken) */
   tijdlijn: boolean;
+  /** een andere kaart in het blok heeft hetzelfde id (bewerkmodus: waarschuwen) */
+  ankerDubbel: boolean;
+  /** deze kaart weghalen (bewerkmodus) */
+  onWeg: () => void;
 }) {
   const kopId = useId();
   const doms = domeinenVan(k.domeinen);
@@ -441,9 +532,11 @@ function WerkstroomKaart({
               ))}
             </ul>
           )}
+          {edit && <WegKnop titel="Kaart verwijderen" on={onWeg} />}
         </div>
         {edit ? (
           <div className="wk-meta-edit">
+            <DomeinVinkjes k={k} zetK={zetK} />
             <Veld
               label="3sides"
               v={k.bijnaam}
@@ -462,6 +555,19 @@ function WerkstroomKaart({
               on={(x) => zetK((n) => void (n.bron = x))}
               ph="bijv. Plan van aanpak p. 10–11"
             />
+            <Veld
+              label="Anker"
+              v={k.id}
+              on={(x) => zetK((n) => void (n.id = ankerTekst(x)))}
+              ph="bijv. marketing"
+            />
+            <p className={"wk-hint wk-anker-hint" + (ankerDubbel ? " wk-doc-hint-let-op" : "")}>
+              {ankerDubbel
+                ? "Dit anker is al in gebruik bij een andere kaart; kies een uniek anker."
+                : heeft(k.id)
+                  ? `Linkdoel #wk-${k.id}: hierop linken de DIN-plaat en de tijdlijn.`
+                  : "Zonder anker kunnen de DIN-plaat en de tijdlijn niet naar deze kaart linken."}
+            </p>
           </div>
         ) : (
           (heeft(k.leads) || heeft(k.bron)) && (
@@ -538,24 +644,35 @@ function WerkstroomKaart({
 // ---------- het blok ----------
 
 export default function WerkstroomKaartenBlok({ b, edit, zet, ankers }: LosBlokProps<"werkstromen">) {
-  if (b.kaarten.length === 0) return null;
+  if (!edit && b.kaarten.length === 0) return null;
   return (
-    <div className="wk-raster">
-      {b.kaarten.map((k, ki) => (
-        <WerkstroomKaart
-          key={ki}
-          k={k}
-          edit={edit}
-          zetK={(fn) =>
-            zet((n) => {
-              const x = n.kaarten[ki];
-              if (x) fn(x);
-            })
-          }
-          tijdlijn={!edit && heeft(k.id) && ankers.has("tl-" + k.id)}
-        />
-      ))}
-    </div>
+    <>
+      {b.kaarten.length > 0 && (
+        <div className="wk-raster">
+          {b.kaarten.map((k, ki) => (
+            <WerkstroomKaart
+              key={ki}
+              k={k}
+              edit={edit}
+              zetK={(fn) =>
+                zet((n) => {
+                  const x = n.kaarten[ki];
+                  if (x) fn(x);
+                })
+              }
+              tijdlijn={!edit && heeft(k.id) && ankers.has("tl-" + k.id)}
+              ankerDubbel={edit && heeft(k.id) && b.kaarten.some((x, xi) => xi !== ki && x.id === k.id)}
+              onWeg={() => zet((n) => void n.kaarten.splice(ki, 1))}
+            />
+          ))}
+        </div>
+      )}
+      {edit && (
+        <div className="wk-plus">
+          <PlusKnop label="+ kaart" on={() => zet(voegKaartToe)} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -648,6 +765,15 @@ export const WERKSTROOM_CSS = `
 .okd .wk-veld > .ok-in{flex:1;min-width:0}
 .okd .wk-veld-l{flex:none;min-width:46px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#64748b}
 .okd .wk-meta-edit{display:flex;flex-direction:column;gap:5px}
+.okd .wk-vinken-rij{align-items:flex-start}
+.okd .wk-vinken-rij > .wk-veld-l{padding-top:4px}
+.okd .wk-vinken{display:flex;flex-wrap:wrap;gap:4px 6px;min-width:0}
+.okd .wk-vink{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer;color:color-mix(in srgb,var(--wk-d) 75%,#000);background:color-mix(in srgb,var(--wk-d) 8%,#fff);border:1px solid color-mix(in srgb,var(--wk-d) 35%,#fff);border-radius:999px;padding:1px 9px 1px 6px}
+.okd .wk-vink input{margin:0;accent-color:var(--wk-d);cursor:pointer}
+.okd .wk-vink:has(input:checked){background:color-mix(in srgb,var(--wk-d) 16%,#fff);border-color:var(--wk-d)}
+.okd .wk-kop-r > .ok-knopje{flex:none;margin-top:2px}
+.okd .wk-anker-hint{margin-top:0}
+.okd .wk-plus{display:flex}
 .okd .ok-rij > .ok-in.wk-wanneer{flex:0 0 108px}
 .okd .wk-staal{flex:none;width:10px;height:10px;margin-top:7px;border-radius:3px;background:var(--wk-s)}
 .okd .wk-hint{margin-top:6px;font-size:10.5px;line-height:1.4;color:#64748b}

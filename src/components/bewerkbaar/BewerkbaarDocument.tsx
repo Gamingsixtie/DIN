@@ -1,11 +1,12 @@
 // Generieke, bewerkbare documentweergave (o.a. stap 11 "Programma × 3sides") in de
 // beeldtaal van het organigram: kop met titel, ondertitel en status, een compacte
 // inhoudsopgave en per sectie blokken (tekst, kader, lijst, tabel, kaarten, lagen,
-// DIN-plaat). In bewerkmodus is elke tekst aanpasbaar en voeg je secties, regels,
-// rijen, kaarten en lagen toe of haal je ze weg; de DIN-plaat werkt als een bord:
-// baten, domeinen en werkstromen toevoegen, verschuiven en weghalen. Wijzigingen gaan onveranderlijk
-// (kopie → aanpassen) via onChange naar de ouder; die bepaalt wanneer er wordt
-// opgeslagen. Alleen gebruiken binnen een client-component.
+// DIN-plaat, werkstroomkaarten, tijdlijn, matrix). In bewerkmodus is elke tekst
+// aanpasbaar en voeg je secties, blokken, regels, rijen, kolommen, kaarten en lagen toe
+// of haal je ze weg (per blok ook ↑ ↓ om te verschuiven); de DIN-plaat werkt als een
+// bord: baten, domeinen en werkstromen toevoegen, verschuiven en weghalen. Wijzigingen
+// gaan onveranderlijk (kopie → aanpassen) via onChange naar de ouder; die bepaalt
+// wanneer er wordt opgeslagen. Alleen gebruiken binnen een client-component.
 
 import { Fragment, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
@@ -86,6 +87,68 @@ function nieuweSectie(): DocSectie {
   };
 }
 
+/** Naam van een bloktype in de werkbalk van het blok (bewerkmodus). */
+const BLOK_NAMEN: Record<DocBlok["type"], string> = {
+  tekst: "Tekst",
+  callout: "Kader",
+  lijst: "Lijst",
+  tabel: "Tabel",
+  kaarten: "Kaarten",
+  lagen: "Lagen",
+  dinplaat: "DIN-plaat",
+  werkstromen: "Werkstroomkaarten",
+  tijdlijn: "Tijdlijn",
+  matrix: "Matrix",
+};
+
+/** Bloktypen die je in een sectie kunt toevoegen ("+ blok"). */
+type NieuwSoort = "tekst" | "lijst" | "tabel" | "callout";
+const NIEUW_BLOK_OPTIES: { waarde: NieuwSoort; label: string }[] = [
+  { waarde: "tekst", label: "Tekst" },
+  { waarde: "lijst", label: "Lijst" },
+  { waarde: "tabel", label: "Tabel" },
+  { waarde: "callout", label: "Kader" },
+];
+
+function nieuwBlok(soort: NieuwSoort): DocBlok {
+  switch (soort) {
+    case "lijst":
+      return { type: "lijst", titel: "", items: [""] };
+    case "tabel":
+      return { type: "tabel", titel: "", kolommen: ["Kolom 1", "Kolom 2"], rijen: [["", ""]], legenda: "" };
+    case "callout":
+      return { type: "callout", toon: "info", titel: "", tekst: "" };
+    default:
+      return { type: "tekst", tekst: "" };
+  }
+}
+
+// Kolommen van een tabel of lagenblok (bewerkmodus); ze werken op de kopie die zet() aanreikt.
+
+function voegTabelKolomToe(n: BlokVan<"tabel">) {
+  n.kolommen.push("Nieuwe kolom");
+  for (const rij of n.rijen) while (rij.length < n.kolommen.length) rij.push("");
+}
+
+/** Haalt kolom c weg, ook de cel ervan in elke rij; de chipkolom schuift mee of vervalt. */
+function verwijderTabelKolom(n: BlokVan<"tabel">, c: number) {
+  n.kolommen.splice(c, 1);
+  for (const rij of n.rijen) if (rij.length > c) rij.splice(c, 1);
+  if (n.chipKolom === undefined) return;
+  if (n.chipKolom === c) n.chipKolom = undefined;
+  else if (n.chipKolom > c) n.chipKolom -= 1;
+}
+
+function voegLaagKolomToe(n: BlokVan<"lagen">) {
+  n.kolommen.push("Nieuwe kolom");
+  for (const l of n.lagen) while (l.cellen.length < n.kolommen.length) l.cellen.push("");
+}
+
+function verwijderLaagKolom(n: BlokVan<"lagen">, c: number) {
+  n.kolommen.splice(c, 1);
+  for (const l of n.lagen) if (l.cellen.length > c) l.cellen.splice(c, 1);
+}
+
 // ---------- blokken ----------
 
 function TekstBlok({ b, edit, zet }: BlokProps<"tekst">) {
@@ -156,9 +219,18 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
               {b.kolommen.map((k, c) => (
                 <th key={c} className={isChip(c) ? "c" : undefined}>
                   <V v={k} on={(x) => zet((n) => void (n.kolommen[c] = x))} edit={edit} ph="Kolom" />
+                  {edit && (
+                    <div className="okd-kolom-knop">
+                      <WegKnop titel="Kolom verwijderen" on={() => zet((n) => verwijderTabelKolom(n, c))} />
+                    </div>
+                  )}
                 </th>
               ))}
-              {edit && <th className="x" />}
+              {edit && (
+                <th className="x okd-kolom-plus">
+                  <PlusKnop label="+ kolom" on={() => zet(voegTabelKolomToe)} />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -301,6 +373,11 @@ function LagenBlok({ b, edit, zet }: BlokProps<"lagen">) {
           {b.kolommen.map((k, c) => (
             <div key={c}>
               <V v={k} on={(x) => zet((l) => void (l.kolommen[c] = x))} edit={edit} ph="Kolom" />
+              {edit && (
+                <div className="okd-kolom-knop">
+                  <WegKnop titel="Kolom verwijderen" on={() => zet((l) => verwijderLaagKolom(l, c))} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -345,13 +422,14 @@ function LagenBlok({ b, edit, zet }: BlokProps<"lagen">) {
           );
         })}
         {edit && (
-          <div>
+          <div className="okd-laag-plus">
             <PlusKnop
               label="+ laag"
               on={() =>
                 zet((l) => void l.lagen.push({ naam: "", kleur: "", cellen: l.kolommen.map(() => "") }))
               }
             />
+            <PlusKnop label="+ kolom" on={() => zet(voegLaagKolomToe)} />
           </div>
         )}
       </div>
@@ -1033,6 +1111,10 @@ const Sectie = memo(function Sectie(p: {
   onVraag: (id: string | null) => void;
 }) {
   const { s, i, edit, vraag, ankers, onZet, onVraag } = p;
+  // Welk blok om bevestiging van verwijderen vraagt, en het soort van een nieuw blok.
+  const [vraagBlok, setVraagBlok] = useState<number | null>(null);
+  const [nieuwSoort, setNieuwSoort] = useState<NieuwSoort>("tekst");
+  if (!edit && vraagBlok !== null) setVraagBlok(null);
 
   const upd = (fn: (n: DocSectie) => void) => {
     const n = kloon(s);
@@ -1115,10 +1197,70 @@ const Sectie = memo(function Sectie(p: {
           ph="Inleiding (optioneel)"
         />
       )}
-      <div className="okd-blokken">{s.blokken.map(blok)}</div>
+      <div className="okd-blokken">
+        {s.blokken.map((b, bi) =>
+          edit ? (
+            <div key={bi} className="okd-blok-edit">
+              <div className="okd-blok-balk">
+                <span className="okd-blok-soort">{BLOK_NAMEN[b.type] ?? b.type}</span>
+                {vraagBlok === bi ? (
+                  <span className="okd-vraag" role="alert">
+                    Dit blok verwijderen?
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVraagBlok(null);
+                        upd((n) => void n.blokken.splice(bi, 1));
+                      }}
+                    >
+                      Ja
+                    </button>
+                    <button type="button" onClick={() => setVraagBlok(null)}>
+                      Nee
+                    </button>
+                  </span>
+                ) : (
+                  <VakKnoppen
+                    i={bi}
+                    n={s.blokken.length}
+                    staand
+                    wat="Blok"
+                    onSchuif={(naar) => {
+                      setVraagBlok(null);
+                      upd((n) => verplaats(n.blokken, bi, naar));
+                    }}
+                    onWeg={() => setVraagBlok(bi)}
+                  />
+                )}
+              </div>
+              {blok(b, bi)}
+            </div>
+          ) : (
+            blok(b, bi)
+          )
+        )}
+        {edit && (
+          <div className="okd-blok-plus">
+            <Keuze v={nieuwSoort} opties={NIEUW_BLOK_OPTIES} on={setNieuwSoort} titel="Soort van het nieuwe blok" />
+            <PlusKnop label="+ blok" on={() => upd((n) => void n.blokken.push(nieuwBlok(nieuwSoort)))} />
+          </div>
+        )}
+      </div>
     </section>
   );
 });
+
+// Stijl voor de werkbalk per blok en de kolomknoppen (bewerkmodus); aanvulling op DOC_CSS.
+const BLOK_CSS = `
+.okd .okd-blok-edit{border:1px dashed #cbd5e1;border-radius:12px;background:rgba(255,255,255,.55);padding:6px 10px 10px}
+.okd .okd-blok-balk{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.okd .okd-blok-soort{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)}
+.okd .okd-blok-balk .okd-dp-knoppen{margin-bottom:0}
+.okd .okd-blok-plus{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.okd .okd-kolom-knop{margin-top:4px}
+.okd .okd-t th.okd-kolom-plus{width:auto;min-width:0;padding:6px 8px;text-align:right}
+.okd .okd-laag-plus{display:flex;flex-wrap:wrap;gap:6px}
+`;
 
 // ---------- het document ----------
 
@@ -1178,7 +1320,7 @@ export default function BewerkbaarDocument({
 
   return (
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (
