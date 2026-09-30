@@ -17,7 +17,7 @@ npx vercel --prod    # Deploy naar productie
 
 1. **`npm run build`** moet slagen zonder fouten
 2. **Functionele controle**: Verifieer dat bestaande functionaliteit niet kapot is — lees de relevante componenten, controleer imports, props, types
-3. **Skills gebruiken**: Gebruik altijd de beschikbare skills (pim-dev-skill, frontend-design, interface-design, etc.) bij implementatie
+3. **Skills gebruiken**: Gebruik altijd de beschikbare skills (pim-dev-skill, frontend-design, interface-design, etc.) bij implementatie. Bij alle inhoud en vorming van het programma (teksten, analyses, platen, organigram, planning, doornemen met Pim) **altijd eerst `din-model-toets`** laden
 4. **Methodiek volgen**: Elke feature moet aansluiten bij de DIN-methodiek uit `docs/programmaboek.doc`
 5. **Geen stille failures**: Altijd gebruikersfeedback tonen bij acties (loading states, success/error meldingen)
 6. **Direct committen en pushen** na elke werkende wijziging
@@ -218,7 +218,7 @@ De volgende skills zijn beschikbaar in `.claude/skills/`:
 
 | Skill | Gebruik voor |
 |---|---|
-| `din-model-toets` | **Altijd** bij toepassen van het DIN-model: niveau-check per uitspraak, projecten toetsen op vermogen en domein (niet op baat), extern materiaal (3sides) als synoniem inpassen, rollen per niveau, tel- en bronvalkuilen, checklist |
+| `din-model-toets` | **Altijd** bij inhoud en vorming van het programma (teksten, analyses, platen, organigram, planning, prioritering, extern materiaal, doornemen met Pim): niveau-check per uitspraak, projecten toetsen op vermogen en domein (niet op baat), extern materiaal (3sides) als synoniem inpassen, rollen per niveau, tel- en bronvalkuilen, checklist |
 | `din-kpi-methodiek` | KPI's, baten, vermogens, inspanningen: classificatie, H8-regels, bronhiërarchie, vaststaande projectfeiten |
 | `pim-dev-skill` | Next.js/React + Python dev, Cito context, debuggen |
 | `frontend-design` | Opvallende, productie-grade frontend interfaces |

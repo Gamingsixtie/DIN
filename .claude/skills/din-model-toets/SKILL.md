@@ -1,9 +1,11 @@
 ---
 name: din-model-toets
-description: Gebruik ALTIJD zodra het DIN-model (doel → baat → vermogen → inspanning) wordt toegepast op iets anders dan losse KPI's — analyses, regels, toetsvragen, prioritering van projecten, de DIN-plaat, organigram en rollen, het inpassen van extern materiaal (3sides of andere partijen), programmateksten en sketches. Bevat de niveau-check per uitspraak, de toets voor projecten (op vermogen en domein, niet op baat), de inpassing van externe modellen als synoniemen, rollen per niveau, tel- en bronvalkuilen en de checklist vóór oplevering. Voor KPI-typen, batenprofielen en doelwaarden: din-kpi-methodiek.
+description: ALTIJD gebruiken bij de inhoud en de vorming van het programma Klant in Zicht — elke analyse, tekst, regel, toetsvraag, plaat, tabel, sketch, organigram, rolverdeling, planning, prioritering van projecten, het inpassen van extern materiaal (3sides of andere partijen) en elk gesprek waarin Pim de inhoud doorneemt (vaste afspraak Pim, 30-09-2026). Het DIN-model (doel → baat → vermogen → inspanning) is daarbij de maat. Bevat de niveau-check per uitspraak, de toets voor projecten (op vermogen en domein, niet op baat), de inpassing van externe modellen als synoniemen, rollen per niveau, tel- en bronvalkuilen en de checklist vóór oplevering. Voor KPI-typen, batenprofielen en doelwaarden daarnaast: din-kpi-methodiek.
 ---
 
 # DIN-model toepassen — Klant in Zicht (Cito)
+
+**Wanneer:** bij alles wat over de inhoud en de vorming van het programma gaat, ook als het woord DIN niet valt: teksten, analyses, platen, tabellen, sketches, organigram, planning, prioritering, extern materiaal, en het punt voor punt doornemen met Pim. Laad deze skill aan het begin van zo'n taak en loop de checklist (deel 7) na vóór oplevering.
 
 Bron-autoriteit: "Werken aan Programma's" (Prevaas & Van Loon), `docs/programmaboek.doc`. Het DIN is het **enige** framework van het programma. Alles wat erbij komt, van 3sides of van anderen, hangt als synoniem of als onderdeel onder een niveau van het DIN; er komt nooit een tweede framework naast. Toets ook wat Pim zelf zegt en zeg expliciet wat klopt en wat niet: hij wil gecorrigeerd worden, niet gevolgd.
 
