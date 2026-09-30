@@ -1142,8 +1142,8 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           kaart("Hebben we 3sides geëvalueerd?", "deels", [
             ["Antwoord", "Deels: we hebben de inhoud getoetst, niet de samenwerking."],
             ["Wel gedaan", "Hun model en werkstromen passen op ons DIN, met verschillen in taal (deel 3); per werkstroom ligt een eerste versie van het plan van aanpak (deel 4); de planning schuift bij de 0-meting en de pilots (deel 5)."],
-            ["Nog niet", "De samenwerking zelf: werkwijze (tot nu toe vooral één-op-één, overleg 29-09), tempo tegenover de tijdlijn, en inzet: juli 186,5, augustus 80 en september 226,75 uur (tot 25-09) van 232 per maand, 197,5 uur doorgeschoven (statuspagina).", true],
-            ["Voorstel", "Evalueer op vier punten: sluit het aan op het DIN, levert 3sides op volgens planning, werkt 3sides samen met Cito-mensen in projectgroepen, en past de inzet bij wat er ligt.", true],
+            ["Nog niet", "De samenwerking zelf: werkwijze, tempo en inzet.", true],
+            ["Voorstel", "Evalueer op de vier punten hieronder. Per punt staat wat we zien en een eerste beeld; het oordeel vullen we samen in tijdens de meeting.", true],
           ]),
           kaart("Weten we wat we zelf willen?", "op hoofdlijnen ja", [
             ["Antwoord", "Op hoofdlijnen ja: de structuur staat."],
@@ -1156,6 +1156,41 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ["Basis", "Alles is terug te voeren op de verschillen (deel 3), de plannen van aanpak (deel 4), de planning (deel 5) en het meetmodel (deel 6)."],
           ]),
         ]),
+        callout(
+          "info",
+          "Zo gebruiken we de evaluatie in de meeting",
+          "Vier punten, elk met dezelfde opbouw: wat we toetsen, wat we nu zien (met bron), een eerste beeld als voorstel, en wat we van 3sides vragen. In de meeting bespreken we per punt of het beeld klopt, scherpen we het aan en vullen we het oordeel samen in. Daarna houden we dezelfde vier punten elke zes weken bij, in het ritme van de stuurgroep (voorstel)."
+        ),
+        kaarten([
+          kaart("1 · Sluit het aan op het DIN?", "de inhoud", [
+            ["Wat we toetsen", "Gebruikt 3sides hetzelfde model en dezelfde begrippen als het programmaplan, en past wat ze opleveren in de structuur?"],
+            ["Wat we zien", "Dezelfde vier niveaus (plan van aanpak p. 2), dezelfde vier werkstromen (p. 3) en dezelfde 14 baten-KPI's (meetinstrument p. 7). Wel verschillen in taal: 'inspanning' betekent bij 3sides gedrag, het meetinstrument noemt de vermogens 'Waartoe' (p. 6), en de werkstromen hebben andere namen (deel 3)."],
+            ["Eerste beeld", "Sluit aan, met verschillen in taal (voorstel)", true],
+            ["Wat we vragen", "Het meetmodel aanpassen naar 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)', en één set namen gebruiken in alle stukken."],
+            ["Oordeel in de meeting", "In te vullen"],
+          ]),
+          kaart("2 · Levert 3sides op volgens planning?", "tempo en betrouwbaarheid", [
+            ["Wat we toetsen", "Komen de onderdelen uit de tijdlijn op tijd af, en klopt de planning met het plan van aanpak en ons stappenplan?"],
+            ["Wat we zien", "Van de 28 onderdelen staat er nog geen op afgerond (tijdlijn, stand 28-09). 'Klant in Beeld-klantreizen samenvoegen' had in augustus klaar moeten zijn; drie onderdelen leveren in september op (meetmodel, analyse van data en applicaties, visie en consequenties). De 0-meting is nog niet gestart (oplevering oktober), en de pilots schuiven van Q3 2026 (stappenplan) naar januari 2027 (tijdlijn). Vier onderdelen hebben geen oplevermaand (deel 5)."],
+            ["Eerste beeld", "Deels: het werk loopt, de planning schuift (voorstel)", true],
+            ["Wat we vragen", "Eén planning voor 0-meting en pilots, de open start- en opleverdata invullen, en per onderdeel bijhouden wanneer het af is."],
+            ["Oordeel in de meeting", "In te vullen"],
+          ]),
+          kaart("3 · Werkt 3sides samen met Cito-mensen?", "werkwijze en draagvlak", [
+            ["Wat we toetsen", "Werkt 3sides met projectgroepen van Cito-mensen, zodat kennis en eigenaarschap bij Cito komen te liggen?"],
+            ["Wat we zien", "Tot nu toe vooral één-op-één-gesprekken; kennis zit bij losse personen (overleg 29-09). Er zijn wel vaste momenten: 3sides is op dinsdag bij Cito, en er is een wekelijks overleg over de klantreizen (Saila, Pim en Sasja) en over data (Ericka en Cornelis) (statuspagina; overleg 29-09)."],
+            ["Eerste beeld", "Deels: goede contacten, nog geen projectgroepen (voorstel)", true],
+            ["Wat we vragen", "Per werkstroom een projectgroep met Cito-mensen, het Jira-bord delen met de bredere groep, en keuzes onderbouwen op één A4 (overleg 29-09)."],
+            ["Oordeel in de meeting", "In te vullen"],
+          ]),
+          kaart("4 · Past de inzet bij wat er ligt?", "uren tegenover opbrengst", [
+            ["Wat we toetsen", "Staan de uren die 3sides maakt in verhouding tot wat er na drie maanden (juli tot en met september) is opgeleverd?"],
+            ["Wat we zien", "Uren volgens de statuspagina: juli 186,5, augustus 80 en september 226,75 (tot 25-09), van 232 per maand; 197,5 uur is doorgeschoven. Opgeleverd: per werkstroom een eerste versie van het plan van aanpak, de tijdlijn en werkdocumenten (blueprint, meetinstrument, adoptieframework, praatplaten, datapuntenlijst); nog niets is vastgesteld."],
+            ["Eerste beeld", "Te bepalen in de meeting", true],
+            ["Wat we vragen", "Per werkstroom de uren naast de opleveringen in de wekelijkse rapportage, en wat de 197,5 doorgeschoven uren gaan opleveren."],
+            ["Oordeel in de meeting", "In te vullen"],
+          ]),
+        ]),
         lijst(
           [
             "Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en één set namen voor de werkstromen (deel 3).",
@@ -1163,7 +1198,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             "Planning gelijktrekken: 0-meting en pilots in één planning, open start- en opleverdata invullen, de volgorde van de klantreisvertaling controleren (deel 5).",
             "Meetkader focussen: de 14 baten-KPI's en de vijf kernprincipe-scores eerst; meetprotocol en eigenaar per datapunt (deel 6).",
             "Werkwijze: projectgroepen per werkstroom met Cito-mensen, en het Jira-bord delen met de bredere groep (overleg 29-09).",
-            "Samenwerking evalueren op de vier punten hierboven, en afspreken hoe we dat elke zes weken bijhouden.",
+            "Samenwerking: de vier evaluatiepunten hierboven bespreken en het oordeel samen vaststellen; afspreken dat we ze elke zes weken bijhouden.",
           ],
           "Agenda voor het gesprek met 3sides (voorstel)"
         ),
