@@ -2,8 +2,8 @@
 // beeldtaal van het organigram: kop met titel, ondertitel en status, een compacte
 // inhoudsopgave en per sectie blokken (tekst, kader, lijst, tabel, kaarten, lagen,
 // DIN-plaat). In bewerkmodus is elke tekst aanpasbaar en voeg je secties, regels,
-// rijen, kaarten en lagen toe of haal je ze weg; de DIN-plaat houdt een vaste opbouw
-// (alleen de teksten zijn aanpasbaar). Wijzigingen gaan onveranderlijk
+// rijen, kaarten en lagen toe of haal je ze weg; de DIN-plaat werkt als een bord:
+// baten, domeinen en werkstromen toevoegen, verschuiven en weghalen. Wijzigingen gaan onveranderlijk
 // (kopie → aanpassen) via onChange naar de ouder; die bepaalt wanneer er wordt
 // opgeslagen. Alleen gebruiken binnen een client-component.
 
@@ -363,13 +363,19 @@ function LagenBlok({ b, edit, zet }: BlokProps<"lagen">) {
 // Doel → baten → vermogen → domeinen → werkstromen (inspanningen), van boven naar
 // beneden; de pijlen lezen van onder naar boven (waartoe). Eerste kolom: rijlabels,
 // daarna één kolom per domein. Een werkstroom staat onder de domeinen waarin hij bouwt.
-// Rollen: bovenaan een band "Regie over de hele keten"; in doel, baten en vermogen een
-// rol-label (wie dat niveau draagt); domeineigenaar en leads staan in hun eigen vak.
+// Rollen: bovenaan een Cito-blauwe band "Regie over de hele keten" (programmamanagement)
+// met een beugel in dezelfde kleur langs de linkerkant van alle niveaus, van doel tot
+// werkstromen; in doel, baten en vermogen een rol-label (wie dat niveau draagt);
+// domeineigenaar en leads staan in hun eigen vak. De band staat buiten de
+// scrollcontainer van het raster, zodat hij ook op een smal scherm helemaal leesbaar is.
 // Een werkstroom linkt naar zijn werkstroomkaart (#wk-), anders naar een sectie (#sec-).
-// Vaste opbouw: in bewerkmodus zijn alleen de teksten aanpasbaar, niet de domeinen,
-// kleuren, koppelingen of ankers.
+// Bewerkmodus werkt als een bord: baten, domeinen en werkstromen toevoegen, verschuiven
+// en weghalen; per werkstroom de domeinen aanvinken (de plaatsing volgt). De ankers en
+// de kleuren van de vier DIN-domeinen liggen vast; een nieuw domein krijgt een kleur uit
+// een klein palet en een id dat zijn naam volgt.
 
 type Plaat = BlokVan<"dinplaat">;
+type PlaatDomein = Plaat["domeinen"][number];
 
 /** Plek van een werkstroom onder de domeinen (kolomnummers vanaf 0, tot = inclusief). */
 type WsPlek = {
@@ -387,11 +393,102 @@ type WsPlek = {
 const CITO = "#003366";
 const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
+/** Rijnummers in het raster; de pijlen staan op de rijen ertussen. */
+const RIJ = { doel: 1, baten: 3, vermogen: 5, domeinen: 7, werkstromen: 9 } as const;
+
+/** Kleuren voor domeinen die de gebruiker toevoegt; de vier DIN-domeinen houden hun eigen kleur. */
+const DOMEIN_PALET = ["#0e7490", "#be185d", "#4d7c0f", "#c2410c", "#4338ca", "#475569"];
+
 /** Kleur van een domein: uit de inhoud (hex), anders de vaste DIN-kleur bij het id, anders grijs. */
 function domeinKleur(d: { id: string; kleur: string }): string {
   const t = d.kleur.trim();
   if (HEX.test(t)) return t;
   return domein(d.id)?.kleur ?? NEUTRAAL;
+}
+
+/** Eerste kleur uit het palet die nog geen domein heeft; zijn ze allemaal in gebruik, dan om de beurt. */
+function nieuweDomeinKleur(domeinen: PlaatDomein[]): string {
+  const inGebruik = new Set(domeinen.map((d) => domeinKleur(d).toLowerCase()));
+  return DOMEIN_PALET.find((k) => !inGebruik.has(k)) ?? DOMEIN_PALET[domeinen.length % DOMEIN_PALET.length];
+}
+
+/** "Data & Systemen" → "data-systemen": kleine letters en koppeltekens, zonder accenten. */
+function slug(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Id dat niet botst met de bezette ids: basis, basis-2, basis-3, … */
+function uniekId(basis: string, bezet: ReadonlySet<string>): string {
+  if (!bezet.has(basis)) return basis;
+  for (let n = 2; ; n++) if (!bezet.has(`${basis}-${n}`)) return `${basis}-${n}`;
+}
+
+/** Verplaatst element `van` naar plek `naar`; buiten de lijst gebeurt er niets. */
+function verplaats<T>(lijst: T[], van: number, naar: number) {
+  if (naar < 0 || naar >= lijst.length || van === naar) return;
+  const [x] = lijst.splice(van, 1);
+  lijst.splice(naar, 0, x);
+}
+
+// Wijzigingen aan de plaat (bewerkmodus); ze werken op de kopie die zet() aanreikt.
+
+function voegBaatToe(n: Plaat) {
+  n.baten.push({ titel: "Nieuwe baat", tekst: "", rol: "" });
+}
+
+function voegDomeinToe(n: Plaat) {
+  const naam = "Nieuw domein";
+  n.domeinen.push({
+    id: uniekId(slug(naam), new Set(n.domeinen.map((d) => d.id))),
+    naam,
+    kleur: nieuweDomeinKleur(n.domeinen),
+    vermogensdeel: "",
+    eigenaar: "",
+    inspanningen: "",
+  });
+}
+
+/**
+ * Zet de naam van een domein. Bij een eigen (niet-DIN) domein volgt het id de naam,
+ * zodat het id iets zegt; de verwijzingen vanuit de werkstromen gaan mee.
+ */
+function zetDomeinNaam(n: Plaat, i: number, naam: string) {
+  const d = n.domeinen[i];
+  d.naam = naam;
+  if (domein(d.id)) return;
+  const basis = slug(naam);
+  if (!basis) return;
+  const bezet = new Set(n.domeinen.filter((x) => x !== d).map((x) => x.id));
+  const nieuw = uniekId(basis, bezet);
+  if (nieuw === d.id) return;
+  const oud = d.id;
+  d.id = nieuw;
+  for (const w of n.werkstromen) w.domeinen = w.domeinen.map((id) => (id === oud ? nieuw : id));
+}
+
+/** Haalt een domein weg, ook uit de domeinlijst van elke werkstroom. */
+function verwijderDomein(n: Plaat, i: number) {
+  const [d] = n.domeinen.splice(i, 1);
+  if (!d) return;
+  for (const w of n.werkstromen) w.domeinen = w.domeinen.filter((id) => id !== d.id);
+}
+
+function voegWerkstroomToe(n: Plaat) {
+  n.werkstromen.push({ naam: "Nieuwe werkstroom", anker: "", domeinen: [], leads: "", oplevert: "", planVanAanpak: "" });
+}
+
+/** Vinkt een domein aan of uit bij een werkstroom; de lijst houdt de volgorde van de plaat. */
+function zetWerkstroomDomein(n: Plaat, wi: number, id: string, aan: boolean) {
+  const w = n.werkstromen[wi];
+  const gekozen = new Set(w.domeinen);
+  if (aan) gekozen.add(id);
+  else gekozen.delete(id);
+  w.domeinen = n.domeinen.map((d) => d.id).filter((x) => gekozen.has(x));
 }
 
 /**
@@ -467,12 +564,6 @@ function PlaatRegel(p: {
   );
 }
 
-/** Rijnummers in de plaat; de pijlen staan ertussen. Met de regieband schuift alles één rij op. */
-function plaatRijen(metRegie: boolean) {
-  const o = metRegie ? 1 : 0;
-  return { doel: 1 + o, baten: 3 + o, vermogen: 5 + o, domeinen: 7 + o, werkstromen: 9 + o };
-}
-
 /** Klein persoonsicoon bij een rol. */
 function PersoonIcoon() {
   return (
@@ -506,49 +597,109 @@ function Rol(p: { v: string; on: (s: string) => void; edit: boolean; ph: string 
   );
 }
 
+/**
+ * Knopjes rechtsboven in een vak (bewerkmodus): naar voren of naar achteren schuiven
+ * (← → naast elkaar, ↑ ↓ onder elkaar) en verwijderen.
+ */
+function VakKnoppen(p: {
+  i: number;
+  n: number;
+  /** de vakken staan onder elkaar (werkstromen): ↑ ↓ in plaats van ← → */
+  staand?: boolean;
+  /** wat er weggaat, voor de knoptekst: "Baat", "Domein", "Werkstroom" */
+  wat: string;
+  onSchuif: (naar: number) => void;
+  onWeg: () => void;
+}) {
+  const knoppen = p.staand
+    ? [
+        { naar: p.i - 1, teken: "↑", titel: "Eerder in de volgorde" },
+        { naar: p.i + 1, teken: "↓", titel: "Later in de volgorde" },
+      ]
+    : [
+        { naar: p.i - 1, teken: "←", titel: "Naar links" },
+        { naar: p.i + 1, teken: "→", titel: "Naar rechts" },
+      ];
+  return (
+    <div className="okd-dp-knoppen">
+      {knoppen.map((k) => (
+        <button
+          key={k.teken}
+          type="button"
+          className="ok-knopje"
+          title={k.titel}
+          aria-label={k.titel}
+          disabled={k.naar < 0 || k.naar >= p.n}
+          onClick={() => p.onSchuif(k.naar)}
+        >
+          {k.teken}
+        </button>
+      ))}
+      <WegKnop titel={`${p.wat} verwijderen`} on={p.onWeg} />
+    </div>
+  );
+}
+
 function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
   const kolommen = Math.max(1, b.domeinen.length);
-  const breed = `2 / ${kolommen + 2}`;
   const rijen = plaatsWerkstromen(b);
   const perId = new Map(b.domeinen.map((d) => [d.id, d] as const));
   const toonRegie = edit || b.regie !== "";
-  const R = plaatRijen(toonRegie);
+  // Met de regieband krijgt het raster links een smalle kolom voor de beugel.
+  const o = toonRegie ? 1 : 0;
+  const kolLabel = 1 + o;
+  const breed = `${2 + o} / ${kolommen + 2 + o}`;
+  const toonWerkstromen = rijen.length > 0 || edit;
+  // Laatste rasterlijn van de plaat: tot daar loopt de beugel.
+  const eindRij = toonWerkstromen ? RIJ.werkstromen + Math.max(1, rijen.length) : RIJ.domeinen + 1;
   // Binnen de eigen scrollcontainer; in bewerkmodus breder zodat de velden leesbaar blijven
   // (900 past nog zonder scrollen in het document bij een scherm van 1280 breed).
-  const minBreedte = edit ? Math.max(900, 120 + kolommen * 195) : Math.max(760, 120 + kolommen * 160);
+  const minBreedte =
+    (toonRegie ? 30 : 0) +
+    (edit
+      ? Math.max(900, 120 + kolommen * 195, 120 + b.baten.length * 190)
+      : Math.max(760, 120 + kolommen * 160, 120 + b.baten.length * 150));
 
   return (
     <figure className="okd-dp-paneel" aria-label="Doelen-Inspanningennetwerk (DIN) in één plaat">
+      {toonRegie && (
+        <div className="okd-dp-regie">
+          <span className="okd-dp-regie-l">
+            <PersoonIcoon />
+            Regie over de hele keten
+          </span>
+          {edit ? (
+            <V
+              v={b.regie}
+              on={(x) => zet((n) => void (n.regie = x))}
+              edit
+              ml
+              cls="okd-dp-regie-t"
+              ph="Bijv. Programmamanagement: naam (rol) · naam (rol)"
+            />
+          ) : (
+            <div className="okd-dp-regie-t">{metLabel(b.regie)}</div>
+          )}
+        </div>
+      )}
       <div className="ok-scroll">
         <div
           className="okd-dp"
-          style={{ gridTemplateColumns: `112px repeat(${kolommen}, minmax(0, 1fr))`, minWidth: minBreedte }}
+          style={{
+            gridTemplateColumns: `${toonRegie ? "22px " : ""}112px repeat(${kolommen}, minmax(0, 1fr))`,
+            minWidth: minBreedte,
+          }}
         >
           {toonRegie && (
-            <div className="okd-dp-regie" style={{ gridRow: 1, gridColumn: "1 / -1" }}>
-              <span className="okd-dp-regie-l">
-                <PersoonIcoon />
-                Regie over de hele keten
-              </span>
-              {edit ? (
-                <V
-                  v={b.regie}
-                  on={(x) => zet((n) => void (n.regie = x))}
-                  edit
-                  ml
-                  cls="okd-dp-regie-t"
-                  ph="Bijv. Programmamanagement: naam (rol) · naam (rol)"
-                />
-              ) : (
-                <div className="okd-dp-regie-t">{metLabel(b.regie)}</div>
-              )}
+            <div className="okd-dp-beugel" style={{ gridRow: `1 / ${eindRij}`, gridColumn: 1 }} aria-hidden="true">
+              <span>Regie over de hele keten</span>
             </div>
           )}
 
-          <div className="okd-dp-rl" style={{ gridRow: R.doel, gridColumn: 1 }}>
+          <div className="okd-dp-rl" style={{ gridRow: RIJ.doel, gridColumn: kolLabel }}>
             Doel
           </div>
-          <div className="okd-dp-doel" style={{ gridRow: R.doel, gridColumn: breed }}>
+          <div className="okd-dp-doel" style={{ gridRow: RIJ.doel, gridColumn: breed }}>
             <V
               v={b.doel.titel}
               on={(x) => zet((n) => void (n.doel.titel = x))}
@@ -576,23 +727,33 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             />
           </div>
 
-          <Pijl rij={R.doel + 1} kolom={breed}>
+          <Pijl rij={RIJ.doel + 1} kolom={breed}>
             draagt bij aan
           </Pijl>
 
-          <div className="okd-dp-rl" style={{ gridRow: R.baten, gridColumn: 1 }}>
+          <div className="okd-dp-rl" style={{ gridRow: RIJ.baten, gridColumn: kolLabel }}>
             Baten
+            {edit && <PlusKnop label="+ baat" on={() => zet(voegBaatToe)} />}
           </div>
           <div
             className="okd-dp-baten"
             style={{
-              gridRow: R.baten,
+              gridRow: RIJ.baten,
               gridColumn: breed,
               gridTemplateColumns: `repeat(${Math.max(1, b.baten.length)}, minmax(0, 1fr))`,
             }}
           >
             {b.baten.map((baat, i) => (
               <div key={i} className="okd-dp-baat">
+                {edit && (
+                  <VakKnoppen
+                    i={i}
+                    n={b.baten.length}
+                    wat="Baat"
+                    onSchuif={(naar) => zet((n) => verplaats(n.baten, i, naar))}
+                    onWeg={() => zet((n) => void n.baten.splice(i, 1))}
+                  />
+                )}
                 <V
                   v={baat.titel}
                   on={(x) => zet((n) => void (n.baten[i].titel = x))}
@@ -622,14 +783,14 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             ))}
           </div>
 
-          <Pijl rij={R.baten + 1} kolom={breed}>
+          <Pijl rij={RIJ.baten + 1} kolom={breed}>
             levert
           </Pijl>
 
-          <div className="okd-dp-rl" style={{ gridRow: R.vermogen, gridColumn: 1 }}>
+          <div className="okd-dp-rl" style={{ gridRow: RIJ.vermogen, gridColumn: kolLabel }}>
             Vermogen
           </div>
-          <div className="okd-dp-verm" style={{ gridRow: R.vermogen, gridColumn: breed }}>
+          <div className="okd-dp-verm" style={{ gridRow: RIJ.vermogen, gridColumn: breed }}>
             <V
               v={b.vermogen.titel}
               on={(x) => zet((n) => void (n.vermogen.titel = x))}
@@ -657,22 +818,32 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             />
           </div>
 
-          <Pijl rij={R.vermogen + 1} kolom={breed}>
+          <Pijl rij={RIJ.vermogen + 1} kolom={breed}>
             samen het vermogen
           </Pijl>
 
-          <div className="okd-dp-rl" style={{ gridRow: R.domeinen, gridColumn: 1 }}>
+          <div className="okd-dp-rl" style={{ gridRow: RIJ.domeinen, gridColumn: kolLabel }}>
             Domeinen
+            {edit && <PlusKnop label="+ domein" on={() => zet(voegDomeinToe)} />}
           </div>
           {b.domeinen.map((d, i) => (
             <div
               key={i}
               className="okd-dp-dom"
-              style={metKleur(domeinKleur(d), { gridRow: R.domeinen, gridColumn: i + 2 })}
+              style={metKleur(domeinKleur(d), { gridRow: RIJ.domeinen, gridColumn: i + 2 + o })}
             >
+              {edit && (
+                <VakKnoppen
+                  i={i}
+                  n={b.domeinen.length}
+                  wat="Domein"
+                  onSchuif={(naar) => zet((n) => verplaats(n.domeinen, i, naar))}
+                  onWeg={() => zet((n) => verwijderDomein(n, i))}
+                />
+              )}
               <V
                 v={d.naam}
-                on={(x) => zet((n) => void (n.domeinen[i].naam = x))}
+                on={(x) => zet((n) => zetDomeinNaam(n, i, x))}
                 edit={edit}
                 block
                 cls="okd-dp-dom-t"
@@ -705,17 +876,18 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
           ))}
 
           {rijen.length > 0 && (
-            <>
-              <Pijl rij={R.domeinen + 1} kolom={breed}>
-                bouwt aan
-              </Pijl>
-              <div
-                className="okd-dp-rl"
-                style={{ gridRow: `${R.werkstromen} / span ${rijen.length}`, gridColumn: 1 }}
-              >
-                Werkstromen (inspanningen)
-              </div>
-            </>
+            <Pijl rij={RIJ.domeinen + 1} kolom={breed}>
+              bouwt aan
+            </Pijl>
+          )}
+          {toonWerkstromen && (
+            <div
+              className="okd-dp-rl"
+              style={{ gridRow: `${RIJ.werkstromen} / span ${Math.max(1, rijen.length)}`, gridColumn: kolLabel }}
+            >
+              Werkstromen (inspanningen)
+              {edit && <PlusKnop label="+ werkstroom" on={() => zet(voegWerkstroomToe)} />}
+            </div>
           )}
           {rijen.flatMap((rij, ri) =>
             rij.map((plek) => {
@@ -729,10 +901,20 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                   key={wi}
                   className={plek.overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
                   style={metKleur(kleur, {
-                    gridRow: R.werkstromen + ri,
-                    gridColumn: `${plek.van + 2} / ${plek.tot + 3}`,
+                    gridRow: RIJ.werkstromen + ri,
+                    gridColumn: `${plek.van + 2 + o} / ${plek.tot + 3 + o}`,
                   })}
                 >
+                  {edit && (
+                    <VakKnoppen
+                      i={wi}
+                      n={b.werkstromen.length}
+                      staand
+                      wat="Werkstroom"
+                      onSchuif={(naar) => zet((n) => verplaats(n.werkstromen, wi, naar))}
+                      onWeg={() => zet((n) => void n.werkstromen.splice(wi, 1))}
+                    />
+                  )}
                   <div className="okd-dp-ws-t">
                     {edit ? (
                       <V
@@ -760,11 +942,33 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                       ph="Leads, bijv. Cito-lead · 3sides-lead"
                     />
                   )}
-                  {plek.los && (
+                  {edit ? (
                     <div className="okd-dp-r">
                       <span className="okd-dp-l">Bouwt in</span>
-                      <div className="okd-dp-v">{plek.idx.map((i) => b.domeinen[i].naam).join(" · ")}</div>
+                      <div className="okd-dp-vinken">
+                        {b.domeinen.map((d, di) => (
+                          <label key={di} className="okd-dp-vink" style={metKleur(domeinKleur(d), {})}>
+                            <input
+                              type="checkbox"
+                              checked={w.domeinen.includes(d.id)}
+                              onChange={(e) => {
+                                const aan = e.target.checked;
+                                zet((n) => zetWerkstroomDomein(n, wi, d.id, aan));
+                              }}
+                            />
+                            {d.naam || "Domein zonder naam"}
+                          </label>
+                        ))}
+                        {b.domeinen.length === 0 && <span className="okd-dp-v">Nog geen domeinen</span>}
+                      </div>
                     </div>
+                  ) : (
+                    plek.los && (
+                      <div className="okd-dp-r">
+                        <span className="okd-dp-l">Bouwt in</span>
+                        <div className="okd-dp-v">{plek.idx.map((i) => b.domeinen[i].naam).join(" · ")}</div>
+                      </div>
+                    )
                   )}
                   <div className="okd-dp-velden">
                     <PlaatRegel
