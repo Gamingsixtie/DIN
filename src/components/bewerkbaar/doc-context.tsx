@@ -8,6 +8,13 @@ import type { BewerkbaarDocument as DocData, DocBlok } from "@/lib/schemas";
 
 export const DocContext = createContext<DocData | null>(null);
 
+/** Past het hele document aan (kopie → aanpassen → opslaan via de ouder); null buiten BewerkbaarDocument. */
+export const DocZetContext = createContext<((fn: (d: DocData) => void) => void) | null>(null);
+
+export function useDocZet(): ((fn: (d: DocData) => void) => void) | null {
+  return useContext(DocZetContext);
+}
+
 export function useDoc(): DocData | null {
   return useContext(DocContext);
 }
