@@ -516,7 +516,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           "Deel 4: het meetmodel en het advies om alles samen te voegen.",
           "Deel 5 en 6: de vier werkstromen en hun planning.",
           "Deel 7 en 8: waar alles van 3sides onder hangt, overeenkomsten, verschillen en hoe verder.",
-          "Deel 9 en 10: uitleggen binnen en buiten Cito, en de bronnen.",
+          "Deel 9: de bronnen.",
         ],
         "Leeswijzer"
       ),
@@ -762,10 +762,11 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         TIJDLIJN,
         lijst(
           [
-            "0-meting: nog niet gestart, oplevering in oktober; het ophalen van data staat op '-'.",
-            "Adoptie: de eerste sector start in januari 2027; in het stappenplan stond een pilot in één sector in Q3 2026.",
-            "Plan van aanpak tegenover tijdlijn: de playbooks staan in het plan van aanpak in Q4 2026 en in de tijdlijn van december 2026 tot mei 2027; de pilots in Q1 2027, in de tijdlijn van januari tot mei 2027.",
-            "Open einden: vier activiteiten hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs) en twee geen startmaand (klantreis vertalen naar CRM-input, 0-meting).",
+            "0-meting: de tijdlijn zet de oplevering in oktober en de status op niet gestart; het ophalen van de data (september tot oktober) staat op '-'. Het plan van aanpak zegt Q3/Q4 2026, het meetinstrument 'Nulmeting Q3', ons stappenplan Q3. Gevolg: de startwaarden komen op zijn vroegst in oktober, en de doelwaarden pas in de vervolgsessie daarna.",
+            "Adoptie: het stappenplan had een pilot in één sector in Q3 2026, de tweede sector in Q4 en de derde in Q1 2027. In de tijdlijn start de eerste sector pas in januari 2027, de tweede in februari en de derde in april. Het plan van aanpak zet de playbooks in Q4 2026 en de pilots in Q1 2027; de tijdlijn laat de playbook-workshops lopen van december 2026 tot mei 2027. Drie documenten, drie ritmes: vaststellen welk ritme geldt.",
+            "Centrale datavoorziening: de tijdlijn zet de CRM-richting in november; het stappenplan houdt de formele CRM-keuze rond april 2027. Dat sluit aan, zolang richting (advies) en keuze (besluit) uit elkaar blijven.",
+            "Klantreizen: alle onderdelen van de blueprint leveren op tussen augustus en december 2026. De vertaling naar CRM-input en funnelprocessen heeft geen startmaand, staat op niet gestart en levert in november op: die hangt dus aan de blueprint-onderdelen die in december klaar zijn.",
+            "Open einden: interventies, communicatieplan, adoptieframework toetsen en ambassadeurs hebben geen oplevermaand; 0-meting en de klantreisvertaling hebben geen startmaand. Vraag aan 3sides om die in te vullen.",
           ],
           "Wat opvalt"
         ),
@@ -837,13 +838,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             "Organigram · plan van aanpak p. 3",
           ],
           [
-            "NPS",
-            "Resultante, geen stuur-KPI",
-            "Baat (effect), naast conversie en omzetgroei",
-            "NPS als resultante houden; wel meten",
-            "KPI-model · plan van aanpak p. 2 · meetinstrument p. 8",
-          ],
-          [
             "Omvang van het meetkader",
             "14 baten-KPI's",
             "55 KPI's in het KPI-meetkader en circa 85 datapunten",
@@ -875,63 +869,28 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         [
           "Framework: het DIN blijft het enige framework; de termen van 3sides zijn synoniemen (deel 3).",
           "Woorden: inspanning = werkstroomactiviteit; kunnen en doen horen bij het vermogen (deel 4).",
-          "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen, NPS is resultante.",
+          "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen.",
           "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaar gelijktrekken (sectormanager of Commercieel Manager).",
           "Planning: de verschuiving van pilot en 0-meting vaststellen.",
         ],
         "Besluitpunten"
       ),
       tabel(
-        ["Wat", "Wie (voorstel)", "Bron"],
+        ["Wat", "Wie"],
         [
-          ["Meetmodel valideren met Meryl, daarna met het MT", "Pim met Sasja; Sanne plant", "Overleg 29-09"],
-          [
-            "Projectgroep per werkstroom; capaciteit ophalen bij sector- en afdelingsmanagers",
-            "Sanne met de Cito-leads",
-            "Overleg 29-09 · stappenplan",
-          ],
-          ["Blueprint valideren met product- en sectormanagers", "Saila met Sasja", "Overleg 29-09 · plan van aanpak p. 10"],
-          ["Salesfunnel en -proces definiëren met Meryl en Jasper", "Jama met Lammert", "Overleg 29-09"],
-          ["Begrippenlijst met gangbare termen", "Pim", "Overleg 29-09"],
-          ["Plan van aanpak aanvullen per werkstroom (deel 5)", "3sides vult aan; de Cito-lead toetst op resultaat, Pim op de kaders; Sanne stelt vast", "Organigram"],
+          ["Meetmodel valideren met Meryl, daarna met het MT", ""],
+          ["Projectgroep per werkstroom; capaciteit ophalen bij sector- en afdelingsmanagers", ""],
+          ["Blueprint valideren met product- en sectormanagers", ""],
+          ["Salesfunnel en -proces definiëren met Meryl en Jasper", ""],
+          ["Begrippenlijst met gangbare termen", ""],
+          ["Plan van aanpak aanvullen per werkstroom (deel 5)", ""],
         ],
-        { titel: "Volgende stappen" }
+        { titel: "Volgende stappen", legenda: "Wie: samen in te vullen." }
       ),
     ]),
 
     // 9
-    sectie(
-      "organisatie",
-      "9 · Uitleggen: binnen Cito en naar buiten",
-      "De termen in dit stuk zijn werktaal voor het programmateam. Voor de organisatie vertalen we ze naar gewone taal; met externe partijen gebruiken we de gangbare term.",
-      [
-        tabel(
-          ["Werktaal", "In gewone taal", "Gangbare term (extern, voorstel)"],
-          [
-            ["Doel", "Waar willen we naartoe?", "Goal"],
-            ["Baat", "Wat merkt de klant, wat levert het op?", "Benefit"],
-            ["Vermogen", "Wat moeten we kunnen?", "Capability"],
-            ["Kernprincipe", "Hoe werken we, en zie je dat terug?", "Guiding principle"],
-            ["Domein", "Waar in de organisatie verandert het?", "People · process · technology · culture"],
-            ["Inspanning", "Wat gaan we doen?", "Initiative"],
-            ["Werkstroom", "Waar werken we aan?", "Workstream"],
-            ["0-meting", "Waar staan we nu?", "Baseline"],
-          ],
-          { titel: "Vertaaltabel" }
-        ),
-        lijst(
-          [
-            "Naar de organisatie: de klantreis als verhaal, geen DIN- of 3sides-jargon.",
-            "Per doelgroep een eigen vorm: MT (doel, baten, besluiten) · sectormanagers (wat het hun sector oplevert en vraagt) · teams (per rol één A4 'Mijn rol in de klantreis').",
-            "Werkmateriaal blijft intern: platen gaan niet één-op-één de organisatie in (overleg 29-09).",
-          ],
-          "Uitgangspunten"
-        ),
-      ]
-    ),
-
-    // 10
-    sectie("documenten", "10 · Bronnen", "", [
+    sectie("documenten", "9 · Bronnen", "", [
       lijst(
         [
           "Plan van aanpak 3sides (PDF, 13 p.), gedeeld 29-09-2026",
