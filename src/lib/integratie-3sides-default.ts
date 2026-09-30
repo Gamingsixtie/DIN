@@ -1174,14 +1174,14 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie("documenten", "9 · Bronnen: de gebruikte documenten", "", [
       lijst(
         [
-          "Plan van aanpak 3sides (PDF, 13 p.), gedeeld 29-09-2026",
-          "Projecttijdlijn 3sides (Excel, tab v3), stand 28-09-2026",
-          "0-meting meetinstrument (PDF, 16 p.), work in progress",
-          "Data punten ter input KPI (Excel), werkdocument",
-          "Blueprint klantreis (Excel), draft",
-          "Adoptieframework (PDF), work in progress",
-          "Data & Tech (PDF) en praatplaten funnel en salesproces (PDF)",
-          "BV-dag (PDF) en evaluatie Klant in Beeld (Excel, 13 respondenten)",
+          "[[Plan van aanpak]] van 3sides (PDF, 13 p.), gedeeld 29-09-2026",
+          "[[Tijdlijn]] van 3sides (Excel, tab v3), stand 28-09-2026",
+          "[[0-meting meetinstrument]] (PDF, 16 p.), work in progress",
+          "[[Data punten ter input KPI]] (Excel), werkdocument",
+          "[[Blueprint klantreis]] (Excel), draft",
+          "[[Adoptieframework]] (PDF), work in progress",
+          "[[Data & Tech]] (PDF) en de praatplaten [[praatplaat funnel]] en [[praatplaat proces]] (PDF)",
+          "[[BV-dag]] (PDF) en [[evaluatie Klant in Beeld]] (Excel, 13 respondenten)",
           "Statuspagina 3sides (tekst, 29-09-2026) en verslag programmaoverleg 29-09-2026",
           "Programma: DIN in de app (stand 29-09-2026), KPI-model (stap 9), stappenplan analysefase (19-08-2026), organigram (stap 10)",
           "Niet gebruikt: de orderexport 'Aantallen besteld'; die hoort niet bij deze analyse.",

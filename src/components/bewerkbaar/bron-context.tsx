@@ -134,6 +134,15 @@ export const BronContext = createContext<Bron>({
   naslagHier: false,
 });
 
+/**
+ * Standaard vindplaats van de 3sides-documenten: de openbare bucket "3sides-documenten" in
+ * Supabase Storage (geüpload met scripts/upload-3sides-documenten.cjs). Een ingevulde map
+ * in "Vindplaatsen" gaat voor.
+ */
+export const STANDAARD_DOCUMENTEN_BASIS = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, "") + "/storage/v1/object/public/3sides-documenten"
+  : "";
+
 export function BronProvider(p: {
   documentenBasis?: string;
   jira?: string;
@@ -141,7 +150,7 @@ export function BronProvider(p: {
   naslagHier?: boolean;
   children: ReactNode;
 }) {
-  const documentenBasis = (p.documentenBasis ?? "").trim();
+  const documentenBasis = (p.documentenBasis ?? "").trim() || STANDAARD_DOCUMENTEN_BASIS;
   const jira = (p.jira ?? "").trim();
   const naslagHier = p.naslagHier === true;
   const waarde = useMemo<Bron>(
@@ -472,7 +481,9 @@ function Deellink({ id, nummer, children }: { id: string; nummer: number; childr
 type Stuk =
   /** href = link naar het document (met map); null = terugval naar het naslag */
   | { soort: "doc"; start: number; end: number; doc: BronDocument; pagina: string | null; href: string | null }
-  | { soort: "deel"; start: number; end: number; id: string; nummer: number };
+  | { soort: "deel"; start: number; end: number; id: string; nummer: number }
+  /** expliciete verwijzing [[…]] die geen document is: tekst zonder haken */
+  | { soort: "plat"; start: number; end: number; weergave: string };
 
 /**
  * Tekst met de verwijzingen als links. Documentverwijzingen: met map naar het document,
@@ -481,8 +492,25 @@ type Stuk =
  */
 function verdeel(tekst: string, bron: Bron, secties: readonly SectieKaart[]): ReactNode[] {
   const stukken: Stuk[] = [];
+  // Expliciet: [[Plan van aanpak]] of [[meetinstrument p. 12]] wordt altijd een link (zonder haken).
+  const expliciet: { start: number; end: number; binnen: string }[] = [];
+  for (const m of tekst.matchAll(/\[\[([^\]]+)\]\]/g)) {
+    expliciet.push({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length, binnen: m[1] });
+  }
+  for (const x of expliciet) {
+    const doc = zoekDocument(x.binnen);
+    if (!doc || !(bron.documentenBasis !== "" || bron.naslagTerugval)) {
+      stukken.push({ soort: "plat", start: x.start, end: x.end, weergave: x.binnen });
+      continue;
+    }
+    const pagina = paginaUit(x.binnen);
+    const href = bron.documentenBasis ? bronUrl(bron.documentenBasis, doc, pagina) : null;
+    stukken.push({ soort: "doc", start: x.start, end: x.end, doc, pagina, href });
+  }
+  const inExpliciet = (s: number, e: number) => expliciet.some((x) => s < x.end && x.start < e);
   if (bron.documentenBasis !== "" || bron.naslagTerugval) {
     for (const v of vindVerwijzingen(tekst)) {
+      if (inExpliciet(v.start, v.end)) continue;
       const href = bron.documentenBasis ? bronUrl(bron.documentenBasis, v.doc, v.pagina) : null;
       if (!href && !bron.naslagTerugval) continue;
       stukken.push({ soort: "doc", ...v, href });
@@ -502,7 +530,13 @@ function verdeel(tekst: string, bron: Bron, secties: readonly SectieKaart[]): Re
   let pos = 0;
   stukken.forEach((v, i) => {
     if (v.start > pos) uit.push(tekst.slice(pos, v.start));
-    const fragment = tekst.slice(v.start, v.end);
+    if (v.soort === "plat") {
+      uit.push(v.weergave);
+      pos = v.end;
+      return;
+    }
+    const ruw = tekst.slice(v.start, v.end);
+    const fragment = ruw.startsWith("[[") && ruw.endsWith("]]") ? ruw.slice(2, -2) : ruw;
     if (v.soort === "deel") {
       uit.push(
         <Deellink key={i} id={v.id} nummer={v.nummer}>
