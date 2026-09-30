@@ -400,7 +400,7 @@ const TIJDLIJN: DocBlok = {
     { label: "2027", maanden: 6 },
   ],
   maanden: ["jul", "aug", "sep", "okt", "nov", "dec", "jan", "feb", "mrt", "apr", "mei", "jun"],
-  nu: "sep",
+  nu: "vandaag",
   nuLabel: "stand 28-09",
   groepen: [
     {
