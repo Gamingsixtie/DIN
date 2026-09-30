@@ -879,7 +879,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         callout(
           "info",
           "Zo werk je de voortgang bij",
-          "De voortgang wordt berekend uit de tijdlijn hierboven. Klik op het potlood bij dit deel, zet in de tijdlijn bij een onderdeel de voortgang op 'Afgerond' (of pas de start- of opleverdatum aan) en klik op Opslaan. Het voortgangsbord hieronder en de werkstroomkaarten in deel 4 rekenen direct mee. Vinkjes bij 'Nog nodig' zet je gewoon aan, zonder te bewerken; ze worden meteen bewaard."
+          "De voortgang wordt berekend uit de tijdlijn hierboven. Is een onderdeel ingeleverd, kies dan in het keuzelijstje bij dat onderdeel 'Afgerond', in de tijdlijn of in het voortgangsbord; dat wordt meteen bewaard. Het voortgangsbord en de werkstroomkaarten in deel 4 rekenen direct mee. Een start- of opleverdatum aanpassen doe je met het potlood bij dit deel: klik in de tijdlijn op een maand en daarna op Opslaan. Vinkjes bij 'Nog nodig' zet je gewoon aan; ook die worden meteen bewaard."
         ),
         {
           type: "voortgangsbord",

@@ -33,7 +33,7 @@ import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
 import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/bewerkbaar/bron-context";
-import { DocContext } from "@/components/bewerkbaar/doc-context";
+import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 import { DOC_CSS, KNOP, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
@@ -563,6 +563,17 @@ function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => v
     setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
   }
 
+  /** Wijziging elders in het document (voortgang van een onderdeel in de tijdlijn), dan opslaan. */
+  function zetDoc(fn: (d: DocData) => void) {
+    const n = kloon(doc);
+    fn(n);
+    const klaar = metBasis(n, versie.basis);
+    updateSession((prev) => ({
+      documenten: { ...(prev.documenten ?? {}), [INTEGRATIE_SLEUTEL]: klaar },
+    }));
+    setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
+  }
+
   return (
     <div className="space-y-4" role="tabpanel" aria-label={VOORTGANG_TAB.label}>
       <div className="rounded-xl border border-cito-border bg-white px-4 py-3">
@@ -609,6 +620,7 @@ function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => v
 
       {plek ? (
         <DocContext.Provider value={doc}>
+          <DocZetContext.Provider value={zetDoc}>
           <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
             <style>{OK_CSS + DOC_CSS + VOORTGANGSBORD_CSS + VOORTGANG_CSS + LEESBAAR_CSS}</style>
             <div className="okd-vb-vak">
@@ -618,6 +630,7 @@ function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => v
               Voortgangsbord wordt gebouwd.
             </p>
           </div>
+          </DocZetContext.Provider>
         </DocContext.Provider>
       ) : (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="note">

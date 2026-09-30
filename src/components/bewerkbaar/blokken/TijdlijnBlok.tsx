@@ -20,6 +20,7 @@
 
 import { useId } from "react";
 import type { CSSProperties } from "react";
+import type { BewerkbaarDocument as DocData } from "@/lib/schemas";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Keuze, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
@@ -243,6 +244,9 @@ function standlijn(b: Tijdlijn, maanden: string[], n: number, vandaag: Date): St
 
 /** Eén onderdeel van een werkstroom uit de tijdlijn, met de planning als indexen en datum. */
 export interface TijdlijnRij {
+  /** plek in de tijdlijn: groep en regel (om de voortgang terug te schrijven) */
+  groepIndex: number;
+  rijIndex: number;
   groepAnker: string;
   groepNaam: string;
   /** naam van het onderdeel */
@@ -263,13 +267,15 @@ export interface TijdlijnRij {
 export function tijdlijnRijen(b: Tijdlijn): TijdlijnRij[] {
   const n = (b.maanden ?? []).length;
   const uit: TijdlijnRij[] = [];
-  for (const g of b.groepen ?? []) {
-    for (const rij of g.rijen ?? []) {
+  (b.groepen ?? []).forEach((g, groepIndex) => {
+    (g.rijen ?? []).forEach((rij, rijIndex) => {
       const cellen = Array.from({ length: n }, (_, i) => celVan((rij.cellen ?? [])[i]));
       const plan = planVan(cellen);
       const opleverIndex = plan && plan.opleveringen.length > 0 ? plan.opleveringen[plan.opleveringen.length - 1] : null;
       const eerste = maandDatum(b, opleverIndex ?? 0);
       uit.push({
+        groepIndex,
+        rijIndex,
         groepAnker: tekst(g.anker).trim(),
         groepNaam: tekst(g.naam).trim(),
         activiteit: tekst(rij.activiteit).trim(),
@@ -280,9 +286,68 @@ export function tijdlijnRijen(b: Tijdlijn): TijdlijnRij[] {
         status: tekst(rij.status).trim(),
         opleverDatum: opleverIndex !== null && !Number.isNaN(eerste.getTime()) ? laatsteDag(eerste) : null,
       });
+    });
+  });
+  return uit;
+}
+
+/**
+ * Zet de voortgang van één onderdeel in (een kopie van) het document: in de eerste tijdlijn,
+ * zoals useBlok die vindt. Voor het voortgangsbord, dat de tijdlijn leest maar niet zelf is.
+ */
+export function zetVoortgang(d: DocData, groepIndex: number, rijIndex: number, waarde: string): void {
+  for (const s of d.secties ?? []) {
+    for (const b of s.blokken ?? []) {
+      if (b.type !== "tijdlijn") continue;
+      const rij = b.groepen?.[groepIndex]?.rijen?.[rijIndex];
+      if (rij) rij.voortgang = waarde;
+      return;
     }
   }
-  return uit;
+}
+
+/** De drie standen die je in weergave kunt kiezen. */
+const VOORTGANG_KEUZES = ["Niet gestart", "Loopt", "Afgerond"] as const;
+
+/**
+ * Voortgang direct aanpassen, ook buiten de bewerkmodus: een keuzelijst in de vorm van het
+ * statuslabel (Niet gestart, Loopt, Afgerond). De wijziging gaat meteen naar de sessie; het
+ * voortgangsbord en de werkstroomkaarten rekenen mee. `cls` geeft de stijl (tijdlijn of bord).
+ */
+export function VoortgangKeuze({ waarde, on, onderdeel, cls }: { waarde: string; on: (x: string) => void; onderdeel: string; cls: string }) {
+  const h = waarde.trim();
+  const soort = voortgangSoort(h);
+  const lijst: string[] = [...VOORTGANG_KEUZES];
+  if (h && !lijst.includes(h)) lijst.push(h);
+  return (
+    <select
+      className={cls + " " + cls + "-" + soort}
+      value={h}
+      onChange={(e) => on(e.target.value)}
+      aria-label={"Voortgang van " + onderdeel}
+      title="Voortgang aanpassen; wordt meteen bewaard"
+    >
+      {!h && <option value="">—</option>}
+      {lijst.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Stijl van de keuzelijst; `k` is de klasse (tl-vk of vb-vk). */
+export function voortgangKeuzeCss(k: string): string {
+  const pijl =
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235f6b7a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+  return `
+.${k}{appearance:none;-webkit-appearance:none;flex:none;max-width:100%;font:inherit;font-size:11px;font-weight:600;line-height:1.35;padding:2px 22px 2px 9px;border:1px solid #cbd5e1;border-radius:999px;background:#fff ${pijl} no-repeat right 7px center/9px 6px;color:var(--ink2,#4a5565);cursor:pointer}
+.${k}:hover{border-color:#94a3b8}
+.${k}:focus-visible{outline:2px solid rgba(0,51,102,.35);outline-offset:1px}
+.${k}-afgerond{background-color:#ecfdf5;border-color:#a7f3d0;color:#047857;font-weight:700}
+.${k}-loopt{border-color:#94a3b8;color:var(--ink,#111827);font-weight:700}
+`;
 }
 
 function domeinenVan(g: Groep): Domein[] {
@@ -421,15 +486,6 @@ function Ruit({ style, los = false }: { style?: CSSProperties; los?: boolean }) 
       aria-hidden="true"
     >
       <path d="M7 0L14 7L7 14L0 7Z" />
-    </svg>
-  );
-}
-
-/** Vinkje bij een afgerond onderdeel. */
-function Vink() {
-  return (
-    <svg className="tl-vink-af" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-      <path d="M1.5 5.5L4 8L8.5 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -812,15 +868,12 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                           ) : (
                             <>
                               <Stip status={tekst(rij.status)} />
-                              {voortgang &&
-                                (soort === "afgerond" ? (
-                                  <span className="tl-vg tl-vg-af">
-                                    <Vink />
-                                    {voortgang}
-                                  </span>
-                                ) : (
-                                  <span className={soort === "niet" ? "tl-vg tl-vg-niet" : "tl-vg"}>{voortgang}</span>
-                                ))}
+                              <VoortgangKeuze
+                                cls="tl-vk"
+                                waarde={voortgang}
+                                onderdeel={naam}
+                                on={(x) => zet((t) => void (t.groepen[gi].rijen[ri].voortgang = x))}
+                              />
                             </>
                           )}
                         </div>
@@ -991,7 +1044,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
 // Lagen binnen .tl-t: balk 1 · standlijn 2 · markering 3 · vaste kolom 4 · knoppen 5 · tooltip 6.
 // Anker #tl-<anker>: scroll-margin 80px (zelfde als de werkstroomkaarten); wint bewust van
 // de algemene regel .okd [id^="tl-"] in DOC_CSS.
-export const TIJDLIJN_CSS = `
+export const TIJDLIJN_CSS = voortgangKeuzeCss("tl-vk") + `
 .tl{--tl-cito:#003366;--tl-rand:#e2e8f0;--tl-lijn:#edf1f5;--tl-jaar:#b6c2d0;--tl-hover:#f6f8fb;--tl-verleden:rgba(0,51,102,.035);min-width:0}
 .tl-paneel{margin:0;min-width:0;background:#fff;border:1px solid var(--tl-rand);border-radius:12px;padding:10px 12px}
 .tl-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:2px;container-type:inline-size}
@@ -1118,6 +1171,6 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-rij > .tl-akt,.tl-plusrij > .tl-akt{padding-left:15px;font-size:11px}
 .tl-t:not(.tl-edit) .tl-st{justify-content:center;padding:6px 0}
 .tl-t:not(.tl-edit) .tl-kh-st{padding-left:0;padding-right:0}
-.tl-t:not(.tl-edit) .tl-vg,.tl-t:not(.tl-edit) .tl-kh-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tl-t:not(.tl-edit) .tl-vg,.tl-t:not(.tl-edit) .tl-vk,.tl-t:not(.tl-edit) .tl-kh-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
 `;

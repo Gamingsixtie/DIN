@@ -25,9 +25,9 @@ import type { CSSProperties, ReactNode } from "react";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Keuze, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
-import { useBlok } from "@/components/bewerkbaar/doc-context";
+import { useBlok, useDocZet } from "@/components/bewerkbaar/doc-context";
 import { metBronlinks, useBron, useBronUrl, paginaUit, zoekDocument } from "@/components/bewerkbaar/bron-context";
-import { maandDatum, tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
+import { VoortgangKeuze, voortgangKeuzeCss, zetVoortgang, maandDatum, tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { TijdlijnRij, VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 
 type Bord = BlokVan<"voortgangsbord">;
@@ -46,6 +46,8 @@ interface Onderdeel {
   maand: string;
   verstreken: boolean;
   komend: boolean;
+  /** startmaand als "okt 2026"; leeg zonder start */
+  start: string;
 }
 
 interface Telling {
@@ -57,6 +59,8 @@ interface Telling {
   komend: number;
   /** opleveringen met een datum (noemer van "op schema") */
   metDatum: number;
+  /** open onderdelen zonder opleverdatum (geen ⚑ in de tijdlijn) */
+  zonderDatum: number;
 }
 
 /** De stand van één tijdlijngroep (werkstroom). */
@@ -106,8 +110,13 @@ function maandLabel(tl: Tijdlijn, idx: number | null): string {
   return Number.isNaN(d.getTime()) ? m : `${m} ${d.getFullYear()}`;
 }
 
+/** Startmaand van een onderdeel in woorden; gezet door berekenStand. */
+function startLabel(o: Onderdeel): string {
+  return o.start;
+}
+
 function legeTelling(): Telling {
-  return { totaal: 0, afgerond: 0, loopt: 0, niet: 0, verstreken: 0, komend: 0, metDatum: 0 };
+  return { totaal: 0, afgerond: 0, loopt: 0, niet: 0, verstreken: 0, komend: 0, metDatum: 0, zonderDatum: 0 };
 }
 
 function telOp(t: Telling, o: Onderdeel) {
@@ -116,6 +125,7 @@ function telOp(t: Telling, o: Onderdeel) {
   else if (o.soort === "loopt") t.loopt++;
   else if (o.soort === "niet") t.niet++;
   if (o.rij.opleverDatum) t.metDatum++;
+  else if (o.soort !== "afgerond") t.zonderDatum++;
   if (o.verstreken) t.verstreken++;
   if (o.komend) t.komend++;
 }
@@ -196,6 +206,7 @@ function berekenStand(tl: Tijdlijn | null, vandaag: Date): { groepen: GroepStand
       rij,
       soort,
       maand: maandLabel(tl, rij.opleverIndex),
+      start: maandLabel(tl, rij.startIndex),
       verstreken: d !== null && open && d < dag,
       komend: d !== null && open && d >= dag && d <= grens,
     };
@@ -347,13 +358,33 @@ function Kolom({ kop, leeg, cls = "", children }: { kop: string; leeg: string; c
  * Regel in een lijst met onderdelen: naam · maand (· status). Met werkstroom (de lijsten
  * onderaan) op twee regels: de naam, daaronder werkstroom en maand.
  */
-function OnderdeelRegel({ o, metWerkstroom = false, verstreken = false }: { o: Onderdeel; metWerkstroom?: boolean; verstreken?: boolean }) {
+function OnderdeelRegel({
+  o,
+  metWerkstroom = false,
+  verstreken = false,
+  maand,
+}: {
+  o: Onderdeel;
+  metWerkstroom?: boolean;
+  verstreken?: boolean;
+  /** tekst in plaats van de oplevermaand (bijv. "start okt 2026") */
+  maand?: string;
+}) {
+  const zetDoc = useDocZet();
   const naam = <span className="vb-item-t">{metBronlinks(o.rij.activiteit || "Onderdeel zonder naam")}</span>;
   const rest = (
     <>
       {metWerkstroom && <span className="vb-item-w">{o.rij.groepNaam}</span>}
-      <span className="vb-item-m">{o.maand}</span>
+      <span className="vb-item-m">{maand ?? o.maand}</span>
       {verstreken && <Stip status={o.rij.status} />}
+      {zetDoc && (
+        <VoortgangKeuze
+          cls="vb-vk"
+          waarde={o.rij.voortgang}
+          onderdeel={o.rij.activiteit || "onderdeel"}
+          on={(x) => zetDoc((d) => zetVoortgang(d, o.rij.groepIndex, o.rij.rijIndex, x))}
+        />
+      )}
     </>
   );
   const cls = "vb-item" + (verstreken ? " vb-item-verstreken" : "") + (metWerkstroom ? " vb-item-blok" : "");
@@ -485,6 +516,8 @@ function Werkstroom(p: {
   const schema = opSchema(t);
   const verstreken = (stand?.onderdelen ?? []).filter((o) => o.verstreken);
   const komend = (stand?.onderdelen ?? []).filter((o) => o.komend).sort((a, b) => a.rij.opleverDatum!.getTime() - b.rij.opleverDatum!.getTime());
+  const afgerond = (stand?.onderdelen ?? []).filter((o) => o.soort === "afgerond");
+  const zonderDatum = (stand?.onderdelen ?? []).filter((o) => o.rij.opleverDatum === null && o.soort !== "afgerond");
   const geleverd = (w.geleverd ?? []).map(tekst).filter((s) => s.trim() !== "");
   const kops = (kaart?.koppelingen ?? []).filter((k) => tekst(k.label).trim() !== "" || tekst(k.url).trim() !== "");
   const zetW = (fn: (x: BordWerkstroom) => void) =>
@@ -554,6 +587,16 @@ function Werkstroom(p: {
             />
           )}
         </div>
+        <Kolom kop="Afgerond" leeg={stand ? "nog niets afgerond" : "te bepalen"} cls="vb-kolom-af">
+          {afgerond.map((o, i) => (
+            <OnderdeelRegel key={i} o={o} />
+          ))}
+        </Kolom>
+        <Kolom kop="Zonder opleverdatum" leeg={stand ? "alle onderdelen hebben een oplevering" : "te bepalen"} cls="vb-kolom-zonder">
+          {zonderDatum.map((o, i) => (
+            <OnderdeelRegel key={i} o={o} maand={o.rij.startIndex !== null ? "start " + startLabel(o) : "geen start"} />
+          ))}
+        </Kolom>
       </div>
 
       <div className="vb-ws-voet">
@@ -685,6 +728,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
         <Teller n={totaal.afgerond} label="afgerond" toon="groen" />
         <Teller n={totaal.verstreken} label="verstreken, niet afgerond" toon={totaal.verstreken > 0 ? "amber" : ""} />
         <Teller n={totaal.komend} label={`opleveringen komende ${HORIZON_DAGEN} dagen`} toon="blauw" />
+        <Teller n={totaal.zonderDatum} label="zonder opleverdatum" toon={totaal.zonderDatum > 0 ? "grijs" : ""} />
       </div>
 
       <ul className="vb-werkstromen">
@@ -776,8 +820,9 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
         <p className="vb-legenda-vast">
           Zo rekent het bord: de cijfers per werkstroom komen uit de tijdlijn en gaan uit van vandaag. Voortgang is het aantal afgeronde onderdelen van het
           totaal; wat loopt, staat als lichtere balk en telt nog niet mee. Op schema zijn de opleveringen waarvan de datum nog niet voorbij is. Verstreken: de
-          opleverdatum is voorbij en het onderdeel staat niet op Afgerond. Komt eraan: oplevering binnen {HORIZON_DAGEN} dagen. Zet je een onderdeel in de
-          tijdlijn op Afgerond, dan lopen de cijfers vanzelf mee.
+          opleverdatum is voorbij en het onderdeel staat niet op Afgerond. Komt eraan: oplevering binnen {HORIZON_DAGEN} dagen. Zonder opleverdatum: er staat
+          geen oplevering (⚑) in de tijdlijn; die onderdelen tellen mee in het totaal, maar niet bij verstreken of komt eraan. De status van een onderdeel
+          kies je in het keuzelijstje, hier of in de tijdlijn; dat wordt meteen bewaard en de cijfers lopen vanzelf mee.
         </p>
         {(edit || tekst(b.legenda).trim()) && (
           <V v={tekst(b.legenda)} on={(x) => zet((t) => void (t.legenda = x))} edit={edit} ml block cls="ok-legend vb-legenda" ph="Bron en toelichting (optioneel)" />
@@ -790,7 +835,7 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 // Stijl; wordt samen met OK_CSS en DOC_CSS in het document gezet (BewerkbaarDocument).
 // Los gebruikt (eigen tabblad): zet VOORTGANGSBORD_CSS en OK_CSS (voor .ok-in, .ok-knopje,
 // .ok-bl) in de pagina en zet het blok in een element met de klasse "ok".
-export const VOORTGANGSBORD_CSS = `
+export const VOORTGANGSBORD_CSS = voortgangKeuzeCss("vb-vk") + `
 .vb{--vb-cito:#003366;--vb-rand:#e2e8f0;--vb-lijn:#edf1f5;--vb-amber:#b45309;--vb-rood:#b91c1c;--vb-groen:#047857;min-width:0;font-size:12px;line-height:1.45;color:var(--ink,#111827)}
 .vb-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .vb-kop{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px;margin-bottom:10px}
@@ -806,7 +851,9 @@ export const VOORTGANGSBORD_CSS = `
 .vb-knop-vol{background:var(--vb-cito);color:#fff}
 .vb-knop-vol:hover,.vb-knop-vol:focus-visible{background:#0066cc;border-color:#0066cc}
 .vb-melding{margin:0 0 10px;padding:8px 12px;border:1px solid #fcd34d;border-radius:10px;background:#fffbeb;color:#78350f;font-size:11.5px}
-.vb-tellers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.vb-tellers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.vb-teller-grijs{border-style:dashed}
+.vb-teller-grijs .vb-teller-n{color:var(--ink2,#4a5565)}
 .vb-teller{display:flex;flex-direction:column;gap:1px;min-width:0;padding:9px 12px;border:1px solid var(--vb-rand);border-radius:12px;background:#fff}
 .vb-teller-n{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.02em;color:var(--ink,#111827)}
 .vb-teller-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3,#5f6b7a);line-height:1.3}
@@ -836,7 +883,11 @@ a.vb-ws-link:hover,a.vb-ws-link:focus-visible{text-decoration:underline;text-und
 .vb-balk-lo{background:color-mix(in srgb,var(--vb-k) 45%,#fff)}
 .vb-balk-pct{grid-area:pct;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink,#111827);min-width:38px;text-align:right}
 .vb-balk-t{grid-area:t;font-size:10.5px;color:var(--ink2,#4a5565)}
-.vb-ws-kolommen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--vb-lijn)}
+.vb-ws-kolommen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--vb-lijn)}
+.vb-kolom-nodig{grid-column:3;grid-row:1 / span 2}
+.vb-kolom-af .vb-kk{color:var(--vb-groen)}
+.vb-kolom-zonder .vb-kk{color:var(--ink2,#4a5565)}
+.vb-item .vb-vk{margin-left:auto}
 .vb-kolom{min-width:0}
 .vb-kk{margin:0 0 6px;font-size:12.5px;font-weight:800;line-height:1.3;color:var(--ink,#111827)}
 .vb-kk-inline{display:inline;margin:0 6px 0 0}
