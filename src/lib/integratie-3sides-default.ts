@@ -815,8 +815,24 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "planning",
       "5 · Planning en voortgang: de tijdlijn als basis",
-      "3sides heeft het werk van elke werkstroom opgedeeld in onderdelen: 28 in totaal, elk met een startmaand en een oplevering. Die tijdlijn is de basis: het voortgangsbord en de werkstroomkaarten (deel 4) rekenen ermee. De standlijn staat op vandaag; de gegevens zijn de stand van 3sides van 28-09. Zet je een onderdeel in de tijdlijn op 'afgerond', dan telt het bord mee. Het bord staat ook los in het tabblad Voortgang.",
+      "3sides heeft het werk van elke werkstroom opgedeeld in onderdelen: 28 in totaal, elk met een startmaand en een oplevering. Die tijdlijn is de basis: eerst de tijdlijn, daaronder het voortgangsbord dat ermee rekent, net als de werkstroomkaarten (deel 4). De standlijn staat op vandaag; de gegevens zijn de stand van 3sides van 28-09. Zet je een onderdeel in de tijdlijn op 'afgerond', dan telt het bord mee. Het bord staat ook los in het tabblad Voortgang.",
       [
+        TIJDLIJN,
+        lijst(
+          [
+            "0-meting komt later dan gepland: ons stappenplan en het meetinstrument noemen Q3, het plan van aanpak Q3/Q4; de tijdlijn zet de oplevering in oktober, en de 0-meting is nog niet gestart. Het ophalen van de data (september en oktober) staat op rood. Gevolg: de startwaarden van de 14 baten-KPI's komen op zijn vroegst in oktober; de doelwaarden volgen pas in de vervolgsessie daarna.",
+            "Adoptie: drie documenten, drie planningen. Stappenplan: pilot in één sector in Q3 2026, de tweede in Q4, de derde in Q1 2027. Plan van aanpak: playbooks in Q4 2026, pilots in Q1 2027. Tijdlijn: eerste sector januari en februari 2027, tweede februari en maart, derde april en mei; playbook-workshops van december 2026 tot mei 2027. Te besluiten: welke planning geldt.",
+            "CRM: richting en keuze zijn twee stappen. De tijdlijn levert in november een advies over de CRM-richting; het besluit over het CRM valt volgens het stappenplan rond april 2027. Dat past, zolang het advies van november geen besluit wordt.",
+            "Klantreizen: een onderdeel levert eerder op dan waar het op bouwt. De vertaling van de klantreis naar CRM-input en funnelprocessen levert op in november, maar de blueprint-onderdelen waarop die vertaling bouwt (proces, CRM-gebruik en KPI's; rollen, gedrag en competenties) leveren pas in december op. Vraag aan 3sides: klopt die volgorde?",
+            "Open einden: vier onderdelen hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs en adoptieteam) en twee geen startmaand (de 0-meting en de vertaling van de klantreis naar CRM-input). Vraag aan 3sides om die maanden in te vullen.",
+          ],
+          "Wat opvalt in de planning"
+        ),
+        callout(
+          "info",
+          "Zo werk je de voortgang bij",
+          "De voortgang wordt berekend uit de tijdlijn hierboven. Klik op het potlood bij dit deel, zet in de tijdlijn bij een onderdeel de voortgang op 'Afgerond' (of pas de start- of opleverdatum aan) en klik op Opslaan. Het voortgangsbord hieronder en de werkstroomkaarten in deel 4 rekenen direct mee. Vinkjes bij 'Nog nodig' zet je gewoon aan, zonder te bewerken; ze worden meteen bewaard."
+        ),
         {
           type: "voortgangsbord",
           titel: "Voortgangsbord",
@@ -887,19 +903,8 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             { tekst: "Cito: rollen laten vaststellen door de programma-eigenaar (organigram v4)", klaar: false },
             { tekst: "Vindplaats van de documenten: één map, zodat elke paginaverwijzing naar het document zelf springt", klaar: false },
           ],
-          legenda: "Regels die met 'Cito:' beginnen, doet Cito zelf; de rest vragen we van 3sides. Voortgang en opleveringen komen uit de tijdlijn hieronder, op de dag van vandaag; zet daar een onderdeel op 'afgerond' en het bord telt mee. 'Geleverd volgens 3sides' komt van de statuspagina van 29-09. 'Nog nodig' is een voorstel van het programma; vink af wat binnen is.",
+          legenda: "Regels die met 'Cito:' beginnen, doet Cito zelf; de rest vragen we van 3sides. Voortgang en opleveringen komen uit de tijdlijn hierboven, op de dag van vandaag; zet daar een onderdeel op 'afgerond' en het bord telt mee. 'Geleverd volgens 3sides' komt van de statuspagina van 29-09. 'Nog nodig' is een voorstel van het programma; vink af wat binnen is.",
         },
-        TIJDLIJN,
-        lijst(
-          [
-            "0-meting komt later dan gepland: ons stappenplan en het meetinstrument noemen Q3, het plan van aanpak Q3/Q4; de tijdlijn zet de oplevering in oktober, en de 0-meting is nog niet gestart. Het ophalen van de data (september en oktober) staat op rood. Gevolg: de startwaarden van de 14 baten-KPI's komen op zijn vroegst in oktober; de doelwaarden volgen pas in de vervolgsessie daarna.",
-            "Adoptie: drie documenten, drie planningen. Stappenplan: pilot in één sector in Q3 2026, de tweede in Q4, de derde in Q1 2027. Plan van aanpak: playbooks in Q4 2026, pilots in Q1 2027. Tijdlijn: eerste sector januari en februari 2027, tweede februari en maart, derde april en mei; playbook-workshops van december 2026 tot mei 2027. Te besluiten: welke planning geldt.",
-            "CRM: richting en keuze zijn twee stappen. De tijdlijn levert in november een advies over de CRM-richting; het besluit over het CRM valt volgens het stappenplan rond april 2027. Dat past, zolang het advies van november geen besluit wordt.",
-            "Klantreizen: een onderdeel levert eerder op dan waar het op bouwt. De vertaling van de klantreis naar CRM-input en funnelprocessen levert op in november, maar de blueprint-onderdelen waarop die vertaling bouwt (proces, CRM-gebruik en KPI's; rollen, gedrag en competenties) leveren pas in december op. Vraag aan 3sides: klopt die volgorde?",
-            "Open einden: vier onderdelen hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs en adoptieteam) en twee geen startmaand (de 0-meting en de vertaling van de klantreis naar CRM-input). Vraag aan 3sides om die maanden in te vullen.",
-          ],
-          "Wat opvalt in de planning"
-        ),
       ]
     ),
 
