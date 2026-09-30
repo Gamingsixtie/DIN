@@ -8,7 +8,9 @@
 // als gekleurde stip met het teken, voortgang als klein label. Balkkleur = het eerste
 // domein van de werkstroom; alle vier de domeinen = Cito-blauw.
 // Bewerkmodus: teksten aanpasbaar, een maandcel klik je door (leeg → start → loopt →
-// oplevering → leeg), regels toevoegen en verwijderen; de maanden liggen vast.
+// oplevering → leeg), regels en groepen (werkstromen) toevoegen en verwijderen; per
+// groep vink je de domeinen aan (kleur van strook en balken volgt) en kies je de
+// werkstroomkaart waar de groep bij hoort (anker); de maanden liggen vast.
 // Eigen scrollcontainer (min. ca. 920px breed) waarin de activiteitkolom blijft staan;
 // de pagina zelf scrolt nooit zijwaarts.
 
@@ -21,6 +23,8 @@ import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 
 type Tijdlijn = BlokVan<"tijdlijn">;
 type Groep = Tijdlijn["groepen"][number];
+/** Past een kopie van één groep aan; de wijziging gaat via het blok naar boven. */
+type ZetGroep = (fn: (g: Groep) => void) => void;
 type Cel = "" | "start" | "loopt" | "oplevering";
 type Domein = { id: string; label: string; kleur: string };
 type Jaar = { label: string; van: number; aantal: number };
@@ -142,6 +146,53 @@ function domeinenVan(g: Groep): Domein[] {
     if (d && !uit.some((x) => x.id === d.id)) uit.push(d);
   }
   return uit;
+}
+
+// Wijzigingen aan de opbouw (bewerkmodus); ze werken op de kopie die zet() aanreikt.
+
+function voegGroepToe(t: Tijdlijn) {
+  t.groepen.push({ naam: "Nieuwe werkstroom", bijnaam: "", anker: "", domeinen: [], rijen: [] });
+}
+
+/** Vinkt een domein aan of uit; de lijst houdt de outside-in volgorde van DOMEINEN. */
+function zetGroepDomein(g: Groep, id: string, aan: boolean) {
+  const huidig = (g.domeinen ?? []).map(tekst);
+  const gekozen = new Set(huidig);
+  if (aan) gekozen.add(id);
+  else gekozen.delete(id);
+  const bekend = DOMEINEN.map((d) => d.id).filter((x) => gekozen.has(x));
+  const overig = huidig.filter((x) => !domein(x) && gekozen.has(x));
+  g.domeinen = [...bekend, ...overig];
+}
+
+/** Keuzes voor het anker van een groep: geen, de werkstroomkaarten in het document, en het huidige anker als dat nergens bij hoort. */
+function ankerOpties(huidig: string, ankers: ReadonlySet<string>): { waarde: string; label: string }[] {
+  const kaarten = [...ankers].filter((a) => a.startsWith("wk-")).map((a) => a.slice(3)).sort();
+  const opties = [{ waarde: "", label: "geen" }, ...kaarten.map((id) => ({ waarde: id, label: id }))];
+  if (huidig && !kaarten.includes(huidig)) opties.push({ waarde: huidig, label: `${huidig} (geen kaart)` });
+  return opties;
+}
+
+/** Bewerkmodus: per DIN-domein een vinkje; strook en balkkleur van de groep volgen. */
+function DomeinVinkjes({ g, zetG }: { g: Groep; zetG: ZetGroep }) {
+  const gekozen = new Set((g.domeinen ?? []).map(tekst));
+  return (
+    <span className="tl-vinken" role="group" aria-label="Domeinen">
+      {DOMEINEN.map((d) => (
+        <label key={d.id} className="tl-vink" style={{ "--tl-vk": d.kleur } as CSSProperties}>
+          <input
+            type="checkbox"
+            checked={gekozen.has(d.id)}
+            onChange={(e) => {
+              const aan = e.target.checked;
+              zetG((n) => zetGroepDomein(n, d.id, aan));
+            }}
+          />
+          {d.label}
+        </label>
+      ))}
+    </span>
+  );
 }
 
 /** Balkkleur: het eerste domein van de werkstroom; alle vier de domeinen = Cito-blauw. */
@@ -459,6 +510,11 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
               const bijnaam = tekst(g.bijnaam).trim();
               const domTekst = ds.map((d) => d.label).join(", ");
               const rijen = g.rijen ?? [];
+              const zetG: ZetGroep = (fn) =>
+                zet((t) => {
+                  const x = t.groepen[gi];
+                  if (x) fn(x);
+                });
               return (
                 <div
                   key={gi}
@@ -477,18 +533,35 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                         />
                         {edit ? (
                           <span className="tl-gkop-edit">
-                            <V
-                              v={tekst(g.naam)}
-                              on={(x) => zet((t) => void (t.groepen[gi].naam = x))}
-                              edit
-                              ph="Naam van de werkstroom"
-                            />
-                            <V
-                              v={tekst(g.bijnaam)}
-                              on={(x) => zet((t) => void (t.groepen[gi].bijnaam = x))}
-                              edit
-                              ph="Naam bij 3sides (optioneel)"
-                            />
+                            <span className="tl-gkop-velden">
+                              <V
+                                v={tekst(g.naam)}
+                                on={(x) => zetG((n) => void (n.naam = x))}
+                                edit
+                                ph="Naam van de werkstroom"
+                              />
+                              <V
+                                v={tekst(g.bijnaam)}
+                                on={(x) => zetG((n) => void (n.bijnaam = x))}
+                                edit
+                                ph="Naam bij 3sides (optioneel)"
+                              />
+                              <label className="tl-eb">
+                                <span className="ok-bl">Kaart</span>
+                                <Keuze
+                                  v={anker}
+                                  opties={ankerOpties(anker, ankers)}
+                                  on={(x) => zetG((n) => void (n.anker = x))}
+                                  titel="Werkstroomkaart waar deze groep bij hoort"
+                                />
+                              </label>
+                              <WegKnop
+                                titel="Groep verwijderen"
+                                label="× groep"
+                                on={() => zet((t) => void t.groepen.splice(gi, 1))}
+                              />
+                            </span>
+                            <DomeinVinkjes g={g} zetG={zetG} />
                           </span>
                         ) : (
                           <>
@@ -611,11 +684,11 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                         <PlusKnop
                           label="+ regel"
                           on={() =>
-                            zet(
-                              (t) =>
-                                void t.groepen[gi].rijen.push({
+                            zetG(
+                              (n) =>
+                                void n.rijen.push({
                                   activiteit: "",
-                                  cellen: t.maanden.map(() => ""),
+                                  cellen: maanden.map(() => ""),
                                   voortgang: "",
                                   status: "",
                                 })
@@ -630,6 +703,18 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                 </div>
               );
             })}
+
+            {edit && (
+              <div role="rowgroup" className="tl-groep tl-groep-plus">
+                <div role="row" className="tl-r tl-plusrij">
+                  <div role="cell" className="tl-akt">
+                    <PlusKnop label="+ groep" on={() => zet(voegGroepToe)} />
+                  </div>
+                  <div role="cell" />
+                  <div role="cell" />
+                </div>
+              </div>
+            )}
 
             {nuIdx >= 0 && (
               <div className={"tl-nu" + (nuIdx === n - 1 ? " tl-nu-rand" : "")} aria-hidden="true">
@@ -752,8 +837,14 @@ export const TIJDLIJN_CSS = `
 a.tl-gnaam{text-decoration:none}
 a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-bijnaam{font-size:11px;color:var(--ink2,#5b6573)}
-.tl-gkop-edit{display:flex;flex-wrap:wrap;gap:6px}
+.tl-gkop-edit{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tl-gkop-velden{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .tl-gkop-edit .ok-in{width:260px;max-width:100%}
+.tl-vinken{display:flex;flex-wrap:wrap;gap:4px 6px}
+.tl-vink{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer;color:color-mix(in srgb,var(--tl-vk) 75%,#000);background:color-mix(in srgb,var(--tl-vk) 8%,#fff);border:1px solid color-mix(in srgb,var(--tl-vk) 35%,#fff);border-radius:999px;padding:1px 9px 1px 6px}
+.tl-vink input{margin:0;accent-color:var(--tl-vk);cursor:pointer}
+.tl-vink:has(input:checked){background:color-mix(in srgb,var(--tl-vk) 16%,#fff);border-color:var(--tl-vk)}
+.tl-groep-plus .tl-akt{box-shadow:inset -1px 0 0 var(--tl-rand),inset 0 1px 0 var(--tl-rand)}
 .tl-strook{position:absolute;left:0;top:0;bottom:0;width:var(--tl-sb);background:var(--tl-sg)}
 .tl-gkop-in > .tl-strook{top:1px}
 .tl-kopgroep + .tl-groep .tl-gkop-in > .tl-strook{top:0}
