@@ -2,7 +2,18 @@
 
 Verbeteringen die zijn afgesproken maar nog niet gebouwd. Per item: wat, waar, en wat het vraagt. Oppakken via `/gsd:quick`.
 
-## Stap 11 "Programma × 3sides", uit het doornemen met Pim op 30-09-2026
+## Stand 30-09-2026, na de tweede ronde
+
+Afgerond en live: A1 t/m A5 (inhoud), B6 (regieband), B7 (plaat als bord), B8 (koppelingen per werkstroom), C9 (vindplaatsen en paginalinks; werkt zodra Pim de documentenmap invult), rijen en items toevoegen in elk bloktype, deel 9 "Uitleggen" verwijderd, NPS-rij weg, volgende stappen zonder wie en bron.
+
+### Open
+
+10. **Nieuw deel 9: "Wat we nog concreet van 3sides nodig hebben", als dashboard.** Schets: `SKETCH-3SIDES-NODIG.html` (per werkstroom geleverd, onderweg met maand, nog nodig als voorstel; tellers uit de tijdlijn; programmabreed). Wacht op akkoord van Pim op de schets. Bouw: nieuw bloktype "nodig-bord" met tellers die automatisch uit het tijdlijn-blok komen, chips en regels bewerkbaar en afvinkbaar, of een eigen tabblad in stap 11.
+11. **Vindplaats documenten kiezen** (Pim): map in de app (openbaar bereikbaar) of SharePoint/Teams-link; daarna in "Vindplaatsen" invullen.
+12. **Bewerkmodus op telefoon**: 59px zijwaartse overloop door de knoppenrij van de bewerkbalk en de plaat (900px); weergavemodus is schoon. Klein.
+13. **Bateneigenaar-conflict** organigram (sectormanager) tegenover KPI-model (Commercieel Manager): besluit Pim.
+
+## Stap 11 "Programma × 3sides", uit het doornemen met Pim op 30-09-2026 (eerste ronde, afgerond)
 
 Alle punten volgen uit het punt-voor-punt doornemen van de analyse. Skill `din-model-toets` altijd laden bij het oppakken.
 
