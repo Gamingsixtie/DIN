@@ -997,22 +997,27 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("dinplaat"),
     // rol = wie dit niveau draagt (bijv. "Bateneigenaar: sectormanager PO")
+    // kpi = hoe dit niveau wordt gemeten; meetlat = de kernprincipes waarmee het vermogen wordt gemeten
     doel: z.object({
       titel: z.string(),
       tekst: z.string().optional().default(""),
       rol: z.string().optional().default(""),
+      kpi: z.string().optional().default(""),
     }),
     baten: z.array(
       z.object({
         titel: z.string(),
         tekst: z.string().optional().default(""),
         rol: z.string().optional().default(""),
+        kpi: z.string().optional().default(""),
       })
     ),
     vermogen: z.object({
       titel: z.string(),
       tekst: z.string().optional().default(""),
       rol: z.string().optional().default(""),
+      kpi: z.string().optional().default(""),
+      meetlat: z.array(z.string()).optional().default([]),
     }),
     // regie over de hele keten (programmamanagement)
     regie: z.string().optional().default(""),
@@ -1035,6 +1040,7 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         leads: z.string().optional().default(""),
         oplevert: z.string().optional().default(""),
         planVanAanpak: z.string().optional().default(""),
+        kpi: z.string().optional().default(""),
       })
     ),
     voet: z.string().optional().default(""),
@@ -1071,7 +1077,7 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     titel: z.string().optional().default(""),
     jaren: z.array(z.object({ label: z.string(), maanden: z.number().int() })),
     maanden: z.array(z.string()),
-    nu: z.string().optional().default(""), // maandlabel waarin de standlijn valt
+    nu: z.string().optional().default(""), // maandlabel van de standlijn; leeg of "vandaag" = de dag van vandaag
     nuLabel: z.string().optional().default(""),
     groepen: z.array(
       z.object({
@@ -1090,6 +1096,99 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         ),
       })
     ),
+    legenda: z.string().optional().default(""),
+  }),
+  // KPI-plaat: per niveau van het DIN de vraag, het soort KPI en de concrete KPI's als chips.
+  z.object({
+    type: z.literal("kpiplaat"),
+    titel: z.string().optional().default(""),
+    niveaus: z.array(
+      z.object({
+        naam: z.string(),
+        kleur: z.string().optional().default(""), // laagtoken: doel | baat | vermogen | inspanning
+        soort: z.string().optional().default(""), // impact | uitkomst | leidend | output
+        vraag: z.string().optional().default(""),
+        wanneer: z.string().optional().default(""),
+        groepen: z.array(
+          z.object({
+            titel: z.string(),
+            chips: z.array(z.string()),
+            toon: z.string().optional().default(""), // "" | voorstel | let-op
+          })
+        ),
+        bron: z.string().optional().default(""),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // Van-naar: per onderwerp hoe het bij de ander staat en hoe het in het DIN komt, met de verandering uitgelicht.
+  z.object({
+    type: z.literal("vannaar"),
+    titel: z.string().optional().default(""),
+    vanKop: z.string().optional().default("Zo staat het bij 3sides"),
+    naarKop: z.string().optional().default("Zo komt het in het DIN"),
+    rijen: z.array(
+      z.object({
+        onderwerp: z.string(),
+        van: z.string(),
+        naar: z.string(),
+        bron: z.string().optional().default(""),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // Stroomplaat: kolommen met items en verbindingen ertussen (bijv. werkstromen → domeinen → kernprincipes).
+  z.object({
+    type: z.literal("stroomplaat"),
+    titel: z.string().optional().default(""),
+    kolommen: z.array(
+      z.object({
+        kop: z.string(),
+        sub: z.string().optional().default(""),
+        items: z.array(
+          z.object({
+            id: z.string(),
+            naam: z.string(),
+            kleur: z.string().optional().default(""),
+            sub: z.string().optional().default(""),
+          })
+        ),
+      })
+    ),
+    // [van-id, naar-id] tussen items van opeenvolgende kolommen
+    verbindingen: z.array(z.tuple([z.string(), z.string()])),
+    voet: z.string().optional().default(""),
+  }),
+  // Voortgangsbord: hoe ver we zijn en wat we nog van 3sides nodig hebben. De voortgang,
+  // de verstreken en de komende opleveringen rekent de app uit vanuit het tijdlijn-blok in
+  // hetzelfde document en de dag van vandaag; koppelingen komen van de werkstroomkaarten
+  // en de vindplaatsen in de sessie.
+  z.object({
+    type: z.literal("voortgangsbord"),
+    titel: z.string().optional().default(""),
+    werkstromen: z.array(
+      z.object({
+        anker: z.string(), // = anker van de tijdlijngroep en id van de werkstroomkaart
+        naam: z.string(),
+        geleverd: z.array(z.string()), // wat 3sides meldt als geleverd (statuspagina)
+        nodig: z.array(z.object({ tekst: z.string(), klaar: z.boolean().optional().default(false) })),
+      })
+    ),
+    programmabreed: z.array(z.object({ tekst: z.string(), klaar: z.boolean().optional().default(false) })),
+    legenda: z.string().optional().default(""),
+  }),
+  // Stappenplaat: genummerde stappen met icoon en tekst, en de mogelijke uitkomsten als badges.
+  z.object({
+    type: z.literal("stappen"),
+    titel: z.string().optional().default(""),
+    stappen: z.array(
+      z.object({
+        kop: z.string(),
+        tekst: z.string().optional().default(""),
+        icoon: z.string().optional().default(""), // domein | werkstroom | tijd | baat | vraag | vink
+      })
+    ),
+    uitkomsten: z.array(z.object({ label: z.string(), toon: z.string().optional().default("") })), // groen | amber | grijs
     legenda: z.string().optional().default(""),
   }),
   // Matrix met gekleurde kolomkoppen; rijen als tekst, domein-chips of chips.

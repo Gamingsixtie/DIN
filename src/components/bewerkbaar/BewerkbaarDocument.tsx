@@ -20,6 +20,12 @@ import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-ty
 import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import WerkstroomKaartenBlok, { WERKSTROOM_CSS } from "@/components/bewerkbaar/blokken/WerkstroomKaartenBlok";
 import MatrixBlok, { MATRIX_CSS } from "@/components/bewerkbaar/blokken/MatrixBlok";
+import KpiPlaatBlok, { KPIPLAAT_CSS } from "@/components/bewerkbaar/blokken/KpiPlaatBlok";
+import VanNaarBlok, { VANNAAR_CSS } from "@/components/bewerkbaar/blokken/VanNaarBlok";
+import StroomPlaatBlok, { STROOMPLAAT_CSS } from "@/components/bewerkbaar/blokken/StroomPlaatBlok";
+import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
+import StappenBlok, { STAPPEN_CSS } from "@/components/bewerkbaar/blokken/StappenBlok";
+import { DocContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
 type BlokProps<T extends DocBlok["type"]> = Omit<LosBlokProps<T>, "ankers">;
@@ -100,6 +106,11 @@ const BLOK_NAMEN: Record<DocBlok["type"], string> = {
   werkstromen: "Werkstroomkaarten",
   tijdlijn: "Tijdlijn",
   matrix: "Matrix",
+  stappen: "Stappenplaat",
+  kpiplaat: "KPI-plaat",
+  vannaar: "Van-naar",
+  stroomplaat: "Stroomplaat",
+  voortgangsbord: "Voortgangsbord",
 };
 
 /** Bloktypen die je in een sectie kunt toevoegen ("+ blok"). */
@@ -517,7 +528,7 @@ function verplaats<T>(lijst: T[], van: number, naar: number) {
 // Wijzigingen aan de plaat (bewerkmodus); ze werken op de kopie die zet() aanreikt.
 
 function voegBaatToe(n: Plaat) {
-  n.baten.push({ titel: "Nieuwe baat", tekst: "", rol: "" });
+  n.baten.push({ titel: "Nieuwe baat", tekst: "", rol: "", kpi: "" });
 }
 
 function voegDomeinToe(n: Plaat) {
@@ -558,7 +569,7 @@ function verwijderDomein(n: Plaat, i: number) {
 }
 
 function voegWerkstroomToe(n: Plaat) {
-  n.werkstromen.push({ naam: "Nieuwe werkstroom", anker: "", domeinen: [], leads: "", oplevert: "", planVanAanpak: "" });
+  n.werkstromen.push({ naam: "Nieuwe werkstroom", anker: "", domeinen: [], leads: "", oplevert: "", planVanAanpak: "", kpi: "" });
 }
 
 /** Vinkt een domein aan of uit bij een werkstroom; de lijst houdt de volgorde van de plaat. */
@@ -1153,6 +1164,16 @@ const Sectie = memo(function Sectie(p: {
         );
       case "tijdlijn":
         return <TijdlijnBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "tijdlijn")} ankers={ankers} />;
+      case "stappen":
+        return <StappenBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "stappen")} ankers={ankers} />;
+      case "kpiplaat":
+        return <KpiPlaatBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "kpiplaat")} ankers={ankers} />;
+      case "vannaar":
+        return <VanNaarBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "vannaar")} ankers={ankers} />;
+      case "stroomplaat":
+        return <StroomPlaatBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "stroomplaat")} ankers={ankers} />;
+      case "voortgangsbord":
+        return <VoortgangsbordBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "voortgangsbord")} ankers={ankers} />;
       case "matrix":
         return <MatrixBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "matrix")} ankers={ankers} />;
       default:
@@ -1320,8 +1341,9 @@ export default function BewerkbaarDocument({
   const ankers = useMemo(() => new Set(idSleutel.split("\n")), [idSleutel]);
 
   return (
+    <DocContext.Provider value={doc}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (
@@ -1384,5 +1406,6 @@ export default function BewerkbaarDocument({
         </button>
       )}
     </div>
+    </DocContext.Provider>
   );
 }

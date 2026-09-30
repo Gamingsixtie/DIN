@@ -60,18 +60,26 @@ const DIN_PLAAT: DocBlok = {
     titel: "Doel 1 · Integraal klantbeeld en outside-in werken als strategisch fundament",
     tekst: "Het programma richt zich nu op dit doel (focusdoel in de app, stap 5): alle drie de baten hangen eronder. Doel 2 en doel 3 hebben nog geen eigen baten.",
     rol: "Programma-eigenaar: Meryl · voorzitter stuurgroep",
+    kpi: "Impact: organisatiebreed beeld (NPS, conversie, omzet, retentie/churn), jaarlijks · voorstel",
   },
   baten: [
     {
       titel: "Zakelijk",
       tekst: "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten · 5 baten-KPI's",
       rol: "Bateneigenaar: sectormanager Zakelijk",
+      kpi: "5 baten-KPI's: funnel-conversie per stap · offertes en % opdracht · conversie uit bezoeken · serviceniveau en reactietijden · churn",
     },
-    { titel: "PO", tekst: "Intensiever partnership · 5 baten-KPI's", rol: "Bateneigenaar: sectormanager PO" },
+    {
+      titel: "PO",
+      tekst: "Intensiever partnership · 5 baten-KPI's",
+      rol: "Bateneigenaar: sectormanager PO",
+      kpi: "5 baten-KPI's: groei productgebruik (cross- en upsell) · gebruiksintensiteit volledige lijn · raamcontracten grote besturen · ontwikkeldeadlines en beloftes gehaald · churn",
+    },
     {
       titel: "VO",
       tekst: "Hogere voorspelbaarheid commerciële begroting · 4 baten-KPI's",
       rol: "Bateneigenaar: sectormanager VO",
+      kpi: "4 baten-KPI's: prognose-nauwkeurigheid · % meerjarige licenties · inzicht in toetskeuzemomenten · churn",
     },
   ],
   vermogen: {
@@ -79,6 +87,8 @@ const DIN_PLAAT: DocBlok = {
     tekst:
       "Klantgericht commercieel vermogen op basis van betrouwbare klantdata — outside-in handelen, gedragen door CRM-fundament, eenduidige funnelprocessen, getrainde medewerkers en een cultuur van eigenaarschap. Meetlat (voorstel): de vijf kernprincipes van 3sides (deel 4).",
     rol: "",
+    kpi: "Leidend: per kernprincipe één score van 1 tot 10 in de 0-meting; stand per domein van huidige naar gewenste situatie",
+    meetlat: ["Klant begrijpen", "Klantinformatie benutten", "Eigenaarschap nemen", "Data-gedreven werken", "Samenwerken rond en met de klant"],
   },
   regie:
     "Programmamanagement: Sanne (programmamanager: regie, aanspreekpunt) · Pim (programma-architect: inhoudelijke kaders)",
@@ -96,6 +106,7 @@ const DIN_PLAAT: DocBlok = {
       leads: "Cito-lead Sanne · 3sides-lead Sasja",
       oplevert: "Adoptieaanpak (SMILE), playbook-workshops, per rol één A4, adoptieteam en champions",
       planVanAanpak: "Ligt er (3sides, p. 12–13) · scope aanvullen",
+      kpi: "Output: framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt",
     },
     {
       naam: "Centrale datavoorziening klantcontact",
@@ -104,6 +115,7 @@ const DIN_PLAAT: DocBlok = {
       leads: "Cito-lead Jama · 3sides-lead Lammert",
       oplevert: "Overzicht van systemen, advies per systeem, roadmap",
       planVanAanpak: "Ligt er (3sides, p. 6–7)",
+      kpi: "Output: inventarisatie af · advies behouden, vervangen of loslaten opgeleverd · richting CRM besluitklaar",
     },
     {
       naam: "Klantreizen",
@@ -112,6 +124,7 @@ const DIN_PLAAT: DocBlok = {
       leads: "Cito-lead Saila · 3sides-lead Sasja",
       oplevert: "Eén blueprint van de klantreis voor heel Cito BV",
       planVanAanpak: "Ligt er (3sides, p. 10–11)",
+      kpi: "Output: blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
     },
     {
       naam: "0-meting",
@@ -120,6 +133,7 @@ const DIN_PLAAT: DocBlok = {
       leads: "Cito-lead Pim · 3sides-lead Sasja",
       oplevert: "Meetmodel, datapunten, 0-meting en tussenmeting: meet het vermogen en de baten",
       planVanAanpak: "Ligt er (3sides, p. 8–9)",
+      kpi: "Output: elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
     },
   ],
   voet:
@@ -508,17 +522,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           "4: controle via de keten: welke baat volgt hieruit? Dat bevestigt de plek, het bepaalt hem niet.",
         ],
         "Zo gebruik je de plaat bij een nieuw project of een nieuwe vraag (voorstel programmamanagement)"
-      ),
-      lijst(
-        [
-          "Deel 2: de structuur in één plaat, met de rollen en een toets per onderdeel.",
-          "Deel 3: wat 3sides heeft en hoe hun woorden op de onze passen, met het belangrijkste taalverschil.",
-          "Deel 4: het meetmodel en het advies om alles samen te voegen.",
-          "Deel 5 en 6: de vier werkstromen en hun planning.",
-          "Deel 7 en 8: waar alles van 3sides onder hangt, overeenkomsten, verschillen en hoe verder.",
-          "Deel 9: de bronnen.",
-        ],
-        "Leeswijzer"
       ),
     ]),
 
