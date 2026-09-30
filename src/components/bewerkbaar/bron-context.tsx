@@ -43,6 +43,10 @@ export interface BronDocument {
   afkortingen: readonly string[];
   /** nummer van het document in het naslag-tabblad (sectie #sec-doc-N) */
   naslag: number;
+  /** pdf: pagina waarop een link zonder paginanummer opent (bijv. om een misleidend voorblad over te slaan) */
+  startpagina?: number;
+  /** korte waarschuwing in de tooltip van elke link naar dit document */
+  opmerking?: string;
 }
 
 /** Link naar het naslag-tabblad van stap 11 (zonder anker); relatief aan de sessiepagina. */
@@ -56,6 +60,10 @@ export const BRON_DOCUMENTEN: readonly BronDocument[] = [
     namen: ["0-meting meetinstrument", "meetinstrument"],
     afkortingen: ["MI"],
     naslag: 3,
+    // Het voorblad heet "0-meting Adoptie Framework", in dezelfde opmaak als het adoptieframework;
+    // zonder paginanummer openen we daarom op p. 2 (de keten van strategie naar uitvoering).
+    startpagina: 2,
+    opmerking: 'Let op: het voorblad heet "0-meting Adoptie Framework"; dit is het meetinstrument, niet het adoptieframework.',
   },
   {
     id: "adoptieframework",
@@ -82,7 +90,7 @@ export const BRON_DOCUMENTEN: readonly BronDocument[] = [
   {
     id: "datapunten",
     bestand: "Data_punten_ter_input_KPI.xlsx",
-    namen: ["data punten ter input KPI", "datapunten", "data punten"],
+    namen: ["data punten ter input KPI", "datapuntenlijst", "datapunten", "data punten"],
     afkortingen: ["DP"],
     naslag: 4,
   },
@@ -90,9 +98,9 @@ export const BRON_DOCUMENTEN: readonly BronDocument[] = [
   {
     id: "praatplaat-funnel",
     bestand: "Praatplaat_Marketing__Sales_funnel.pdf",
-    // "praatplaten" (meervoud) wijst naar de funnel; het enkelvoud "praatplaat" is een soortnaam
-    // ("Data & Tech (praatplaat, 1 pagina)") en bewust geen documentnaam.
-    namen: ["praatplaat marketing & sales funnel", "praatplaat funnel", "praatplaten"],
+    // Het meervoud "praatplaten" is geen documentnaam: het zijn er twee (funnel en proces), dus
+    // noem ze los. Het enkelvoud "praatplaat" is een soortnaam ("Data & Tech (praatplaat, 1 pagina)").
+    namen: ["praatplaat marketing & sales funnel", "praatplaat funnel"],
     afkortingen: [],
     naslag: 8,
   },
@@ -139,8 +147,9 @@ export const BronContext = createContext<Bron>({
  * Supabase Storage (geüpload met scripts/upload-3sides-documenten.cjs). Een ingevulde map
  * in "Vindplaatsen" gaat voor.
  */
-export const STANDAARD_DOCUMENTEN_BASIS = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, "") + "/storage/v1/object/public/3sides-documenten"
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+export const STANDAARD_DOCUMENTEN_BASIS = SUPABASE_URL
+  ? SUPABASE_URL.replace(/\/+$/, "") + "/storage/v1/object/public/3sides-documenten"
   : "";
 
 export function BronProvider(p: {
@@ -308,7 +317,8 @@ export function bronUrl(
   const doc = typeof document === "string" ? zoekDocument(document) : document;
   if (!doc) return null;
   const n = pagina === null || pagina === undefined ? null : String(pagina).match(/\d+/);
-  const anker = n && /\.pdf$/i.test(doc.bestand) ? "#page=" + n[0] : "";
+  const p = n ? n[0] : doc.startpagina ? String(doc.startpagina) : null;
+  const anker = p && /\.pdf$/i.test(doc.bestand) ? "#page=" + p : "";
   return b + "/" + encodeURIComponent(doc.bestand) + anker;
 }
 
@@ -355,6 +365,8 @@ const VERWIJZING = `(?:${PAGINA}|${RIJ}|${TAB})`;
 // tussen naam en verwijzing: " van 3sides", " 3sides", " (", " (Excel, ", ", " of een spatie
 const TUSSEN = "(?:\\s+(?:van\\s+)?3sides)?(?:\\s*\\((?:Excel|PDF)?,?\\s*|,\\s*|\\s+)";
 const MET_VERWIJZING = new RegExp(`${GRENS_VOOR}(${NAAM})${GRENS_NA}(${TUSSEN})(${VERWIJZING})`, "gu");
+/** Een documentnaam of afkorting ergens in een tekst (zonder paginaverwijzing). */
+const NAAM_LOS = new RegExp(`${GRENS_VOOR}${NAAM}${GRENS_NA}`, "u");
 
 interface Verwijzing {
   start: number;
@@ -403,8 +415,15 @@ export function vindVerwijzingen(tekst: string): Verwijzing[] {
     if (!doc) continue;
     const start = m.index ?? 0;
     let end = start + m[0].length;
-    // geopend haakje in het fragment: het sluithaakje hoort erbij
-    if (m[2].includes("(") && tekst.charAt(end) === ")") end += 1;
+    // geopend haakje in het fragment: het sluithaakje hoort erbij. Staat er nog iets tussen
+    // ("tijdlijn (tab v3, stand 28-09)"), dan loopt de link door tot het sluithaakje; staat
+    // daar een ander document ("tijdlijn (rij 8; PvA p. 4)"), dan is alleen de naam de link.
+    if (m[2].includes("(")) {
+      const sluit = tekst.indexOf(")", end);
+      const rest = sluit < 0 ? "" : tekst.slice(end, sluit);
+      if (sluit >= 0 && !rest.includes("(") && !NAAM_LOS.test(rest)) end = sluit + 1;
+      else end = start + m[1].length;
+    }
     uit.push({ start, end, doc, pagina: paginaUit(m[3]) });
   }
   // (b) kale naam als los item in een " · "-opsomming …
@@ -424,7 +443,7 @@ export function vindVerwijzingen(tekst: string): Verwijzing[] {
 
 /** Link naar het document zelf (nieuw tabblad). */
 function Bronlink({ href, doc, pagina, children }: { href: string; doc: BronDocument; pagina: string | null; children: ReactNode }) {
-  const titel = `Opent ${doc.bestand}${pagina ? " op pagina " + pagina : ""} (nieuw tabblad)`;
+  const titel = bronTitel(doc, pagina);
   return (
     <a className="ok-bron" href={href} target="_blank" rel="noopener noreferrer" title={titel}>
       {children}
@@ -433,6 +452,12 @@ function Bronlink({ href, doc, pagina, children }: { href: string; doc: BronDocu
       </span>
     </a>
   );
+}
+
+/** Tooltip bij een documentlink: bestand, pagina en (als die er is) de waarschuwing bij het document. */
+export function bronTitel(doc: BronDocument, pagina?: string | number | null): string {
+  const p = pagina ?? (/\.pdf$/i.test(doc.bestand) ? doc.startpagina ?? null : null);
+  return `Opent ${doc.bestand}${p ? " op pagina " + p : ""} (nieuw tabblad)${doc.opmerking ? ". " + doc.opmerking : ""}`;
 }
 
 /** "Plan van aanpak" → "Naslag: plan van aanpak" (de eerste naam van het document). */

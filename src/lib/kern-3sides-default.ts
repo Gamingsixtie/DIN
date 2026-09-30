@@ -514,7 +514,7 @@ export const DEFAULT_KERN_3SIDES: BewerkbaarDocument = {
       "blokken": [
         {
           "type": "tekst",
-          "tekst": "Wat. 3sides-deck voor Succes meten, met het meetmodel, de KPI's per laag en de databronnen voor de 0-meting. De titeldia zegt \"0-meting Adoptie Framework – Programa Klant in zicht\" (p. 1). PDF-metadata: auteur Linsey Meenken, 28-09-2026."
+          "tekst": "Wat. 3sides-deck voor Succes meten, met het meetmodel, de KPI's per laag en de databronnen voor de 0-meting. Let op: de titeldia zegt \"0-meting Adoptie Framework – Programa Klant in zicht\" (p. 1), in dezelfde opmaak als het adoptieframework (document 6); het is toch het meetinstrument. Links zonder paginanummer openen daarom op p. 2. PDF-metadata: auteur Linsey Meenken, 28-09-2026."
         },
         {
           "type": "lijst",
@@ -830,7 +830,7 @@ export const DEFAULT_KERN_3SIDES: BewerkbaarDocument = {
         },
         {
           "type": "tekst",
-          "tekst": "Namen: Famke en Ilse (p. 7); Ilse, Kathelijn, Jama, Rick, \"Marketeers\" en \"product managers\" bij datapunten (p. 14)."
+          "tekst": "Namen: Famke en Ilse (MI p. 7); Ilse, Kathelijn, Jama, Rick, \"Marketeers\" en \"product managers\" bij de datapunten (MI p. 14)."
         },
         {
           "type": "lijst",

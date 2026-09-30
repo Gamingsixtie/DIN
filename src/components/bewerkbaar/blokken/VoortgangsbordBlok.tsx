@@ -26,7 +26,7 @@ import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Keuze, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
 import { useBlok } from "@/components/bewerkbaar/doc-context";
-import { metBronlinks, useBron, useBronUrl, paginaUit } from "@/components/bewerkbaar/bron-context";
+import { metBronlinks, useBron, useBronUrl, paginaUit, zoekDocument } from "@/components/bewerkbaar/bron-context";
 import { maandDatum, tijdlijnRijen, voortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 import type { TijdlijnRij, VoortgangSoort } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
 
@@ -429,10 +429,13 @@ function Koppel({ kop }: { kop: Koppeling }) {
   const eigen = tekst(kop.url).trim();
   const auto = jira ? bron.jira.trim() : (bronUrl(kop.label, paginaUit(kop.label)) ?? "");
   const url = eigen || auto;
+  // tooltip: het adres, plus de waarschuwing bij het document (bijv. het voorblad van het meetinstrument)
+  const opmerking = !jira && !eigen ? zoekDocument(kop.label)?.opmerking : undefined;
+  const titel = opmerking ? url + ". " + opmerking : url;
   const label = tekst(kop.label).trim() || url;
   if (isLink(url)) {
     return (
-      <a className={"vb-doc" + (jira ? " vb-doc-jira" : "")} href={url} target="_blank" rel="noopener noreferrer" title={url}>
+      <a className={"vb-doc" + (jira ? " vb-doc-jira" : "")} href={url} target="_blank" rel="noopener noreferrer" title={titel}>
         {label}
         <span className="vb-sr"> (opent in een nieuw tabblad)</span>
       </a>

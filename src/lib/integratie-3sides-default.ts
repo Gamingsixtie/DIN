@@ -299,7 +299,8 @@ const WERKSTROMEN: DocBlok = {
       koppelingen: [
         { label: "Plan van aanpak p. 6–7", url: "" },
         { label: "Data & Tech (PDF)", url: "" },
-        { label: "Praatplaten funnel en salesproces (PDF)", url: "" },
+        { label: "Praatplaat funnel (PDF)", url: "" },
+        { label: "Praatplaat proces (PDF)", url: "" },
         { label: "Tijdlijn (Excel, tab v3)", url: "" },
         { label: "Jira-bord: link toevoegen", url: "" },
       ],
@@ -787,7 +788,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               "Werkstroom Adoptieframework, domeinen Mens en Cultuur; voert uit: 'Trainen medewerkers in klantgerichte gespreksvaardigheden' en 'Verankeren van outside-in leiderschap als rolmodel gedrag'",
               "Plan van aanpak p. 12–13 · adoptieframework",
             ],
-            ["Praatplaten funnel en salesproces", "Resultaat van de werkstroom Centrale datavoorziening klantcontact", "Tijdlijn · praatplaten"],
+            ["Praatplaten funnel en salesproces", "Resultaat van de werkstroom Centrale datavoorziening klantcontact", "Tijdlijn · praatplaat funnel · praatplaat proces"],
             ["Vijf kernprincipes: kunnen en doen", "Vermogen: de meetlat voor ons vermogen (hierboven)", "Meetinstrument p. 11–12"],
             ["KPI's per klantreisfase, van merkbekendheid tot renewal rate", "Vermogen: leidende indicatoren per fase", "Meetinstrument p. 10 · blueprint"],
             ["Kernwaarden G.O.L.D.: gedreven, ondersteunend, lerend, deskundig", "Vermogen, domein Cultuur", "Blueprint, tab GOLD - Kernwaarden"],
@@ -1185,7 +1186,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ]),
           kaart("4 · Past de inzet bij wat er ligt?", "uren tegenover opbrengst", [
             ["Wat we toetsen", "Staan de uren die 3sides maakt in verhouding tot wat er na drie maanden (juli tot en met september) is opgeleverd?"],
-            ["Wat we zien", "Uren volgens de statuspagina: juli 186,5, augustus 80 en september 226,75 (tot 25-09), van 232 per maand; 197,5 uur is doorgeschoven. Opgeleverd: per werkstroom een eerste versie van het plan van aanpak, de tijdlijn en werkdocumenten (blueprint, meetinstrument, adoptieframework, praatplaten, datapuntenlijst); nog niets is vastgesteld."],
+            ["Wat we zien", "Uren volgens de statuspagina: juli 186,5, augustus 80 en september 226,75 (tot 25-09), van 232 per maand; 197,5 uur is doorgeschoven. Opgeleverd: per werkstroom een eerste versie van het plan van aanpak, de tijdlijn en werkdocumenten (blueprint, meetinstrument, adoptieframework, praatplaat funnel, praatplaat proces, datapuntenlijst); nog niets is vastgesteld."],
             ["Eerste beeld", "Te bepalen in de meeting", true],
             ["Wat we vragen", "Per werkstroom de uren naast de opleveringen in de wekelijkse rapportage, en wat de 197,5 doorgeschoven uren gaan opleveren."],
             ["Oordeel in de meeting", "In te vullen"],
