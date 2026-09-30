@@ -333,8 +333,8 @@ export const MATRIX_CSS = `
 .okd .mx-t .ok-in{font-size:12px;text-transform:none;letter-spacing:0}
 .okd .mx-t textarea.ok-in{field-sizing:content;min-height:3em}
 .okd .mx-chips{display:flex;flex-wrap:wrap;gap:4px}
-.okd .mx-chip{display:inline-block;max-width:100%;font-size:11px;font-weight:700;line-height:1.45;border:1px solid;border-radius:9px;padding:1px 8px;white-space:normal}
-.okd .mx-chip-dom{background:color-mix(in srgb,var(--mxk) 12%,#fff);border-color:color-mix(in srgb,var(--mxk) 45%,#fff);color:color-mix(in srgb,var(--mxk) 80%,#000)}
+.okd .mx-chip{display:inline-block;max-width:100%;font-size:11.5px;font-weight:700;line-height:1.45;border:1px solid;border-radius:9px;padding:1px 8px;white-space:normal}
+.okd .mx-chip-dom{background:color-mix(in srgb,var(--mxk) 12%,#fff);border-color:color-mix(in srgb,var(--mxk) 45%,#fff);color:color-mix(in srgb,var(--mxk) 65%,#000)}
 .okd .mx-chip-cito{background:#fff;border-color:rgba(0,51,102,.45);color:var(--cito)}
 .okd .mx-chip-grijs{background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
 .okd .mx-legenda{margin:8px 4px 0}

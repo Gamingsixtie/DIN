@@ -157,8 +157,8 @@ function SessionFlow() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-xl border border-cito-border p-8">
+      <main className="max-w-6xl mx-auto p-3 sm:p-6">
+        <div className="bg-white rounded-xl border border-cito-border p-3 sm:p-8">
           <h2 className="text-2xl font-bold text-cito-blue mb-6">
             {APP_STEPS.find((s) => s.key === currentStep)?.label}
           </h2>

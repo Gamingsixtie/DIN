@@ -227,7 +227,7 @@ function Vindplaatsen() {
         </span>
         <span className="text-xs text-gray-500">{stand}</span>
         {!open && !opgeslagenJira.trim() && (
-          <span className="text-xs text-gray-400">· vul de link van het Jira-bord in zodra die er is</span>
+          <span className="text-xs text-gray-500">· vul de link van het Jira-bord in zodra die er is</span>
         )}
       </button>
 
@@ -621,7 +621,7 @@ function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => v
       {plek ? (
         <DocContext.Provider value={doc}>
           <DocZetContext.Provider value={zetDoc}>
-          <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
+          <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6">
             <style>{OK_CSS + DOC_CSS + VOORTGANGSBORD_CSS + VOORTGANG_CSS + LEESBAAR_CSS}</style>
             <div className="okd-vb-vak">
               <VoortgangsbordBlok b={plek.blok} edit={false} zet={zet} ankers={GEEN_ANKERS} />

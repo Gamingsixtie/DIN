@@ -211,7 +211,7 @@ export const DOC_CSS = `
 @supports not (grid-template-rows: subgrid){.okd .okd-dp-baat{display:flex;flex-direction:column}}
 .okd .okd-dp-verm{background:#ecf8fb;border:1.5px solid var(--verm);border-radius:10px;padding:9px 13px}
 .okd .okd-dp-dom{background:color-mix(in srgb,var(--dpk) 7%,#fff);border:1.5px solid color-mix(in srgb,var(--dpk) 28%,#fff);border-top:5px solid var(--dpk);border-radius:10px;padding:9px 11px 11px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
-.okd .okd-dp-dom-t{font-size:13px;font-weight:800;line-height:1.3;color:color-mix(in srgb,var(--dpk) 80%,#000)}
+.okd .okd-dp-dom-t{font-size:13px;font-weight:800;line-height:1.3;color:color-mix(in srgb,var(--dpk) 65%,#000)}
 .okd .okd-dp-r{display:block;margin-top:6px}
 .okd .okd-dp-l{display:block;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.3;color:var(--ink3);margin-bottom:1px}
 .okd .okd-dp-v{font-size:10.5px;line-height:1.45;color:var(--ink2)}
@@ -219,11 +219,11 @@ export const DOC_CSS = `
 .okd .okd-dp-wsrij{display:grid;grid-template-columns:repeat(var(--wsn,4),minmax(0,1fr));gap:10px;align-items:stretch}
 .okd .okd-dp-ws{background:#fff;border:1.5px solid #cbd5e1;border-left:5px solid var(--dpk);border-radius:9px;padding:8px 11px 9px;display:flex;flex-direction:column;min-width:0}
 .okd .okd-dp-wsdom{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px}
-.okd .okd-dp-wsdom-chip{font-size:11px;font-weight:700;line-height:1.3;border-radius:999px;padding:2px 8px;color:color-mix(in srgb,var(--dpk) 80%,#000);background:color-mix(in srgb,var(--dpk) 12%,#fff);border:1px solid color-mix(in srgb,var(--dpk) 45%,#fff)}
+.okd .okd-dp-wsdom-chip{font-size:11px;font-weight:700;line-height:1.3;border-radius:999px;padding:2px 8px;color:color-mix(in srgb,var(--dpk) 65%,#000);background:color-mix(in srgb,var(--dpk) 12%,#fff);border:1px solid color-mix(in srgb,var(--dpk) 45%,#fff)}
 .okd .okd-dp-wsdom-alle{color:#003366;background:#eef4fb;border:1px dashed #94a3b8}
 .okd .okd-dp-ws .okd-dp-kpi:not(.okd-dp-kpi-edit) .okd-dp-kpi-l{display:none}
 .okd .okd-dp-ws .okd-dp-kpi{margin-top:auto;padding-top:8px}
-.okd .okd-dp-ws .okd-dp-kpi-chip{font-size:11px}
+.okd .okd-dp-ws .okd-dp-kpi-chip{font-size:11.5px}
 .okd .okd-dp-ws-heel{border-style:dashed;border-color:#94a3b8;border-left:5px solid var(--dpk)}
 .okd .okd-dp-ws-t{font-size:12px;font-weight:700;line-height:1.35;color:var(--cito)}
 .okd .okd-dp-ws-t a{color:inherit;text-decoration:none}
@@ -285,6 +285,23 @@ export const DOC_CSS = `
 .okd .okd-dp-vink:has(input:checked){background:color-mix(in srgb,var(--dpk) 16%,#fff);border-color:var(--dpk)}
 .okd [id^="wk-"],.okd [id^="tl-"]{scroll-margin-top:16px}
 @media(max-width:820px){.okd .okd-kaarten{grid-template-columns:minmax(0,1fr)}}
+.okd .okd-kaarten > .ok-card:last-child:nth-child(odd){grid-column:1 / -1}
+.okd .okd-nl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.okd .ok-kaart .okd-nl li{display:flex;align-items:flex-start;gap:10px;padding-left:0;font-size:12.5px;line-height:1.5;color:var(--ink2)}
+.okd .ok-kaart .okd-nl li::before{content:none}
+.okd .okd-nl-n{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;margin-top:1px;border-radius:999px;background:var(--cito);color:#fff;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.okd .okd-nl-t{min-width:0}
+.okd .okd-nl-t b{color:var(--ink)}
+@media (max-width:560px){
+.okd table.okd-t-stapel,.okd table.okd-t-stapel tbody,.okd table.okd-t-stapel tr,.okd table.okd-t-stapel td{display:block;width:100%}
+.okd table.okd-t-stapel thead{display:none}
+.okd table.okd-t-stapel tr{padding:9px 0;border-bottom:1px solid var(--line)}
+.okd table.okd-t-stapel td{min-width:0;border:0;padding:2px 10px}
+.okd table.okd-t-stapel td::before{content:attr(data-kop);display:block;margin-top:4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)}
+.okd table.okd-t-stapel td.k::before{content:none}
+.okd table.okd-t-stapel td.k{font-size:13px;font-weight:700;color:var(--ink)}
+.okd table.okd-t-stapel td.c{white-space:normal}
+}
 @media(max-width:480px){.okd .ok-card dl{grid-template-columns:minmax(0,1fr)}.okd .ok-card dd{margin-bottom:4px}.okd .okd-dp-regie{padding:8px 10px;gap:6px 10px}.okd .okd-dp-regie-l{letter-spacing:.08em}.okd .okd-dp-regie-rol{padding:3px 9px}}
 `;
 
@@ -302,7 +319,7 @@ export const LEESBAAR_CSS = `
 .okd .kp-voet,.okd .kp-hint,.okd .mx-sub,.okd .mx-hint,.okd .mv-kop-sub,.okd .mv-legenda,.okd .mv-zv-bij,.okd .sp-kop-sub,.okd .sp-item-sub,.okd .sp-verbonden,.okd .tl-sleutel,.okd .tl-eb-hint,.okd .vn-bron,.okd .vb-balk-t,.okd .vb-item-w,.okd .vb-item-m,.okd .vb-item-sub,.okd .vb-hint,.okd .vb-doc,.okd .vb-legenda-vast,.okd .vb-leeg,.okd .wk-dchip,.okd .wk-bron,.okd .wk-doc-hint,.okd .wk-hint,.okd .okd-kaart-sub,.okd .okd-dp-v,.okd .okd-dp-leads,.okd .okd-dp-rol,.okd .okd-dp-regie-kop,.okd .ab-leads,.okd .tl-bijnaam{font-size:11.5px}
 .okd .ok-legend,.okd .vb-legenda-vast{font-size:12px;line-height:1.55;color:var(--ink2)}
 .okd .ok-card dl,.okd .ok-card dd,.okd dd.okd-accent,.okd .okd-dp-tk,.okd .okd-dp-dom .okd-dp-v{font-size:12px}
-.okd .ok-card dl{grid-template-columns:130px 1fr}
+@media (min-width:481px){.okd .ok-card dl{grid-template-columns:130px minmax(0,1fr)}}
 .okd .ok-sub{font-size:13px;line-height:1.55;color:var(--ink2)}
 .okd .ab-telling{font-size:10.5px}
 .okd .kp-groep-t{font-size:11.5px;font-weight:700;text-transform:none;letter-spacing:0}

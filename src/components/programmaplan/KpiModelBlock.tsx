@@ -8,7 +8,7 @@
 // nulmeting Q3 · doelwaarden = vervolgsessie (eisen staan erbij).
 // ============================================================
 
-import { BATEN_KPIS as BATEN } from "@/lib/kpi-model-data";
+import { BATEN_KPIS as BATEN, bateneigenaarVan } from "@/lib/kpi-model-data";
 
 interface Inspanning {
   done?: boolean;
@@ -191,7 +191,7 @@ export default function KpiModelBlock() {
                 </span>
                 <span className="text-sm font-bold text-gray-900">{b.titel}</span>
                 <span className="ml-auto text-[10.5px] text-gray-400 text-right leading-tight">
-                  Eigenaar: <b className="text-gray-600">Commercieel Manager</b>
+                  Eigenaar: <b className="text-gray-600">{bateneigenaarVan(b.sector)}</b>
                   <br />
                   Meet: <b className="text-gray-600">Strategisch Marketeer</b>
                 </span>

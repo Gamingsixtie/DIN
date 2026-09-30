@@ -15,10 +15,11 @@
 // groep vink je de domeinen aan (kleur van strook en balken volgt) en kies je de
 // werkstroomkaart waar de groep bij hoort (anker); de maanden liggen vast.
 // Eigen scrollcontainer (min. ca. 920px breed) waarin de onderdeelkolom blijft staan;
-// de pagina zelf scrolt nooit zijwaarts.
+// de pagina zelf scrolt nooit zijwaarts. Past de tijdlijn niet in beeld (telefoon), dan
+// schuift de container in weergave bij het openen naar de standlijn.
 // Voor andere blokken (het voortgangsbord): `tijdlijnRijen` en `maandDatum` onderaan.
 
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { CSSProperties } from "react";
 import type { BewerkbaarDocument as DocData } from "@/lib/schemas";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
@@ -569,21 +570,37 @@ function Balk(p: {
 
 export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tijdlijn">) {
   const legendaId = useId();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const maanden = (b.maanden ?? []).map(tekst);
   const groepen = b.groepen ?? [];
   const n = maanden.length;
-  if (!edit && (n === 0 || groepen.length === 0)) return null;
-
-  const jaren = jaarIndeling(b.jaren, n);
-  const jaarVan = (i: number) => jaren.find((j) => i >= j.van && i < j.van + j.aantal)?.label ?? "";
-  const maand = (i: number) => `${maanden[i] ?? ""} ${jaarVan(i)}`.trim();
-  const grenzen = jaren.map((j) => j.van).filter((i) => i > 0 && i < n);
   // Standlijn: op de dag van vandaag, of aan de rechterrand van de ingestelde maand.
   const nuSleutel = tekst(b.nu).trim().toLowerCase();
   const stand = standlijn(b, maanden, n, new Date());
   const nuIdx = stand?.idx ?? -1;
   const nuFrac = stand?.frac ?? null;
   const nuLabel = stand?.label ?? "";
+
+  // Past de tijdlijn niet in beeld (telefoon), dan in weergave de scrollcontainer zo zetten
+  // dat de standlijn ongeveer midden in het zichtbare deel van de maanden staat: rechts van
+  // de vaste onderdeelkolom, die er sticky overheen ligt. Alleen scrollLeft, niet vloeiend;
+  // de pagina scrolt niet mee. Bij het openen en als de stand verandert.
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (edit || !scroller || scroller.scrollWidth <= scroller.clientWidth) return;
+    const nu = scroller.querySelector<HTMLElement>(".tl-nu");
+    if (!nu) return;
+    const vast = scroller.querySelector<HTMLElement>(".tl-akt")?.offsetWidth ?? 0;
+    const x = nu.getBoundingClientRect().left - scroller.getBoundingClientRect().left + scroller.scrollLeft;
+    scroller.scrollLeft = Math.max(0, x - (vast + scroller.clientWidth) / 2);
+  }, [edit, nuFrac]);
+
+  if (!edit && (n === 0 || groepen.length === 0)) return null;
+
+  const jaren = jaarIndeling(b.jaren, n);
+  const jaarVan = (i: number) => jaren.find((j) => i >= j.van && i < j.van + j.aantal)?.label ?? "";
+  const maand = (i: number) => `${maanden[i] ?? ""} ${jaarVan(i)}`.trim();
+  const grenzen = jaren.map((j) => j.van).filter((i) => i > 0 && i < n);
   // een maand is voorbij als hij helemaal links van de standlijn ligt
   const voorbij = (i: number) => nuFrac !== null && (i + 1) / n <= nuFrac + 1e-9;
 
@@ -675,7 +692,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
           </div>
         )}
 
-        <div className="tl-scroll">
+        <div className="tl-scroll" ref={scrollRef}>
           <div
             role="table"
             aria-label={tekst(b.titel) || "Tijdlijn"}
@@ -1048,7 +1065,7 @@ export const TIJDLIJN_CSS = voortgangKeuzeCss("tl-vk") + `
 .tl{--tl-cito:#003366;--tl-rand:#e2e8f0;--tl-lijn:#edf1f5;--tl-jaar:#b6c2d0;--tl-hover:#f6f8fb;--tl-verleden:rgba(0,51,102,.035);min-width:0}
 .tl-paneel{margin:0;min-width:0;background:#fff;border:1px solid var(--tl-rand);border-radius:12px;padding:10px 12px}
 .tl-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:2px;container-type:inline-size}
-.tl-t{--tl-a:264px;--tl-s:118px;--tl-m:46px;--tl-kt:6px;position:relative;isolation:isolate;min-width:calc(var(--tl-a) + var(--tl-s) + var(--tl-n) * var(--tl-m));font-size:11.5px;line-height:1.35;color:var(--ink,#111827)}
+.tl-t{--tl-a:264px;--tl-s:134px;--tl-m:46px;--tl-kt:6px;position:relative;isolation:isolate;min-width:calc(var(--tl-a) + var(--tl-s) + var(--tl-n) * var(--tl-m));font-size:11.5px;line-height:1.35;color:var(--ink,#111827)}
 .tl-t.tl-met-nu{--tl-kt:24px}
 .tl-t.tl-edit{--tl-a:284px;--tl-s:156px}
 .tl-r{display:grid;grid-template-columns:var(--tl-a) var(--tl-s) minmax(0,1fr)}
@@ -1093,6 +1110,7 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 .tl-rij:hover{background:var(--tl-hover)}
 .tl-rij:hover > .tl-akt{background:var(--tl-hover)}
 .tl-st{display:flex;align-items:center;gap:6px;min-width:0;padding:6px 8px}
+.tl-st > .tl-vk{flex:0 1 auto;min-width:0}
 .tl-st-edit{flex-direction:column;align-items:stretch;gap:4px}
 .tl-st-rij{display:flex;align-items:center;gap:6px}
 .tl-st-rij > .ok-in{flex:1;min-width:0}
@@ -1168,9 +1186,10 @@ a.tl-gnaam:hover,a.tl-gnaam:focus-visible{text-decoration:underline}
 @media (max-width:640px){
 .tl-t{--tl-a:150px;--tl-s:30px;--tl-m:40px}
 .tl-t.tl-edit{--tl-a:210px;--tl-s:140px}
-.tl-rij > .tl-akt,.tl-plusrij > .tl-akt{padding-left:15px;font-size:11px}
+.tl-rij > .tl-akt,.tl-plusrij > .tl-akt{padding-left:15px}
 .tl-t:not(.tl-edit) .tl-st{justify-content:center;padding:6px 0}
 .tl-t:not(.tl-edit) .tl-kh-st{padding-left:0;padding-right:0}
-.tl-t:not(.tl-edit) .tl-vg,.tl-t:not(.tl-edit) .tl-vk,.tl-t:not(.tl-edit) .tl-kh-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tl-t:not(.tl-edit) .tl-vg,.tl-t:not(.tl-edit) .tl-kh-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tl-t:not(.tl-edit) .tl-vk{display:none}
 }
 `;

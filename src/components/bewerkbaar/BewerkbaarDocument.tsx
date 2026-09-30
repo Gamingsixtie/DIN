@@ -242,8 +242,13 @@ function CalloutBlok({ b, edit, zet }: BlokProps<"callout">) {
   );
 }
 
+/** "1 · Eén model: …": elke regel begint met een nummer; dan tonen we een genummerde lijst. */
+const NUMMER_REGEL = /^\s*(\d+)\s*·\s+([\s\S]*)$/;
+
 function LijstBlok({ b, edit, zet }: BlokProps<"lijst">) {
   if (!edit && !b.titel && b.items.length === 0) return null;
+  // stappen of agendapunten ("1 · …", "2 · …"): cijfers in plaats van puntjes
+  const genummerd = !edit && b.items.length > 1 && b.items.every((s) => NUMMER_REGEL.test(s));
   return (
     <div className="ok-kaart">
       {(edit || b.titel) && (
@@ -256,7 +261,23 @@ function LijstBlok({ b, edit, zet }: BlokProps<"lijst">) {
           />
         </h4>
       )}
-      <Lijst items={b.items} edit={edit} on={(items) => zet((n) => void (n.items = items))} />
+      {genummerd ? (
+        <ol className="okd-nl">
+          {b.items.map((s, i) => {
+            const m = NUMMER_REGEL.exec(s);
+            return (
+              <li key={i}>
+                <span className="okd-nl-n" aria-hidden="true">
+                  {m ? m[1] : i + 1}
+                </span>
+                <span className="okd-nl-t">{metLabel(m ? m[2] : s)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <Lijst items={b.items} edit={edit} on={(items) => zet((n) => void (n.items = items))} />
+      )}
     </div>
   );
 }
@@ -296,7 +317,7 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
         </h4>
       )}
       <div className="ok-scroll">
-        <table className="ok-t okd-t">
+        <table className={"ok-t okd-t" + (edit ? "" : " okd-t-stapel")}>
           <thead>
             <tr>
               {b.kolommen.map((k, c) => (
@@ -322,7 +343,7 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
                 {b.kolommen.map((_, c) => {
                   const v = rij[c] ?? "";
                   return (
-                    <td key={c} className={isChip(c) ? "c" : c === 0 ? "k" : undefined}>
+                    <td key={c} className={isChip(c) ? "c" : c === 0 ? "k" : undefined} data-kop={b.kolommen[c] ?? ""}>
                       {edit && c === chip ? (
                         <ChipKeuze v={v} on={(x) => zet((n) => zetCel(n.rijen[r], c, x))} />
                       ) : edit ? (
@@ -839,7 +860,7 @@ function Meetlat(p: { items: string[]; edit: boolean; zet: Zet<Plaat> }) {
   const kleur = (i: number): CSSProperties => {
     const d = domein(MEETLAT_DOMEINEN[i % MEETLAT_DOMEINEN.length]);
     const k = d?.kleur ?? NEUTRAAL;
-    return { background: `color-mix(in srgb, ${k} 14%, #fff)`, borderColor: `color-mix(in srgb, ${k} 55%, #fff)`, color: `color-mix(in srgb, ${k} 85%, #000)` };
+    return { background: `color-mix(in srgb, ${k} 14%, #fff)`, borderColor: `color-mix(in srgb, ${k} 55%, #fff)`, color: `color-mix(in srgb, ${k} 65%, #000)` };
   };
   return (
     <div className="okd-dp-meetlat">
@@ -1679,7 +1700,7 @@ export default function BewerkbaarDocument({
     <DocContext.Provider value={doc}>
     <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
-    <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
+    <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6">
       <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + LEADS_CSS + LEESBAAR_CSS}</style>
 
       <header className="ok-top okd-top">

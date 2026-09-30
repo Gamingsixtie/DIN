@@ -71,5 +71,9 @@ export const DOELWAARDE_EISEN: string[] = [
 ];
 
 export const DOELWAARDE_STATUS = "Te bepalen — vervolgsessie, ná nulmeting Q3";
-export const KPI_EIGENAAR = "Commercieel Manager";
+// Bateneigenaar per baat: de sectormanager van die sector (besluit programma-architect,
+// 01-10-2026; eerder stond hier de Commercieel Manager).
+export function bateneigenaarVan(sector: string): string {
+  return "Sectormanager " + sector;
+}
 export const KPI_MEETVERANTWOORDELIJKE = "Strategisch Marketeer";

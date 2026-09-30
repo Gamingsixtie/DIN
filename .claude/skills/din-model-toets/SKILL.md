@@ -57,7 +57,8 @@ Uitkomst altijd één van drie: hoort erbij (domein, werkstroom, plan van aanpak
 - Programma-eigenaar geeft de opdracht en zit de stuurgroep voor. Programmamanager leidt: regie, planning, capaciteit, scope. Programma-architect bewaakt de inhoudelijke kaders over alle werkstromen; geen resultaat naar de stuurgroep zonder zijn inhoudelijke acceptatie.
 - Per baat een bateneigenaar; per domein een domeineigenaar (laat het werken in de lijn); per werkstroom een Cito-lead (leidt namens Cito, toetst op resultaat) en een 3sides-lead (stelt het plan van aanpak op, voert uit).
 - Nooit "lichte rol"; de programmamanager nooit operationeel framen; Cito-lead vóór 3sides-lead.
-- Open bronconflict (30-09-2026): organigram noemt de sectormanagers als bateneigenaar, KPI-model en batenprofielen de Commercieel Manager. Niet zelf kiezen; als besluitpunt opvoeren tot Pim beslist.
+- Bateneigenaren zijn de **sectormanagers** PO, VO en Zakelijk (besluit Pim, 01-10-2026). Het KPI-model toont dit sindsdien ook; de batenprofielen in de sessie zet de knop in stap 3 om. Eerder stond er de Commercieel Manager.
+- Werkstroomnamen: het organigram is leidend (voorstel Pim, 01-10-2026, nog als besluitpunt).
 
 ## 6. Tel- en bronvalkuilen
 

@@ -75,19 +75,19 @@ const DIN_PLAAT: DocBlok = {
     {
       titel: "Zakelijk",
       tekst: "Sterkere klantgerichtheid bij opdrachtgevers en kandidaten · 5 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager Zakelijk ❓",
+      rol: "Bateneigenaar: sectormanager Zakelijk",
       kpi: "5 baten-KPI's: funnel-conversie per stap · offertes: aantal en % dat opdracht wordt · conversie uit bezoeken · serviceniveau en reactietijden · churn",
     },
     {
       titel: "PO",
       tekst: "Intensiever partnership · 5 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager PO ❓",
+      rol: "Bateneigenaar: sectormanager PO",
       kpi: "5 baten-KPI's: groei productgebruik (cross- en upsell) · gebruiksintensiteit volledige lijn · raamcontracten grote besturen · ontwikkeldeadlines en beloftes gehaald · churn",
     },
     {
       titel: "VO",
       tekst: "Hogere voorspelbaarheid commerciële begroting · 4 baten-KPI's",
-      rol: "Bateneigenaar: sectormanager VO ❓",
+      rol: "Bateneigenaar: sectormanager VO",
       kpi: "4 baten-KPI's: prognose-nauwkeurigheid · % meerjarige (3-jr) licenties · inzicht in toetskeuzemomenten · churn",
     },
   ],
@@ -146,7 +146,7 @@ const DIN_PLAAT: DocBlok = {
     },
   ],
   voet:
-    "Lees van onder naar boven: elke werkstroom bouwt in een of meer domeinen aan het vermogen; samen levert dat de baten, en die dragen bij aan het doel. Op elk niveau staat wie het draagt. Klik op een werkstroom voor het plan van aanpak. ❓ Bateneigenaar: het organigram noemt de sectormanager, het KPI-model de Commercieel Manager (besluitpunt Rollen, deel 7). Bronnen: DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
+    "Lees van onder naar boven: elke werkstroom bouwt in een of meer domeinen aan het vermogen; samen levert dat de baten, en die dragen bij aan het doel. Op elk niveau staat wie het draagt. Klik op een werkstroom voor het plan van aanpak. Bronnen: DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
 };
 
 // ---------- de vijf kernprincipes van 3sides in ons vermogen ----------
@@ -636,7 +636,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             [
               "Rollen",
               "Deels",
-              "Voorstel in het organigram (v4), vast te stellen door de programma-eigenaar; domeineigenaar Processen en Cultuur nog benoemen; bateneigenaar gelijktrekken met het KPI-model",
+              "Voorstel in het organigram (v4), vast te stellen door de programma-eigenaar; domeineigenaar Processen en Cultuur nog benoemen; bateneigenaren: de sectormanagers (besluit 01-10)",
             ],
             [
               "Plan van aanpak per werkstroom",
@@ -665,7 +665,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               "Pim",
               "Bewaakt de inhoudelijke kaders over alle vier de werkstromen; geen resultaat naar de stuurgroep zonder zijn inhoudelijke acceptatie",
             ],
-            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk ❓ (KPI-model: Commercieel Manager)", "Bewaken dat de baten komen; lid van de stuurgroep"],
+            ["Bateneigenaren", "Sectormanagers PO, VO en Zakelijk", "Bewaken dat de baten komen; lid van de stuurgroep"],
             [
               "Domeineigenaren",
               "Cornelis (Data & Systemen) · Yara (Mens) · Processen en Cultuur: n.t.b.",
@@ -838,7 +838,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             ],
             ["Praatplaten funnel en salesproces", "Resultaat van de werkstroom Centrale datavoorziening klantcontact", "Tijdlijn · praatplaat funnel · praatplaat proces"],
             ["Vijf kernprincipes: kunnen en doen", "Vermogen: de meetlat voor ons vermogen (hierboven)", "Meetinstrument p. 11–12"],
-            ["KPI's per klantreisfase, van merkbekendheid tot renewal rate", "Vermogen: leidende indicatoren per fase", "Meetinstrument p. 10 · blueprint"],
+            ["KPI's per klantreisfase, van merkbekendheid tot renewal rate", "Vermogen: leidende indicatoren per fase (voorstel; samen met 3sides uit te werken)", "Meetinstrument p. 10 · blueprint"],
             ["Kernwaarden G.O.L.D.: gedreven, ondersteunend, lerend, deskundig", "Vermogen, domein Cultuur", "Blueprint, tab GOLD - Kernwaarden"],
             ["Vier organisatiebrede KPI's: NPS, conversie, omzet, retentie/churn", "Doel: organisatiebreed beeld (deel 6); NPS als resultante", "Meetinstrument p. 8 · KPI-model"],
           ],
@@ -934,7 +934,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           programmabreed: [
             { tekst: "Jira-bord delen met de bredere groep (actiepunt 29-09)", klaar: false },
             { tekst: "Plan van aanpak aanvullen per werkstroom: output-KPI, benodigde capaciteit van Cito en de eigenaar die Cito aanwijst; 3sides vult aan, Cito toetst en stelt vast", klaar: false },
-            { tekst: "Eén set namen voor de vier werkstromen, in alle documenten", klaar: false },
+            { tekst: "In alle documenten de namen van de werkstromen die Cito vaststelt (voorstel: die van het organigram)", klaar: false },
             { tekst: "Projectgroepen per werkstroom in plaats van één-op-één-gesprekken", klaar: false },
           ],
           legenda: "'Nog nodig' is wat we van 3sides vragen, een voorstel van het programma; vink af wat binnen is. Wat Cito zelf doet, staat in het actiebord onder dit bord (deel 5). 'Geleverd volgens 3sides' komt van de statuspagina van 29-09.",
@@ -947,6 +947,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
                     ["Programmabreed", "Projectgroep per werkstroom samenstellen; capaciteit ophalen bij sector- en afdelingsmanagers", ""],
           ["Programmabreed", "Plan van aanpak per werkstroom toetsen (Cito-lead op resultaat, Pim op de kaders) en vaststellen (Sanne)", ""],
                     ["Programmabreed", "Begrippenlijst met gangbare termen (actiepunt 29-09)", ""],
+          ["Programmabreed", "Rapportage van 3sides afspreken: per werkstroom de uren naast de opleveringen, en wat de 197,5 doorgeschoven uren opleveren (contract)", "Sanne"],
           ["Programmabreed", "3sides intern evalueren op de vier punten (deel 8), in het ritme dat we maandag besluiten", ""],
           ["Adoptieframework", "Kern-adoptieteam en champions per afdeling aanwijzen, samen met 3sides (plan van aanpak p. 12; stappenplan: ambassadeurs per sector in Q4)", ""],
           ["Adoptieframework", "Eerste pilotsector kiezen", ""],
@@ -1002,7 +1003,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
                 { titel: "PO: intensiever partnership", chips: ["Groei productgebruik (cross- en upsell)", "Gebruiksintensiteit volledige lijn", "Raamcontracten grote besturen", "Ontwikkeldeadlines en beloftes gehaald", "Churn / klantbehoud"], toon: "" },
                 { titel: "VO: hogere voorspelbaarheid commerciële begroting", chips: ["Prognose-nauwkeurigheid", "% meerjarige (3-jr) licenties", "Inzicht in toetskeuzemomenten", "Churn / klantbehoud"], toon: "" },
               ],
-              bron: "KPI-model (stap 9) · meetinstrument p. 7. Bateneigenaar: sectormanager (organigram); het KPI-model noemt de Commercieel Manager ❓",
+              bron: "KPI-model (stap 9) · meetinstrument p. 7. Bateneigenaren: de sectormanagers",
             },
             {
               naam: "Vermogen",
@@ -1072,9 +1073,9 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             "Meten: de 14 baten-KPI's zijn de stuurlaag, de kernprincipe-scores de meetlat voor het vermogen; NPS is een resultante, geen stuur-KPI (deel 6).",
             "Vermogen-KPI's: per domein vaststellen waar we naartoe willen (gewenste situatie) en per kernprincipe de doelscore, in de vervolgsessie na de 0-meting.",
             "Plan van aanpak: per werkstroom finaliseren, met output-KPI en de benodigde capaciteit van Cito; 3sides vult aan, Cito toetst, stelt vast en wijst de eigenaar aan (deel 4).",
-            "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaar gelijktrekken (sectormanager of Commercieel Manager).",
+            "Rollen: per werkstroom wie leidt en wie na het programma eigenaar is; domeineigenaren Processen en Cultuur benoemen; bateneigenaren zijn de sectormanagers (besluit programma-architect, 01-10; ter bevestiging).",
             "Planning: de verschuiving van pilot en 0-meting vaststellen (deel 5).",
-            "Namen: één set namen voor de vier werkstromen; kiezen tussen die van het organigram en die van 3sides ❓",
+            "Namen: één set namen voor de vier werkstromen; voorstel: die van het organigram (leidend).",
             "Evaluatie van 3sides: intern, op vier punten (deel 8); besluiten wanneer en hoe vaak (voorstel: elke zes weken).",
           ],
           "Besluitpunten voor maandag (intern)"
@@ -1086,7 +1087,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               "Namen van de werkstromen",
               "Klantreizen · Centrale datavoorziening klantcontact · 0-meting · Adoptieframework",
               "Blueprint klantreis · Technologielandschap · Succes meten · Adoptieframework",
-              "Eén set namen, overal dezelfde",
+              "Eén set namen: die van het organigram (voorstel)",
               "Organigram · plan van aanpak p. 3",
             ],
             [
@@ -1119,7 +1120,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     // 8
     sectie(
       "evaluatie",
-      "8 · Evaluatie van 3sides (intern)",
+      "8 · Evaluatie van 3sides: intern, op vier punten",
       "Voor onze eigen evaluatie, niet voor het gesprek met 3sides. Vier punten, elk met wat we toetsen, wat we nu zien (met bron), een eerste beeld als voorstel en wat we daarvoor van 3sides nodig hebben.",
       [
         callout(
@@ -1168,7 +1169,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
       [
         lijst(
           [
-            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken dezelfde namen voor de werkstromen; NPS en de andere organisatiebrede KPI's op doelniveau, met NPS als resultante (voorstel; deel 3 en 6).",
+            "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken de namen van de werkstromen die we maandag vaststellen (voorstel: die van het organigram); NPS en de andere organisatiebrede KPI's op doelniveau, met NPS als resultante (voorstel; deel 3 en 6).",
             "2 · Plan van aanpak per werkstroom aanvullen: output-KPI per resultaat en de capaciteit die 3sides van Cito nodig heeft; bij adoptie een scope-paragraaf binnen de afbakening van het programma; de eigenaar die Cito aanwijst erin opnemen. 3sides vult aan, Cito toetst en stelt vast (deel 4).",
             "3 · Planning: de planning voor 0-meting en pilots die we intern vaststellen in de tijdlijn verwerken, de open start- en opleverdata invullen, en de volgorde van de klantreisvertaling controleren (deel 5 en 7).",
             "4 · Meetkader focussen: in de 0-meting eerst de 14 baten-KPI's, de vijf kernprincipe-scores en de stand per domein; melden dat er KPI's bij komen op vermogensniveau (na de 0-meting) en per werkstroom (output); meetprotocol en een voorstel voor de eigenaar per datapunt (deel 6 en 7).",
@@ -1186,7 +1187,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           kaart("Weten we wat we zelf willen?", "op hoofdlijnen ja", [
             ["Antwoord", "Op hoofdlijnen ja: de structuur staat."],
             ["Staat", "Het DIN met doel, baten en 14 baten-KPI's, het gedeelde vermogen in vier domeinen, de vier werkstromen, de rollen als voorstel en de toets 'Hoort het bij het programma?' (deel 2)."],
-            ["Nog te besluiten", "Rollen vaststellen, domeineigenaren Processen en Cultuur, bateneigenaar, één set namen en één planning (besluitpunten in deel 7); na de 0-meting de doelwaarden en de vermogen-KPI's.", true],
+            ["Nog te besluiten", "Rollen vaststellen, domeineigenaren Processen en Cultuur, één set namen en één planning (besluitpunten in deel 7); na de 0-meting de doelwaarden en de vermogen-KPI's.", true],
             ["Nog te doen", "Wat Cito zelf moet doen, per werkstroom: het actiebord in deel 5.", true],
           ]),
           kaart("Weten we wat we met 3sides willen bespreken?", "ja, vijf agendapunten", [

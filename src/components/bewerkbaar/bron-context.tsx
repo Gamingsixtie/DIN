@@ -470,14 +470,32 @@ export function vindVerwijzingen(tekst: string, standaard: BronDocument | null =
 // ---------- weergave ----------
 
 /** Link naar het document zelf (nieuw tabblad). */
+/** Het pijltje na een link, vast aan het laatste woord: nooit alleen op een nieuwe regel. */
+function MetPijl({ children }: { children: ReactNode }) {
+  const pijl = (
+    <span className="ok-bron-i" aria-hidden="true">
+      ↗
+    </span>
+  );
+  if (typeof children !== "string") return <>{children}{pijl}</>;
+  const i = children.trimEnd().lastIndexOf(" ");
+  if (i < 0) return <span className="ok-nw">{children}{pijl}</span>;
+  return (
+    <>
+      {children.slice(0, i + 1)}
+      <span className="ok-nw">
+        {children.slice(i + 1)}
+        {pijl}
+      </span>
+    </>
+  );
+}
+
 function Bronlink({ href, doc, pagina, children }: { href: string; doc: BronDocument; pagina: string | null; children: ReactNode }) {
   const titel = bronTitel(doc, pagina);
   return (
     <a className="ok-bron" href={href} target="_blank" rel="noopener noreferrer" title={titel}>
-      {children}
-      <span className="ok-bron-i" aria-hidden="true">
-        ↗
-      </span>
+      <MetPijl>{children}</MetPijl>
     </a>
   );
 }
@@ -514,10 +532,7 @@ function Naslaglink({ doc, hier, children }: { doc: BronDocument; hier: boolean;
       rel="noopener noreferrer"
       title={naslagTitel(doc) + " (nieuw tabblad)"}
     >
-      {children}
-      <span className="ok-bron-i" aria-hidden="true">
-        ↗
-      </span>
+      <MetPijl>{children}</MetPijl>
     </a>
   );
 }
@@ -654,4 +669,5 @@ export const BRON_CSS = `
 .ok-bron:focus-visible,.ok-deel:focus-visible{box-shadow:0 0 0 2px rgba(0,51,102,.25)}
 .ok-bron-i{display:inline-block;font-size:.72em;line-height:1;margin-left:.12em;vertical-align:.3em;opacity:.65;text-decoration:none}
 .ok-bron:hover .ok-bron-i{opacity:1}
+.ok-nw{white-space:nowrap}
 `;

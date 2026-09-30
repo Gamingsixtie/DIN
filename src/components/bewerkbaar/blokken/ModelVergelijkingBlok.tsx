@@ -1480,7 +1480,7 @@ export const MODELVERGELIJKING_CSS = `
 .okd .mv-zv .mv-regel{padding-left:0;margin-top:2px}
 .okd .mv-regel b{font-weight:700}
 .okd .mv-regel-gelijk{color:#475569}
-.okd .mv-regel-verschuift{color:#b45309;font-weight:600}
+.okd .mv-regel-verschuift{color:#92400e;font-weight:600}
 .okd .mv-regel-voorstel{color:#003366}
 
 .okd .mv-e{margin-top:14px;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#fafbfc;display:flex;flex-direction:column;gap:14px}

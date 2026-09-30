@@ -68,7 +68,7 @@ import {
   BATEN_KPIS,
   DOELWAARDE_EISEN,
   DOELWAARDE_STATUS,
-  KPI_EIGENAAR,
+  bateneigenaarVan,
   KPI_MEETVERANTWOORDELIJKE,
 } from "./kpi-model-data";
 
@@ -1446,7 +1446,7 @@ function kernSubsectiesSectie(data: BeknoptData, state: NumberingState): Sectie 
         pills: [{ tekst: baat.sector, bg: pill.bg, kleur: pill.kleur }],
         titel: baat.titel,
         meta: [
-          ["Eigenaar", KPI_EIGENAAR],
+          ["Eigenaar", bateneigenaarVan(baat.sector)],
           ["Meetverantwoordelijke", KPI_MEETVERANTWOORDELIJKE],
         ],
       })

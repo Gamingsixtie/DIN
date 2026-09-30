@@ -835,6 +835,9 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
 // Stijl; wordt samen met OK_CSS en DOC_CSS in het document gezet (BewerkbaarDocument).
 // Los gebruikt (eigen tabblad): zet VOORTGANGSBORD_CSS en OK_CSS (voor .ok-in, .ok-knopje,
 // .ok-bl) in de pagina en zet het blok in een element met de klasse "ok".
+// Smal (≤ 900px) staan de kolommen per werkstroom onder elkaar, in de volgorde van de code.
+// "Nog nodig" laat daar zijn vaste plek (kolom 3, twee rijen hoog) los; anders maakt het
+// raster er losse kolommen bij en worden de andere kolommen een paar letters smal.
 export const VOORTGANGSBORD_CSS = voortgangKeuzeCss("vb-vk") + `
 .vb{--vb-cito:#003366;--vb-rand:#e2e8f0;--vb-lijn:#edf1f5;--vb-amber:#b45309;--vb-rood:#b91c1c;--vb-groen:#047857;min-width:0;font-size:12px;line-height:1.45;color:var(--ink,#111827)}
 .vb-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
@@ -930,7 +933,7 @@ a.vb-doc-jira{background:var(--vb-cito);border-color:var(--vb-cito);color:#fff}
 a.vb-doc-jira:hover,a.vb-doc-jira:focus-visible{background:#0066cc;border-color:#0066cc}
 .vb-doc-leeg{border-style:dashed;border-color:#cbd5e1;background:#f8fafc;color:#64748b;font-weight:500}
 .vb-doc-kaart{border-color:transparent;background:transparent;font-weight:700}
-.vb-geleverd{font-size:11px;color:var(--ink2,#4a5565)}
+.vb-geleverd{font-size:12px;color:var(--ink2,#4a5565)}
 .vb-geleverd-t{color:var(--ink3,#5f6b7a)}
 .vb-geleverd-edit{margin-top:4px}
 .vb-plus{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;border:1px dashed #cbd5e1;border-radius:12px}
@@ -952,10 +955,12 @@ a.vb-doc-jira:hover,a.vb-doc-jira:focus-visible{background:#0066cc;border-color:
 @media (prefers-reduced-motion:reduce){.vb-ws:target{animation:none}}
 @media (max-width:900px){
 .vb-ws-kolommen,.vb-onder{grid-template-columns:1fr}
+.vb-kolom-nodig{grid-column:auto;grid-row:auto}
 .vb-ws-kop{grid-template-columns:1fr}
 }
 @media (max-width:640px){
 .vb-tellers{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vb-teller:last-child:nth-child(odd){grid-column:1 / -1}
 .vb-teller-n{font-size:19px}
 .vb-ws{padding:9px 12px 9px 16px}
 }
