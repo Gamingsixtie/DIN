@@ -948,7 +948,8 @@ export const OrganigramSchema = z.object({
 // bewaart onder session.documenten[<sleutel>] wat de gebruiker aanpaste.
 // ============================================================
 
-export const DocRegelSchema = z.object({ label: z.string(), waarde: z.string() });
+// accent = regel uitlichten (vet, amber): wat nog gedaan moet worden
+export const DocRegelSchema = z.object({ label: z.string(), waarde: z.string(), accent: z.boolean().optional().default(false) });
 
 export const DocKaartSchema = z.object({
   titel: z.string(),

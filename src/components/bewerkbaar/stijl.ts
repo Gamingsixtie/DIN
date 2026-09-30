@@ -90,6 +90,9 @@ export const OK_CSS = `
 .ok .ok-foot{margin-top:18px;text-align:center;font-size:10.5px;color:var(--ink3);line-height:1.6}
 .ok .ok-in{font:inherit;font-size:inherit;color:var(--ink);background:#fffbeb;border:1px solid #f59e0b;border-radius:5px;padding:2px 5px;width:100%;box-sizing:border-box;line-height:1.4;resize:vertical;display:block}
 .ok .ok-in.ok-groei{resize:none;overflow:hidden;min-height:1.9em;white-space:pre-wrap;overflow-wrap:anywhere}
+.okd dt.okd-accent{color:#b45309}
+.okd dd.okd-accent{font-weight:700;color:#7c2d12;background:#fffbeb;border-left:3px solid #f59e0b;padding-left:8px;border-radius:0 6px 6px 0}
+.okd .okd-accent-vink{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#64748b;white-space:nowrap}
 .ok .ok-prim .ok-in,.ok .ok-arch .ok-in{background:#fff;color:var(--ink)}
 .ok .ok-knopje{font-size:10px;font-weight:700;border:1px solid #cbd5e1;background:#fff;border-radius:5px;padding:1px 7px;color:#334155;cursor:pointer;line-height:1.6;white-space:nowrap}
 .ok .ok-knopje:hover{background:#f1f5f9}
@@ -225,8 +228,13 @@ export const DOC_CSS = `
 .okd .okd-dp-regie textarea.okd-dp-regie-t{display:block;background:#fff;color:var(--ink);font-size:12px;line-height:1.45}
 .okd .okd-dp-beugel{width:22px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-left:2px solid var(--cito);border-bottom:2px solid var(--cito);border-radius:0 0 0 10px;padding:8px 0 8px 3px}
 .okd .okd-dp-beugel span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--cito);opacity:.8}
-.okd .okd-dp-kpi{display:flex;align-items:flex-start;gap:6px;margin-top:6px;font-size:10px;line-height:1.4;color:var(--ink3)}
-.okd .okd-dp-kpi-l{flex:none;font-size:7.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;line-height:1.3;color:var(--ink3);border:1px solid var(--line2);border-radius:4px;padding:1px 4px;margin-top:1px}
+.okd .okd-dp-kpi{display:flex;align-items:flex-start;gap:6px;margin-top:8px;font-size:12px;line-height:1.4;color:var(--ink2)}
+.okd .okd-dp-kpi-label{display:block;margin-bottom:3px;color:var(--ink)}
+.okd .okd-dp-kpi-chips{display:flex;flex-wrap:wrap;gap:4px}
+.okd .okd-dp-kpi-chip{display:inline-block;font-size:11.5px;line-height:1.3;color:var(--ink);background:#fff;border:1px solid #c7d7ea;border-radius:999px;padding:2px 8px}
+.okd .okd-dp-doel .okd-dp-kpi-label{color:#fff}
+.okd .okd-dp-doel .okd-dp-kpi-chip{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4)}
+.okd .okd-dp-kpi-l{flex:none;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;line-height:1.3;color:var(--ink3);border:1px solid var(--line2);border-radius:4px;padding:1px 4px;margin-top:1px}
 .okd .okd-dp-kpi-t{min-width:0}
 .okd .okd-dp-kpi-t b{color:var(--ink2);font-weight:700}
 .okd .okd-dp-kpi-edit{width:100%}

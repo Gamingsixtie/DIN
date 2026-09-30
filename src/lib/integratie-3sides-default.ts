@@ -45,10 +45,10 @@ const tabel = (
   ...(opts.chipKolom !== undefined ? { chipKolom: opts.chipKolom } : {}),
 });
 const laag = (naam: string, kleur: string, cellen: string[]): DocLaag => ({ naam, kleur, cellen });
-const kaart = (titel: string, ondertitel: string, regels: [string, string][]): DocKaart => ({
+const kaart = (titel: string, ondertitel: string, regels: [string, string, boolean?][]): DocKaart => ({
   titel,
   ondertitel,
-  regels: regels.map(([label, waarde]) => ({ label, waarde })),
+  regels: regels.map(([label, waarde, accent]) => ({ label, waarde, accent: !!accent })),
 });
 const kaarten = (k: DocKaart[]): DocBlok => ({ type: "kaarten", kaarten: k });
 const lagen = (kolommen: string[], l: DocLaag[]): DocBlok => ({ type: "lagen", kolommen, lagen: l });
@@ -111,7 +111,7 @@ const DIN_PLAAT: DocBlok = {
       domeinen: ["cultuur", "mens"],
       leads: "Cito-lead Sanne · 3sides-lead Sasja",
       oplevert: "Adoptieaanpak (SMILE), playbook-workshops, per rol één A4, adoptieteam en champions",
-      planVanAanpak: "Ligt er (3sides, p. 12–13) · scope aanvullen",
+      planVanAanpak: "Deels: eerste versie van 3sides (p. 12–13); aanvullen: scope, output-KPI, capaciteit",
       kpi: "Output: framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt",
     },
     {
@@ -120,7 +120,7 @@ const DIN_PLAAT: DocBlok = {
       domeinen: ["data"],
       leads: "Cito-lead Jama · 3sides-lead Lammert",
       oplevert: "Overzicht van systemen, advies per systeem, roadmap",
-      planVanAanpak: "Ligt er (3sides, p. 6–7)",
+      planVanAanpak: "Deels: eerste versie van 3sides (p. 6–7); aanvullen: output-KPI, capaciteit",
       kpi: "Output: inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
     },
     {
@@ -129,7 +129,7 @@ const DIN_PLAAT: DocBlok = {
       domeinen: ["processen"],
       leads: "Cito-lead Saila · 3sides-lead Sasja",
       oplevert: "Eén blueprint van de klantreis voor heel Cito BV",
-      planVanAanpak: "Ligt er (3sides, p. 10–11)",
+      planVanAanpak: "Deels: eerste versie van 3sides (p. 10–11); aanvullen: output-KPI, capaciteit, eigenaar",
       kpi: "Output: blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
     },
     {
@@ -138,7 +138,7 @@ const DIN_PLAAT: DocBlok = {
       domeinen: ["cultuur", "mens", "data", "processen"],
       leads: "Cito-lead Pim · 3sides-lead Sasja",
       oplevert: "Meetmodel, datapunten, 0-meting en tussenmeting: meet het vermogen en de baten",
-      planVanAanpak: "Ligt er (3sides, p. 8–9)",
+      planVanAanpak: "Deels: eerste versie van 3sides (p. 8–9); aanvullen: meetprotocol, eigenaar per datapunt",
       kpi: "Output: elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
     },
   ],
@@ -152,11 +152,11 @@ const KERNPRINCIPES: DocBlok = {
   titel: "De vijf kernprincipes van 3sides in ons vermogen",
   hoek: "Kernprincipe",
   kolommen: [
-    { titel: "Klant begrijpen", kleur: "#c4f3dd" },
-    { titel: "Klantinformatie benutten", kleur: "#fdd8b5" },
-    { titel: "Eigenaarschap nemen", kleur: "#fcd6db" },
-    { titel: "Data-gedreven werken", kleur: "#dcccf9" },
-    { titel: "Samenwerken rond en met de klant", kleur: "#bff0f7" },
+    { titel: "Klant begrijpen", kleur: "#dbeafe" },
+    { titel: "Klantinformatie benutten", kleur: "#ede9fe" },
+    { titel: "Eigenaarschap nemen", kleur: "#fef3c7" },
+    { titel: "Data-gedreven werken", kleur: "#ede9fe" },
+    { titel: "Samenwerken rond en met de klant", kleur: "#d1fae5" },
   ],
   rijen: [
     {
@@ -220,7 +220,7 @@ const KERNPRINCIPES: DocBlok = {
     },
   ],
   legenda:
-    "Kunnen en doen: letterlijk uit het meetinstrument van 3sides (p. 11); 3sides noemt kunnen 'vermogen' en doen 'inspanning' (p. 5), in het DIN horen beide bij het vermogen. De 0-meting geeft per kernprincipe één score van 1 tot 10 voor kunnen en doen samen (p. 12). Blauwe rijen: voorstel van het programma, te bespreken met 3sides. Elk kernprincipe raakt meer domeinen; hier staat waar het vooral wordt opgebouwd.",
+    "Kunnen en doen: letterlijk uit het meetinstrument van 3sides (p. 11); 3sides noemt kunnen 'vermogen' en doen 'inspanning' (p. 5), in het DIN horen beide bij het vermogen. De kolomkleur is die van het domein (rij Domein). De 0-meting geeft per kernprincipe één score van 1 tot 10 voor kunnen en doen samen (p. 12). Blauwe rijen: voorstel van het programma, te bespreken met 3sides. Elk kernprincipe raakt meer domeinen; hier staat waar het vooral wordt opgebouwd.",
 };
 
 // ---------- de vier werkstromen, uit het plan van aanpak ----------
@@ -485,9 +485,10 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
       kaarten([
         kaart("Waar we staan", "stand 29-09-2026", [
           ["Sinds", "juli 2026, met 3sides als uitvoeringspartner, in vier werkstromen"],
-          ["Ligt er", "een plan van aanpak per werkstroom (p. 6–13), één tijdlijn (tab v3) en de datapuntenlijst voor de 0-meting"],
-          ["In concept", "blueprint klantreis, meetinstrument 0-meting, adoptieframework, Data & Tech-plaat en praatplaten"],
-          ["Knelt", "begrippen lopen door elkaar, onderwerpen overlappen, niet iedereen weet wie wat doet (overleg 29-09)"],
+          ["Van 3sides", "een eerste versie van het plan van aanpak per werkstroom (doel, resultaten, aanpak, planning; p. 6–13), een tijdlijn (tab v3, stand 28-09) en een datapuntenlijst als werkdocument"],
+          ["Nog niet af", "het plan van aanpak mist per werkstroom output-KPI, capaciteit van Cito en eigenaar, bij adoptie ook de scope; de 0-meting is nog niet gestart", true],
+          ["In concept", "blueprint klantreis, meetinstrument 0-meting, adoptieframework, Data & Tech-plaat en praatplaten: allemaal werkdocumenten, nog niet vastgesteld", true],
+          ["Knelt", "begrippen lopen door elkaar, onderwerpen overlappen, niet iedereen weet wie wat doet (overleg 29-09)", true],
         ]),
         kaart("Wat het DIN is", "in gewone taal", [
           ["Doel", "waar we naartoe willen"],
@@ -499,13 +500,13 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         kaart("Waarom de structuur staat", "niets opnieuw uitvinden", [
           ["Vastgelegd", "doel, baten, vermogen en inspanningen in het programmaplan en het DIN; de KPI's in het KPI-model; de rollen als voorstel in het organigram"],
           ["3sides", "hetzelfde framework en dezelfde vier werkstromen; het meetinstrument opent met onze keten"],
-          ["Wat wél moet", "concretiseren: wie draagt welk niveau, welke werkstroom bouwt welk deel van het vermogen, waar hangt wat 3sides oplevert"],
+          ["Wat wél moet", "concretiseren: wie draagt welk niveau, welke werkstroom bouwt welk deel van het vermogen, waar hangt wat 3sides oplevert", true],
         ]),
         kaart("Hoe de rollen dat oplossen", "één rol per niveau", [
           ["Per niveau", "programma-eigenaar, bateneigenaar, domeineigenaar, en per werkstroom een Cito-lead en een 3sides-lead"],
           ["Over de keten", "programmamanagement: Sanne op regie en aanspreekpunt, Pim op de inhoudelijke kaders"],
           ["Effect", "bij elk onderwerp is duidelijk wie erover gaat; er ontstaat geen tweede structuur"],
-          ["Status", "voorstel in het organigram (v4), vast te stellen door de programma-eigenaar"],
+          ["Status", "voorstel in het organigram (v4), vast te stellen door de programma-eigenaar", true],
         ]),
       ]),
       tabel(
@@ -534,6 +535,15 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         ],
         { legenda: "Bron: programmamanagement; overleg van 29-09." }
       ),
+    ]),
+
+    // 2
+    sectie(
+      "framework",
+      "2 · Wat we hebben: de structuur in één plaat, met de rollen",
+      "Dit staat al. Van onder naar boven: wat we doen, wat we daarvoor moeten kunnen, wat het oplevert en waartoe. Op elk niveau staat wie het draagt.",
+      [
+        DIN_PLAAT,
       {
         type: "stappen",
         titel: "Zo gebruik je de plaat bij een nieuw project of een nieuwe vraag (voorstel programmamanagement)",
@@ -550,15 +560,6 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         ],
         legenda: "",
       },
-    ]),
-
-    // 2
-    sectie(
-      "framework",
-      "2 · Wat we hebben: de structuur in één plaat, met de rollen",
-      "Dit ligt er al. Van onder naar boven: wat we doen, wat we daarvoor moeten kunnen, wat het oplevert en waartoe. Op elk niveau staat wie het draagt.",
-      [
-        DIN_PLAAT,
         tabel(
           ["Rol", "Wie", "Wat"],
           [
@@ -800,11 +801,11 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
               kop: "Kernprincipes",
               sub: "meten het vermogen, score 1 tot 10",
               items: [
-                { id: "k-begrijpen", naam: "Klant begrijpen", kleur: "#c4f3dd", sub: "kunnen en doen" },
-                { id: "k-benutten", naam: "Klantinformatie benutten", kleur: "#fdd8b5", sub: "kunnen en doen" },
-                { id: "k-eigenaarschap", naam: "Eigenaarschap nemen", kleur: "#fcd6db", sub: "kunnen en doen" },
-                { id: "k-data", naam: "Data-gedreven werken", kleur: "#dcccf9", sub: "kunnen en doen" },
-                { id: "k-samenwerken", naam: "Samenwerken rond en met de klant", kleur: "#bff0f7", sub: "kunnen en doen" },
+                { id: "k-begrijpen", naam: "Klant begrijpen", kleur: "mens", sub: "kunnen en doen · Mens" },
+                { id: "k-benutten", naam: "Klantinformatie benutten", kleur: "data", sub: "kunnen en doen · Data & Systemen" },
+                { id: "k-eigenaarschap", naam: "Eigenaarschap nemen", kleur: "cultuur", sub: "kunnen en doen · Cultuur" },
+                { id: "k-data", naam: "Data-gedreven werken", kleur: "data", sub: "kunnen en doen · Data & Systemen" },
+                { id: "k-samenwerken", naam: "Samenwerken rond en met de klant", kleur: "processen", sub: "kunnen en doen · Processen" },
               ],
             },
           ],
@@ -863,7 +864,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "werkstromen",
       "5 · De vier werkstromen: wat 3sides gaat doen",
-      "Per werkstroom het plan van aanpak van 3sides, ingepast in het DIN: waarom, resultaten en planning zijn samengevat uit hun plan van aanpak; de plek in de keten, de inspanning in het DIN en 'nog aanvullen' zijn van het programma. Het plan van aanpak ligt er; wat nog ontbreekt, staat onder 'nog aanvullen'.",
+      "Per werkstroom het plan van aanpak van 3sides, ingepast in het DIN: waarom, resultaten en planning zijn samengevat uit hun plan van aanpak; de plek in de keten, de inspanning in het DIN en 'nog aanvullen' zijn van het programma. Van elke werkstroom ligt een eerste versie van het plan van aanpak; wat nog ontbreekt, staat onder 'nog aanvullen'.",
       [
         WERKSTROMEN,
         tekst(

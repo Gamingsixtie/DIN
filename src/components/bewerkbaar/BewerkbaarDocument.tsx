@@ -359,7 +359,7 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
           <dl>
             {k.regels.map((r, ri) => (
               <Fragment key={ri}>
-                <dt>
+                <dt className={r.accent ? "okd-accent" : undefined}>
                   <V
                     v={r.label}
                     on={(x) => zet((n) => void (n.kaarten[ki].regels[ri].label = x))}
@@ -367,7 +367,7 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
                     ph="Label"
                   />
                 </dt>
-                <dd>
+                <dd className={r.accent ? "okd-accent" : undefined}>
                   {edit ? (
                     <div className="ok-rij">
                       <V
@@ -377,6 +377,14 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
                         ml
                         ph="Waarde"
                       />
+                      <label className="okd-accent-vink" title="Regel uitlichten">
+                        <input
+                          type="checkbox"
+                          checked={!!r.accent}
+                          onChange={(e) => zet((n) => void (n.kaarten[ki].regels[ri].accent = e.target.checked))}
+                        />
+                        accent
+                      </label>
                       <WegKnop
                         titel="Regel verwijderen"
                         on={() => zet((n) => void n.kaarten[ki].regels.splice(ri, 1))}
@@ -393,7 +401,7 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
             <div className="okd-onder">
               <PlusKnop
                 label="+ regel"
-                on={() => zet((n) => void n.kaarten[ki].regels.push({ label: "", waarde: "" }))}
+                on={() => zet((n) => void n.kaarten[ki].regels.push({ label: "", waarde: "", accent: false }))}
               />
             </div>
           )}
@@ -406,7 +414,7 @@ function KaartenBlok({ b, edit, zet }: BlokProps<"kaarten">) {
             on={() =>
               zet(
                 (n) =>
-                  void n.kaarten.push({ titel: "Nieuwe kaart", ondertitel: "", regels: [{ label: "", waarde: "" }] })
+                  void n.kaarten.push({ titel: "Nieuwe kaart", ondertitel: "", regels: [{ label: "", waarde: "", accent: false }] })
               )
             }
           />
@@ -745,13 +753,41 @@ function Kpi(p: { v: string; on: (s: string) => void; edit: boolean; ph: string 
   return (
     <Tag className={p.edit ? "okd-dp-kpi okd-dp-kpi-edit" : "okd-dp-kpi"}>
       <span className="okd-dp-kpi-l">KPI</span>
-      {p.edit ? <V v={v} on={p.on} edit ml ph={p.ph} /> : <span className="okd-dp-kpi-t">{metLabel(v)}</span>}
+      {p.edit ? <V v={v} on={p.on} edit ml ph={p.ph} /> : <KpiChips v={v} />}
     </Tag>
   );
 }
 
+/** "Label: a · b · c" → vet label en per KPI een leesbare chip; zonder " · " gewone tekst. */
+function KpiChips({ v }: { v: string }) {
+  const i = v.indexOf(":");
+  const label = i > 0 && i < 40 ? v.slice(0, i + 1) : "";
+  const rest = label ? v.slice(i + 1) : v;
+  const delen = rest.split(" · ").map((s) => s.trim()).filter(Boolean);
+  return (
+    <span className="okd-dp-kpi-t">
+      {label && <b className="okd-dp-kpi-label">{label}</b>}
+      {delen.length > 1 ? (
+        <span className="okd-dp-kpi-chips">
+          {delen.map((d, j) => (
+            <span key={j} className="okd-dp-kpi-chip">
+              {metBronlinks(d)}
+            </span>
+          ))}
+        </span>
+      ) : (
+        metBronlinks(rest.trim())
+      )}
+    </span>
+  );
+}
+
 /** Pastelkleuren van de meetlat-chips, in de volgorde van de matrix "De vijf kernprincipes". */
-const MEETLAT_KLEUREN = ["#c4f3dd", "#fdd8b5", "#fcd6db", "#dcccf9", "#bff0f7"];
+// Kleur per kernprincipe = kleur van het domein waar het vooral wordt opgebouwd (voorstel,
+// zie de matrix "De vijf kernprincipes in ons vermogen"): klant begrijpen = Mens,
+// klantinformatie benutten = Data & Systemen, eigenaarschap nemen = Cultuur,
+// data-gedreven werken = Data & Systemen, samenwerken rond en met de klant = Processen.
+const MEETLAT_DOMEINEN = ["mens", "data", "cultuur", "data", "processen"];
 
 /**
  * Meetlat bij het vermogen: de kernprincipes van 3sides als chips onder de tekst.
@@ -760,7 +796,11 @@ const MEETLAT_KLEUREN = ["#c4f3dd", "#fdd8b5", "#fcd6db", "#dcccf9", "#bff0f7"];
 function Meetlat(p: { items: string[]; edit: boolean; zet: Zet<Plaat> }) {
   const items = p.items ?? [];
   if (!p.edit && items.length === 0) return null;
-  const kleur = (i: number) => ({ background: MEETLAT_KLEUREN[i % MEETLAT_KLEUREN.length] });
+  const kleur = (i: number): CSSProperties => {
+    const d = domein(MEETLAT_DOMEINEN[i % MEETLAT_DOMEINEN.length]);
+    const k = d?.kleur ?? NEUTRAAL;
+    return { background: `color-mix(in srgb, ${k} 14%, #fff)`, borderColor: `color-mix(in srgb, ${k} 55%, #fff)`, color: `color-mix(in srgb, ${k} 85%, #000)` };
+  };
   return (
     <div className="okd-dp-meetlat">
       <span className="okd-dp-l">Meetlat (voorstel): vijf kernprincipes van 3sides</span>
