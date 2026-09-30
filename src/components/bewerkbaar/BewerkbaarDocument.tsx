@@ -681,11 +681,21 @@ function plaatsWerkstromen(p: Plaat): WsPlek[][] {
   return [...deel, ...heel];
 }
 
-/** Verbinding tussen twee lagen van de plaat, te lezen van onder naar boven. */
-function Pijl({ rij, kolom, children }: { rij: number; kolom: string; children: ReactNode }) {
+/**
+ * Verbinding tussen twee lagen van de plaat, te lezen van onder naar boven: een dunne lijn
+ * door het midden met een label-pil en een pijl in de kleur van het niveau erboven.
+ */
+function Pijl({ rij, kolom, kleur, children }: { rij: number; kolom: string; kleur: string; children: ReactNode }) {
   return (
-    <div className="okd-dp-pijl" style={{ gridRow: rij, gridColumn: kolom }}>
-      <span aria-hidden="true">↑</span> {children}
+    <div className="okd-dp-pijl" style={{ gridRow: rij, gridColumn: kolom, ["--pk" as string]: kleur } as CSSProperties}>
+      <span className="okd-dp-pijl-pil">
+        <span className="okd-dp-pijl-rond" aria-hidden="true">
+          <svg viewBox="0 0 12 12" width="10" height="10">
+            <path d="M6 10V2.5M2.8 5.6 6 2.4l3.2 3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        {children}
+      </span>
     </div>
   );
 }
@@ -1037,7 +1047,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             />
           </div>
 
-          <Pijl rij={RIJ.doel + 1} kolom={breed}>
+          <Pijl rij={RIJ.doel + 1} kolom={breed} kleur="#003366">
             draagt bij aan
           </Pijl>
 
@@ -1101,7 +1111,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             ))}
           </div>
 
-          <Pijl rij={RIJ.baten + 1} kolom={breed}>
+          <Pijl rij={RIJ.baten + 1} kolom={breed} kleur="#0066cc">
             levert
           </Pijl>
 
@@ -1143,7 +1153,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
             />
           </div>
 
-          <Pijl rij={RIJ.vermogen + 1} kolom={breed}>
+          <Pijl rij={RIJ.vermogen + 1} kolom={breed} kleur="#0891b2">
             samen het vermogen
           </Pijl>
 
@@ -1201,7 +1211,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
           ))}
 
           {rijen.length > 0 && (
-            <Pijl rij={RIJ.domeinen + 1} kolom={breed}>
+            <Pijl rij={RIJ.domeinen + 1} kolom={breed} kleur="#475569">
               bouwt aan
             </Pijl>
           )}

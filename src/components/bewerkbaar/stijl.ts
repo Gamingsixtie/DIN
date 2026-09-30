@@ -193,8 +193,10 @@ export const DOC_CSS = `
 .okd .okd-dp-paneel{margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px 12px}
 .okd .okd-dp{--dpk:#64748b;display:grid;column-gap:8px;row-gap:4px;padding-bottom:2px}
 .okd .okd-dp-rl{align-self:center;padding-right:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.35;color:var(--ink3)}
-.okd .okd-dp-pijl{text-align:center;font-size:10px;font-weight:600;line-height:1.3;color:var(--ink3);padding:2px 0}
-.okd .okd-dp-pijl span{font-size:12px;font-weight:800;color:#94a3b8}
+.okd .okd-dp-pijl{--pk:#003366;position:relative;display:flex;justify-content:center;align-items:center;min-height:34px;padding:4px 0}
+.okd .okd-dp-pijl::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:linear-gradient(to top,color-mix(in srgb,var(--pk) 15%,transparent),color-mix(in srgb,var(--pk) 55%,transparent));border-radius:2px}
+.okd .okd-dp-pijl-pil{position:relative;display:inline-flex;align-items:center;gap:7px;padding:3px 12px 3px 4px;border-radius:999px;background:#fff;border:1px solid color-mix(in srgb,var(--pk) 35%,#fff);box-shadow:0 1px 2px rgba(15,23,42,.06);font-size:12px;font-weight:700;letter-spacing:.01em;color:color-mix(in srgb,var(--pk) 85%,#000);white-space:nowrap}
+.okd .okd-dp-pijl-rond{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pk);color:#fff}
 .okd .okd-dp-t{font-size:11.5px;font-weight:700;line-height:1.35;color:var(--ink)}
 .okd .okd-dp-tk{font-size:11px;line-height:1.45;color:var(--ink2);margin-top:2px}
 .okd div.okd-dp-tk,.okd div.okd-dp-v,.okd div.okd-dp-leads{white-space:pre-line}
