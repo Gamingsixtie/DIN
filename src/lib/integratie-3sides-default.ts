@@ -238,6 +238,12 @@ const WERKSTROMEN: DocBlok = {
         "Output-KPI per resultaat",
         "Capaciteit Cito en HR",
       ],
+      koppelingen: [
+        { label: "Plan van aanpak p. 12–13", url: "" },
+        { label: "Adoptieframework (PDF)", url: "" },
+        { label: "Tijdlijn (Excel, tab v3)", url: "" },
+        { label: "Jira-bord: link toevoegen", url: "" },
+      ],
     },
     {
       id: "data",
@@ -269,6 +275,13 @@ const WERKSTROMEN: DocBlok = {
         "Capaciteit Cito",
         "CRM-richting (november) naast de CRM-keuze (rond april 2027)",
       ],
+      koppelingen: [
+        { label: "Plan van aanpak p. 6–7", url: "" },
+        { label: "Data & Tech (PDF)", url: "" },
+        { label: "Praatplaten funnel en salesproces (PDF)", url: "" },
+        { label: "Tijdlijn (Excel, tab v3)", url: "" },
+        { label: "Jira-bord: link toevoegen", url: "" },
+      ],
     },
     {
       id: "klantreizen",
@@ -297,6 +310,12 @@ const WERKSTROMEN: DocBlok = {
         "Output-KPI per resultaat",
         "Capaciteit Cito",
         "Eigenaar van de blueprint na het programma",
+      ],
+      koppelingen: [
+        { label: "Plan van aanpak p. 10–11", url: "" },
+        { label: "Blueprint klantreis (Excel)", url: "" },
+        { label: "Tijdlijn (Excel, tab v3)", url: "" },
+        { label: "Jira-bord: link toevoegen", url: "" },
       ],
     },
     {
@@ -328,6 +347,13 @@ const WERKSTROMEN: DocBlok = {
         "Eigenaar per datapunt",
         "Validatie met Meryl en het MT",
         "Datum vervolgsessie doelwaarden",
+      ],
+      koppelingen: [
+        { label: "Plan van aanpak p. 8–9", url: "" },
+        { label: "0-meting meetinstrument (PDF)", url: "" },
+        { label: "Data punten ter input KPI (Excel)", url: "" },
+        { label: "Tijdlijn (Excel, tab v3)", url: "" },
+        { label: "Jira-bord: link toevoegen", url: "" },
       ],
     },
   ],
@@ -445,11 +471,11 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ],
           [
             "Dingen overlappen, ook met projecten buiten Klant in Zicht",
-            "Elk onderwerp krijgt één plek: een baat, een domein, een werkstroom. Past het daar niet onder, dan hoort het niet bij het programma",
+            "Elk onderwerp krijgt één plek: een domein en een werkstroom. Via het vermogen hangt het aan een baat. Past het in geen domein, dan hoort het niet bij het programma",
           ],
           [
-            "We werken aan veel verschillende dingen tegelijk",
-            "Alles hangt onder dezelfde keten; de vraag 'welke baat wordt hier beter van?' bepaalt de volgorde",
+            "We doen veel tegelijk en het is niet duidelijk wat voorgaat",
+            "Elke activiteit bouwt aan een van de vier delen van het vermogen. Wat het meest bijdraagt aan het vermogensdeel dat nu nodig is, gaat voor. Bouwt iets aan geen van de vier, dan valt het buiten het programma",
           ],
           [
             "Elke sessie begint met uitleggen wat er al ligt",

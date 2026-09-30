@@ -1056,6 +1056,11 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         planning: z.array(z.object({ wanneer: z.string(), wat: z.string() })),
         dinPad: z.array(z.string()), // van inspanning via vermogen naar baat
         aanvullen: z.array(z.string()),
+        // koppelingen naar de documenten van 3sides en het Jira-bord; url leeg = nog toevoegen
+        koppelingen: z
+          .array(z.object({ label: z.string(), url: z.string().optional().default("") }))
+          .optional()
+          .default([]),
       })
     ),
   }),
@@ -1262,6 +1267,14 @@ export const DINSessionSchema = z.object({
   // Generieke bewerkbare documenten per sleutel (stap 11: "integratie-3sides").
   // Partial zodat een later toegevoegde sectie een bestaande sessie niet ongeldig maakt.
   documenten: z.record(z.string(), BewerkbaarDocumentSchema.partial()).optional(),
+  // vindplaatsen voor stap 11: map met de 3sides-documenten (basis-url) en het Jira-bord
+  koppelingen: z
+    .object({
+      documentenBasis: z.string().optional().default(""),
+      jira: z.string().optional().default(""),
+    })
+    .partial()
+    .optional(),
 });
 
 // ============================================================
