@@ -218,6 +218,8 @@ De volgende skills zijn beschikbaar in `.claude/skills/`:
 
 | Skill | Gebruik voor |
 |---|---|
+| `din-model-toets` | **Altijd** bij toepassen van het DIN-model: niveau-check per uitspraak, projecten toetsen op vermogen en domein (niet op baat), extern materiaal (3sides) als synoniem inpassen, rollen per niveau, tel- en bronvalkuilen, checklist |
+| `din-kpi-methodiek` | KPI's, baten, vermogens, inspanningen: classificatie, H8-regels, bronhiërarchie, vaststaande projectfeiten |
 | `pim-dev-skill` | Next.js/React + Python dev, Cito context, debuggen |
 | `frontend-design` | Opvallende, productie-grade frontend interfaces |
 | `interface-design` | Dashboards, admin panels, SaaS apps met craft |
