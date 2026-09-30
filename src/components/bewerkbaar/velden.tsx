@@ -1,10 +1,13 @@
 // Kleine bouwstenen voor handmatig aanpasbare pagina's (organigram, documenten):
 // een tekst die in bewerkmodus een invoerveld wordt, lijst en tabel met × en +,
 // RASCI-cel, keuzelijst en knopjes. Stijl: de .ok-klassen uit ./stijl.ts.
+// In weergavemodus worden verwijzingen naar 3sides-documenten ("plan van aanpak
+// p. 10–11") links, zodra de map met documenten is ingevuld (zie ./bron-context.tsx).
 // Alleen gebruiken binnen een client-component (de props bevatten functies).
 
 import type { ReactNode } from "react";
 import type { OrganigramRij } from "@/lib/schemas";
+import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 
 /** Tekst; in bewerkmodus een invoerveld (ml = meerregelig). */
 export function V(p: {
@@ -18,7 +21,8 @@ export function V(p: {
   ph?: string;
 }) {
   if (!p.edit) {
-    return p.block ? <div className={p.cls}>{p.v}</div> : <span className={p.cls}>{p.v}</span>;
+    const inhoud = metBronlinks(p.v);
+    return p.block ? <div className={p.cls}>{inhoud}</div> : <span className={p.cls}>{inhoud}</span>;
   }
   const cls = "ok-in " + (p.cls ?? "");
   if (p.ml) {
@@ -36,18 +40,18 @@ export function V(p: {
   return <input className={cls} value={p.v} placeholder={p.ph} onChange={(e) => p.on(e.target.value)} />;
 }
 
-/** "Label: rest" → vet label. */
+/** "Label: rest" → vet label; verwijzingen in label en rest worden apart links. */
 export function metLabel(s: string, scheider = ":"): ReactNode {
   const i = s.indexOf(scheider);
   if (i > 0 && i < 48) {
     return (
       <>
-        <b>{s.slice(0, i + scheider.length)}</b>
-        {s.slice(i + scheider.length)}
+        <b>{metBronlinks(s.slice(0, i + scheider.length))}</b>
+        {metBronlinks(s.slice(i + scheider.length))}
       </>
     );
   }
-  return s;
+  return metBronlinks(s);
 }
 
 export function RasCel({ v }: { v: string }) {
@@ -121,7 +125,7 @@ export function Tabel(p: {
   cel?: (v: string) => ReactNode;
   ml?: boolean;
 }) {
-  const cel = p.cel ?? ((v: string) => v);
+  const cel = p.cel ?? ((v: string) => metBronlinks(v));
   const zetKolom = (i: number, s: string) => p.onKolommen(p.kolommen.map((x, j) => (j === i ? s : x)));
   const zetLabel = (r: number, s: string) =>
     p.onRijen(p.rijen.map((rij, j) => (j === r ? { ...rij, label: s } : rij)));
