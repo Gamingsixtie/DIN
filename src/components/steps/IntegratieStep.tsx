@@ -1,32 +1,41 @@
 "use client";
 
-// Stap 11 — "Programma × 3sides", met twee tabbladen:
+// Stap 11 — "Programma × 3sides", met drie tabbladen:
 // 1. Analyse: programmaplan en Doelen-Inspanningennetwerk (DIN) naast alles wat 3sides
 //    heeft opgeleverd (src/lib/integratie-3sides-default.ts).
 // 2. Naslag: de kern van alle 3sides-documenten, per document met paginanummer of
 //    tabblad (src/lib/kern-3sides-default.ts). Direct te openen met ?stap=integratie&tab=kern.
-// Beide per kop en per cel handmatig aanpasbaar; aanpassingen worden in de sessie bewaard
-// (session.documenten[sleutel], localStorage-first + Supabase via updateSession).
+// 3. Voortgang: het voortgangsbord uit de analyse, los; vinkjes zet je daar (meteen
+//    bewaard), teksten bewerk je in de analyse. Direct te openen met ?stap=integratie&tab=voortgang.
+// De documenten zijn per kop en per cel handmatig aanpasbaar; aanpassingen worden in de
+// sessie bewaard (session.documenten[sleutel], localStorage-first + Supabase via updateSession).
+// Een wijziging uit een blok in weergavemodus (bijv. een vinkje in het voortgangsbord) wordt
+// meteen opgeslagen; in bewerkmodus loopt alles via het concept en de knop Opslaan.
 // Boven de tabbladen de instelling "Vindplaatsen" (session.koppelingen): de map met de
 // 3sides-documenten en het Jira-bord. Met een ingevulde map worden alle paginaverwijzingen
-// in de documenten links naar het document op die pagina (bron-context.tsx).
+// in de documenten links naar het document op die pagina; zonder map linken ze naar het
+// naslag-tabblad bij dat document (bron-context.tsx). "deel N" springt naar dat deel.
+// Bij het laden en bij het wisselen van tabblad scrolt de pagina naar #<id> uit de link,
+// zodra dat element er is; het gekozen tabblad staat in de url (?tab=…).
 // Intern Cito: bewust geen statische of openbare versie.
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useSession } from "@/lib/session-context";
-import type { BewerkbaarDocument as DocData } from "@/lib/schemas";
+import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { DEFAULT_INTEGRATIE_3SIDES, INTEGRATIE_SLEUTEL } from "@/lib/integratie-3sides-default";
 import { DEFAULT_KERN_3SIDES, KERN_3SIDES_SLEUTEL } from "@/lib/kern-3sides-default";
-import { kloon, mergeDocument } from "@/lib/bewerkbaar-document";
+import { isVerwijderd, kloon, mergeDocument } from "@/lib/bewerkbaar-document";
 import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
 import { BronProvider, bronUrl } from "@/components/bewerkbaar/bron-context";
-import { KNOP } from "@/components/bewerkbaar/stijl";
+import { DocContext } from "@/components/bewerkbaar/doc-context";
+import { DOC_CSS, KNOP, OK_CSS } from "@/components/bewerkbaar/stijl";
+import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
 const HINT =
   "Bewerkmodus: de gele velden zijn aanpasbaar; met × en + haal je secties, blokken, regels, rijen, kolommen, kaarten, lagen en groepen weg of voeg je ze toe. Niets wordt bewaard tot je op Opslaan klikt.";
 
-const TABBLADEN = [
+const DOCUMENT_TABBLADEN = [
   {
     id: "analyse",
     label: "Analyse: programma × 3sides",
@@ -45,12 +54,31 @@ const TABBLADEN = [
   },
 ] as const;
 
-type Tabblad = (typeof TABBLADEN)[number];
+type Tabblad = (typeof DOCUMENT_TABBLADEN)[number];
+
+const VOORTGANG_TAB = { id: "voortgang", label: "Voortgang" } as const;
+
+/** Alle tabbladen in volgorde; het voortgangsbord is geen document maar een uitsnede van de analyse. */
+const TABBLADEN: readonly (Tabblad | typeof VOORTGANG_TAB)[] = [...DOCUMENT_TABBLADEN, VOORTGANG_TAB];
+
+const ANALYSE_TAB = 0;
 
 function beginTab(): number {
   if (typeof window === "undefined") return 0;
   const i = TABBLADEN.findIndex((t) => t.id === new URLSearchParams(window.location.search).get("tab"));
   return i < 0 ? 0 : i;
+}
+
+/**
+ * Zet het tabblad (en een eventueel anker) in de url, zonder navigatie en zonder de
+ * geschiedenis te vullen; ?stap=integratie erbij zodat de link ook na herladen klopt.
+ */
+function zetUrl(tabId: string, anker: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("stap", "integratie");
+  url.searchParams.set("tab", tabId);
+  url.hash = anker;
+  window.history.replaceState(window.history.state, "", url);
 }
 
 /** Link-knop naast de tabbladen (zelfde maat als de tabbladen). */
@@ -64,6 +92,27 @@ export default function IntegratieStep() {
   const documentenBasis = session?.koppelingen?.documentenBasis ?? "";
   const jira = (session?.koppelingen?.jira ?? "").trim();
 
+  // Na het laden en bij het wisselen van tabblad: naar het anker uit de url, zodra het
+  // element er is (de inhoud rendert eerst); na een paar seconden zonder element: laten.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+    let pogingen = 0;
+    const timer = window.setInterval(() => {
+      pogingen += 1;
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ block: "start" });
+      if (el || pogingen >= 20) window.clearInterval(timer);
+    }, 150);
+    return () => window.clearInterval(timer);
+  }, [actief]);
+
+  /** Naar een tabblad, eventueel naar een anker daarin. */
+  function kies(i: number, anker = "") {
+    zetUrl(TABBLADEN[i].id, anker);
+    setActief(i);
+  }
+
   return (
     <div className="space-y-4">
       <Vindplaatsen />
@@ -75,7 +124,7 @@ export default function IntegratieStep() {
             type="button"
             role="tab"
             aria-selected={i === actief}
-            onClick={() => setActief(i)}
+            onClick={() => kies(i)}
             className={
               "px-4 py-2 rounded-lg text-sm font-semibold border transition-colors " +
               (i === actief
@@ -99,8 +148,12 @@ export default function IntegratieStep() {
         )}
       </div>
       {/* key: bij wisselen van tabblad start de bewerkstatus opnieuw */}
-      <BronProvider documentenBasis={documentenBasis} jira={jira}>
-        <DocumentTab key={tab.id} tab={tab} />
+      <BronProvider documentenBasis={documentenBasis} jira={jira} naslagHier={tab.id === "kern"}>
+        {tab.id === "voortgang" ? (
+          <VoortgangTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} jira={jira} />
+        ) : (
+          <DocumentTab key={tab.id} tab={tab} />
+        )}
       </BronProvider>
     </div>
   );
@@ -279,6 +332,22 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
     setDraft(kloon(tab.standaard));
     setMelding({ tekst: "Voorstel-tekst teruggezet — klik op Opslaan om dit te bewaren", soort: "info" });
   }
+  /**
+   * Wijziging uit het document. In bewerkmodus naar het concept (bewaard bij Opslaan);
+   * in weergavemodus meteen in de sessie, want dan komt de wijziging uit een blok dat ook
+   * in weergave bediend wordt (bijv. een vinkje in het voortgangsbord).
+   */
+  function wijzig(nieuw: DocData) {
+    if (edit) {
+      setDraft(nieuw);
+      return;
+    }
+    const klaar = kloon(nieuw);
+    updateSession((prev) => ({
+      documenten: { ...(prev.documenten ?? {}), [tab.sleutel]: klaar },
+    }));
+    setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
+  }
 
   return (
     <div className="space-y-4" role="tabpanel" aria-label={tab.label}>
@@ -298,7 +367,138 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
         }
       />
 
-      <BewerkbaarDocument doc={edit ? draft : opgeslagen} edit={edit} onChange={setDraft} />
+      <BewerkbaarDocument doc={edit ? draft : opgeslagen} edit={edit} onChange={wijzig} />
+    </div>
+  );
+}
+
+// ---------- voortgang ----------
+
+/** Nummer uit een sectietitel "9 · Bronnen" → "deel 9"; zonder nummer null. */
+function deelNaam(s: DocSectie): string | null {
+  const m = s.titel.match(/^\s*(\d{1,2})\s*·/);
+  return m ? "deel " + m[1] : null;
+}
+
+/** Geen linkdoelen: de werkstroomkaarten en de tijdlijn staan niet op dit tabblad (geen dode links). */
+const GEEN_ANKERS: ReadonlySet<string> = new Set();
+
+type Voortgangsbord = Extract<DocBlok, { type: "voortgangsbord" }>;
+
+/**
+ * Het eerste voortgangsbord in het document, met zijn sectie en de plek (index in
+ * doc.secties en in de blokken) om het te kunnen wijzigen; null als het er niet is.
+ */
+function vindVoortgangsbord(doc: DocData): { sectie: DocSectie; blok: Voortgangsbord; si: number; bi: number } | null {
+  for (let si = 0; si < doc.secties.length; si++) {
+    const sectie = doc.secties[si];
+    if (isVerwijderd(sectie)) continue;
+    for (let bi = 0; bi < sectie.blokken.length; bi++) {
+      const blok = sectie.blokken[bi];
+      if (blok.type === "voortgangsbord") return { sectie, blok, si, bi };
+    }
+  }
+  return null;
+}
+
+// Zolang het blok nog niets rendert (lege opzet), toont de pagina een korte melding in
+// plaats van een leeg vlak: het vak is dan leeg (:empty) en de melding erna wordt zichtbaar.
+const VOORTGANG_CSS = `
+.okd .okd-vb-leeg{display:none}
+.okd .okd-vb-vak:empty + .okd-vb-leeg{display:block}
+`;
+
+/**
+ * Het voortgangsbord uit de analyse, los: hetzelfde document (voorstel-tekst plus wat in
+ * de sessie is aangepast), alleen het blok van type "voortgangsbord", in weergavemodus.
+ * Het bord leest de tijdlijn en de werkstroomkaarten uit het document via de DocContext.
+ * Een vinkje in het bord wijzigt het analyse-document en wordt meteen in de sessie bewaard;
+ * teksten en regels bewerk je in de analyse.
+ */
+function VoortgangTab({ naarAnalyse, jira }: { naarAnalyse: (anker: string) => void; jira: string }) {
+  const { session, updateSession } = useSession();
+  const bewaard = session?.documenten?.[INTEGRATIE_SLEUTEL];
+  const doc = useMemo(() => mergeDocument(DEFAULT_INTEGRATIE_3SIDES, bewaard), [bewaard]);
+  const plek = vindVoortgangsbord(doc);
+  const deel = plek ? deelNaam(plek.sectie) : null;
+  const anker = plek ? "sec-" + plek.sectie.id : "";
+  const [melding, setMelding] = useMelding();
+
+  /** Wijziging uit het bord (vinkje): op een kopie van het hele document, dan opslaan. */
+  function zet(fn: (b: Voortgangsbord) => void) {
+    if (!plek) return;
+    const n = kloon(doc);
+    const b = n.secties[plek.si]?.blokken[plek.bi];
+    if (!b || b.type !== "voortgangsbord") return;
+    fn(b);
+    updateSession((prev) => ({
+      documenten: { ...(prev.documenten ?? {}), [INTEGRATIE_SLEUTEL]: n },
+    }));
+    setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
+  }
+
+  return (
+    <div className="space-y-4" role="tabpanel" aria-label={VOORTGANG_TAB.label}>
+      <div className="rounded-xl border border-cito-border bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm text-gray-700">
+            Hoe ver we zijn en wat we nog van 3sides nodig hebben, in één bord. Het bord is een uitsnede van de
+            analyse; vinkjes zet je hier, teksten pas je in de analyse aan.
+          </p>
+          {melding && (
+            <span
+              role="status"
+              className={`text-xs rounded-lg px-3 py-1.5 border ${
+                melding.soort === "ok"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-blue-50 border-blue-200 text-blue-800"
+              }`}
+            >
+              {melding.tekst}
+            </span>
+          )}
+          {plek && (
+            <button
+              type="button"
+              onClick={() => naarAnalyse(anker)}
+              className={`${KNOP} border border-[#003366] bg-white text-[#003366] hover:bg-[#003366] hover:text-white`}
+              title="Opent de analyse bij het voortgangsbord"
+            >
+              Bewerken in de analyse{deel ? ` (${deel})` : ""}
+            </button>
+          )}
+          {jira && (
+            <a
+              href={jira}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${KNOP} inline-flex items-center gap-1.5 bg-cito-blue text-white hover:bg-cito-blue/90`}
+              title="Opent het Jira-bord van 3sides in een nieuw tabblad"
+            >
+              Jira-bord <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {plek ? (
+        <DocContext.Provider value={doc}>
+          <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
+            <style>{OK_CSS + DOC_CSS + VOORTGANGSBORD_CSS + VOORTGANG_CSS}</style>
+            <div className="okd-vb-vak">
+              <VoortgangsbordBlok b={plek.blok} edit={false} zet={zet} ankers={GEEN_ANKERS} />
+            </div>
+            <p className="okd-p okd-vb-leeg" role="status">
+              Voortgangsbord wordt gebouwd.
+            </p>
+          </div>
+        </DocContext.Provider>
+      ) : (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="note">
+          Er staat nog geen voortgangsbord in de analyse. Zet in het tabblad Analyse via ✎ Bewerken → Terug naar
+          voorstel-tekst de voorstel-tekst terug en sla op; daarna verschijnt het bord hier.
+        </div>
+      )}
     </div>
   );
 }

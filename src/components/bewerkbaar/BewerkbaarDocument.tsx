@@ -14,7 +14,7 @@ import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/sc
 import { isVerwijderd, kloon, verwijderdeSectie } from "@/lib/bewerkbaar-document";
 import { Keuze, Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 import { DOC_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
-import { metBronlinks } from "@/components/bewerkbaar/bron-context";
+import { SectieProvider, metBronlinks, sectieKaart } from "@/components/bewerkbaar/bron-context";
 import { domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-typen";
 import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -83,6 +83,47 @@ function chipSoort(v: string): "groen" | "blauw" | "amber" | "grijs" {
 function zetCel(rij: string[], c: number, x: string) {
   while (rij.length < c) rij.push("");
   rij[c] = x;
+}
+
+// Keuzemenu voor een cel in de chipkolom van een tabel (bewerkmodus): de vaste oordelen,
+// plus "Anders…" voor een eigen tekst. De kleur van de chip volgt uit chipSoort.
+const CHIP_WAARDEN = ["Staat erin", "Deels", "Ontbreekt", "Ligt er", "Aanvullen", "Sluit aan", "Aanvulling", "Verschil"];
+/** waarde van de optie "Anders…" (komt nooit in de tekst terecht) */
+const ANDERS = "\u0000anders";
+const CHIP_OPTIES: { waarde: string; label: string }[] = [
+  { waarde: "", label: "Kies…" },
+  ...CHIP_WAARDEN.map((w) => ({ waarde: w, label: w })),
+  { waarde: ANDERS, label: "Anders…" },
+];
+
+/**
+ * Cel in de chipkolom (bewerkmodus): keuzemenu met de vaste oordelen; bij "Anders…" of
+ * een waarde die niet in de lijst staat, daaronder een vrij tekstveld met de huidige
+ * waarde, zodat bestaande teksten bewaard blijven.
+ */
+function ChipKeuze({ v, on }: { v: string; on: (x: string) => void }) {
+  // "Anders…" gekozen: het tekstveld blijft staan, ook als de tekst (nog) leeg is.
+  const [anders, setAnders] = useState(false);
+  const bekend = CHIP_WAARDEN.includes(v);
+  const vrij = anders || (!bekend && v !== "");
+  return (
+    <div className="okd-chip-keuze">
+      <Keuze
+        v={vrij ? ANDERS : v}
+        opties={CHIP_OPTIES}
+        on={(x) => {
+          if (x === ANDERS) {
+            setAnders(true);
+            return;
+          }
+          setAnders(false);
+          on(x);
+        }}
+        titel="Oordeel"
+      />
+      {vrij && <V v={v} on={on} edit ph="Eigen tekst" />}
+    </div>
+  );
 }
 
 function nieuweSectie(): DocSectie {
@@ -252,8 +293,10 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
                   const v = rij[c] ?? "";
                   return (
                     <td key={c} className={isChip(c) ? "c" : c === 0 ? "k" : undefined}>
-                      {edit ? (
-                        <V v={v} on={(x) => zet((n) => zetCel(n.rijen[r], c, x))} edit ml={c !== chip} />
+                      {edit && c === chip ? (
+                        <ChipKeuze v={v} on={(x) => zet((n) => zetCel(n.rijen[r], c, x))} />
+                      ) : edit ? (
+                        <V v={v} on={(x) => zet((n) => zetCel(n.rijen[r], c, x))} edit ml />
                       ) : isChip(c) ? (
                         v ? <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span> : null
                       ) : (
@@ -453,11 +496,14 @@ function LagenBlok({ b, edit, zet }: BlokProps<"lagen">) {
 // Doel → baten → vermogen → domeinen → werkstromen (inspanningen), van boven naar
 // beneden; de pijlen lezen van onder naar boven (waartoe). Eerste kolom: rijlabels,
 // daarna één kolom per domein. Een werkstroom staat onder de domeinen waarin hij bouwt.
-// Rollen: bovenaan een Cito-blauwe band "Regie over de hele keten" (programmamanagement)
-// met een beugel in dezelfde kleur langs de linkerkant van alle niveaus, van doel tot
-// werkstromen; in doel, baten en vermogen een rol-label (wie dat niveau draagt);
-// domeineigenaar en leads staan in hun eigen vak. De band staat buiten de
+// Rollen: bovenaan een lichte band "Regie over de hele keten" (programmamanagement) met
+// per persoon een rolchip, en een dunne Cito-blauwe beugel langs de linkerkant van alle
+// niveaus, van doel tot werkstromen; in doel, baten en vermogen een rol-label (wie dat
+// niveau draagt); domeineigenaar en leads staan in hun eigen vak. De band staat buiten de
 // scrollcontainer van het raster, zodat hij ook op een smal scherm helemaal leesbaar is.
+// KPI's: doel, elke baat, het vermogen en elke werkstroom hebben een KPI-regel (klein,
+// gedempt, onder de rol); bij het vermogen staat de meetlat: de kernprincipes als chips
+// in de pastelkleuren van de matrix. Leeg = niet getoond (in bewerkmodus wel als veld).
 // Een werkstroom linkt naar zijn werkstroomkaart (#wk-), anders naar een sectie (#sec-).
 // Bewerkmodus werkt als een bord: baten, domeinen en werkstromen toevoegen, verschuiven
 // en weghalen; per werkstroom de domeinen aanvinken (de plaatsing volgt). De ankers en
@@ -688,6 +734,151 @@ function Rol(p: { v: string; on: (s: string) => void; edit: boolean; ph: string 
 }
 
 /**
+ * Hoe een niveau van de plaat wordt gemeten, als kleine gedempte regel onder de rol:
+ * label "KPI" en de tekst met het deel vóór de dubbele punt vet ("Output: …").
+ * In weergave weggelaten als de tekst leeg is; in bewerkmodus een veld.
+ */
+function Kpi(p: { v: string; on: (s: string) => void; edit: boolean; ph: string }) {
+  const v = p.v ?? "";
+  if (!p.edit && !v) return null;
+  const Tag = p.edit ? "label" : "div";
+  return (
+    <Tag className={p.edit ? "okd-dp-kpi okd-dp-kpi-edit" : "okd-dp-kpi"}>
+      <span className="okd-dp-kpi-l">KPI</span>
+      {p.edit ? <V v={v} on={p.on} edit ml ph={p.ph} /> : <span className="okd-dp-kpi-t">{metLabel(v)}</span>}
+    </Tag>
+  );
+}
+
+/** Pastelkleuren van de meetlat-chips, in de volgorde van de matrix "De vijf kernprincipes". */
+const MEETLAT_KLEUREN = ["#c4f3dd", "#fdd8b5", "#fcd6db", "#dcccf9", "#bff0f7"];
+
+/**
+ * Meetlat bij het vermogen: de kernprincipes van 3sides als chips onder de tekst.
+ * In bewerkmodus is elke chip een veld, met × en "+ principe".
+ */
+function Meetlat(p: { items: string[]; edit: boolean; zet: Zet<Plaat> }) {
+  const items = p.items ?? [];
+  if (!p.edit && items.length === 0) return null;
+  const kleur = (i: number) => ({ background: MEETLAT_KLEUREN[i % MEETLAT_KLEUREN.length] });
+  return (
+    <div className="okd-dp-meetlat">
+      <span className="okd-dp-l">Meetlat (voorstel): vijf kernprincipes van 3sides</span>
+      <div className="okd-dp-chips">
+        {items.map((t, i) =>
+          p.edit ? (
+            <span key={i} className="okd-dp-chip okd-dp-chip-edit" style={kleur(i)}>
+              <V
+                v={t}
+                on={(x) => p.zet((n) => void ((n.vermogen.meetlat ??= [])[i] = x))}
+                edit
+                ph="Kernprincipe"
+              />
+              <WegKnop titel="Kernprincipe verwijderen" on={() => p.zet((n) => void n.vermogen.meetlat?.splice(i, 1))} />
+            </span>
+          ) : (
+            <span key={i} className="okd-dp-chip" style={kleur(i)}>
+              {metBronlinks(t)}
+            </span>
+          )
+        )}
+        {p.edit && (
+          <PlusKnop label="+ principe" on={() => p.zet((n) => void (n.vermogen.meetlat ??= []).push(""))} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Eén persoon in de regieband: "Sanne (programmamanager: regie, aanspreekpunt)" ontleed. */
+interface RegieRol {
+  naam: string;
+  rol: string;
+  taak: string;
+  /** de tekst als hij niet als "naam (rol: taak)" te lezen is */
+  los: string;
+}
+
+/**
+ * De regietekst ontleed: een kop vóór de eerste dubbele punt ("Programmamanagement:"),
+ * daarna per " · " één persoon, elk als "naam (rol: taak)". Een deel dat niet zo te lezen
+ * is, komt als losse tekst in de chip. De kop telt alleen als de dubbele punt vóór het
+ * eerste haakje en de eerste " · " staat, anders is het de rol van de eerste persoon.
+ */
+function regieDelen(regie: string): { kop: string; rollen: RegieRol[] } {
+  let rest = regie.trim();
+  let kop = "";
+  const i = rest.indexOf(":");
+  const eerste = rest.search(/[(·]/);
+  if (i > 0 && i < 48 && (eerste < 0 || i < eerste)) {
+    kop = rest.slice(0, i + 1);
+    rest = rest.slice(i + 1).trim();
+  }
+  const rollen = rest
+    .split(/\s+·\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s): RegieRol => {
+      const m = s.match(/^(.+?)\s*\((.+)\)\s*$/);
+      if (!m) return { naam: "", rol: "", taak: "", los: s };
+      const j = m[2].indexOf(":");
+      if (j < 0) return { naam: m[1], rol: m[2].trim(), taak: "", los: "" };
+      return { naam: m[1], rol: m[2].slice(0, j).trim(), taak: m[2].slice(j + 1).trim(), los: "" };
+    });
+  return { kop, rollen };
+}
+
+/**
+ * Lichte band boven de plaat: links het label "Regie over de hele keten", daarnaast de kop
+ * en per persoon een rolchip ("Sanne · programmamanager: regie, aanspreekpunt").
+ * In bewerkmodus één veld met de hele regietekst.
+ */
+function RegieBand(p: { v: string; on: (s: string) => void; edit: boolean }) {
+  const { kop, rollen } = p.edit ? { kop: "", rollen: [] } : regieDelen(p.v);
+  return (
+    <div className="okd-dp-regie">
+      <span className="okd-dp-regie-l">
+        <PersoonIcoon />
+        Regie over de hele keten
+      </span>
+      {p.edit ? (
+        <V v={p.v} on={p.on} edit ml cls="okd-dp-regie-t" ph="Bijv. Programmamanagement: naam (rol: taak) · naam (rol: taak)" />
+      ) : (
+        <div className="okd-dp-regie-t">
+          {kop && <b className="okd-dp-regie-kop">{metBronlinks(kop)}</b>}
+          {rollen.map((r, i) => (
+            <span key={i} className="okd-dp-regie-rol">
+              {r.los ? (
+                metLabel(r.los)
+              ) : (
+                <>
+                  <b>{r.naam}</b>
+                  {r.rol && (
+                    <>
+                      <span className="okd-dp-regie-punt"> · </span>
+                      <span className="okd-dp-regie-functie">
+                        {r.rol}
+                        {r.taak && ":"}
+                      </span>
+                    </>
+                  )}
+                  {r.taak && (
+                    <>
+                      {" "}
+                      <span className="okd-dp-regie-taak">{metBronlinks(r.taak)}</span>
+                    </>
+                  )}
+                </>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Knopjes rechtsboven in een vak (bewerkmodus): naar voren of naar achteren schuiven
  * (← → naast elkaar, ↑ ↓ onder elkaar) en verwijderen.
  */
@@ -752,26 +943,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
 
   return (
     <figure className="okd-dp-paneel" aria-label="Doelen-Inspanningennetwerk (DIN) in één plaat">
-      {toonRegie && (
-        <div className="okd-dp-regie">
-          <span className="okd-dp-regie-l">
-            <PersoonIcoon />
-            Regie over de hele keten
-          </span>
-          {edit ? (
-            <V
-              v={b.regie}
-              on={(x) => zet((n) => void (n.regie = x))}
-              edit
-              ml
-              cls="okd-dp-regie-t"
-              ph="Bijv. Programmamanagement: naam (rol) · naam (rol)"
-            />
-          ) : (
-            <div className="okd-dp-regie-t">{metLabel(b.regie)}</div>
-          )}
-        </div>
-      )}
+      {toonRegie && <RegieBand v={b.regie} on={(x) => zet((n) => void (n.regie = x))} edit={edit} />}
       <div className="ok-scroll">
         <div
           className="okd-dp"
@@ -814,6 +986,12 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
               on={(x) => zet((n) => void (n.doel.rol = x))}
               edit={edit}
               ph="Rol, bijv. Programma-eigenaar: naam · functie"
+            />
+            <Kpi
+              v={b.doel.kpi}
+              on={(x) => zet((n) => void (n.doel.kpi = x))}
+              edit={edit}
+              ph="KPI van het doel, bijv. Impact: …"
             />
           </div>
 
@@ -869,6 +1047,12 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                   edit={edit}
                   ph="Rol, bijv. Bateneigenaar: sectormanager"
                 />
+                <Kpi
+                  v={baat.kpi}
+                  on={(x) => zet((n) => void (n.baten[i].kpi = x))}
+                  edit={edit}
+                  ph="Baten-KPI's, bijv. 5 baten-KPI's: … · …"
+                />
               </div>
             ))}
           </div>
@@ -900,11 +1084,18 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                 ph="Toelichting op het vermogen (optioneel)"
               />
             )}
+            <Meetlat items={b.vermogen.meetlat} edit={edit} zet={zet} />
             <Rol
               v={b.vermogen.rol}
               on={(x) => zet((n) => void (n.vermogen.rol = x))}
               edit={edit}
               ph="Rol, bijv. Eigenaar van het vermogen: naam · functie"
+            />
+            <Kpi
+              v={b.vermogen.kpi}
+              on={(x) => zet((n) => void (n.vermogen.kpi = x))}
+              edit={edit}
+              ph="KPI van het vermogen, bijv. Leidend: …"
             />
           </div>
 
@@ -1078,6 +1269,12 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                       ph="Stand van het plan van aanpak"
                     />
                   </div>
+                  <Kpi
+                    v={w.kpi}
+                    on={(x) => zet((n) => void (n.werkstromen[wi].kpi = x))}
+                    edit={edit}
+                    ph="KPI van de werkstroom, bijv. Output: … · …"
+                  />
                 </div>
               );
             })
@@ -1290,7 +1487,7 @@ const BLOK_CSS = `
  * Element-ids in een sectie waar naartoe gelinkt kan worden: de sectie zelf ("sec-"),
  * de kaarten van een werkstromen-blok ("wk-") en de tijdlijngroepen met een anker ("tl-").
  */
-function linkdoelen(s: DocSectie): string[] {
+export function linkdoelen(s: DocSectie): string[] {
   const ids = ["sec-" + s.id];
   for (const b of s.blokken) {
     if (b.type === "werkstromen") {
@@ -1340,8 +1537,14 @@ export default function BewerkbaarDocument({
   const idSleutel = zichtbaar.flatMap(({ s }) => linkdoelen(s)).join("\n");
   const ankers = useMemo(() => new Set(idSleutel.split("\n")), [idSleutel]);
 
+  // Sectiekaart voor "deel N"-links in de teksten: nummer uit de titel ("4 · …") → sectie-id.
+  // Per document gememoiseerd; in bewerkmodus staan de teksten in velden, dus een nieuwe
+  // kaart bij het typen kost daar niets.
+  const secties = useMemo(() => sectieKaart(doc.secties.filter((s) => !isVerwijderd(s))), [doc]);
+
   return (
     <DocContext.Provider value={doc}>
+    <SectieProvider secties={secties}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-4 sm:p-6">
       <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS}</style>
 
@@ -1406,6 +1609,7 @@ export default function BewerkbaarDocument({
         </button>
       )}
     </div>
+    </SectieProvider>
     </DocContext.Provider>
   );
 }

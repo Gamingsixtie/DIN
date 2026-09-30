@@ -105,10 +105,14 @@ export const OK_CSS = `
 // Brede tabellen, lagen en de DIN-plaat (.okd-dp-*) scrollen binnen hun eigen
 // container (.ok-scroll); de pagina zelf krijgt nooit een horizontale scrollbalk.
 // DIN-plaat: de kleur van een domein (en van een werkstroom) komt binnen als
-// CSS-variabele --dpk en kleurt rand, tint en titel. De regieband (.okd-dp-regie,
-// Cito-blauw, zelfde verloop als de documentkop) staat boven de scrollcontainer en
-// loopt links door in de beugel (.okd-dp-beugel) langs alle niveaus van de plaat.
-// Bewerkmodus: knopjes per vak (.okd-dp-knoppen) en domeinvinkjes per werkstroom (.okd-dp-vink).
+// CSS-variabele --dpk en kleurt rand, tint en titel. De regieband (.okd-dp-regie, licht
+// blauw met een dunne rand, label in Cito-blauw en per persoon een rolchip) staat boven
+// de scrollcontainer; de dunne Cito-blauwe beugel (.okd-dp-beugel) loopt langs alle
+// niveaus van de plaat. Het doelvak blijft het donkere ankerpunt. KPI-regels (.okd-dp-kpi)
+// klein en gedempt; de meetlat (.okd-dp-meetlat) als pastelchips.
+// Bewerkmodus: knopjes per vak (.okd-dp-knoppen), domeinvinkjes per werkstroom
+// (.okd-dp-vink), meetlat-chips als velden (.okd-dp-chip-edit) en in de chipkolom van
+// een tabel een keuzemenu (.okd-chip-keuze).
 export const DOC_CSS = `
 .okd{overflow-wrap:anywhere}
 .okd .okd-top h2{margin-top:6px}
@@ -207,15 +211,35 @@ export const DOC_CSS = `
 .okd .okd-dp-verm .okd-dp-rol{border-color:rgba(8,145,178,.4)}
 .okd .okd-dp-rol.okd-dp-rol-edit{width:100%;align-items:center;background:none;border:0;padding:0}
 .okd .okd-dp-paneel textarea.ok-in{field-sizing:content;min-height:2.6em}
-.okd .okd-dp-regie{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 16px;background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:12px 12px 12px 0;padding:12px 16px 13px}
-.okd .okd-dp-regie-l{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;line-height:1.35;color:#bcd3ea}
-.okd .okd-dp-regie-l .okd-dp-icoon{width:13px;height:13px;color:#fff}
-.okd .okd-dp-regie-t{flex:1 1 320px;min-width:0;font-size:14px;line-height:1.5;color:#fff}
-.okd .okd-dp-regie-t b{color:#fff;font-weight:800}
-.okd div.okd-dp-regie-t{white-space:pre-line}
-.okd .okd-dp-regie textarea.ok-in{background:#fff;color:var(--ink);font-size:12px;line-height:1.45}
-.okd .okd-dp-beugel{width:22px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-left:4px solid var(--cito);border-bottom:4px solid var(--cito);border-radius:0 0 0 12px;padding:8px 0 8px 2px}
-.okd .okd-dp-beugel span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--cito)}
+.okd .okd-dp-regie{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:#eef4fb;border:1px solid #c7d7ea;border-radius:10px;padding:8px 12px;margin-bottom:8px}
+.okd .okd-dp-regie-l{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;line-height:1.35;color:var(--cito)}
+.okd .okd-dp-regie-l .okd-dp-icoon{width:12px;height:12px;color:var(--cito)}
+.okd .okd-dp-regie-t{flex:1 1 320px;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;font-size:11px;line-height:1.4;color:var(--ink2)}
+.okd .okd-dp-regie-kop{flex:none;font-size:10.5px;font-weight:800;color:var(--cito)}
+.okd .okd-dp-regie-rol{display:inline-block;max-width:100%;background:#fff;border:1px solid rgba(0,51,102,.22);border-radius:999px;padding:3px 11px;font-size:11px;line-height:1.4;color:var(--ink2)}
+.okd .okd-dp-regie-rol b{color:var(--cito);font-weight:800}
+.okd .okd-dp-regie-punt{color:var(--ink3);white-space:pre}
+.okd .okd-dp-regie-functie{color:var(--ink);font-weight:600}
+.okd .okd-dp-regie-taak{color:var(--ink2)}
+.okd .okd-dp-regie textarea.okd-dp-regie-t{display:block;background:#fff;color:var(--ink);font-size:12px;line-height:1.45}
+.okd .okd-dp-beugel{width:22px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-left:2px solid var(--cito);border-bottom:2px solid var(--cito);border-radius:0 0 0 10px;padding:8px 0 8px 3px}
+.okd .okd-dp-beugel span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--cito);opacity:.8}
+.okd .okd-dp-kpi{display:flex;align-items:flex-start;gap:6px;margin-top:6px;font-size:10px;line-height:1.4;color:var(--ink3)}
+.okd .okd-dp-kpi-l{flex:none;font-size:7.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;line-height:1.3;color:var(--ink3);border:1px solid var(--line2);border-radius:4px;padding:1px 4px;margin-top:1px}
+.okd .okd-dp-kpi-t{min-width:0}
+.okd .okd-dp-kpi-t b{color:var(--ink2);font-weight:700}
+.okd .okd-dp-kpi-edit{width:100%}
+.okd .okd-dp-kpi-edit .ok-in{flex:1;min-width:0}
+.okd .okd-dp-doel .okd-dp-kpi{color:#b9cce3}
+.okd .okd-dp-doel .okd-dp-kpi-l{color:#c9d9ec;border-color:rgba(255,255,255,.32)}
+.okd .okd-dp-doel .okd-dp-kpi-t b{color:#e6eef8}
+.okd .okd-dp-meetlat{margin-top:8px}
+.okd .okd-dp-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.okd .okd-dp-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;font-size:10.5px;font-weight:600;line-height:1.4;color:#0f2a3f;border:1px solid rgba(15,42,63,.12);border-radius:999px;padding:2px 10px}
+.okd .okd-dp-chip-edit{padding:2px 4px 2px 8px}
+.okd .okd-dp-chip-edit .ok-in{width:21ch;min-width:0;font-size:10.5px;padding:1px 5px}
+.okd .okd-chip-keuze{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.okd .okd-chip-keuze .ok-keuze{width:100%}
 .okd .okd-dp-rl .ok-knopje{display:block;margin-top:5px;text-transform:none;letter-spacing:0}
 .okd .okd-dp-knoppen{display:flex;gap:3px;justify-content:flex-end;margin-bottom:4px}
 .okd .okd-dp-knoppen .ok-knopje{min-width:22px;padding:0 5px;line-height:1.55;text-align:center}
@@ -226,7 +250,7 @@ export const DOC_CSS = `
 .okd .okd-dp-vink:has(input:checked){background:color-mix(in srgb,var(--dpk) 16%,#fff);border-color:var(--dpk)}
 .okd [id^="wk-"],.okd [id^="tl-"]{scroll-margin-top:16px}
 @media(max-width:820px){.okd .okd-kaarten{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:480px){.okd .ok-card dl{grid-template-columns:minmax(0,1fr)}.okd .ok-card dd{margin-bottom:4px}.okd .okd-dp-regie{padding:10px 12px 11px}.okd .okd-dp-regie-l{font-size:10px;letter-spacing:.08em}.okd .okd-dp-regie-t{font-size:12.5px}}
+@media(max-width:480px){.okd .ok-card dl{grid-template-columns:minmax(0,1fr)}.okd .ok-card dd{margin-bottom:4px}.okd .okd-dp-regie{padding:8px 10px;gap:6px 10px}.okd .okd-dp-regie-l{letter-spacing:.08em}.okd .okd-dp-regie-rol{padding:3px 9px}}
 `;
 
 /** Basisklassen voor de knoppen in de bewerkbalk (Bewerken, Opslaan, …). */
