@@ -1,12 +1,15 @@
 // Werkstroomkaarten (stap 11 "Programma × 3sides"): per werkstroom één kaart met het
 // plan van aanpak, ingepast in het Doelen-Inspanningennetwerk (DIN). Vaste opbouw, op
 // elke kaart op dezelfde plek: kop (naam, 3sides-naam, domeinen, leads, bron) →
-// Waarom → Resultaten → Planning → In het DIN → Nog aanvullen. Waar de browser het kan
-// (CSS subgrid) staan de onderdelen van kaarten naast elkaar ook op dezelfde hoogte.
-// Element-id "wk-<id>" is het linkdoel van de DIN-plaat; onderaan linkt de kaart naar
-// de tijdlijn (#tl-<id>) als die in het document staat.
-// Bewerkmodus: alle teksten en regels zijn aanpasbaar; id en domeinen liggen vast en
-// kaarten toevoegen of verwijderen kan niet.
+// Waarom → Resultaten → Planning → In het DIN → Nog aanvullen → Documenten en status.
+// Waar de browser het kan (CSS subgrid) staan de onderdelen van kaarten naast elkaar
+// ook op dezelfde hoogte.
+// Element-id "wk-<id>" is het linkdoel van de DIN-plaat. Onderaan, bij "Documenten en
+// status", staan de koppelingen naar de 3sides-documenten en het Jira-bord als chips
+// (met url een link in een nieuw tabblad, zonder url gedempt) en als laatste de link
+// naar de tijdlijn (#tl-<id>) als die in het document staat.
+// Bewerkmodus: alle teksten en regels zijn aanpasbaar, koppelingen (naam + url) ook;
+// id en domeinen liggen vast en kaarten toevoegen of verwijderen kan niet.
 // Alleen gebruiken binnen een client-component (de props bevatten functies).
 
 import { useId } from "react";
@@ -16,14 +19,15 @@ import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Lijst, PlusKnop, V, WegKnop, metLabel } from "@/components/bewerkbaar/velden";
 
 type Kaart = BlokVan<"werkstromen">["kaarten"][number];
+type Koppeling = Kaart["koppelingen"][number];
 type Domein = { id: string; label: string; kleur: string };
 /** Past een kopie van één kaart aan; de wijziging gaat via het blok naar boven. */
 type ZetKaart = (fn: (k: Kaart) => void) => void;
 
 const CITO = "#003366";
 const NEUTRAAL = "#64748b";
-/** Rijen per kaart in het raster (subgrid): kop + vijf onderdelen. */
-const RIJEN = 6;
+/** Rijen per kaart in het raster (subgrid): kop + zes onderdelen. */
+const RIJEN = 7;
 
 // Kleur per DIN-niveau, herkend aan het woord vóór de dubbele punt in "In het DIN"
 // ("Vermogen: eenduidige funnelprocessen"). Zelfde kleuren als de lagen van de
@@ -75,12 +79,30 @@ function kleurVar(naam: string, kleur: string): CSSProperties {
 
 const heeft = (s: string) => s.trim() !== "";
 
+/** Alleen een url die met http:// of https:// begint, wordt als link getoond. */
+function isLink(url: string): boolean {
+  return /^https?:\/\/\S/i.test(url.trim());
+}
+
+/** Koppelingen naar Jira ("Jira-bord: …") krijgen een eigen, herkenbare stijl. */
+function isJira(label: string): boolean {
+  return label.trim().toLowerCase().startsWith("jira");
+}
+
+/**
+ * De koppelingen van een kaart, altijd als array. Sessies die vóór dit veld zijn
+ * opgeslagen, hebben het nog niet; in bewerkmodus wordt het dan op de kopie aangemaakt.
+ */
+function koppelingenVan(k: Kaart): Koppeling[] {
+  return (k.koppelingen ??= []);
+}
+
 // ---------- onderdelen ----------
 
 /** Eén onderdeel van de kaart: klein kopje met daaronder de inhoud. */
-function Deel(p: { titel: string; children: ReactNode; open?: boolean; laatst?: boolean }) {
+function Deel(p: { titel: string; children: ReactNode; open?: boolean }) {
   return (
-    <div className={"wk-deel" + (p.laatst ? " wk-deel-laatst" : "")}>
+    <div className="wk-deel">
       <h5 className={"wk-l" + (p.open ? " wk-l-open" : "")}>{p.titel}</h5>
       {p.children}
     </div>
@@ -226,6 +248,140 @@ function Aanvullen({ items }: { items: string[] }) {
   );
 }
 
+/** Klein link-icoon (pijl uit een kader): dit document opent in een nieuw tabblad. */
+function LinkIcoon() {
+  return (
+    <svg className="wk-doc-icoon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path
+        d="M6.5 3.5H4a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 4 13.5h7a1.5 1.5 0 0 0 1.5-1.5V9.5M9 2.5h4.5V7M13.5 2.5 7.5 8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Klein bord-icoon (drie kolommen): de koppeling naar het Jira-bord met de status. */
+function BordIcoon() {
+  return (
+    <svg className="wk-doc-icoon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <rect x="1.5" y="2" width="3.4" height="12" rx="1" fill="currentColor" />
+      <rect x="6.3" y="2" width="3.4" height="8" rx="1" fill="currentColor" />
+      <rect x="11.1" y="2" width="3.4" height="10" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * Eén koppeling als chip. Met een http(s)-url een link (nieuw tabblad), zonder url
+ * gedempt: nooit een link zonder adres. Jira-koppelingen krijgen een bord-icoon en,
+ * met url, een gevulde chip zodat de status-link opvalt.
+ */
+function DocChip({ kop }: { kop: Koppeling }) {
+  const jira = isJira(kop.label);
+  const url = kop.url.trim();
+  const tekst = heeft(kop.label) ? kop.label.trim() : url;
+  const cls = "wk-doc" + (jira ? " wk-doc-jira" : "");
+  if (isLink(url)) {
+    return (
+      <a className={cls} href={url} target="_blank" rel="noopener noreferrer" title={url}>
+        {jira ? <BordIcoon /> : <LinkIcoon />}
+        <span className="wk-doc-t">{tekst}</span>
+        <span className="wk-sr"> (opent in een nieuw tabblad)</span>
+      </a>
+    );
+  }
+  return (
+    <span
+      className={cls + " wk-doc-leeg"}
+      title={url ? "Geen link: de url moet met http:// of https:// beginnen" : "Nog geen link"}
+    >
+      {jira && <BordIcoon />}
+      <span className="wk-doc-t">{tekst}</span>
+    </span>
+  );
+}
+
+/**
+ * Documenten en status: de koppelingen als chips en, als laatste in dezelfde rij, de
+ * link naar de tijdlijn (tijdlijn = href, of null als het anker er niet is).
+ */
+function Koppelingen({ kops, tijdlijn }: { kops: Koppeling[]; tijdlijn: string | null }) {
+  const zichtbaar = kops.filter((x) => heeft(x.label) || heeft(x.url));
+  return (
+    <ul className="wk-docs">
+      {zichtbaar.length === 0 && (
+        <li>
+          <Leeg tekst="Nog geen documenten gekoppeld" />
+        </li>
+      )}
+      {zichtbaar.map((x, i) => (
+        <li key={i}>
+          <DocChip kop={x} />
+        </li>
+      ))}
+      {tijdlijn && (
+        <li className="wk-docs-tl">
+          <a className="wk-link" href={tijdlijn}>
+            Planning in de tijdlijn <span aria-hidden="true">↓</span>
+          </a>
+        </li>
+      )}
+    </ul>
+  );
+}
+
+/** Bewerkmodus: per koppeling naam en url naast elkaar, met × en "+ koppeling". */
+function KoppelingenBewerken({ kops, zetK }: { kops: Koppeling[]; zetK: ZetKaart }) {
+  return (
+    <ul className="ok-lijst-edit">
+      {kops.map((x, i) => {
+        const url = x.url.trim();
+        const letOp = url !== "" && !isLink(url);
+        const hint = url === "" ? "link toevoegen" : letOp ? "Geen link: de url moet met http:// of https:// beginnen" : "";
+        return (
+          <li key={i} className="wk-doc-edit">
+            <div className="ok-rij">
+              <V
+                v={x.label}
+                on={(s) =>
+                  zetK((n) => {
+                    const kop = koppelingenVan(n)[i];
+                    if (kop) kop.label = s;
+                  })
+                }
+                edit
+                cls="wk-doc-label"
+                ph="Document, bijv. Plan van aanpak p. 10–11"
+              />
+              <V
+                v={x.url}
+                on={(s) =>
+                  zetK((n) => {
+                    const kop = koppelingenVan(n)[i];
+                    if (kop) kop.url = s;
+                  })
+                }
+                edit
+                cls="wk-doc-url"
+                ph="https://…"
+              />
+              <WegKnop titel="Koppeling verwijderen" on={() => zetK((n) => void koppelingenVan(n).splice(i, 1))} />
+            </div>
+            {hint && <p className={"wk-doc-hint" + (letOp ? " wk-doc-hint-let-op" : "")}>{hint}</p>}
+          </li>
+        );
+      })}
+      <li>
+        <PlusKnop label="+ koppeling" on={() => zetK((n) => void koppelingenVan(n).push({ label: "", url: "" }))} />
+      </li>
+    </ul>
+  );
+}
+
 // ---------- kaart ----------
 
 function WerkstroomKaart({
@@ -355,7 +511,7 @@ function WerkstroomKaart({
         {edit ? <DinPadBewerken pad={k.dinPad} zetK={zetK} /> : <DinPad pad={k.dinPad} />}
       </Deel>
 
-      <Deel titel="Nog aanvullen" open laatst>
+      <Deel titel="Nog aanvullen" open>
         {edit ? (
           <Lijst
             items={k.aanvullen}
@@ -366,12 +522,13 @@ function WerkstroomKaart({
         ) : (
           <Aanvullen items={k.aanvullen} />
         )}
-        {tijdlijn && (
-          <p className="wk-voet">
-            <a className="wk-link" href={"#tl-" + k.id}>
-              Planning in de tijdlijn <span aria-hidden="true">↓</span>
-            </a>
-          </p>
+      </Deel>
+
+      <Deel titel="Documenten en status">
+        {edit ? (
+          <KoppelingenBewerken kops={k.koppelingen ?? []} zetK={zetK} />
+        ) : (
+          <Koppelingen kops={k.koppelingen ?? []} tijdlijn={tijdlijn ? "#tl-" + k.id : null} />
         )}
       </Deel>
     </article>
@@ -443,7 +600,6 @@ export const WERKSTROOM_CSS = `
 .okd .wk-bron-l{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#64748b}
 @container wkkop (max-width:419px){.okd .wk-kop-r{flex-direction:column}.okd .wk-dom{max-width:none;justify-content:flex-start}}
 .okd .wk-deel{min-width:0;border-top:1px solid #edf1f5;padding-top:10px}
-.okd .wk-deel-laatst{display:flex;flex-direction:column}
 .okd .wk-l{font-size:9.5px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:7px}
 .okd .wk-l-open{color:#b45309}
 .okd .wk-leeg{font-size:12.5px;font-style:italic;line-height:1.45;color:#64748b}
@@ -467,10 +623,26 @@ export const WERKSTROOM_CSS = `
 .okd .wk-schakel-p{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 .okd .wk-open{display:flex;flex-wrap:wrap;gap:5px}
 .okd .wk-open > li{max-width:100%;font-size:11.5px;font-weight:600;line-height:1.35;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:7px;padding:3px 9px}
-.okd .wk-voet{margin-top:auto;padding-top:12px}
+.okd .wk-docs{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px}
+.okd .wk-docs > li{display:flex;max-width:100%;min-width:0}
+.okd .wk-doc{display:inline-flex;align-items:center;gap:5px;max-width:100%;min-width:0;font-size:11.5px;font-weight:600;line-height:1.35;padding:3px 9px;border-radius:7px;border:1px solid color-mix(in srgb,${CITO} 38%,#fff);background:#fff;color:${CITO};text-decoration:none}
+.okd .wk-doc-t{min-width:0}
+.okd .wk-doc-icoon{flex:none;width:11px;height:11px}
+.okd a.wk-doc:hover,.okd a.wk-doc:focus-visible{background:#eef3f9;border-color:${CITO}}
+.okd a.wk-doc:focus-visible{outline:2px solid #0066cc;outline-offset:2px}
+.okd a.wk-doc-jira{background:${CITO};border-color:${CITO};color:#fff}
+.okd a.wk-doc-jira:hover,.okd a.wk-doc-jira:focus-visible{background:#0066cc;border-color:#0066cc}
+.okd .wk-doc-leeg{border-style:dashed;border-color:#cbd5e1;background:#f8fafc;color:#64748b;font-weight:500}
+.okd .wk-docs-tl{margin-left:auto;padding-left:8px}
 .okd .wk-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:${CITO};text-decoration:none;border-radius:4px}
 .okd .wk-link:hover{text-decoration:underline;text-underline-offset:3px}
 .okd .wk-link:focus-visible{outline:2px solid #0066cc;outline-offset:2px}
+.okd .wk-doc-edit{container:wkdoc / inline-size;display:flex;flex-direction:column;gap:3px}
+.okd .wk-doc-edit .ok-in{min-width:0}
+.okd .ok-rij > .ok-in.wk-doc-url{flex:1.3}
+@container wkdoc (max-width:319px){.okd .wk-doc-edit .ok-rij{flex-wrap:wrap}.okd .ok-rij > .ok-in.wk-doc-label{flex:1 1 100%}}
+.okd .wk-doc-hint{font-size:10.5px;line-height:1.4;color:#64748b;padding-left:2px}
+.okd .wk-doc-hint-let-op{color:#b45309;font-weight:600}
 .okd .wk-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .okd .wk-veld{display:flex;align-items:center;gap:6px;min-width:0}
 .okd .wk-veld > .ok-in{flex:1;min-width:0}
