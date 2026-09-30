@@ -9,6 +9,7 @@
 
 import type { CSSProperties } from "react";
 import { V } from "@/components/bewerkbaar/velden";
+import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 
@@ -89,10 +90,11 @@ function Chips({ v }: { v: string }) {
   );
 }
 
+// Tekstcellen krijgen bronlinks; chips zijn werkstroom- en domeinnamen, geen bronnen.
 function Cel({ v, soort }: { v: string; soort: Soort }) {
   if (soort === "domeinen") return <DomeinChips v={v} />;
   if (soort === "chips") return <Chips v={v} />;
-  return <>{v}</>;
+  return <>{metBronlinks(v)}</>;
 }
 
 export default function MatrixBlok({ b, edit, zet }: LosBlokProps<"matrix">) {

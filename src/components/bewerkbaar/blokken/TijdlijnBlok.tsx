@@ -17,6 +17,7 @@ import type { CSSProperties } from "react";
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { Keuze, PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
+import { metBronlinks } from "@/components/bewerkbaar/bron-context";
 
 type Tijdlijn = BlokVan<"tijdlijn">;
 type Groep = Tijdlijn["groepen"][number];
@@ -536,7 +537,7 @@ export default function TijdlijnBlok({ b, edit, zet, ankers }: LosBlokProps<"tij
                               />
                             </div>
                           ) : (
-                            rij.activiteit
+                            metBronlinks(rij.activiteit)
                           )}
                         </div>
 
