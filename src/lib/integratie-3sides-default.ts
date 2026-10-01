@@ -869,11 +869,12 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         TIJDLIJN,
         lijst(
           [
+            "Verstreken is niet hetzelfde als niet geleverd. Vier onderdelen zijn over tijd volgens de tijdlijn: het samenvoegen van de Klant in Beeld-klantreizen (augustus) en de analyse van data en applicaties, de visie en consequenties en het meetmodel (september). De tijdlijn kent geen enkel 'Afgerond'; 3sides omschrijft die kolom zelf als 'gestart, gepauzeerd of nog niet gestart' (statuspagina). Gecontroleerd in de documenten: het samenvoegen meldt 3sides als gedaan (statuspagina en overleg 29-09; in Jira staat één blueprint-item op Done, plan van aanpak p. 5), daar is de status vermoedelijk niet bijgewerkt. Het meetmodel ligt er als werkdocument (meetinstrument, 28-09), de validatie met Meryl en het MT staat open. De analyse van data en applicaties en de visie zijn ook volgens 3sides nog niet af (statuspagina: 'work in progress', 'nog niet alle informatie'). Vraag aan 3sides: per onderdeel 'Afgerond' zetten zodra het resultaat er is, en zeggen wat de oplevering is.",
             "0-meting komt later dan gepland: ons stappenplan en het meetinstrument noemen Q3, het plan van aanpak Q3/Q4; de tijdlijn zet de oplevering in oktober, en de 0-meting is nog niet gestart. Het ophalen van de data (september en oktober) staat op rood. Gevolg: de startwaarden van de 14 baten-KPI's komen op zijn vroegst in oktober; de doelwaarden volgen pas in de vervolgsessie daarna.",
             "Adoptie: drie documenten, drie planningen. Stappenplan: pilot in één sector in Q3 2026, de tweede in Q4, de derde in Q1 2027. Plan van aanpak: playbooks in Q4 2026, pilots in Q1 2027. Tijdlijn: eerste sector januari en februari 2027, tweede februari en maart, derde april en mei; playbook-workshops van december 2026 tot mei 2027. Te besluiten: welke planning geldt.",
             "CRM: richting en keuze zijn twee stappen. De tijdlijn levert in november een advies over de CRM-richting; het besluit over het CRM valt volgens het stappenplan rond april 2027. Dat past, zolang het advies van november geen besluit wordt.",
             "Klantreizen: een onderdeel levert eerder op dan waar het op bouwt. De vertaling van de klantreis naar CRM-input en funnelprocessen levert op in november, maar de blueprint-onderdelen waarop die vertaling bouwt (proces, CRM-gebruik en KPI's; rollen, gedrag en competenties) leveren pas in december op. Vraag aan 3sides: klopt die volgorde?",
-            "Open einden: vier onderdelen hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs en adoptieteam) en twee geen startmaand (de 0-meting en de vertaling van de klantreis naar CRM-input). Vraag aan 3sides om die maanden in te vullen.",
+            "Open einden: vier onderdelen hebben geen oplevermaand (interventies, communicatieplan, adoptieframework toetsen, ambassadeurs en adoptieteam) en twee geen startmaand (de 0-meting en de vertaling van de klantreis naar CRM-input). Vraag aan 3sides om die maanden in te vullen. De tussenmeting staat op 'Loopt' terwijl de start in januari 2027 ligt (in Jira: To do); dat telt nu mee als lopend.",
           ],
           "Wat opvalt in de planning"
         ),
@@ -911,8 +912,9 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             {
               anker: "klantreizen",
               naam: "Klantreizen",
-              geleverd: ["Klant in Beeld-klantreizen samengevoegd", "Blueprint draft: 6 fasen, 11 subfasen, kernwaarden en kernprincipes", "Eerste KPI's per klantfase"],
+              geleverd: ["Klant in Beeld-klantreizen samengevoegd tot één blueprint (volgens 3sides gedaan: statuspagina en overleg 29-09; in de tijdlijn nog 'Loopt')", "Blueprint draft: 6 fasen, 11 subfasen, kernwaarden en kernprincipes", "Eerste KPI's per klantfase"],
               nodig: [
+                { tekst: "Bevestigen dat het samenvoegen van de Klant in Beeld-klantreizen af is, het resultaat delen en het onderdeel in de tijdlijn op 'Afgerond' zetten (statuspagina en overleg 29-09 zeggen gedaan; Jira: één blueprint-item op Done; tijdlijn: Loopt)", klaar: false },
                 { tekst: "Datum voor de validatie van de blueprint met product- en sectormanagers (Q4)", klaar: false },
                 { tekst: "Startmaand van de vertaling naar CRM-input en funnelprocessen", klaar: false },
                 { tekst: "Meetkader van 55 KPI's: in de 0-meting alleen wat de 14 baten-KPI's en de vijf kernprincipe-scores voedt, de rest na de 0-meting (voorstel, deel 7)", klaar: false },
@@ -1138,9 +1140,9 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ]),
           kaart("2 · Levert 3sides op volgens planning?", "tempo en betrouwbaarheid", [
             ["Wat we toetsen", "Komen de onderdelen uit de tijdlijn op tijd af, en klopt de planning met het plan van aanpak en ons stappenplan?"],
-            ["Wat we zien", "Van de 28 onderdelen staat er nog geen op afgerond (tijdlijn, stand 28-09). 'Klant in Beeld-klantreizen samenvoegen' had in augustus klaar moeten zijn; drie onderdelen hadden in september klaar moeten zijn (meetmodel, analyse van data en applicaties, visie en consequenties). De 0-meting is nog niet gestart (oplevering oktober), en de pilots schuiven van Q3 2026 (stappenplan) naar januari 2027 (tijdlijn). Vier onderdelen hebben geen oplevermaand (deel 5)."],
+            ["Wat we zien", "Van de 28 onderdelen staat er nog geen op afgerond (tijdlijn, stand 28-09); 3sides gebruikt die kolom voor 'gestart, gepauzeerd of nog niet gestart' (statuspagina), dus 'niet afgerond' in de tijdlijn is niet hetzelfde als 'niet geleverd'. Vier onderdelen zijn over tijd. Het samenvoegen van de Klant in Beeld-klantreizen (augustus) meldt 3sides zelf als gedaan (statuspagina en overleg 29-09; Jira: één blueprint-item op Done): de status is vermoedelijk niet bijgewerkt. Het meetmodel (september) ligt er als werkdocument; de validatie met Meryl en het MT staat open. De analyse van data en applicaties en de visie (september) zijn ook volgens 3sides nog niet af. De 0-meting is nog niet gestart (oplevering oktober), en de pilots schuiven van Q3 2026 (stappenplan) naar januari 2027 (tijdlijn). Vier onderdelen hebben geen oplevermaand (deel 5)."],
             ["Eerste beeld", "Deels: het werk loopt, de planning schuift (voorstel)", true],
-            ["Wat we vragen", "Eén planning voor 0-meting en pilots, de open start- en opleverdata invullen, en per onderdeel bijhouden wanneer het af is."],
+            ["Wat we vragen", "Eén planning voor 0-meting en pilots, de open start- en opleverdata invullen, per onderdeel 'Afgerond' zetten zodra het resultaat er is (nu staat niets op afgerond, ook het samenvoegen van de klantreizen niet) en per onderdeel zeggen wat de oplevering is."],
             ["Ons oordeel (intern)", "In te vullen"],
           ]),
           kaart("3 · Werkt 3sides samen met Cito-mensen?", "werkwijze en draagvlak", [
@@ -1152,7 +1154,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           ]),
           kaart("4 · Past de inzet bij wat er ligt?", "uren tegenover opbrengst", [
             ["Wat we toetsen", "Staan de uren die 3sides maakt in verhouding tot wat er na drie maanden (juli tot en met september) is opgeleverd?"],
-            ["Wat we zien", "Uren volgens de statuspagina: juli 186,5, augustus 80 en september 226,75 (tot 25-09), van 232 per maand; 197,5 uur is doorgeschoven. Opgeleverd: per werkstroom een eerste versie van het plan van aanpak, de tijdlijn en werkdocumenten (blueprint, meetinstrument, adoptieframework, praatplaat funnel, praatplaat proces, datapuntenlijst); nog niets is vastgesteld."],
+            ["Wat we zien", "Uren volgens de statuspagina: juli 186,5, augustus 80 en september 226,75 (tot 25-09), van 232 per maand; 197,5 uur is doorgeschoven. Opgeleverd: per werkstroom een eerste versie van het plan van aanpak, de tijdlijn en werkdocumenten (blueprint, meetinstrument, adoptieframework, praatplaat funnel, praatplaat proces, datapuntenlijst); nog niets is vastgesteld. Buiten de tijdlijn: kick-off voor het MT (9 juli), presentatie op de town hall (22 september) en de evaluatie van Klant in Beeld (13 respondenten) (statuspagina)."],
             ["Eerste beeld", "Te bepalen (intern)", true],
             ["Wat we vragen", "Per werkstroom de uren naast de opleveringen in de wekelijkse rapportage, en wat de 197,5 doorgeschoven uren gaan opleveren."],
             ["Ons oordeel (intern)", "In te vullen"],
@@ -1171,7 +1173,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           [
             "1 · Eén model, één taal: in het meetmodel 'Vermogen: kunnen en doen' en 'Vermogens (Kunnen)' gebruiken, en in alle stukken de namen van de werkstromen die we maandag vaststellen (voorstel: die van het organigram); NPS meten we organisatiebreed (besloten): met de andere organisatiebrede KPI's op doelniveau, als resultante (voorstel; deel 3 en 6).",
             "2 · Plan van aanpak per werkstroom aanvullen: output-KPI per resultaat en de capaciteit die 3sides van Cito nodig heeft; bij adoptie een scope-paragraaf binnen de afbakening van het programma; de eigenaar die Cito aanwijst erin opnemen. 3sides vult aan, Cito toetst en stelt vast (deel 4).",
-            "3 · Planning: de planning voor 0-meting en pilots die we intern vaststellen in de tijdlijn verwerken, de open start- en opleverdata invullen, en de volgorde van de klantreisvertaling controleren (deel 5 en 7).",
+            "3 · Planning: de planning voor 0-meting en pilots die we intern vaststellen in de tijdlijn verwerken, de open start- en opleverdata invullen, de volgorde van de klantreisvertaling controleren, en per onderdeel 'Afgerond' zetten zodra het resultaat er is, te beginnen met het samenvoegen van de Klant in Beeld-klantreizen (deel 5 en 7).",
             "4 · Meetkader focussen: in de 0-meting eerst de 14 baten-KPI's, de vijf kernprincipe-scores en de stand per domein; melden dat er KPI's bij komen op vermogensniveau (na de 0-meting) en per werkstroom (output); meetprotocol en een voorstel voor de eigenaar per datapunt (deel 6 en 7).",
             "5 · Werkwijze: per werkstroom een projectgroep met Cito-mensen, het Jira-bord delen met de bredere groep, en keuzes onderbouwen op één A4 (overleg 29-09).",
           ],
