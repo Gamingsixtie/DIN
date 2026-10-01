@@ -1018,6 +1018,28 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     legenda: z.string().optional().default(""),
   }),
   z.object({ type: z.literal("kaarten"), kaarten: z.array(DocKaartSchema) }),
+  // Evaluatie (stap 11, deel 8): per kader een inklapbare kaart met een oordeel dat je in
+  // weergave kiest (keuzelijstje), het eerste beeld als chip, en de onderbouwing in
+  // secties (label + tekst). Het oordeel en de notitie zijn levende gegevens (doc-versie.ts).
+  z.object({
+    type: z.literal("evaluatie"),
+    titel: z.string().optional().default(""),
+    intro: z.string().optional().default(""),
+    kaders: z.array(
+      z.object({
+        id: z.string(),
+        titel: z.string(),
+        ondertitel: z.string().optional().default(""),
+        vraag: z.string().optional().default(""), // wat we toetsen
+        beeld: z.string().optional().default(""), // eerste beeld (voorstel), kort
+        actieBij: z.string().optional().default(""), // 3sides · Cito · beide
+        secties: z.array(z.object({ label: z.string(), tekst: z.string() })),
+        oordeel: z.string().optional().default(""), // ons oordeel (intern): gekozen in weergave
+        notitie: z.string().optional().default(""), // toelichting bij het oordeel, in weergave
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
   z.object({
     type: z.literal("lagen"),
     kolommen: z.array(z.string()),

@@ -33,6 +33,8 @@ import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/
 import StappenBlok, { STAPPEN_CSS } from "@/components/bewerkbaar/blokken/StappenBlok";
 import ModelVergelijkingBlok, { MODELVERGELIJKING_CSS } from "@/components/bewerkbaar/blokken/ModelVergelijkingBlok";
 import Actiebord, { ACTIEBORD_CSS } from "@/components/bewerkbaar/blokken/Actiebord";
+import EvaluatieBlok from "@/components/bewerkbaar/blokken/EvaluatieBlok";
+import { EVALUATIE_CSS } from "@/components/bewerkbaar/blokken/evaluatie-stijl";
 import { LEADS_CSS, Leads } from "@/components/bewerkbaar/leads";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 
@@ -164,6 +166,7 @@ const BLOK_NAMEN: Record<DocBlok["type"], string> = {
   stroomplaat: "Stroomplaat",
   voortgangsbord: "Voortgangsbord",
   modelvergelijking: "Modelvergelijking",
+  evaluatie: "Evaluatiebord",
 };
 
 /** Bloktypen die je in een sectie kunt toevoegen ("+ blok"). */
@@ -1504,6 +1507,8 @@ const Sectie = memo(function Sectie(p: {
         return <VoortgangsbordBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "voortgangsbord")} ankers={ankers} />;
       case "matrix":
         return <MatrixBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "matrix")} ankers={ankers} />;
+      case "evaluatie":
+        return <EvaluatieBlok key={bi} b={b} edit={edit} zet={blokZet(bi, "evaluatie")} ankers={ankers} />;
       default:
         return geenWeergave(b);
     }
@@ -1703,7 +1708,7 @@ export default function BewerkbaarDocument({
     <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
     <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + LEADS_CSS + LEESBAAR_CSS}</style>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + EVALUATIE_CSS + LEADS_CSS + LEESBAAR_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (

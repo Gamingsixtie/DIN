@@ -42,6 +42,7 @@ const LEVEND: Partial<Record<DocBlok["type"], string>> = {
   voortgangsbord: "klaar", // vinkjes bij "nog nodig" en "programmabreed"
   tijdlijn: "voortgang", // Loopt, Niet gestart, Afgerond per onderdeel
   werkstromen: "url", // ingevulde links bij de koppelingen van de werkstroomkaarten
+  evaluatie: "oordeel", // ons oordeel per kader, gekozen in weergave
 };
 
 /** Kopie van een JSON-waarde zonder de sleutel `weg`, op elke diepte. */
@@ -66,7 +67,8 @@ function alleenTekst(doc: Partial<BewerkbaarDocument>): unknown {
         ...s,
         blokken: s.blokken.map((b) => {
           const weg = b && LEVEND[b.type];
-          return weg ? zonderSleutel(b, weg) : b;
+          const zonder = weg ? zonderSleutel(b, weg) : b;
+          return b && b.type === "evaluatie" ? zonderSleutel(zonder, "notitie") : zonder;
         }),
       };
     });
@@ -214,6 +216,10 @@ export function overnemen(
     for (const k of b.kaarten ?? [])
       for (const kop of k.koppelingen ?? []) links.zet(sleutel(k.id) + "\n" + sleutel(kop.label), sleutel(kop.url));
 
+  const oordelen = new Rij<{ oordeel: string; notitie: string }>();
+  for (const b of blokkenVan(oud, "evaluatie"))
+    for (const k of b.kaders ?? []) oordelen.zet(sleutel(k.id), { oordeel: sleutel(k.oordeel), notitie: sleutel(k.notitie) });
+
   for (const b of blokkenVan(doc, "voortgangsbord")) {
     for (const w of b.werkstromen)
       for (const x of w.nodig) if (vinkjes.pak(sleutel(w.anker) + "\n" + sleutel(x.tekst))) x.klaar = true;
@@ -231,6 +237,13 @@ export function overnemen(
         const url = links.pak(sleutel(k.id) + "\n" + sleutel(kop.label));
         if (url) kop.url = url;
       }
+
+  for (const b of blokkenVan(doc, "evaluatie"))
+    for (const k of b.kaders) {
+      const o = oordelen.pak(sleutel(k.id));
+      if (o?.oordeel) k.oordeel = o.oordeel;
+      if (o?.notitie) k.notitie = o.notitie;
+    }
 
   doc.basis = vingerafdruk(nieuw);
   return doc;
