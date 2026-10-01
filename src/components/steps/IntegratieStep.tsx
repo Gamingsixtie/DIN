@@ -34,6 +34,8 @@ import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
 import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/bewerkbaar/bron-context";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
+import { OpmerkingenProvider, OpmerkingenOverzicht } from "@/components/bewerkbaar/Opmerkingen";
+import DocumentenTab from "@/components/steps/DocumentenTab";
 import { DOC_CSS, KNOP, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
@@ -62,9 +64,10 @@ const DOCUMENT_TABBLADEN = [
 type Tabblad = (typeof DOCUMENT_TABBLADEN)[number];
 
 const VOORTGANG_TAB = { id: "voortgang", label: "Voortgang" } as const;
+const DOCUMENTEN_TAB = { id: "documenten", label: "Documenten" } as const;
 
 /** Alle tabbladen in volgorde; het voortgangsbord is geen document maar een uitsnede van de analyse. */
-const TABBLADEN: readonly (Tabblad | typeof VOORTGANG_TAB)[] = [...DOCUMENT_TABBLADEN, VOORTGANG_TAB];
+const TABBLADEN: readonly (Tabblad | typeof VOORTGANG_TAB | typeof DOCUMENTEN_TAB)[] = [...DOCUMENT_TABBLADEN, VOORTGANG_TAB, DOCUMENTEN_TAB];
 
 const ANALYSE_TAB = 0;
 
@@ -156,8 +159,12 @@ export default function IntegratieStep() {
       <BronProvider documentenBasis={documentenBasis} jira={jira} naslagHier={tab.id === "kern"}>
         {tab.id === "voortgang" ? (
           <VoortgangTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} jira={jira} />
+        ) : tab.id === "documenten" ? (
+          <DocumentenTab />
         ) : (
-          <DocumentTab key={tab.id} tab={tab} />
+          <OpmerkingenProvider document={tab.sleutel}>
+            <DocumentTab key={tab.id} tab={tab} />
+          </OpmerkingenProvider>
         )}
       </BronProvider>
     </div>
@@ -421,6 +428,7 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
         onBewerk={bewerkSectie}
         onChange={wijzig}
       />
+      {!bezig && <OpmerkingenOverzicht secties={opgeslagen.secties.map((s) => ({ id: s.id, titel: s.titel }))} />}
     </div>
   );
 }

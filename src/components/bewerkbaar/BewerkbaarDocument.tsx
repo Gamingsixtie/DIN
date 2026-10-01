@@ -36,6 +36,7 @@ import Actiebord, { ACTIEBORD_CSS } from "@/components/bewerkbaar/blokken/Actieb
 import EvaluatieBlok from "@/components/bewerkbaar/blokken/EvaluatieBlok";
 import { EVALUATIE_CSS } from "@/components/bewerkbaar/blokken/evaluatie-stijl";
 import { LEADS_CSS, Leads } from "@/components/bewerkbaar/leads";
+import { BlokMetOpmerkingen, OPMERKINGEN_CSS } from "@/components/bewerkbaar/Opmerkingen";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
@@ -168,6 +169,13 @@ const BLOK_NAMEN: Record<DocBlok["type"], string> = {
   modelvergelijking: "Modelvergelijking",
   evaluatie: "Evaluatiebord",
 };
+
+/** Korte naam van een blok voor een opmerking: soort plus titel, als die er is ("Tabel: Geleverd?"). */
+function blokNaam(b: DocBlok): string {
+  const soort = BLOK_NAMEN[b.type] ?? b.type;
+  const titel = "titel" in b && typeof b.titel === "string" ? b.titel.trim() : "";
+  return titel ? `${soort}: ${titel.length > 60 ? titel.slice(0, 58).trimEnd() + "…" : titel}` : soort;
+}
 
 /** Bloktypen die je in een sectie kunt toevoegen ("+ blok"). */
 type NieuwSoort = "tekst" | "lijst" | "tabel" | "callout";
@@ -1601,7 +1609,10 @@ const Sectie = memo(function Sectie(p: {
               {blok(b, bi)}
             </div>
           ) : (
-            blok(b, bi)
+            // weergave: elk blok kan een opmerking krijgen, zoals in Word (knop rechtsboven)
+            <BlokMetOpmerkingen key={bi} sectie={s.id} blok={bi} naam={blokNaam(b)}>
+              {blok(b, bi)}
+            </BlokMetOpmerkingen>
           )
         )}
         {edit && (
@@ -1707,8 +1718,8 @@ export default function BewerkbaarDocument({
     <DocContext.Provider value={doc}>
     <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
-    <div className="ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6">
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + EVALUATIE_CSS + LEADS_CSS + LEESBAAR_CSS}</style>
+    <div className={"ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6" + (edit ? "" : " opm-ruimte")}>
+      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + EVALUATIE_CSS + LEADS_CSS + OPMERKINGEN_CSS + LEESBAAR_CSS}</style>
 
       <header className="ok-top okd-top">
         {(edit || doc.status) && (

@@ -157,7 +157,7 @@ function SessionFlow() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto p-3 sm:p-6">
+      <main className={"mx-auto p-3 sm:p-6 " + (currentStep === "integratie" ? "max-w-[1400px]" : "max-w-6xl")}>
         <div className="bg-white rounded-xl border border-cito-border p-3 sm:p-8">
           <h2 className="text-2xl font-bold text-cito-blue mb-6">
             {APP_STEPS.find((s) => s.key === currentStep)?.label}

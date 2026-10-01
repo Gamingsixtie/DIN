@@ -1391,6 +1391,40 @@ export const GezamenlijkRasciItemSchema = z.object({
 // DINSession schema
 // ============================================================
 
+export const SessieDocumentSchema = z.object({
+  id: z.string(),
+  titel: z.string(),
+  bestandsnaam: z.string(),
+  /** pad in de bucket: <sessie-id>/<id>-<bestandsnaam> */
+  pad: z.string(),
+  url: z.string(),
+  grootte: z.number().optional(),
+  type: z.string().optional().default(""),
+  door: z.string().optional().default(""),
+  datum: z.string(), // ISO
+  /** waar het bij hoort: werkstroom, deel of "programmabreed" */
+  hoortBij: z.string().optional().default(""),
+  opmerking: z.string().optional().default(""),
+});
+
+export const OpmerkingSchema = z.object({
+  id: z.string(),
+  /** sleutel van het document in session.documenten, bijv. "integratie-3sides" */
+  document: z.string(),
+  sectie: z.string(), // sectie-id
+  blok: z.number().int(), // index van het blok in de sectie
+  /** korte naam van het blok zoals getoond (bijv. "Tabel: Geleverd?") */
+  bij: z.string().optional().default(""),
+  tekst: z.string(),
+  door: z.string().optional().default(""),
+  datum: z.string(), // ISO
+  afgehandeld: z.boolean().optional().default(false),
+  antwoorden: z
+    .array(z.object({ id: z.string(), tekst: z.string(), door: z.string().optional().default(""), datum: z.string() }))
+    .optional()
+    .default([]),
+});
+
 export const DINSessionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1448,6 +1482,12 @@ export const DINSessionSchema = z.object({
     })
     .partial()
     .optional(),
+  // Door het team geüploade documenten (stap 11, tabblad Documenten): het bestand staat in
+  // Supabase Storage (bucket "sessie-documenten"), hier alleen de gegevens erover.
+  sessieDocumenten: z.array(SessieDocumentSchema).optional(),
+  // Opmerkingen bij een specifiek blok van een bewerkbaar document, zoals in Word:
+  // gekoppeld aan document (sleutel), sectie en blok.
+  opmerkingen: z.array(OpmerkingSchema).optional(),
 });
 
 // ============================================================
@@ -1802,6 +1842,8 @@ export type CrossAnalyseSectorOverlapItem = z.infer<typeof CrossAnalyseSectorOve
 export type CrossAnalyseExternItem = z.infer<typeof CrossAnalyseExternItemSchema>;
 export type CrossAnalyseResult = z.infer<typeof CrossAnalyseResultSchema>;
 export type DINSession = z.infer<typeof DINSessionSchema>;
+export type SessieDocument = z.infer<typeof SessieDocumentSchema>;
+export type Opmerking = z.infer<typeof OpmerkingSchema>;
 
 export type AIBenefit = z.infer<typeof AIBenefitSchema>;
 export type AICapability = z.infer<typeof AICapabilitySchema>;
