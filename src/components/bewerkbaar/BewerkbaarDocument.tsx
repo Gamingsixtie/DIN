@@ -79,11 +79,13 @@ function laagKleur(kleur: string): string {
  * als groen bij een ontkenning ("ligt er nog niet").
  */
 function chipSoort(v: string): "groen" | "blauw" | "amber" | "grijs" {
-  const t = v.toLowerCase();
+  const t = v.toLowerCase().trim();
   const bevat = (...woorden: string[]) => woorden.some((w) => t.includes(w));
   const ligtEr = t.includes("ligt er") && !/\bniet\b/.test(t);
-  if (bevat("sluit aan", "staat erin") || ligtEr) return "groen";
-  if (bevat("aanvulling", "deels")) return "blauw";
+  // oordeel "geleverd?": ja (groen), waarschijnlijk (blauw), nee of nee, deels (amber), niet gestart (grijs)
+  if (/^ja\b/.test(t) || bevat("sluit aan", "staat erin") || ligtEr) return "groen";
+  if (/^nee\b/.test(t)) return "amber";
+  if (bevat("waarschijnlijk", "aanvulling", "deels")) return "blauw";
   if (bevat("verschil", "ontbreekt", "aanvullen")) return "amber";
   return "grijs";
 }
