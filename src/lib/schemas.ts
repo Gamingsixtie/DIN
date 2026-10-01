@@ -13,6 +13,7 @@ export const EffortDomainSchema = z.enum([
   "processen",
   "data_systemen",
   "cultuur",
+  "overig",
 ]);
 
 /** Normaliseert AI-varianten van domeinnamen naar de juiste enum waarde */
@@ -28,6 +29,10 @@ function normalizeDomain(val: unknown): string | undefined {
     data_en_systemen: "data_systemen",
     datasystemen: "data_systemen",
     cultuur: "cultuur",
+    overig: "overig",
+    overige: "overig",
+    onvoorzien: "overig",
+    programma_breed: "overig",
   };
   return map[lower] ?? undefined;
 }
@@ -67,6 +72,10 @@ export const AppStepSchema = z.enum([
   "governance",
   "prioritering",
   "export",
+  "berekeningen",
+  "kpi-meetbaarheid",
+  "organigram",
+  "integratie",
 ]);
 
 // ============================================================
@@ -81,12 +90,22 @@ export const BatenProfielSchema = z.object({
   targetValue: z.string(),
   meetmethode: z.string().optional(),
   measurementMoment: z.string().optional(),
+  // KPI-sessie (stap 9): gefaseerde horizon + afstem-status
+  horizon: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const VermogensProfielSchema = z.object({
   eigenaar: z.string(),
   huidieSituatie: z.string(),
   gewensteSituatie: z.string(),
+  // KPI-sessie (stap 9): meetvariabelen voor het vermogen (optioneel, achterwaarts compatibel)
+  indicator: z.string().optional(),
+  meetmethode: z.string().optional(),
+  currentValue: z.string().optional(),
+  targetValue: z.string().optional(),
+  measurementMoment: z.string().optional(),
+  kpiStatus: z.enum(["concept", "afgestemd"]).optional(),
 });
 
 export const InspanningsDossierSchema = z.object({
@@ -376,7 +395,7 @@ export const BusinessCaseStateSchema = z.object({
 export const SubEffortAdviesSchema = z.object({
   // Phase 17 — bestaande velden (NIET wijzigen)
   groepId: z.string(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   actie: z.enum(["combineren", "apart_houden"]),
   items: z.array(z.string()),
   reden: z.string(),
@@ -535,7 +554,7 @@ export const Stap4ResultSchema = z.object({
     context: z.string().optional(),
   })).optional().default([]),
   citobreedInzicht: z.array(z.object({
-    domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+    domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
     titel: z.string(),
     beschrijving: z.string(),
     onderbouwing: z.string(),
@@ -607,7 +626,7 @@ export const PlanningVoorstelSchema = z.object({
 export const InspanningBegrotingSchema = z.object({
   inspanningTitel: z.string(),
   groepId: z.string().optional(),
-  domein: z.enum(["mens", "processen", "data_systemen", "cultuur"]),
+  domein: z.enum(["mens", "processen", "data_systemen", "cultuur", "overig"]),
   totaalEuro: z.number(),
   percentageTotaal: z.number(),
   motivatie: z.string(),
@@ -651,6 +670,12 @@ export const BegrotingAdviesSchema = z.object({
   }),
   vergelijking: z.string().optional().default(""),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de begroting-advies route bij elke succesvolle
+  // generatie via de huidige prompt (regel 10: geen absolute jaartallen).
+  // Als true: motivatie/samenvatting/prioriteitAdvies zijn scenario-bewust
+  // hergeschreven en de "tekst-coherentie"-banner in §4.1 verdwijnt. Sessies
+  // van vóór deze flag krijgen geen vlag = banner blijft tonen.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Interne uren (stap 7) — per domein × jaar, gekoppeld aan stap 6 scenario's
@@ -709,6 +734,11 @@ export const Stap7InterneUrenSchema = z.object({
     advies: InterneUrenScenarioSchema.nullable().optional(),
   }),
   partialFailures: z.array(z.string()).optional().default([]),
+  // Vlag die wordt gezet door de interne-uren-advies route bij elke
+  // succesvolle generatie via de huidige prompt. Als true: samenvatting
+  // (top-level) + motivatie (per domein) zijn scenario-bewust hergeschreven
+  // en de "tekst-coherentie"-banner in §4.2 verdwijnt.
+  tekstenSchoon: z.boolean().optional(),
 });
 
 // Totaaloverzicht (stap 8) — combineert stap 6 + stap 7
@@ -725,6 +755,26 @@ export const ScenarioTotaalSchema = z.object({
   totaalGeraamd: z.number(),
 });
 
+// Notitie-velden in Stap 8 die de gebruiker (programmamanager) noteert
+// als feedback voor Claude tussen sessies door. Per scenario en globaal.
+// Niet bedoeld voor stakeholders — verschijnt niet in export.
+export const ClaudeNotitieSchema = z.object({
+  id: z.string(),
+  tekst: z.string(),
+  createdAt: z.string(),
+  status: z.enum(["open", "opgepakt"]).default("open"),
+});
+
+export const Stap8ClaudeNotesSchema = z.object({
+  globaal: z.array(ClaudeNotitieSchema).optional().default([]),
+  perScenario: z.object({
+    optimaal: z.array(ClaudeNotitieSchema).optional().default([]),
+    plus20: z.array(ClaudeNotitieSchema).optional().default([]),
+    min20: z.array(ClaudeNotitieSchema).optional().default([]),
+    advies: z.array(ClaudeNotitieSchema).optional().default([]),
+  }).optional(),
+});
+
 export const Stap8TotaaloverzichtSchema = z.object({
   scenarios: z.object({
     optimaal: ScenarioTotaalSchema.nullable(),
@@ -733,6 +783,13 @@ export const Stap8TotaaloverzichtSchema = z.object({
     advies: ScenarioTotaalSchema.nullable().optional(),
   }),
   actiefScenario: z.enum(["optimaal", "plus20", "min20", "advies"]).optional(),
+  // Vrije tekst-notitie van programmamanager na stuurgroep-overleg.
+  // Wordt boven §4.3 in de export gerenderd zodat stuurgroep-input
+  // expliciet meegenomen wordt zonder dat er getallen herrekend hoeven worden.
+  stuurgroepNotitie: z.string().optional(),
+  // Privé feedback-notities van programmamanager voor Claude.
+  // Niet voor stakeholders, niet in export.
+  claudeNotes: Stap8ClaudeNotesSchema.optional(),
 });
 
 export const CrossAnalyseWizardStateSchema = z.object({
@@ -769,6 +826,10 @@ export const ProgrammaorganisatieSchema = z.object({
   programmamanager: ProgrammaRolSchema.optional(),
   kerngroep: z.array(ProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(ProgrammaRolSchema).optional().default([]),
+  // Adviesgroep: intern, gezaghebbend/inhoudelijk advies aan opdrachtgever + stuurgroep,
+  // GEEN besluitmandaat. Onderscheiden van de klankbordgroep (externe klant-/buitenwereld-
+  // reflectie). Beide adviseren, maar vanuit een andere positie.
+  adviesgroep: z.array(ProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(ProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(ProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),
@@ -807,6 +868,437 @@ export const ClusterRasciSchema = z.object({
   overrides: z.array(RasciOverrideSchema).optional().default([]),
 });
 
+// ============================================================
+// Stap 10 — Organigram (korte versie, per kop en per naam bewerkbaar)
+// Standaardinhoud staat in src/lib/organigram-default.ts; de sessie bewaart
+// alleen wat de gebruiker heeft aangepast (volledig object bij opslaan).
+// ============================================================
+
+export const OrganigramSectieSchema = z.object({
+  titel: z.string(),
+  intro: z.string().optional().default(""),
+});
+
+export const OrganigramPersoonSchema = z.object({
+  naam: z.string(),
+  rol: z.string().optional().default(""),
+  toelichting: z.string().optional().default(""),
+});
+
+export const OrganigramWerkstroomSchema = z.object({
+  id: z.string(),
+  naam: z.string(),
+  citoLead: z.string().optional().default(""),
+  citoLeadFunctie: z.string().optional().default(""),
+  sidesLead: z.string().optional().default(""),
+  domeineigenaar: z.string().optional().default(""),
+  landtIn: z.string().optional().default(""),
+  // Inhoudelijke kaders per werkstroom: altijd de programma-architect
+  kaders: z.string().optional().default(""),
+  resultaat: z.string().optional().default(""),
+  outputKpi: z.string().optional().default(""),
+  planVanAanpak: z.string().optional().default(""),
+});
+
+export const OrganigramRijSchema = z.object({
+  label: z.string(),
+  cellen: z.array(z.string()),
+});
+
+export const OrganigramSchema = z.object({
+  secties: z.object({
+    organigram: OrganigramSectieSchema,
+    rollen: OrganigramSectieSchema,
+    werkstromen: OrganigramSectieSchema,
+    kpi: OrganigramSectieSchema,
+    rasci: OrganigramSectieSchema,
+    meeting: OrganigramSectieSchema,
+  }),
+  begrippen: z.array(z.string()),
+  sponsorgroep: z.string(),
+  programmaEigenaar: OrganigramPersoonSchema,
+  programmamanager: OrganigramPersoonSchema,
+  architect: OrganigramPersoonSchema,
+  pmToelichting: z.string(),
+  overlegritme: z.array(z.object({ naam: z.string(), ritme: z.string() })),
+  werkstromen: z.array(OrganigramWerkstroomSchema),
+  domeinen: z.array(z.object({ domein: z.string(), eigenaar: z.string() })),
+  staandeOrganisatie: z.string(),
+  stuurgroep: z.array(z.object({ naam: z.string(), rol: z.string() })),
+  stuurgroepNoot: z.string(),
+  hierarchie: z.string(),
+  rollenKolommen: z.array(z.string()),
+  rollenRijen: z.array(OrganigramRijSchema),
+  rollenLegenda: z.string(),
+  werkstromenLegenda: z.string(),
+  kpiKolommen: z.array(z.string()),
+  kpiRijen: z.array(OrganigramRijSchema),
+  rasciKolommen: z.array(z.string()),
+  rasciRijen: z.array(OrganigramRijSchema),
+  rasciLegenda: z.string(),
+  meeting: z.array(z.string()),
+  advies: z.array(z.string()),
+  openPunten: z.array(z.string()),
+  bronnen: z.string(),
+});
+
+// ============================================================
+// Bewerkbaar document (generiek) — o.a. stap 11 "Programma × 3sides".
+// Standaardinhoud per document staat in src/lib/*-default.ts; de sessie
+// bewaart onder session.documenten[<sleutel>] wat de gebruiker aanpaste.
+// ============================================================
+
+// accent = regel uitlichten (vet, amber): wat nog gedaan moet worden
+export const DocRegelSchema = z.object({ label: z.string(), waarde: z.string(), accent: z.boolean().optional().default(false) });
+
+export const DocKaartSchema = z.object({
+  titel: z.string(),
+  ondertitel: z.string().optional().default(""),
+  regels: z.array(DocRegelSchema),
+});
+
+export const DocLaagSchema = z.object({
+  naam: z.string(),
+  // kleurtoken: doel | baat | vermogen | gedrag | inspanning (leeg = neutraal)
+  kleur: z.string().optional().default(""),
+  cellen: z.array(z.string()),
+});
+
+// Modelvergelijking: een laag (bijv. "Baten (Effect)") en een zijvak (bijv. de vijf
+// kernprincipes naast de piramide). vorm "piramide" = de lagen als piramide, zoals een
+// partij het model zelf tekent; "keten" = gestapelde lagen, zoals het DIN.
+const ModelLaagSchema = z.object({
+  id: z.string(),
+  naam: z.string(),
+  sub: z.string().optional().default(""),
+  kleur: z.string().optional().default(""),
+});
+const ModelZijvakSchema = z.object({
+  id: z.string(),
+  kop: z.string().optional().default(""),
+  items: z.array(z.string()),
+  // ids van de lagen waar het vak naast staat
+  bij: z.array(z.string()),
+  kant: z.enum(["links", "rechts"]).optional().default("rechts"),
+});
+const ModelKantSchema = z.object({
+  kop: z.string(),
+  sub: z.string().optional().default(""),
+  vorm: z.enum(["piramide", "keten"]).optional().default("keten"),
+  lagen: z.array(ModelLaagSchema),
+  zijvakken: z.array(ModelZijvakSchema).optional().default([]),
+});
+
+export const DocBlokSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("tekst"), tekst: z.string() }),
+  z.object({
+    type: z.literal("callout"),
+    toon: z.enum(["info", "let-op", "besluit"]).optional().default("info"),
+    titel: z.string().optional().default(""),
+    tekst: z.string(),
+  }),
+  z.object({
+    type: z.literal("lijst"),
+    titel: z.string().optional().default(""),
+    items: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal("tabel"),
+    titel: z.string().optional().default(""),
+    kolommen: z.array(z.string()),
+    rijen: z.array(z.array(z.string())),
+    // index van de kolom waarvan de cellen als gekleurde chip worden getoond
+    // (bijv. "Sluit aan" / "Aanvulling" / "Verschil")
+    chipKolom: z.number().int().optional(),
+    // weergave als actiebord: één kaart per waarde in deze kolom (bijv. per werkstroom);
+    // bewerken blijft een gewone tabel
+    groepKolom: z.number().int().optional(),
+    // kolom die we samen invullen (bijv. "Wie"): leeg = open vakje, met een teller erboven
+    invulKolom: z.number().int().optional(),
+    legenda: z.string().optional().default(""),
+  }),
+  z.object({ type: z.literal("kaarten"), kaarten: z.array(DocKaartSchema) }),
+  // Evaluatie (stap 11, deel 8): per kader een inklapbare kaart met een oordeel dat je in
+  // weergave kiest (keuzelijstje), het eerste beeld als chip, en de onderbouwing in
+  // secties (label + tekst). Het oordeel en de notitie zijn levende gegevens (doc-versie.ts).
+  z.object({
+    type: z.literal("evaluatie"),
+    titel: z.string().optional().default(""),
+    intro: z.string().optional().default(""),
+    kaders: z.array(
+      z.object({
+        id: z.string(),
+        titel: z.string(),
+        ondertitel: z.string().optional().default(""),
+        vraag: z.string().optional().default(""), // wat we toetsen
+        beeld: z.string().optional().default(""), // eerste beeld (voorstel), kort
+        actieBij: z.string().optional().default(""), // 3sides · Cito · beide
+        secties: z.array(z.object({ label: z.string(), tekst: z.string() })),
+        oordeel: z.string().optional().default(""), // ons oordeel (intern): gekozen in weergave
+        notitie: z.string().optional().default(""), // toelichting bij het oordeel, in weergave
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  z.object({
+    type: z.literal("lagen"),
+    kolommen: z.array(z.string()),
+    lagen: z.array(DocLaagSchema),
+  }),
+  // DIN-plaat: doel → baten → gedeeld vermogen → domeinen → werkstromen (inspanningen),
+  // met per werkstroom de domeinen waarin hij bouwt en de stand van het plan van aanpak.
+  z.object({
+    type: z.literal("dinplaat"),
+    // rol = wie dit niveau draagt (bijv. "Bateneigenaar: sectormanager PO")
+    // kpi = hoe dit niveau wordt gemeten; meetlat = de kernprincipes waarmee het vermogen wordt gemeten
+    doel: z.object({
+      titel: z.string(),
+      tekst: z.string().optional().default(""),
+      rol: z.string().optional().default(""),
+      kpi: z.string().optional().default(""),
+    }),
+    baten: z.array(
+      z.object({
+        titel: z.string(),
+        tekst: z.string().optional().default(""),
+        rol: z.string().optional().default(""),
+        kpi: z.string().optional().default(""),
+      })
+    ),
+    vermogen: z.object({
+      titel: z.string(),
+      tekst: z.string().optional().default(""),
+      rol: z.string().optional().default(""),
+      kpi: z.string().optional().default(""),
+      meetlat: z.array(z.string()).optional().default([]),
+    }),
+    // regie over de hele keten (programmamanagement)
+    regie: z.string().optional().default(""),
+    domeinen: z.array(
+      z.object({
+        id: z.string(),
+        naam: z.string(),
+        kleur: z.string().optional().default(""),
+        vermogensdeel: z.string().optional().default(""),
+        eigenaar: z.string().optional().default(""),
+        inspanningen: z.string().optional().default(""),
+      })
+    ),
+    werkstromen: z.array(
+      z.object({
+        naam: z.string(),
+        anker: z.string().optional().default(""),
+        // domein-ids waarin de werkstroom bouwt; alle ids = over de hele breedte
+        domeinen: z.array(z.string()),
+        leads: z.string().optional().default(""),
+        oplevert: z.string().optional().default(""),
+        planVanAanpak: z.string().optional().default(""),
+        kpi: z.string().optional().default(""),
+      })
+    ),
+    voet: z.string().optional().default(""),
+  }),
+  // Werkstroomkaarten: per werkstroom één visuele kaart met het plan van aanpak,
+  // ingepast in het DIN. id = anker (#wk-<id>) waar de DIN-plaat naar linkt.
+  z.object({
+    type: z.literal("werkstromen"),
+    kaarten: z.array(
+      z.object({
+        id: z.string(),
+        naam: z.string(),
+        bijnaam: z.string().optional().default(""), // zo heet de werkstroom bij 3sides
+        domeinen: z.array(z.string()), // cultuur | mens | data | processen
+        leads: z.string().optional().default(""),
+        bron: z.string().optional().default(""),
+        waarom: z.string().optional().default(""),
+        resultaten: z.array(z.string()),
+        planning: z.array(z.object({ wanneer: z.string(), wat: z.string() })),
+        dinPad: z.array(z.string()), // van inspanning via vermogen naar baat
+        aanvullen: z.array(z.string()),
+        // koppelingen naar de documenten van 3sides en het Jira-bord; url leeg = nog toevoegen
+        koppelingen: z
+          .array(z.object({ label: z.string(), url: z.string().optional().default("") }))
+          .optional()
+          .default([]),
+      })
+    ),
+  }),
+  // Tijdlijn (Gantt), letterlijk uit een projecttijdlijn: per activiteit per maand
+  // een markering. id van een groep = anker (#tl-<anker>).
+  z.object({
+    type: z.literal("tijdlijn"),
+    titel: z.string().optional().default(""),
+    jaren: z.array(z.object({ label: z.string(), maanden: z.number().int() })),
+    maanden: z.array(z.string()),
+    nu: z.string().optional().default(""), // maandlabel van de standlijn; leeg of "vandaag" = de dag van vandaag
+    nuLabel: z.string().optional().default(""),
+    groepen: z.array(
+      z.object({
+        naam: z.string(),
+        bijnaam: z.string().optional().default(""),
+        anker: z.string().optional().default(""),
+        domeinen: z.array(z.string()).optional().default([]),
+        rijen: z.array(
+          z.object({
+            activiteit: z.string(),
+            // één cel per maand: "" | "start" | "loopt" | "oplevering"
+            cellen: z.array(z.string()),
+            voortgang: z.string().optional().default(""),
+            status: z.string().optional().default(""), // "+" | "+/-" | "-" | ""
+          })
+        ),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // KPI-plaat: per niveau van het DIN de vraag, het soort KPI en de concrete KPI's als chips.
+  z.object({
+    type: z.literal("kpiplaat"),
+    titel: z.string().optional().default(""),
+    niveaus: z.array(
+      z.object({
+        naam: z.string(),
+        kleur: z.string().optional().default(""), // laagtoken: doel | baat | vermogen | inspanning
+        soort: z.string().optional().default(""), // impact | uitkomst | leidend | output
+        vraag: z.string().optional().default(""),
+        wanneer: z.string().optional().default(""),
+        groepen: z.array(
+          z.object({
+            titel: z.string(),
+            chips: z.array(z.string()),
+            toon: z.string().optional().default(""), // "" | voorstel | let-op
+          })
+        ),
+        bron: z.string().optional().default(""),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // Van-naar: per onderwerp hoe het bij de ander staat en hoe het in het DIN komt, met de verandering uitgelicht.
+  z.object({
+    type: z.literal("vannaar"),
+    titel: z.string().optional().default(""),
+    vanKop: z.string().optional().default("Zo staat het bij 3sides"),
+    naarKop: z.string().optional().default("Zo komt het in het DIN"),
+    rijen: z.array(
+      z.object({
+        onderwerp: z.string(),
+        van: z.string(),
+        naar: z.string(),
+        bron: z.string().optional().default(""),
+        // korte argumentatie: waarom zo in het DIN
+        waarom: z.string().optional().default(""),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+  // Stroomplaat: kolommen met items en verbindingen ertussen (bijv. werkstromen → domeinen → kernprincipes).
+  z.object({
+    type: z.literal("stroomplaat"),
+    titel: z.string().optional().default(""),
+    kolommen: z.array(
+      z.object({
+        kop: z.string(),
+        sub: z.string().optional().default(""),
+        items: z.array(
+          z.object({
+            id: z.string(),
+            naam: z.string(),
+            kleur: z.string().optional().default(""),
+            sub: z.string().optional().default(""),
+          })
+        ),
+      })
+    ),
+    // [van-id, naar-id] tussen items van opeenvolgende kolommen
+    verbindingen: z.array(z.tuple([z.string(), z.string()])),
+    voet: z.string().optional().default(""),
+  }),
+  // Voortgangsbord: hoe ver we zijn en wat we nog van 3sides nodig hebben. De voortgang,
+  // de verstreken en de komende opleveringen rekent de app uit vanuit het tijdlijn-blok in
+  // hetzelfde document en de dag van vandaag; koppelingen komen van de werkstroomkaarten
+  // en de vindplaatsen in de sessie.
+  z.object({
+    type: z.literal("voortgangsbord"),
+    titel: z.string().optional().default(""),
+    werkstromen: z.array(
+      z.object({
+        anker: z.string(), // = anker van de tijdlijngroep en id van de werkstroomkaart
+        naam: z.string(),
+        geleverd: z.array(z.string()), // wat 3sides meldt als geleverd (statuspagina)
+        nodig: z.array(z.object({ tekst: z.string(), klaar: z.boolean().optional().default(false) })),
+      })
+    ),
+    programmabreed: z.array(z.object({ tekst: z.string(), klaar: z.boolean().optional().default(false) })),
+    legenda: z.string().optional().default(""),
+  }),
+  // Stappenplaat: genummerde stappen met icoon en tekst, en de mogelijke uitkomsten als badges.
+  z.object({
+    type: z.literal("stappen"),
+    titel: z.string().optional().default(""),
+    stappen: z.array(
+      z.object({
+        kop: z.string(),
+        tekst: z.string().optional().default(""),
+        icoon: z.string().optional().default(""), // domein | werkstroom | tijd | baat | vraag | vink
+      })
+    ),
+    uitkomsten: z.array(z.object({ label: z.string(), toon: z.string().optional().default("") })), // groen | amber | grijs
+    legenda: z.string().optional().default(""),
+  }),
+  // Modelvergelijking: links het model zoals de ander het tekent, rechts het DIN, met lijnen
+  // tussen lagen en zijvakken die laten zien wat gelijk blijft en wat verschuift.
+  z.object({
+    type: z.literal("modelvergelijking"),
+    titel: z.string().optional().default(""),
+    links: ModelKantSchema,
+    rechts: ModelKantSchema,
+    koppelingen: z.array(
+      z.object({
+        van: z.string(), // id van een laag of zijvak links
+        naar: z.string(), // id van een laag of zijvak rechts
+        soort: z.enum(["gelijk", "verschuift", "voorstel"]).optional().default("gelijk"),
+        label: z.string().optional().default(""),
+      })
+    ),
+    voet: z.string().optional().default(""),
+  }),
+  // Matrix met gekleurde kolomkoppen; rijen als tekst, domein-chips of chips.
+  z.object({
+    type: z.literal("matrix"),
+    titel: z.string().optional().default(""),
+    hoek: z.string().optional().default(""),
+    kolommen: z.array(z.object({ titel: z.string(), kleur: z.string().optional().default("") })),
+    rijen: z.array(
+      z.object({
+        label: z.string(),
+        sublabel: z.string().optional().default(""),
+        // tekst · domeinen (cel = domein-ids, gescheiden door komma's) · chips (gescheiden door " · ")
+        soort: z.enum(["tekst", "domeinen", "chips"]).optional().default("tekst"),
+        accent: z.boolean().optional().default(false),
+        cellen: z.array(z.string()),
+      })
+    ),
+    legenda: z.string().optional().default(""),
+  }),
+]);
+
+export const DocSectieSchema = z.object({
+  id: z.string(),
+  titel: z.string(),
+  intro: z.string().optional().default(""),
+  blokken: z.array(DocBlokSchema),
+});
+
+export const BewerkbaarDocumentSchema = z.object({
+  // vingerafdruk van de voorsteltekst waarop deze opgeslagen versie is gebaseerd (zie doc-versie.ts)
+  basis: z.string().optional(),
+  titel: z.string(),
+  ondertitel: z.string().optional().default(""),
+  status: z.string().optional().default(""),
+  secties: z.array(DocSectieSchema),
+});
+
 // AI response schemas voor governance-mapping route
 export const AIProgrammaRolSchema = z.object({
   rol: z.string().optional().default(""),
@@ -822,6 +1314,7 @@ export const AIProgrammaorganisatieSchema = z.object({
   programmamanager: AIProgrammaRolSchema.optional(),
   kerngroep: z.array(AIProgrammaRolSchema).optional().default([]),
   stuurgroep: z.array(AIProgrammaRolSchema).optional().default([]),
+  adviesgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   klankbordgroep: z.array(AIProgrammaRolSchema).optional().default([]),
   domeineigenaren: z.array(AIProgrammaRolSchema).optional().default([]),
   besluitvormingsritme: z.string().optional().default(""),
@@ -898,6 +1391,40 @@ export const GezamenlijkRasciItemSchema = z.object({
 // DINSession schema
 // ============================================================
 
+export const SessieDocumentSchema = z.object({
+  id: z.string(),
+  titel: z.string(),
+  bestandsnaam: z.string(),
+  /** pad in de bucket: <sessie-id>/<id>-<bestandsnaam> */
+  pad: z.string(),
+  url: z.string(),
+  grootte: z.number().optional(),
+  type: z.string().optional().default(""),
+  door: z.string().optional().default(""),
+  datum: z.string(), // ISO
+  /** waar het bij hoort: werkstroom, deel of "programmabreed" */
+  hoortBij: z.string().optional().default(""),
+  opmerking: z.string().optional().default(""),
+});
+
+export const OpmerkingSchema = z.object({
+  id: z.string(),
+  /** sleutel van het document in session.documenten, bijv. "integratie-3sides" */
+  document: z.string(),
+  sectie: z.string(), // sectie-id
+  blok: z.number().int(), // index van het blok in de sectie
+  /** korte naam van het blok zoals getoond (bijv. "Tabel: Geleverd?") */
+  bij: z.string().optional().default(""),
+  tekst: z.string(),
+  door: z.string().optional().default(""),
+  datum: z.string(), // ISO
+  afgehandeld: z.boolean().optional().default(false),
+  antwoorden: z
+    .array(z.object({ id: z.string(), tekst: z.string(), door: z.string().optional().default(""), datum: z.string() }))
+    .optional()
+    .default([]),
+});
+
 export const DINSessionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -926,6 +1453,10 @@ export const DINSessionSchema = z.object({
   externalProjects: z.array(ExternalProjectSchema).optional(),
   // Opgeslagen integratie-adviezen per sector
   integratieAdvies: z.record(z.string(), z.unknown()).optional(),
+  // KPI-sessie (stap 9): bewerkbare 3sides-tracker — klaar-status + tekst per deliverable, key = "domein:index"
+  threesidesOverrides: z
+    .record(z.string(), z.object({ klaar: z.boolean().optional(), tekst: z.string().optional() }))
+    .optional(),
   // Doel-voor-doel voortgang: welke doelen zijn afgerond
   completedGoals: z.array(z.string()).optional().default([]),
   // Programmaorganisatie & RASCI (Werken aan Programma's, Hfst 6)
@@ -937,6 +1468,26 @@ export const DINSessionSchema = z.object({
   gezamenlijkeRasci: z.array(GezamenlijkRasciItemSchema).optional().default([]),
   // Phase 20: AI-planning-voorstel (roadmap obv cross-analyse stap 6+7)
   planningVoorstel: PlanningVoorstelSchema.optional(),
+  // Stap 10: Organigram (korte versie), handmatig aangepaste namen en teksten.
+  // Partial zodat een later toegevoegde kop nooit een bestaande sessie ongeldig maakt.
+  organigram: OrganigramSchema.partial().optional(),
+  // Generieke bewerkbare documenten per sleutel (stap 11: "integratie-3sides").
+  // Partial zodat een later toegevoegde sectie een bestaande sessie niet ongeldig maakt.
+  documenten: z.record(z.string(), BewerkbaarDocumentSchema.partial()).optional(),
+  // vindplaatsen voor stap 11: map met de 3sides-documenten (basis-url) en het Jira-bord
+  koppelingen: z
+    .object({
+      documentenBasis: z.string().optional().default(""),
+      jira: z.string().optional().default(""),
+    })
+    .partial()
+    .optional(),
+  // Door het team geüploade documenten (stap 11, tabblad Documenten): het bestand staat in
+  // Supabase Storage (bucket "sessie-documenten"), hier alleen de gegevens erover.
+  sessieDocumenten: z.array(SessieDocumentSchema).optional(),
+  // Opmerkingen bij een specifiek blok van een bewerkbaar document, zoals in Word:
+  // gekoppeld aan document (sleutel), sectie en blok.
+  opmerkingen: z.array(OpmerkingSchema).optional(),
 });
 
 // ============================================================
@@ -1291,6 +1842,8 @@ export type CrossAnalyseSectorOverlapItem = z.infer<typeof CrossAnalyseSectorOve
 export type CrossAnalyseExternItem = z.infer<typeof CrossAnalyseExternItemSchema>;
 export type CrossAnalyseResult = z.infer<typeof CrossAnalyseResultSchema>;
 export type DINSession = z.infer<typeof DINSessionSchema>;
+export type SessieDocument = z.infer<typeof SessieDocumentSchema>;
+export type Opmerking = z.infer<typeof OpmerkingSchema>;
 
 export type AIBenefit = z.infer<typeof AIBenefitSchema>;
 export type AICapability = z.infer<typeof AICapabilitySchema>;
@@ -1334,12 +1887,22 @@ export type BegrotingScenario = z.infer<typeof BegrotingScenarioSchema>;
 export type BegrotingAdvies = z.infer<typeof BegrotingAdviesSchema>;
 export type ScenarioTotaal = z.infer<typeof ScenarioTotaalSchema>;
 export type Stap8Totaaloverzicht = z.infer<typeof Stap8TotaaloverzichtSchema>;
+export type ClaudeNotitie = z.infer<typeof ClaudeNotitieSchema>;
+export type Stap8ClaudeNotes = z.infer<typeof Stap8ClaudeNotesSchema>;
 export type CrossAnalyseWizardState = z.infer<typeof CrossAnalyseWizardStateSchema>;
 export type PlanningVoorstel = z.infer<typeof PlanningVoorstelSchema>;
 export type BundelPlanning = z.infer<typeof BundelPlanningSchema>;
 
 export type ProgrammaRol = z.infer<typeof ProgrammaRolSchema>;
 export type Programmaorganisatie = z.infer<typeof ProgrammaorganisatieSchema>;
+export type OrganigramData = z.infer<typeof OrganigramSchema>;
+export type OrganigramWerkstroom = z.infer<typeof OrganigramWerkstroomSchema>;
+export type OrganigramRij = z.infer<typeof OrganigramRijSchema>;
+export type BewerkbaarDocument = z.infer<typeof BewerkbaarDocumentSchema>;
+export type DocSectie = z.infer<typeof DocSectieSchema>;
+export type DocBlok = z.infer<typeof DocBlokSchema>;
+export type DocKaart = z.infer<typeof DocKaartSchema>;
+export type DocLaag = z.infer<typeof DocLaagSchema>;
 export type RasciLetter = z.infer<typeof RasciLetterSchema>;
 export type RasciRij = z.infer<typeof RasciRijSchema>;
 export type RasciOnderdeelType = z.infer<typeof RasciOnderdeelTypeSchema>;

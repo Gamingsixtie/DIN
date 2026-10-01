@@ -94,6 +94,22 @@ Regels:
 - Rond op significante cijfers (€75K niet €74.367).
 - Benoem schaalvoordeel als aantal sectoren > 1.
 - Minstens 1 aanname, 0-3 risico's.
+- **HARDE REGEL — INTERNE UREN HOREN NIET IN DEZE OUT-OF-POCKET KOSTENRAMING.**
+  De \`kostenraming\` is bedoeld voor de §4.1 Out-of-pocket-tabel: alleen externe
+  kasuitgaven (licenties, externe inhuur, software, hardware, externe trainers,
+  externe procesbegeleiders, externe coaches). Interne uren van Cito-medewerkers
+  zijn opportunity-kosten en horen in §4.2 Interne uren — NIET in deze raming.
+  Concreet:
+  - NEEM NIET MEE in de eenmalige of structurele bedragen: interne FTE × tarief,
+    interne werkgroepuren, interne curricuulumontwikkeling-uren, interne
+    proceseigenaarschap-uren, interne uren van projectleiders/architecten/HR.
+  - WEL MEENEMEN: alle externe kasuitgaven inclusief externe inhuur die als
+    "interne capaciteit" wordt ingezet (bv. externe consultants).
+  - Als een antwoord interne uren noemt (bv. "740u intern à €77/u"): vermeld die
+    alleen in \`aannames\` met de expliciete tekst "interne uren — wordt in §4.2
+    Interne uren geboekt, niet in deze out-of-pocket raming". Zet die euro's
+    NIET op in de \`kostenraming\`-tekst en NIET in de eenmalige/structurele
+    totalen.
 - Nederlands, € symbool, JSON only.`;
 
 const REFINE_ANSWERS_PROMPT = `Je bent een business-case expert voor Cito BV (PO + VO + Zakelijk). De gebruiker heeft een set vragen gekregen voor een kostenraming. Voor een SUBSET van die vragen wil de gebruiker dat jij een realistisch antwoord voorstelt — de rest blijft onaangeroerd.

@@ -86,6 +86,7 @@ function buildRolesBlock(po: Programmaorganisatie): string {
   if (po.programmamanager?.rol) lines.push(`- ${po.programmamanager.rol} (programmamanager)`);
   for (const k of po.kerngroep ?? []) if (k.rol) lines.push(`- ${k.rol} (kerngroep)`);
   for (const s of po.stuurgroep ?? []) if (s.rol) lines.push(`- ${s.rol} (stuurgroep)`);
+  for (const a of po.adviesgroep ?? []) if (a.rol) lines.push(`- ${a.rol} (adviesgroep)`);
   for (const d of po.domeineigenaren ?? []) if (d.rol) lines.push(`- ${d.rol} (domeineigenaar)`);
   for (const k of po.klankbordgroep ?? []) if (k.rol) lines.push(`- ${k.rol} (klankbordgroep)`);
   return lines.join("\n");
@@ -155,7 +156,7 @@ function buildOrganisatieUserMessage(body: OrganisatieBody): string {
   }
 
   parts.push(
-    "\nOPDRACHT: Stel een complete, passende programmaorganisatie op (opdrachtgever, programmamanager, kerngroep, stuurgroep, klankbordgroep, domeineigenaren per Mens/Processen/Data & Systemen/Cultuur, besluitvormingsritme, escalatiepad). Respecteer de paritaire Cito-sectorverdeling. Gebruik ROLNAMEN/functies (geen persoonsnamen)."
+    "\nOPDRACHT: Stel een complete, passende programmaorganisatie op (opdrachtgever, programmamanager, kerngroep, stuurgroep, adviesgroep, klankbordgroep, domeineigenaren per Mens/Processen/Data & Systemen/Cultuur, besluitvormingsritme, escalatiepad). De STUURGROEP is klein en besluitvaardig (de sectormanagers; GEEN inspanningsleiders). De ADVIESGROEP geeft intern, gezaghebbend advies aan opdrachtgever + stuurgroep zonder besluitmandaat (bv. directeuren, Finance). De KLANKBORDGROEP is externe reflectie vanuit klant/buitenwereld (outside-in). Respecteer de paritaire Cito-sectorverdeling. Gebruik ROLNAMEN/functies (geen persoonsnamen)."
   );
 
   return parts.join("\n");

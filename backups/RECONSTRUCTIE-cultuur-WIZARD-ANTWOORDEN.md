@@ -103,7 +103,7 @@ Ja — externe begeleider met aantoonbare expertise in:
     (NPO/semipubliek karakter, hiërarchische besluitvorming, schaarse
     capaciteit naast lopend werk)
 
-Geraamd budget: €30.000 voor begeleiding + facilitering.
+ 
 Inzet: circa 120 externe uren (≈ 15 dagen) verdeeld over plenaire
 sessies, intervisie-faciliteringen en gedragscontract-opstelling.
 
@@ -171,10 +171,10 @@ Outside-in gedrag wordt structureel verankerd via drie HR-instrumenten:
      leidinggevende op outside-in gedrag (samenwerkingsdialoog, ruimte
      voor klantgericht handelen, voorbeeldgedrag).
 
-Eenmalige verankeringskosten: €20.000
+Eenmalige verankeringskosten: 
   (HR-projectinzet + ontwerp instrumenten + integratie HR-systeem)
 
-Structurele HR-beheerlast: €5.000 per jaar
+Structurele HR-beheerlast:
   (onderhoud competentieprofielen, monitoring gedragsindicatoren in
   leren-en-presteren-gesprekken, evaluatierapportage MT)
 
@@ -226,7 +226,7 @@ worden getrokken.
 > *Welke Cito-rollen verwacht je nodig voor deze inspanning?*
 
 ```
-Eigenaar: Directievoorzitter / Directeur BV
+Eigenaar: Het MT
 Inspanningsleider: Programmamanager (Yara — HR — coördineert programma)
 
 Stuurgroep en plenaire deelnemers (9):

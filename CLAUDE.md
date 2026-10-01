@@ -17,11 +17,15 @@ npx vercel --prod    # Deploy naar productie
 
 1. **`npm run build`** moet slagen zonder fouten
 2. **Functionele controle**: Verifieer dat bestaande functionaliteit niet kapot is — lees de relevante componenten, controleer imports, props, types
-3. **Skills gebruiken**: Gebruik altijd de beschikbare skills (pim-dev-skill, frontend-design, interface-design, etc.) bij implementatie
+3. **Skills gebruiken**: Gebruik altijd de beschikbare skills (pim-dev-skill, frontend-design, interface-design, etc.) bij implementatie. Bij alle inhoud en vorming van het programma (teksten, analyses, platen, organigram, planning, doornemen met Pim) **altijd eerst `din-model-toets`** laden
 4. **Methodiek volgen**: Elke feature moet aansluiten bij de DIN-methodiek uit `docs/programmaboek.doc`
 5. **Geen stille failures**: Altijd gebruikersfeedback tonen bij acties (loading states, success/error meldingen)
 6. **Direct committen en pushen** na elke werkende wijziging
 7. **UX design voor alle output**: Alle AI-output, documenten en gegenereerde content MOET visueel aantrekkelijk en overzichtelijk zijn. Nooit platte tekst of raw markdown tonen — altijd renderen met gestructureerde opmaak (headings, kleuren, kaarten, bullet points). Dit geldt voor zowel de in-app weergave als de Word-export. Behandel elke output als een professioneel document.
+8. **Tabellen in de export — letterlijk overnemen, niet zelf maken**: Als de wizard al een tabel of visualisatie heeft voor data (planning-gantt, begroting-advies, interne uren, sector-vertaling, etc.), neem die layout LETTERLIJK over in de export-componenten. Niet zelf een eigen variant bouwen. Pas hooguit een `compact`-prop toe om interactieve elementen te verbergen. De wizard is de bron van waarheid voor weergave; de export volgt.
+9. **Geen UUIDs in user-facing tekst**: Verwijs nooit naar effort-IDs, capability-IDs of bundel-IDs in tekst die de gebruiker leest. Resolve altijd naar `title || description` via `session.efforts/capabilities/benefits`. Als geen match: weglaten of "—" tonen, nooit een raw UUID.
+10. **Niets zelf verzinnen — alleen gesourcede data**: Verzin nooit zelf planning, kwartalen, mijlpalen, KPI-waarden, bedragen of fasering. Gebruik uitsluitend wat aantoonbaar in de bron staat: het DIN-netwerk (sessie / `src/lib/demo-snapshot.json`), het programmaplan, en de raming/begroting (`kostenraming` per inspanning, begroting-advies). Label elke waarde met de bron. Wat niet gesourcet is: toon expliciet **"te bepalen"** — nooit invullen alsof het vaststaat. Let op: baten hebben een 2-jaars `targetValue` (geen apart jaargetal); `quarter` staat vaak op "Nader te bepalen".
+11. **Maximaal parallelle agents**: zet waar mogelijk meerdere agents parallel in om werk sneller en adaptiever te maken (onafhankelijk onderzoek, of niet-overlappende bestanden tegelijk bouwen). Houd file-ownership per agent gescheiden om conflicten te voorkomen; integreer, build en test (incl. opslag-verificatie) daarna centraal.
 
 ## Methodiek — DIN Framework
 
@@ -214,6 +218,8 @@ De volgende skills zijn beschikbaar in `.claude/skills/`:
 
 | Skill | Gebruik voor |
 |---|---|
+| `din-model-toets` | **Altijd** bij inhoud en vorming van het programma (teksten, analyses, platen, organigram, planning, prioritering, extern materiaal, doornemen met Pim): niveau-check per uitspraak, projecten toetsen op vermogen en domein (niet op baat), extern materiaal (3sides) als synoniem inpassen, rollen per niveau, tel- en bronvalkuilen, checklist |
+| `din-kpi-methodiek` | KPI's, baten, vermogens, inspanningen: classificatie, H8-regels, bronhiërarchie, vaststaande projectfeiten |
 | `pim-dev-skill` | Next.js/React + Python dev, Cito context, debuggen |
 | `frontend-design` | Opvallende, productie-grade frontend interfaces |
 | `interface-design` | Dashboards, admin panels, SaaS apps met craft |

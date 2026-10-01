@@ -60,6 +60,7 @@ const DOMAIN_CHIP_CHECKED: Record<EffortDomain, string> = {
   processen: "bg-green-600/10 text-green-600 border-green-600/30 font-medium",
   data_systemen: "bg-purple-600/10 text-purple-600 border-purple-600/30 font-medium",
   cultuur: "bg-amber-600/10 text-amber-600 border-amber-600/30 font-medium",
+  overig: "bg-gray-500/10 text-gray-700 border-gray-300 font-medium",
 };
 
 const DOMAIN_BORDER_COLORS: Record<EffortDomain, string> = {
@@ -67,6 +68,7 @@ const DOMAIN_BORDER_COLORS: Record<EffortDomain, string> = {
   processen: "#059669",
   data_systemen: "#7c3aed",
   cultuur: "#d97706",
+  overig: "#6b7280",
 };
 
 const STATUS_OPTIONS: { key: EffortStatus; label: string; color: string }[] = (
