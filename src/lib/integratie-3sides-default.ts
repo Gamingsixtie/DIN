@@ -63,8 +63,14 @@ const sectie = (id: string, titel: string, intro: string, blokken: DocBlok[]): D
 });
 
 // ---------- de DIN-plaat, met de rollen ----------
-const DIN_PLAAT: DocBlok = {
+type DinPlaat = Extract<DocBlok, { type: "dinplaat" }>;
+
+// Versie 1: zoals het in het organigram en het plan van aanpak staat.
+const DIN_PLAAT: DinPlaat = {
   type: "dinplaat",
+  versie: "Versie 1 · zoals het nu staat",
+  versieToelichting:
+    "Vier werkstromen, elk gekoppeld aan een of meer domeinen; adoptie is een eigen werkstroom. Zo staat het in het organigram en in het plan van aanpak van 3sides (plan van aanpak p. 3).",
   doel: {
     titel: "Doel 1 · Integraal klantbeeld en outside-in werken als strategisch fundament",
     tekst: "Het programma richt zich nu op dit doel (focusdoel in de app, stap 5): alle drie de baten hangen eronder. Doel 2 en doel 3 hebben nog geen eigen baten.",
@@ -147,6 +153,64 @@ const DIN_PLAAT: DocBlok = {
   ],
   voet:
     "Lees van onder naar boven: elke werkstroom bouwt in een of meer domeinen aan het vermogen; samen levert dat de baten, en die dragen bij aan het doel. Op elk niveau staat wie het draagt. Klik op een werkstroom voor het plan van aanpak. Bronnen: DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
+};
+
+// Versie 2: voorstel na het programmaoverleg van 01-10-2026, getoetst aan Werken aan
+// Programma's. Doel, baten, vermogen en domeinen zijn gelijk aan versie 1.
+const DIN_PLAAT_V2: DinPlaat = {
+  ...DIN_PLAAT,
+  versie: "Versie 2 · voorstel na het overleg van 01-10",
+  versieToelichting:
+    "Twee wijzigingen uit het programmaoverleg van 01-10, getoetst aan Werken aan Programma's. Eén: elke werkstroom raakt alle vier de domeinen, met een zwaartepunt; een vermogen is een combinatie van mensen, processen, data en systemen en werkt pas als die onderdelen samen zijn ontwikkeld. Twee: adoptie is geen aparte werkstroom, maar de veranderstrategie over alle werkstromen heen: de brug tussen doelen en baten en de vermogens en inspanningen. Voorstel; nog niet besloten.",
+  strategie: {
+    titel: "Veranderstrategie: adoptie",
+    tekst:
+      "Hoe we de verandering voor elkaar krijgen en de medewerkers meenemen. Geen aparte werkstroom, maar de aanpak die in elke werkstroom zit, vanaf het begin (overleg 01-10). Eerst een gedeeld beeld: waarom Klant in Zicht, en wat we bedoelen met een integraal klantbeeld. Daarna per werkstroom: wat verandert er voor welke rol, van de huidige naar de gewenste situatie (Werken aan Programma's, over de veranderstrategie). De interventies hieronder komen uit het plan van aanpak van 3sides (plan van aanpak p. 12) en de tijdlijn; de uitwerking per werkstroom staat nog niet in de plannen van aanpak: te bepalen.",
+    rol: "Regie: Sanne (programmamanager; Cito-lead Adoptieframework) · 3sides-lead Sasja · gedragen door de bateneigenaren, met een veranderteam uit de afdelingen (voorstel)",
+    punten: [
+      "Gedeeld beeld: het waarom en de begrippen",
+      "Kern-adoptieteam en champions per afdeling",
+      "Communicatieplan",
+      "Playbook-workshops klantreis",
+      "Per rol één A4: mijn rol in de klantreis",
+      "Training en coaching, samen met HR",
+    ],
+  },
+  werkstromen: [
+    {
+      naam: "Centrale datavoorziening klantcontact",
+      anker: "data",
+      domeinen: ["cultuur", "mens", "data", "processen"],
+      zwaartepunt: "data",
+      raakt: "Wat dit vraagt in Processen, Mens en Cultuur: te bepalen in het plan van aanpak",
+      leads: "Cito-lead Jama · 3sides-lead Lammert",
+      oplevert: "Overzicht van systemen, advies per systeem, roadmap",
+      planVanAanpak: "Deels: eerste versie van 3sides (plan van aanpak p. 6–7); aanvullen: output-KPI, capaciteit",
+      kpi: "Output: inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar",
+    },
+    {
+      naam: "Klantreizen",
+      anker: "klantreizen",
+      domeinen: ["cultuur", "mens", "data", "processen"],
+      zwaartepunt: "processen",
+      raakt: "Data & Systemen: wat de klantreis aan data en systemen vraagt · Mens: de vaardigheid om met klantreizen te werken · Cultuur: de nieuwe werkwijze omarmen en uitvoeren (overleg 01-10)",
+      leads: "Cito-lead Saila · 3sides-lead Sasja",
+      oplevert: "Eén blueprint van de klantreis voor heel Cito BV",
+      planVanAanpak: "Deels: eerste versie van 3sides (plan van aanpak p. 10–11); aanvullen: output-KPI, capaciteit, eigenaar",
+      kpi: "Output: blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven",
+    },
+    {
+      naam: "0-meting",
+      anker: "meting",
+      domeinen: ["cultuur", "mens", "data", "processen"],
+      leads: "Cito-lead Pim · 3sides-lead Sasja",
+      oplevert: "Meetmodel, datapunten, 0-meting en tussenmeting: meet het vermogen en de baten",
+      planVanAanpak: "Deels: eerste versie van 3sides (plan van aanpak p. 8–9); aanvullen: meetprotocol, eigenaar per datapunt",
+      kpi: "Output: elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd",
+    },
+  ],
+  voet:
+    "Lees van onder naar boven: elke werkstroom raakt alle vier de domeinen van het vermogen, met een zwaartepunt; de veranderstrategie loopt door alle werkstromen heen. De domeineigenaar bewaakt in zijn domein de kaders: wat hoort bij Klant in Zicht en wat niet (overleg 01-10). Nog te besluiten ❓: wie de inspanningen in de domeinen Mens en Cultuur uitvoert als adoptie geen eigen werkstroom is. De werkstroomkaarten (deel 4) en de tijdlijn (deel 5) volgen nog versie 1. Bronnen: programmaoverleg 01-10-2026; Werken aan Programma's (over vermogens en over de veranderstrategie); DIN in de app (stand 29-09-2026), KPI-model (stap 9), organigram (stap 10), plan van aanpak 3sides.",
 };
 
 // ---------- de vijf kernprincipes van 3sides in ons vermogen ----------
@@ -603,9 +667,10 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "framework",
       "2 · De structuur: het DIN in één overzicht, met de rollen",
-      "Dit staat al. Van onder naar boven: wat we doen, wat we daarvoor moeten kunnen, wat het oplevert en waartoe. Op elk niveau staat wie het draagt.",
+      "Dit staat al. Van onder naar boven: wat we doen, wat we daarvoor moeten kunnen, wat het oplevert en waartoe. Op elk niveau staat wie het draagt. Het overzicht staat er in twee versies: zoals het nu staat, en een voorstel na het overleg van 01-10; kies de versie met de knoppen erboven.",
       [
         DIN_PLAAT,
+        DIN_PLAAT_V2,
       {
         type: "stappen",
         titel: "Hoort het bij het programma? De toets voor lopend werk en voor wat uit de analyse komt (voorstel)",
@@ -1384,7 +1449,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           "[[Data & Tech]] (PDF) en de praatplaten [[praatplaat funnel]] en [[praatplaat proces]] (PDF)",
           "[[BV-dag]] (PDF) en [[evaluatie Klant in Beeld]] (Excel, 13 respondenten)",
           "Statuspagina '3sides-as-a-service' van 3sides, als tekst aangeleverd op 29-09-2026 en in bijgewerkte vorm op 01-10-2026 (in dit stuk: statuspagina 3sides, stand 29-09 en stand 01-10); de pagina zelf draagt geen datum",
-          "Verslag programmaoverleg 29-09-2026",
+          "Verslag programmaoverleg 29-09-2026 en verslag programmaoverleg 01-10-2026",
           "Programma: DIN in de app (stand 29-09-2026), KPI-model (stap 9), stappenplan analysefase (19-08-2026), organigram (stap 10)",
           "Niet gebruikt: de orderexport 'Aantallen besteld'; die hoort niet bij deze analyse.",
         ],

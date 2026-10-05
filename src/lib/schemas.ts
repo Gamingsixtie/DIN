@@ -1049,6 +1049,19 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
   // met per werkstroom de domeinen waarin hij bouwt en de stand van het plan van aanpak.
   z.object({
     type: z.literal("dinplaat"),
+    // Twee of meer platen na elkaar met een versielabel worden in weergave tabbladen
+    // ("Versie 1 · zoals het nu staat" / "Versie 2 · voorstel"); toelichting = één regel eronder.
+    versie: z.string().optional(),
+    versieToelichting: z.string().optional(),
+    // Veranderstrategie over alle werkstromen heen (bijv. adoptie): band die de werkstromen omvat.
+    strategie: z
+      .object({
+        titel: z.string(),
+        tekst: z.string().optional().default(""),
+        rol: z.string().optional().default(""),
+        punten: z.array(z.string()).optional().default([]),
+      })
+      .optional(),
     // rol = wie dit niveau draagt (bijv. "Bateneigenaar: sectormanager PO")
     // kpi = hoe dit niveau wordt gemeten; meetlat = de kernprincipes waarmee het vermogen wordt gemeten
     doel: z.object({
@@ -1090,6 +1103,10 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         anker: z.string().optional().default(""),
         // domein-ids waarin de werkstroom bouwt; alle ids = over de hele breedte
         domeinen: z.array(z.string()),
+        // domein-id waar het zwaartepunt ligt als de werkstroom alle domeinen raakt (optioneel)
+        zwaartepunt: z.string().optional(),
+        // wat de werkstroom in de andere domeinen raakt (optioneel)
+        raakt: z.string().optional(),
         leads: z.string().optional().default(""),
         oplevert: z.string().optional().default(""),
         planVanAanpak: z.string().optional().default(""),

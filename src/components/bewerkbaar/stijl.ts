@@ -217,6 +217,25 @@ export const DOC_CSS = `
 .okd .okd-dp-v{font-size:10.5px;line-height:1.45;color:var(--ink2)}
 .okd .okd-dp-dom .okd-dp-v{font-size:11px;color:#334155}
 .okd .okd-dp-wsrij{display:grid;grid-template-columns:repeat(var(--wsn,4),minmax(0,1fr));gap:10px;align-items:stretch}
+.okd .okd-dp-wsvak{min-width:0}
+.okd .okd-dp-strat{border:1.5px solid #fda4af;border-radius:12px;background:#fff7f8;padding:0 10px 10px}
+.okd .okd-dp-strat-kop{position:relative;margin:0 -10px 10px;padding:9px 13px 10px;background:#ffe4e8;border-bottom:1.5px solid #fda4af;border-radius:10px 10px 0 0}
+.okd .okd-dp-strat-l{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#9f1239;margin-bottom:2px}
+.okd .okd-dp-strat-t{font-size:13.5px;font-weight:800;line-height:1.3;color:#881337}
+.okd .okd-dp-strat .okd-dp-strat-kop .okd-dp-tk{color:#4a5565;margin-top:3px}
+.okd .okd-dp-strat-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.okd .okd-dp-strat-chip{font-size:11.5px;font-weight:600;line-height:1.35;color:#881337;background:#fff;border:1px solid #fda4af;border-radius:999px;padding:2px 10px}
+.okd .okd-dp-strat-kop > .ok-knopje{position:absolute;top:8px;right:10px}
+.okd .okd-dp-versie-edit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px;margin-bottom:10px;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:10px;background:#fff}
+.okd .okd-vg{display:flex;flex-direction:column;gap:8px}
+.okd .okd-vg-balk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff;border:1px solid var(--line2);border-radius:12px;padding:6px 8px}
+.okd .okd-vg-l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);padding:0 6px}
+.okd .okd-vg-tab{font:inherit;font-size:13px;font-weight:700;line-height:1.3;color:var(--cito);background:#fff;border:1.5px solid var(--line2);border-radius:9px;padding:7px 14px;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.okd .okd-vg-tab:hover{border-color:var(--cito)}
+.okd .okd-vg-tab:focus-visible{outline:2px solid rgba(0,51,102,.35);outline-offset:2px}
+.okd .okd-vg-tab.is-actief{background:var(--cito);border-color:var(--cito);color:#fff}
+.okd .okd-vg-toel{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink2);background:#f8fafc;border-left:4px solid var(--cito);border-radius:0 8px 8px 0;padding:8px 12px}
+@media (max-width:640px){.okd .okd-dp-versie-edit{grid-template-columns:minmax(0,1fr)}.okd .okd-vg-tab{flex:1 1 100%;text-align:left}}
 .okd .okd-dp-ws{background:#fff;border:1.5px solid #cbd5e1;border-left:5px solid var(--dpk);border-radius:9px;padding:8px 11px 9px;display:flex;flex-direction:column;min-width:0}
 .okd .okd-dp-wsdom{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px}
 .okd .okd-dp-wsdom-chip{font-size:11px;font-weight:700;line-height:1.3;border-radius:999px;padding:2px 8px;color:color-mix(in srgb,var(--dpk) 65%,#000);background:color-mix(in srgb,var(--dpk) 12%,#fff);border:1px solid color-mix(in srgb,var(--dpk) 45%,#fff)}

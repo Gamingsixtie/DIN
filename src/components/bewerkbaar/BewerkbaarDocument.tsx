@@ -1040,6 +1040,8 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
   const rijen = plaatsWerkstromen(b);
   const perId = new Map(b.domeinen.map((d) => [d.id, d] as const));
   const toonRegie = edit || b.regie !== "";
+  // Veranderstrategie over alle werkstromen heen (optioneel): omvat de rij met werkstromen.
+  const strat = b.strategie;
   // Met de regieband krijgt het raster links een smalle kolom voor de beugel.
   const o = toonRegie ? 1 : 0;
   const kolLabel = 1 + o;
@@ -1058,6 +1060,18 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
 
   return (
     <figure className="okd-dp-paneel" aria-label="Doelen-Inspanningennetwerk (DIN) in één plaat">
+      {edit && (
+        <div className="okd-dp-versie-edit">
+          <label className="okd-dp-r">
+            <span className="okd-dp-l">Versielabel (optioneel): twee platen met een label na elkaar worden tabbladen</span>
+            <V v={b.versie ?? ""} on={(x) => zet((n) => void (n.versie = x || undefined))} edit ph="bijv. Versie 1 · zoals het nu staat" />
+          </label>
+          <label className="okd-dp-r">
+            <span className="okd-dp-l">Toelichting bij deze versie</span>
+            <V v={b.versieToelichting ?? ""} on={(x) => zet((n) => void (n.versieToelichting = x || undefined))} edit ml ph="Eén of twee zinnen: wat laat deze versie zien" />
+          </label>
+        </div>
+      )}
       {toonRegie && <RegieBand v={b.regie} on={(x) => zet((n) => void (n.regie = x))} edit={edit} />}
       <div className="ok-scroll">
         <div
@@ -1283,24 +1297,93 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
               className="okd-dp-rl"
               style={{ gridRow: RIJ.werkstromen, gridColumn: kolLabel }}
             >
-              Werkstromen (inspanningen)
+              {strat ? "Strategie en werkstromen" : "Werkstromen (inspanningen)"}
               {edit && <PlusKnop label="+ werkstroom" on={() => zet(voegWerkstroomToe)} />}
+              {edit && !strat && (
+                <PlusKnop
+                  label="+ veranderstrategie"
+                  on={() => zet((n) => void (n.strategie = { titel: "Veranderstrategie", tekst: "", rol: "", punten: [] }))}
+                />
+              )}
             </div>
           )}
-          {toonWerkstromen && b.werkstromen.length > 0 && (
+          {toonWerkstromen && (b.werkstromen.length > 0 || strat) && (
+            <div
+              className={strat ? "okd-dp-wsvak okd-dp-strat" : "okd-dp-wsvak"}
+              style={{ gridRow: RIJ.werkstromen, gridColumn: breed }}
+            >
+            {strat && (
+              <div className="okd-dp-strat-kop">
+                <span className="okd-dp-strat-l">Over alle werkstromen heen</span>
+                {edit && <WegKnop titel="Veranderstrategie verwijderen" label="× strategie" on={() => zet((n) => void (n.strategie = undefined))} />}
+                <V
+                  v={strat.titel}
+                  on={(x) => zet((n) => void (n.strategie && (n.strategie.titel = x)))}
+                  edit={edit}
+                  block
+                  cls="okd-dp-strat-t"
+                  ph="Titel van de veranderstrategie"
+                />
+                {(edit || strat.tekst) && (
+                  <V
+                    v={strat.tekst ?? ""}
+                    on={(x) => zet((n) => void (n.strategie && (n.strategie.tekst = x)))}
+                    edit={edit}
+                    ml
+                    block
+                    cls="okd-dp-tk"
+                    ph="Wat de veranderstrategie inhoudt"
+                  />
+                )}
+                <Rol
+                  v={strat.rol ?? ""}
+                  on={(x) => zet((n) => void (n.strategie && (n.strategie.rol = x)))}
+                  edit={edit}
+                  ph="Rol, bijv. Regie: naam · functie"
+                />
+                {edit ? (
+                  <label className="okd-dp-r">
+                    <span className="okd-dp-l">Interventies, gescheiden door &apos; · &apos;</span>
+                    <V
+                      v={(strat.punten ?? []).join(" · ")}
+                      on={(x) =>
+                        zet((n) => void (n.strategie && (n.strategie.punten = x.split(/\s+·\s+/).map((s) => s.trim()).filter(Boolean))))
+                      }
+                      edit
+                      ml
+                      block
+                      cls="okd-dp-v"
+                      ph="bijv. Communicatieplan · Ambassadeurs"
+                    />
+                  </label>
+                ) : (
+                  (strat.punten ?? []).length > 0 && (
+                    <div className="okd-dp-strat-chips">
+                      {(strat.punten ?? []).map((s, i) => (
+                        <span key={i} className="okd-dp-strat-chip">
+                          {metBronlinks(s)}
+                        </span>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
             <div
               className="okd-dp-wsrij"
-              style={{ gridRow: RIJ.werkstromen, gridColumn: breed, ["--wsn" as string]: Math.min(4, b.werkstromen.length) } as CSSProperties}
+              style={{ ["--wsn" as string]: Math.max(1, Math.min(4, b.werkstromen.length)) } as CSSProperties}
             >
             {b.werkstromen.map((w, wi) => {
               const eigen = w.domeinen.map((id) => perId.get(id)).filter((d): d is NonNullable<typeof d> => d !== undefined);
               const overal = b.domeinen.length > 1 && b.domeinen.every((d) => w.domeinen.includes(d.id));
-              const kleur = overal ? CITO : eigen[0] ? domeinKleur(eigen[0]) : NEUTRAAL;
+              // zwaartepunt: de werkstroom raakt meer domeinen, maar ligt vooral in dit ene
+              const zwaar = w.zwaartepunt ? perId.get(w.zwaartepunt) : undefined;
+              const kleur = zwaar ? domeinKleur(zwaar) : overal ? CITO : eigen[0] ? domeinKleur(eigen[0]) : NEUTRAAL;
               const doel = edit ? null : werkstroomDoel(w.anker, ankers);
               return (
                 <div
                   key={wi}
-                  className={overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
+                  className={overal && !zwaar ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
                   style={metKleur(kleur, {})}
                 >
                   {edit && (
@@ -1361,12 +1444,28 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                         ))}
                         {b.domeinen.length === 0 && <span className="okd-dp-v">Nog geen domeinen</span>}
                       </div>
+                      <span className="okd-dp-l">Zwaartepunt (optioneel)</span>
+                      <Keuze
+                        v={w.zwaartepunt ?? ""}
+                        opties={[{ waarde: "", label: "geen" }, ...b.domeinen.map((d) => ({ waarde: d.id, label: d.naam || d.id }))]}
+                        on={(x) => zet((n) => void (n.werkstromen[wi].zwaartepunt = x || undefined))}
+                        titel="Domein waar het zwaartepunt van deze werkstroom ligt"
+                      />
                     </div>
                   ) : (
                     eigen.length > 0 && (
                       <div className="okd-dp-wsdom" aria-label="Bouwt in">
                         {overal ? (
-                          <span className="okd-dp-wsdom-chip okd-dp-wsdom-alle">Alle vier de domeinen</span>
+                          <>
+                            <span className="okd-dp-wsdom-chip okd-dp-wsdom-alle">
+                              {zwaar ? "Raakt alle vier de domeinen" : "Alle vier de domeinen"}
+                            </span>
+                            {zwaar && (
+                              <span className="okd-dp-wsdom-chip" style={metKleur(domeinKleur(zwaar), {})}>
+                                Zwaartepunt: {zwaar.naam}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           eigen.map((d) => (
                             <span key={d.id} className="okd-dp-wsdom-chip" style={metKleur(domeinKleur(d), {})}>
@@ -1378,6 +1477,14 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                     )
                   )}
                   <div className="okd-dp-velden">
+                    <PlaatRegel
+                      label="Raakt ook"
+                      v={w.raakt ?? ""}
+                      on={(x) => zet((n) => void (n.werkstromen[wi].raakt = x || undefined))}
+                      edit={edit}
+                      ml
+                      ph="Wat de werkstroom in de andere domeinen raakt (optioneel)"
+                    />
                     <PlaatRegel
                       label="Levert op"
                       v={w.oplevert}
@@ -1404,6 +1511,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                 </div>
               );
             })}
+            </div>
             </div>
           )}
         </div>
@@ -1442,6 +1550,44 @@ function tocDelen(titel: string, volgnr: number): { nr: string; hoofd: string; s
   const rest = (m ? m[2] : titel ?? "").trim() || "Zonder titel";
   const i = rest.indexOf(":");
   return i > 0 ? { nr, hoofd: rest.slice(0, i).trim(), sub: rest.slice(i + 1).trim() } : { nr, hoofd: rest, sub: "" };
+}
+
+/** Versielabel van een blok ("Versie 1 · zoals het nu staat"); leeg = geen versie. */
+function versieVan(b: DocBlok): string {
+  return b.type === "dinplaat" ? (b.versie ?? "").trim() : "";
+}
+
+/**
+ * Twee of meer blokken na elkaar met een versielabel: in weergave één tegelijk, met
+ * tabbladen erboven en de toelichting van de gekozen versie. Bewerken: alle versies onder
+ * elkaar (zie Sectie).
+ */
+function VersieGroep(p: { versies: { label: string; toelichting: string }[]; render: (i: number) => ReactNode }) {
+  const [actief, setActief] = useState(0);
+  const i = Math.min(actief, p.versies.length - 1);
+  return (
+    <div className="okd-vg">
+      <div className="okd-vg-balk" role="tablist" aria-label="Versies van dit overzicht">
+        <span className="okd-vg-l">Twee versies</span>
+        {p.versies.map((v, k) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={k === i}
+            className={"okd-vg-tab" + (k === i ? " is-actief" : "")}
+            onClick={() => setActief(k)}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+      {p.versies[i].toelichting && <p className="okd-vg-toel">{metBronlinks(p.versies[i].toelichting)}</p>}
+      <div role="tabpanel" aria-label={p.versies[i].label}>
+        {p.render(i)}
+      </div>
+    </div>
+  );
 }
 
 const Sectie = memo(function Sectie(p: {
@@ -1522,6 +1668,42 @@ const Sectie = memo(function Sectie(p: {
     }
   }
 
+  /** Eén blok in weergave, met de knop voor opmerkingen (zoals in Word, rechtsboven). */
+  const metOpmerking = (b: DocBlok, bi: number) => (
+    <BlokMetOpmerkingen key={bi} sectie={s.id} blok={bi} naam={blokNaam(b)}>
+      {blok(b, bi)}
+    </BlokMetOpmerkingen>
+  );
+
+  /** Alle blokken in weergave; blokken met een versielabel na elkaar worden één groep met tabbladen. */
+  function weergaveBlokken(): ReactNode[] {
+    const uit: ReactNode[] = [];
+    for (let bi = 0; bi < s.blokken.length; ) {
+      let eind = bi;
+      if (versieVan(s.blokken[bi])) {
+        while (eind + 1 < s.blokken.length && versieVan(s.blokken[eind + 1])) eind += 1;
+      }
+      if (eind > bi) {
+        const leden = s.blokken.slice(bi, eind + 1).map((b, k) => ({ b, bi: bi + k }));
+        uit.push(
+          <VersieGroep
+            key={"vg-" + bi}
+            versies={leden.map((l) => ({
+              label: versieVan(l.b),
+              toelichting: l.b.type === "dinplaat" ? (l.b.versieToelichting ?? "") : "",
+            }))}
+            render={(k) => metOpmerking(leden[k].b, leden[k].bi)}
+          />
+        );
+        bi = eind + 1;
+      } else {
+        uit.push(metOpmerking(s.blokken[bi], bi));
+        bi += 1;
+      }
+    }
+    return uit;
+  }
+
   return (
     <section id={"sec-" + s.id} className="okd-sec">
       {/* in een naslagdeel over één document wijzen kale paginanummers naar dat document */}
@@ -1571,8 +1753,8 @@ const Sectie = memo(function Sectie(p: {
         />
       )}
       <div className="okd-blokken">
-        {s.blokken.map((b, bi) =>
-          edit ? (
+        {!edit && weergaveBlokken()}
+        {edit && s.blokken.map((b, bi) => (
             <div key={bi} className="okd-blok-edit">
               <div className="okd-blok-balk">
                 <span className="okd-blok-soort">{BLOK_NAMEN[b.type] ?? b.type}</span>
@@ -1608,13 +1790,7 @@ const Sectie = memo(function Sectie(p: {
               </div>
               {blok(b, bi)}
             </div>
-          ) : (
-            // weergave: elk blok kan een opmerking krijgen, zoals in Word (knop rechtsboven)
-            <BlokMetOpmerkingen key={bi} sectie={s.id} blok={bi} naam={blokNaam(b)}>
-              {blok(b, bi)}
-            </BlokMetOpmerkingen>
-          )
-        )}
+        ))}
         {edit && (
           <div className="okd-blok-plus">
             <Keuze v={nieuwSoort} opties={NIEUW_BLOK_OPTIES} on={setNieuwSoort} titel="Soort van het nieuwe blok" />

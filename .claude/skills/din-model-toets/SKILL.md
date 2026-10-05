@@ -22,6 +22,11 @@ Over de hele keten: programmamanagement, Sanne (regie, aanspreekpunt) en Pim (pr
 
 Lees de keten **van onder naar boven** om te bouwen (inspanning bouwt vermogen, vermogen levert baat, baat draagt bij aan doel) en **van boven naar onder** om te sturen (doel en baten bepalen welk vermogen nodig is, het vermogen welke inspanningen).
 
+**Open voorstel, nog niet besloten (programmaoverleg 01-10-2026, getoetst aan het boek):**
+- Een vermogen is een combinatie van mensen, processen, data en systemen (boek, over vermogens). De vier domeinen zijn dus invalshoeken van één vermogen; een werkstroom raakt ze alle vier, met een **zwaartepunt** in één domein. De domeineigenaar bewaakt de kaders in zijn domein.
+- Adoptie is in de methodiek de **veranderstrategie**: de brug tussen doelen en baten en de vermogens en inspanningen (boek, over de veranderstrategie). Geen aparte werkstroom, maar de aanpak die in elke werkstroom zit; de concrete interventies staan in de veranderaanpak per werkstroom.
+- Stap 11, deel 2 toont beide versies van de plaat (versie 1: zoals het staat; versie 2: dit voorstel). Kies niet stilzwijgend één versie; deel 4 en 5 volgen nog versie 1. Open: wie de inspanningen in Mens en Cultuur uitvoert als adoptie geen eigen werkstroom is.
+
 ## 2. Niveau-check: verplicht bij elke regel, toets of bewering
 
 Voordat je een regel, toetsvraag, tabelregel of advies opschrijft, beantwoord je drie vragen:
