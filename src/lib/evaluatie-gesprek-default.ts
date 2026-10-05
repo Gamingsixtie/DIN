@@ -47,7 +47,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
             [
               "in te vullen",
               "De kern: zicht op het werk (deel 8)",
-              "Wij hadden in de eerste drie maanden geen beeld in hoofdlijnen van waar 3sides aan werkte en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk, en de tijdlijn hebben wij niet elke week ontvangen. Voorstel: 3sides vertelt eerst zelf hoe het op de drie maanden terugkijkt; daarna onze waarneming en wat wij als eerste vragen: elke week per oplevering zien waar 3sides aan werkt, hoe ver het is en wat in de weg staat.",
+              "Wij hadden in de eerste drie maanden geen beeld in hoofdlijnen van waar 3sides aan werkte en hoe ver elke oplevering was. Er is onvoldoende met ons besproken wat er precies was gedaan: wij zagen alleen een beknopte weergave in de microspace van 3sides, en aan het eind van het kwartaal kregen wij veel documenten tegelijk. Wekelijks rapporteren in de tijdlijn is pas recent afgesproken. Voorstel: 3sides vertelt eerst zelf hoe het op de drie maanden terugkijkt; daarna onze waarneming en wat wij als eerste vragen: elke week per oplevering zien waar 3sides aan werkt, hoe ver het is en wat in de weg staat.",
               "Hoe 3sides zelf terugkijkt, en of 3sides ons beeld herkent",
             ],
             [
@@ -102,7 +102,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
         {
           type: "tekst",
           tekst:
-            "Na drie maanden Klant in Zicht hebben wij jullie werk geëvalueerd op zes punten: leveren, tempo, rapporteren, ons helpen onze medewerkers mee te nemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per toezegging wat er op 1 oktober lag en wat ontbrak, en per punt onze bevinding. De kern: wij hadden als programmateam in deze drie maanden geen beeld in hoofdlijnen van waar jullie aan werkten en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk onder ogen, en daaruit hebben wij achteraf zelf moeten opmaken wat er ligt. Ook de tijdlijn hebben wij pas kort geleden ontvangen, en niet elke week. Wij willen het voortaan elke week in de tijdlijn kunnen zien. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
+            "Na drie maanden Klant in Zicht hebben wij jullie werk geëvalueerd op zes punten: leveren, tempo, rapporteren, ons helpen onze medewerkers mee te nemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per toezegging wat er op 1 oktober lag en wat ontbrak, en per punt onze bevinding. De kern: wij hadden als programmateam in deze drie maanden geen beeld in hoofdlijnen van waar jullie aan werkten en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk onder ogen, en daaruit hebben wij achteraf zelf moeten opmaken wat er ligt. Wekelijks rapporteren in de tijdlijn is pas recent afgesproken; daarvoor zagen wij alleen een beknopte weergave in jullie microspace. Wij willen het voortaan elke week in de tijdlijn kunnen zien. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
         },
         {
           type: "tekst",
