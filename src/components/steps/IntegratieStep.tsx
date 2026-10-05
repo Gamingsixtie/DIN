@@ -290,7 +290,7 @@ function Vindplaatsen() {
     docStand +
     " · " +
     (opgeslagenJira.trim() ? "Jira-bord ingevuld" : "Jira-bord nog niet ingevuld") +
-    ` · statuspagina, verslagen en stappenplan: ${aantalAnders} van ${VINDPLAATS_VELDEN.length} gekoppeld`;
+    ` · microspace, verslagen en stappenplan: ${aantalAnders} van ${VINDPLAATS_VELDEN.length} gekoppeld`;
   const andersTekst = VINDPLAATS_VELDEN.map((v) => anders[v.sleutel].trim()).join("\n");
   const gewijzigd = basis.trim() !== opgeslagenBasis || jira.trim() !== opgeslagenJira || andersTekst !== opgeslagenAnders;
   const proef = useMemo(() => bronUrl(basis, "plan-van-aanpak", 2), [basis]);

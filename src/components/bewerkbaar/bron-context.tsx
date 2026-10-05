@@ -178,8 +178,8 @@ export const BRONNEN_SECTIE = "documenten";
 export const VINDPLAATS_VELDEN: readonly { sleutel: Vindplaats; label: string; uitleg: string }[] = [
   {
     sleutel: "statuspagina",
-    label: "Statuspagina van 3sides (link)",
-    uitleg: "Zonder link openen de verwijzingen het naslag-tabblad bij de statuspagina.",
+    label: "Microspace van 3sides (link)",
+    uitleg: "Zonder link openen de verwijzingen het naslag-tabblad bij de microspace (daar nog onder de naam statuspagina).",
   },
   {
     sleutel: "overleg2909",
@@ -228,10 +228,10 @@ export interface AndereBron {
 export const ANDERE_BRONNEN: readonly AndereBron[] = [
   {
     id: "statuspagina",
-    naam: "de statuspagina van 3sides",
+    naam: "de microspace van 3sides",
     herkomst:
       "Statuspagina '3sides-as-a-service' van 3sides, als tekst aangeleverd op 29-09-2026 en in bijgewerkte vorm op 01-10-2026; de pagina zelf draagt geen datum",
-    namen: ["statuspagina van 3sides", "statuspagina 3sides", "3sides-statuspagina", "statuspagina"],
+    namen: ["microspace van 3sides", "microspace 3sides", "microspace", "statuspagina van 3sides", "statuspagina 3sides", "3sides-statuspagina", "statuspagina"],
     vindplaats: "statuspagina",
     naslagSectie: "statuspagina-3sides-as-a-service",
   },
@@ -650,7 +650,7 @@ const DATUM = "\\d{1,2}-\\d{1,2}(?:-\\d{4})?";
 // meer in die haakjes ("statuspagina 3sides (stand 29-09; …)"), dan is alleen de naam de link.
 const STAND = `(?:stand\\s+|van\\s+)?(${DATUM})(?:\\s+en\\s+(?:stand\\s+)?(${DATUM}))?`;
 const STATUSPAGINA = new RegExp(
-  `${GRENS_VOOR}(3sides-[Ss]tatuspagina|[Ss]tatuspagina(?:\\s+(?:van\\s+)?3sides)?)${GRENS_NA}` +
+  `${GRENS_VOOR}(3sides-[Ss]tatuspagina|(?:[Ss]tatuspagina|[Mm]icrospace)(?:\\s+(?:van\\s+)?3sides)?)${GRENS_NA}` +
     // geen "?" om de groep: een lege herhaling zou de stand uit de vooruitblik weer wissen
     `(?:\\s*\\(${STAND}\\)|(?:,\\s*|\\s+)${STAND}|(?=\\s*\\(${STAND})|)`,
   "gu"

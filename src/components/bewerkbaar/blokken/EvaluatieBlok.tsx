@@ -103,7 +103,7 @@ function partijen(s: string): Partij[] {
 
 /** Woorden waaraan een bronvermelding tussen haakjes te herkennen is, naast de documentnamen. */
 const BRONWOORD =
-  /statuspagina|overleg|stappenplan|programmaboek|programmaplan|organigram|actiebord|evaluatie|verslag|transcriptie|jira|town hall|stand \d|\d{1,2}-\d{1,2}|(?:^|[\s(])p\.\s?\d/i;
+  /statuspagina|microspace|overleg|stappenplan|programmaboek|programmaplan|organigram|actiebord|evaluatie|verslag|transcriptie|jira|town hall|stand \d|\d{1,2}-\d{1,2}|(?:^|[\s(])p\.\s?\d/i;
 
 /**
  * Een feit met de bron tussen haakjes aan het eind: de bron komt op een eigen, rustiger regel.
