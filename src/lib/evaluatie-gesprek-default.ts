@@ -24,55 +24,67 @@ export const GESPREK_BRIEF = "brief";
 
 export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
   titel: "Evaluatie Klant in Zicht: de eerste drie maanden met 3sides",
-  ondertitel: "De planning van 3sides, wat er is geleverd en onze evaluatie op zes kaders",
-  status: "Stand van de bronnen: 01-10-2026",
+  ondertitel: "De planning van 3sides, wat er is geleverd en onze evaluatie op zes punten",
+  status: "Stand van de bronnen: 01-10-2026; Miro-bord bekeken op 05-10-2026",
   secties: [
     {
       id: GESPREK_AGENDA,
       titel: "Agenda voor het evaluatiegesprek",
       intro:
-        "Eén uur, alleen de evaluatie. We beginnen bij de lessen uit Klant in Beeld en volgen daarna de zes kaders in de volgorde van het document: leveren, tempo, rapporteren, hulp bij het meenemen van onze medewerkers, ons framework en eigenaarschap, en onze regie. Per kader eerst onze bevinding met de bron, daarna de reactie van 3sides. We sluiten af met wat 3sides oplevert, wanneer, en hoe het rapporteert.",
+        "Voorstel voor de agenda. Eén uur, alleen de evaluatie. Eerst waarom we hier zitten: de kern van de evaluatie en de lessen uit Klant in Beeld. Daarna de feiten in de volgorde wat er ligt, wanneer het komt en hoe wij het konden volgen, en dan de samenwerking. Per punt eerst onze bevinding met de bron, daarna de reactie van 3sides. We sluiten af met afspraken.",
       blokken: [
         {
           type: "tabel",
-          titel: "Agenda (voorstel; de tijden zijn aanpasbaar)",
+          titel: "Agenda (voorstel)",
           kolommen: ["Tijd", "Onderwerp", "Wat we bespreken", "Uitkomst"],
           rijen: [
             [
-              "0:00–0:08",
-              "Opening en startpunt: de lessen uit Klant in Beeld (deel 8)",
-              "Het doel: na drie maanden het werk van 3sides evalueren op zes kaders. De kern: wij hadden in deze drie maanden geen beeld in hoofdlijnen van waar 3sides aan werkte en hoe ver elke oplevering was, en kregen aan het eind veel documenten tegelijk; wij willen dat voortaan elke week in de tijdlijn zien. De werkwijze: per kader onze bevinding met de bron, daarna de reactie van 3sides. Het uitgangspunt: wij leiden, 3sides volgt en voert uit. Het startpunt: welke drie lessen haalt 3sides zelf uit de evaluatie van Klant in Beeld, en waar zien wij elk daarvan vóór eind december terug: in welk onderdeel van de tijdlijn en met welke datum?",
-              "Hetzelfde beeld van doel, werkwijze en uitgangspunt; drie lessen van 3sides, elk met een onderdeel en een datum",
+              "in te vullen",
+              "Opening en werkwijze",
+              "Het doel: het werk van 3sides na drie maanden evalueren op zes punten. De werkwijze: per punt eerst onze bevinding met de bron, daarna de reactie van 3sides; aan het eind de afspraken. Het uitgangspunt: wij leiden, 3sides volgt en voert uit (deel 8, Rolverdeling).",
+              "Overeenstemming over doel, werkwijze en uitgangspunt",
             ],
             [
-              "0:08–0:20",
-              "Leveren (deel 8, kader 1)",
-              "Ligt er wat 3sides zelf heeft opgeschreven: de zes toezeggingen voor Q3 2026 uit het eerste voorstel, van de kick-off tot de pilotgroep, met de onderdelen uit de tijdlijn die erbij horen. In de tabel 'Toegezegd en geleverd' (deel 5) staat per toezegging wat er ligt en wat ontbreekt; de tijdlijn ligt erbij.",
-              "Per onderdeel de stand volgens 3sides, en een nieuwe datum waar de maand is verstreken",
+              "in te vullen",
+              "De kern: zicht op het werk (deel 8)",
+              "Wij hadden in de eerste drie maanden geen beeld in hoofdlijnen van waar 3sides aan werkte en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk, en de tijdlijn hebben wij niet elke week ontvangen. Voorstel: 3sides vertelt eerst zelf hoe het op de drie maanden terugkijkt; daarna onze waarneming en wat wij als eerste vragen: elke week per oplevering zien waar 3sides aan werkt, hoe ver het is en wat in de weg staat.",
+              "Hoe 3sides zelf terugkijkt, en of 3sides ons beeld herkent",
             ],
             [
-              "0:20–0:30",
-              "Tempo en rapporteren (deel 8, kader 2 en 3)",
-              "Blijft het tempo erin, en lezen wij uit de rapportage wat af is, wat vastzit en waarom. Met de tijdlijn erbij (deel 5).",
-              "Per kader de reactie van 3sides en wat er verandert",
+              "in te vullen",
+              "Startpunt: de lessen uit Klant in Beeld (deel 8)",
+              "Welke drie lessen haalt 3sides zelf uit de evaluatie van Klant in Beeld, en in welk onderdeel van de tijdlijn en met welke datum zien wij elk daarvan vóór eind december terug?",
+              "Drie lessen van 3sides, elk met een onderdeel van de tijdlijn en een datum",
             ],
             [
-              "0:30–0:40",
-              "Hulp bij het meenemen van onze medewerkers (deel 8, kader 4)",
-              "Hoe helpt 3sides ons onze medewerkers mee te nemen in de verandering, en wanneer is het adoptieframework zo ver dat we ermee kunnen werken.",
-              "De reactie van 3sides en wat er verandert",
+              "in te vullen",
+              "Leveren (deel 8, punt 1; de tabel 'Toegezegd en geleverd' in deel 5)",
+              "Is er geleverd wat 3sides heeft toegezegd: de zes toezeggingen en de mijlpaal voor Q3 2026 uit het eerste voorstel, met de onderdelen uit de tijdlijn die erbij horen. Per toezegging wat er ligt en wat ontbreekt. Onze vraag: wat is er volgens 3sides af van wat voor Q3 was gepland, en waar kunnen wij dat zien?",
+              "Per toezegging de stand volgens 3sides, en een nieuwe datum waar die nodig is",
             ],
             [
-              "0:40–0:52",
-              "Eén framework, eigenaarschap en regie (deel 8, kader 5 en 6)",
-              "Werkt 3sides in ons framework en met onze begrippen, komen kennis en resultaat per werkstroom bij ons te liggen, en volgt 3sides onze regie: voorleggen, de stappen uit het eigen plan regelen en vroeg melden als iets vastloopt.",
-              "Per kader de reactie van 3sides en wat er verandert",
+              "in te vullen",
+              "Tempo (deel 8, punt 2; 'Wat opvalt in de planning' in deel 5)",
+              "Welke datums gelden nu: voor de onderdelen die over hun oplevermaand heen zijn, voor de 0-meting en voor de eerste pilot. En hoe horen wij het voortaan vooraf als een datum niet wordt gehaald?",
+              "Eén planning met de datums die nu gelden",
             ],
             [
-              "0:52–1:00",
+              "in te vullen",
+              "Rapporteren (deel 8, punt 3)",
+              "Hoe zien wij voortaan elke week, zonder alle stukken te lezen, wat af is, wat vastzit en waarom? Dit sluit aan op de kern.",
+              "Afspraak over de wekelijkse tijdlijn: wat erin staat en wanneer wij hem krijgen",
+            ],
+            [
+              "in te vullen",
+              "Samenwerking: medewerkers meenemen, ons framework en eigenaarschap, onze regie (deel 8, punt 4, 5 en 6)",
+              "Wat merken onze medewerkers vóór eind december van het programma, en wanneer is het adoptieframework zo ver dat we ermee kunnen werken? Werkt 3sides in ons framework en met onze begrippen, en hoe komen kennis en resultaat per werkstroom bij ons te liggen? Legt 3sides keuzes op tijd als advies aan ons voor, en bereidt 3sides de stappen uit het eigen plan voor en plant het ze in?",
+              "Per punt de reactie van 3sides en wat er verandert",
+            ],
+            [
+              "in te vullen",
               "Afspraken en vervolg",
               "Wat 3sides oplevert, wanneer, en hoe het daarover rapporteert. Wanneer we opnieuw evalueren.",
-              "Een afsprakenlijst met per afspraak een naam en een datum",
+              "Een afsprakenlijst met per afspraak wie, wat en wanneer",
             ],
           ],
           legenda: "",
@@ -90,17 +102,17 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
         {
           type: "tekst",
           tekst:
-            "Na drie maanden Klant in Zicht hebben wij jullie werk geëvalueerd op zes punten: leveren, tempo, rapporteren, ons helpen onze medewerkers mee te nemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per toezegging wat er op 1 oktober lag en wat ontbrak, en per punt onze bevinding. De kern: wij hadden als programmateam in deze drie maanden geen beeld in hoofdlijnen van waar jullie aan werkten en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk onder ogen, en daaruit hebben wij achteraf zelf moeten opmaken wat er ligt. Wij willen het voortaan elke week in de tijdlijn kunnen zien. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
+            "Na drie maanden Klant in Zicht hebben wij jullie werk geëvalueerd op zes punten: leveren, tempo, rapporteren, ons helpen onze medewerkers mee te nemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per toezegging wat er op 1 oktober lag en wat ontbrak, en per punt onze bevinding. De kern: wij hadden als programmateam in deze drie maanden geen beeld in hoofdlijnen van waar jullie aan werkten en hoe ver elke oplevering was. Aan het eind van het kwartaal kregen wij veel documenten tegelijk onder ogen, en daaruit hebben wij achteraf zelf moeten opmaken wat er ligt. Ook de tijdlijn hebben wij pas kort geleden ontvangen, en niet elke week. Wij willen het voortaan elke week in de tijdlijn kunnen zien. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
         },
         {
           type: "tekst",
           tekst:
-            "De maatstaf is wat jullie zelf hebben opgeschreven: de planning in jullie eerste voorstel, de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Die drie stukken spreken elkaar op datums tegen; waar ze verschillen, noemen we ze alle drie. Bij elke bevinding staat de bron: jullie voorstel, jullie plan van aanpak, de tijdlijn, de werkdocumenten, het Miro-bord van de klantreizen, de statuspagina, de presentatie van de town hall, de evaluatie van Klant in Beeld en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
+            "De maatstaf is wat jullie hebben toegezegd: de planning in jullie eerste voorstel. Daarnaast leggen we wat jullie zelf hebben opgeschreven: de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Die drie stukken spreken elkaar op datums tegen; waar ze verschillen, noemen we ze alle drie. Bij elke bevinding staat de bron: jullie voorstel, jullie plan van aanpak, de tijdlijn, de werkdocumenten, het Miro-bord van de klantreizen, de statuspagina, de presentatie van de town hall, de evaluatie van Klant in Beeld en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
         },
         {
           type: "tekst",
           tekst:
-            "Ons uitgangspunt staat in ons stappenplan van 19-08-2026: wij leiden, 3sides volgt en voert uit. Per punt staat wat wij van jullie vragen.",
+            "Ons uitgangspunt: wij leiden, 3sides volgt en voert uit. In ons stappenplan van 19-08-2026 staat het zo: 'wij voeren de regie' en 'Cito is opdrachtgever: wíj bepalen wat er nodig is, 3sides levert daarop'. Per punt staat wat wij van jullie vragen.",
         },
         {
           type: "tekst",

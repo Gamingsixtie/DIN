@@ -38,7 +38,7 @@ import {
   GESPREK_AGENDA,
   GESPREK_BRIEF,
 } from "@/lib/evaluatie-gesprek-default";
-import { UITSNEDE_SECTIES, inUitsnede } from "@/lib/evaluatie-uitsnede";
+import { BRIEF_MEESTUREN, UITSNEDE_SECTIES, inUitsnede } from "@/lib/evaluatie-uitsnede";
 import { isVerwijderd, kloon } from "@/lib/bewerkbaar-document";
 import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import type { DocVersie } from "@/lib/doc-versie";
@@ -501,14 +501,15 @@ export default function EvaluatieTab({
 
   const delen = UITSNEDE_SECTIES.map((id) => ({ id: id as string, sectie: vind(analyse.doc, id) }));
   const agenda = vind(gesprek.doc, GESPREK_AGENDA);
-  const brief = vind(gesprek.doc, GESPREK_BRIEF);
+  // de brief gaat voorlopig niet mee (BRIEF_MEESTUREN); de tekst blijft in de sessie
+  const brief = BRIEF_MEESTUREN ? vind(gesprek.doc, GESPREK_BRIEF) : undefined;
   const bezigTitel = bezig ? (vind(bezig.doc, bezig.editSectie ?? "")?.titel ?? "").trim() || "dit onderdeel" : "";
 
   // Linkdoelen op dit tabblad (secties, tijdlijngroepen), voor alle kaders samen. Gememoiseerd
   // op de ids zelf, zodat typen in een deel de andere (gememoiseerde) secties ongemoeid laat.
   const ankerSleutel = [
     ...ankersVan(analyse.doc, UITSNEDE_SECTIES, inUitsnede),
-    ...[GESPREK_AGENDA, GESPREK_BRIEF].filter((id) => vind(gesprek.doc, id)).map((id) => "sec-" + id),
+    ...[GESPREK_AGENDA, ...(BRIEF_MEESTUREN ? [GESPREK_BRIEF] : [])].filter((id) => vind(gesprek.doc, id)).map((id) => "sec-" + id),
   ].join("\n");
   const paginaAnkers = useMemo(() => new Set(ankerSleutel.split("\n")), [ankerSleutel]);
 
@@ -594,7 +595,7 @@ export default function EvaluatieTab({
             )}
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700">
               Dit is wat we aan 3sides laten weten, in leesvolgorde: de agenda, de planning met wat er is geleverd, de
-              evaluatie per kader en de begeleidende brief. Alles op dit tabblad gaat over 3sides.
+              evaluatie per punt{brief ? " en de begeleidende brief" : ""}. Alles op dit tabblad gaat over 3sides.
             </p>
             <NaarAnderTabblad knop="Naar Evaluatie intern" onKlik={naarIntern}>
               Wat Cito zelf doet en ons eigen oordeel staan op het tabblad Evaluatie intern.
@@ -619,7 +620,7 @@ export default function EvaluatieTab({
           {!bezig && gesprek.versie.stand === "eigen" && (
             <NieuwereVoorsteltekst
               basisBekend={gesprek.versie.basis !== undefined}
-              onderwerp="de agenda en de begeleidende brief"
+              onderwerp={brief ? "de agenda en de begeleidende brief" : "de agenda"}
               onOvernemen={gesprek.neemVoorstelOver}
               onHouden={gesprek.houdEigenVersie}
             />

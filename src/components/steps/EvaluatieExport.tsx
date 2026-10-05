@@ -16,7 +16,7 @@ import { useSession } from "@/lib/session-context";
 import { DEFAULT_INTEGRATIE_3SIDES, INTEGRATIE_SLEUTEL } from "@/lib/integratie-3sides-default";
 import { DEFAULT_EVALUATIE_GESPREK, EVALUATIE_GESPREK_SLEUTEL } from "@/lib/evaluatie-gesprek-default";
 import { oplossen } from "@/lib/doc-versie";
-import { exportBestandsnaam, maakUitsnede, zonderLinktekens } from "@/lib/evaluatie-uitsnede";
+import { BRIEF_MEESTUREN, exportBestandsnaam, maakUitsnede, zonderLinktekens } from "@/lib/evaluatie-uitsnede";
 import type { ExportVersie } from "@/lib/evaluatie-uitsnede";
 
 type Stand =
@@ -47,7 +47,7 @@ const KEUZES: {
     versie: "3sides",
     titel: "Voor 3sides",
     merk: "Om te overhandigen",
-    zin: "Wat we aan 3sides communiceren, met de begeleidende brief: de agenda, de planning met wat er is geleverd en per kader onze bevinding, de feiten, wat we van 3sides vragen en de vraag voor het gesprek.",
+    zin: "Wat we aan 3sides communiceren: de agenda, de planning met wat er is geleverd en per kader onze bevinding, de feiten, wat we van 3sides vragen en de vraag voor het gesprek.",
     andere: "De interne versie maak je op het tabblad Evaluatie intern.",
     rand: "border-l-[#0e7490]",
     merkCls: "border-[#0e7490] bg-white text-[#0b5c72]",
@@ -121,6 +121,7 @@ export default function EvaluatieExport({ versie }: { /** alleen deze versie ton
   // De versie voor 3sides heeft alleen een brief als die inhoud heeft, en de brief hoort af te
   // zijn voordat hij de deur uitgaat: een lege brief en plekken tussen haken hier melden.
   const brief = useMemo(() => {
+    if (!BRIEF_MEESTUREN) return { leeg: false, invulplekken: [] as string[] };
     const sectie = maakUitsnede(bron.analyse, bron.gesprek, "3sides").brief;
     return { leeg: sectie === null, invulplekken: sectie ? invulplekken(sectie) : [] };
   }, [bron]);

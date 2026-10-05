@@ -109,7 +109,7 @@ function voettekst(intern: boolean, breedte: number): Footer {
 /** Wat de versie bevat, in één regel in het titelblok. */
 const VERSIE_REGEL = {
   intern: "Intern Cito: alles, ook wat Cito zelf doet, ons oordeel met de notities en de onderbouwing",
-  "3sides": "Voor 3sides: wat we aan 3sides communiceren, met de begeleidende brief",
+  "3sides": "Voor 3sides: wat we aan 3sides communiceren",
 } as const;
 
 /** Titelblok bovenaan: (intern) de regel "Intern Cito", titel, ondertitel, versie, status en datum. */

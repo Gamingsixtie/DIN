@@ -386,7 +386,7 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
             <b>Afdrukweergave Evaluatie 3sides.</b>{" "}
             {intern
               ? "Interne versie voor de programma-eigenaar: alles, ook wat Cito zelf doet, ons oordeel, de notities en de onderbouwing."
-              : "Versie om aan 3sides te overhandigen: wat we aan 3sides communiceren, met de begeleidende brief."}
+              : `Versie om aan 3sides te overhandigen: wat we aan 3sides communiceren${u.brief ? ", met de begeleidende brief" : ""}.`}
           </span>
         </p>
         <div className="evp-balk-doe">
@@ -444,7 +444,7 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
           <p className="evp-versie">
             {intern
               ? "Deze versie bevat alles: wat we aan 3sides communiceren en, als intern gemarkeerd, wat Cito zelf doet, ons oordeel met de notities en de onderbouwing."
-              : "Deze versie bevat wat we aan 3sides communiceren: de planning met wat er is geleverd en onze bevindingen per kader, met de begeleidende brief."}
+              : `Deze versie bevat wat we aan 3sides communiceren: de planning met wat er is geleverd en onze bevindingen per punt${u.brief ? ", met de begeleidende brief" : ""}.`}
           </p>
           {inhoud.length > 0 && (
             <nav className="evp-inhoud" aria-label="Inhoud">

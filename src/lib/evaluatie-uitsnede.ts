@@ -227,6 +227,13 @@ function actiebordInAnalyse(t: string): string {
   return t.replace(ACTIEBORD_DEEL, "actiebord").replace(ACTIEBORD_KAAL, (m) => m + " in de analyse");
 }
 
+/**
+ * Gaat de begeleidende brief mee (tabblad, Word en PDF voor 3sides)? Op verzoek van het
+ * programmateam (05-10-2026) voorlopig niet; de tekst blijft in de sessie bewaard en komt
+ * terug door dit op true te zetten.
+ */
+export const BRIEF_MEESTUREN = false;
+
 /** Sectie met inhoud? (een lege agenda of brief komt niet in de export) */
 function metInhoud(s: DocSectie | undefined): s is DocSectie {
   return !!s && s.blokken.length > 0;
@@ -277,7 +284,7 @@ export function maakUitsnede(analyse: BewerkbaarDocument, gesprek: BewerkbaarDoc
     titel: gesprek.titel,
     ondertitel: gesprek.ondertitel ?? "",
     status: gesprek.status ?? "",
-    brief: versie === "3sides" && metInhoud(brief) ? diep(brief, tekst) : null,
+    brief: BRIEF_MEESTUREN && versie === "3sides" && metInhoud(brief) ? diep(brief, tekst) : null,
     agenda: metInhoud(agenda) ? diep(agenda, tekst) : null,
     delen,
     gegevens: diep(

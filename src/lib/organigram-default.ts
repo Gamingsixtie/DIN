@@ -151,6 +151,7 @@ export const DEFAULT_ORGANIGRAM: OrganigramData = {
     { naam: "Sanne en Pim", rol: "programmamanagement" },
     { naam: "Sectormanagers", rol: "bateneigenaren PO · VO · Zakelijk" },
     { naam: "George", rol: "financiële control · adviserend" },
+    { naam: "3sides", rol: "externe partner" },
   ],
   stuurgroepNoot: "Domeineigenaren op uitnodiging, bij besluiten over hun domein",
 
