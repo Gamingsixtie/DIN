@@ -1516,6 +1516,7 @@ export const DINSessionSchema = z.object({
       overleg2909: z.string().optional().default(""),
       overleg0110: z.string().optional().default(""),
       stappenplan: z.string().optional().default(""),
+      voorstel: z.string().optional().default(""),
     })
     .partial()
     .optional(),

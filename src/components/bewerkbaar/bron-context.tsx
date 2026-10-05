@@ -48,7 +48,7 @@ import type { ReactNode } from "react";
 import { APP_STEPS } from "@/lib/types";
 
 /** Velden bij "Vindplaatsen" (session.koppelingen) voor bronnen die geen bestand in de map zijn. */
-export type Vindplaats = "statuspagina" | "overleg2909" | "overleg0110" | "stappenplan";
+export type Vindplaats = "statuspagina" | "overleg2909" | "overleg0110" | "stappenplan" | "voorstel";
 
 export interface Bron {
   /** link naar de map met de 3sides-documenten (zonder bestandsnaam) */
@@ -80,6 +80,9 @@ export interface BronDocument {
   /** korte waarschuwing in de tooltip van elke link naar dit document */
   opmerking?: string;
 }
+
+/** Het stappenplan van de analysefase (19-08-2026), als pagina in de app. */
+export const STAPPENPLAN_PAGINA = "/schetsen/stappenplan-analysefase.html";
 
 /** Link naar het naslag-tabblad van stap 11 (zonder anker); relatief aan de sessiepagina. */
 export const NASLAG_TAB = "?stap=integratie&tab=kern";
@@ -191,12 +194,17 @@ export const VINDPLAATS_VELDEN: readonly { sleutel: Vindplaats; label: string; u
   {
     sleutel: "stappenplan",
     label: "Stappenplan analysefase (link)",
-    uitleg: "Het stappenplan van het programma van 19-08.",
+    uitleg: "Het stappenplan van het programma van 19-08. Zonder link opent de verwijzing het stappenplan in de app.",
+  },
+  {
+    sleutel: "voorstel",
+    label: "Voorstel van 3sides, met de planning (link)",
+    uitleg: "De pagina van 3sides in de gedeelde documentruimte met de aanpak en de planning per kwartaal.",
   },
 ];
 
 export interface AndereBron {
-  id: "statuspagina" | "overleg-2909" | "overleg-0110" | "stappenplan" | "organigram" | "kpi-model" | "din" | "jira" | "programmaboek";
+  id: "statuspagina" | "overleg-2909" | "overleg-0110" | "stappenplan" | "voorstel" | "organigram" | "kpi-model" | "din" | "jira" | "programmaboek";
   /** zoals in een tooltip, met lidwoord: "de statuspagina van 3sides" */
   naam: string;
   /** waar de tekst vandaan komt, zoals in de bronnenlijst van de analyse */
@@ -248,6 +256,13 @@ export const ANDERE_BRONNEN: readonly AndereBron[] = [
     herkomst: "Stappenplan analysefase van het programma (19-08-2026)",
     namen: ["stappenplan van de analysefase", "stappenplan analysefase", "stappenplan"],
     vindplaats: "stappenplan",
+  },
+  {
+    id: "voorstel",
+    naam: "het voorstel van 3sides",
+    herkomst: "Voorstel van 3sides voor 2026 en 2027, met de planning per kwartaal: tekst van 3sides in de gedeelde documentruimte",
+    namen: ["voorstel van 3sides", "voorstel 3sides", "3sides-voorstel"],
+    vindplaats: "voorstel",
   },
   { id: "organigram", naam: "het organigram", herkomst: "Organigram van het programma (voorstel)", namen: ["organigram"], stap: "organigram" },
   { id: "kpi-model", naam: "het KPI-model", herkomst: "KPI-model van het programma", namen: ["KPI-model"], stap: "kpi-meetbaarheid" },
@@ -1105,6 +1120,11 @@ function andereDoel(b: AndereBron, stand: readonly string[], bron: Bron, secties
   if (stap) {
     return { soort: "app", href: "?stap=" + stap.key, titel: `Opent ${b.naam} in deze app: stap ${stap.nummer}, ${stap.label} (nieuw tabblad)` };
   }
+  // Het stappenplan van de analysefase staat als pagina in de app (public/schetsen): zonder eigen
+  // link bij Vindplaatsen opent de verwijzing die pagina.
+  if (b.id === "stappenplan") {
+    return { soort: "extern", href: STAPPENPLAN_PAGINA, titel: "Opent ons stappenplan voor de analysefase van 19-08-2026 (nieuw tabblad)" };
+  }
   const nogGeenLink = b.vindplaats ? " Nog geen link ingesteld bij Vindplaatsen." : "";
   if (b.naslagSectie && (bron.naslagSecties ?? []).includes(b.naslagSectie)) {
     // Het naslag geeft de statuspagina weer zoals die op 29-09 is aangeleverd.
@@ -1165,6 +1185,9 @@ type Stuk =
   /** expliciete verwijzing [[…]] die geen document is: tekst zonder haken */
   | { soort: "plat"; start: number; end: number; weergave: string };
 
+// "ons stappenplan", "het stappenplan", "ons organigram", "ons KPI-model" in een lopende zin.
+const EIGEN_STUK = /(?<![\p{L}\p{N}])(?:[Oo]ns|[Oo]nze|[Hh]et)\s(stappenplan|organigram|KPI-model)(?![\p{L}\p{N}-])/gu;
+
 /**
  * Tekst met de verwijzingen als links. Documentverwijzingen: met map naar het document,
  * anders (met terugval) naar het naslag; "deel N" naar de sectie uit de kaart. Bij
@@ -1205,6 +1228,18 @@ function verdeel(
       if (inExpliciet(v.start, v.end)) continue;
       const doel = andereDoel(v.bron, v.stand, bron, secties);
       if (doel) stukken.push({ soort: "ander", start: v.start, end: v.end, doel });
+    }
+    // Onze eigen stukken in de lopende tekst ("ons stappenplan noemt Q3", "in ons organigram"):
+    // ook daar is de naam een link, zodat de lezer het stuk zelf kan openen.
+    for (const m of tekst.matchAll(EIGEN_STUK)) {
+      const naam = m[1];
+      const start = (m.index ?? 0) + m[0].length - naam.length;
+      const end = start + naam.length;
+      if (inExpliciet(start, end) || stukken.some((v) => start < v.end && v.start < end)) continue;
+      const id = naam.toLowerCase() === "stappenplan" ? "stappenplan" : naam.toLowerCase() === "organigram" ? "organigram" : "kpi-model";
+      const eigen = ANDERE_BRONNEN.find((x) => x.id === id);
+      const doel = eigen ? andereDoel(eigen, [], bron, secties) : null;
+      if (doel) stukken.push({ soort: "ander", start, end, doel });
     }
   }
   if (secties.length > 0) {
