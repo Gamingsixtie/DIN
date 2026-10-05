@@ -12,7 +12,7 @@
 // het tekenen: `doc` en wat via onChange teruggaat, blijven het hele document, en een blok
 // houdt zijn index, zodat opmerkingen en wijzigingen overal bij hetzelfde blok uitkomen.
 
-import { Fragment, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { isVerwijderd, kloon, verwijderdeSectie } from "@/lib/bewerkbaar-document";
@@ -435,24 +435,48 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
 }
 
 /**
- * Een tabel als kaart per rij: de eerste kolom is de kop (eerste regel de naam, de rest een
- * label), de chipkolom het oordeel, de andere kolommen staan met hun kolomnaam naast elkaar
- * over de volle breedte. Erboven een overzicht: per rij het oordeel en de naam.
+ * Een tabel als kaart per rij. De eerste kolom is de kop: regel 1 de naam, regel 2 een label,
+ * de rest een toelichting in gewone taal. De chipkolom is het oordeel. Bij vijf andere
+ * kolommen staan de laatste drie als kern naast elkaar (de laatste gemarkeerd als vraag) en
+ * de eerste twee als context eronder. In een cel is elke regel een punt; een regel die met
+ * "Bron:" begint, staat klein onderaan. Erboven een overzicht dat naar de kaarten springt.
  */
 function RijKaarten({ b }: { b: BlokVan<"tabel"> }) {
+  const uid = "rk" + useId().replace(/[^a-zA-Z0-9]/g, "");
   const chip = b.chipKolom ?? -1;
   const velden = b.kolommen.map((_, c) => c).filter((c) => c !== 0 && c !== chip);
-  // bij vijf velden: twee bovenaan (de context), drie eronder (de kern)
-  const boven = velden.length === 5 ? velden.slice(0, 2) : [];
-  const onder = velden.length === 5 ? velden.slice(2) : velden;
+  const context = velden.length === 5 ? velden.slice(0, 2) : [];
+  const kern = velden.length === 5 ? velden.slice(2) : velden;
   const kop = (rij: string[]) => {
-    const [naam, ...rest] = (rij[0] ?? "").split("\n");
-    return { naam, label: rest.join(" ").trim() };
+    const [naam, label = "", ...rest] = (rij[0] ?? "").split("\n");
+    return { naam, label: label.trim(), uitleg: rest.join(" ").trim() };
+  };
+  const inhoud = (v: string) => {
+    const regels = v.split("\n").map((x) => x.trim()).filter(Boolean);
+    const bron = regels.filter((x) => /^Bron:/i.test(x));
+    const punten = regels.filter((x) => !/^Bron:/i.test(x));
+    return (
+      <>
+        {punten.length === 1 && <p className="okd-rk-t">{metBronlinks(punten[0])}</p>}
+        {punten.length > 1 && (
+          <ul className="okd-rk-punten">
+            {punten.map((x, i) => (
+              <li key={i}>{metBronlinks(x)}</li>
+            ))}
+          </ul>
+        )}
+        {bron.map((x, i) => (
+          <p key={i} className="okd-rk-bron">
+            {metBronlinks(x)}
+          </p>
+        ))}
+      </>
+    );
   };
   const veld = (rij: string[], c: number, extra = "") => (
     <div key={c} className={"okd-rk-veld" + extra}>
       <span className="okd-rk-l">{b.kolommen[c]}</span>
-      <div className="okd-rk-t">{metBronlinks(rij[c] ?? "")}</div>
+      {inhoud(rij[c] ?? "")}
     </div>
   );
   return (
@@ -462,8 +486,13 @@ function RijKaarten({ b }: { b: BlokVan<"tabel"> }) {
           const v = chip >= 0 ? (rij[chip] ?? "") : "";
           return (
             <li key={r}>
-              {v && <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span>}
-              <span className="okd-rk-on">{metBronlinks(kop(rij).naam)}</span>
+              <a href={`#${uid}-${r}`} className="okd-rk-spring">
+                <span className="okd-rk-nr" aria-hidden="true">
+                  {r + 1}
+                </span>
+                <span className="okd-rk-on">{kop(rij).naam}</span>
+                {v && <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span>}
+              </a>
             </li>
           );
         })}
@@ -472,19 +501,24 @@ function RijKaarten({ b }: { b: BlokVan<"tabel"> }) {
         const k = kop(rij);
         const v = chip >= 0 ? (rij[chip] ?? "") : "";
         return (
-          <article key={r} className={"okd-rk-kaart okd-rk-" + (v ? chipSoort(v) : "grijs")}>
+          <article key={r} id={`${uid}-${r}`} className={"okd-rk-kaart okd-rk-" + (v ? chipSoort(v) : "grijs")}>
             <header className="okd-rk-kop">
               <span className="okd-rk-nr" aria-hidden="true">
                 {r + 1}
               </span>
-              <h5 className="okd-rk-naam">{metBronlinks(k.naam)}</h5>
-              {k.label && <span className="okd-rk-label">{k.label}</span>}
+              <div className="okd-rk-kop-t">
+                <h5 className="okd-rk-naam">
+                  {metBronlinks(k.naam)}
+                  {k.label && <span className="okd-rk-label">{k.label}</span>}
+                </h5>
+                {k.uitleg && <p className="okd-rk-uitleg">{metBronlinks(k.uitleg)}</p>}
+              </div>
               {v && <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span>}
             </header>
-            {boven.length > 0 && <div className="okd-rk-rij okd-rk-boven">{boven.map((c) => veld(rij, c))}</div>}
-            <div className="okd-rk-rij">
-              {onder.map((c, i) => veld(rij, c, i === onder.length - 1 && onder.length > 1 ? " okd-rk-vraag" : ""))}
+            <div className="okd-rk-rij okd-rk-kern">
+              {kern.map((c, i) => veld(rij, c, i === kern.length - 1 && kern.length > 1 ? " okd-rk-vraag" : ""))}
             </div>
+            {context.length > 0 && <div className="okd-rk-rij okd-rk-context">{context.map((c) => veld(rij, c))}</div>}
           </article>
         );
       })}

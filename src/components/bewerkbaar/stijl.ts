@@ -174,27 +174,42 @@ export const DOC_CSS = `
 .okd .okd-chip-amber{background:#fffbeb;color:#92400e;border-color:#fcd34d}
 .okd .okd-chip-grijs{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
 /* tabel als kaart per rij (kaartWeergave): overzicht bovenaan, daaronder per rij een kaart */
-.okd .okd-rk{display:flex;flex-direction:column;gap:12px}
-.okd .okd-rk-overzicht{list-style:none;margin:0;padding:10px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:6px 18px;background:#f8fafc;border:1px solid var(--line);border-radius:10px}
-.okd .okd-rk-overzicht li{display:flex;align-items:baseline;gap:8px;font-size:12.5px;line-height:1.4;color:var(--ink)}
-.okd .okd-rk-overzicht .okd-chip{flex:none;min-width:98px;text-align:center}
-.okd .okd-rk-on{font-weight:600}
-.okd .okd-rk-kaart{border:1px solid var(--line);border-left:4px solid #9ca3af;border-radius:10px;background:#fff;padding:12px 16px 14px;break-inside:avoid}
-.okd .okd-rk-kaart.okd-rk-groen{border-left-color:#059669}
-.okd .okd-rk-kaart.okd-rk-amber{border-left-color:#d97706}
-.okd .okd-rk-kaart.okd-rk-blauw{border-left-color:#2563eb}
-.okd .okd-rk-kop{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.okd .okd-rk{display:flex;flex-direction:column;gap:14px}
+.okd .okd-rk-overzicht{list-style:none;margin:0;padding:6px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px 10px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.okd .okd-rk-spring{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;font-size:13px;line-height:1.35;color:var(--ink);text-decoration:none}
+.okd .okd-rk-spring:hover,.okd .okd-rk-spring:focus-visible{background:#eef4fb}
+.okd .okd-rk-spring .okd-chip{flex:none;margin-left:auto}
+.okd .okd-rk-on{font-weight:600;min-width:0}
 .okd .okd-rk-nr{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--cito);color:#fff;font-size:11.5px;font-weight:700}
-.okd .okd-rk-naam{margin:0;font-size:14.5px;font-weight:700;line-height:1.35;color:var(--cito)}
-.okd .okd-rk-label{font-size:11px;font-weight:700;color:#374151;background:#eef2f7;border-radius:999px;padding:2px 9px;white-space:nowrap}
-.okd .okd-rk-kop .okd-chip{margin-left:auto;font-size:11.5px;padding:2px 11px}
-.okd .okd-rk-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 22px}
-.okd .okd-rk-boven{padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed var(--line)}
+.okd .okd-rk-kaart{border:1px solid var(--line);border-top:4px solid #9ca3af;border-radius:10px;background:#fff;overflow:hidden;break-inside:avoid;scroll-margin-top:90px}
+.okd .okd-rk-kaart.okd-rk-groen{border-top-color:#059669}
+.okd .okd-rk-kaart.okd-rk-amber{border-top-color:#d97706}
+.okd .okd-rk-kaart.okd-rk-blauw{border-top-color:#2563eb}
+.okd .okd-rk-kop{display:flex;align-items:flex-start;gap:11px;padding:13px 18px 12px}
+.okd .okd-rk-kop .okd-rk-nr{margin-top:1px}
+.okd .okd-rk-kop-t{flex:1;min-width:0}
+.okd .okd-rk-naam{margin:0;font-size:15.5px;font-weight:700;line-height:1.35;color:var(--cito)}
+.okd .okd-rk-label{display:inline-block;margin-left:9px;vertical-align:2px;font-size:11px;font-weight:700;color:#374151;background:#eef2f7;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.okd .okd-rk-uitleg{margin:3px 0 0;font-size:13px;line-height:1.5;color:#374151}
+.okd .okd-rk-kop > .okd-chip{flex:none;font-size:12px;padding:3px 13px}
+.okd .okd-rk-rij{display:grid;gap:0}
+.okd .okd-rk-kern{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));border-top:1px solid var(--line)}
+.okd .okd-rk-kern > .okd-rk-veld{padding:12px 18px 14px;border-left:1px solid var(--line)}
+.okd .okd-rk-kern > .okd-rk-veld:first-child{border-left:0}
+.okd .okd-rk-context{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));background:#f8fafc;border-top:1px solid var(--line)}
+.okd .okd-rk-context > .okd-rk-veld{padding:10px 18px 12px}
 .okd .okd-rk-veld{min-width:0}
-.okd .okd-rk-l{display:block;margin-bottom:3px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#4a5565}
-.okd .okd-rk-t{font-size:13px;line-height:1.55;color:var(--ink);white-space:pre-line}
-.okd .okd-rk-vraag{align-self:start;background:#f1fafb;border:1px solid #9bd0db;border-left:3px solid #0e7490;border-radius:8px;padding:8px 12px 10px}
+.okd .okd-rk-l{display:block;margin-bottom:5px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#374151}
+.okd .okd-rk-t{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.okd .okd-rk-punten{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.okd .okd-rk-punten li{position:relative;padding-left:14px;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.okd .okd-rk-punten li::before{content:"";position:absolute;left:1px;top:.62em;width:5px;height:5px;border-radius:999px;background:#94a3b8}
+.okd .okd-rk-context .okd-rk-punten li,.okd .okd-rk-context .okd-rk-t{font-size:12.5px;color:#1f2937}
+.okd .okd-rk-bron{margin:8px 0 0;font-size:11.5px;line-height:1.45;color:#4a5565}
+.okd .okd-rk-vraag{background:#f1fafb}
 .okd .okd-rk-vraag .okd-rk-l{color:#0b5c72}
+.okd .okd-rk-vraag .okd-rk-punten li::before{background:#0e7490}
+@media (max-width:640px){.okd .okd-rk-kern > .okd-rk-veld{border-left:0;border-top:1px solid var(--line)}.okd .okd-rk-kern > .okd-rk-veld:first-child{border-top:0}}
 .okd .okd-rk-legenda{margin-top:10px;font-size:12.5px}
 .okd .okd-rk-legenda summary{cursor:pointer;font-weight:600;color:var(--cito)}
 .okd .okd-rk-legenda-papier{display:none}
