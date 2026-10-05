@@ -47,7 +47,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
             [
               "0:08–0:20",
               "Leveren (deel 8, kader 1)",
-              "Levert 3sides wat het heeft toegezegd: de onderdelen uit de tijdlijn met een oplevermaand tot en met oktober, van Klant in Beeld-klantreizen samenvoegen (augustus) tot adoptieframework opstellen (oktober). Ze staan bij naam in kader 1 en in de tabel 'Geleverd?' (deel 5). Als onderbouwing: die tabel en de tijdlijn.",
+              "Levert 3sides wat het heeft toegezegd: eerst wat het eerste voorstel in Q3 2026 zette, van de kick-off tot de pilotgroep (de eerste tabel van deel 5), dan de onderdelen uit de tijdlijn met een oplevermaand tot en met oktober, van Klant in Beeld-klantreizen samenvoegen (augustus) tot adoptieframework opstellen (oktober). Ze staan bij naam in kader 1 en in de tabel 'Geleverd?' (deel 5). Als onderbouwing: die twee tabellen en de tijdlijn.",
               "Per onderdeel de stand volgens 3sides, en een nieuwe datum waar de maand is verstreken",
             ],
             [
@@ -95,7 +95,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
         {
           type: "tekst",
           tekst:
-            "De maatstaf is wat jullie zelf hebben toegezegd: de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Bij elke bevinding staat de bron: jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
+            "De maatstaf is wat jullie zelf hebben toegezegd: de planning in jullie eerste voorstel, de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Bij elke bevinding staat de bron: jullie voorstel, jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
         },
         {
           type: "tekst",
