@@ -1328,51 +1328,59 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         callout(
           "besluit",
           "Startpunt: de lessen uit Klant in Beeld",
-          "Klant in Zicht bouwt voort op Klant in Beeld, het voortraject dat 3sides ook begeleidde. 3sides evalueerde dat zelf en deelde de resultaten; dat waarderen we. 13 deelnemers antwoordden (volgens onze opgave waren er 34 aangeschreven): 3 vinden het doel behaald, 10 niet (evaluatie Klant in Beeld; microspace 3sides, stand 01-10).\n\nDe lessen willen wij terugzien in de planning van het vierde kwartaal van 2026. De tabel hieronder zet ze naast wat we nu zien."
+          "Klant in Zicht bouwt voort op Klant in Beeld, het voortraject dat 3sides ook begeleidde. 3sides evalueerde dat zelf en deelde de resultaten; dat waarderen we. 13 deelnemers antwoordden (volgens onze opgave waren er 34 aangeschreven): 3 vinden het doel behaald, 10 niet (evaluatie Klant in Beeld; microspace 3sides, stand 01-10).\n\nEen kanttekening: de evaluatie is pas begin september gehouden, toen Klant in Zicht al twee maanden liep. Op 1 oktober kon dus nog niet alles zijn verwerkt. De lessen willen wij terugzien in de planning van het vierde kwartaal van 2026. De kaarten hieronder zetten ze naast wat we nu zien."
         ),
         tabel(
-          ["Les", "Wat deelnemers schreven", "Wat we nu zien in Klant in Zicht", "Onze vraag aan 3sides"],
+          ["Les", "Zien we het terug?", "Wat deelnemers schreven", "Wat we nu zien in Klant in Zicht", "Onze vraag aan 3sides"],
           [
             [
               "Maak het concreet en maak het af",
-              "7 van de 13 deelnemers schrijven dat een concreet vervolg of resultaat uitbleef. 5 gebruiken in hun kritiek het woord concreet. Drie citaten: 'Omdat het bij ideeën lijkt te zijn gebleven', 'Scherper doelen formuleren en sneller concreet worden', 'Afmaken waar we aan begonnen zijn' (evaluatie Klant in Beeld)",
-              "Dit zien we terug. De onderdelen die volgens de tijdlijn in augustus of september af moesten zijn, hebben wij niet gezien zoals het plan van aanpak van 3sides ze beschrijft (zie het punt over leveren). En 3sides noemt vier van de eerste vijf opleveringen zelf 'Draft', een eerste versie. Dat zijn de blueprint klantreis (de uitgewerkte klantreis voor heel Cito BV), het meetplan, de praatplaat funnel en de praatplaat technologielandschap (microspace 3sides, stand 01-10). In ons overleg van 29 september heeft 3sides die werkwijze toegelicht: eerst de basis, daarna stap voor stap met teams (overleg 29-09, transcriptie). Die werkwijze past bij een andere les uit de evaluatie: 'te veel op symptomen ingingen in plaats van het kernprobleem'. Maar het concrete resultaat komt er later door. Het eerste moment waarop medewerkers de nieuwe werkwijze toepassen, is de pilotgroep in één sector. Die stond in het eerste voorstel van 3sides in Q3 2026 (voorstel 3sides, planning Q3 2026). Het plan van aanpak noemt Q4 2026 voor 'toegepast binnen eerste pilotgroep' en Q1 2027 voor 'Pilots sectoren' (plan van aanpak p. 11 en 13)",
-              "Welk eerste concrete resultaat merken onze medewerkers vóór eind december? Dat zijn de deelnemers van Klant in Beeld en hun collega's. En bij welk onderdeel van de tijdlijn hoort dat resultaat?",
+              "Zien we terug",
+              "7 van de 13 schrijven dat een concreet vervolg of resultaat uitbleef.\n'Omdat het bij ideeën lijkt te zijn gebleven'\n'Afmaken waar we aan begonnen zijn'\nBron: evaluatie Klant in Beeld",
+              "Wat in augustus of september af moest zijn, hebben wij niet gezien zoals het plan van aanpak van 3sides het beschrijft.\n3sides noemt vier van de eerste vijf opleveringen zelf 'Draft', een eerste versie.\n3sides lichtte de werkwijze toe: eerst de basis, daarna stap voor stap met teams. Dat past bij een andere les uit de evaluatie: 'te veel op symptomen ingingen in plaats van het kernprobleem'. Maar het concrete resultaat komt er later door.\nHet eerste moment waarop medewerkers anders gaan werken, de pilot, stond in het eerste voorstel in Q3 2026. In de tijdlijn staat het nu in januari en februari 2027.\nBron: microspace 3sides, stand 01-10; overleg 29-09; voorstel 3sides; tijdlijn, stand 28-09",
+              "Welk eerste concrete resultaat merken onze medewerkers vóór eind december?\nBij welk onderdeel van de tijdlijn hoort dat resultaat?",
             ],
             [
               "Houd het tempo",
-              "9 van de 13 noemen tijd of tempo. Twee citaten: 'Ik heb het idee dat het sneller had gekund', 'het had iets meer to the point gemogen van mij'. 8 van de 13 vinden de tijd het wel waard (evaluatie Klant in Beeld)",
-              "Tempo speelt opnieuw, in een andere vorm. Toen ging het om de tijd in de sessies, nu om de datums waarop iets af is. Deze les lag er bij de start al. 3sides schrijft: 'Uit Klant in Beeld hebben we geleerd dat projecten bij Cito soms lang doorlopen'. Wij hebben daarom gevraagd het tempo erin te houden (microspace 3sides, stand 01-10). Drie onderdelen zijn op 1 oktober over hun oplevermaand, zonder nieuwe datum: Klant in Beeld-klantreizen samenvoegen, analyse van data en applicaties en meetmodel ontwikkelen. Een vierde, visie en consequenties, is dat alleen volgens de tijdlijn: het plan van aanpak geeft er Q3/Q4 voor (tijdlijn, stand 28-09; plan van aanpak p. 7)",
-              "Wat doet 3sides in Klant in Zicht anders om het tempo te houden? Wij bedoelen: meer dan zorgen dat het team beschikbaar is.",
+              "Speelt opnieuw",
+              "9 van de 13 noemen tijd of tempo.\n'Ik heb het idee dat het sneller had gekund'\n8 van de 13 vinden de tijd het wel waard.\nBron: evaluatie Klant in Beeld",
+              "Toen ging het om de tijd in de sessies, nu om de datums waarop iets af is.\n3sides kende deze les bij de start: 'Uit Klant in Beeld hebben we geleerd dat projecten bij Cito soms lang doorlopen'.\nToch zijn drie onderdelen op 1 oktober over hun oplevermaand, zonder nieuwe datum; een vierde alleen volgens de tijdlijn.\nBron: microspace 3sides, stand 01-10; tijdlijn, stand 28-09; plan van aanpak p. 7",
+              "Wat doet 3sides in Klant in Zicht anders om het tempo te houden, behalve zorgen dat het team beschikbaar is?",
             ],
             [
-              "Werk samen, over afdelingen heen (dit ging goed)",
-              "Dit noemen deelnemers als sterk punt, ten minste 6 van de 13. Twee citaten: 'omdat we voor het eerst met verschillende disciplines samen zaten', 'multidisciplinaire samenwerking' (evaluatie Klant in Beeld)",
-              "In Klant in Zicht werkt 3sides nog niet zo. 3sides noemt deze samenwerking zelf als opbrengst van Klant in Beeld: 'Waardevolle samenwerking tussen afdelingen, voor het eerst gezamenlijk om tafel' (BV-dag p. 4). Maar volgens de samenvatting van ons overleg met 3sides zijn de gesprekken tot nu toe 'voornamelijk individueel gevoerd'. Sinds 29 september staat als actie genoteerd dat er per werkstroom een projectgroep komt (overleg 29-09). Het adoptieframework, het plan om onze medewerkers mee te nemen, noemt werksessies per fase van de klantreis (adoptieframework p. 11)",
-              "Wat neemt 3sides uit de werkwijze van Klant in Beeld mee naar Klant in Zicht? En wanneer starten de werksessies?",
+              "Werk samen, over afdelingen heen\n\nDit ging goed in Klant in Beeld.",
+              "Nog niet zo",
+              "Een sterk punt, volgens ten minste 6 van de 13.\n'omdat we voor het eerst met verschillende disciplines samen zaten'\nBron: evaluatie Klant in Beeld",
+              "3sides noemt dit zelf als opbrengst van Klant in Beeld: 'Waardevolle samenwerking tussen afdelingen, voor het eerst gezamenlijk om tafel'.\nMaar in Klant in Zicht zijn de gesprekken tot nu toe 'voornamelijk individueel gevoerd'.\nSinds 29 september staat als actie genoteerd dat er per werkstroom een projectgroep komt.\nHet adoptieframework, het plan om onze medewerkers mee te nemen, noemt werksessies per fase van de klantreis.\nBron: BV-dag p. 4; overleg 29-09; adoptieframework p. 11",
+              "Wat neemt 3sides uit de werkwijze van Klant in Beeld mee naar Klant in Zicht?\nWanneer starten de werksessies?",
             ],
             [
               "Sluit aan op waar wij staan",
-              "Meerdere deelnemers. Eén schrijft: 'goed georganiseerd, inhoudelijk kundig, leuke mensen', en in hetzelfde antwoord: 'Cito is geen marketingorganisatie.' Een ander: 'Soms te uitgebreid, \"hoog over\" en langdradig' (evaluatie Klant in Beeld)",
-              "Hierover is op 29 september gesproken. De uitkomst: per doelgroep is een eigen vertaling van de stukken nodig, en er komt een begrippenlijst. Alleen de begrippenlijst staat als actie genoteerd (overleg 29-09). De stukken van vóór dat overleg hebben die vertaling nog niet. Een voorbeeld: het adoptieframework gebruikt SMILE, een eigen Engelstalig model van 3sides (adoptieframework p. 12 en 13). In ons programmateam is gezegd dat het adoptieframework 'wel echt hoogover' is, dus te algemeen (overleg 01-10)",
+              "Besproken, nog niet verwerkt",
+              "Meerdere deelnemers.\n'goed georganiseerd, inhoudelijk kundig, leuke mensen', en in hetzelfde antwoord: 'Cito is geen marketingorganisatie.'\n'Soms te uitgebreid, \"hoog over\" en langdradig'\nBron: evaluatie Klant in Beeld",
+              "Hierover is op 29 september gesproken: per doelgroep is een eigen vertaling van de stukken nodig, en er komt een begrippenlijst. Alleen de begrippenlijst staat als actie genoteerd.\nDe stukken van vóór dat overleg hebben die vertaling nog niet. Een voorbeeld: het adoptieframework gebruikt SMILE, een eigen Engelstalig model van 3sides.\nIn ons programmateam is gezegd dat het adoptieframework 'wel echt hoogover' is, dus te algemeen.\nBron: overleg 29-09; adoptieframework p. 12 en 13; overleg 01-10",
               "Welke les trekt 3sides hier zelf uit voor de manier waarop het ons begeleidt?",
             ],
             [
               "Haal de klant zelf erbij",
-              "Meerdere deelnemers. Twee citaten: 'hebben we veel te weinig input bij de klanten zelf opgehaald', 'Er wordt nog steeds niet vanuit de klant gedacht.' (evaluatie Klant in Beeld)",
-              "In de stukken van 3sides komt de klant zelf niet aan het woord. Dit is onze lezing. Het adoptieframework begint wel bij de klantreis: 'Het gaat om wat de klant probeert te bereiken' (adoptieframework p. 6). Het vertaalt die klantreis naar gewenst gedrag van medewerkers (adoptieframework p. 3). Maar een stap waarin klanten zelf iets wordt gevraagd, vinden wij niet in het plan van aanpak en niet in het adoptieframework. De blueprint, de uitgewerkte klantreis, wordt 'gevalideerd door product managers en sector managers' (plan van aanpak p. 10). Op twee plekken komt de klant wel terug. In de meting, via de NPS: de score voor hoe waarschijnlijk klanten ons aanbevelen (meetinstrument p. 8). En het eerste voorstel van 3sides noemt 'Co-creatiesessies met klanten' in Q2 2027 (voorstel 3sides)",
+              "Nog niet (onze lezing)",
+              "Meerdere deelnemers.\n'hebben we veel te weinig input bij de klanten zelf opgehaald'\n'Er wordt nog steeds niet vanuit de klant gedacht.'\nBron: evaluatie Klant in Beeld",
+              "In de stukken van 3sides komt de klant zelf niet aan het woord. Dit is onze lezing.\nHet adoptieframework begint wel bij de klantreis: 'Het gaat om wat de klant probeert te bereiken'.\nMaar een stap waarin klanten zelf iets wordt gevraagd, vinden wij niet in het plan van aanpak en niet in het adoptieframework.\nDe klant komt wel terug in de meting, via de NPS (de score voor hoe waarschijnlijk klanten ons aanbevelen), en in 'Co-creatiesessies met klanten', die het eerste voorstel in Q2 2027 zet.\nBron: adoptieframework p. 3 en 6; plan van aanpak p. 10; meetinstrument p. 8; voorstel 3sides",
               "Waar in de aanpak komt de klant zelf aan het woord, en wanneer?",
             ],
             [
               "Zorg dat het in het eigen werk terechtkomt",
-              "De vraag was of deelnemers een methode in het eigen werk hebben toegepast. 2 deelnemers antwoorden ja en 11 nee. 7 van die 11 zijn het wel van plan. Eén citaat: 'ik zou niet weten welke' (evaluatie Klant in Beeld)",
-              "Dit kunnen wij nog niet beoordelen. In de playbook-workshops oefent een team de nieuwe werkwijze. Die starten volgens de tijdlijn pas in december (tijdlijn, stand 28-09). 3sides wil straks met een vergelijkbare vraag meten of medewerkers de nieuwe werkwijze overnemen: 'Doen mensen mee? Doen mensen iets anders? Heeft het effect?' (adoptieframework p. 7)",
+              "Nog niet te beoordelen",
+              "Hebben deelnemers een methode in het eigen werk toegepast? 2 zeggen ja, 11 nee.\n7 van die 11 zijn het wel van plan.\n'ik zou niet weten welke'\nBron: evaluatie Klant in Beeld",
+              "In de playbook-workshops oefent een team de nieuwe werkwijze. Die starten volgens de tijdlijn pas in december.\n3sides wil straks meten of medewerkers de werkwijze overnemen: 'Doen mensen mee? Doen mensen iets anders? Heeft het effect?'\nBron: tijdlijn, stand 28-09; adoptieframework p. 7",
               "Wat doet 3sides in de playbook-workshops anders dan in Klant in Beeld, zodat deelnemers het geleerde in hun eigen werk gebruiken?",
             ],
           ],
           {
             titel: "De lessen uit Klant in Beeld naast wat we nu zien",
-            legenda: "Bron: de evaluatie van Klant in Beeld, een vragenlijst, ingevuld door 13 deelnemers, van 1 tot en met 10 september 2026; volgens onze opgave waren er 34 aangeschreven. De citaten zijn letterlijk. De aantallen bij de gesloten vragen zijn geteld uit de vragenlijst; de tellingen per les zijn van ons, uit de open antwoorden.",
+            chipKolom: 1,
+            kaartWeergave: true,
+            legenda: "Kanttekening: de evaluatie van Klant in Beeld is pas laat gehouden, van 1 tot en met 10 september 2026. Klant in Zicht liep toen al twee maanden. De lessen konden dus niet vanaf de start worden meegenomen, en op 1 oktober kon nog niet alles zijn verwerkt.\nBron: een vragenlijst, ingevuld door 13 deelnemers; volgens onze opgave waren er 34 aangeschreven. De citaten zijn letterlijk. De aantallen bij de gesloten vragen zijn geteld uit de vragenlijst; de tellingen per les zijn van ons, uit de open antwoorden. 'Zien we het terug?' is onze eigen samenvatting van de kolom ernaast.",
           }
         ),
         tekst(

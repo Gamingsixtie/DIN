@@ -93,8 +93,8 @@ function chipSoort(v: string): "groen" | "blauw" | "amber" | "grijs" {
   const ligtEr = t.includes("ligt er") && !/\bniet\b/.test(t);
   // oordeel "geleverd?": ja (groen), waarschijnlijk (blauw), nee of nee, deels (amber), niet gestart (grijs)
   if (/^ja\b/.test(t) || bevat("sluit aan", "staat erin") || ligtEr) return "groen";
-  if (/^nee\b/.test(t) || /^verstreken/.test(t)) return "amber";
-  if (bevat("waarschijnlijk", "aanvulling", "deels") || /^loopt/.test(t)) return "blauw";
+  if (/^nee\b/.test(t) || /^verstreken/.test(t) || /^(zien we terug|speelt opnieuw|nog niet zo|nog niet \()/.test(t)) return "amber";
+  if (bevat("waarschijnlijk", "aanvulling", "deels") || /^loopt/.test(t) || /^besproken/.test(t)) return "blauw";
   if (bevat("verschil", "ontbreekt", "aanvullen")) return "amber";
   return "grijs";
 }
