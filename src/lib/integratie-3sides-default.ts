@@ -1308,7 +1308,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
     sectie(
       "evaluatie",
       "8 · Evaluatie van 3sides op zes punten",
-      "Na drie maanden Klant in Zicht evalueren wij het werk van 3sides op zes punten: leveren, tempo, rapporteren, onze medewerkers meenemen, ons framework en onze regie. De maatstaf is wat 3sides heeft toegezegd in het eerste voorstel, samen met wat 3sides zelf in de tijdlijn en in het eigen plan van aanpak heeft gezet. Per punt staat onze bevinding, de feiten met hun bron, wat we van 3sides vragen en de vraag voor het gesprek. Voor de vier werkstromen gebruiken wij onze namen; die van 3sides staan bij punt 5. Stand van de bronnen: 1 oktober 2026; het Miro-bord van de klantreizen hebben wij op 5 oktober 2026 bekeken.",
+      "Na drie maanden Klant in Zicht evalueren wij het werk van 3sides op zes punten. De maatstaf is wat 3sides toezegde in het eerste voorstel en zelf in de tijdlijn zette. Stand van de bronnen: 1 oktober 2026.",
       [
         callout(
           "info",
@@ -1318,17 +1318,17 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         callout(
           "let-op",
           "De kern van deze evaluatie",
-          "Wij hadden als programmateam in de eerste drie maanden te weinig zicht op het werk van 3sides. Dat zit in drie dingen.\n\n1 · Tot eind september wisten wij in hoofdlijnen niet waar 3sides aan werkte. Wij zagen alleen een korte samenvatting in de microspace, de online omgeving waarin 3sides voortgang en documenten deelt. Wat er precies was gedaan, is onvoldoende met ons besproken.\n2 · Eind september kwam alles tegelijk. De werkdocumenten staan met de datums 28 en 29 september in de microspace. Van de tijdlijn, de Excel waarin 3sides per onderdeel planning en voortgang bijhoudt, hebben wij één stand: die van 28 september. Wekelijks rapporteren is pas recent afgesproken.\n3 · Ook met de tijdlijn zien wij niet wat af is. Geen enkel onderdeel staat op 'Completed'. Alles staat op 'In progress' of 'Not started', ook de vier onderdelen die op 1 oktober over hun oplevermaand zijn. Wat vastzit en waarom, staat er niet in. Wat er per toezegging ligt, hebben wij daarom zelf uit de documenten moeten opmaken; dat staat in de tabel 'Toegezegd en geleverd'.\n\nWat wij als eerste vragen: dat wij voortaan elke week in de tijdlijn zien wat af is, waar 3sides aan werkt en wat in de weg staat, met tussenversies zodra die er zijn. De zes punten werken dit uit (microspace 3sides, stand 29-09 en 01-10; tijdlijn, stand 28-09)."
+          "Wij hadden in de eerste drie maanden te weinig zicht op het werk van 3sides.\n1 · Tot eind september zagen wij alleen een korte samenvatting in de microspace, de online omgeving van 3sides.\n2 · Eind september kwam alles tegelijk: de werkdocumenten (28 en 29 september) en de tijdlijn, de planning van 3sides in Excel (stand 28 september).\n3 · In de tijdlijn staat geen enkel onderdeel op 'Completed'. Wat af is, hebben wij zelf uit de documenten moeten opmaken.\n\nWat wij vragen: elke week in de tijdlijn zien wat af is, waar 3sides aan werkt en wat in de weg staat (microspace 3sides, stand 29-09 en 01-10; tijdlijn, stand 28-09)."
         ),
         callout(
           "besluit",
           "Rolverdeling",
-          "Wij leiden, 3sides volgt en voert uit, niet andersom; zo is het met 3sides besproken. Wij bepalen wat het resultaat moet zijn, toetsen het en beslissen. 3sides stelt het plan van aanpak op, levert, en bereidt de stappen uit het eigen plan voor en plant ze in.\n\nMet ons programmamanagement is afgesproken dat 3sides wekelijks rapporteert en belemmeringen zo vroeg mogelijk signaleert, en wij hebben 3sides uitdrukkelijk gevraagd het tempo erin te houden (microspace 3sides, stand 01-10). Aan dit uitgangspunt toetsen we de zes punten."
+          "Wij leiden, 3sides volgt en voert uit; zo is het met 3sides besproken. Wij bepalen het resultaat, toetsen en beslissen. 3sides maakt het plan van aanpak, levert, en rapporteert wekelijks aan ons programmamanagement (microspace 3sides, stand 01-10)."
         ),
         callout(
           "besluit",
           "Startpunt: de lessen uit Klant in Beeld",
-          "Klant in Zicht bouwt voort op Klant in Beeld, het voortraject over klantreizen dat 3sides ook begeleidde. 3sides heeft dat traject zelf geëvalueerd en de resultaten gedeeld; dat waarderen we (microspace 3sides, stand 01-10). 13 deelnemers vulden de vragenlijst in; volgens onze opgave waren er 34 aangeschreven. Op de vraag of het doel is behaald, antwoorden 3 ja en 10 nee; 8 vinden het de tijd waard en 5 niet (evaluatie Klant in Beeld).\n\nEén punt zien we terug in de stukken van 3sides: het concreet maken en afmaken. Het tempo speelt opnieuw, in een andere vorm: toen de tijd in de sessies, nu de opleverdatums. Eén deelnemer schreef dat het vervolg voor de grote groep niet te volgen was: 'Er is nog een klein groepje bezig, maar daar krijgen we niets van mee'; twee anderen misten opvolging van afspraken. Dat zijn 3 van de 13 antwoorden, geen patroon; wij noemen ze omdat zicht op het werk ook nu ons eerste punt is.\n\nWij lezen de uitkomsten als lessen voor het vervolg en willen ze terugzien in de planning van het vierde kwartaal van 2026. De tabel hieronder zet de lessen naast wat we nu zien."
+          "Klant in Zicht bouwt voort op Klant in Beeld, het voortraject dat 3sides ook begeleidde. 3sides evalueerde dat zelf en deelde de resultaten; dat waarderen we. 13 deelnemers antwoordden (volgens onze opgave waren er 34 aangeschreven): 3 vinden het doel behaald, 10 niet (evaluatie Klant in Beeld; microspace 3sides, stand 01-10).\n\nDe lessen willen wij terugzien in de planning van het vierde kwartaal van 2026. De tabel hieronder zet ze naast wat we nu zien."
         ),
         tabel(
           ["Les", "Wat deelnemers schreven", "Wat we nu zien in Klant in Zicht", "Onze vraag aan 3sides"],
