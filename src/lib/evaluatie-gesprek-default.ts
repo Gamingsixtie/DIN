@@ -31,7 +31,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
       id: GESPREK_AGENDA,
       titel: "Agenda voor het evaluatiegesprek",
       intro:
-        "Voorstel voor de agenda. Eén uur, alleen de evaluatie. De planning en wat er is geleverd vertellen we in één keer, aan de hand van de zeven kaarten 'Toegezegd en geleverd': per toezegging wat is beloofd, waar het in de tijdlijn staat, wat er ligt en wat ontbreekt. Daarna kort wat verder opvalt in de tijdlijn, en dan onze evaluatie op zes punten. Per onderwerp eerst wat wij zien, met de bron, daarna de reactie van 3sides. We sluiten af met afspraken.",
+        "Voorstel voor de agenda. Eén uur, alleen de evaluatie. We beginnen bij wat 3sides heeft toegezegd en wat er is geleverd. Dat lopen we per toezegging door, aan de hand van de zeven kaarten 'Toegezegd en geleverd': wat is toegezegd, wanneer het in de tijdlijn staat, wat er ligt en wat ontbreekt. Daarna kort wat verder opvalt in de tijdlijn, en dan onze evaluatie op zes punten. Per onderwerp eerst wat wij zien, met de bron, daarna de reactie van 3sides. We sluiten af met afspraken.",
       blokken: [
         {
           type: "tabel",
@@ -46,14 +46,14 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
             ],
             [
               "in te vullen",
-              "Planning en levering in één keer (deel 5, 'Toegezegd en geleverd')",
-              "We lopen de zeven kaarten door, één voor één. Per toezegging uit het eerste voorstel voor Q3 2026: wat is toegezegd, waar staat het nu in de tijdlijn, wat lag er op 1 oktober, wat ontbreekt en wat vragen wij. De tijdlijn ligt erbij als naslag. Onze vraag per kaart: klopt dit beeld, en welke datum geldt nu?",
+              "Wat heeft 3sides toegezegd, en wat is er geleverd? (deel 5, 'Toegezegd en geleverd')",
+              "3sides zegde in het eerste voorstel zeven dingen toe voor Q3 2026. Die lopen we één voor één door, elk op een eigen kaart. Per toezegging bespreken we alles achter elkaar: wat is toegezegd, wanneer staat het nu in de tijdlijn, wat lag er op 1 oktober, wat ontbreekt en wat vragen wij. De tijdlijn ligt erbij om in na te kijken. Onze vraag per toezegging: klopt dit beeld, en welke datum geldt nu?",
               "Per toezegging de stand volgens 3sides, en een datum waar die nodig is",
             ],
             [
               "in te vullen",
               "Wat verder opvalt in de tijdlijn (deel 5, 'De tijdlijn van 3sides zelf' en 'Vooruit: wat opvalt')",
-              "Alleen wat niet al bij de kaarten is besproken: geen enkel onderdeel staat op 'Completed', zes onderdelen hebben geen start- of oplevermaand, en eind 2026 komt de CRM-richting vóór de beschrijving van het werk waarvoor het systeem moet dienen. Onze vraag: wat is de planning die nu geldt, en hoe horen wij het voortaan vooraf als een datum niet wordt gehaald?",
+              "Alleen wat niet al bij de zeven toezeggingen is besproken: geen enkel onderdeel staat op 'Completed', zes onderdelen hebben geen start- of oplevermaand, en eind 2026 komt de CRM-richting vóór de beschrijving van het werk waarvoor het systeem moet dienen. Onze vraag: wat is de planning die nu geldt, en hoe horen wij het voortaan vooraf als een datum niet wordt gehaald?",
               "Eén planning met de datums die nu gelden",
             ],
             [
