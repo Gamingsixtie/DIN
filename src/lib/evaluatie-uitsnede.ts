@@ -39,11 +39,31 @@ function isInterneNotitie(sectieId: string, b: DocBlok): boolean {
 }
 
 /**
- * Staat dit blok op het tabblad Evaluatie 3sides? Alles uit de drie delen wat we aan 3sides
- * communiceren: dus niet het actiebord van Cito en niet de interne notitie bij de evaluatie.
+ * Het voortgangsbord: per werkstroom de stand van elk onderdeel en wat nog nodig is. Het
+ * hoort bij de analyse en het tabblad Voortgang; voor de evaluatie herhaalt het de tijdlijn
+ * en de tabel "Toegezegd en geleverd", dus het staat niet op het tabblad en niet in de export.
+ */
+function isVoortgangsbord(b: DocBlok): boolean {
+  return b.type === "voortgangsbord";
+}
+
+/** Uitleg over de bediening in de app: een kader met toon "info" in het deel Planning. Niet in de export. */
+function isBediening(sectieId: string, b: DocBlok): boolean {
+  return sectieId === "planning" && b.type === "callout" && b.toon === "info";
+}
+
+/**
+ * Staat dit blok op het tabblad Evaluatie 3sides? Wat we aan 3sides communiceren: kort en
+ * gericht. Dus niet het actiebord van Cito, niet de interne notitie bij de evaluatie en niet
+ * het voortgangsbord.
  */
 export function inUitsnede(sectieId: string, b: DocBlok): boolean {
-  return (UITSNEDE_SECTIES as readonly string[]).includes(sectieId) && !isActiebord(b) && !isInterneNotitie(sectieId, b);
+  return (
+    (UITSNEDE_SECTIES as readonly string[]).includes(sectieId) &&
+    !isActiebord(b) &&
+    !isInterneNotitie(sectieId, b) &&
+    !isVoortgangsbord(b)
+  );
 }
 
 /** De secties waaruit het tabblad Evaluatie intern put, in volgorde. */
@@ -57,8 +77,12 @@ export function inInternTab(sectieId: string, b: DocBlok): boolean {
   return sectieId === "evaluatie" || (sectieId === "planning" && isActiebord(b));
 }
 
-/** Staat dit blok in de export? Voor 3sides als op het tabblad; intern komt het actiebord erbij. */
+/**
+ * Staat dit blok in de export? Voor 3sides als op het tabblad; intern komt het actiebord
+ * erbij. De uitleg over de bediening en het voortgangsbord staan in geen van beide.
+ */
 function inExport(sectieId: string, b: DocBlok, versie: ExportVersie): boolean {
+  if (isBediening(sectieId, b) || isVoortgangsbord(b)) return false;
   if (versie === "3sides") return inUitsnede(sectieId, b);
   return (UITSNEDE_SECTIES as readonly string[]).includes(sectieId);
 }
@@ -156,11 +180,6 @@ function titelNummer(titel: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** Uitleg over de bediening in de app (het kader direct boven het voortgangsbord): niet in de export. */
-function isBedieningsuitleg(s: DocSectie, bi: number): boolean {
-  return s.blokken[bi].type === "callout" && s.blokken[bi + 1]?.type === "voortgangsbord";
-}
-
 /**
  * Een blok voor de export. In de versie voor 3sides: de evaluatie zonder ons interne oordeel,
  * de notitie en de onderbouwing per kader; en zonder de leeswijzer voor intern gebruik
@@ -235,7 +254,7 @@ export function maakUitsnede(analyse: BewerkbaarDocument, gesprek: BewerkbaarDoc
 
   const delen: UitsnedeDeel[] = gekozen.map((s, i) => {
     const blokken = s.blokken
-      .filter((b, bi) => inExport(s.id, b, versie) && !isBedieningsuitleg(s, bi))
+      .filter((b) => inExport(s.id, b, versie))
       .map((b) => exportBlok(s.id, b, versie))
       .filter((b): b is DocBlok => b !== null);
     const sectie: DocSectie = diep({ ...s, blokken }, tekst);

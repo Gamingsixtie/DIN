@@ -47,7 +47,7 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
             [
               "0:08–0:20",
               "Leveren (deel 8, kader 1)",
-              "Levert 3sides wat het heeft toegezegd: eerst wat het eerste voorstel in Q3 2026 zette, van de kick-off tot de pilotgroep (de eerste tabel van deel 5), dan de onderdelen uit de tijdlijn met een oplevermaand tot en met oktober, van Klant in Beeld-klantreizen samenvoegen (augustus) tot adoptieframework opstellen (oktober). Ze staan bij naam in kader 1 en in de tabel 'Geleverd?' (deel 5). Als onderbouwing: die twee tabellen en de tijdlijn.",
+              "Levert 3sides wat het heeft toegezegd: de zes onderdelen die het eerste voorstel in Q3 2026 zette, van de kick-off tot de pilotgroep, met de onderdelen uit de tijdlijn die erbij horen. Ze staan in de tabel 'Toegezegd en geleverd' (deel 5) en bij naam in kader 1; de tijdlijn ligt erbij.",
               "Per onderdeel de stand volgens 3sides, en een nieuwe datum waar de maand is verstreken",
             ],
             [
@@ -90,17 +90,17 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
         {
           type: "tekst",
           tekst:
-            "Na drie maanden Klant in Zicht hebben wij de samenwerking met 3sides geëvalueerd op zes punten: leveren, tempo, rapporteren, medewerkers meenemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per onderdeel wat er is geleverd, en per punt onze bevinding. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
+            "Na drie maanden Klant in Zicht hebben wij de samenwerking met 3sides geëvalueerd op zes punten: leveren, tempo, rapporteren, medewerkers meenemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per toezegging wat er op 1 oktober lag, en per punt onze bevinding. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
         },
         {
           type: "tekst",
           tekst:
-            "De maatstaf is wat jullie zelf hebben toegezegd: de planning in jullie eerste voorstel, de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Bij elke bevinding staat de bron: jullie voorstel, jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
+            "De maatstaf is wat jullie zelf hebben toegezegd: de planning in jullie eerste voorstel, de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Ons stappenplan van 19-08-2026 sluit aan op de planning in dat eerste voorstel. Bij elke bevinding staat de bron: jullie voorstel, jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
         },
         {
           type: "tekst",
           tekst:
-            "Ons uitgangspunt staat in ons stappenplan van 19-08-2026: wij leiden, 3sides volgt en voert uit. Per punt staat wat wij van jullie vragen.",
+            "Ons uitgangspunt staat in datzelfde stappenplan: wij leiden, 3sides volgt en voert uit. Per punt staat wat wij van jullie vragen.",
         },
         {
           type: "tekst",
