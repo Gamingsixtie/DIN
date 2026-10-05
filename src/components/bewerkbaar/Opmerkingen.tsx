@@ -1,12 +1,15 @@
 "use client";
 
 // Opmerkingen bij een blok van een bewerkbaar document, zoals in Word, maar gekoppeld aan
-// het blok zelf (kaart, tabel, plaat) in plaats van alleen de kantlijn. In weergave krijgt
-// elk blok rechtsboven een knop "Opmerking" (zichtbaar bij hover, altijd als er opmerkingen
-// zijn); de opmerkingen staan als ballonnen naast het blok (breed scherm) of eronder (smal),
-// met naam en datum, antwoorden, "afgehandeld" en verwijderen. Opslag in session.opmerkingen
-// (sleutel: document + sectie + blokindex), dus iedereen met de link ziet ze. De naam van
-// de schrijver wordt in localStorage onthouden (din_opmerkingen_door).
+// het blok zelf (kaart, tabel, plaat) in plaats van alleen de kantlijn. In weergave heeft
+// elk blok een knop "Opmerking" die altijd zichtbaar is (geen hover nodig, ook niet op een
+// aanraakscherm): op een breed scherm in de kantlijn rechts naast het blok, smaller in een
+// eigen smalle strook boven de rechterbovenhoek, zodat hij nooit over de inhoud of over
+// knoppen van het blok valt. De opmerkingen staan als ballonnen naast het blok (breed
+// scherm) of eronder (smal), met naam en datum, antwoorden, "afgehandeld" en verwijderen.
+// Opslag in session.opmerkingen (sleutel: document + sectie + blokindex), dus iedereen met
+// de link ziet ze. De naam van de schrijver wordt in localStorage onthouden
+// (din_opmerkingen_door).
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -100,6 +103,19 @@ function Tekstballon() {
 function Formulier(p: { label: string; ph: string; onPlaats: (tekst: string, door: string) => void; onSluit: () => void }) {
   const [tekst, setTekst] = useState("");
   const [door, setDoor] = useState(leesNaam);
+  const vorm = useRef<HTMLFormElement>(null);
+  const veld = useRef<HTMLTextAreaElement>(null);
+  // Cursor in het tekstvak. Staat het formulier buiten beeld (smal scherm: onder een hoog
+  // blok), dan rustig erheen schuiven in plaats van de sprong die de browser bij focus maakt.
+  useEffect(() => {
+    veld.current?.focus({ preventScroll: true });
+    const el = vorm.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top >= 8 && r.bottom <= window.innerHeight - 8) return;
+    const rustig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "center", behavior: rustig ? "auto" : "smooth" });
+  }, []);
   const klaar = tekst.trim().length > 0;
   const plaats = () => {
     if (!klaar) return;
@@ -108,6 +124,7 @@ function Formulier(p: { label: string; ph: string; onPlaats: (tekst: string, doo
   };
   return (
     <form
+      ref={vorm}
       className="opm-form"
       onSubmit={(e) => { e.preventDefault(); plaats(); }}
       onKeyDown={(e) => {
@@ -117,7 +134,7 @@ function Formulier(p: { label: string; ph: string; onPlaats: (tekst: string, doo
     >
       <label className="opm-l">
         {p.label}
-        <textarea className="opm-in" rows={3} value={tekst} onChange={(e) => setTekst(e.target.value)} placeholder={p.ph} autoFocus />
+        <textarea ref={veld} className="opm-in" rows={3} value={tekst} onChange={(e) => setTekst(e.target.value)} placeholder={p.ph} />
       </label>
       <label className="opm-l">
         Naam
@@ -181,22 +198,26 @@ function Ballon({ o, api }: { o: Opmerking; api: OpmerkingenApi }) {
 }
 
 /**
- * Om elk blok in weergave: de knop "Opmerking" rechtsboven, het formulier en de ballonnen
- * van dit blok. Zonder OpmerkingenProvider alleen de inhoud.
+ * Om elk blok in weergave: de knop "Opmerking" (altijd zichtbaar; in de kantlijn of in een
+ * strook boven de rechterbovenhoek, zie OPMERKINGEN_CSS), het formulier en de ballonnen
+ * van dit blok. De knop staat vóór de inhoud, zodat de tabvolgorde de leesvolgorde volgt.
+ * Zonder OpmerkingenProvider alleen de inhoud.
  */
 export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: string; children: ReactNode }) {
   const api = useContext(OpmerkingenContext);
   const [open, setOpen] = useState(false);
   const [kolomHoogte, setKolomHoogte] = useState(0);
   const kolom = useRef<HTMLDivElement>(null);
+  const knop = useRef<HTMLButtonElement>(null);
   const eigen = api ? api.lijst.filter((o) => o.sectie === p.sectie && o.blok === p.blok) : GEEN;
   const toon = open || eigen.length > 0;
-  // Breed scherm: de ballonnen staan naast het blok (absoluut) en tellen niet mee in de hoogte.
-  // Het blok wordt minstens zo hoog als de kolom, zodat ze niet over het volgende blok vallen.
+  // Breed scherm: de ballonnen staan in de kantlijn (absoluut, onder de knop) en tellen niet
+  // mee in de hoogte. Het blok wordt minstens zo hoog als de kolom reikt, zodat ze niet over
+  // de knop en de ballonnen van het volgende blok vallen. Smal: de kolom staat in de tekst.
   useEffect(() => {
     const el = kolom.current;
     if (!el) return;
-    const meet = () => setKolomHoogte(window.matchMedia("(min-width:1100px)").matches ? el.offsetHeight : 0);
+    const meet = () => setKolomHoogte(getComputedStyle(el).position === "absolute" ? el.offsetTop + el.offsetHeight : 0);
     const ro = new ResizeObserver(meet);
     ro.observe(el);
     window.addEventListener("resize", meet);
@@ -205,21 +226,32 @@ export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: stri
   if (!api) return <>{p.children}</>;
   const openAantal = eigen.filter((o) => !o.afgehandeld).length;
   const cls = "opm-blok" + (eigen.length ? " heeft" : "") + (openAantal ? " opm-open" : "");
+  const telling = eigen.length === 0 ? "" : ` (${eigen.length} ${eigen.length === 1 ? "opmerking" : "opmerkingen"}, ${openAantal} open)`;
+  // Annuleren of Esc: terug naar de knop, zodat toetsenbord en beeld weer bij het blok staan.
+  const sluit = () => { setOpen(false); knop.current?.focus(); };
   return (
     <div className={cls} style={toon && kolomHoogte ? { minHeight: kolomHoogte } : undefined}>
-      {p.children}
-      <button type="button" className="opm-knop" aria-expanded={open} title={`Opmerking plaatsen bij ${p.naam}`} onClick={() => setOpen((v) => !v)}>
+      <button
+        ref={knop}
+        type="button"
+        className="opm-knop"
+        aria-expanded={open}
+        aria-label={`Opmerking plaatsen bij ${p.naam}${telling}`}
+        title={`Opmerking plaatsen bij ${p.naam}${telling}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <Tekstballon />
         Opmerking
-        {eigen.length > 0 && <span className="opm-tel" aria-label={`${eigen.length} opmerkingen`}>{eigen.length}</span>}
+        {eigen.length > 0 && <span className="opm-tel">{eigen.length}</span>}
       </button>
+      {p.children}
       {toon && (
         <div className="opm-ballonnen" ref={kolom}>
           {open && (
             <Formulier
               label="Opmerking"
               ph={`Opmerking bij ${p.naam}`}
-              onSluit={() => setOpen(false)}
+              onSluit={sluit}
               onPlaats={(tekst, door) => {
                 api.toevoegen({ document: api.document, sectie: p.sectie, blok: p.blok, bij: p.naam, tekst, door });
                 setOpen(false);
@@ -254,8 +286,11 @@ export function OpmerkingenOverzicht(p: { secties?: { id: string; titel: string 
         <b>Opmerkingen</b>
         <span>{open.length} open · {af.length} afgehandeld</span>
       </div>
+      <p className="opm-ov-uitleg">
+        Klik bij een onderdeel op <span className="opm-ov-chip"><Tekstballon />Opmerking</span> om te reageren.
+      </p>
       {items.length === 0 ? (
-        <p className="opm-ov-leeg">Nog geen opmerkingen. Ga in de weergave met de muis over een blok en kies "Opmerking".</p>
+        <p className="opm-ov-leeg">Nog geen opmerkingen.</p>
       ) : (
         <ul>
           {items.map((o) => {
@@ -282,19 +317,36 @@ export function OpmerkingenOverzicht(p: { secties?: { id: string; titel: string 
 }
 
 // Stijl: knop en ballonnen binnen .okd (het document); het overzicht (.opm-overzicht) staat
-// ook buiten het document. Breed scherm (≥1100px): ballonnen rechts naast het blok, in de
-// kantlijn; zet daarvoor .opm-ruimte op de documentwrapper (ruimte rechts). Smaller: eronder.
+// ook buiten het document.
+// De knop "Opmerking" is altijd zichtbaar en staat nooit over de inhoud van het blok:
+// - smal (<1400px): in een eigen strook van 24px boven de rechterbovenhoek van het blok:
+//   4px lucht, de knop (18px), 2px tot het blok. Die strook is de bestaande tussenruimte
+//   (12px) plus een marge op .opm-blok (12px). Waar de ruimte erboven kleiner is, is de
+//   marge groter: in een versiegroep (tussenruimte 8px) en bij het eerste blok van een
+//   sectie zonder inleiding (direct onder de knop "Bewerken").
+// - breed (≥1400px): in de kantlijn rechts naast het blok, met de ballonnen eronder; zet
+//   daarvoor .opm-ruimte op de documentwrapper (ruimte rechts). Geen extra marge.
+// Rustig zolang er niets staat (lichte rand, geen schaduw); met opmerkingen een teller en
+// een amberkleurige rand (open) of een grijze (alles afgehandeld); donkerblauw als het
+// formulier openstaat. --opm-h is de hoogte van de knop (aanraakscherm: 24px).
 export const OPMERKINGEN_CSS = `
-.okd .opm-blok{position:relative}
+.okd{--opm-h:18px}
+.okd .opm-blok{position:relative;margin-top:12px}
+.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:16px}
 .okd .opm-blok:not(.heeft):has(> .opm-knop:only-child){display:none}
-.okd .opm-blok.opm-open::after{content:"";position:absolute;right:-5px;top:11px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid #fff;box-shadow:0 0 0 1px #e2e8f0;pointer-events:none}
-.okd .opm-knop{position:absolute;top:-11px;right:12px;z-index:3;display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:11.5px;font-weight:600;line-height:1.4;color:#003366;background:#fff;border:1px solid #cbd5e1;border-radius:999px;padding:2px 9px 2px 7px;box-shadow:0 1px 2px rgba(15,23,42,.08);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s,background .12s}
-.okd .opm-blok:hover > .opm-knop,.okd .opm-blok:focus-within > .opm-knop,.okd .opm-blok.heeft > .opm-knop{opacity:1;pointer-events:auto}
-.okd .opm-knop:hover,.okd .opm-knop:focus-visible{background:#eef4fb;border-color:#003366}
+.okd .opm-knop{position:absolute;bottom:100%;right:8px;z-index:3;box-sizing:border-box;height:var(--opm-h);margin:0 0 2px;display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap;color:#003366;background:rgba(255,255,255,.7);border:1px solid #c3cedb;border-radius:999px;padding:0 8px 0 6px;cursor:pointer;transition:background-color .12s,border-color .12s,color .12s}
+.okd .opm-knop:hover{background:#fff;border-color:#003366}
+.okd .opm-knop:focus-visible{background:#fff;border-color:#003366;outline:2px solid #003366;outline-offset:2px}
 .okd .opm-knop svg{width:12px;height:12px;flex:none}
-.okd .opm-tel{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#003366;color:#fff;font-size:10.5px;font-weight:800}
-@media (hover:none){.okd .opm-knop{opacity:.8;pointer-events:auto}}
-.okd .opm-ballonnen{position:absolute;left:100%;top:0;margin-left:12px;width:260px;display:flex;flex-direction:column;gap:8px;z-index:2}
+.okd .opm-tel{display:inline-grid;place-items:center;box-sizing:border-box;min-width:14px;height:14px;margin-right:-5px;padding:0 4px;border-radius:999px;background:#5f6b7a;color:#fff;font-size:11.5px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.okd .opm-blok.heeft > .opm-knop{background:#fff;border-color:#94a3b8;font-weight:700}
+.okd .opm-blok.opm-open > .opm-knop{background:#fffbeb;border-color:#f59e0b}
+.okd .opm-blok.opm-open > .opm-knop .opm-tel{background:#92400e}
+.okd .opm-blok > .opm-knop[aria-expanded="true"]{background:#003366;border-color:#003366;color:#fff}
+.okd .opm-blok > .opm-knop[aria-expanded="true"] .opm-tel{background:#fff;color:#003366}
+@media (pointer:coarse){.okd{--opm-h:24px}.okd .opm-blok{margin-top:18px}.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:22px}.okd .opm-knop{padding:0 10px 0 8px}.okd .opm-tel{min-width:16px;height:16px}}
+@media print{.okd .opm-knop,.okd .opm-form{display:none}.okd .opm-blok,.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:0}}
+.okd .opm-ballonnen{position:absolute;left:100%;top:calc(var(--opm-h) + 8px);margin-left:12px;width:260px;display:flex;flex-direction:column;gap:8px;z-index:2}
 .okd .opm-ballon,.okd .opm-form{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px 8px;box-shadow:0 2px 8px rgba(15,23,42,.07);font-size:12.5px;line-height:1.5;color:#1f2937;scroll-margin-top:16px}
 .okd .opm-ballon::before{content:"";position:absolute;left:-12px;top:15px;width:12px;height:1px;background:#cbd5e1}
 .okd .opm-ballon::after{content:"";position:absolute;left:-16px;top:12px;width:7px;height:7px;border-radius:50%;background:#f59e0b}
@@ -316,7 +368,7 @@ export const OPMERKINGEN_CSS = `
 .okd .opm-vink input{margin:0;accent-color:#003366}
 .okd .opm-vraag{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:11.5px;font-weight:600;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:4px 8px}
 .okd .opm-form{border-color:#003366}
-.okd .opm-l{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#5f6b7a;margin-top:6px}
+.okd .opm-l{display:block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#5f6b7a;margin-top:6px}
 .okd .opm-l:first-child{margin-top:0}
 .okd .opm-in{display:block;width:100%;box-sizing:border-box;margin-top:2px;font:inherit;font-size:12.5px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;color:#1f2937;background:#fff;border:1px solid #cbd5e1;border-radius:7px;padding:5px 8px;resize:vertical}
 .okd .opm-in:focus{outline:none;border-color:#003366;box-shadow:0 0 0 3px rgba(0,51,102,.15)}
@@ -327,14 +379,18 @@ export const OPMERKINGEN_CSS = `
 .okd .opm-b-prim:hover{background:#00264d}
 .okd .opm-b:disabled{opacity:.45;cursor:default}
 .okd .opm-b-rood{color:#b91c1c;border-color:#fecaca}
-.okd .opm-hint{font-size:10.5px;color:#5f6b7a;margin-left:auto}
-@media (min-width:1400px){.okd.opm-ruimte{padding-right:296px}}
+.okd .opm-hint{font-size:11.5px;color:#5f6b7a;margin-left:auto}
+@media (min-width:1400px){.okd.opm-ruimte{padding-right:296px}.okd .opm-blok,.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:0}.okd .opm-knop{bottom:auto;top:0;right:auto;left:100%;margin:0 0 0 12px}}
 @media (max-width:1399px){.okd .opm-ballonnen{position:static;width:auto;margin:10px 0 0}.okd .opm-ballon::before,.okd .opm-ballon::after{content:none}.okd .opm-ballon{border-left:3px solid #f59e0b}.okd .opm-ballon.opm-af{border-left-color:#94a3b8}}
 .opm-overzicht{margin-top:14px;font-size:12.5px;line-height:1.5;color:#1f2937;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px}
-.opm-ov-kop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.opm-ov-kop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .opm-ov-kop b{font-size:13px;color:#003366}
 .opm-ov-kop span,.opm-ov-meta,.opm-ov-sec{font-size:11.5px;color:#5f6b7a}
+.opm-ov-uitleg{margin:0 0 8px;font-size:12px;line-height:1.7;color:#4a5565}
+.opm-ov-chip{display:inline-flex;align-items:center;gap:4px;height:18px;box-sizing:border-box;vertical-align:-4px;margin:0 2px;padding:0 8px 0 6px;border:1px solid #c3cedb;border-radius:999px;background:#fff;font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap;color:#003366}
+.opm-ov-chip svg{width:12px;height:12px;flex:none}
 .opm-ov-leeg{margin:0;font-size:12px;color:#4a5565}
+@media print{.opm-ov-uitleg{display:none}}
 .opm-overzicht ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .opm-overzicht li{padding:7px 10px;border:1px solid #e2e8f0;border-left:3px solid #f59e0b;border-radius:8px;background:#fff}
 .opm-overzicht li.opm-af{background:#f1f5f9;border-left-color:#94a3b8}
