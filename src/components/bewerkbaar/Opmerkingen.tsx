@@ -26,6 +26,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { Opmerking } from "@/lib/schemas";
 import { useSession } from "@/lib/session-context";
 import { DocContext } from "@/components/bewerkbaar/doc-context";
+import { BewerkHierContext } from "@/components/bewerkbaar/bewerk-hier";
 
 export interface OpmerkingenApi {
   document: string;
@@ -664,6 +665,14 @@ function Tekstballon() {
   );
 }
 
+function Potlood() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M11.3 2.3a1.5 1.5 0 0 1 2.1 2.1l-7.6 7.6-3 .9.9-3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Richtpunt() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -918,6 +927,9 @@ function Kiesbalk(p: { wijs: Wijs | null; mis: number; onStop: () => void }) {
  */
 export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: string; children: ReactNode }) {
   const api = useContext(OpmerkingenContext);
+  // knop "Bewerken" naast "Opmerking": opent dit deel in bewerkmodus op deze plek
+  const bewerkHier = useContext(BewerkHierContext);
+  const [knopBreedte, setKnopBreedte] = useState(0);
   const [open, setOpen] = useState(false);
   const [kolomHoogte, setKolomHoogte] = useState(0);
   /** de passage van de opmerking in het formulier; null = het hele onderdeel */
@@ -1441,6 +1453,16 @@ export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: stri
     toonBallon(laatsteId, false);
   }, [laatsteId, toonBallon]);
 
+  useLayoutEffect(() => {
+    const k = knop.current;
+    if (!k) return;
+    const meet = () => setKnopBreedte(k.offsetWidth);
+    meet();
+    const ro = new ResizeObserver(meet);
+    ro.observe(k);
+    return () => ro.disconnect();
+  }, [api]);
+
   if (!api) return <>{p.children}</>;
   const openAantal = eigen.filter((o) => !o.afgehandeld).length;
   const cls =
@@ -1587,7 +1609,7 @@ export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: stri
   );
 
   return (
-    <div ref={wrap} className={cls} style={toon && kolomHoogte ? { minHeight: kolomHoogte } : undefined}>
+    <div ref={wrap} className={cls} style={toon && kolomHoogte ? { minHeight: kolomHoogte } : undefined} data-bewerk-anker={p.sectie + ":" + p.blok}>
       <button
         ref={knop}
         type="button"
@@ -1602,6 +1624,18 @@ export function BlokMetOpmerkingen(p: { sectie: string; blok: number; naam: stri
         Opmerking
         {eigen.length > 0 && <span className="opm-tel">{eigen.length}</span>}
       </button>
+      {bewerkHier && (
+        <button
+          type="button"
+          className="opm-bewerk"
+          style={{ right: 8 + knopBreedte + 6 }}
+          title={`${p.naam} bewerken`}
+          onClick={(e) => bewerkHier(e.currentTarget)}
+        >
+          <Potlood />
+          Bewerken
+        </button>
+      )}
       {p.children}
       {stift.length > 0 && (
         <div className="opm-laag opm-laag-stift" aria-hidden="true">
@@ -1783,6 +1817,10 @@ export const OPMERKINGEN_CSS = `
 .okd .opm-blok:not(.heeft):has(> .opm-knop:only-child){display:none}
 .okd .opm-knop{position:absolute;bottom:100%;right:8px;z-index:3;box-sizing:border-box;height:var(--opm-h);margin:0 0 2px;display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap;color:#003366;background:rgba(255,255,255,.7);border:1px solid #c3cedb;border-radius:999px;padding:0 8px 0 6px;cursor:pointer;transition:background-color .12s,border-color .12s,color .12s}
 .okd .opm-knop:hover{background:#fff;border-color:#003366}
+.okd .opm-bewerk{position:absolute;bottom:100%;z-index:3;box-sizing:border-box;height:var(--opm-h);margin:0 0 2px;display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap;color:#003366;background:rgba(255,255,255,.7);border:1px solid #c3cedb;border-radius:999px;padding:0 8px 0 6px;cursor:pointer;transition:background-color .12s,border-color .12s}
+.okd .opm-bewerk:hover{background:#eef4fb;border-color:#003366}
+.okd .opm-bewerk:focus-visible{background:#fff;border-color:#003366;outline:2px solid #003366;outline-offset:2px}
+.okd .opm-bewerk svg{width:12px;height:12px;flex:none}
 .okd .opm-knop:focus-visible{background:#fff;border-color:#003366;outline:2px solid #003366;outline-offset:2px}
 .okd .opm-knop svg{width:12px;height:12px;flex:none}
 .okd .opm-tel{display:inline-grid;place-items:center;box-sizing:border-box;min-width:14px;height:14px;margin-right:-5px;padding:0 4px;border-radius:999px;background:#5f6b7a;color:#fff;font-size:11.5px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
@@ -1792,7 +1830,7 @@ export const OPMERKINGEN_CSS = `
 .okd .opm-blok > .opm-knop[aria-expanded="true"]{background:#003366;border-color:#003366;color:#fff}
 .okd .opm-blok > .opm-knop[aria-expanded="true"] .opm-tel{background:#fff;color:#003366}
 @media (pointer:coarse){.okd{--opm-h:24px}.okd .opm-blok{margin-top:18px}.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:22px}.okd .opm-knop{padding:0 10px 0 8px}.okd .opm-tel{min-width:16px;height:16px}}
-@media print{.okd .opm-knop,.okd .opm-form,.okd .opm-laag,.okd .opm-citaat-meer,.okd .opm-citaat-noot.is-stil,.opm-kiesbalk{display:none !important}.okd .opm-blok,.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:0}}
+@media print{.okd .opm-bewerk,.okd .opm-knop,.okd .opm-form,.okd .opm-laag,.okd .opm-citaat-meer,.okd .opm-citaat-noot.is-stil,.opm-kiesbalk{display:none !important}.okd .opm-blok,.okd .okd-vg > .opm-blok,.okd .okd-kop + .okd-blokken > .opm-blok:first-child{margin-top:0}}
 .okd .opm-ballonnen{position:absolute;left:100%;top:calc(var(--opm-h) + 8px);margin-left:12px;width:260px;display:flex;flex-direction:column;gap:8px;z-index:2}
 .okd .opm-ballon,.okd .opm-form{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px 8px;box-shadow:0 2px 8px rgba(15,23,42,.07);font-size:12.5px;line-height:1.5;color:#1f2937;scroll-margin-top:16px}
 .okd .opm-ballon::before{content:"";position:absolute;left:-12px;top:15px;width:12px;height:1px;background:#cbd5e1}

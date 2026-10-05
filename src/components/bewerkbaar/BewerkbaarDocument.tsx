@@ -42,6 +42,7 @@ import EvaluatieBlok from "@/components/bewerkbaar/blokken/EvaluatieBlok";
 import { EVALUATIE_CSS } from "@/components/bewerkbaar/blokken/evaluatie-stijl";
 import { LEADS_CSS, Leads } from "@/components/bewerkbaar/leads";
 import { BlokMetOpmerkingen, OPMERKINGEN_CSS } from "@/components/bewerkbaar/Opmerkingen";
+import { BewerkHierContext, bewerkOpPlek } from "@/components/bewerkbaar/bewerk-hier";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 
 /** Props van de eenvoudige blokken in dit bestand (zonder linkdoelen). */
@@ -1770,9 +1771,13 @@ const Sectie = memo(function Sectie(p: {
     });
   }
 
+  // Bewerken vanaf een blok of kader: dit deel in bewerkmodus, dezelfde plek in beeld.
+  const bewerkHier = !edit && onBewerk ? (el: HTMLElement) => bewerkOpPlek(el, s.id, () => onBewerk(s.id)) : null;
+
   return (
     <section id={"sec-" + s.id} className="okd-sec">
       {/* in een naslagdeel over één document wijzen kale paginanummers naar dat document */}
+      <BewerkHierContext.Provider value={bewerkHier}>
       <SectieDocumentContext.Provider value={documentVanSectie(s.id)}>
       <div className="okd-kop">
         <h3 className="ok-kop">
@@ -1838,7 +1843,7 @@ const Sectie = memo(function Sectie(p: {
         {edit && getoond.map((bi, plek) => {
           const b = s.blokken[bi];
           return (
-            <div key={bi} className="okd-blok-edit">
+            <div key={bi} className="okd-blok-edit" data-bewerk-anker={s.id + ":" + bi}>
               <div className="okd-blok-balk">
                 <span className="okd-blok-soort">{BLOK_NAMEN[b.type] ?? b.type}</span>
                 {vraagBlok === bi ? (
@@ -1887,6 +1892,7 @@ const Sectie = memo(function Sectie(p: {
         )}
       </div>
       </SectieDocumentContext.Provider>
+      </BewerkHierContext.Provider>
     </section>
   );
 });

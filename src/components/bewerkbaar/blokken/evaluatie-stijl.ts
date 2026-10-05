@@ -72,6 +72,9 @@ export const EVALUATIE_CSS = `
 .okd .ev-titel{margin:0;font-size:15px;font-weight:800;line-height:1.3;letter-spacing:-.01em;color:var(--ev-cito);text-wrap:balance}
 .okd .ev-sub{display:none;margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--ev-ink2)}
 .okd .ev-kader.is-open .ev-sub{display:block}
+.okd .ev-bewerk{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font:inherit;font-size:12px;font-weight:600;line-height:1;color:#003366;background:#fff;border:1px solid #c3cedb;border-radius:999px;padding:4px 10px 4px 8px;cursor:pointer}
+.okd .ev-bewerk:hover,.okd .ev-bewerk:focus-visible{background:#eef4fb;border-color:#003366}
+@media print{.okd .ev-bewerk{display:none}}
 .okd .ev-hoofd{grid-column:2;min-width:0}
 .okd .ev-beeldrij{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;margin:0}
 .okd .ev-zin{margin:7px 0 0;max-width:84ch;font-size:13.5px;line-height:1.55;color:var(--ev-tekst);text-wrap:pretty}

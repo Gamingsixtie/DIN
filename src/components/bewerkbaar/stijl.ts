@@ -148,7 +148,7 @@ export const DOC_CSS = `
 .okd .okd-toc-t span{font-size:12px;line-height:1.35;color:var(--ink2)}
 @media (max-width:560px){.okd .okd-toc-lijst{grid-template-columns:1fr}}
 .okd .okd-blokken .okd-bt,.okd .okd-blokken .kp-titel,.okd .okd-blokken .mx-titel,.okd .okd-blokken .st-titel,.okd .okd-blokken .sp-titel,.okd .okd-blokken .vn-titel,.okd .okd-blokken .mv-titel{font-size:16.5px;font-weight:800;line-height:1.3;letter-spacing:-.005em;color:var(--cito);border-left:4px solid var(--cito);padding-left:10px;margin:6px 0 12px}
-.okd .okd-potlood{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:12px;font-weight:600;color:var(--cito);background:#fff;border:1px solid #c7d7ea;border-radius:999px;padding:3px 10px;cursor:pointer;opacity:.75;transition:opacity .15s,background .15s}
+.okd .okd-potlood{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:12px;font-weight:600;color:var(--cito);background:#fff;border:1px solid #c7d7ea;border-radius:999px;padding:3px 10px;cursor:pointer;transition:background .15s}
 .okd .okd-potlood:hover,.okd .okd-potlood:focus-visible{opacity:1;background:#eef4fb}
 .okd .okd-bt{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
 .okd .ok-kaart h4{font-size:12.5px;font-weight:700;margin-bottom:6px}

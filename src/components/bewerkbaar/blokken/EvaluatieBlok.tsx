@@ -28,6 +28,7 @@ import { PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
 import { metBronlinks, vindVerwijzingen } from "@/components/bewerkbaar/bron-context";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
 import { EvaluatieWeergaveContext } from "@/components/bewerkbaar/blokken/evaluatie-weergave";
+import { BewerkHierContext } from "@/components/bewerkbaar/bewerk-hier";
 
 type Blok = BlokVan<"evaluatie">;
 type Kader = Blok["kaders"][number];
@@ -430,6 +431,7 @@ function KaderWeergave(p: {
   zetK: (fn: (k: Kader) => void) => void;
 }) {
   const { k, nr, uid, print, extern } = p;
+  const bewerkHier = useContext(BewerkHierContext);
   const titel = k.titel.replace(/^\d+\s*·\s*/, "");
   const { kop, zin } = splitsBeeld(tekst(k.beeld));
   // De boodschap aan 3sides: in beide weergaven.
@@ -472,6 +474,7 @@ function KaderWeergave(p: {
     <li
       id={"ev-" + k.id}
       className={"ev-kader" + (isOpen ? " is-open" : "")}
+      data-kader={nr}
       data-beeld={kop ? beeldSoort(kop) : "leeg"}
       data-oordeel={extern ? undefined : oordeel}
       aria-labelledby={ids.titel}
@@ -485,6 +488,14 @@ function KaderWeergave(p: {
             {titel}
           </h5>
           {k.ondertitel && <p className="ev-sub">{metBronlinks(k.ondertitel)}</p>}
+          {bewerkHier && !print && (
+            <button type="button" className="ev-bewerk" title={`Kader ${nr} bewerken`} onClick={(e) => bewerkHier(e.currentTarget)}>
+              <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                <path d="M11.3 2.3a1.5 1.5 0 0 1 2.1 2.1l-7.6 7.6-3 .9.9-3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+              Kader bewerken
+            </button>
+          )}
         </div>
         <div className="ev-hoofd">
           <p className="ev-beeldrij">
@@ -651,7 +662,7 @@ function KaderBewerken(p: {
   const { k, nr, extern, zetK } = p;
   const punten = k.punten ?? [];
   return (
-    <li className="ev-kader ev-kader-edit is-open" data-beeld={tekst(k.beeld).trim() ? beeldSoort(tekst(k.beeld)) : "leeg"}>
+    <li className="ev-kader ev-kader-edit is-open" data-kader={nr} data-beeld={tekst(k.beeld).trim() ? beeldSoort(tekst(k.beeld)) : "leeg"}>
       <div className="ev-kop ev-kop-smal">
         <span className="ev-nr" aria-hidden="true">
           {nr}
