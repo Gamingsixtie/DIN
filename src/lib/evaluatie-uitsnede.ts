@@ -62,7 +62,9 @@ export function inUitsnede(sectieId: string, b: DocBlok): boolean {
     (UITSNEDE_SECTIES as readonly string[]).includes(sectieId) &&
     !isActiebord(b) &&
     !isInterneNotitie(sectieId, b) &&
-    !isVoortgangsbord(b)
+    !isVoortgangsbord(b) &&
+    // uitleg over de bediening hoort bij de analyse, niet bij de evaluatie
+    !isBediening(sectieId, b)
   );
 }
 
