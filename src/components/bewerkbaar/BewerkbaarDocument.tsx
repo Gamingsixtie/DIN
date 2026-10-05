@@ -1042,6 +1042,12 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
   const toonRegie = edit || b.regie !== "";
   // Veranderstrategie over alle werkstromen heen (optioneel): omvat de rij met werkstromen.
   const strat = b.strategie;
+  // Raakt elke werkstroom alle domeinen (versie met zwaartepunten)? Dan zegt de pijl dat ook.
+  const alleRaken =
+    b.domeinen.length > 1 &&
+    b.werkstromen.length > 0 &&
+    b.werkstromen.every((w) => b.domeinen.every((d) => w.domeinen.includes(d.id))) &&
+    (strat !== undefined || b.werkstromen.some((w) => !!w.zwaartepunt));
   // Met de regieband krijgt het raster links een smalle kolom voor de beugel.
   const o = toonRegie ? 1 : 0;
   const kolLabel = 1 + o;
@@ -1289,7 +1295,7 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
 
           {rijen.length > 0 && (
             <Pijl rij={RIJ.domeinen + 1} kolom={breed} kleur="#475569">
-              bouwt aan
+              {alleRaken ? "elke werkstroom raakt alle vier de domeinen" : "bouwt aan"}
             </Pijl>
           )}
           {toonWerkstromen && (
@@ -1379,13 +1385,23 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
               // zwaartepunt: de werkstroom raakt meer domeinen, maar ligt vooral in dit ene
               const zwaar = w.zwaartepunt ? perId.get(w.zwaartepunt) : undefined;
               const kleur = zwaar ? domeinKleur(zwaar) : overal ? CITO : eigen[0] ? domeinKleur(eigen[0]) : NEUTRAAL;
+              // In een plaat met een zwaartepunt of een veranderstrategie laat elke werkstroom per
+              // domein zien dat hij het raakt: vier chips, het zwaartepunt gevuld.
+              const multi = overal && (zwaar !== undefined || strat !== undefined);
               const doel = edit ? null : werkstroomDoel(w.anker, ankers);
               return (
                 <div
                   key={wi}
-                  className={overal && !zwaar ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
+                  className={multi ? "okd-dp-ws okd-dp-ws-multi" : overal ? "okd-dp-ws okd-dp-ws-heel" : "okd-dp-ws"}
                   style={metKleur(kleur, {})}
                 >
+                  {multi && !edit && (
+                    <div className="okd-dp-ws-band" aria-hidden="true">
+                      {b.domeinen.map((d) => (
+                        <span key={d.id} style={{ background: domeinKleur(d), flexGrow: zwaar && d.id === zwaar.id ? 3 : 1 }} />
+                      ))}
+                    </div>
+                  )}
                   {edit && (
                     <VakKnoppen
                       i={wi}
@@ -1454,18 +1470,28 @@ function DinPlaatBlok({ b, edit, zet, ankers }: LosBlokProps<"dinplaat">) {
                     </div>
                   ) : (
                     eigen.length > 0 && (
-                      <div className="okd-dp-wsdom" aria-label="Bouwt in">
-                        {overal ? (
+                      <div className={multi ? "okd-dp-wsdom okd-dp-wsdom-multi" : "okd-dp-wsdom"} aria-label="Bouwt in">
+                        {multi ? (
                           <>
-                            <span className="okd-dp-wsdom-chip okd-dp-wsdom-alle">
-                              {zwaar ? "Raakt alle vier de domeinen" : "Alle vier de domeinen"}
+                            <span className="okd-dp-wsdom-kop">
+                              Raakt alle vier de domeinen{zwaar ? "" : ", in gelijke mate"}
                             </span>
-                            {zwaar && (
-                              <span className="okd-dp-wsdom-chip" style={metKleur(domeinKleur(zwaar), {})}>
-                                Zwaartepunt: {zwaar.naam}
-                              </span>
-                            )}
+                            {b.domeinen.map((d) => {
+                              const isZwaar = zwaar !== undefined && d.id === zwaar.id;
+                              return (
+                                <span
+                                  key={d.id}
+                                  className={"okd-dp-wsdom-chip" + (isZwaar ? " is-zwaar" : "")}
+                                  style={metKleur(domeinKleur(d), {})}
+                                >
+                                  {d.naam}
+                                  {isZwaar && <span className="okd-dp-wsdom-zw"> · zwaartepunt</span>}
+                                </span>
+                              );
+                            })}
                           </>
+                        ) : overal ? (
+                          <span className="okd-dp-wsdom-chip okd-dp-wsdom-alle">Alle vier de domeinen</span>
                         ) : (
                           eigen.map((d) => (
                             <span key={d.id} className="okd-dp-wsdom-chip" style={metKleur(domeinKleur(d), {})}>

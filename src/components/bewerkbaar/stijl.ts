@@ -218,6 +218,13 @@ export const DOC_CSS = `
 .okd .okd-dp-dom .okd-dp-v{font-size:11px;color:#334155}
 .okd .okd-dp-wsrij{display:grid;grid-template-columns:repeat(var(--wsn,4),minmax(0,1fr));gap:10px;align-items:stretch}
 .okd .okd-dp-wsvak{min-width:0}
+.okd .okd-dp-ws-multi{position:relative;overflow:hidden;padding-top:14px}
+.okd .okd-dp-ws-band{position:absolute;top:0;left:0;right:0;height:6px;display:flex;gap:2px}
+.okd .okd-dp-ws-band > span{flex:1 1 0;min-width:0}
+.okd .okd-dp-wsdom-multi{margin:7px 0 4px;padding:7px 8px 8px;background:#f8fafc;border:1px solid var(--line2);border-radius:8px}
+.okd .okd-dp-wsdom-kop{flex:1 0 100%;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;line-height:1.35;color:var(--cito);margin-bottom:1px}
+.okd .okd-dp-wsdom-chip.is-zwaar{color:#fff;background:color-mix(in srgb,var(--dpk) 78%,#000);border-color:color-mix(in srgb,var(--dpk) 78%,#000)}
+.okd .okd-dp-wsdom-zw{font-weight:600;opacity:.92}
 .okd .okd-dp-strat{border:1.5px solid #fda4af;border-radius:12px;background:#fff7f8;padding:0 10px 10px}
 .okd .okd-dp-strat-kop{position:relative;margin:0 -10px 10px;padding:9px 13px 10px;background:#ffe4e8;border-bottom:1.5px solid #fda4af;border-radius:10px 10px 0 0}
 .okd .okd-dp-strat-l{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#9f1239;margin-bottom:2px}
