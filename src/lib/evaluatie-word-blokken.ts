@@ -1255,7 +1255,7 @@ function evaluatieKader(k: Kader, nr: number, ctx: Ctx): Table {
       rij(
         [
           // geen "bij volgende" op het kopje: dat zou de rij aan het tweede feit vastplakken
-          cel(eerste ? [label("Feiten"), feit] : [feit], {
+          cel(eerste ? [label("Wat we zien"), feit] : [feit], {
             breedte: B,
             span: 5,
             randen: { top: eerste ? lijn() : GEEN, bottom: laatste ? lijn() : GEEN, left: strook, right: buiten },

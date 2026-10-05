@@ -115,7 +115,7 @@ function KaderKaart({ k, nr, intern, toon }: { k: Kader; nr: number; intern: boo
 
       {punten.length > 0 && (
         <section className="evp-vak">
-          <h4>Feiten</h4>
+          <h4>Wat we zien</h4>
           <ol className="evp-punten">
             {punten.map((p, i) => {
               const { kern, bron } = splitsBron(p);

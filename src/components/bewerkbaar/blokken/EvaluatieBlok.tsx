@@ -457,7 +457,7 @@ function KaderWeergave(p: {
 
   // wat er achter de klik zit, in woorden op de knop
   const inhoud: string[] = [];
-  if (punten.length > 0) inhoud.push(`${punten.length} ${punten.length === 1 ? "feit" : "feiten"}`);
+  if (punten.length > 0) inhoud.push("wat we zien");
   if (aanZet3sides) inhoud.push("wat we van 3sides vragen");
   if (vraag3sides) inhoud.push("vraag voor het gesprek");
   if (aanZetCito) inhoud.push("wat Cito zelf doet");
@@ -555,7 +555,7 @@ function KaderWeergave(p: {
               <div className={"ev-kern" + (punten.length > 0 ? " heeft-feiten" : "") + (aanZet3sides ? " heeft-vragen" : "")}>
                 {punten.length > 0 && (
                   <section className="ev-feitenvak">
-                    <h6 className="ev-h">Feiten</h6>
+                    <h6 className="ev-h">Wat we zien</h6>
                     <ol className="ev-feiten">
                       {punten.map((s, i) => (
                         <li key={i}>
@@ -697,7 +697,7 @@ function KaderBewerken(p: {
 
         <div className="ev-kern heeft-feiten heeft-vragen">
           <section className="ev-feitenvak">
-            <h6 className="ev-h">Feiten</h6>
+            <h6 className="ev-h">Wat we zien</h6>
             <ol className="ev-feiten ev-feiten-edit">
               {punten.map((s, pi) => (
                 <li key={pi}>
@@ -714,15 +714,15 @@ function KaderBewerken(p: {
                       }
                       edit
                       ml
-                      ph="Feitelijke constatering, met de bron tussen haakjes"
+                      ph="Wat we zien, met de bron tussen haakjes"
                     />
-                    <WegKnop titel="Feit verwijderen" on={() => zetK((n) => void n.punten?.splice(pi, 1))} />
+                    <WegKnop titel="Punt verwijderen" on={() => zetK((n) => void n.punten?.splice(pi, 1))} />
                   </span>
                 </li>
               ))}
             </ol>
             <div className="ev-plus">
-              <PlusKnop label="+ feit" on={() => zetK((n) => void (n.punten ??= []).push(""))} />
+              <PlusKnop label="+ punt" on={() => zetK((n) => void (n.punten ??= []).push(""))} />
             </div>
           </section>
           <Doen wie="3sides">
