@@ -47,13 +47,13 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
             [
               "in te vullen",
               "Wat heeft 3sides toegezegd, en wat is er geleverd? (deel 5, 'Toegezegd en geleverd')",
-              "3sides zegde in het eerste voorstel zeven dingen toe voor Q3 2026. Die lopen we één voor één door, elk op een eigen kaart. Per toezegging bespreken we alles achter elkaar: wat is toegezegd, wanneer staat het nu in de tijdlijn, wat lag er op 1 oktober, wat ontbreekt en wat vragen wij. De tijdlijn ligt erbij om in na te kijken. Onze vraag per toezegging: klopt dit beeld, en welke datum geldt nu?",
+              "3sides zette in het eerste voorstel zes toezeggingen en één mijlpaal in Q3 2026. Die zeven lopen we één voor één door, elk op een eigen kaart. Per toezegging bespreken we alles achter elkaar: wat is toegezegd, wanneer staat het nu in de tijdlijn, wat lag er op 1 oktober, wat ontbreekt en wat vragen wij. De tijdlijn ligt erbij om in na te kijken. Onze vraag per toezegging: klopt dit beeld, en welke datum geldt nu?",
               "Per toezegging de stand volgens 3sides, en een datum waar die nodig is",
             ],
             [
               "in te vullen",
               "Wat verder opvalt in de tijdlijn (deel 5, 'De tijdlijn van 3sides zelf' en 'Vooruit: wat opvalt')",
-              "Alleen wat niet al bij de zeven toezeggingen is besproken: geen enkel onderdeel staat op 'Completed', zes onderdelen hebben geen start- of oplevermaand, en eind 2026 komt de CRM-richting vóór de beschrijving van het werk waarvoor het systeem moet dienen. Onze vraag: wat is de planning die nu geldt, en hoe horen wij het voortaan vooraf als een datum niet wordt gehaald?",
+              "Alleen wat niet al bij de zeven kaarten is besproken: geen enkel onderdeel staat op 'Completed', zes onderdelen hebben geen start- of oplevermaand, en eind 2026 lijkt de volgorde omgekeerd: de CRM-richting is in november af, de blueprint voor proces en CRM-gebruik pas in december (onze lezing). Onze vraag: wat is de planning die nu geldt, en hoe horen wij het voortaan vooraf als een datum niet wordt gehaald?",
               "Eén planning met de datums die nu gelden",
             ],
             [
