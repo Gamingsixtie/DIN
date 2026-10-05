@@ -231,6 +231,9 @@ export function afdrukCss(voet: string): string {
 .evp .evp-app .okd .ok-t th{border-top:1px solid var(--line)}
 .evp .evp-app .okd .ok-t tr:last-child td{border-bottom:1px solid var(--line)}
 .evp .evp-app table{break-inside:auto}
+/* oordeelkolom (chip) zo smal als het oordeel; de tekstkolommen krijgen de ruimte */
+.evp .evp .evp-app .okd table.ok-t th.c,.evp .evp .evp-app .okd table.ok-t td.c,.evp .evp-app .okd table.ok-t th.c,.evp .evp-app .okd table.ok-t td.c{width:1%;min-width:0;max-width:30mm}
+.evp .evp-app .okd table.ok-t th.c{white-space:normal}
 .evp .evp-app .okd-blokken > div:has(> .ok-scroll > table):not(:has(tbody > tr:nth-child(8))){break-inside:avoid}
 .evp .evp-app tr,.evp .evp-app .okd-call,.evp .evp-app .ok-card,.evp .evp-app .okd .ok-kaart li{break-inside:avoid}
 .evp .evp-app .okd-bt,.evp .evp-app h4,.evp .evp-app h5,.evp .evp-app h6{break-after:avoid}
