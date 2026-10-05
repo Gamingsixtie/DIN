@@ -17,6 +17,9 @@
 // Met ingevulde map wint de echte documentlink. Buiten een provider blijft alles tekst.
 // Daarnaast wordt "deel N" (N = 1 t/m 15) een link naar de sectie waarvan de titel met
 // "N ·" begint; de sectiekaart daarvoor komt uit de SectieContext, die het document vult.
+// Staat een deel niet op de pagina (een uitsnede van de analyse, zoals het tabblad
+// Evaluatie 3sides: `elders` in de sectiekaart), dan opent de link de analyse bij dat deel:
+// zonder herladen via de DeelEldersContext, en als gewone link naar ?tab=analyse#sec-<id>.
 // Alleen gebruiken binnen een client-component.
 
 import { createContext, useCallback, useContext, useMemo } from "react";
@@ -51,6 +54,9 @@ export interface BronDocument {
 
 /** Link naar het naslag-tabblad van stap 11 (zonder anker); relatief aan de sessiepagina. */
 export const NASLAG_TAB = "?stap=integratie&tab=kern";
+
+/** Link naar het tabblad Analyse van stap 11 (zonder anker); relatief aan de sessiepagina. */
+export const ANALYSE_TAB_LINK = "?stap=integratie&tab=analyse";
 
 export const BRON_DOCUMENTEN: readonly BronDocument[] = [
   { id: "plan-van-aanpak", bestand: "Cito_-_Plan_van_Aanpak.pdf", namen: ["plan van aanpak"], afkortingen: ["PvA"], naslag: 1 },
@@ -186,6 +192,8 @@ export interface SectieKaart {
   nummer: number;
   /** id van de sectie (element #sec-<id>) */
   id: string;
+  /** het deel staat niet op deze pagina (uitsnede): "deel N" opent de analyse bij dat deel */
+  elders?: boolean;
 }
 
 /** Secties waarvan de titel met "N ·" begint, als kaart nummer → id (eerste wint bij dubbele nummers). */
@@ -206,6 +214,13 @@ export function sectieKaart(secties: readonly { id: string; titel: string }[]): 
 const GEEN_SECTIES: readonly SectieKaart[] = [];
 
 export const SectieContext = createContext<readonly SectieKaart[]>(GEEN_SECTIES);
+
+/**
+ * Opent de analyse bij een anker ("sec-verder") zonder de pagina te herladen; voor "deel N"
+ * naar een deel dat niet op deze pagina staat (`elders`). Zonder provider (null) werkt de
+ * link als gewone link naar het tabblad Analyse.
+ */
+export const DeelEldersContext = createContext<((anker: string) => void) | null>(null);
 
 /**
  * Het document waar een naslagdeel over gaat (sectie "doc-3" → het meetinstrument). Daarin
@@ -537,8 +552,29 @@ function Naslaglink({ doc, hier, children }: { doc: BronDocument; hier: boolean;
   );
 }
 
-/** "deel 4" → link naar de sectie op deze pagina. */
-function Deellink({ id, nummer, children }: { id: string; nummer: number; children: ReactNode }) {
+/**
+ * "deel 4" → link naar de sectie op deze pagina. Staat het deel niet op de pagina (`elders`),
+ * dan naar de analyse bij dat deel: een gewone klik wisselt van tabblad zonder herladen (via
+ * de DeelEldersContext); in een nieuw venster of zonder provider werkt de link zelf.
+ */
+function Deellink({ id, nummer, elders, children }: { id: string; nummer: number; elders: boolean; children: ReactNode }) {
+  const naarElders = useContext(DeelEldersContext);
+  if (elders) {
+    return (
+      <a
+        className="ok-deel ok-deel-elders"
+        href={ANALYSE_TAB_LINK + "#sec-" + id}
+        title={`Naar deel ${nummer} in de analyse`}
+        onClick={(e) => {
+          if (!naarElders || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          naarElders("sec-" + id);
+        }}
+      >
+        {children}
+      </a>
+    );
+  }
   return (
     <a className="ok-deel" href={"#sec-" + id} title={`Naar deel ${nummer}`}>
       {children}
@@ -549,7 +585,7 @@ function Deellink({ id, nummer, children }: { id: string; nummer: number; childr
 type Stuk =
   /** href = link naar het document (met map); null = terugval naar het naslag */
   | { soort: "doc"; start: number; end: number; doc: BronDocument; pagina: string | null; href: string | null }
-  | { soort: "deel"; start: number; end: number; id: string; nummer: number }
+  | { soort: "deel"; start: number; end: number; id: string; nummer: number; elders: boolean }
   /** expliciete verwijzing [[…]] die geen document is: tekst zonder haken */
   | { soort: "plat"; start: number; end: number; weergave: string };
 
@@ -594,7 +630,7 @@ function verdeel(
       const s = secties.find((x) => x.nummer === d.nummer);
       if (!s) continue;
       if (stukken.some((v) => d.start < v.end && v.start < d.end)) continue;
-      stukken.push({ soort: "deel", start: d.start, end: d.end, id: s.id, nummer: d.nummer });
+      stukken.push({ soort: "deel", start: d.start, end: d.end, id: s.id, nummer: d.nummer, elders: s.elders === true });
     }
   }
   if (stukken.length === 0) return [tekst];
@@ -612,7 +648,7 @@ function verdeel(
     const fragment = ruw.startsWith("[[") && ruw.endsWith("]]") ? ruw.slice(2, -2) : ruw;
     if (v.soort === "deel") {
       uit.push(
-        <Deellink key={i} id={v.id} nummer={v.nummer}>
+        <Deellink key={i} id={v.id} nummer={v.nummer} elders={v.elders}>
           {fragment}
         </Deellink>
       );

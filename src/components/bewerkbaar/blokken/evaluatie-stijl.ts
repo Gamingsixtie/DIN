@@ -1,84 +1,246 @@
-// Stijl van het evaluatiebord: zes inklapbare kaarten (details/summary), één per kader, in de
-// beeldtaal van het actiebord (Actiebord.tsx: samenvattingsstrook, witte kaart met band bovenaan)
-// en met dezelfde keuzelijst als het voortgangsbord (vb-vk, zie voortgangKeuzeCss). Alleen CSS,
-// onder de .okd-scope. De kleur van de band en het oordeel-pilletje volgen data-oordeel op
-// details.ev-kader ("" | goed | deels | onvoldoende | nvt). Het kopje "Eerste beeld · voorstel"
-// in .ev-beeldvak komt uit CSS (::before); de markup bevat alleen de zin zelf.
+// Stijl van het evaluatiebord (EvaluatieBlok.tsx): per kader één kaart in drie lagen, in de
+// beeldtaal van het actiebord en het voortgangsbord (witte kaart, dunne rand, zachte schaduw,
+// gekleurde strook links). Alleen CSS, onder de .okd-scope.
+// - Kleur: de strook links en de chip volgen het eerste beeld (data-beeld op .ev-kader:
+//   ja groen, deels blauw, needeels amber, nee rood; altijd met een teken en het woord erbij).
+//   Ons eigen oordeel kleurt alleen het keuzelijstje en de keuzerondjes.
+// - Rollen: Cito is overal het gevulde, donkerblauwe vlak (heeft de lead), 3sides het lichte
+//   vlak met een rand (voert uit): in de rolverdeling bovenaan, bij "aan zet" in de kop en in
+//   de twee zijden van "Wie is aan zet".
+// - Breedte: het blok is een container (container-type); de indeling volgt de breedte van het
+//   blok zelf, niet die van het venster (het blok staat in kolommen van 340 tot 1300px).
+//   Smal: alles onder elkaar. Vanaf 760px: "aan zet" en ons oordeel in een rail rechts.
+//   Vanaf 1000px: feiten links, de twee zijden rechts.
+// - Leesbaarheid: zinnen 12px of groter, labels 10,5px of groter, grijs #5f6b7a of donkerder.
+// - Afdrukken: alles open, knoppen weg, kleuren behouden.
 
 const CITO = "#003366";
 /** Zelfde pijltje als in voortgangKeuzeCss (TijdlijnBlok.tsx). */
 const PIJL =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235f6b7a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%234a5565' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
 
 export const EVALUATIE_CSS = `
-.okd .ev{display:flex;flex-direction:column;gap:12px}
-.okd .ev-samen{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:9px 14px;font-size:12px;color:var(--ink2,#4a5565)}
-.okd .ev-tal b{font-size:15px;font-weight:800;color:${CITO};font-variant-numeric:tabular-nums}
-.okd .ev-sep{margin:0 8px;color:#cbd5e1}
-.okd .ev-invul{display:inline-flex;align-items:center;gap:10px}
-.okd .ev-invul-t{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3,#5f6b7a)}
-.okd .ev-invul b{font-size:12px;font-weight:800;color:${CITO};font-variant-numeric:tabular-nums;white-space:nowrap}
-.okd .ev-meter{position:relative;display:block;width:120px;height:6px;border-radius:999px;background:#e2e8f0;overflow:hidden}
-.okd .ev-meter > span{position:absolute;inset:0 auto 0 0;border-radius:999px;background:${CITO};transition:width .3s ease}
-.okd .ev-lijst{display:flex;flex-direction:column;gap:10px}
-.okd .ev-kader{--ev-k:#cbd5e1;position:relative;min-width:0;overflow:hidden;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px -8px rgba(15,23,42,.14)}
-.okd .ev-kader[data-oordeel="goed"]{--ev-k:#059669}
-.okd .ev-kader[data-oordeel="deels"]{--ev-k:#2563eb}
-.okd .ev-kader[data-oordeel="onvoldoende"]{--ev-k:#d97706}
-.okd .ev-kader[data-oordeel="nvt"]{--ev-k:#94a3b8}
-.okd .ev-kop{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto 16px;align-items:center;gap:8px 12px;padding:12px 16px 12px 14px;border-top:5px solid var(--ev-k);list-style:none;cursor:pointer;transition:background-color .15s ease}
-.okd .ev-kop::-webkit-details-marker{display:none}
-.okd .ev-kop::marker{content:""}
-.okd .ev-kop:hover{background:#f8fafc}
-.okd .ev-kop:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(0,51,102,.35)}
-.okd .ev-nr{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:${CITO};color:#fff;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums}
-.okd .ev-kop-t{min-width:0}
-.okd .ev-titel{margin:0;font-size:14px;font-weight:800;line-height:1.3;letter-spacing:-.01em;color:${CITO}}
-.okd .ev-sub{margin:1px 0 0;font-size:11.5px;line-height:1.4;color:var(--ink2,#4a5565)}
-.okd .ev-beeld,.okd .ev-beeld-grijs{display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;line-height:1.5;text-transform:uppercase;letter-spacing:.05em;padding:1px 9px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9;color:var(--ink2,#4a5565);white-space:nowrap}
+.okd .ev{--ev-cito:${CITO};--ev-ink:#111827;--ev-tekst:#1f2937;--ev-ink2:#4a5565;--ev-ink3:#5f6b7a;--ev-lijn:#e2e8f0;--ev-lijn2:#edf1f5;--ev-vlak:#f8fafc;container:ev / inline-size;display:flex;flex-direction:column;gap:12px;min-width:0;overflow-wrap:break-word}
+.okd .ev-l{font-size:10.5px;font-weight:800;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:var(--ev-ink3)}
+.okd .ev-h{margin:0 0 8px;font-size:11px;font-weight:800;line-height:1.4;letter-spacing:.07em;text-transform:uppercase;color:var(--ev-cito)}
+.okd .ev-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.okd .ev-tb{font-style:italic;font-weight:500;color:var(--ev-ink3)}
+.okd .ev-alleen-print{display:none;font-size:12.5px}
+
+.okd .ev-av{flex:none;display:inline-grid;place-items:center;box-sizing:border-box;width:26px;height:26px;border-radius:999px;font-size:12.5px;font-weight:800;line-height:1;font-style:normal;font-variant-numeric:tabular-nums}
+.okd .ev-av-cito{background:var(--ev-cito);color:#fff;border:1.5px solid var(--ev-cito)}
+.okd .ev-av-3sides{background:#fff;color:var(--ev-tekst);border:1.5px solid #475569}
+.okd .ev-av-klein{width:19px;height:19px;font-size:10.5px}
+
+.okd .ev-rollen{display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;background:var(--ev-vlak);border:1px solid var(--ev-lijn);border-radius:12px;padding:10px 14px}
+.okd .ev-rollen-l{flex:none;color:var(--ev-ink2)}
+.okd .ev-rol{display:flex;align-items:center;gap:9px;min-width:0}
+.okd .ev-rol-t{display:flex;flex-direction:column;min-width:0}
+.okd .ev-rol-n{font-size:13.5px;font-weight:800;line-height:1.25;color:var(--ev-ink)}
+.okd .ev-rol-r{font-size:12.5px;line-height:1.35;color:var(--ev-ink2)}
+.okd .ev-rollen-edit{align-items:flex-start}
+.okd .ev-rollen-edit .ev-rol{flex:1 1 260px;align-items:flex-start}
+.okd .ev-rollen-edit .ev-veld{flex:1;font-size:13px}
+
+.okd .ev-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 18px;padding-right:4px}
+.okd .ev-alles{display:inline-flex;align-items:center;gap:7px;margin:0;font:inherit;font-size:12.5px;font-weight:700;line-height:1.4;color:var(--ev-cito);background:#fff;border:1px solid #c7d7ea;border-radius:999px;padding:4px 14px 4px 5px;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.okd .ev-alles:hover{background:#eef4fb;border-color:var(--ev-cito)}
+.okd .ev-alles:focus-visible{outline:2px solid var(--ev-cito);outline-offset:2px}
+.okd .ev-alles.is-open .ev-chev{transform:rotate(180deg)}
+.okd .ev-invul{display:flex;align-items:center;gap:10px;min-width:0;font-size:12.5px;color:var(--ev-ink2)}
+.okd .ev-invul-t{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;color:var(--ev-ink2)}
+.okd .ev-invul b{font-size:12.5px;font-weight:800;color:var(--ev-cito);font-variant-numeric:tabular-nums;white-space:nowrap}
+.okd .ev-meter{position:relative;display:block;flex:0 1 120px;width:120px;min-width:36px;height:6px;border-radius:999px;background:#dbe3ec;overflow:hidden}
+.okd .ev-meter > span{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--ev-cito);transition:width .3s ease}
+
+.okd .ev-lijst{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.okd .ev-kader{--ev-k:#94a3b8;position:relative;min-width:0;overflow:hidden;background:#fff;border:1px solid var(--ev-lijn);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px -8px rgba(15,23,42,.14);scroll-margin-top:16px;transition:border-color .15s ease,box-shadow .15s ease}
+.okd .ev-kader::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--ev-k)}
+.okd .ev-kader[data-beeld="ja"]{--ev-k:#059669}
+.okd .ev-kader[data-beeld="deels"]{--ev-k:#2563eb}
+.okd .ev-kader[data-beeld="needeels"]{--ev-k:#d97706}
+.okd .ev-kader[data-beeld="nee"]{--ev-k:#b42318}
+.okd .ev-kader.is-open{border-color:#c7d7ea;box-shadow:0 1px 2px rgba(15,23,42,.06),0 12px 26px -16px rgba(0,51,102,.4)}
+
+.okd .ev-kop{display:grid;grid-template-columns:28px minmax(0,1fr);gap:9px 12px;padding:14px 16px 2px 21px;cursor:pointer}
+.okd .ev-nr{grid-column:1;grid-row:1;display:inline-grid;place-items:center;width:26px;height:26px;margin-top:-3px;border-radius:999px;background:var(--ev-cito);color:#fff;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.okd .ev-kop-t{grid-column:2;min-width:0}
+.okd .ev-titel{margin:0;font-size:15px;font-weight:800;line-height:1.3;letter-spacing:-.01em;color:var(--ev-cito);text-wrap:balance}
+.okd .ev-sub{display:none;margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--ev-ink2)}
+.okd .ev-kader.is-open .ev-sub{display:block}
+.okd .ev-hoofd{grid-column:2;min-width:0}
+.okd .ev-beeldrij{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;margin:0}
+.okd .ev-zin{margin:7px 0 0;max-width:84ch;font-size:13.5px;line-height:1.55;color:var(--ev-tekst);text-wrap:pretty}
+.okd .ev-kader:not(.is-open) .ev-zin{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden}
+.okd .ev-rail{grid-column:2;display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 26px;margin:1px 0 0;padding:0}
+.okd .ev-gegeven{display:flex;flex-direction:column;gap:4px;min-width:0}
+.okd .ev-gegeven:first-child{min-width:132px}
+.okd .ev-gegeven dt,.okd .ev-gegeven dd{margin:0}
+.okd .ev-gegeven label{cursor:pointer}
+.okd .ev-wie{display:flex;align-items:center;gap:7px;min-height:24px;font-size:13px;font-weight:700;line-height:1.35;color:var(--ev-ink)}
+.okd .ev-wie-avs{display:inline-flex;flex:none;gap:3px}
+
+.okd .ev-beeld{display:inline-flex;align-items:center;gap:5px;max-width:100%;font-size:12px;font-weight:800;line-height:1.5;padding:1px 10px 1px 7px;border-radius:999px;border:1px solid #cbd5e1;background:#f1f5f9;color:var(--ev-ink2)}
+.okd .ev-beeld svg{flex:none}
 .okd .ev-beeld-ja{color:#047857;background:#ecfdf5;border-color:#a7f3d0}
 .okd .ev-beeld-deels{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}
-.okd .ev-beeld-nee{color:#92400e;background:#fffbeb;border-color:#fcd34d}
-.okd .ev-oordeel{appearance:none;-webkit-appearance:none;pointer-events:auto;max-width:100%;margin:0;font:inherit;font-size:11.5px;font-weight:600;line-height:1.35;padding:2px 24px 2px 10px;border:1px dashed #cbd5e1;border-radius:999px;background:#fff ${PIJL} no-repeat right 8px center/9px 6px;color:var(--ink3,#5f6b7a);cursor:pointer}
-.okd .ev-oordeel:hover{border-color:#94a3b8}
-.okd .ev-oordeel:focus-visible{outline:2px solid rgba(0,51,102,.35);outline-offset:1px}
-.okd .ev-oordeel-goed{border-style:solid;font-weight:700;background-color:#ecfdf5;border-color:#a7f3d0;color:#047857}
-.okd .ev-oordeel-deels{border-style:solid;font-weight:700;background-color:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.okd .ev-beeld-needeels{color:#92400e;background:#fffbeb;border-color:#fcd34d}
+.okd .ev-beeld-nee{color:#b42318;background:#fef3f2;border-color:#fecdca}
+.okd .ev-beeld-leeg{border-style:dashed;background:#fff;font-weight:600;font-style:italic;padding-left:10px}
+.okd .ev-beeld-klein{font-size:12px;line-height:1.45;padding:0 8px 0 6px;margin-right:2px;vertical-align:1px}
+
+.okd .ev-oordeel{appearance:none;-webkit-appearance:none;max-width:100%;margin:0;font:inherit;font-size:12.5px;font-weight:600;line-height:1.4;padding:3px 28px 3px 12px;border:1px dashed #94a3b8;border-radius:999px;background:#fff ${PIJL} no-repeat right 10px center/9px 6px;color:var(--ev-ink2);cursor:pointer;transition:border-color .12s ease}
+.okd .ev-oordeel:hover{border-color:var(--ev-cito)}
+.okd .ev-oordeel:focus-visible{outline:2px solid var(--ev-cito);outline-offset:2px}
+.okd .ev-oordeel-goed{border-style:solid;font-weight:700;background-color:#ecfdf5;border-color:#6ee7b7;color:#047857}
+.okd .ev-oordeel-deels{border-style:solid;font-weight:700;background-color:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
 .okd .ev-oordeel-onvoldoende{border-style:solid;font-weight:700;background-color:#fffbeb;border-color:#fcd34d;color:#92400e}
-.okd .ev-oordeel-nvt{border-style:solid;font-weight:700;background-color:#f1f5f9;border-color:#cbd5e1;color:var(--ink2,#4a5565)}
-.okd .ev-chev{display:block;width:16px;height:16px;background:${PIJL} no-repeat center/12px 8px;transition:transform .2s ease}
-.okd .ev-kader[open] > .ev-kop .ev-chev{transform:rotate(180deg)}
-.okd .ev-body{display:flex;flex-direction:column;gap:12px;padding:14px 16px 16px;border-top:1px solid #f1f5f9}
-.okd .ev-vraag{margin:0;font-size:13px;line-height:1.5;font-style:normal;color:var(--ink2,#4a5565)}
-.okd .ev-beeldvak{font-size:12.5px;line-height:1.5;font-weight:700;color:#7c2d12;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;padding:8px 12px}
-.okd .ev-beeldvak::before{content:"Eerste beeld · voorstel";display:block;margin-bottom:3px;font-size:10px;font-weight:800;line-height:1.5;letter-spacing:.06em;text-transform:uppercase;color:#92400e}
-.okd dl.ev-secties{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 14px;margin:0}
-.okd dl.ev-secties dt{margin:0;padding-top:2px;font-size:10px;font-weight:800;line-height:1.5;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3,#5f6b7a)}
-.okd dl.ev-secties dd{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink2,#4a5565)}
-.okd dl.ev-secties dd b{font-weight:700;color:var(--ink,#111827)}
-.okd .ev-oordeelvak{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
-.okd .ev-oordeelvak label{font-size:10px;font-weight:800;line-height:1.5;letter-spacing:.06em;text-transform:uppercase;color:${CITO}}
-.okd .ev-notitie{display:block;width:100%;box-sizing:border-box;min-height:2.6em;margin:0;font:inherit;font-size:12.5px;line-height:1.5;letter-spacing:0;text-transform:none;color:var(--ink,#111827);background:#fff;border:1px dashed #cbd5e1;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;transition:border-color .12s,box-shadow .12s}
-.okd .ev-notitie::placeholder{color:var(--ink3,#5f6b7a);opacity:1;font-style:italic}
+.okd .ev-oordeel-nvt{border-style:solid;font-weight:700;background-color:#f1f5f9;border-color:#cbd5e1;color:var(--ev-ink2)}
+
+.okd .ev details{break-inside:auto}
+.okd .ev-meer{min-width:0}
+.okd .ev-meer > summary,.okd .ev-diep > summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;margin:0;font-size:12.5px;font-weight:700;line-height:1.4;color:var(--ev-cito)}
+.okd .ev-meer > summary::-webkit-details-marker,.okd .ev-diep > summary::-webkit-details-marker{display:none}
+.okd .ev-meer > summary::marker,.okd .ev-diep > summary::marker{content:""}
+.okd .ev-meer > summary{padding:9px 16px 13px 61px}
+.okd .ev-meer > summary:hover .ev-meer-t,.okd .ev-diep > summary:hover .ev-meer-t{text-decoration:underline;text-underline-offset:3px}
+.okd .ev-meer > summary:focus-visible,.okd .ev-diep > summary:focus-visible{outline:2px solid var(--ev-cito);outline-offset:-3px;border-radius:10px}
+.okd .ev-meer-t{min-width:0}
+.okd .ev-chev{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;background:#e6eef8;color:var(--ev-cito);transition:transform .2s ease}
+.okd .ev details[open] > summary > .ev-chev{transform:rotate(180deg)}
+
+.okd .ev-body{display:flex;flex-direction:column;gap:16px;padding:16px 16px 16px 21px;border-top:1px solid var(--ev-lijn2)}
+.okd .ev-kern{display:grid;grid-template-columns:minmax(0,1fr);gap:16px 24px;align-items:start}
+.okd .ev-feitenvak,.okd .ev-zet{min-width:0}
+.okd .ev-feiten{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none;max-width:78ch}
+.okd .ev-feiten > li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;font-size:13px;line-height:1.5;color:var(--ev-tekst)}
+.okd .ev-fnr{display:inline-grid;place-items:center;box-sizing:border-box;width:20px;height:20px;border-radius:999px;border:1.5px solid var(--ev-cito);background:#fff;color:var(--ev-cito);font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.okd .ev-feit-t{min-width:0;text-wrap:pretty}
+.okd .ev-bron{display:block;margin-top:1px;font-size:12px;line-height:1.45;color:var(--ev-ink2)}
+.okd .ev-bron .ok-bron,.okd .ev-onder .ok-bron,.okd .ev-onder .ok-deel{color:inherit;text-decoration-color:rgba(74,85,101,.6)}
+
+.okd .ev-zijden{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.okd .ev-zijde{min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden}
+.okd .ev-zijde-kop{display:flex;align-items:center;gap:10px;padding:8px 12px 9px}
+.okd .ev-zijde-nr{display:flex;flex-direction:column;min-width:0}
+.okd .ev-zijde-n{font-size:14px;font-weight:800;line-height:1.25}
+.okd .ev-zijde-r{font-size:12.5px;font-weight:600;line-height:1.35}
+.okd .ev-zijde-cito{border-color:var(--ev-cito)}
+.okd .ev-zijde-cito .ev-zijde-kop{background:var(--ev-cito)}
+.okd .ev-zijde-cito .ev-zijde-n{color:#fff}
+.okd .ev-zijde-cito .ev-zijde-r{color:#dbe7f5}
+.okd .ev-zijde-cito .ev-zijde-r .ok-bron{color:inherit}
+.okd .ev-zijde-cito .ev-av{background:#fff;color:var(--ev-cito);border-color:#fff}
+.okd .ev-zijde-3sides .ev-zijde-kop{background:#f1f5f9;border-bottom:1px solid #cbd5e1}
+.okd .ev-zijde-3sides .ev-zijde-n{color:var(--ev-ink)}
+.okd .ev-zijde-3sides .ev-zijde-r{color:var(--ev-ink2)}
+.okd .ev-zijde-t{padding:10px 12px 12px;font-size:13px;line-height:1.55;color:var(--ev-tekst);white-space:pre-line;text-wrap:pretty}
+
+.okd .ev-vraagvak{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px 12px;align-items:start;background:#f2f6fb;border:1px solid #c7d7ea;border-left:5px solid var(--ev-cito);border-radius:4px 12px 12px 4px;padding:12px 16px 14px 14px}
+.okd .ev-vraag-i{grid-column:1;grid-row:1 / span 2;margin-top:1px;color:var(--ev-cito)}
+.okd .ev-vraagvak .ev-h{grid-column:2;margin:0}
+.okd .ev-vraag-t{grid-column:2;margin:0;max-width:70ch;font-size:15.5px;font-weight:600;line-height:1.5;letter-spacing:-.005em;color:#0f2942;white-space:pre-line;text-wrap:pretty}
+
+.okd .ev-oordeelvak{display:flex;flex-direction:column;gap:9px;padding:11px 14px 13px;background:var(--ev-vlak);border:1px solid var(--ev-lijn);border-radius:10px}
+.okd .ev-oordeel-kop{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.okd .ev-oordeel-kop .ev-h{margin:0}
+.okd .ev-pillen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.okd .ev-pil{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--ev-ink2);background:#fff;border:1px solid #cbd5e1;border-radius:999px;padding:3px 12px 3px 9px;cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
+.okd .ev-pil input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.okd .ev-pil::before{content:"";flex:none;box-sizing:border-box;width:10px;height:10px;border-radius:999px;border:1.5px solid currentColor}
+.okd .ev-pil.is-gekozen::before{background:currentColor;box-shadow:inset 0 0 0 1.5px #fff}
+.okd .ev-pil:hover{border-color:var(--ev-cito)}
+.okd .ev-pil:has(input:focus-visible){outline:2px solid var(--ev-cito);outline-offset:2px}
+.okd .ev-pil-goed.is-gekozen{font-weight:700;background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+.okd .ev-pil-deels.is-gekozen{font-weight:700;background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.okd .ev-pil-onvoldoende.is-gekozen{font-weight:700;background:#fffbeb;border-color:#fcd34d;color:#92400e}
+.okd .ev-pil-nvt.is-gekozen{font-weight:700;background:#f1f5f9;border-color:#94a3b8;color:var(--ev-tekst)}
+.okd .ev-wis{margin:0;font:inherit;font-size:12px;font-weight:600;line-height:1.4;color:var(--ev-ink2);background:none;border:0;border-radius:4px;padding:2px 4px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.okd .ev-wis:hover{color:var(--ev-cito)}
+.okd .ev-wis:focus-visible{outline:2px solid var(--ev-cito);outline-offset:1px}
+.okd .ev-bewaard{margin-left:auto;font-size:12px;line-height:1.4;color:var(--ev-ink2)}
+.okd .ev-notitie{display:block;width:100%;box-sizing:border-box;min-height:2.9em;margin:0;font:inherit;font-size:13px;line-height:1.5;letter-spacing:0;text-transform:none;color:var(--ev-ink);background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;field-sizing:content;transition:border-color .12s,box-shadow .12s}
+.okd .ev-notitie::placeholder{color:var(--ev-ink3);opacity:1;font-style:italic}
 .okd .ev-notitie:hover{border-color:#94a3b8}
-.okd .ev-notitie:focus{outline:none;border-style:solid;border-color:${CITO};box-shadow:0 0 0 3px rgba(0,51,102,.18)}
-.okd .ev-hint{margin:0;font-size:11.5px;line-height:1.45;color:var(--ink3,#5f6b7a)}
-.okd .ev-legenda{margin:0;font-size:12px;line-height:1.5;color:var(--ink2,#4a5565)}
-@media (max-width:560px){
-  .okd .ev-kop{grid-template-columns:24px auto minmax(0,1fr) 16px;grid-template-areas:"nr t t ch" ". b o .";gap:8px 10px;padding:10px 12px}
-  .okd .ev-nr{grid-area:nr}
-  .okd .ev-kop-t{grid-area:t}
-  .okd .ev-beeld{grid-area:b}
-  .okd .ev-oordeel{grid-area:o;justify-self:start}
-  .okd .ev-chev{grid-area:ch}
-  .okd .ev-body{padding:12px}
-  .okd dl.ev-secties{grid-template-columns:minmax(0,1fr);row-gap:2px}
-  .okd dl.ev-secties dd{margin-bottom:6px}
-  .okd .ev-invul{flex-wrap:wrap}
+.okd .ev-notitie:focus{outline:none;border-color:var(--ev-cito);box-shadow:0 0 0 3px rgba(0,51,102,.18)}
+
+.okd .ev-diep{margin:0 -16px -16px -21px;border-top:1px solid var(--ev-lijn2)}
+.okd .ev-diep > summary,.okd .ev-diep-kop{padding:11px 16px 11px 21px}
+.okd .ev-diep-kop{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;line-height:1.4;color:var(--ev-cito)}
+.okd .ev-diep > summary{flex-wrap:wrap}
+.okd .ev-diep > summary > .ev-meer-t{flex:none}
+.okd .ev-diep-n{flex:1 1 150px;min-width:0;font-weight:500;color:var(--ev-ink2)}
+.okd .ev-onder{padding:0 16px 6px 21px;border-top:1px solid var(--ev-lijn2);background:#fcfdfe}
+.okd .ev-s{display:grid;grid-template-columns:minmax(0,1fr);gap:5px 28px;padding:14px 0 15px}
+.okd .ev-s + .ev-s{border-top:1px solid var(--ev-lijn2)}
+.okd .ev-s-kop{margin:0;min-width:0;font-size:13px;font-weight:800;line-height:1.45;color:var(--ev-ink)}
+.okd .ev-s-toets .ev-s-kop{color:var(--ev-cito)}
+.okd .ev-s-t{min-width:0;max-width:70ch;font-size:13px;line-height:1.65;color:#27303f}
+.okd .ev-s-t p{margin:0}
+.okd .ev-s-t p + p{margin-top:7px}
+.okd .ev-s-t b{font-weight:700;color:var(--ev-ink)}
+
+.okd .ev-veld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.okd .ev-velden{display:grid;grid-template-columns:minmax(0,1fr);gap:14px 28px;font-size:13.5px;line-height:1.55;color:var(--ev-tekst)}
+.okd .ev-hint{font-size:12px;line-height:1.45;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ev-ink2)}
+.okd .ev > .okd-bt .ok-in,.okd .ev > .ok-in.ok-sub,.okd .ev-legenda .ok-in{width:100%;margin-left:0;margin-right:0}
+.okd .ev-kader-edit .ev-kop{cursor:default;padding-bottom:12px}
+.okd .ev-kader-edit .ok-rij > .ev-titel{flex:1;min-width:0}
+.okd .ev-kader-edit .ev-feiten > li > .ok-rij{min-width:0}
+.okd .ev-kader-edit .ev-s-t,.okd .ev-kader-edit .ev-feiten{max-width:none}
+.okd .ev-plus{margin-top:8px}
+.okd .ev-lijst + .ev-plus{margin-top:0}
+.okd .ev-legenda{margin:0;font-size:12.5px;line-height:1.55;color:var(--ev-ink2)}
+
+@container ev (min-width:560px){
+  .okd .ev-zijden{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container ev (min-width:760px){
+  .okd .ev-kop{grid-template-columns:28px minmax(0,1fr) 196px;grid-template-rows:auto 1fr;column-gap:14px}
+  .okd .ev-rail{grid-column:3;grid-row:1 / span 2;flex-direction:column;flex-wrap:nowrap;gap:12px;margin:0 0 6px;padding:1px 0 2px 18px;border-left:1px solid var(--ev-lijn2)}
+  .okd .ev-meer > summary{padding-left:63px}
+  .okd .ev-velden{grid-template-columns:minmax(0,2.4fr) minmax(0,1fr)}
+  .okd .ev-s{grid-template-columns:210px minmax(0,70ch)}
+  .okd .ev-kader-edit .ev-s{grid-template-columns:210px minmax(0,1fr)}
+}
+@container ev (min-width:1000px){
+  .okd .ev-kern.heeft-feiten.heeft-zet{grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr)}
+  .okd .ev-kern > .ev-vraagvak{grid-column:1 / -1}
+  .okd .ev-s{grid-template-columns:250px minmax(0,70ch)}
+  .okd .ev-kader-edit .ev-s{grid-template-columns:250px minmax(0,1fr)}
+}
+@container ev (max-width:440px){
+  .okd .ev-kop{column-gap:10px;padding:13px 12px 2px 17px}
+  .okd .ev-hoofd,.okd .ev-rail{grid-column:1 / -1}
+  .okd .ev-rail{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:7px 12px}
+  .okd .ev-gegeven{display:contents}
+  .okd .ev-invul{flex:1 1 100%}
+  .okd .ev-meter{flex:1 1 60px;width:auto}
+  .okd .ev-meer > summary{padding:9px 12px 12px 17px}
+  .okd .ev-body{padding:14px 12px 14px 17px}
+  .okd .ev-diep{margin:0 -12px -14px -17px}
+  .okd .ev-diep > summary,.okd .ev-diep-kop{padding-left:17px;padding-right:12px}
+  .okd .ev-onder{padding-left:17px;padding-right:12px}
+  .okd .ev-vraagvak{padding:11px 12px 12px 12px;column-gap:10px}
+  .okd .ev-vraag-t{font-size:14.5px}
+  .okd .ev-bewaard{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .okd .ev-chev,.okd .ev-kader,.okd .ev-meter > span{transition:none}
 }
 @media print{
-  .okd .ev-kader{box-shadow:none;break-inside:avoid}
-  .okd .ev-kop{cursor:default}
-  .okd .ev-chev{display:none}
+  .okd .ev-kader,.okd .ev-beeld,.okd .ev-av,.okd .ev-zijde-kop,.okd .ev-vraagvak,.okd .ev-nr,.okd .ev-oordeel,.okd .ev-pil,.okd .ev-meter,.okd .ev-meter > span{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .okd .ev-kader{box-shadow:none}
+  .okd .ev-kop{cursor:default;break-inside:avoid}
+  .okd .ev-tools .ev-alles,.okd .ev-meer > summary,.okd .ev-diep > summary .ev-chev,.okd .ev-wis,.okd .ev-bewaard{display:none}
+  .okd .ev-meer::details-content,.okd .ev-diep::details-content{content-visibility:visible;display:block}
+  .okd .ev-kader .ev-sub{display:block}
+  .okd .ev-kader .ev-zin{display:block;-webkit-line-clamp:none;overflow:visible}
+  .okd .ev-pil:not(.is-gekozen){display:none}
+  .okd .ev-oordeel:not([class*="ev-oordeel-"]){display:none}
+  .okd .ev-alleen-print{display:inline}
+  .okd .ev-notitie::placeholder{color:transparent}
+  .okd .ev-zijde,.okd .ev-vraagvak,.okd .ev-oordeelvak,.okd .ev-feiten > li,.okd .ev-s-kop{break-inside:avoid}
+  .okd .ev-s-kop{break-after:avoid}
 }
 `;

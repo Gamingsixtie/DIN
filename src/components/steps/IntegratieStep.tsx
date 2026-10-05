@@ -1,12 +1,18 @@
 "use client";
 
-// Stap 11 — "Programma × 3sides", met drie tabbladen:
+// Stap 11 — "Programma × 3sides", met vijf tabbladen:
 // 1. Analyse: programmaplan en Doelen-Inspanningennetwerk (DIN) naast alles wat 3sides
 //    heeft opgeleverd (src/lib/integratie-3sides-default.ts).
-// 2. Naslag: de kern van alle 3sides-documenten, per document met paginanummer of
+// 2. Evaluatie 3sides: de kern voor het evaluatiegesprek, voor de programma-eigenaar: de
+//    agenda, drie delen uit de analyse (werkstromen, planning en opleveringen zonder het
+//    actiebord van Cito, evaluatie) en de begeleidende brief (EvaluatieTab.tsx). De drie delen
+//    zijn hetzelfde document als de analyse; een wijziging hier staat ook daar. Direct te
+//    openen met ?stap=integratie&tab=evaluatie.
+// 3. Naslag: de kern van alle 3sides-documenten, per document met paginanummer of
 //    tabblad (src/lib/kern-3sides-default.ts). Direct te openen met ?stap=integratie&tab=kern.
-// 3. Voortgang: het voortgangsbord uit de analyse, los; vinkjes zet je daar (meteen
+// 4. Voortgang: het voortgangsbord uit de analyse, los; vinkjes zet je daar (meteen
 //    bewaard), teksten bewerk je in de analyse. Direct te openen met ?stap=integratie&tab=voortgang.
+// 5. Documenten: wat het team zelf uploadt (DocumentenTab.tsx). ?stap=integratie&tab=documenten.
 // De documenten zijn per kop en per cel handmatig aanpasbaar; aanpassingen worden in de
 // sessie bewaard (session.documenten[sleutel], localStorage-first + Supabase via updateSession).
 // Een wijziging uit een blok in weergavemodus (bijv. een vinkje in het voortgangsbord) wordt
@@ -18,7 +24,8 @@
 // Boven de tabbladen de instelling "Vindplaatsen" (session.koppelingen): de map met de
 // 3sides-documenten en het Jira-bord. Met een ingevulde map worden alle paginaverwijzingen
 // in de documenten links naar het document op die pagina; zonder map linken ze naar het
-// naslag-tabblad bij dat document (bron-context.tsx). "deel N" springt naar dat deel.
+// naslag-tabblad bij dat document (bron-context.tsx). "deel N" springt naar dat deel; op het
+// tabblad Evaluatie opent een verwijzing naar een deel dat daar niet staat de analyse bij dat deel.
 // Bij het laden en bij het wisselen van tabblad scrolt de pagina naar #<id> uit de link,
 // zodra dat element er is; het gekozen tabblad staat in de url (?tab=…).
 // Intern Cito: bewust geen statische of openbare versie.
@@ -36,6 +43,7 @@ import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 import { OpmerkingenProvider, OpmerkingenOverzicht } from "@/components/bewerkbaar/Opmerkingen";
 import DocumentenTab from "@/components/steps/DocumentenTab";
+import EvaluatieTab, { EVALUATIE_TAB, NieuwereVoorsteltekst } from "@/components/steps/EvaluatieTab";
 import { DOC_CSS, KNOP, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
@@ -66,9 +74,19 @@ type Tabblad = (typeof DOCUMENT_TABBLADEN)[number];
 const VOORTGANG_TAB = { id: "voortgang", label: "Voortgang" } as const;
 const DOCUMENTEN_TAB = { id: "documenten", label: "Documenten" } as const;
 
-/** Alle tabbladen in volgorde; het voortgangsbord is geen document maar een uitsnede van de analyse. */
-const TABBLADEN: readonly (Tabblad | typeof VOORTGANG_TAB | typeof DOCUMENTEN_TAB)[] = [...DOCUMENT_TABBLADEN, VOORTGANG_TAB, DOCUMENTEN_TAB];
+/**
+ * Alle tabbladen in volgorde: analyse, evaluatie, naslag, voortgang, documenten. Het
+ * evaluatietabblad en het voortgangsbord zijn geen eigen document maar een uitsnede van de analyse.
+ */
+const TABBLADEN: readonly (Tabblad | typeof EVALUATIE_TAB | typeof VOORTGANG_TAB | typeof DOCUMENTEN_TAB)[] = [
+  DOCUMENT_TABBLADEN[0],
+  EVALUATIE_TAB,
+  DOCUMENT_TABBLADEN[1],
+  VOORTGANG_TAB,
+  DOCUMENTEN_TAB,
+];
 
+/** Plek van de analyse in TABBLADEN (voor "naar de analyse" vanuit de andere tabbladen). */
 const ANALYSE_TAB = 0;
 
 function beginTab(): number {
@@ -157,7 +175,9 @@ export default function IntegratieStep() {
       </div>
       {/* key: bij wisselen van tabblad start de bewerkstatus opnieuw */}
       <BronProvider documentenBasis={documentenBasis} jira={jira} naslagHier={tab.id === "kern"}>
-        {tab.id === "voortgang" ? (
+        {tab.id === "evaluatie" ? (
+          <EvaluatieTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} />
+        ) : tab.id === "voortgang" ? (
           <VoortgangTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} jira={jira} />
         ) : tab.id === "documenten" ? (
           <DocumentenTab />
@@ -433,72 +453,8 @@ function DocumentTab({ tab }: { tab: Tabblad }) {
   );
 }
 
-/**
- * Rustige balk boven het document: de voorsteltekst is bijgewerkt en deze sessie heeft eigen
- * tekst. Overnemen (na bevestiging, want eigen tekstwijzigingen vervallen) of de eigen versie
- * houden. Zonder bekende basis (opgeslagen vóór de versiecontrole) is "nieuwer" niet zeker.
- */
-function NieuwereVoorsteltekst(p: { basisBekend: boolean; onOvernemen: () => void; onHouden: () => void }) {
-  const [vraag, setVraag] = useState(false);
-  return (
-    <section
-      aria-label="Nieuwere voorsteltekst"
-      className="rounded-xl border border-cito-border border-l-4 border-l-[#003366] bg-white px-4 py-3"
-    >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="min-w-0 flex-1 basis-72">
-          <p className="text-sm font-semibold text-[#003366]">
-            {p.basisBekend
-              ? "Er is een nieuwere voorsteltekst. Deze sessie heeft eigen aanpassingen."
-              : "De voorsteltekst kan nieuwer zijn dan deze versie. Deze sessie heeft eigen aanpassingen."}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-600">
-            Overnemen: vinkjes, afgeronde onderdelen en ingevulde links blijven; eigen tekstwijzigingen vervallen.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {!vraag ? (
-            <button
-              type="button"
-              onClick={() => setVraag(true)}
-              className={`${KNOP} bg-cito-blue text-white hover:bg-cito-blue/90`}
-            >
-              Nieuwe voorsteltekst overnemen
-            </button>
-          ) : (
-            <span className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Eigen tekstwijzigingen vervallen. Overnemen?
-              <button
-                type="button"
-                onClick={() => {
-                  setVraag(false);
-                  p.onOvernemen();
-                }}
-                className="font-bold underline"
-              >
-                Ja, overnemen
-              </button>
-              <button type="button" onClick={() => setVraag(false)} className="underline">
-                Nee
-              </button>
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setVraag(false);
-              p.onHouden();
-            }}
-            title="De melding verdwijnt tot er weer een nieuwere voorsteltekst is"
-            className={`${KNOP} border border-[#003366] bg-white text-[#003366] hover:bg-[#003366] hover:text-white`}
-          >
-            Mijn versie houden
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
+// De melding bij een nieuwere voorsteltekst (NieuwereVoorsteltekst) staat in EvaluatieTab.tsx,
+// dat haar ook gebruikt.
 
 // ---------- voortgang ----------
 

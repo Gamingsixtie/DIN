@@ -1025,6 +1025,9 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     type: z.literal("evaluatie"),
     titel: z.string().optional().default(""),
     intro: z.string().optional().default(""),
+    // De rolverdeling, als kop boven "wie is aan zet" in elk kader (aanpasbaar).
+    rol3sides: z.string().optional(), // bijv. "leidend in de uitvoering"
+    rolCito: z.string().optional(), // bijv. "heeft de lead: bepaalt en toetst"
     kaders: z.array(
       z.object({
         id: z.string(),
@@ -1033,6 +1036,11 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
         vraag: z.string().optional().default(""), // wat we toetsen
         beeld: z.string().optional().default(""), // eerste beeld (voorstel), kort
         actieBij: z.string().optional().default(""), // 3sides · Cito · beide
+        // De hapklare kern per kader (tabblad Evaluatie en de export); de secties zijn de onderbouwing.
+        punten: z.array(z.string()).optional(), // feitelijke constateringen, elk met bron
+        aanZet3sides: z.string().optional(), // wat 3sides doet (leidend in de uitvoering)
+        aanZetCito: z.string().optional(), // wat Cito doet (bepaalt en toetst)
+        vraag3sides: z.string().optional(), // de vraag voor het gesprek met 3sides
         secties: z.array(z.object({ label: z.string(), tekst: z.string() })),
         oordeel: z.string().optional().default(""), // ons oordeel (intern): gekozen in weergave
         notitie: z.string().optional().default(""), // toelichting bij het oordeel, in weergave
@@ -1432,6 +1440,13 @@ export const OpmerkingSchema = z.object({
   blok: z.number().int(), // index van het blok in de sectie
   /** korte naam van het blok zoals getoond (bijv. "Tabel: Geleverd?") */
   bij: z.string().optional().default(""),
+  /**
+   * De passage waar de opmerking precies over gaat: de geselecteerde tekst, of de tekst van
+   * de gekozen alinea, regel, rij of kaart in het blok. Leeg = de opmerking gaat over het hele blok.
+   */
+  citaat: z.string().optional(),
+  /** de hoeveelste keer dat die tekst in het blok voorkomt (0 = de eerste), om de juiste terug te vinden */
+  citaatNr: z.number().int().optional(),
   tekst: z.string(),
   door: z.string().optional().default(""),
   datum: z.string(), // ISO

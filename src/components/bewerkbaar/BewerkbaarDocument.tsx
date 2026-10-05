@@ -7,6 +7,10 @@
 // bord: baten, domeinen en werkstromen toevoegen, verschuiven en weghalen. Wijzigingen
 // gaan onveranderlijk (kopie → aanpassen) via onChange naar de ouder; die bepaalt
 // wanneer er wordt opgeslagen. Alleen gebruiken binnen een client-component.
+// Uitsnede (bijv. stap 11, tabblad Evaluatie 3sides): met `alleenSecties` en `toonBlok` toont
+// het document alleen een deel van zichzelf, zonder kop en inhoudsopgave. Dat is filteren bij
+// het tekenen: `doc` en wat via onChange teruggaat, blijven het hele document, en een blok
+// houdt zijn index, zodat opmerkingen en wijzigingen overal bij hetzelfde blok uitkomen.
 
 import { Fragment, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
@@ -21,6 +25,7 @@ import {
   metBronlinks,
   sectieKaart,
 } from "@/components/bewerkbaar/bron-context";
+import type { SectieKaart } from "@/components/bewerkbaar/bron-context";
 import { domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan, LosBlokProps, Zet } from "@/components/bewerkbaar/blok-typen";
 import TijdlijnBlok, { TIJDLIJN_CSS } from "@/components/bewerkbaar/blokken/TijdlijnBlok";
@@ -1584,6 +1589,23 @@ function versieVan(b: DocBlok): string {
 }
 
 /**
+ * De getoonde blokken (indexen in `blokken`) in groepen: blokken met een versielabel die direct
+ * na elkaar staan, vormen samen één groep (in weergave tabbladen, zie VersieGroep); elk ander
+ * blok is een groep van één. Een verborgen blok ertussen (uitsnede) breekt de groep af.
+ */
+function blokGroepen(blokken: DocBlok[], getoond: readonly number[]): number[][] {
+  const uit: number[][] = [];
+  for (const bi of getoond) {
+    const vorige = uit[uit.length - 1];
+    const sluitAan =
+      vorige !== undefined && vorige[vorige.length - 1] === bi - 1 && versieVan(blokken[bi - 1]) !== "" && versieVan(blokken[bi]) !== "";
+    if (sluitAan) vorige.push(bi);
+    else uit.push([bi]);
+  }
+  return uit;
+}
+
+/**
  * Twee of meer blokken na elkaar met een versielabel: in weergave één tegelijk, met
  * tabbladen erboven en de toelichting van de gekozen versie. Bewerken: alle versies onder
  * elkaar (zie Sectie).
@@ -1628,12 +1650,23 @@ const Sectie = memo(function Sectie(p: {
   onVraag: (id: string | null) => void;
   /** in weergave: potlood bij de sectiekop, om alleen deze sectie te bewerken */
   onBewerk?: (id: string) => void;
+  /** uitsnede: blokken waarvoor dit false geeft, staan niet op de pagina; de overige houden hun index */
+  toonBlok?: (sectieId: string, blok: DocBlok) => boolean;
+  /** uitsnede: de sectie is een vast onderdeel van de pagina en kan hier niet worden verwijderd */
+  vast?: boolean;
+  /** regel in weergave als de sectie geen inleiding en geen blokken heeft; zonder: niets */
+  leegTekst?: string;
 }) {
-  const { s, i, edit, vraag, ankers, onZet, onVraag, onBewerk } = p;
+  const { s, i, edit, vraag, ankers, onZet, onVraag, onBewerk, toonBlok, vast, leegTekst } = p;
   // Welk blok om bevestiging van verwijderen vraagt, en het soort van een nieuw blok.
   const [vraagBlok, setVraagBlok] = useState<number | null>(null);
   const [nieuwSoort, setNieuwSoort] = useState<NieuwSoort>("tekst");
   if (!edit && vraagBlok !== null) setVraagBlok(null);
+
+  // De indexen (in s.blokken) van de blokken die op de pagina staan. Een verborgen blok
+  // (uitsnede) blijft in de gegevens en telt mee in de index: opmerkingen (document + sectie
+  // + blokindex) en wijzigingen wijzen zo naar hetzelfde blok als in het hele document.
+  const getoond = s.blokken.flatMap((b, bi) => (!toonBlok || toonBlok(s.id, b) ? [bi] : []));
 
   const upd = (fn: (n: DocSectie) => void) => {
     const n = kloon(s);
@@ -1701,33 +1734,26 @@ const Sectie = memo(function Sectie(p: {
     </BlokMetOpmerkingen>
   );
 
-  /** Alle blokken in weergave; blokken met een versielabel na elkaar worden één groep met tabbladen. */
+  /**
+   * Alle blokken in weergave; blokken met een versielabel na elkaar worden één groep met
+   * tabbladen (blokGroepen). Een verborgen blok (uitsnede) staat er niet tussen; de index
+   * blijft die in s.blokken.
+   */
   function weergaveBlokken(): ReactNode[] {
-    const uit: ReactNode[] = [];
-    for (let bi = 0; bi < s.blokken.length; ) {
-      let eind = bi;
-      if (versieVan(s.blokken[bi])) {
-        while (eind + 1 < s.blokken.length && versieVan(s.blokken[eind + 1])) eind += 1;
-      }
-      if (eind > bi) {
-        const leden = s.blokken.slice(bi, eind + 1).map((b, k) => ({ b, bi: bi + k }));
-        uit.push(
-          <VersieGroep
-            key={"vg-" + bi}
-            versies={leden.map((l) => ({
-              label: versieVan(l.b),
-              toelichting: l.b.type === "dinplaat" ? (l.b.versieToelichting ?? "") : "",
-            }))}
-            render={(k) => metOpmerking(leden[k].b, leden[k].bi)}
-          />
-        );
-        bi = eind + 1;
-      } else {
-        uit.push(metOpmerking(s.blokken[bi], bi));
-        bi += 1;
-      }
-    }
-    return uit;
+    return blokGroepen(s.blokken, getoond).map((groep) => {
+      if (groep.length === 1) return metOpmerking(s.blokken[groep[0]], groep[0]);
+      const leden = groep.map((bi) => ({ b: s.blokken[bi], bi }));
+      return (
+        <VersieGroep
+          key={"vg-" + groep[0]}
+          versies={leden.map((l) => ({
+            label: versieVan(l.b),
+            toelichting: l.b.type === "dinplaat" ? (l.b.versieToelichting ?? "") : "",
+          }))}
+          render={(k) => metOpmerking(leden[k].b, leden[k].bi)}
+        />
+      );
+    });
   }
 
   return (
@@ -1747,6 +1773,7 @@ const Sectie = memo(function Sectie(p: {
           </button>
         )}
         {edit &&
+          !vast &&
           (vraag ? (
             <span className="okd-vraag" role="alert">
               Deze sectie verwijderen?
@@ -1778,9 +1805,16 @@ const Sectie = memo(function Sectie(p: {
           ph="Inleiding (optioneel)"
         />
       )}
+      {!edit && leegTekst && getoond.length === 0 && !(s.intro ?? "").trim() && (
+        <p className="okd-p okd-leeg" role="note">
+          {leegTekst}
+        </p>
+      )}
       <div className="okd-blokken">
         {!edit && weergaveBlokken()}
-        {edit && s.blokken.map((b, bi) => (
+        {edit && getoond.map((bi, plek) => {
+          const b = s.blokken[bi];
+          return (
             <div key={bi} className="okd-blok-edit">
               <div className="okd-blok-balk">
                 <span className="okd-blok-soort">{BLOK_NAMEN[b.type] ?? b.type}</span>
@@ -1802,13 +1836,16 @@ const Sectie = memo(function Sectie(p: {
                   </span>
                 ) : (
                   <VakKnoppen
-                    i={bi}
-                    n={s.blokken.length}
+                    i={plek}
+                    n={getoond.length}
                     staand
                     wat="Blok"
                     onSchuif={(naar) => {
+                      // naar de plek van het vorige of volgende blok dat op de pagina staat
+                      // (zonder verborgen blokken is dat gewoon bi - 1 of bi + 1)
+                      const doel = getoond[naar];
                       setVraagBlok(null);
-                      upd((n) => verplaats(n.blokken, bi, naar));
+                      if (doel !== undefined) upd((n) => verplaats(n.blokken, bi, doel));
                     }}
                     onWeg={() => setVraagBlok(bi)}
                   />
@@ -1816,7 +1853,8 @@ const Sectie = memo(function Sectie(p: {
               </div>
               {blok(b, bi)}
             </div>
-        ))}
+          );
+        })}
         {edit && (
           <div className="okd-blok-plus">
             <Keuze v={nieuwSoort} opties={NIEUW_BLOK_OPTIES} on={setNieuwSoort} titel="Soort van het nieuwe blok" />
@@ -1846,10 +1884,12 @@ const BLOK_CSS = `
 /**
  * Element-ids in een sectie waar naartoe gelinkt kan worden: de sectie zelf ("sec-"),
  * de kaarten van een werkstromen-blok ("wk-") en de tijdlijngroepen met een anker ("tl-").
+ * Met `toonBlok` (uitsnede) tellen alleen de blokken die op de pagina staan.
  */
-export function linkdoelen(s: DocSectie): string[] {
+export function linkdoelen(s: DocSectie, toonBlok?: (sectieId: string, blok: DocBlok) => boolean): string[] {
   const ids = ["sec-" + s.id];
   for (const b of s.blokken) {
+    if (toonBlok && !toonBlok(s.id, b)) continue;
     if (b.type === "werkstromen") {
       for (const k of b.kaarten) if (k.id) ids.push("wk-" + k.id);
     } else if (b.type === "tijdlijn") {
@@ -1859,12 +1899,46 @@ export function linkdoelen(s: DocSectie): string[] {
   return ids;
 }
 
+/**
+ * De secties die getoond worden, met hun index in doc.secties: zonder de verwijderde (lege
+ * markering, zie bewerkbaar-document.ts); in een uitsnede alleen de gevraagde, in die volgorde.
+ */
+function getoondeSecties(doc: DocData, alleenSecties?: readonly string[]): { s: DocSectie; i: number }[] {
+  const aanwezig = doc.secties.flatMap((s, i) => (isVerwijderd(s) ? [] : [{ s, i }]));
+  if (!alleenSecties) return aanwezig;
+  return alleenSecties.flatMap((id) => aanwezig.filter((x) => x.s.id === id).slice(0, 1));
+}
+
+/** De linkdoelen van de getoonde secties als één tekst (een id per regel); sleutel voor useMemo. */
+function ankerSleutel(doc: DocData, alleenSecties?: readonly string[], toonBlok?: (sectieId: string, blok: DocBlok) => boolean): string {
+  return getoondeSecties(doc, alleenSecties)
+    .flatMap(({ s }) => linkdoelen(s, toonBlok))
+    .join("\n");
+}
+
+/** Op de plek van een verborgen blok in wat de blokken van elkaar zien (DocContext): leeg, zelfde index. */
+const VERBORGEN_BLOK: DocBlok = { type: "tekst", tekst: "" };
+
+/**
+ * Alle stijl van het document en zijn blokken, in de volgorde waarin die moet laden. Staan er
+ * meer documenten of uitsnedes op één pagina, dan plaatst de ouder dit één keer in een <style>
+ * en geeft elk document `stijl={false}`.
+ */
+export const DOCUMENT_CSS =
+  OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + EVALUATIE_CSS + LEADS_CSS + OPMERKINGEN_CSS + LEESBAAR_CSS;
+
 export default function BewerkbaarDocument({
   doc,
   edit,
   onChange,
   editSectie = null,
   onBewerk,
+  alleenSecties,
+  toonBlok,
+  paginaAnkers,
+  deelKaart,
+  leegTekst,
+  stijl = true,
 }: {
   doc: DocData;
   edit: boolean;
@@ -1873,7 +1947,39 @@ export default function BewerkbaarDocument({
   editSectie?: string | null;
   /** potlood per sectie in weergave: begin met bewerken van alleen die sectie */
   onBewerk?: (id: string) => void;
+  /**
+   * Uitsnede: alleen deze secties, in deze volgorde, zonder documentkop, inhoudsopgave en
+   * "+ sectie"; de secties zijn hier niet te verwijderen. Het document zelf blijft heel:
+   * `doc` en wat via onChange teruggaat, is altijd het hele document. Geef een vaste lijst
+   * mee (geen nieuwe bij elke render), anders renderen alle secties telkens opnieuw.
+   */
+  alleenSecties?: readonly string[];
+  /**
+   * Uitsnede: staat dit blok op de pagina? Blokken waarvoor dit false geeft, worden niet
+   * getoond (ook niet in bewerkmodus) en zijn voor de andere blokken onzichtbaar (een
+   * werkstroomkaart verwijst dan niet naar een bord dat hier niet staat). Ze blijven in de
+   * gegevens en tellen mee in de blokindex, zodat opmerkingen en wijzigingen bij hetzelfde
+   * blok uitkomen als in het hele document. Geef een vaste functie mee.
+   */
+  toonBlok?: (sectieId: string, blok: DocBlok) => boolean;
+  /**
+   * Element-ids ("sec-…", "wk-…", "tl-…") die op de pagina bestaan, als dit document maar
+   * een deel van de pagina is (bijv. elk deel van een uitsnede in een eigen kader). Zonder:
+   * de linkdoelen van de secties en blokken die dit document zelf toont.
+   */
+  paginaAnkers?: ReadonlySet<string>;
+  /**
+   * Sectiekaart voor "deel N" in de teksten, in plaats van die van dit document: bij een
+   * uitsnede de kaart van het hele document, met `elders` bij de delen die niet op de pagina
+   * staan (bron-context.tsx).
+   */
+  deelKaart?: readonly SectieKaart[];
+  /** regel in weergave bij een sectie zonder inleiding en zonder blokken; zonder: niets */
+  leegTekst?: string;
+  /** false: de <style> met DOCUMENT_CSS niet meerenderen (de ouder heeft die al geplaatst) */
+  stijl?: boolean;
 }) {
+  const uitsnede = alleenSecties !== undefined;
   // Welke sectie vraagt om bevestiging van verwijderen; vervalt bij wisselen van modus.
   const [vraag, setVraag] = useState<string | null>(null);
   const [vorigeEdit, setVorigeEdit] = useState(edit);
@@ -1902,27 +2008,53 @@ export default function BewerkbaarDocument({
   }, []);
 
   // Verwijderde secties (lege markering, zie bewerkbaar-document.ts) niet tonen;
-  // de index blijft die in doc.secties.
-  const zichtbaar = doc.secties.flatMap((s, i) => (isVerwijderd(s) ? [] : [{ s, i }]));
+  // de index blijft die in doc.secties. In een uitsnede alleen de gevraagde secties, in
+  // de gevraagde volgorde.
+  const zichtbaar = getoondeSecties(doc, alleenSecties);
 
   // Element-ids die in het document bestaan (secties, werkstroomkaarten, tijdlijngroepen),
   // als linkdoelen. Gememoiseerd op een sleutel van de ids zelf, zodat typen in een sectie
-  // de gememoiseerde secties ongemoeid laat.
-  const idSleutel = zichtbaar.flatMap(({ s }) => linkdoelen(s)).join("\n");
-  const ankers = useMemo(() => new Set(idSleutel.split("\n")), [idSleutel]);
+  // de gememoiseerde secties ongemoeid laat. Is het document een deel van de pagina, dan
+  // geeft de ouder de linkdoelen van de hele pagina mee.
+  const idSleutel = ankerSleutel(doc, alleenSecties, toonBlok);
+  const eigenAnkers = useMemo(() => new Set(idSleutel.split("\n")), [idSleutel]);
+  const ankers = paginaAnkers ?? eigenAnkers;
 
   // Sectiekaart voor "deel N"-links in de teksten: nummer uit de titel ("4 · …") → sectie-id.
   // Per document gememoiseerd; in bewerkmodus staan de teksten in velden, dus een nieuwe
   // kaart bij het typen kost daar niets.
-  const secties = useMemo(() => sectieKaart(doc.secties.filter((s) => !isVerwijderd(s))), [doc]);
+  const eigenKaart = useMemo(() => sectieKaart(doc.secties.filter((s) => !isVerwijderd(s))), [doc]);
+  const secties = deelKaart ?? eigenKaart;
+
+  // Wat de blokken van elkaar zien (DocContext, alleen lezen): in een uitsnede zonder de
+  // blokken die niet op de pagina staan, met een leeg blok op hun plek zodat de indexen gelijk
+  // blijven. Wijzigingen gaan nooit via deze kopie: zetSectie en zetDoc werken op `doc`.
+  const leesDoc = useMemo<DocData>(() => {
+    if (!toonBlok) return doc;
+    return {
+      ...doc,
+      secties: doc.secties.map((s) =>
+        s.blokken.every((b) => toonBlok(s.id, b))
+          ? s
+          : { ...s, blokken: s.blokken.map((b) => (toonBlok(s.id, b) ? b : VERBORGEN_BLOK)) }
+      ),
+    };
+  }, [doc, toonBlok]);
 
   return (
-    <DocContext.Provider value={doc}>
+    <DocContext.Provider value={leesDoc}>
     <DocZetContext.Provider value={zetDoc}>
     <SectieProvider secties={secties}>
-    <div className={"ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6" + (edit ? "" : " opm-ruimte")}>
-      <style>{OK_CSS + DOC_CSS + BLOK_CSS + TIJDLIJN_CSS + WERKSTROOM_CSS + MATRIX_CSS + KPIPLAAT_CSS + VANNAAR_CSS + STROOMPLAAT_CSS + VOORTGANGSBORD_CSS + STAPPEN_CSS + MODELVERGELIJKING_CSS + ACTIEBORD_CSS + EVALUATIE_CSS + LEADS_CSS + OPMERKINGEN_CSS + LEESBAAR_CSS}</style>
+    <div
+      className={
+        "ok okd rounded-xl border border-cito-border bg-[#eef1f5] p-2.5 sm:p-6" +
+        (edit ? "" : " opm-ruimte") +
+        (uitsnede ? " okd-uitsnede" : "")
+      }
+    >
+      {stijl && <style>{DOCUMENT_CSS}</style>}
 
+      {!uitsnede && (
       <header className="ok-top okd-top">
         {(edit || doc.status) && (
           <div className={edit ? "okd-status-edit" : "okd-status"}>
@@ -1949,8 +2081,9 @@ export default function BewerkbaarDocument({
           </p>
         )}
       </header>
+      )}
 
-      {zichtbaar.length > 0 && (
+      {!uitsnede && zichtbaar.length > 0 && (
         <nav className="okd-toc" aria-label="Inhoud">
           <span className="okd-toc-kop">Inhoud</span>
           <ol className="okd-toc-lijst">
@@ -1983,10 +2116,13 @@ export default function BewerkbaarDocument({
           onZet={zetSectie}
           onVraag={setVraag}
           onBewerk={edit || editSectie ? undefined : onBewerk}
+          toonBlok={toonBlok}
+          vast={uitsnede}
+          leegTekst={leegTekst}
         />
       ))}
 
-      {edit && (
+      {edit && !uitsnede && (
         <button
           type="button"
           className="okd-plus"

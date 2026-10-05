@@ -120,6 +120,9 @@ export const OK_CSS = `
 // Bewerkmodus: knopjes per vak (.okd-dp-knoppen), domeinvinkjes per werkstroom
 // (.okd-dp-vink), meetlat-chips als velden (.okd-dp-chip-edit) en in de chipkolom van
 // een tabel een keuzemenu (.okd-chip-keuze).
+// Uitsnede (.okd-uitsnede, bijv. het tabblad Evaluatie 3sides): een of meer secties van het
+// document in een eigen kader, zonder documentkop en inhoudsopgave; de sectiekop is daar de
+// kop van het kader. .okd-leeg: de regel bij een sectie die nog geen inhoud heeft.
 export const DOC_CSS = `
 .okd{overflow-wrap:anywhere}
 .okd .okd-top h2{margin-top:6px}
@@ -329,6 +332,10 @@ export const DOC_CSS = `
 .okd table.okd-t-stapel td.c{white-space:normal}
 }
 @media(max-width:480px){.okd .ok-card dl{grid-template-columns:minmax(0,1fr)}.okd .ok-card dd{margin-bottom:4px}.okd .okd-dp-regie{padding:8px 10px;gap:6px 10px}.okd .okd-dp-regie-l{letter-spacing:.08em}.okd .okd-dp-regie-rol{padding:3px 9px}}
+.okd.okd-uitsnede > .okd-sec{margin-top:0;scroll-margin-top:44px}
+.okd.okd-uitsnede > .okd-sec + .okd-sec{margin-top:26px}
+.okd.okd-uitsnede .okd-kop > .ok-kop{font-size:18px;line-height:1.3;color:var(--cito)}
+.okd .okd-leeg{max-width:none;margin-top:10px;background:#fff;border:1px dashed #b6c2d1;border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.55;color:var(--ink2)}
 `;
 
 /** Basisklassen voor de knoppen in de bewerkbalk (Bewerken, Opslaan, …). */
