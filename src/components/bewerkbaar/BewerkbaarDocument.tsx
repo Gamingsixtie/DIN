@@ -93,8 +93,8 @@ function chipSoort(v: string): "groen" | "blauw" | "amber" | "grijs" {
   const ligtEr = t.includes("ligt er") && !/\bniet\b/.test(t);
   // oordeel "geleverd?": ja (groen), waarschijnlijk (blauw), nee of nee, deels (amber), niet gestart (grijs)
   if (/^ja\b/.test(t) || bevat("sluit aan", "staat erin") || ligtEr) return "groen";
-  if (/^nee\b/.test(t)) return "amber";
-  if (bevat("waarschijnlijk", "aanvulling", "deels")) return "blauw";
+  if (/^nee\b/.test(t) || /^verstreken/.test(t)) return "amber";
+  if (bevat("waarschijnlijk", "aanvulling", "deels") || /^loopt/.test(t)) return "blauw";
   if (bevat("verschil", "ontbreekt", "aanvullen")) return "amber";
   return "grijs";
 }
@@ -323,6 +323,33 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
       </div>
     );
   }
+  // weergave als kaart per rij, met een overzicht erboven; bewerken blijft de tabel hieronder
+  if (!edit && b.kaartWeergave && b.kolommen.length > 2) {
+    return (
+      <div>
+        {b.titel && (
+          <h4 className="okd-bt">
+            <V v={b.titel} on={() => {}} edit={false} />
+          </h4>
+        )}
+        <RijKaarten b={b} />
+        {b.legenda && (
+          <details className="okd-rk-legenda">
+            <summary>Zo lees je dit overzicht</summary>
+            <div className="ok-legend">
+              <V v={b.legenda} on={() => {}} edit={false} ml />
+            </div>
+          </details>
+        )}
+        {/* op papier (afdrukweergave) staat de leeswijzer er altijd uitgeklapt */}
+        {b.legenda && (
+          <div className="ok-legend okd-rk-legenda-papier">
+            <V v={b.legenda} on={() => {}} edit={false} ml />
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div>
       {(edit || b.titel) && (
@@ -403,6 +430,64 @@ function TabelBlok({ b, edit, zet }: BlokProps<"tabel">) {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Een tabel als kaart per rij: de eerste kolom is de kop (eerste regel de naam, de rest een
+ * label), de chipkolom het oordeel, de andere kolommen staan met hun kolomnaam naast elkaar
+ * over de volle breedte. Erboven een overzicht: per rij het oordeel en de naam.
+ */
+function RijKaarten({ b }: { b: BlokVan<"tabel"> }) {
+  const chip = b.chipKolom ?? -1;
+  const velden = b.kolommen.map((_, c) => c).filter((c) => c !== 0 && c !== chip);
+  // bij vijf velden: twee bovenaan (de context), drie eronder (de kern)
+  const boven = velden.length === 5 ? velden.slice(0, 2) : [];
+  const onder = velden.length === 5 ? velden.slice(2) : velden;
+  const kop = (rij: string[]) => {
+    const [naam, ...rest] = (rij[0] ?? "").split("\n");
+    return { naam, label: rest.join(" ").trim() };
+  };
+  const veld = (rij: string[], c: number, extra = "") => (
+    <div key={c} className={"okd-rk-veld" + extra}>
+      <span className="okd-rk-l">{b.kolommen[c]}</span>
+      <div className="okd-rk-t">{metBronlinks(rij[c] ?? "")}</div>
+    </div>
+  );
+  return (
+    <div className="okd-rk">
+      <ol className="okd-rk-overzicht" aria-label="Overzicht">
+        {b.rijen.map((rij, r) => {
+          const v = chip >= 0 ? (rij[chip] ?? "") : "";
+          return (
+            <li key={r}>
+              {v && <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span>}
+              <span className="okd-rk-on">{metBronlinks(kop(rij).naam)}</span>
+            </li>
+          );
+        })}
+      </ol>
+      {b.rijen.map((rij, r) => {
+        const k = kop(rij);
+        const v = chip >= 0 ? (rij[chip] ?? "") : "";
+        return (
+          <article key={r} className={"okd-rk-kaart okd-rk-" + (v ? chipSoort(v) : "grijs")}>
+            <header className="okd-rk-kop">
+              <span className="okd-rk-nr" aria-hidden="true">
+                {r + 1}
+              </span>
+              <h5 className="okd-rk-naam">{metBronlinks(k.naam)}</h5>
+              {k.label && <span className="okd-rk-label">{k.label}</span>}
+              {v && <span className={"okd-chip okd-chip-" + chipSoort(v)}>{v}</span>}
+            </header>
+            {boven.length > 0 && <div className="okd-rk-rij okd-rk-boven">{boven.map((c) => veld(rij, c))}</div>}
+            <div className="okd-rk-rij">
+              {onder.map((c, i) => veld(rij, c, i === onder.length - 1 && onder.length > 1 ? " okd-rk-vraag" : ""))}
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }

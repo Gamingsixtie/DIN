@@ -53,7 +53,7 @@ const callout = (toon: "info" | "let-op" | "besluit", titel: string, t: string):
 const tabel = (
   kolommen: string[],
   rijen: string[][],
-  opts: { titel?: string; legenda?: string; chipKolom?: number; groepKolom?: number; invulKolom?: number } = {}
+  opts: { titel?: string; legenda?: string; chipKolom?: number; groepKolom?: number; invulKolom?: number; kaartWeergave?: boolean } = {}
 ): DocBlok => ({
   type: "tabel",
   titel: opts.titel ?? "",
@@ -62,6 +62,7 @@ const tabel = (
   legenda: opts.legenda ?? "",
   ...(opts.chipKolom !== undefined ? { chipKolom: opts.chipKolom } : {}),
   ...(opts.groepKolom !== undefined ? { groepKolom: opts.groepKolom } : {}),
+  ...(opts.kaartWeergave ? { kaartWeergave: true } : {}),
   ...(opts.invulKolom !== undefined ? { invulKolom: opts.invulKolom } : {}),
 });
 const laag = (naam: string, kleur: string, cellen: string[]): DocLaag => ({ naam, kleur, cellen });
@@ -1034,7 +1035,27 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           {
             titel: "Toegezegd en geleverd: de zes toezeggingen en de mijlpaal uit het eerste voorstel van 3sides, naast de tijdlijn en de stand op 1 oktober",
             chipKolom: 3,
+            kaartWeergave: true,
             legenda: "Hoe je de tabel leest. Eerste kolom: de zes toezeggingen en de mijlpaal die het eerste voorstel van 3sides in Q3 2026 zet, letterlijk (voorstel 3sides, planning Q3 2026). Het voorstel noemt ze als het werk van Q3 en zegt 'gereed' alleen bij de mijlpaal; wij lezen: in Q3 af. Tweede kolom: onder welke onderdelen van de tijdlijn dit werk nu staat, met de oplevermaand die 3sides daar zelf noemt. De tijdlijn deelt het werk anders in dan het voorstel; welk onderdeel bij welke toezegging hoort, is onze lezing. Bij de mijlpaal staat ook het toetsen van het framework, dat geen oplevermaand heeft. Derde kolom: hoe de maanden in de tijdlijn afwijken van het kwartaal in het voorstel, en waar het plan van aanpak nog een andere datum noemt. De kolommen daarna beoordelen de toezegging als geheel, niet elk onderdeel apart. Twee onderdelen van de tijdlijn met een oplevermaand tot en met oktober horen bij geen toezegging en staan daarom niet in de tabel. Visie en consequenties gaat over het doelbeeld voor het technologielandschap: september in de tijdlijn, Q3/Q4 in het plan van aanpak; een doelbeeld vinden wij niet in de stukken, wel losse inzichten. Marketing- en salesproces en funnel: oktober in de tijdlijn; er liggen twee praatplaten, en de maand liep op 1 oktober nog. Het oordeel: Ja = het was er op 01-10. Nee, deels = er ligt een concept of een begin. Nee, niet gestart = nog niet begonnen. Nee = de mijlpaal is niet gehaald. Gemeten tegen het eerste voorstel is Q3 voorbij. Gemeten tegen de eigen tijdlijn van 3sides liep de oplevermaand oktober op 1 oktober nog: daar is de stand een tussenstand.",
+          }
+        ),
+        tabel(
+          ["Onderdeel in de tijdlijn van 3sides", "Oplevermaand", "Verstreken op 1 oktober?", "Voortgang volgens 3sides", "Hoort bij toezegging", "Wat er ligt"],
+          [
+            ["Klant in Beeld-klantreizen samenvoegen", "Augustus 2026", "Verstreken", "'In progress'", "Blueprint Klantreis", "Een Miro-bord met de klantreizen van de drie sectoren per fase naast elkaar en één model van zes fasen; stap voor stap samengevoegd voor PO en VO, niet voor Zakelijk/Professionals."],
+            ["Analyse van data en applicaties", "September 2026", "Verstreken", "'In progress'", "Inventarisatie CRM", "Een plaat van het applicatielandschap, door 3sides 'Work-In-Progress' genoemd; eigenaren en kosten staan er niet op."],
+            ["Visie en consequenties", "September 2026", "Verstreken", "'In progress'", "Geen toezegging voor Q3", "Geen doelbeeld in de stukken, wel losse inzichten. Het plan van aanpak noemt hiervoor Q3/Q4: verstreken is het alleen volgens de tijdlijn."],
+            ["Meetmodel ontwikkelen", "September 2026", "Verstreken", "'In progress'", "Nulmeting", "Een concept van 16 p.; de validatie met stakeholders zien wij in de stukken niet terug."],
+            ["Marketing- en salesproces en funnel", "Oktober 2026", "Loopt nog", "'In progress'", "Geen toezegging voor Q3", "Twee praatplaten."],
+            ["Blueprint: fasen en hoofdstappen", "Oktober 2026", "Loopt nog", "'In progress'", "Blueprint Klantreis", "De 'Draft Blueprint Klantreis': zes fasen en elf subfasen, met per subfase een hoofdstap."],
+            ["Data ophalen voor het meetmodel", "Oktober 2026", "Loopt nog", "'In progress', status '-' (rood)", "Nulmeting", "Een lijst van circa 85 datapunten; alleen de jaarverslagcijfers hebben een waarde."],
+            ["0-meting", "Oktober 2026", "Loopt nog", "'Not started', status '-' (rood), geen startmaand", "Nulmeting", "Nog niets: de meting is niet gestart."],
+            ["Adoptieframework opstellen", "Oktober 2026", "Loopt nog", "'In progress'", "Adoptie-framework bouwen, en de mijlpaal", "Een werkdocument van 15 p.; één van de vijf lagen is volledig uitgewerkt."],
+          ],
+          {
+            titel: "De tijdlijn van 3sides zelf: wat is op 1 oktober verstreken, en wat loopt nog",
+            chipKolom: 2,
+            legenda: "De tabel hierboven begint bij wat 3sides in het eerste voorstel toezegde; deze tabel begint bij de tijdlijn zelf. De tijdlijn heeft 28 onderdelen. Negen daarvan moeten volgens 3sides uiterlijk in oktober 2026 af zijn; die staan hier.\nVerstreken = de oplevermaand is op 1 oktober 2026 voorbij, het onderdeel staat niet op 'Completed' en de laatste stand van de tijdlijn die wij hebben, noemt geen nieuwe datum.\nLoopt nog = de oplevermaand oktober is op 1 oktober nog niet voorbij; dit is een tussenstand.\nGeen van de 28 onderdelen staat op 'Completed'.\nDe andere 19 onderdelen komen later of hebben geen oplevermaand.\nVier leveren op in november 2026: CRM-richting bepalen, de integratie-aanpak, blueprint: kernwaarden en kernprincipes, en de vertaling van de klantreis naar CRM-input en funnelprocessen.\nDrie in december 2026: blueprint: proces, CRM-gebruik en KPI's; rollen, gedrag en competenties; en stakeholder engagement en workshops bij de klantreis.\nAcht in 2027: de tussenmeting en het toepassen in de eerste sector (februari), stakeholder engagement bij het technologielandschap en het toepassen in de tweede sector (maart), het toepassen in de derde sector, de playbook-workshops en de feedback loops (mei), en het training- en coachingsprogramma (juni).\nVier hebben geen oplevermaand: het communicatieplan, de interventies, het toetsen van het adoptieframework, en de ambassadeurs en het adoptieteam.\nWelk onderdeel bij welke toezegging hoort, is onze lezing (tijdlijn, stand 28-09; plan van aanpak p. 7).",
           }
         ),
         {

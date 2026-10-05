@@ -1013,6 +1013,9 @@ export const DocBlokSchema = z.discriminatedUnion("type", [
     // weergave als actiebord: één kaart per waarde in deze kolom (bijv. per werkstroom);
     // bewerken blijft een gewone tabel
     groepKolom: z.number().int().optional(),
+    // weergave als kaart per rij (kop = eerste kolom, oordeel = chipkolom, de rest naast elkaar
+    // op volle breedte), met een overzicht erboven; bewerken blijft een gewone tabel
+    kaartWeergave: z.boolean().optional(),
     // kolom die we samen invullen (bijv. "Wie"): leeg = open vakje, met een teller erboven
     invulKolom: z.number().int().optional(),
     legenda: z.string().optional().default(""),
