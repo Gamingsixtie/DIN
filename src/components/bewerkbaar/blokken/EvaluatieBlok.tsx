@@ -1,21 +1,33 @@
-// Evaluatiebord (stap 11, deel 8): per kader één kaart, in drie lagen.
-// 1 · Altijd zichtbaar: nummer, de vraag (titel), het eerste beeld als chip met de zin erachter,
-//     wie aan zet is en ons oordeel als keuzelijstje. Zes kaarten onder elkaar zijn het overzicht.
-// 2 · Eén klik verder (details): de feiten met hun bron, "Wie is aan zet" in twee zijden (Cito
-//     heeft de lead, 3sides voert uit; de rolomschrijving komt uit het blok), de vraag voor het
-//     gesprek en ons oordeel met een notitie.
-// 3 · Nog een klik verder (details): de onderbouwing per sectie, met wat we toetsen erboven.
-// Een kader zonder feiten, acties en gespreksvraag (oudere opgeslagen documenten) toont in laag 2
-// meteen de onderbouwing. Oordeel en notitie kies en typ je in weergave; ze worden meteen bewaard
-// (levende gegevens, doc-versie.ts). Bewerkmodus: alle teksten aanpasbaar op de plek waar ze
-// staan, feiten, secties en kaders toevoegen en weghalen. Afdrukken: alles open.
+// Evaluatiebord (stap 11, deel 8): per kader één kaart, in twee weergaven
+// (EvaluatieWeergaveContext, evaluatie-weergave.ts). Wat het blok toont, hangt af van de plek:
+//
+// "extern" (tabblad Evaluatie 3sides): alleen wat we aan 3sides communiceren.
+// 1 · Altijd zichtbaar: nummer, de vraag (titel), onze bevinding als chip met de zin erachter.
+// 2 · Eén klik verder (details): de feiten met hun bron, wat we van 3sides vragen en de vraag
+//     voor het gesprek. Niets van wat alleen voor Cito is staat in de pagina, ook niet verborgen.
+//
+// "intern" (de standaard: tabblad Analyse en tabblad Evaluatie intern): alles.
+// 1 · Altijd zichtbaar: als hierboven, met rechts wie aan zet is (weggelaten als dat leeg is)
+//     en ons oordeel als keuzelijstje. Zes kaarten onder elkaar zijn het overzicht.
+// 2 · Eén klik verder (details): eerst hetzelfde als extern, daaronder een eigen vlak
+//     "Intern Cito" met wat Cito zelf doet, ons oordeel met een notitie en
+// 3 · nog een klik verder (details): de onderbouwing per sectie, met wat we toetsen erboven.
+// Wat we van 3sides vragen en wat Cito zelf doet zijn zo twee verschillende dingen op twee
+// plekken: niemand leest de acties van Cito als deel van de boodschap aan 3sides.
+//
+// Een kader zonder feiten, acties en gespreksvraag (oudere opgeslagen documenten) toont intern
+// in laag 2 meteen de onderbouwing. Oordeel en notitie kies en typ je in weergave; ze worden
+// meteen bewaard (levende gegevens, doc-versie.ts). Bewerkmodus: de teksten aanpasbaar op de
+// plek waar ze staan; extern alleen de velden die daar getoond worden (kaders toevoegen en
+// weghalen doe je intern, want een kader draagt ook wat alleen voor Cito is). Afdrukken: alles open.
 
-import { useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useContext, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ChangeEvent, MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { PlusKnop, V, WegKnop } from "@/components/bewerkbaar/velden";
 import { metBronlinks, vindVerwijzingen } from "@/components/bewerkbaar/bron-context";
 import type { BlokVan, LosBlokProps } from "@/components/bewerkbaar/blok-typen";
+import { EvaluatieWeergaveContext } from "@/components/bewerkbaar/blokken/evaluatie-weergave";
 
 type Blok = BlokVan<"evaluatie">;
 type Kader = Blok["kaders"][number];
@@ -329,20 +341,40 @@ function Notitie({ id, v, zichtbaar, on }: { id: string; v: string; zichtbaar: b
   );
 }
 
-/** Eén zijde van "Wie is aan zet": naam vet, de rol eronder, dan wat deze partij doet. */
-function Zijde({ wie, rol, children }: { wie: Partij; rol: string; children: ReactNode }) {
-  const p = PARTIJEN.find((x) => x.id === wie) ?? PARTIJEN[0];
+/** De twee koppen die uit elkaar moeten blijven: de vraag aan 3sides en het eigen werk van Cito. */
+const KOP_VRAGEN = "Wat we van 3sides vragen";
+const KOP_ZELF = "Wat Cito zelf doet (intern)";
+
+/**
+ * Wat één partij doet, als kop met een tekstvak eronder. "3sides": wat we van 3sides vragen,
+ * deel van de boodschap. "cito": wat Cito zelf doet; staat alleen in het vlak "Intern Cito".
+ */
+function Doen({ wie, children }: { wie: Partij; children: ReactNode }) {
   return (
-    <div className={"ev-zijde ev-zijde-" + (wie === "cito" ? "cito" : "3sides")}>
-      <div className="ev-zijde-kop">
-        <Avatar wie={wie} />
-        <span className="ev-zijde-nr">
-          <b className="ev-zijde-n">{p.naam}</b>
-          {rol && <span className="ev-zijde-r">{metBronlinks(rol)}</span>}
-        </span>
-      </div>
-      <div className="ev-zijde-t">{children}</div>
-    </div>
+    <section className={wie === "cito" ? "ev-doen ev-doen-cito" : "ev-doen ev-doen-3sides"}>
+      <h6 className="ev-h ev-h-av">
+        <Avatar wie={wie} klein />
+        {wie === "cito" ? KOP_ZELF : KOP_VRAGEN}
+      </h6>
+      <div className="ev-doen-t">{children}</div>
+    </section>
+  );
+}
+
+/** Kop van het vlak met wat alleen voor Cito is: het merk "Intern Cito" en wat dat betekent. */
+function InternKop() {
+  return (
+    <p className="ev-intern-kop">
+      <span className="ev-merk">Intern Cito</span>
+      <span>Alleen voor Cito: dit deel gaat niet naar 3sides.</span>
+    </p>
+  );
+}
+
+/** Staat er in dit kader iets achter de klik dat we aan 3sides communiceren? */
+function heeftBoodschap(k: Kader): boolean {
+  return (
+    (k.punten ?? []).some((s) => tekst(s).trim() !== "") || tekst(k.aanZet3sides).trim() !== "" || tekst(k.vraag3sides).trim() !== ""
   );
 }
 
@@ -363,7 +395,7 @@ function Alineas({ t }: { t: string }) {
         <p key={i}>
           {a.chip && <BeeldChip kop={a.chip} klein />}
           {a.chip && " "}
-          {a.label && <b>{a.label}</b>}
+          {a.label && <b>{metBronlinks(a.label)}</b>}
           {a.label && " "}
           {metBronlinks(a.tekst)}
         </p>
@@ -388,8 +420,8 @@ function KaderWeergave(p: {
   k: Kader;
   nr: number;
   uid: string;
-  rolCito: string;
-  rol3sides: string;
+  /** alleen wat we aan 3sides communiceren; al het andere staat dan niet in de pagina */
+  extern: boolean;
   open: boolean;
   diep: boolean | undefined;
   print: boolean;
@@ -397,21 +429,25 @@ function KaderWeergave(p: {
   zetDiep: (open: boolean) => void;
   zetK: (fn: (k: Kader) => void) => void;
 }) {
-  const { k, nr, uid, print } = p;
+  const { k, nr, uid, print, extern } = p;
   const titel = k.titel.replace(/^\d+\s*·\s*/, "");
   const { kop, zin } = splitsBeeld(tekst(k.beeld));
-  const actieBij = tekst(k.actieBij).trim();
-  const wie = partijen(actieBij);
+  // De boodschap aan 3sides: in beide weergaven.
   const punten = (k.punten ?? []).map(tekst).filter((s) => s.trim() !== "");
-  const aanZetCito = tekst(k.aanZetCito).trim();
   const aanZet3sides = tekst(k.aanZet3sides).trim();
   const vraag3sides = tekst(k.vraag3sides).trim();
-  const vraag = tekst(k.vraag).trim();
-  const secties = k.secties ?? [];
-  const heeftZet = aanZetCito !== "" || aanZet3sides !== "";
-  const heeftKern = punten.length > 0 || heeftZet || vraag3sides !== "";
+  const boodschap = punten.length > 0 || aanZet3sides !== "" || vraag3sides !== "";
+  // Alleen voor Cito: extern leeg, zodat er niets van getekend wordt.
+  const actieBij = extern ? "" : tekst(k.actieBij).trim();
+  const wie = partijen(actieBij);
+  const aanZetCito = extern ? "" : tekst(k.aanZetCito).trim();
+  const vraag = extern ? "" : tekst(k.vraag).trim();
+  const secties = extern ? [] : (k.secties ?? []);
+  const heeftKern = boodschap || aanZetCito !== "";
   const heeftOnder = secties.length > 0 || vraag !== "";
-  const isOpen = print || p.open;
+  // Extern zit er achter de klik alleen de boodschap; zonder boodschap is er niets om open te klappen.
+  const klapbaar = !extern || boodschap;
+  const isOpen = print || p.open || !klapbaar;
   // zonder de hapklare kern staat de onderbouwing meteen open
   const diepOpen = print || (p.diep ?? !heeftKern);
   const oordeel = tekst(k.oordeel);
@@ -420,9 +456,10 @@ function KaderWeergave(p: {
   // wat er achter de klik zit, in woorden op de knop
   const inhoud: string[] = [];
   if (punten.length > 0) inhoud.push(`${punten.length} ${punten.length === 1 ? "feit" : "feiten"}`);
-  if (heeftZet) inhoud.push("wie is aan zet");
+  if (aanZet3sides) inhoud.push("wat we van 3sides vragen");
   if (vraag3sides) inhoud.push("vraag voor het gesprek");
-  const meer = heeftKern ? hoofdletter(inhoud.join(" · ")) : heeftOnder ? "Onderbouwing en ons oordeel" : "Ons oordeel";
+  if (aanZetCito) inhoud.push("wat Cito zelf doet");
+  const meer = inhoud.length > 0 ? hoofdletter(inhoud.join(" · ")) : heeftOnder ? "Onderbouwing en ons oordeel" : "Ons oordeel";
 
   // Klik op de kop klapt open of dicht; niet bij een klik op een link of veld, of bij het selecteren van tekst.
   const kopKlik = (e: MouseEvent<HTMLDivElement>) => {
@@ -436,10 +473,10 @@ function KaderWeergave(p: {
       id={"ev-" + k.id}
       className={"ev-kader" + (isOpen ? " is-open" : "")}
       data-beeld={kop ? beeldSoort(kop) : "leeg"}
-      data-oordeel={oordeel}
+      data-oordeel={extern ? undefined : oordeel}
       aria-labelledby={ids.titel}
     >
-      <div className="ev-kop" onClick={kopKlik}>
+      <div className={"ev-kop" + (extern ? " ev-kop-smal" : "") + (klapbaar ? "" : " ev-kop-vast")} onClick={klapbaar ? kopKlik : undefined}>
         <span className="ev-nr" aria-hidden="true">
           {nr}
         </span>
@@ -451,149 +488,152 @@ function KaderWeergave(p: {
         </div>
         <div className="ev-hoofd">
           <p className="ev-beeldrij">
-            <span className="ev-l">Eerste beeld · voorstel</span>
+            {/* extern is dit wat we communiceren, geen voorstel meer */}
+            <span className="ev-l">{extern ? "Onze bevinding" : "Eerste beeld · voorstel"}</span>
             {kop ? <BeeldChip kop={kop} /> : !zin && <span className="ev-beeld ev-beeld-leeg">te bepalen</span>}
           </p>
           {zin && <p className="ev-zin">{metBronlinks(zin)}</p>}
         </div>
-        <dl className="ev-rail">
-          <div className="ev-gegeven">
-            <dt className="ev-l">Aan zet</dt>
-            <dd className="ev-wie">
-              {wie.length > 0 && (
-                <span className="ev-wie-avs">
-                  {wie.map((w) => (
-                    <Avatar key={w} wie={w} klein />
-                  ))}
-                </span>
-              )}
-              {actieBij ? <span>{metBronlinks(actieBij)}</span> : <span className="ev-tb">te bepalen</span>}
-            </dd>
-          </div>
-          <div className="ev-gegeven">
-            <dt className="ev-l">
-              <label htmlFor={ids.keuze}>Ons oordeel</label>
-            </dt>
-            <dd>
-              <OordeelKeuze id={ids.keuze} k={k} naam={titel} on={(x) => p.zetK((n) => void (n.oordeel = x))} />
-              {/* op papier geen leeg keuzelijstje */}
-              {oordeel === "" && <span className="ev-tb ev-alleen-print">nog niet gekozen</span>}
-            </dd>
-          </div>
-        </dl>
+        {!extern && (
+          <dl className="ev-rail">
+            {/* zonder invulling geen "te bepalen": wie wat doet, staat in de twee vakken hieronder */}
+            {actieBij && (
+              <div className="ev-gegeven">
+                <dt className="ev-l">Aan zet</dt>
+                <dd className="ev-wie">
+                  {wie.length > 0 && (
+                    <span className="ev-wie-avs">
+                      {wie.map((w) => (
+                        <Avatar key={w} wie={w} klein />
+                      ))}
+                    </span>
+                  )}
+                  <span>{metBronlinks(actieBij)}</span>
+                </dd>
+              </div>
+            )}
+            <div className="ev-gegeven">
+              <dt className="ev-l">
+                <label htmlFor={ids.keuze}>Ons oordeel</label>
+              </dt>
+              <dd>
+                <OordeelKeuze id={ids.keuze} k={k} naam={titel} on={(x) => p.zetK((n) => void (n.oordeel = x))} />
+                {/* op papier geen leeg keuzelijstje */}
+                {oordeel === "" && <span className="ev-tb ev-alleen-print">nog niet gekozen</span>}
+              </dd>
+            </div>
+          </dl>
+        )}
       </div>
 
-      <details
-        className="ev-meer"
-        open={isOpen}
-        onToggle={(e) => {
-          if (print) return;
-          p.zetOpen(e.currentTarget.open);
-        }}
-      >
-        <summary className="ev-meer-kop">
-          <Chevron />
-          <span className="ev-meer-t">{meer}</span>
-        </summary>
-        <div className="ev-body" id={ids.body}>
-          {heeftKern && (
-            <div className={"ev-kern" + (punten.length > 0 ? " heeft-feiten" : "") + (heeftZet ? " heeft-zet" : "")}>
-              {punten.length > 0 && (
-                <section className="ev-feitenvak">
-                  <h6 className="ev-h">Feiten</h6>
-                  <ol className="ev-feiten">
-                    {punten.map((s, i) => (
-                      <li key={i}>
-                        <span className="ev-fnr" aria-hidden="true">
-                          {i + 1}
-                        </span>
-                        <Feit t={s} />
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              )}
-              {heeftZet && (
-                <section className="ev-zet">
-                  <h6 className="ev-h">Wie is aan zet</h6>
-                  <div className="ev-zijden">
-                    <Zijde wie="cito" rol={p.rolCito}>
-                      {aanZetCito ? metBronlinks(aanZetCito) : <span className="ev-tb">Geen actie genoemd.</span>}
-                    </Zijde>
-                    <Zijde wie="3sides" rol={p.rol3sides}>
-                      {aanZet3sides ? metBronlinks(aanZet3sides) : <span className="ev-tb">Geen actie genoemd.</span>}
-                    </Zijde>
-                  </div>
-                </section>
-              )}
-              {vraag3sides && (
-                <section className="ev-vraagvak">
-                  <Spreekballon />
-                  <h6 className="ev-h">Vraag voor het gesprek</h6>
-                  <p className="ev-vraag-t">{metBronlinks(vraag3sides)}</p>
-                </section>
-              )}
-            </div>
-          )}
-
-          <section className="ev-oordeelvak">
-            <div className="ev-oordeel-kop">
-              <h6 className="ev-h" id={ids.pillen}>
-                Ons oordeel (intern)
-              </h6>
-              <OordeelPillen groep={ids.pillen} v={oordeel} labelId={ids.pillen} on={(x) => p.zetK((n) => void (n.oordeel = x))} />
-              <span className="ev-bewaard">Wordt meteen bewaard</span>
-            </div>
-            <label className="ev-sr" htmlFor={"ev-notitie-" + k.id}>
-              Toelichting bij ons oordeel
-            </label>
-            <Notitie id={"ev-notitie-" + k.id} v={tekst(k.notitie)} zichtbaar={isOpen} on={(x) => p.zetK((n) => void (n.notitie = x))} />
-          </section>
-
-          {heeftOnder && (
-            <details
-              className="ev-diep"
-              open={diepOpen}
-              onToggle={(e) => {
-                if (print) return;
-                p.zetDiep(e.currentTarget.open);
-              }}
-            >
-              <summary className="ev-diep-kop">
-                <Chevron />
-                <span className="ev-meer-t">Onderbouwing</span>
-                {secties.length > 0 && (
-                  <span className="ev-diep-n">
-                    {secties.length} {secties.length === 1 ? "onderdeel" : "onderdelen"}, met de bronnen
-                  </span>
+      {klapbaar && (
+        <details
+          className="ev-meer"
+          open={isOpen}
+          onToggle={(e) => {
+            if (print) return;
+            p.zetOpen(e.currentTarget.open);
+          }}
+        >
+          <summary className="ev-meer-kop">
+            <Chevron />
+            <span className="ev-meer-t">{meer}</span>
+          </summary>
+          <div className="ev-body" id={ids.body}>
+            {boodschap && (
+              <div className={"ev-kern" + (punten.length > 0 ? " heeft-feiten" : "") + (aanZet3sides ? " heeft-vragen" : "")}>
+                {punten.length > 0 && (
+                  <section className="ev-feitenvak">
+                    <h6 className="ev-h">Feiten</h6>
+                    <ol className="ev-feiten">
+                      {punten.map((s, i) => (
+                        <li key={i}>
+                          <span className="ev-fnr" aria-hidden="true">
+                            {i + 1}
+                          </span>
+                          <Feit t={s} />
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
                 )}
-              </summary>
-              <div className="ev-onder">
-                {vraag && (
-                  <div className="ev-s ev-s-toets">
-                    <p className="ev-s-kop" role="heading" aria-level={6}>
-                      Wat we toetsen
-                    </p>
-                    <div className="ev-s-t">
-                      <p>{metBronlinks(vraag)}</p>
-                    </div>
-                  </div>
+                {aanZet3sides && <Doen wie="3sides">{metBronlinks(aanZet3sides)}</Doen>}
+                {vraag3sides && (
+                  <section className="ev-vraagvak">
+                    <Spreekballon />
+                    <h6 className="ev-h">Vraag voor het gesprek</h6>
+                    <p className="ev-vraag-t">{metBronlinks(vraag3sides)}</p>
+                  </section>
                 )}
-                {secties.map((s, si) => (
-                  <div key={si} className="ev-s">
-                    <p className="ev-s-kop" role="heading" aria-level={6}>
-                      {s.label}
-                    </p>
-                    <div className="ev-s-t">
-                      <Alineas t={s.tekst} />
-                    </div>
-                  </div>
-                ))}
               </div>
-            </details>
-          )}
-        </div>
-      </details>
+            )}
+
+            {!extern && (
+              <div className="ev-intern">
+                <InternKop />
+                {aanZetCito && <Doen wie="cito">{metBronlinks(aanZetCito)}</Doen>}
+
+                <section className="ev-oordeelvak">
+                  <div className="ev-oordeel-kop">
+                    <h6 className="ev-h" id={ids.pillen}>
+                      Ons oordeel (intern)
+                    </h6>
+                    <OordeelPillen groep={ids.pillen} v={oordeel} labelId={ids.pillen} on={(x) => p.zetK((n) => void (n.oordeel = x))} />
+                    <span className="ev-bewaard">Wordt meteen bewaard</span>
+                  </div>
+                  <label className="ev-sr" htmlFor={"ev-notitie-" + k.id}>
+                    Toelichting bij ons oordeel
+                  </label>
+                  <Notitie id={"ev-notitie-" + k.id} v={tekst(k.notitie)} zichtbaar={isOpen} on={(x) => p.zetK((n) => void (n.notitie = x))} />
+                </section>
+
+                {heeftOnder && (
+                  <details
+                    className="ev-diep"
+                    open={diepOpen}
+                    onToggle={(e) => {
+                      if (print) return;
+                      p.zetDiep(e.currentTarget.open);
+                    }}
+                  >
+                    <summary className="ev-diep-kop">
+                      <Chevron />
+                      <span className="ev-meer-t">Onderbouwing</span>
+                      {secties.length > 0 && (
+                        <span className="ev-diep-n">
+                          {secties.length} {secties.length === 1 ? "onderdeel" : "onderdelen"}, met de bronnen
+                        </span>
+                      )}
+                    </summary>
+                    <div className="ev-onder">
+                      {vraag && (
+                        <div className="ev-s ev-s-toets">
+                          <p className="ev-s-kop" role="heading" aria-level={6}>
+                            Wat we toetsen
+                          </p>
+                          <div className="ev-s-t">
+                            <p>{metBronlinks(vraag)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {secties.map((s, si) => (
+                        <div key={si} className="ev-s">
+                          <p className="ev-s-kop" role="heading" aria-level={6}>
+                            {s.label}
+                          </p>
+                          <div className="ev-s-t">
+                            <Alineas t={s.tekst} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      )}
     </li>
   );
 }
@@ -603,16 +643,16 @@ function KaderWeergave(p: {
 function KaderBewerken(p: {
   k: Kader;
   nr: number;
-  rolCito: string;
-  rol3sides: string;
+  /** alleen de velden die we aan 3sides communiceren; het kader zelf is hier niet weg te halen */
+  extern: boolean;
   zetK: (fn: (k: Kader) => void) => void;
   weg: () => void;
 }) {
-  const { k, nr, zetK } = p;
+  const { k, nr, extern, zetK } = p;
   const punten = k.punten ?? [];
   return (
     <li className="ev-kader ev-kader-edit is-open" data-beeld={tekst(k.beeld).trim() ? beeldSoort(tekst(k.beeld)) : "leeg"}>
-      <div className="ev-kop">
+      <div className="ev-kop ev-kop-smal">
         <span className="ev-nr" aria-hidden="true">
           {nr}
         </span>
@@ -621,7 +661,7 @@ function KaderBewerken(p: {
             <h5 className="ev-titel">
               <V v={k.titel} on={(x) => zetK((n) => void (n.titel = x))} edit ph="Titel van het kader (de vraag)" />
             </h5>
-            <WegKnop titel="Kader verwijderen" label="× kader" on={p.weg} />
+            {!extern && <WegKnop titel="Kader verwijderen" label="× kader" on={p.weg} />}
           </div>
           <p className="ev-sub">
             <V v={tekst(k.ondertitel)} on={(x) => zetK((n) => void (n.ondertitel = x))} edit ph="Ondertitel" />
@@ -631,15 +671,20 @@ function KaderBewerken(p: {
 
       <div className="ev-body">
         <div className="ev-velden">
-          <Veld label="Eerste beeld · voorstel" hint="Begin met Ja, Deels, Nee of Nee, deels, dan een dubbele punt en één of twee zinnen.">
+          <Veld
+            label={extern ? "Onze bevinding" : "Eerste beeld · voorstel"}
+            hint="Begin met Ja, Deels, Nee of Nee, deels, dan een dubbele punt en één of twee zinnen."
+          >
             <V v={tekst(k.beeld)} on={(x) => zetK((n) => void (n.beeld = x))} edit ml ph="Bijvoorbeeld: Deels: …" />
           </Veld>
-          <Veld label="Aan zet" hint="Kort: 3sides, Cito, of 3sides en Cito.">
-            <V v={tekst(k.actieBij)} on={(x) => zetK((n) => void (n.actieBij = x))} edit ph="Wie aan zet is" />
-          </Veld>
+          {!extern && (
+            <Veld label="Aan zet" hint="Kort: 3sides, Cito, of 3sides en Cito. Leeg: dan staat het er niet.">
+              <V v={tekst(k.actieBij)} on={(x) => zetK((n) => void (n.actieBij = x))} edit ph="Wie aan zet is (optioneel)" />
+            </Veld>
+          )}
         </div>
 
-        <div className="ev-kern heeft-feiten heeft-zet">
+        <div className="ev-kern heeft-feiten heeft-vragen">
           <section className="ev-feitenvak">
             <h6 className="ev-h">Feiten</h6>
             <ol className="ev-feiten ev-feiten-edit">
@@ -669,17 +714,9 @@ function KaderBewerken(p: {
               <PlusKnop label="+ feit" on={() => zetK((n) => void (n.punten ??= []).push(""))} />
             </div>
           </section>
-          <section className="ev-zet">
-            <h6 className="ev-h">Wie is aan zet</h6>
-            <div className="ev-zijden">
-              <Zijde wie="cito" rol={p.rolCito}>
-                <V v={tekst(k.aanZetCito)} on={(x) => zetK((n) => void (n.aanZetCito = x))} edit ml ph="Wat Cito doet" />
-              </Zijde>
-              <Zijde wie="3sides" rol={p.rol3sides}>
-                <V v={tekst(k.aanZet3sides)} on={(x) => zetK((n) => void (n.aanZet3sides = x))} edit ml ph="Wat 3sides doet" />
-              </Zijde>
-            </div>
-          </section>
+          <Doen wie="3sides">
+            <V v={tekst(k.aanZet3sides)} on={(x) => zetK((n) => void (n.aanZet3sides = x))} edit ml ph="Wat we van 3sides vragen" />
+          </Doen>
           <section className="ev-vraagvak">
             <Spreekballon />
             <h6 className="ev-h">Vraag voor het gesprek</h6>
@@ -689,35 +726,44 @@ function KaderBewerken(p: {
           </section>
         </div>
 
-        <div className="ev-diep ev-diep-edit">
-          <div className="ev-diep-kop">
-            <span className="ev-meer-t">Onderbouwing</span>
-          </div>
-          <div className="ev-onder">
-            <div className="ev-s ev-s-toets">
-              <p className="ev-s-kop">Wat we toetsen</p>
-              <div className="ev-s-t">
-                <V v={tekst(k.vraag)} on={(x) => zetK((n) => void (n.vraag = x))} edit ml ph="Wat we toetsen" />
+        {!extern && (
+          <div className="ev-intern">
+            <InternKop />
+            <Doen wie="cito">
+              <V v={tekst(k.aanZetCito)} on={(x) => zetK((n) => void (n.aanZetCito = x))} edit ml ph="Wat Cito zelf doet" />
+            </Doen>
+
+            <div className="ev-diep ev-diep-edit">
+              <div className="ev-diep-kop">
+                <span className="ev-meer-t">Onderbouwing</span>
+              </div>
+              <div className="ev-onder">
+                <div className="ev-s ev-s-toets">
+                  <p className="ev-s-kop">Wat we toetsen</p>
+                  <div className="ev-s-t">
+                    <V v={tekst(k.vraag)} on={(x) => zetK((n) => void (n.vraag = x))} edit ml ph="Wat we toetsen" />
+                  </div>
+                </div>
+                {k.secties.map((s, si) => (
+                  <div key={si} className="ev-s">
+                    <div className="ev-s-kop">
+                      <span className="ok-rij">
+                        <V v={s.label} on={(x) => zetK((n) => void (n.secties[si].label = x))} edit ph="Label" />
+                        <WegKnop titel="Sectie verwijderen" on={() => zetK((n) => void n.secties.splice(si, 1))} />
+                      </span>
+                    </div>
+                    <div className="ev-s-t">
+                      <V v={s.tekst} on={(x) => zetK((n) => void (n.secties[si].tekst = x))} edit ml ph="Tekst" />
+                    </div>
+                  </div>
+                ))}
+                <div className="ev-plus">
+                  <PlusKnop label="+ sectie" on={() => zetK((n) => void n.secties.push({ label: "Nieuwe sectie", tekst: "" }))} />
+                </div>
               </div>
             </div>
-            {k.secties.map((s, si) => (
-              <div key={si} className="ev-s">
-                <div className="ev-s-kop">
-                  <span className="ok-rij">
-                    <V v={s.label} on={(x) => zetK((n) => void (n.secties[si].label = x))} edit ph="Label" />
-                    <WegKnop titel="Sectie verwijderen" on={() => zetK((n) => void n.secties.splice(si, 1))} />
-                  </span>
-                </div>
-                <div className="ev-s-t">
-                  <V v={s.tekst} on={(x) => zetK((n) => void (n.secties[si].tekst = x))} edit ml ph="Tekst" />
-                </div>
-              </div>
-            ))}
-            <div className="ev-plus">
-              <PlusKnop label="+ sectie" on={() => zetK((n) => void n.secties.push({ label: "Nieuwe sectie", tekst: "" }))} />
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </li>
   );
@@ -727,6 +773,8 @@ function KaderBewerken(p: {
 
 export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie">) {
   const kaders = b.kaders ?? [];
+  // extern (tabblad Evaluatie 3sides): alleen wat we aan 3sides communiceren; anders alles
+  const extern = useContext(EvaluatieWeergaveContext) === "extern";
   const uid = useId();
   const print = useSyncExternalStore(printAbonnement, printStand, printServer);
   // in weergave standaard dicht; de gebruiker klapt open wat hij bespreekt
@@ -735,7 +783,9 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
   const sleutel = (k: Kader, i: number) => k.id || "kader-" + i;
   const ingevuld = kaders.filter((k) => tekst(k.oordeel) !== "").length;
   const pct = kaders.length > 0 ? Math.round((ingevuld / kaders.length) * 100) : 0;
-  const allesOpen = kaders.length > 0 && kaders.every((k, i) => open[sleutel(k, i)] === true);
+  // De kaders waar iets achter de klik zit: intern allemaal, extern die met een boodschap.
+  const klapbaar = kaders.map((k, i) => ({ k, i })).filter(({ k }) => !extern || heeftBoodschap(k));
+  const allesOpen = klapbaar.length > 0 && klapbaar.every(({ k, i }) => open[sleutel(k, i)] === true);
   const rolCito = tekst(b.rolCito).trim();
   const rol3sides = tekst(b.rol3sides).trim();
   const zetK = (i: number, fn: (k: Kader) => void) =>
@@ -747,7 +797,7 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
     (soort === "open" ? setOpen : setDiep)((o) => (o[id] === aan ? o : { ...o, [id]: aan }));
 
   return (
-    <div className={"ev" + (edit ? " ev-edit" : "")}>
+    <div className={"ev" + (edit ? " ev-edit" : "") + (extern ? " ev-extern" : "")}>
       {(edit || b.titel) && (
         <h4 className="okd-bt">
           <V v={tekst(b.titel)} on={(x) => zet((n) => void (n.titel = x))} edit={edit} ph="Titel (optioneel)" />
@@ -763,13 +813,13 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
           <div className="ev-rol">
             <Avatar wie="cito" />
             <Veld label="Rol van Cito">
-              <V v={tekst(b.rolCito)} on={(x) => zet((n) => void (n.rolCito = x))} edit ph="Bijvoorbeeld: heeft de lead: bepaalt en toetst" />
+              <V v={tekst(b.rolCito)} on={(x) => zet((n) => void (n.rolCito = x))} edit ph="Bijvoorbeeld: leidt: bepaalt, toetst en beslist" />
             </Veld>
           </div>
           <div className="ev-rol">
             <Avatar wie="3sides" />
             <Veld label="Rol van 3sides">
-              <V v={tekst(b.rol3sides)} on={(x) => zet((n) => void (n.rol3sides = x))} edit ph="Bijvoorbeeld: leidend in de uitvoering" />
+              <V v={tekst(b.rol3sides)} on={(x) => zet((n) => void (n.rol3sides = x))} edit ph="Bijvoorbeeld: voert uit: stelt op en levert" />
             </Veld>
           </div>
         </div>
@@ -795,7 +845,7 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
         )
       )}
 
-      {!edit && kaders.length > 0 && (
+      {!edit && klapbaar.length > 0 && (
         <div className="ev-tools">
           <button
             type="button"
@@ -808,15 +858,18 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
             <Chevron />
             {allesOpen ? "Alles inklappen" : "Alles openklappen"}
           </button>
-          <span className="ev-invul">
-            <span className="ev-invul-t">Ons oordeel ingevuld</span>
-            <span className="ev-meter" role="progressbar" aria-valuemin={0} aria-valuemax={kaders.length} aria-valuenow={ingevuld} aria-label="Ons oordeel ingevuld">
-              <span style={{ width: pct + "%" }} />
+          {/* de teller hoort bij ons eigen oordeel: alleen intern */}
+          {!extern && (
+            <span className="ev-invul">
+              <span className="ev-invul-t">Ons oordeel ingevuld</span>
+              <span className="ev-meter" role="progressbar" aria-valuemin={0} aria-valuemax={kaders.length} aria-valuenow={ingevuld} aria-label="Ons oordeel ingevuld">
+                <span style={{ width: pct + "%" }} />
+              </span>
+              <b>
+                {ingevuld} van {kaders.length}
+              </b>
             </span>
-            <b>
-              {ingevuld} van {kaders.length}
-            </b>
-          </span>
+          )}
         </div>
       )}
 
@@ -828,8 +881,7 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
               key={id}
               k={k}
               nr={i + 1}
-              rolCito={rolCito}
-              rol3sides={rol3sides}
+              extern={extern}
               zetK={(fn) => zetK(i, fn)}
               weg={() => zet((n) => void n.kaders.splice(i, 1))}
             />
@@ -839,8 +891,7 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
               k={k}
               nr={i + 1}
               uid={`${uid}-${id}`}
-              rolCito={rolCito}
-              rol3sides={rol3sides}
+              extern={extern}
               open={open[id] === true}
               diep={diep[id]}
               print={print}
@@ -851,7 +902,13 @@ export default function EvaluatieBlok({ b, edit, zet }: LosBlokProps<"evaluatie"
           );
         })}
       </ol>
-      {edit && (
+      {edit && extern && (
+        <p className="ev-hint ev-hint-los" role="note">
+          Hier pas je aan wat we aan 3sides communiceren. Een kader toevoegen of weghalen, en wat alleen voor Cito is, doe je op het tabblad
+          Evaluatie intern.
+        </p>
+      )}
+      {edit && !extern && (
         <div className="ev-plus">
           <PlusKnop
             label="+ kader"

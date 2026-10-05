@@ -1,18 +1,21 @@
 "use client";
 
-// Stap 11 — "Programma × 3sides", met vijf tabbladen:
+// Stap 11 — "Programma × 3sides", met zes tabbladen:
 // 1. Analyse: programmaplan en Doelen-Inspanningennetwerk (DIN) naast alles wat 3sides
 //    heeft opgeleverd (src/lib/integratie-3sides-default.ts).
-// 2. Evaluatie 3sides: de kern voor het evaluatiegesprek, voor de programma-eigenaar: de
-//    agenda, drie delen uit de analyse (werkstromen, planning en opleveringen zonder het
-//    actiebord van Cito, evaluatie) en de begeleidende brief (EvaluatieTab.tsx). De drie delen
-//    zijn hetzelfde document als de analyse; een wijziging hier staat ook daar. Direct te
-//    openen met ?stap=integratie&tab=evaluatie.
-// 3. Naslag: de kern van alle 3sides-documenten, per document met paginanummer of
+// 2. Evaluatie 3sides: wat we aan 3sides communiceren, en alleen dat: de agenda, twee delen
+//    uit de analyse (de planning met wat er is geleverd, en de evaluatie per kader in de
+//    weergave voor 3sides) en de begeleidende brief (EvaluatieTab.tsx). De delen zijn
+//    hetzelfde document als de analyse; een wijziging hier staat ook daar. Direct te openen
+//    met ?stap=integratie&tab=evaluatie.
+// 3. Evaluatie intern: alleen voor Cito: de hele evaluatie met de interne notitie, wat Cito
+//    zelf doet, ons oordeel en de onderbouwing, en het actiebord van Cito
+//    (EvaluatieInternTab.tsx). Zelfde document. ?stap=integratie&tab=evaluatie-intern.
+// 4. Naslag: de kern van alle 3sides-documenten, per document met paginanummer of
 //    tabblad (src/lib/kern-3sides-default.ts). Direct te openen met ?stap=integratie&tab=kern.
-// 4. Voortgang: het voortgangsbord uit de analyse, los; vinkjes zet je daar (meteen
+// 5. Voortgang: het voortgangsbord uit de analyse, los; vinkjes zet je daar (meteen
 //    bewaard), teksten bewerk je in de analyse. Direct te openen met ?stap=integratie&tab=voortgang.
-// 5. Documenten: wat het team zelf uploadt (DocumentenTab.tsx). ?stap=integratie&tab=documenten.
+// 6. Documenten: wat het team zelf uploadt (DocumentenTab.tsx). ?stap=integratie&tab=documenten.
 // De documenten zijn per kop en per cel handmatig aanpasbaar; aanpassingen worden in de
 // sessie bewaard (session.documenten[sleutel], localStorage-first + Supabase via updateSession).
 // Een wijziging uit een blok in weergavemodus (bijv. een vinkje in het voortgangsbord) wordt
@@ -39,11 +42,19 @@ import { isVerwijderd, kloon } from "@/lib/bewerkbaar-document";
 import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import BewerkBalk, { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
-import { BronProvider, bronUrl, STANDAARD_DOCUMENTEN_BASIS } from "@/components/bewerkbaar/bron-context";
+import {
+  BronProvider,
+  bronUrl,
+  isWeblink,
+  STANDAARD_DOCUMENTEN_BASIS,
+  VINDPLAATS_VELDEN,
+} from "@/components/bewerkbaar/bron-context";
+import type { Vindplaats } from "@/components/bewerkbaar/bron-context";
 import { DocContext, DocZetContext } from "@/components/bewerkbaar/doc-context";
 import { OpmerkingenProvider, OpmerkingenOverzicht } from "@/components/bewerkbaar/Opmerkingen";
 import DocumentenTab from "@/components/steps/DocumentenTab";
 import EvaluatieTab, { EVALUATIE_TAB, NieuwereVoorsteltekst } from "@/components/steps/EvaluatieTab";
+import EvaluatieInternTab, { EVALUATIE_INTERN_TAB } from "@/components/steps/EvaluatieInternTab";
 import { DOC_CSS, KNOP, LEESBAAR_CSS, OK_CSS } from "@/components/bewerkbaar/stijl";
 import VoortgangsbordBlok, { VOORTGANGSBORD_CSS } from "@/components/bewerkbaar/blokken/VoortgangsbordBlok";
 
@@ -75,19 +86,23 @@ const VOORTGANG_TAB = { id: "voortgang", label: "Voortgang" } as const;
 const DOCUMENTEN_TAB = { id: "documenten", label: "Documenten" } as const;
 
 /**
- * Alle tabbladen in volgorde: analyse, evaluatie, naslag, voortgang, documenten. Het
- * evaluatietabblad en het voortgangsbord zijn geen eigen document maar een uitsnede van de analyse.
+ * Alle tabbladen in volgorde: analyse, evaluatie 3sides, evaluatie intern, naslag, voortgang,
+ * documenten. De twee evaluatietabbladen en het voortgangsbord zijn geen eigen document maar
+ * een uitsnede van de analyse.
  */
-const TABBLADEN: readonly (Tabblad | typeof EVALUATIE_TAB | typeof VOORTGANG_TAB | typeof DOCUMENTEN_TAB)[] = [
-  DOCUMENT_TABBLADEN[0],
-  EVALUATIE_TAB,
-  DOCUMENT_TABBLADEN[1],
-  VOORTGANG_TAB,
-  DOCUMENTEN_TAB,
-];
+const TABBLADEN: readonly (
+  | Tabblad
+  | typeof EVALUATIE_TAB
+  | typeof EVALUATIE_INTERN_TAB
+  | typeof VOORTGANG_TAB
+  | typeof DOCUMENTEN_TAB
+)[] = [DOCUMENT_TABBLADEN[0], EVALUATIE_TAB, EVALUATIE_INTERN_TAB, DOCUMENT_TABBLADEN[1], VOORTGANG_TAB, DOCUMENTEN_TAB];
 
 /** Plek van de analyse in TABBLADEN (voor "naar de analyse" vanuit de andere tabbladen). */
 const ANALYSE_TAB = 0;
+/** Plek van de twee evaluatietabbladen, die naar elkaar verwijzen. */
+const EXTERN_TAB = TABBLADEN.indexOf(EVALUATIE_TAB);
+const INTERN_TAB = TABBLADEN.indexOf(EVALUATIE_INTERN_TAB);
 
 function beginTab(): number {
   if (typeof window === "undefined") return 0;
@@ -117,6 +132,7 @@ export default function IntegratieStep() {
   const tab = TABBLADEN[actief];
   const documentenBasis = session?.koppelingen?.documentenBasis ?? "";
   const jira = (session?.koppelingen?.jira ?? "").trim();
+  const naslagSecties = useNaslagSecties();
 
   // Na het laden en bij het wisselen van tabblad: naar het anker uit de url, zodra het
   // element er is (de inhoud rendert eerst); na een paar seconden zonder element: laten.
@@ -174,9 +190,17 @@ export default function IntegratieStep() {
         )}
       </div>
       {/* key: bij wisselen van tabblad start de bewerkstatus opnieuw */}
-      <BronProvider documentenBasis={documentenBasis} jira={jira} naslagHier={tab.id === "kern"}>
+      <BronProvider
+        documentenBasis={documentenBasis}
+        jira={jira}
+        naslagHier={tab.id === "kern"}
+        vindplaatsen={session?.koppelingen}
+        naslagSecties={naslagSecties}
+      >
         {tab.id === "evaluatie" ? (
-          <EvaluatieTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} />
+          <EvaluatieTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} naarIntern={() => kies(INTERN_TAB)} />
+        ) : tab.id === "evaluatie-intern" ? (
+          <EvaluatieInternTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} naarExtern={() => kies(EXTERN_TAB)} />
         ) : tab.id === "voortgang" ? (
           <VoortgangTab naarAnalyse={(anker) => kies(ANALYSE_TAB, anker)} jira={jira} />
         ) : tab.id === "documenten" ? (
@@ -198,27 +222,62 @@ function isSchijfpad(s: string): boolean {
   return /^(?:[a-zA-Z]:[\\/]|\\\\|file:)/i.test(s.trim());
 }
 
+/** De links voor de andere bronnen uit één tekst (een link per regel, volgorde van VINDPLAATS_VELDEN). */
+function andersVan(tekst: string): Record<Vindplaats, string> {
+  const regels = tekst.split("\n");
+  const uit = {} as Record<Vindplaats, string>;
+  VINDPLAATS_VELDEN.forEach((v, i) => {
+    uit[v.sleutel] = (regels[i] ?? "").trim();
+  });
+  return uit;
+}
+
 /**
- * Compacte, inklapbare regel boven de tabbladen: de map met de 3sides-documenten en het
- * Jira-bord. Opslaan bij verlaten van een veld of met de knop; waarden in session.koppelingen.
+ * De id's van de secties die in het naslag-tabblad van deze sessie bestaan (voorstel-tekst plus
+ * wat in de sessie is aangepast, zonder verwijderde). Een verwijzing naar de statuspagina linkt
+ * alleen naar het naslag als die sectie er is (bron-context.tsx).
+ */
+function useNaslagSecties(): readonly string[] {
+  const { session } = useSession();
+  const bewaard = session?.documenten?.[KERN_3SIDES_SLEUTEL];
+  return useMemo(
+    () =>
+      oplossen(DEFAULT_KERN_3SIDES, bewaard)
+        .doc.secties.filter((s) => !isVerwijderd(s))
+        .map((s) => s.id),
+    [bewaard]
+  );
+}
+
+/**
+ * Compacte, inklapbare regel boven de tabbladen: de map met de 3sides-documenten, het Jira-bord
+ * en de links naar bronnen die geen bestand in die map zijn (statuspagina, verslagen van het
+ * overleg, stappenplan). Opslaan bij verlaten van een veld of met de knop; waarden in
+ * session.koppelingen.
  */
 function Vindplaatsen() {
   const { session, updateSession } = useSession();
   const opgeslagenBasis = session?.koppelingen?.documentenBasis ?? "";
   const opgeslagenJira = session?.koppelingen?.jira ?? "";
+  // De andere bronnen (statuspagina, verslagen, stappenplan) als één tekst, een link per regel
+  // in de volgorde van VINDPLAATS_VELDEN: zo volgt de vergelijking de waarden, niet het object.
+  const opgeslagenAnders = VINDPLAATS_VELDEN.map((v) => session?.koppelingen?.[v.sleutel] ?? "").join("\n");
   const [basis, setBasis] = useState(opgeslagenBasis);
   const [jira, setJira] = useState(opgeslagenJira);
+  const [anders, setAnders] = useState(() => andersVan(opgeslagenAnders));
   // De velden volgen de sessie zodra die (later) laadt of elders verandert.
-  const [vorige, setVorige] = useState({ basis: opgeslagenBasis, jira: opgeslagenJira });
-  if (vorige.basis !== opgeslagenBasis || vorige.jira !== opgeslagenJira) {
-    setVorige({ basis: opgeslagenBasis, jira: opgeslagenJira });
+  const [vorige, setVorige] = useState({ basis: opgeslagenBasis, jira: opgeslagenJira, anders: opgeslagenAnders });
+  if (vorige.basis !== opgeslagenBasis || vorige.jira !== opgeslagenJira || vorige.anders !== opgeslagenAnders) {
+    setVorige({ basis: opgeslagenBasis, jira: opgeslagenJira, anders: opgeslagenAnders });
     setBasis(opgeslagenBasis);
     setJira(opgeslagenJira);
+    setAnders(andersVan(opgeslagenAnders));
   }
   const [open, setOpen] = useState(false);
   const [melding, setMelding] = useMelding();
   const idBasis = useId();
   const idJira = useId();
+  const idAnders = useId();
 
   // Documenten: een eigen map gaat voor, anders de standaard in Supabase (bron-context.tsx).
   const docStand = opgeslagenBasis.trim()
@@ -226,15 +285,22 @@ function Vindplaatsen() {
     : STANDAARD_DOCUMENTEN_BASIS
       ? "documenten: gekoppeld via Supabase"
       : "documenten: nog niet gekoppeld";
-  const stand = docStand + " · " + (opgeslagenJira.trim() ? "Jira-bord ingevuld" : "Jira-bord nog niet ingevuld");
-  const gewijzigd = basis.trim() !== opgeslagenBasis || jira.trim() !== opgeslagenJira;
+  const aantalAnders = opgeslagenAnders.split("\n").filter((x) => isWeblink(x)).length;
+  const stand =
+    docStand +
+    " · " +
+    (opgeslagenJira.trim() ? "Jira-bord ingevuld" : "Jira-bord nog niet ingevuld") +
+    ` · statuspagina, verslagen en stappenplan: ${aantalAnders} van ${VINDPLAATS_VELDEN.length} gekoppeld`;
+  const andersTekst = VINDPLAATS_VELDEN.map((v) => anders[v.sleutel].trim()).join("\n");
+  const gewijzigd = basis.trim() !== opgeslagenBasis || jira.trim() !== opgeslagenJira || andersTekst !== opgeslagenAnders;
   const proef = useMemo(() => bronUrl(basis, "plan-van-aanpak", 2), [basis]);
 
   function opslaan(alleenBijWijziging: boolean) {
     if (alleenBijWijziging && !gewijzigd) return;
     const b = basis.trim();
     const j = jira.trim();
-    updateSession((prev) => ({ koppelingen: { ...(prev.koppelingen ?? {}), documentenBasis: b, jira: j } }));
+    const a = andersVan(andersTekst);
+    updateSession((prev) => ({ koppelingen: { ...(prev.koppelingen ?? {}), documentenBasis: b, jira: j, ...a } }));
     setMelding({ tekst: "Opgeslagen in de sessie ✓", soort: "ok" });
   }
 
@@ -298,6 +364,57 @@ function Vindplaatsen() {
               de map (SharePoint of OneDrive: Kopieer koppeling).
             </p>
           )}
+          <div className="border-t border-cito-border pt-3">
+            <p className="text-xs font-semibold text-[#003366]">Bronnen die geen bestand in de map zijn</p>
+            <p className="mt-1 text-xs text-gray-600">
+              Optioneel. Met een link openen de verwijzingen in dit stuk de bron zelf. Zonder link openen ze de plek in
+              de app waar staat wat de bron zegt of waar de tekst vandaan komt: het naslag-tabblad of de bronnenlijst.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {VINDPLAATS_VELDEN.map((v) => {
+                const waarde = anders[v.sleutel];
+                const geenWeblink = waarde.trim() !== "" && !isWeblink(waarde);
+                return (
+                  <label key={v.sleutel} htmlFor={idAnders + v.sleutel} className="block text-xs font-semibold text-gray-700">
+                    {v.label}
+                    <input
+                      id={idAnders + v.sleutel}
+                      type="url"
+                      value={waarde}
+                      onChange={(e) => setAnders((a) => ({ ...a, [v.sleutel]: e.target.value }))}
+                      onBlur={() => opslaan(true)}
+                      placeholder="https://…"
+                      spellCheck={false}
+                      aria-describedby={idAnders + v.sleutel + "-uitleg"}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal text-gray-900 focus:border-[#003366] focus:outline-none focus:ring-1 focus:ring-[#003366]"
+                    />
+                    <span id={idAnders + v.sleutel + "-uitleg"} className="mt-1 block font-normal text-gray-600">
+                      {geenWeblink ? (
+                        <span className="text-amber-900">
+                          Dit is geen weblink (https://…); de verwijzingen gebruiken hem niet.
+                        </span>
+                      ) : (
+                        v.uitleg
+                      )}
+                      {isWeblink(waarde) && (
+                        <>
+                          {" "}
+                          <a
+                            href={waarde.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#003366] underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                          >
+                            Test: open de link <span aria-hidden="true">↗</span>
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"

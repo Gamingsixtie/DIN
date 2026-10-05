@@ -1,12 +1,16 @@
 // Stap 11, tabblad "Evaluatie 3sides": de Word-export van de uitsnede (evaluatie-uitsnede.ts),
-// in twee versies: intern voor de programma-eigenaar, en een versie voor 3sides met de
-// begeleidende brief en zonder wat intern is.
+// in twee versies:
+// - voor 3sides: wat Cito aan 3sides communiceert, met de begeleidende brief;
+// - intern ("Intern Cito" op elke pagina): alles, ook wat Cito zelf doet (het actiebord en per
+//   kader een eigen blok), ons oordeel, de notities en de onderbouwing.
 //
 // Opbouw van het document:
 //   (alleen voor 3sides) de begeleidende brief, op een eigen pagina;
-//   de kop (titel, ondertitel, status, datum; intern met de regel "Intern Cito") en de agenda;
-//   de drie delen, elk op een nieuwe pagina; een deel met de tijdlijn of het voortgangsbord
-//   staat liggend, de rest staand;
+//   het voorblad: de kop (titel, ondertitel, versie, status, datum; intern met de regel
+//   "Intern Cito") en de inhoud (de agenda, de delen uit u.delen en de bronnen);
+//   de agenda, op een eigen pagina (zoals in de afdrukweergave);
+//   de delen uit u.delen (nu twee: planning en evaluatie), elk op een nieuwe pagina; een deel
+//   met de tijdlijn of het voortgangsbord staat liggend, de rest staand;
 //   de gebruikte documenten.
 // Wat er wel en niet in staat, bepaalt maakUitsnede; dit bestand zet het alleen in Word.
 // De blokken staan in evaluatie-word-blokken.ts, het rekenwerk van de app in
@@ -31,7 +35,7 @@ import {
 import type { ISectionOptions } from "docx";
 import type { DocBlok, DocSectie } from "@/lib/schemas";
 import type { EvaluatieUitsnede } from "@/lib/evaluatie-uitsnede";
-import { A4, BREEDTE, FONT, G, K, MARGE, alinea, bol, heeft, punt, schoon, t, tab, tekstAlinea, wit } from "@/lib/evaluatie-word-basis";
+import { A4, BREEDTE, FONT, G, K, MARGE, alinea, bol, heeft, label, punt, schoon, t, tab, tekstAlinea, wit } from "@/lib/evaluatie-word-basis";
 import { blokInhoud, wilLiggend } from "@/lib/evaluatie-word-blokken";
 import type { Ctx, Inhoud } from "@/lib/evaluatie-word-blokken";
 import type { Bord, Kaart, Tijdlijn } from "@/lib/evaluatie-word-reken";
@@ -53,11 +57,13 @@ function datumVoluit(d: Date): string {
   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/** Eerste blok van een type in de delen van de export, zoals useBlok in de app het in het document vindt. */
+/**
+ * Eerste blok van een type in de gegevens van de uitsnede (u.gegevens: de tijdlijn, het
+ * voortgangsbord en de werkstroomkaarten uit de analyse), zoals useBlok in de app het in het
+ * document vindt. Alleen om mee te rekenen; de werkstroomkaarten staan niet in de export.
+ */
 function eersteBlok<T extends DocBlok["type"]>(u: EvaluatieUitsnede, type: T): Extract<DocBlok, { type: T }> | null {
-  for (const d of u.delen) {
-    for (const b of d.sectie.blokken ?? []) if (b?.type === type) return b as Extract<DocBlok, { type: T }>;
-  }
+  for (const b of u.gegevens ?? []) if (b?.type === type) return b as Extract<DocBlok, { type: T }>;
   return null;
 }
 
@@ -100,7 +106,13 @@ function voettekst(intern: boolean, breedte: number): Footer {
 
 // ---------- kop van het document ----------
 
-/** Titelblok bovenaan: (intern) de regel "Intern Cito", titel, ondertitel, status en datum. */
+/** Wat de versie bevat, in één regel in het titelblok. */
+const VERSIE_REGEL = {
+  intern: "Intern Cito: alles, ook wat Cito zelf doet, ons oordeel met de notities en de onderbouwing",
+  "3sides": "Voor 3sides: wat we aan 3sides communiceren, met de begeleidende brief",
+} as const;
+
+/** Titelblok bovenaan: (intern) de regel "Intern Cito", titel, ondertitel, versie, status en datum. */
 function documentKop(u: EvaluatieUitsnede, datum: string): Inhoud {
   const uit: Inhoud = [];
   if (u.versie === "intern") {
@@ -121,7 +133,11 @@ function documentKop(u: EvaluatieUitsnede, datum: string): Inhoud {
     })
   );
   if (heeft(u.ondertitel)) uit.push(alinea(t(schoon(u.ondertitel), { size: 26, color: K.inkt2 }), { na: 200, bijVolgende: true }));
-  const meta: [string, string][] = [...(heeft(u.status) ? [["Status", schoon(u.status)] as [string, string]] : []), ["Datum", datum]];
+  const meta: [string, string][] = [
+    ["Versie", VERSIE_REGEL[u.versie === "intern" ? "intern" : "3sides"]],
+    ...(heeft(u.status) ? [["Status", schoon(u.status)] as [string, string]] : []),
+    ["Datum", datum],
+  ];
   meta.forEach(([naam, waarde], i) => {
     uit.push(
       alinea([...t(naam, { size: G.label, bold: true, color: K.inkt3, allCaps: true, spatie: 12 }), tab(), ...t(waarde, { size: G.body })], {
@@ -135,6 +151,38 @@ function documentKop(u: EvaluatieUitsnede, datum: string): Inhoud {
   });
   uit.push(lijnAlinea(K.cito, 18, 170, 300));
   return uit;
+}
+
+/** "1 · Planning en voortgang: de tijdlijn als basis" → hoofdtitel en ondertitel, zonder het nummer. */
+function titelDelen(titel: string): { hoofd: string; sub: string } {
+  const rest = schoon(titel).replace(/^\d+\s*·\s*/, "");
+  const i = rest.indexOf(":");
+  return i > 0 ? { hoofd: rest.slice(0, i).trim(), sub: rest.slice(i + 1).trim() } : { hoofd: rest, sub: "" };
+}
+
+/** De inhoud onder het titelblok: de agenda, de delen (zoveel als u.delen er heeft) en de bronnen. */
+function inhoudsLijst(u: EvaluatieUitsnede): Inhoud {
+  const regels: { nr: string; hoofd: string; sub: string }[] = [
+    ...(u.agenda ? [{ nr: "Agenda", ...titelDelen(u.agenda.titel) }] : []),
+    ...(u.delen ?? []).map((d) => ({ nr: "Deel " + d.nummer, ...titelDelen(d.sectie.titel) })),
+    ...((u.bronnen ?? []).some((x) => heeft(x)) ? [{ nr: "Bronnen", hoofd: "Gebruikte documenten", sub: "" }] : []),
+  ];
+  if (regels.length === 0) return [];
+  const wNr = 1250;
+  return [
+    label("Inhoud", K.inkt3, { na: 90 }),
+    ...regels.map((r) =>
+      alinea(
+        [
+          ...t(r.nr, { size: G.label, bold: true, color: K.cito, allCaps: true, spatie: 10 }),
+          tab(),
+          ...t(r.hoofd, { size: G.body, bold: true, color: K.cito }),
+          ...(r.sub ? t(": " + r.sub, { size: G.body, color: K.inkt2 }) : []),
+        ],
+        { na: 90, links: wNr, hangend: wNr, tabLinks: wNr }
+      )
+    ),
+  ];
 }
 
 // ---------- secties ----------
@@ -208,7 +256,7 @@ export async function maakEvaluatieWord(u: EvaluatieUitsnede): Promise<Blob> {
   const titel = schoon(u.titel) || "Evaluatie 3sides";
   const delen = u.delen ?? [];
 
-  // wat de blokken van elkaar nodig hebben: de tijdlijn, het voortgangsbord en de werkstroomkaarten
+  // waar de blokken mee rekenen: de tijdlijn, het voortgangsbord en de werkstroomkaarten (u.gegevens)
   const tijdlijn: Tijdlijn | null = eersteBlok(u, "tijdlijn");
   const bord: Bord | null = eersteBlok(u, "voortgangsbord");
   const kaarten: Kaart[] = eersteBlok(u, "werkstromen")?.kaarten ?? [];
@@ -221,10 +269,10 @@ export async function maakEvaluatieWord(u: EvaluatieUitsnede): Promise<Blob> {
   // 1 · alleen voor 3sides: de begeleidende brief, eerst en op een eigen pagina (zonder kopregel)
   if (!intern && u.brief) stukken.push({ stand: "staand", inhoud: briefInhoud(u.brief, datum, ctx("staand")), metKopregel: false });
 
-  // 2 · de kop van het document met de agenda eronder
-  const voorop: Inhoud = documentKop(u, datum);
-  if (u.agenda) voorop.push(...sectieInhoud(u.agenda, ctx("staand")));
-  stukken.push({ stand: "staand", inhoud: voorop, metKopregel: true });
+  // 2 · het voorblad: de kop van het document met de inhoud eronder; de agenda op een eigen
+  // pagina, zodat een langere agenda niet met één regel over de paginarand loopt
+  stukken.push({ stand: "staand", inhoud: [...documentKop(u, datum), ...inhoudsLijst(u)], metKopregel: true });
+  if (u.agenda) stukken.push({ stand: "staand", inhoud: sectieInhoud(u.agenda, ctx("staand")), metKopregel: true });
 
   // 3 · de delen, elk op een nieuwe pagina; liggend waar de tijdlijn of het bord dat vraagt
   for (const d of delen) {

@@ -328,7 +328,7 @@ function Balk({ t, kleur }: { t: Telling; kleur: string }) {
 }
 
 /** Kop van een paneel onder het bord: titel met teller, en een regel uitleg eronder. */
-function PaneelKop({ titel, sub, aantal }: { titel: string; sub: string; aantal?: number }) {
+function PaneelKop({ titel, sub, aantal }: { titel: string; sub: ReactNode; aantal?: number }) {
   return (
     <div className="vb-pk">
       <h5 className="vb-pk-t">{titel}</h5>
@@ -776,7 +776,11 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
         <div className="vb-paneel">
           <PaneelKop
             titel="Nog nodig voor het hele programma"
-            sub="Wat we programmabreed van 3sides vragen; vink af wat binnen is. Wat Cito zelf doet, staat in het actiebord."
+            sub={
+              <>
+                Wat we programmabreed van 3sides vragen<span className="vb-alleen-app">; vink af wat binnen is</span>.
+              </>
+            }
             aantal={edit ? undefined : programmabreed.filter((x) => !x.klaar).length}
           />
           {programmabreed.length === 0 && !edit ? (
@@ -821,8 +825,10 @@ export default function VoortgangsbordBlok({ b, edit, zet, ankers }: LosBlokProp
           Zo rekent het bord: de cijfers per werkstroom komen uit de tijdlijn en gaan uit van vandaag. Voortgang is het aantal afgeronde onderdelen van het
           totaal; wat loopt, staat als lichtere balk en telt nog niet mee. Op schema zijn de opleveringen waarvan de datum nog niet voorbij is. Verstreken: de
           opleverdatum is voorbij en het onderdeel staat niet op Afgerond. Komt eraan: oplevering binnen {HORIZON_DAGEN} dagen. Zonder opleverdatum: er staat
-          geen oplevering (⚑) in de tijdlijn; die onderdelen tellen mee in het totaal, maar niet bij verstreken of komt eraan. De status van een onderdeel
-          kies je in het keuzelijstje, hier of in de tijdlijn; dat wordt meteen bewaard en de cijfers lopen vanzelf mee.
+          geen oplevering (⚑) in de tijdlijn; die onderdelen tellen mee in het totaal, maar niet bij verstreken of komt eraan.{" "}
+          <span className="vb-alleen-app">
+            De status van een onderdeel kies je in het keuzelijstje, hier of in de tijdlijn; dat wordt meteen bewaard en de cijfers lopen vanzelf mee.
+          </span>
         </p>
         {(edit || tekst(b.legenda).trim()) && (
           <V v={tekst(b.legenda)} on={(x) => zet((t) => void (t.legenda = x))} edit={edit} ml block cls="ok-legend vb-legenda" ph="Bron en toelichting (optioneel)" />

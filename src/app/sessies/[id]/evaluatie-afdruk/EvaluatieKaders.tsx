@@ -1,51 +1,42 @@
-// Deel 3 van de afdrukweergave: de evaluatie van 3sides op zes kaders, met eigen opmaak voor
-// papier (niet het evaluatiebord uit de app: dat werkt met inklapbare kaarten).
-// Per kader: nummer en vraag, het eerste beeld (oordeel als gekleurde chip met teken en tekst,
-// daarna de bevinding), de feiten, wie aan zet is (3sides en Cito naast elkaar) en de vraag
-// voor het gesprek. Alleen in de interne versie: ons oordeel met de notitie, en de
-// onderbouwing. In de versie voor 3sides heeft de uitsnede die velden al leeggemaakt; ze
-// worden hier bovendien alleen bij `intern` getekend. Wat leeg is, krijgt geen kop.
+// Het deel "Evaluatie" van de afdrukweergave: de evaluatie van 3sides per kader, met eigen
+// opmaak voor papier (niet het evaluatiebord uit de app: dat werkt met inklapbare kaarten).
+//
+// Boven de kaders staat de rolverdeling (Cito, 3sides). Per kader, in beide versies:
+// nummer en vraag, de bevinding (oordeel als gekleurde chip met teken en tekst, daarna de zin),
+// de feiten met hun bron op een eigen regel, het blok "Wat we van 3sides vragen" en de vraag
+// voor het gesprek. Dat is precies wat we aan 3sides communiceren.
+//
+// Alleen in de interne versie volgt daaronder een apart, gemarkeerd deel "Intern Cito": het
+// blok "Wat Cito zelf doet (intern)", wie aan zet is (als dat is ingevuld), ons oordeel met de
+// notitie en de onderbouwing. Zo leest niemand de eigen acties van Cito als deel van de
+// boodschap aan 3sides. In de versie voor 3sides heeft de uitsnede die velden al leeggemaakt;
+// ze worden hier bovendien alleen bij `intern` getekend. Wat leeg is, krijgt geen kop.
+//
+// Het kopje boven de bevinding: "Onze bevinding"; intern "Eerste beeld · voorstel" zolang ons
+// oordeel bij dat kader nog niet is ingevuld.
+// De chip, de bron per feit en de alinea's van de onderbouwing volgen dezelfde regels als de app
+// en de Word-export (evaluatie-word-reken.ts).
 
 import type { ReactNode } from "react";
 import type { DocBlok } from "@/lib/schemas";
+import { alineas, beeldSoort, oordeelNaam, splitsBeeld, splitsBron } from "@/lib/evaluatie-word-reken";
+import type { BeeldSoort } from "@/lib/evaluatie-word-reken";
 
 type Evaluatie = Extract<DocBlok, { type: "evaluatie" }>;
 type Kader = Evaluatie["kaders"][number];
-type Soort = "ja" | "deels" | "nee" | "grijs";
 
 function tekst(v: string | undefined): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/**
- * Het eerste beeld gesplitst: het oordeel is het stuk vóór de dubbele punt (hooguit 40 tekens),
- * de rest is de bevinding. Een korte zin zonder dubbele punt is in zijn geheel het oordeel;
- * een lange zin heeft geen los oordeel. Zelfde regel als de chip in de app en de Word-export.
- */
-function splitsBeeld(s: string): { oordeel: string; rest: string } {
-  const t = tekst(s).replace(/\s*\(voorstel\)\s*$/i, "");
-  const i = t.indexOf(":");
-  if (i > 0 && i <= 40) return { oordeel: t.slice(0, i).trim(), rest: t.slice(i + 1).trim() };
-  return t.length <= 40 ? { oordeel: t, rest: "" } : { oordeel: "", rest: t };
-}
-
-/** Kleur van het oordeel, uit het eerste woord: ja groen, deels of waarschijnlijk blauw, nee amber. */
-function soortVan(oordeel: string): Soort {
-  const t = oordeel.toLowerCase();
-  if (/^ja\b/.test(t) || /^sluit aan/.test(t)) return "ja";
-  if (/^nee\b/.test(t) || /^onvoldoende/.test(t)) return "nee";
-  if (/^deels\b/.test(t) || /^waarschijnlijk/.test(t)) return "deels";
-  return "grijs";
-}
-
 /** Teken in de chip, zodat het oordeel niet alleen aan de kleur hangt. */
-function Teken({ soort }: { soort: Soort }) {
+function Teken({ soort }: { soort: BeeldSoort }) {
   const lijn = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
     <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
       {soort === "ja" && <path d="M2 6.4 4.8 9.2 10 3.2" {...lijn} />}
       {soort === "nee" && <path d="M2.8 2.8l6.4 6.4M9.2 2.8 2.8 9.2" {...lijn} />}
-      {soort === "deels" && (
+      {(soort === "deels" || soort === "needeels") && (
         <>
           <circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
           <path d="M6 1.6a4.4 4.4 0 0 0 0 8.8z" fill="currentColor" />
@@ -71,61 +62,29 @@ function Spreekballon() {
   );
 }
 
-/** Ons oordeel (intern): de naam zoals in het keuzelijstje van de app. */
-function oordeelNaam(waarde: string): { naam: string; cls: string } {
-  switch (waarde.toLowerCase()) {
-    case "goed":
-      return { naam: "Goed", cls: "evp-pil-goed" };
-    case "deels":
-      return { naam: "Deels", cls: "evp-pil-deels" };
-    case "onvoldoende":
-      return { naam: "Onvoldoende", cls: "evp-pil-onvoldoende" };
-    case "nvt":
-      return { naam: "Nog niet te beoordelen", cls: "" };
-    case "":
-      return { naam: "nog niet ingevuld", cls: "evp-pil-leeg" };
-    default:
-      return { naam: waarde, cls: "" };
-  }
-}
+/** Kleur van het pilletje bij ons oordeel (intern). */
+const PIL: Record<ReturnType<typeof oordeelNaam>["soort"], string> = {
+  groen: "evp-pil-goed",
+  blauw: "evp-pil-deels",
+  amber: "evp-pil-onvoldoende",
+  grijs: "",
+};
 
-/** Eén zijde van "Wie is aan zet": de partij vet, de rol erachter, dan wat deze partij doet. */
-function Zijde({ wie, rol, children }: { wie: "3sides" | "Cito"; rol: string; children: ReactNode }) {
-  return (
-    <div className={"evp-zijde evp-zijde-" + wie.toLowerCase()}>
-      <div className="evp-zijde-kop">
-        <b>{wie}</b>
-        {rol && <span>{rol}</span>}
-      </div>
-      <p>{children}</p>
-    </div>
-  );
-}
-
-function KaderKaart({
-  k,
-  nr,
-  rol3sides,
-  rolCito,
-  intern,
-  toon,
-}: {
-  k: Kader;
-  nr: number;
-  rol3sides: string;
-  rolCito: string;
-  intern: boolean;
-  toon: (s: string) => ReactNode;
-}) {
-  const beeld = splitsBeeld(k.beeld ?? "");
-  const soort = beeld.oordeel ? soortVan(beeld.oordeel) : "grijs";
+function KaderKaart({ k, nr, intern, toon }: { k: Kader; nr: number; intern: boolean; toon: (s: string) => ReactNode }) {
+  const { kop, zin } = splitsBeeld(tekst(k.beeld));
+  const soort: BeeldSoort = kop ? beeldSoort(kop) : "grijs";
   const punten = (k.punten ?? []).map(tekst).filter(Boolean);
-  const zet3 = tekst(k.aanZet3sides);
-  const zetC = tekst(k.aanZetCito);
-  const vraag = tekst(k.vraag3sides);
-  const secties = (k.secties ?? []).filter((s) => tekst(s.label) || tekst(s.tekst));
+  const vragen = tekst(k.aanZet3sides);
+  const gesprek = tekst(k.vraag3sides);
+  // alleen intern (de uitsnede voor 3sides levert deze velden leeg aan)
+  const zelf = tekst(k.aanZetCito);
+  const aanZet = tekst(k.actieBij);
   const oordeel = oordeelNaam(tekst(k.oordeel));
   const notitie = tekst(k.notitie);
+  const toets = tekst(k.vraag);
+  const secties = (k.secties ?? []).filter((s) => tekst(s.label) || tekst(s.tekst));
+  // de bevinding is een voorstel tot ons oordeel is ingevuld; naar 3sides gaat ze als onze bevinding
+  const bevindingKop = intern && !oordeel.ingevuld ? "Eerste beeld · voorstel" : "Onze bevinding";
 
   return (
     <article className={"evp-kader evp-kader-" + soort}>
@@ -139,73 +98,112 @@ function KaderKaart({
         </div>
       </header>
 
-      {(beeld.oordeel || beeld.rest) && (
+      {(kop || zin) && (
         <div className="evp-beeld">
-          {beeld.oordeel && (
-            <span className="evp-chip">
-              <Teken soort={soort} />
-              {beeld.oordeel}
-            </span>
-          )}
-          {beeld.rest && <p>{toon(beeld.rest.charAt(0).toUpperCase() + beeld.rest.slice(1))}</p>}
+          <div className="evp-beeld-kop">
+            <span className="evp-beeld-l">{bevindingKop}</span>
+            {kop && (
+              <span className="evp-chip">
+                <Teken soort={soort} />
+                {kop}
+              </span>
+            )}
+          </div>
+          {zin && <p>{toon(zin)}</p>}
         </div>
       )}
 
       {punten.length > 0 && (
         <section className="evp-vak">
           <h4>Feiten</h4>
-          <ul className="evp-punten">
-            {punten.map((p, i) => (
-              <li key={i}>{toon(p)}</li>
-            ))}
-          </ul>
+          <ol className="evp-punten">
+            {punten.map((p, i) => {
+              const { kern, bron } = splitsBron(p);
+              return (
+                <li key={i}>
+                  {toon(kern)}
+                  {bron && <span className="evp-bron">{toon(bron)}</span>}
+                </li>
+              );
+            })}
+          </ol>
         </section>
       )}
 
-      {(zet3 || zetC) && (
-        <section className="evp-vak">
-          <h4>Wie is aan zet</h4>
-          <div className={"evp-zet" + (zet3 && zetC ? "" : " evp-zet-een")}>
-            {/* Cito eerst, zoals in de app (Cito heeft de lead) */}
-            {zetC && (
-              <Zijde wie="Cito" rol={rolCito}>
-                {toon(zetC)}
-              </Zijde>
-            )}
-            {zet3 && (
-              <Zijde wie="3sides" rol={rol3sides}>
-                {toon(zet3)}
-              </Zijde>
-            )}
-          </div>
+      {vragen && (
+        <section className="evp-vragen">
+          <h4>Wat we van 3sides vragen</h4>
+          <p>{toon(vragen)}</p>
         </section>
       )}
 
-      {vraag && (
+      {gesprek && (
         <aside className="evp-vraag">
           <Spreekballon />
           <div>
             <h4>Vraag voor het gesprek</h4>
-            <p>{toon(vraag)}</p>
+            <p>{toon(gesprek)}</p>
           </div>
         </aside>
       )}
 
       {intern && (
         <div className="evp-intern">
-          <section className="evp-oordeel">
-            <h4>Ons oordeel (intern)</h4>
-            <span className={"evp-pil " + oordeel.cls}>{oordeel.naam}</span>
-            {notitie && <p className="evp-notitie">{notitie}</p>}
-          </section>
-          {secties.length > 0 && (
+          <p className="evp-intern-kop">
+            <b>Intern Cito</b>
+            <span>Alleen voor Cito: dit deel gaat niet naar 3sides.</span>
+          </p>
+          {zelf && (
+            <section className="evp-zelf">
+              <h4>Wat Cito zelf doet (intern)</h4>
+              <p>{toon(zelf)}</p>
+            </section>
+          )}
+          <dl className="evp-gegevens">
+            {aanZet && (
+              <div>
+                <dt>Aan zet</dt>
+                <dd>
+                  <b>{toon(aanZet)}</b>
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Ons oordeel (intern)</dt>
+              <dd>
+                <span className={"evp-pil " + (oordeel.ingevuld ? PIL[oordeel.soort] : "evp-pil-leeg")}>{oordeel.naam}</span>
+              </dd>
+            </div>
+          </dl>
+          {notitie && <p className="evp-notitie">{notitie}</p>}
+          {(toets || secties.length > 0) && (
             <section className="evp-onder">
-              <h4>Onderbouwing</h4>
+              <h4>Onderbouwing (intern)</h4>
               <dl>
+                {toets && (
+                  <div>
+                    <dt>Wat we toetsen</dt>
+                    <dd>
+                      <p>{toon(toets)}</p>
+                    </dd>
+                  </div>
+                )}
                 {secties.map((s, i) => (
                   <div key={i}>
                     {tekst(s.label) && <dt>{s.label}</dt>}
-                    {tekst(s.tekst) && <dd>{toon(s.tekst)}</dd>}
+                    {tekst(s.tekst) && (
+                      <dd>
+                        {alineas(tekst(s.tekst)).map((a, j) => (
+                          <p key={j}>
+                            {a.chip && <span className={"evp-mini evp-mini-" + beeldSoort(a.chip)}>{a.chip}</span>}
+                            {a.chip && " "}
+                            {a.label && <b>{a.label}</b>}
+                            {a.label && " "}
+                            {toon(a.tekst)}
+                          </p>
+                        ))}
+                      </dd>
+                    )}
                   </div>
                 ))}
               </dl>
@@ -238,8 +236,21 @@ export default function EvaluatieKaders({
     <div className="evp-ev">
       {tekst(blok.titel) && <h3 className="evp-ev-titel">{blok.titel}</h3>}
       {tekst(blok.intro) && <p className="evp-intro">{toon(tekst(blok.intro))}</p>}
+      {(rolCito || rol3sides) && (
+        <div className="evp-rollen" role="group" aria-label="Rolverdeling">
+          <span className="evp-rollen-l">Rolverdeling</span>
+          <div className="evp-rol evp-rol-cito">
+            <b>Cito</b>
+            {rolCito && <span>{toon(rolCito)}</span>}
+          </div>
+          <div className="evp-rol evp-rol-3sides">
+            <b>3sides</b>
+            {rol3sides && <span>{toon(rol3sides)}</span>}
+          </div>
+        </div>
+      )}
       {kaders.map((k, i) => (
-        <KaderKaart key={k.id || i} k={k} nr={i + 1} rol3sides={rol3sides} rolCito={rolCito} intern={intern} toon={toon} />
+        <KaderKaart key={k.id || i} k={k} nr={i + 1} intern={intern} toon={toon} />
       ))}
       {tekst(blok.legenda) && <p className="evp-legenda">{toon(tekst(blok.legenda))}</p>}
     </div>

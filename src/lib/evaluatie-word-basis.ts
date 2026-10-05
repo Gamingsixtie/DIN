@@ -367,23 +367,29 @@ export function verdeel(totaal: number, gewichten: number[], minima: number[] = 
 
 /**
  * Kader over de volle breedte: één cel met een dikke balk links, een optionele titel en
- * de inhoud. `toon` kiest de kleuren van de app (info, let-op, besluit).
+ * de inhoud. `toon` kiest de kleuren van de app (info, let-op, besluit). Een lang kader mag
+ * over een paginarand lopen (`breekbaar`), anders blijft er een halve pagina wit.
  */
-export function kader(inhoud: Paragraph[], breedte: number, toon: string, titel = ""): Table {
+export function kader(inhoud: Paragraph[], breedte: number, toon: string, titel = "", breekbaar = false): Table {
   const k = TOON[toon] ?? TOON.info;
   const rand = lijn(k.rand, toon === "besluit" ? 8 : 6);
+  // geen "bij volgende" op de titel: in een tabel plakt Word daarmee de hele rij aan wat volgt,
+  // en dan breekt een lang kader niet meer
   const kop = titel ? [alinea(t(titel, { size: G.body, bold: true, color: k.titel }), { na: 50 })] : [];
   return tabel(
     [breedte],
     [
-      rij([
-        cel([...kop, ...inhoud], {
-          breedte,
-          vlak: k.vlak,
-          randen: { top: rand, bottom: rand, right: rand, left: lijn(k.balk, 36) },
-          marge: [120, 180, 120, 200],
-        }),
-      ]),
+      rij(
+        [
+          cel([...kop, ...inhoud], {
+            breedte,
+            vlak: k.vlak,
+            randen: { top: rand, bottom: rand, right: rand, left: lijn(k.balk, 36) },
+            marge: [120, 180, 120, 200],
+          }),
+        ],
+        { breekbaar }
+      ),
     ]
   );
 }

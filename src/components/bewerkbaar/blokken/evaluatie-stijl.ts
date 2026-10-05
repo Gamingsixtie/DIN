@@ -1,16 +1,20 @@
-// Stijl van het evaluatiebord (EvaluatieBlok.tsx): per kader één kaart in drie lagen, in de
+// Stijl van het evaluatiebord (EvaluatieBlok.tsx): per kader één kaart in lagen, in de
 // beeldtaal van het actiebord en het voortgangsbord (witte kaart, dunne rand, zachte schaduw,
 // gekleurde strook links). Alleen CSS, onder de .okd-scope.
 // - Kleur: de strook links en de chip volgen het eerste beeld (data-beeld op .ev-kader:
 //   ja groen, deels blauw, needeels amber, nee rood; altijd met een teken en het woord erbij).
 //   Ons eigen oordeel kleurt alleen het keuzelijstje en de keuzerondjes.
-// - Rollen: Cito is overal het gevulde, donkerblauwe vlak (heeft de lead), 3sides het lichte
-//   vlak met een rand (voert uit): in de rolverdeling bovenaan, bij "aan zet" in de kop en in
-//   de twee zijden van "Wie is aan zet".
+// - Rollen: Cito is overal het gevulde, donkerblauwe rondje (leidt), 3sides het lichte rondje
+//   met een rand (voert uit): in de rolverdeling bovenaan, bij "aan zet" in de kop en voor de
+//   koppen "Wat we van 3sides vragen" en "Wat Cito zelf doet".
+// - Twee weergaven. Extern (.ev-extern): alleen de boodschap aan 3sides; de kop heeft dan geen
+//   rail (.ev-kop-smal). Intern: onder de boodschap een eigen vlak (.ev-intern) over de volle
+//   breedte van de kaart, lichtgrijs, met het merk "Intern Cito" (.ev-merk): wat Cito zelf
+//   doet, ons oordeel en de onderbouwing. Zo leest niemand dat als deel van de boodschap.
 // - Breedte: het blok is een container (container-type); de indeling volgt de breedte van het
 //   blok zelf, niet die van het venster (het blok staat in kolommen van 340 tot 1300px).
 //   Smal: alles onder elkaar. Vanaf 760px: "aan zet" en ons oordeel in een rail rechts.
-//   Vanaf 1000px: feiten links, de twee zijden rechts.
+//   Vanaf 1000px: feiten links, wat we van 3sides vragen rechts.
 // - Leesbaarheid: zinnen 12px of groter, labels 10,5px of groter, grijs #5f6b7a of donkerder.
 // - Afdrukken: alles open, knoppen weg, kleuren behouden.
 
@@ -111,7 +115,7 @@ export const EVALUATIE_CSS = `
 
 .okd .ev-body{display:flex;flex-direction:column;gap:16px;padding:16px 16px 16px 21px;border-top:1px solid var(--ev-lijn2)}
 .okd .ev-kern{display:grid;grid-template-columns:minmax(0,1fr);gap:16px 24px;align-items:start}
-.okd .ev-feitenvak,.okd .ev-zet{min-width:0}
+.okd .ev-feitenvak,.okd .ev-doen{min-width:0}
 .okd .ev-feiten{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none;max-width:78ch}
 .okd .ev-feiten > li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;font-size:13px;line-height:1.5;color:var(--ev-tekst)}
 .okd .ev-fnr{display:inline-grid;place-items:center;box-sizing:border-box;width:20px;height:20px;border-radius:999px;border:1.5px solid var(--ev-cito);background:#fff;color:var(--ev-cito);font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums}
@@ -119,22 +123,15 @@ export const EVALUATIE_CSS = `
 .okd .ev-bron{display:block;margin-top:1px;font-size:12px;line-height:1.45;color:var(--ev-ink2)}
 .okd .ev-bron .ok-bron,.okd .ev-onder .ok-bron,.okd .ev-onder .ok-deel{color:inherit;text-decoration-color:rgba(74,85,101,.6)}
 
-.okd .ev-zijden{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
-.okd .ev-zijde{min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden}
-.okd .ev-zijde-kop{display:flex;align-items:center;gap:10px;padding:8px 12px 9px}
-.okd .ev-zijde-nr{display:flex;flex-direction:column;min-width:0}
-.okd .ev-zijde-n{font-size:14px;font-weight:800;line-height:1.25}
-.okd .ev-zijde-r{font-size:12.5px;font-weight:600;line-height:1.35}
-.okd .ev-zijde-cito{border-color:var(--ev-cito)}
-.okd .ev-zijde-cito .ev-zijde-kop{background:var(--ev-cito)}
-.okd .ev-zijde-cito .ev-zijde-n{color:#fff}
-.okd .ev-zijde-cito .ev-zijde-r{color:#dbe7f5}
-.okd .ev-zijde-cito .ev-zijde-r .ok-bron{color:inherit}
-.okd .ev-zijde-cito .ev-av{background:#fff;color:var(--ev-cito);border-color:#fff}
-.okd .ev-zijde-3sides .ev-zijde-kop{background:#f1f5f9;border-bottom:1px solid #cbd5e1}
-.okd .ev-zijde-3sides .ev-zijde-n{color:var(--ev-ink)}
-.okd .ev-zijde-3sides .ev-zijde-r{color:var(--ev-ink2)}
-.okd .ev-zijde-t{padding:10px 12px 12px;font-size:13px;line-height:1.55;color:var(--ev-tekst);white-space:pre-line;text-wrap:pretty}
+.okd .ev-h-av{display:flex;align-items:center;gap:8px}
+.okd .ev-doen-t{max-width:78ch;background:#fff;border:1px solid #cbd5e1;border-left:4px solid #475569;border-radius:4px 10px 10px 4px;padding:10px 13px 12px;font-size:13px;line-height:1.55;color:var(--ev-tekst);white-space:pre-line;text-wrap:pretty}
+.okd .ev-doen-cito .ev-doen-t{border-left-color:var(--ev-cito)}
+
+.okd .ev-intern{display:flex;flex-direction:column;gap:14px;margin:0 -16px -16px -21px;padding:13px 16px 16px 21px;background:#f3f5f8;border-top:1px solid #d5dde8}
+.okd .ev-body > .ev-intern:first-child{margin-top:-16px;border-top:0}
+.okd .ev-intern-kop{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;margin:0;font-size:12.5px;line-height:1.45;color:var(--ev-ink2)}
+.okd .ev-merk{flex:none;display:inline-block;font-size:10.5px;font-weight:800;line-height:1.5;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;color:#fff;background:var(--ev-cito);border:1px solid var(--ev-cito);border-radius:999px;padding:1px 10px}
+.okd .ev-intern .ev-oordeelvak{background:#fff}
 
 .okd .ev-vraagvak{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px 12px;align-items:start;background:#f2f6fb;border:1px solid #c7d7ea;border-left:5px solid var(--ev-cito);border-radius:4px 12px 12px 4px;padding:12px 16px 14px 14px}
 .okd .ev-vraag-i{grid-column:1;grid-row:1 / span 2;margin-top:1px;color:var(--ev-cito)}
@@ -184,6 +181,8 @@ export const EVALUATIE_CSS = `
 .okd .ev-velden{display:grid;grid-template-columns:minmax(0,1fr);gap:14px 28px;font-size:13.5px;line-height:1.55;color:var(--ev-tekst)}
 .okd .ev-hint{font-size:12px;line-height:1.45;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ev-ink2)}
 .okd .ev > .okd-bt .ok-in,.okd .ev > .ok-in.ok-sub,.okd .ev-legenda .ok-in{width:100%;margin-left:0;margin-right:0}
+.okd .ev-kop.ev-kop-vast{cursor:default;padding-bottom:14px}
+.okd .ev-hint-los{margin:0}
 .okd .ev-kader-edit .ev-kop{cursor:default;padding-bottom:12px}
 .okd .ev-kader-edit .ok-rij > .ev-titel{flex:1;min-width:0}
 .okd .ev-kader-edit .ev-feiten > li > .ok-rij{min-width:0}
@@ -192,19 +191,18 @@ export const EVALUATIE_CSS = `
 .okd .ev-lijst + .ev-plus{margin-top:0}
 .okd .ev-legenda{margin:0;font-size:12.5px;line-height:1.55;color:var(--ev-ink2)}
 
-@container ev (min-width:560px){
-  .okd .ev-zijden{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
 @container ev (min-width:760px){
   .okd .ev-kop{grid-template-columns:28px minmax(0,1fr) 196px;grid-template-rows:auto 1fr;column-gap:14px}
+  .okd .ev-kop.ev-kop-smal{grid-template-columns:28px minmax(0,1fr)}
   .okd .ev-rail{grid-column:3;grid-row:1 / span 2;flex-direction:column;flex-wrap:nowrap;gap:12px;margin:0 0 6px;padding:1px 0 2px 18px;border-left:1px solid var(--ev-lijn2)}
   .okd .ev-meer > summary{padding-left:63px}
   .okd .ev-velden{grid-template-columns:minmax(0,2.4fr) minmax(0,1fr)}
+  .okd .ev-velden > :only-child{grid-column:1 / -1}
   .okd .ev-s{grid-template-columns:210px minmax(0,70ch)}
   .okd .ev-kader-edit .ev-s{grid-template-columns:210px minmax(0,1fr)}
 }
 @container ev (min-width:1000px){
-  .okd .ev-kern.heeft-feiten.heeft-zet{grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr)}
+  .okd .ev-kern.heeft-feiten.heeft-vragen{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
   .okd .ev-kern > .ev-vraagvak{grid-column:1 / -1}
   .okd .ev-s{grid-template-columns:250px minmax(0,70ch)}
   .okd .ev-kader-edit .ev-s{grid-template-columns:250px minmax(0,1fr)}
@@ -218,6 +216,8 @@ export const EVALUATIE_CSS = `
   .okd .ev-meter{flex:1 1 60px;width:auto}
   .okd .ev-meer > summary{padding:9px 12px 12px 17px}
   .okd .ev-body{padding:14px 12px 14px 17px}
+  .okd .ev-intern{margin:0 -12px -14px -17px;padding:12px 12px 14px 17px}
+  .okd .ev-body > .ev-intern:first-child{margin-top:-14px}
   .okd .ev-diep{margin:0 -12px -14px -17px}
   .okd .ev-diep > summary,.okd .ev-diep-kop{padding-left:17px;padding-right:12px}
   .okd .ev-onder{padding-left:17px;padding-right:12px}
@@ -229,7 +229,7 @@ export const EVALUATIE_CSS = `
   .okd .ev-chev,.okd .ev-kader,.okd .ev-meter > span{transition:none}
 }
 @media print{
-  .okd .ev-kader,.okd .ev-beeld,.okd .ev-av,.okd .ev-zijde-kop,.okd .ev-vraagvak,.okd .ev-nr,.okd .ev-oordeel,.okd .ev-pil,.okd .ev-meter,.okd .ev-meter > span{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .okd .ev-kader,.okd .ev-beeld,.okd .ev-av,.okd .ev-doen-t,.okd .ev-intern,.okd .ev-merk,.okd .ev-vraagvak,.okd .ev-nr,.okd .ev-oordeel,.okd .ev-pil,.okd .ev-meter,.okd .ev-meter > span{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .okd .ev-kader{box-shadow:none}
   .okd .ev-kop{cursor:default;break-inside:avoid}
   .okd .ev-tools .ev-alles,.okd .ev-meer > summary,.okd .ev-diep > summary .ev-chev,.okd .ev-wis,.okd .ev-bewaard{display:none}
@@ -240,7 +240,7 @@ export const EVALUATIE_CSS = `
   .okd .ev-oordeel:not([class*="ev-oordeel-"]){display:none}
   .okd .ev-alleen-print{display:inline}
   .okd .ev-notitie::placeholder{color:transparent}
-  .okd .ev-zijde,.okd .ev-vraagvak,.okd .ev-oordeelvak,.okd .ev-feiten > li,.okd .ev-s-kop{break-inside:avoid}
+  .okd .ev-doen,.okd .ev-vraagvak,.okd .ev-oordeelvak,.okd .ev-feiten > li,.okd .ev-s-kop{break-inside:avoid}
   .okd .ev-s-kop{break-after:avoid}
 }
 `;

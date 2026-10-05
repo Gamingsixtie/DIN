@@ -5,11 +5,13 @@
 // evaluatie-word-reken.ts op dezelfde manier uit.
 //
 // Wat alleen bij het scherm hoort, staat er niet in: keuzelijstjes, links binnen de pagina
-// ("Hele tijdlijn", "Voortgangsbord"), en een Jira-koppeling zonder adres. Een bloktype
+// ("Hele tijdlijn", "Voortgangsbord"), en een Jira-koppeling zonder adres.
+// De tijdlijn, het voortgangsbord en de werkstroomkaarten waar blokken mee rekenen, komen uit
+// u.gegevens (Ctx); de werkstroomkaarten zelf zijn geen deel van de export meer. Een bloktype
 // dat hier niet bekend is, wordt overgeslagen met een melding in de console.
 
 import { AlignmentType, ExternalHyperlink, TextRun } from "docx";
-import type { Paragraph, ParagraphChild, Table, TableCell, TableRow } from "docx";
+import type { IBorderOptions, Paragraph, ParagraphChild, Table, TableCell, TableRow } from "docx";
 import type { DocBlok } from "@/lib/schemas";
 import type { ExportVersie } from "@/lib/evaluatie-uitsnede";
 import type { BlokVan } from "@/components/bewerkbaar/blok-typen";
@@ -90,7 +92,7 @@ export interface Ctx {
   /** bruikbare breedte van de pagina waarop het blok staat (twips) */
   breedte: number;
   vandaag: Date;
-  /** de eerste tijdlijn, het eerste voortgangsbord en de werkstroomkaarten in de export (zoals useBlok in de app) */
+  /** de eerste tijdlijn, het eerste voortgangsbord en de werkstroomkaarten uit u.gegevens (zoals useBlok in de app) */
   tijdlijn: Tijdlijn | null;
   bord: Bord | null;
   kaarten: Kaart[];
@@ -219,8 +221,12 @@ function tekstBlok(b: BlokVan<"tekst">): Inhoud {
 function calloutBlok(b: BlokVan<"callout">, ctx: Ctx): Inhoud {
   if (!heeft(b.titel) && !heeft(b.tekst)) return [];
   const toon = typeof b.toon === "string" ? b.toon : "info";
-  const inhoud = heeft(b.tekst) ? [alinea(t(schoon(b.tekst), { size: G.body, color: toon === "besluit" ? K.inkt : toon === "let-op" ? "78350F" : "1E3A5F" }), { na: 0 })] : [];
-  return [kader(inhoud, ctx.breedte, toon, schoon(b.titel)), wit()];
+  const tekst = schoon(b.tekst);
+  const kleur = toon === "besluit" ? K.inkt : toon === "let-op" ? "78350F" : "1E3A5F";
+  // elke alinea van de tekst een eigen alinea in Word: een lang kader breekt dan tussen twee regels
+  const stukken = tekst.split(/\n{2,}/).filter((x) => x.trim() !== "");
+  const inhoud = stukken.map((x, i) => alinea(t(x, { size: G.body, color: kleur }), { na: i === stukken.length - 1 ? 0 : 150 }));
+  return [kader(inhoud, ctx.breedte, toon, schoon(b.titel), tekst.length > 900), wit()];
 }
 
 function lijstBlok(b: BlokVan<"lijst">): Inhoud {
@@ -258,6 +264,7 @@ function kolomBreedtes(kolommen: string[], rijen: string[][], totaal: number, si
 }
 
 function tabelBlok(b: BlokVan<"tabel">, ctx: Ctx): Inhoud {
+  if (isActiebordTabel(b)) return actiebordBlok(b, ctx);
   const kolommen = (b.kolommen ?? []).map(schoon);
   const n = kolommen.length;
   if (n === 0) return heeft(b.titel) ? [blokTitel(schoon(b.titel))] : [];
@@ -298,6 +305,145 @@ function tabelBlok(b: BlokVan<"tabel">, ctx: Ctx): Inhoud {
   if (heeft(b.titel)) uit.push(blokTitel(schoon(b.titel)));
   uit.push(tabel(breedtes, [kop, ...lichaam]));
   uit.push(heeft(b.legenda) ? legenda(schoon(b.legenda)) : wit());
+  return uit;
+}
+
+// ---------- actiebord ----------
+// Een tabel met een groepkolom is in de app een actiebord (Actiebord.tsx), o.a. "Wat Cito zelf
+// moet doen": per groep (een werkstroom of "Programmabreed") de genummerde acties met wie het
+// doet. Hier dezelfde opbouw: de telling erboven, per groep een tabel met in de kop de naam, de
+// leads van de werkstroom (uit de werkstroomkaarten in u.gegevens) en het aantal acties, en per
+// actie het nummer, de tekst en wie. Een lege plek in de invulkolom staat er als "wie?", zoals
+// op het bord. Het actiebord staat alleen in de interne versie (evaluatie-uitsnede.ts).
+
+const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Wordt deze tabel in de app als actiebord getoond? (een geldige groepkolom) */
+function isActiebordTabel(b: BlokVan<"tabel">): boolean {
+  const g = b.groepKolom;
+  return typeof g === "number" && g >= 0 && g < (b.kolommen ?? []).length;
+}
+
+function actiebordBlok(b: BlokVan<"tabel">, ctx: Ctx): Inhoud {
+  const B = ctx.breedte;
+  const kolommen = (b.kolommen ?? []).map(schoon);
+  const g = b.groepKolom ?? 0;
+  const inv = typeof b.invulKolom === "number" && b.invulKolom >= 0 && b.invulKolom < kolommen.length ? b.invulKolom : null;
+  // de overige kolommen vormen de tekst van een actie
+  const tekstKolommen = kolommen.map((_, c) => c).filter((c) => c !== g && c !== inv);
+  const rijen = (b.rijen ?? []).map((r) => kolommen.map((_, c) => schoon((r ?? [])[c]))).filter((r) => r.some((c) => c !== ""));
+  const uit: Inhoud = [];
+  if (heeft(b.titel)) uit.push(blokTitel(schoon(b.titel)));
+  if (rijen.length > 0) {
+    // groepen in de volgorde waarin ze voor het eerst voorkomen
+    const groepen: { naam: string; rijen: string[][] }[] = [];
+    for (const r of rijen) {
+      const naam = r[g] || "Overig";
+      let gr = groepen.find((x) => norm(x.naam) === norm(naam));
+      if (!gr) groepen.push((gr = { naam, rijen: [] }));
+      gr.rijen.push(r);
+    }
+    const invulKop = inv !== null ? kolommen[inv] || "Wie" : "";
+    const ingevuld = inv !== null ? rijen.filter((r) => r[inv] !== "").length : 0;
+    const s = G.tabel;
+    const getal = { size: G.body, bold: true, color: K.cito } as const;
+    const klein = { size: s, color: K.inkt2 } as const;
+
+    // de telling: aantal acties en groepen, en hoeveel plekken "wie" zijn ingevuld
+    uit.push(
+      alinea(
+        [
+          ...t(String(rijen.length), getal),
+          ...t(rijen.length === 1 ? " actie" : " acties", klein),
+          ...t("   ·   ", { size: s, color: K.inkt3 }),
+          ...t(String(groepen.length), getal),
+          ...t(groepen.length === 1 ? " groep" : " groepen", klein),
+          ...(inv !== null
+            ? [
+                tab(),
+                ...t(invulKop + " ingevuld   ", { size: G.label, bold: true, color: K.inkt3, allCaps: true, spatie: 10 }),
+                ...t(`${ingevuld} van ${rijen.length}`, { size: s, bold: true, color: K.cito }),
+              ]
+            : []),
+        ],
+        { na: 120, bijVolgende: true, tabRechts: B }
+      )
+    );
+
+    const wNr = 560;
+    const wWie = inv !== null ? 2700 : 0;
+    const kol = inv !== null ? [wNr, B - wNr - wWie, wWie] : [wNr, B - wNr];
+    for (const gr of groepen) {
+      const ws = ctx.kaarten.find((k) => norm(schoon(k.naam)) === norm(gr.naam) || (heeft(k.bijnaam) && norm(schoon(k.bijnaam)) === norm(gr.naam))) ?? null;
+      const doms = domeinenVan(ws?.domeinen);
+      // accent: het eerste domein van de werkstroom; alle vier of programmabreed: Cito-blauw
+      const accent = hex(doms.length > 0 ? accentKleur(doms) : /programma/i.test(gr.naam) ? K.cito : "64748B");
+      const donker = meng(accent, 0.8, "000000");
+      const open = inv !== null ? gr.rijen.filter((r) => r[inv] === "").length : 0;
+      const verdeeld = inv !== null && open === 0;
+      const telling = verdeeld ? "alles verdeeld" : `${gr.rijen.length} ${gr.rijen.length === 1 ? "actie" : "acties"}`;
+
+      const kop: Paragraph[] = [
+        alinea([...t(gr.naam, { size: G.h3, bold: true, color: K.cito }), tab(), ...t(telling, { size: G.fijn, bold: true, color: verdeeld ? K.groen : K.inkt2 })], {
+          na: 0,
+          bijVolgende: true,
+          tabRechts: B - 330,
+        }),
+      ];
+      const leads = splitsLeads(schoon(ws?.leads));
+      if (leads.length > 0) {
+        const runs: TextRun[] = [];
+        leads.forEach((l, i) => {
+          if (i > 0) runs.push(...t("     ", { size: s }));
+          if (l.rol) runs.push(...t(l.rol + "  ", { size: G.label, bold: true, color: K.inkt3, allCaps: true, spatie: 10 }));
+          runs.push(...t(l.naam, { size: s, bold: true }));
+        });
+        kop.push(alinea(runs, { voor: 30, na: 0, bijVolgende: true }));
+      }
+      const tabelRijen: TableRow[] = [
+        rij(
+          [
+            cel(kop, {
+              breedte: B,
+              span: kol.length,
+              vlak: meng(accent, 0.07),
+              randen: { top: lijn(accent, 36), bottom: lijn(), left: lijn(), right: lijn() },
+              marge: [100, 160, 100, 160],
+            }),
+          ],
+          { kop: true }
+        ),
+      ];
+      gr.rijen.forEach((r, i) => {
+        const teksten = tekstKolommen.map((c) => r[c]).filter(Boolean);
+        const inhoud =
+          teksten.length > 0
+            ? teksten.map((v, j) => alinea(t(v, j === 0 ? { size: s } : { size: G.fijn, color: K.inkt2 }), { na: j === teksten.length - 1 ? 0 : 30, regel: 258 }))
+            : [leeg("—", s, { na: 0 })];
+        const wie = inv !== null ? r[inv] : "";
+        tabelRijen.push(
+          rij([
+            cel([alinea(t(String(i + 1), { size: s, bold: true, color: donker }), { na: 0, regel: 258, uitlijning: AlignmentType.CENTER })], {
+              breedte: kol[0],
+              vlak: K.vlak,
+              marge: [70, 60, 70, 60],
+            }),
+            cel(inhoud, { breedte: kol[1], marge: [70, 140, 70, 140] }),
+            ...(inv !== null
+              ? [
+                  cel([wie ? alinea(t(wie, { size: s, bold: true }), { na: 0, regel: 258 }) : leeg(invulKop.toLowerCase() + "?", s, { na: 0, regel: 258 })], {
+                    breedte: kol[2],
+                    marge: [70, 120, 70, 140],
+                  }),
+                ]
+              : []),
+          ])
+        );
+      });
+      uit.push(tabel(kol, tabelRijen), wit(200));
+    }
+  }
+  if (heeft(b.legenda)) uit.push(legenda(schoon(b.legenda)));
   return uit;
 }
 
@@ -962,11 +1108,13 @@ function voortgangsbordBlok(b: Bord, ctx: Ctx): Inhoud {
 }
 
 // ---------- evaluatie ----------
-// Per kader één tabel, in de opbouw van het evaluatiebord (EvaluatieBlok.tsx): de kop met
-// nummer, vraag en het eerste beeld; daaronder het eerste beeld voluit en wie aan zet is, de
-// feiten met hun bron, "Wie is aan zet" in twee zijden (Cito, dan 3sides) en de vraag voor
-// het gesprek. Alleen intern: ons oordeel met de notitie en de onderbouwing (met "Wat we
-// toetsen" erboven), iets kleiner gezet.
+// Per kader één tabel, in de opbouw van het evaluatiebord (EvaluatieBlok.tsx). In beide versies,
+// en dat is wat we aan 3sides communiceren: de kop met nummer, vraag en het oordeel als gekleurd
+// vak; de bevinding; de feiten met hun bron; het blok "Wat we van 3sides vragen" en de vraag
+// voor het gesprek. Alleen intern volgt daaronder een eigen deel met een grijze strook links en
+// de regel "Intern Cito": het blok "Wat Cito zelf doet (intern)", wie aan zet is (als dat is
+// ingevuld), ons oordeel met de notitie en de onderbouwing (met "Wat we toetsen" erboven), iets
+// kleiner gezet. Zo leest niemand de eigen acties van Cito als deel van de boodschap aan 3sides.
 
 type Kader = BlokVan<"evaluatie">["kaders"][number];
 
@@ -978,6 +1126,10 @@ const BEELD: Record<BeeldSoort, { vlak: string; tekst: string; rand: string; bal
   nee: { vlak: "FEF3F2", tekst: "B42318", rand: "FECDCA", balk: "B42318" },
   grijs: { vlak: "F1F5F9", tekst: "4A5565", rand: "CBD5E1", balk: "94A3B8" },
 };
+
+/** Kleuren van het blok "Wat we van 3sides vragen" en van het interne deel van een kader. */
+const VRAGEN = { vlak: "F1FAFB", tekst: "0B5F75" } as const;
+const INTERN = { strook: "7C8AA0", vlak: "F4F6F9", band: "E8EEF5" } as const;
 
 /** De rolverdeling boven de kaders: Cito en 3sides, elk met de rol uit het blok. */
 function rolverdeling(rolCito: string, rol3sides: string, B: number): Table {
@@ -1013,7 +1165,7 @@ function rolverdeling(rolCito: string, rol3sides: string, B: number): Table {
   ]);
 }
 
-function evaluatieKader(k: Kader, nr: number, b: BlokVan<"evaluatie">, ctx: Ctx): Table {
+function evaluatieKader(k: Kader, nr: number, ctx: Ctx): Table {
   const B = ctx.breedte;
   const intern = ctx.versie === "intern";
   // raster: nummer | label | … | … | chip; de helft van de breedte valt na kolom 3
@@ -1026,15 +1178,18 @@ function evaluatieKader(k: Kader, nr: number, b: BlokVan<"evaluatie">, ctx: Ctx)
 
   const { kop: chipTekst, zin } = splitsBeeld(schoon(k.beeld));
   const kleur = BEELD[chipTekst ? beeldSoort(chipTekst) : "grijs"];
-  // de strook links volgt het eerste beeld, zoals in de app
+  // de strook links volgt de bevinding, zoals in de app; in het interne deel is ze grijs
   const strook = lijn(kleur.balk, 30);
+  const strookIntern = lijn(INTERN.strook, 30);
   const buiten = lijn(K.rand);
   const titel = schoon(k.titel).replace(/^\d+\s*·\s*/, "");
   const rijen: TableRow[] = [];
-  const heel = (inhoud: Paragraph[], o: { vlak?: string; breekbaar?: boolean } = {}) =>
-    rij([cel(inhoud, { breedte: B, span: 5, vlak: o.vlak, randen: { top: lijn(), bottom: lijn(), left: strook, right: buiten }, marge })], { breekbaar: o.breekbaar });
+  const heel = (inhoud: Paragraph[], o: { vlak?: string; breekbaar?: boolean; links?: IBorderOptions; boven?: IBorderOptions } = {}) =>
+    rij([cel(inhoud, { breedte: B, span: 5, vlak: o.vlak, randen: { top: o.boven ?? lijn(), bottom: lijn(), left: o.links ?? strook, right: buiten }, marge })], {
+      breekbaar: o.breekbaar,
+    });
 
-  // kop: nummer, de vraag en het eerste beeld als gekleurd vak; herhaalt op een volgende pagina
+  // kop: nummer, de vraag en het oordeel als gekleurd vak; herhaalt op een volgende pagina
   const boven = lijn(K.cito, 12);
   rijen.push(
     rij(
@@ -1074,115 +1229,106 @@ function evaluatieKader(k: Kader, nr: number, b: BlokVan<"evaluatie">, ctx: Ctx)
     )
   );
 
-  // het eerste beeld voluit, met rechts wie aan zet is (de kop van het kader in de app)
-  const actieBij = schoon(k.actieBij);
+  // De bevinding. Naar 3sides gaat ze als onze bevinding; intern is ze een voorstel ("eerste
+  // beeld") zolang ons oordeel bij dit kader niet is ingevuld.
+  const oordeel = oordeelNaam(schoon(k.oordeel));
+  const bevindingKop = intern && !oordeel.ingevuld ? "Eerste beeld · voorstel" : "Onze bevinding";
   // "bij volgende" op elke alinea van deze rij: zo begint een kader nooit met alleen de kop
-  // onderaan een pagina, maar altijd met het eerste beeld en de feiten erbij
+  // onderaan een pagina, maar altijd met de bevinding en de feiten erbij
   const lijm = { bijVolgende: true };
-  const beeldCel = zin ? [label("Eerste beeld · voorstel", kleur.tekst, lijm), alinea(t(zin, { size: G.body }), { na: 0, ...lijm })] : null;
-  const aanZetCel = actieBij ? [label("Aan zet", K.inkt2, lijm), alinea(t(actieBij, { size: G.body, bold: true }), { na: 0, ...lijm })] : null;
-  if (beeldCel && aanZetCel) {
-    rijen.push(
-      rij([
-        cel(beeldCel, { breedte: B - wChip, span: 4, vlak: meng(kleur.vlak, 0.6), randen: { top: lijn(), bottom: lijn(), left: strook, right: lijn() }, marge }),
-        cel(aanZetCel, { breedte: wChip, randen: { top: lijn(), bottom: lijn(), left: lijn(), right: buiten }, marge: [110, 120, 110, 150] }),
-      ])
-    );
-  } else if (beeldCel) {
-    rijen.push(heel(beeldCel, { vlak: meng(kleur.vlak, 0.6) }));
-  } else if (aanZetCel) {
-    rijen.push(heel(aanZetCel));
-  }
+  if (zin) rijen.push(heel([label(bevindingKop, kleur.tekst, lijm), alinea(t(zin, { size: G.body }), { na: 0, ...lijm })], { vlak: meng(kleur.vlak, 0.6) }));
 
   // de feiten, genummerd, met de bron op een eigen, rustiger regel
   const punten = (k.punten ?? []).map(schoon).filter(Boolean);
-  if (punten.length > 0) {
+  // Elk feit is een eigen rij zonder lijn ertussen: een paginawissel valt dan tussen twee feiten
+  // en niet midden in een feit. Het kopje staat in de rij van het eerste feit.
+  punten.forEach((p, i) => {
+    const { kern, bron } = splitsBron(p);
+    const eerste = i === 0;
+    const laatste = i === punten.length - 1;
+    const feit = punt(
+      [...t(kern, { size: G.body }), ...(bron ? [new TextRun({ break: 1, text: bron, font: FONT, size: G.fijn, color: K.inkt2 })] : [])],
+      t(String(i + 1), { size: G.body, bold: true, color: K.cito }),
+      { na: 0, inspring: 330 }
+    );
     rijen.push(
-      heel(
+      rij(
         [
-          label("Feiten"),
-          ...punten.map((p, i) => {
-            const { kern, bron } = splitsBron(p);
-            return punt(
-              [...t(kern, { size: G.body }), ...(bron ? [new TextRun({ break: 1, text: bron, font: FONT, size: G.fijn, color: K.inkt2 })] : [])],
-              t(String(i + 1), { size: G.body, bold: true, color: K.cito }),
-              { na: i === punten.length - 1 ? 0 : 90, inspring: 330 }
-            );
+          // geen "bij volgende" op het kopje: dat zou de rij aan het tweede feit vastplakken
+          cel(eerste ? [label("Feiten"), feit] : [feit], {
+            breedte: B,
+            span: 5,
+            randen: { top: eerste ? lijn() : GEEN, bottom: laatste ? lijn() : GEEN, left: strook, right: buiten },
+            marge: [eerste ? 110 : 45, 170, laatste ? 110 : 45, 190],
           }),
         ],
-        { breekbaar: punten.join("").length > 1400 }
+        // alleen een heel lang feit mag zelf over de paginarand lopen
+        { breekbaar: p.length > 900 }
       )
     );
-  }
+  });
 
-  // wie is aan zet: Cito (heeft de lead) en 3sides (voert uit), met de rol uit het blok
-  const zetCito = schoon(k.aanZetCito);
-  const zet3 = schoon(k.aanZet3sides);
-  if (zetCito || zet3) {
-    const rolCito = schoon(b.rolCito);
-    const rol3 = schoon(b.rol3sides);
-    const wR = B - half;
+  // wat we van 3sides vragen: het blok dat naar 3sides gaat
+  const vragen = schoon(k.aanZet3sides);
+  if (vragen) {
     rijen.push(
-      rij([
-        cel([label("Wie is aan zet", K.inkt2, { na: 0, bijVolgende: true })], {
-          breedte: B,
-          span: 5,
-          randen: { top: lijn(), bottom: GEEN, left: strook, right: buiten },
-          marge: [110, 170, 50, 190],
-        }),
-      ])
-    );
-    const zijdeKop = (naam: string, rol: string, donker: boolean) =>
-      alinea([...t(naam, { size: G.body, bold: true, color: donker ? K.wit : K.inkt }), ...(rol ? t("   " + rol, { size: G.tabel, color: donker ? "DBE7F5" : K.inkt2 }) : [])], {
-        na: 0,
-        bijVolgende: true,
-      });
-    const zijdeTekst = (tekst: string) => (tekst ? alinea(t(tekst, { size: G.body }), { na: 0 }) : leeg("Geen actie genoemd.", G.body, { na: 0 }));
-    rijen.push(
-      rij([
-        cel([zijdeKop("Cito", rolCito, true)], {
-          breedte: half,
-          span: 3,
-          vlak: K.cito,
-          randen: { top: lijn(K.cito), bottom: lijn(K.cito), left: strook, right: lijn(K.cito) },
-          marge: [80, 150, 80, 190],
-        }),
-        cel([zijdeKop("3sides", rol3, false)], {
-          breedte: wR,
-          span: 2,
-          vlak: "F1F5F9",
-          randen: { top: lijn(K.rand), bottom: lijn(K.rand), left: lijn(K.rand), right: buiten },
-          marge: [80, 150, 80, 150],
-        }),
-      ]),
-      rij([
-        cel([zijdeTekst(zetCito)], { breedte: half, span: 3, randen: { top: lijn(), bottom: lijn(), left: strook, right: lijn(K.rand) }, marge }),
-        cel([zijdeTekst(zet3)], { breedte: wR, span: 2, randen: { top: lijn(), bottom: lijn(), left: lijn(K.rand), right: buiten }, marge: [110, 170, 110, 150] }),
-      ])
+      heel([label("Wat we van 3sides vragen", VRAGEN.tekst), alinea(t(vragen, { size: G.body }), { na: 0 })], { vlak: VRAGEN.vlak, breekbaar: vragen.length > 900 })
     );
   }
 
   // de vraag voor het gesprek
   if (heeft(k.vraag3sides)) {
-    rijen.push(heel([label("Vraag voor het gesprek", K.cito), alinea(t(schoon(k.vraag3sides), { size: G.body, bold: true, color: K.cito }), { na: 0 })], { vlak: K.vlakBlauw }));
+    rijen.push(
+      heel([label("Vraag voor het gesprek", K.cito), alinea(t(schoon(k.vraag3sides), { size: G.body, bold: true, color: K.cito }), { na: 0 })], {
+        vlak: K.vlakBlauw,
+        breekbaar: schoon(k.vraag3sides).length > 900,
+      })
+    );
   }
 
-  // alleen intern: ons oordeel met de notitie, en de onderbouwing
+  // Alleen intern, als eigen deel met een grijze strook links: wat Cito zelf doet, wie aan zet
+  // is (als dat is ingevuld), ons oordeel met de notitie, en de onderbouwing. De versie voor
+  // 3sides krijgt deze velden leeg aangeleverd en eindigt bij de vraag voor het gesprek.
   if (intern) {
-    const o = oordeelNaam(schoon(k.oordeel));
+    const kopje = { size: G.label, bold: true, color: K.cito, allCaps: true, spatie: 12 } as const;
+    rijen.push(
+      heel(
+        [
+          alinea([...vakje("INTERN CITO", K.cito, K.wit, G.label), ...t("   Alleen voor Cito: dit deel gaat niet naar 3sides.", { size: G.fijn, color: K.inkt2 })], {
+            na: 0,
+            bijVolgende: true,
+          }),
+        ],
+        { vlak: INTERN.band, links: strookIntern, boven: lijn(INTERN.strook, 12) }
+      )
+    );
+
+    const zelf = schoon(k.aanZetCito);
+    if (zelf) {
+      rijen.push(
+        heel([label("Wat Cito zelf doet (intern)", K.cito, lijm), alinea(t(zelf, { size: G.body }), { na: 0 })], {
+          vlak: INTERN.vlak,
+          links: strookIntern,
+          breekbaar: zelf.length > 900,
+        })
+      );
+    }
+
+    const aanZet = schoon(k.actieBij);
     rijen.push(
       heel(
         [
           alinea(
             [
-              ...t("Ons oordeel (intern)     ", { size: G.label, bold: true, color: K.cito, allCaps: true, spatie: 12 }),
-              ...(o.ingevuld ? chip(o.naam, o.soort, G.body) : t(o.naam, { size: G.body, italics: true, color: K.inkt3 })),
+              ...(aanZet ? [...t("Aan zet   ", kopje), ...t(aanZet, { size: G.body, bold: true }), ...t("            ", { size: G.body })] : []),
+              ...t("Ons oordeel (intern)   ", kopje),
+              ...(oordeel.ingevuld ? chip(oordeel.naam, oordeel.soort, G.body) : t(oordeel.naam, { size: G.body, italics: true, color: K.inkt3 })),
             ],
             { na: heeft(k.notitie) ? 70 : 0 }
           ),
           ...(heeft(k.notitie) ? [alinea(t(schoon(k.notitie), { size: G.body }), { na: 0 })] : []),
         ],
-        { vlak: K.vlak }
+        { links: strookIntern }
       )
     );
 
@@ -1197,7 +1343,7 @@ function evaluatieKader(k: Kader, nr: number, b: BlokVan<"evaluatie">, ctx: Ctx)
           cel([alinea(t("Onderbouwing (intern)", { size: G.label, bold: true, color: K.inkt2, allCaps: true, spatie: 12 }), { na: 0, bijVolgende: true })], {
             breedte: B,
             span: 5,
-            randen: { top: lijn(K.rand), bottom: lijn(), left: strook, right: buiten },
+            randen: { top: lijn(K.rand), bottom: lijn(), left: strookIntern, right: buiten },
             marge: [100, 170, 80, 190],
           }),
         ])
@@ -1222,7 +1368,7 @@ function evaluatieKader(k: Kader, nr: number, b: BlokVan<"evaluatie">, ctx: Ctx)
                 breedte: wL,
                 span: 2,
                 vlak: K.vlak,
-                randen: { top: lijn(), bottom: lijn(), left: strook, right: lijn() },
+                randen: { top: lijn(), bottom: lijn(), left: strookIntern, right: lijn() },
                 marge: [90, 100, 90, 190],
               }),
               cel(tekst.length > 0 ? tekst : [alinea(t("—", { size: G.fijn, color: K.inkt3 }), { na: 0 })], {
@@ -1250,7 +1396,7 @@ function evaluatieBlok(b: BlokVan<"evaluatie">, ctx: Ctx): Inhoud {
   if (heeft(b.titel)) uit.push(blokTitel(schoon(b.titel)));
   if (heeft(b.intro)) uit.push(tekstAlinea(schoon(b.intro), {}, { na: 160 }));
   if (heeft(b.rolCito) || heeft(b.rol3sides)) uit.push(rolverdeling(schoon(b.rolCito), schoon(b.rol3sides), ctx.breedte), wit(260));
-  kaders.forEach((k, i) => uit.push(evaluatieKader(k, i + 1, b, ctx), wit(240)));
+  kaders.forEach((k, i) => uit.push(evaluatieKader(k, i + 1, ctx), wit(240)));
   if (heeft(b.legenda)) uit.push(legenda(schoon(b.legenda)));
   return uit;
 }

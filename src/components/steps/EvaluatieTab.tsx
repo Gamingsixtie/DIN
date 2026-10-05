@@ -1,27 +1,36 @@
 "use client";
 
-// Stap 11, tabblad "Evaluatie 3sides": de kern voor het evaluatiegesprek met 3sides, voor de
-// programma-eigenaar. Van boven naar beneden:
-// 1. een compact kopje: wat dit tabblad is, de leesvolgorde (springlinks) en het exportpaneel;
+// Stap 11, tabblad "Evaluatie 3sides": wat Cito aan 3sides communiceert, en alleen dat. Het
+// tabblad gaat helemaal over 3sides; wat Cito zelf doet en ons eigen oordeel staan op het
+// tabblad "Evaluatie intern" (EvaluatieInternTab.tsx). Van boven naar beneden:
+// 1. een compact kopje: wat dit tabblad is en de leesvolgorde (springlinks);
 // 2. de agenda (sectie "agenda" van het gespreksdocument, evaluatie-gesprek-default.ts);
-// 3. drie delen uit de analyse (evaluatie-uitsnede.ts): hetzelfde document als het tabblad
-//    Analyse (session.documenten["integratie-3sides"]), geen kopie. Alleen de secties uit
-//    UITSNEDE_SECTIES en de blokken waarvoor inUitsnede geldt (dus zonder het actiebord van Cito);
-// 4. de begeleidende brief (sectie "brief" van het gespreksdocument).
+// 3. de delen uit de analyse (evaluatie-uitsnede.ts: UITSNEDE_SECTIES, de planning met wat er
+//    is geleverd en de evaluatie): hetzelfde document als het tabblad Analyse
+//    (session.documenten["integratie-3sides"]), geen kopie. Alleen de blokken waarvoor
+//    inUitsnede geldt (dus zonder het actiebord van Cito en de interne notitie), en het
+//    evaluatieblok in de weergave "extern" (EvaluatieWeergaveContext): per kader onze bevinding,
+//    de feiten, wat we van 3sides vragen en de vraag voor het gesprek;
+// 4. de begeleidende brief (sectie "brief" van het gespreksdocument);
+// 5. het exportpaneel, met alleen de versie voor 3sides.
 // Elk onderdeel staat in een eigen kader: een BewerkbaarDocument dat één sectie toont
 // (alleenSecties). Het filteren gebeurt alleen bij het tekenen; wat wordt opgeslagen is
-// altijd het hele document. Statussen, vinkjes, het oordeel en de notitie in de evaluatie
-// worden in weergave meteen bewaard; met het potlood bij een deel bewerk je alleen dat deel
-// (Opslaan of Annuleren in de balk die in beeld blijft). Opmerkingen bij een blok zijn dezelfde
-// als in de analyse (zelfde document, sectie en blokindex).
+// altijd het hele document. Statussen en vinkjes worden in weergave meteen bewaard; met het
+// potlood bij een deel bewerk je alleen dat deel (Opslaan of Annuleren in de balk die in beeld
+// blijft). Opmerkingen bij een blok zijn dezelfde als in de analyse (zelfde document, sectie
+// en blokindex).
+// De delen van de analyse die hier niet staan (de werkstroomkaarten), blijven leesbaar voor de
+// blokken die er wel staan (opTabblad): het voortgangsbord haalt er zijn koppelingen uit.
 // "deel N" in de teksten: staat het deel hier, dan springt de link ernaartoe; anders opent hij
 // het tabblad Analyse bij dat deel (naarAnalyse), zonder de pagina te herladen. Hetzelfde
 // vangnet geldt voor elke andere link naar een anker dat niet op dit tabblad staat.
+// De bouwstenen (het document uit de sessie, de leesvolgorde, de bewerkbalk, de melding) deelt
+// dit bestand met EvaluatieInternTab.tsx.
 
 import { useMemo, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { useSession } from "@/lib/session-context";
-import type { BewerkbaarDocument as DocData, DocSectie } from "@/lib/schemas";
+import type { BewerkbaarDocument as DocData, DocBlok, DocSectie } from "@/lib/schemas";
 import { DEFAULT_INTEGRATIE_3SIDES, INTEGRATIE_SLEUTEL } from "@/lib/integratie-3sides-default";
 import {
   DEFAULT_EVALUATIE_GESPREK,
@@ -29,13 +38,14 @@ import {
   GESPREK_AGENDA,
   GESPREK_BRIEF,
 } from "@/lib/evaluatie-gesprek-default";
-import { UITSNEDE_SECTIES, inUitsnede, isActiebord } from "@/lib/evaluatie-uitsnede";
+import { UITSNEDE_SECTIES, inUitsnede } from "@/lib/evaluatie-uitsnede";
 import { isVerwijderd, kloon } from "@/lib/bewerkbaar-document";
 import { metBasis, oplossen, overnemen } from "@/lib/doc-versie";
 import type { DocVersie } from "@/lib/doc-versie";
 import BewerkbaarDocument, { DOCUMENT_CSS, linkdoelen } from "@/components/bewerkbaar/BewerkbaarDocument";
 import { DeelEldersContext, sectieKaart } from "@/components/bewerkbaar/bron-context";
 import type { SectieKaart } from "@/components/bewerkbaar/bron-context";
+import { EvaluatieWeergaveContext } from "@/components/bewerkbaar/blokken/evaluatie-weergave";
 import { OpmerkingenProvider } from "@/components/bewerkbaar/Opmerkingen";
 import { useMelding } from "@/components/bewerkbaar/BewerkBalk";
 import type { Melding } from "@/components/bewerkbaar/BewerkBalk";
@@ -44,26 +54,43 @@ import EvaluatieExport from "@/components/steps/EvaluatieExport";
 
 export const EVALUATIE_TAB = { id: "evaluatie", label: "Evaluatie 3sides" } as const;
 
+/** Anker van het exportpaneel onderaan de twee evaluatietabbladen (voor de leesvolgorde). */
+export const DELEN_ANKER = "evaluatie-delen";
+
 /** Korte naam per deel uit de analyse, voor de leesvolgorde; zonder naam: de titel van de sectie. */
-const KORTE_NAAM: Record<string, string> = {
-  werkstromen: "Werkstromen",
+export const KORTE_NAAM: Record<string, string> = {
   planning: "Planning en opleveringen",
   evaluatie: "Evaluatie",
 };
+
+/** Staat dit blok op de pagina? (zelfde vorm als `toonBlok` van BewerkbaarDocument) */
+export type BlokFilter = (sectieId: string, blok: DocBlok) => boolean;
+
+/**
+ * Het filter voor een tabblad dat een paar secties van de analyse toont: in die secties
+ * bepaalt `filter` welke blokken er staan; de andere secties staan niet op het tabblad
+ * (alleenSecties), maar blijven leesbaar voor de blokken die er wel staan. Zo rekent het
+ * voortgangsbord met de werkstroomkaarten en kent het actiebord de domeinen en de leads, ook
+ * al staan die kaarten zelf alleen in de analyse.
+ */
+export function opTabblad(secties: readonly string[], filter: BlokFilter): BlokFilter {
+  return (sectieId, blok) => !secties.includes(sectieId) || filter(sectieId, blok);
+}
 
 // Vaste lijsten per kader (één sectie), zodat de gememoiseerde secties niet opnieuw renderen.
 const ALLEEN_AGENDA = [GESPREK_AGENDA] as const;
 const ALLEEN_BRIEF = [GESPREK_BRIEF] as const;
 const ALLEEN: Record<string, readonly string[]> = Object.fromEntries(UITSNEDE_SECTIES.map((id) => [id, [id]]));
+const TOON_EXTERN = opTabblad(UITSNEDE_SECTIES, inUitsnede);
 
 const KNOP_PRIMAIR = `${KNOP} bg-cito-blue text-white hover:bg-cito-blue/90`;
-const KNOP_RAND = `${KNOP} border border-[#003366] bg-white text-[#003366] hover:bg-[#003366] hover:text-white`;
+export const KNOP_RAND = `${KNOP} border border-[#003366] bg-white text-[#003366] hover:bg-[#003366] hover:text-white`;
 
 type Meld = (melding: Melding) => void;
 
 // ---------- een document uit de sessie, per sectie te bewerken ----------
 
-interface SessieDocument {
+export interface SessieDocument {
   versie: DocVersie;
   /** wat getoond wordt: het concept zolang een sectie wordt bewerkt, anders de opgeslagen versie */
   doc: DocData;
@@ -84,7 +111,7 @@ interface SessieDocument {
  * de andere tabbladen (doc-versie.ts): standaard, opgeslagen of automatisch overgenomen. Anders
  * dan in het tabblad Analyse wordt hier alleen per sectie bewerkt.
  */
-function useSessieDocument(sleutel: string, standaard: DocData, meld: Meld): SessieDocument {
+export function useSessieDocument(sleutel: string, standaard: DocData, meld: Meld): SessieDocument {
   const { session, updateSession } = useSession();
   const bewaard = session?.documenten?.[sleutel];
   const versie = useMemo(() => oplossen(standaard, bewaard), [standaard, bewaard]);
@@ -220,27 +247,23 @@ export function NieuwereVoorsteltekst(p: {
 // ---------- wat er op het tabblad staat ----------
 
 /** De sectie met deze id, als ze bestaat en niet is verwijderd. */
-function vind(doc: DocData, id: string): DocSectie | null {
+export function vind(doc: DocData, id: string): DocSectie | null {
   return doc.secties.find((s) => s.id === id && !isVerwijderd(s)) ?? null;
 }
 
 /**
- * Alle linkdoelen op het tabblad als één tekst (een id per regel): de drie delen uit de analyse
- * met hun werkstroomkaarten en tijdlijngroepen, zonder de verborgen blokken, plus agenda en brief.
+ * De linkdoelen van de delen uit de analyse die op een tabblad staan: de secties zelf en de
+ * tijdlijngroepen en werkstroomkaarten in de blokken die er getoond worden (`toon`).
  */
-function ankersOpTabblad(analyse: DocData, gesprek: DocData): string {
-  const ids: string[] = [];
-  for (const id of UITSNEDE_SECTIES) {
+export function ankersVan(analyse: DocData, secties: readonly string[], toon: BlokFilter): string[] {
+  return secties.flatMap((id) => {
     const s = vind(analyse, id);
-    if (s) ids.push(...linkdoelen(s, inUitsnede));
-  }
-  for (const id of [GESPREK_AGENDA, GESPREK_BRIEF]) if (vind(gesprek, id)) ids.push("sec-" + id);
-  return ids.join("\n");
+    return s ? linkdoelen(s, toon) : [];
+  });
 }
 
-/** De sectiekaart van de hele analyse, met `elders` bij elk deel dat niet op dit tabblad staat. */
-function deelKaartVan(analyse: DocData): SectieKaart[] {
-  const hier: readonly string[] = UITSNEDE_SECTIES;
+/** De sectiekaart van de hele analyse, met `elders` bij elk deel dat niet (heel) op het tabblad staat. */
+export function deelKaartVan(analyse: DocData, hier: readonly string[]): SectieKaart[] {
   return sectieKaart(analyse.secties.filter((s) => !isVerwijderd(s))).map((k) => ({
     nummer: k.nummer,
     id: k.id,
@@ -248,12 +271,38 @@ function deelKaartVan(analyse: DocData): SectieKaart[] {
   }));
 }
 
+/**
+ * Vangnet tegen dode links op een tabblad dat maar een deel van de analyse toont: een klik op
+ * een link naar een anker dat niet op de pagina staat, opent de analyse bij dat anker ("deel N"
+ * regelt dat zelf al, zie bron-context.tsx).
+ */
+export function vangLinkNaar(naarAnalyse: (anker: string) => void) {
+  return (e: MouseEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = (e.target as HTMLElement).closest?.('a[href^="#"]');
+    const id = decodeURIComponent((a?.getAttribute("href") ?? "").slice(1));
+    if (!id || document.getElementById(id)) return;
+    e.preventDefault();
+    naarAnalyse(id);
+  };
+}
+
 // ---------- kleine onderdelen ----------
 
 /** "4 · De vier werkstromen: wat 3sides doet" → { nr: "4", rest: "De vier werkstromen: wat 3sides doet" }. */
-function titelDelen(titel: string): { nr: string; rest: string } {
+export function titelDelen(titel: string): { nr: string; rest: string } {
   const m = /^\s*(\d{1,2})\s*·\s*(.*)$/.exec(titel ?? "");
   return m ? { nr: m[1], rest: m[2].trim() } : { nr: "", rest: (titel ?? "").trim() };
+}
+
+/** Pictogram voor het exportpaneel in de leesvolgorde. */
+export function IcoonDelen() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+      <path d="M8 2.5v7M5.2 7 8 9.8 10.8 7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 11.5v1.2a.8.8 0 0 0 .8.8h8.4a.8.8 0 0 0 .8-.8v-1.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function IcoonAgenda() {
@@ -274,7 +323,7 @@ function IcoonBrief() {
   );
 }
 
-interface Stap {
+export interface Stap {
   anker: string;
   naam: string;
   /** nummer van het deel in de analyse, of een icoon voor de onderdelen van dit tabblad */
@@ -284,7 +333,7 @@ interface Stap {
 }
 
 /** De leesvolgorde als springlinks: één regel op een breed scherm, onder elkaar op een telefoon. */
-function Leesvolgorde({ stappen }: { stappen: Stap[] }) {
+export function Leesvolgorde({ stappen }: { stappen: Stap[] }) {
   return (
     <nav aria-label="Leesvolgorde van dit tabblad" className="mt-4">
       <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#4a5565]">Leesvolgorde</p>
@@ -313,7 +362,7 @@ function Leesvolgorde({ stappen }: { stappen: Stap[] }) {
 }
 
 /** Korte regel in de huisstijl van stap 11: wit vlak, dunne rand, eventueel een knop. */
-function Regel(p: { children: ReactNode; knop?: ReactNode; toon?: "info" | "let-op" }) {
+export function Regel(p: { children: ReactNode; knop?: ReactNode; toon?: "info" | "let-op" }) {
   const kleur =
     p.toon === "let-op"
       ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -329,7 +378,7 @@ function Regel(p: { children: ReactNode; knop?: ReactNode; toon?: "info" | "let-
 }
 
 /** Balk die in beeld blijft zolang een deel wordt bewerkt: Opslaan, Annuleren en (optioneel) de voorsteltekst terug. */
-function BewerkStrook(p: { titel: string; onOpslaan: () => void; onAnnuleren: () => void; onHerstel?: () => void }) {
+export function BewerkStrook(p: { titel: string; onOpslaan: () => void; onAnnuleren: () => void; onHerstel?: () => void }) {
   const [vraag, setVraag] = useState(false);
   return (
     <div
@@ -401,11 +450,45 @@ function BewerkStrook(p: { titel: string; onOpslaan: () => void; onAnnuleren: ()
   );
 }
 
+/** De melding na een actie, vast onderin beeld: ook zichtbaar als je ver in een deel zit. */
+export function VasteMelding({ melding }: { melding: Melding | null }) {
+  if (!melding) return null;
+  return (
+    <div
+      role="status"
+      className={
+        "fixed bottom-14 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-lg " +
+        (melding.soort === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-blue-200 bg-blue-50 text-blue-800")
+      }
+    >
+      {melding.tekst}
+    </div>
+  );
+}
+
+/** Verwijzing naar het andere evaluatietabblad: één zin met de knop erachter. */
+export function NaarAnderTabblad(p: { children: ReactNode; knop: string; onKlik: () => void }) {
+  return (
+    <div className="mt-3 flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-[#d9e1eb] bg-[#f8fafc] px-3.5 py-2.5">
+      <p className="min-w-0 flex-1 basis-64 text-[13px] leading-relaxed text-[#374151]">{p.children}</p>
+      <button type="button" onClick={p.onKlik} className={`${KNOP_RAND} flex-none`}>
+        {p.knop} <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  );
+}
+
 // ---------- het tabblad ----------
 
-export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: string) => void }) {
-  // Eén melding tegelijk, vast onderin beeld: ook zichtbaar als je ver in een deel zit, en bij
-  // typen in een notitie (elke toets wordt bewaard) blijft het bij één melding.
+export default function EvaluatieTab({
+  naarAnalyse,
+  naarIntern,
+}: {
+  naarAnalyse: (anker: string) => void;
+  /** opent het tabblad Evaluatie intern */
+  naarIntern: () => void;
+}) {
+  // Eén melding tegelijk, vast onderin beeld: ook zichtbaar als je ver in een deel zit.
   const [melding, meld] = useMelding(3000);
   const analyse = useSessieDocument(INTEGRATIE_SLEUTEL, DEFAULT_INTEGRATIE_3SIDES, meld);
   const gesprek = useSessieDocument(EVALUATIE_GESPREK_SLEUTEL, DEFAULT_EVALUATIE_GESPREK, meld);
@@ -421,15 +504,17 @@ export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: str
   const brief = vind(gesprek.doc, GESPREK_BRIEF);
   const bezigTitel = bezig ? (vind(bezig.doc, bezig.editSectie ?? "")?.titel ?? "").trim() || "dit onderdeel" : "";
 
-  // Linkdoelen op dit tabblad (secties, werkstroomkaarten, tijdlijngroepen), voor alle kaders
-  // samen: een kaart in deel 4 linkt zo naar de tijdlijn in deel 5. Gememoiseerd op de ids zelf,
-  // zodat typen in een deel de andere (gememoiseerde) secties ongemoeid laat.
-  const ankerSleutel = ankersOpTabblad(analyse.doc, gesprek.doc);
+  // Linkdoelen op dit tabblad (secties, tijdlijngroepen), voor alle kaders samen. Gememoiseerd
+  // op de ids zelf, zodat typen in een deel de andere (gememoiseerde) secties ongemoeid laat.
+  const ankerSleutel = [
+    ...ankersVan(analyse.doc, UITSNEDE_SECTIES, inUitsnede),
+    ...[GESPREK_AGENDA, GESPREK_BRIEF].filter((id) => vind(gesprek.doc, id)).map((id) => "sec-" + id),
+  ].join("\n");
   const paginaAnkers = useMemo(() => new Set(ankerSleutel.split("\n")), [ankerSleutel]);
 
   // Sectiekaart van de hele analyse voor "deel N": delen die hier niet staan, openen de analyse.
   // Ook de agenda en de brief gebruiken deze kaart, want zij verwijzen naar de delen van de analyse.
-  const kaartSleutel = JSON.stringify(deelKaartVan(analyse.doc));
+  const kaartSleutel = JSON.stringify(deelKaartVan(analyse.doc, UITSNEDE_SECTIES));
   const deelKaart = useMemo<SectieKaart[]>(() => JSON.parse(kaartSleutel) as SectieKaart[], [kaartSleutel]);
 
   const stappen: Stap[] = [
@@ -439,21 +524,9 @@ export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: str
       return { anker: "sec-" + d.id, naam: KORTE_NAAM[d.id] ?? (t.rest || "Deel"), merk: t.nr || "·", uitAnalyse: true };
     }),
     ...(brief ? [{ anker: "sec-" + brief.id, naam: "Begeleidende brief", merk: <IcoonBrief />, uitAnalyse: false }] : []),
+    { anker: DELEN_ANKER, naam: "Delen als Word of PDF", merk: <IcoonDelen />, uitAnalyse: false },
   ];
   const nummers = delen.flatMap((d) => (d.sectie ? [titelDelen(d.sectie.titel).nr].filter(Boolean) : []));
-
-  /**
-   * Vangnet tegen dode links: een link naar een anker dat niet op dit tabblad staat, opent de
-   * analyse bij dat anker ("deel N" regelt dat zelf al, zie bron-context.tsx).
-   */
-  function vangLink(e: MouseEvent<HTMLDivElement>) {
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const a = (e.target as HTMLElement).closest?.('a[href^="#"]');
-    const id = decodeURIComponent((a?.getAttribute("href") ?? "").slice(1));
-    if (!id || document.getElementById(id)) return;
-    e.preventDefault();
-    naarAnalyse(id);
-  }
 
   const naarAnalyseKnop = (anker: string, tekst: string) => (
     <button type="button" onClick={() => naarAnalyse(anker)} className={`${KNOP_RAND} flex-none`}>
@@ -471,7 +544,7 @@ export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: str
         onBewerk={bewerkAnalyse}
         onChange={analyse.wijzig}
         alleenSecties={ALLEEN[id]}
-        toonBlok={inUitsnede}
+        toonBlok={TOON_EXTERN}
         paginaAnkers={paginaAnkers}
         deelKaart={deelKaart}
         stijl={false}
@@ -499,68 +572,71 @@ export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: str
 
   return (
     <DeelEldersContext.Provider value={naarAnalyse}>
-      <div className="space-y-7" role="tabpanel" aria-label={EVALUATIE_TAB.label} onClick={vangLink}>
-        <style>{DOCUMENT_CSS}</style>
+      {/* het evaluatieblok toont hier alleen wat we aan 3sides communiceren */}
+      <EvaluatieWeergaveContext.Provider value="extern">
+        <div className="space-y-7" role="tabpanel" aria-label={EVALUATIE_TAB.label} onClick={vangLinkNaar(naarAnalyse)}>
+          <style>{DOCUMENT_CSS}</style>
 
-        <header className="rounded-xl border border-cito-border bg-white px-4 py-4 sm:px-6 sm:py-5">
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#4a5565]">
-            Voor de programma-eigenaar
-            {gesprek.doc.status.trim() && (
-              <span className="rounded-full border border-[#c3cedb] bg-[#f8fafc] px-2.5 py-0.5 text-[#003366]">
-                {gesprek.doc.status}
-              </span>
+          <header className="rounded-xl border border-cito-border bg-white px-4 py-4 sm:px-6 sm:py-5">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#4a5565]">
+              Voor het gesprek met 3sides
+              {gesprek.doc.status.trim() && (
+                <span className="rounded-full border border-[#c3cedb] bg-[#f8fafc] px-2.5 py-0.5 text-[#003366]">
+                  {gesprek.doc.status}
+                </span>
+              )}
+            </p>
+            <h2 className="mt-1 text-xl font-bold leading-tight tracking-tight text-[#003366]">
+              {gesprek.doc.titel.trim() || "Evaluatie 3sides"}
+            </h2>
+            {gesprek.doc.ondertitel.trim() && (
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700">{gesprek.doc.ondertitel}</p>
             )}
-          </p>
-          <h2 className="mt-1 text-xl font-bold leading-tight tracking-tight text-[#003366]">
-            {gesprek.doc.titel.trim() || "Evaluatie 3sides: kern voor het gesprek"}
-          </h2>
-          {gesprek.doc.ondertitel.trim() && (
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700">{gesprek.doc.ondertitel}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700">
+              Dit is wat we aan 3sides laten weten, in leesvolgorde: de agenda, de planning met wat er is geleverd, de
+              evaluatie per kader en de begeleidende brief. Alles op dit tabblad gaat over 3sides.
+            </p>
+            <NaarAnderTabblad knop="Naar Evaluatie intern" onKlik={naarIntern}>
+              Wat Cito zelf doet en ons eigen oordeel staan op het tabblad Evaluatie intern.
+            </NaarAnderTabblad>
+            <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#4a5565]">
+              De delen houden hun nummer uit de analyse{nummers.length > 0 ? ` (${opsomming(nummers)})` : ""}, omdat de
+              teksten daarnaar verwijzen; een verwijzing naar een ander deel opent het tabblad Analyse. Het is dezelfde
+              inhoud: wat je hier aanpast, is ook in de analyse aangepast.
+            </p>
+            <Leesvolgorde stappen={stappen} />
+          </header>
+
+          {bezig && (
+            <BewerkStrook
+              titel={bezigTitel}
+              onOpslaan={bezig.opslaan}
+              onAnnuleren={bezig.annuleren}
+              onHerstel={bezig === gesprek ? gesprek.herstelSectie : undefined}
+            />
           )}
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700">
-            De kern voor het evaluatiegesprek met 3sides, in leesvolgorde: de agenda, drie delen uit de analyse en de
-            begeleidende brief.
-          </p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-[#4a5565]">
-            De delen houden hun nummer uit de analyse{nummers.length > 0 ? ` (${opsomming(nummers)})` : ""}, omdat de
-            teksten daarnaar verwijzen; een verwijzing naar een ander deel opent het tabblad Analyse. Het is dezelfde
-            inhoud: wat je hier aanpast, is ook in de analyse aangepast.
-          </p>
-          <Leesvolgorde stappen={stappen} />
-          <div className="mt-4 border-t border-cito-border pt-4 empty:hidden">
-            <EvaluatieExport />
-          </div>
-        </header>
 
-        {bezig && (
-          <BewerkStrook
-            titel={bezigTitel}
-            onOpslaan={bezig.opslaan}
-            onAnnuleren={bezig.annuleren}
-            onHerstel={bezig === gesprek ? gesprek.herstelSectie : undefined}
-          />
-        )}
+          {!bezig && gesprek.versie.stand === "eigen" && (
+            <NieuwereVoorsteltekst
+              basisBekend={gesprek.versie.basis !== undefined}
+              onderwerp="de agenda en de begeleidende brief"
+              onOvernemen={gesprek.neemVoorstelOver}
+              onHouden={gesprek.houdEigenVersie}
+            />
+          )}
+          {!bezig && analyse.versie.stand === "eigen" && (
+            <Regel knop={naarAnalyseKnop("", "Naar de analyse")}>
+              De analyse in deze sessie heeft eigen aanpassingen op een oudere voorsteltekst; de delen hieronder komen uit
+              die versie. Of je de nieuwere voorsteltekst overneemt, kies je in het tabblad Analyse.
+            </Regel>
+          )}
 
-        {!bezig && gesprek.versie.stand === "eigen" && (
-          <NieuwereVoorsteltekst
-            basisBekend={gesprek.versie.basis !== undefined}
-            onderwerp="de agenda en de begeleidende brief"
-            onOvernemen={gesprek.neemVoorstelOver}
-            onHouden={gesprek.houdEigenVersie}
-          />
-        )}
-        {!bezig && analyse.versie.stand === "eigen" && (
-          <Regel knop={naarAnalyseKnop("", "Naar de analyse")}>
-            De analyse in deze sessie heeft eigen aanpassingen op een oudere voorsteltekst; de drie delen hieronder komen
-            uit die versie. Of je de nieuwere voorsteltekst overneemt, kies je in het tabblad Analyse.
-          </Regel>
-        )}
+          {agenda && gesprekKader(ALLEEN_AGENDA, "Nog geen inhoud. Met Bewerken hierboven vul je de agenda in.")}
 
-        {agenda && gesprekKader(ALLEEN_AGENDA, "Nog geen inhoud. Met Bewerken hierboven vul je de agenda in.")}
-
-        {delen.map((d) => {
-          if (!d.sectie) {
-            return (
+          {delen.map((d) =>
+            d.sectie ? (
+              <div key={d.id}>{analyseKader(d.id)}</div>
+            ) : (
               <div key={d.id} id={"sec-" + d.id} className="scroll-mt-4">
                 <Regel toon="let-op" knop={naarAnalyseKnop("", "Naar de analyse")}>
                   <b>{KORTE_NAAM[d.id] ?? "Dit deel"}</b> is in de analyse van deze sessie verwijderd en staat daarom
@@ -568,55 +644,24 @@ export default function EvaluatieTab({ naarAnalyse }: { naarAnalyse: (anker: str
                   voorstel-tekst; dat zet de hele analyse terug naar de voorsteltekst.
                 </Regel>
               </div>
-            );
-          }
-          // Blokken van dit deel die bewust niet op dit tabblad staan (het actiebord van Cito).
-          const verborgen = d.sectie.blokken.filter((b) => !inUitsnede(d.id, b));
-          const namen = verborgen.map((b) => ("titel" in b && typeof b.titel === "string" ? b.titel.trim() : "")).filter(Boolean);
-          const nr = titelDelen(d.sectie.titel).nr;
-          return (
-            <div key={d.id} className="space-y-2">
-              {analyseKader(d.id)}
-              {verborgen.length > 0 && (
-                <Regel knop={naarAnalyseKnop("sec-" + d.id, nr ? `Naar deel ${nr} in de analyse` : "Naar de analyse")}>
-                  Niet op dit tabblad: {verborgen.every(isActiebord) ? "het actiebord" : "een onderdeel"}
-                  {namen.length > 0 && <> “{namen.join("”, “")}”</>}. Dat staat alleen in de analyse, in dit deel.
-                </Regel>
-              )}
-            </div>
-          );
-        })}
+            )
+          )}
 
-        {brief && (
-          <div className="space-y-2">
-            <Regel toon="info">
-              <b>Alleen in de versie voor 3sides.</b> Deze brief gaat mee met de versie die aan 3sides wordt
-              overhandigd; in de interne versie staat hij niet.
-            </Regel>
-            {gesprekKader(ALLEEN_BRIEF, "Nog geen inhoud. Met Bewerken hierboven schrijf je de brief.")}
-          </div>
-        )}
+          {brief && gesprekKader(ALLEEN_BRIEF, "Nog geen inhoud. Met Bewerken hierboven schrijf je de brief.")}
 
-        {melding && (
-          <div
-            role="status"
-            className={
-              "fixed bottom-14 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-lg " +
-              (melding.soort === "ok"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-blue-200 bg-blue-50 text-blue-800")
-            }
-          >
-            {melding.tekst}
+          <div id={DELEN_ANKER} className="scroll-mt-4 rounded-xl border border-cito-border bg-white px-4 py-4 empty:hidden sm:px-6 sm:py-5">
+            <EvaluatieExport versie="3sides" />
           </div>
-        )}
-      </div>
+
+          <VasteMelding melding={melding} />
+        </div>
+      </EvaluatieWeergaveContext.Provider>
     </DeelEldersContext.Provider>
   );
 }
 
-/** ["4", "5", "8"] → "4, 5 en 8". */
-function opsomming(items: string[]): string {
+/** ["5", "8"] → "5 en 8"; ["4", "5", "8"] → "4, 5 en 8". */
+export function opsomming(items: string[]): string {
   if (items.length <= 1) return items.join("");
   return items.slice(0, -1).join(", ") + " en " + items[items.length - 1];
 }

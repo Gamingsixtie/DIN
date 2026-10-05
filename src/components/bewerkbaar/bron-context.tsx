@@ -20,10 +20,35 @@
 // Staat een deel niet op de pagina (een uitsnede van de analyse, zoals het tabblad
 // Evaluatie 3sides: `elders` in de sectiekaart), dan opent de link de analyse bij dat deel:
 // zonder herladen via de DeelEldersContext, en als gewone link naar ?tab=analyse#sec-<id>.
+//
+// Bronvermeldingen die verder gaan dan naam + pagina (zie `analyseer`):
+//   (c) binnen haakjes, per item: de naam met een toevoeging ("tijdlijn: 'In progress'",
+//       "in de tijdlijn nog 'In progress'", "plan van aanpak Q1 2027", "bestandsgegevens
+//       tijdlijn"); een naam binnen aanhalingstekens is een citaat en telt niet;
+//   (d) naam met een datum erachter ("tijdlijn (stand 28-09)", "meetinstrument van 28-09");
+//   (e) de bron als label aan het begin van een zin ("Organigram (voorstel): …") en de namen
+//       in een opsomming na "Bronnen:";
+//   (f) een kale pagina direct na een verwijzing naar een pdf, in hetzelfde zinsdeel en zonder
+//       andere bron ertussen ("(plan van aanpak p. 6), via lijsten en werksessies (p. 7)").
+//       Staat er een puntkomma, een zinseinde of een andere bron tussen, dan blijft het tekst:
+//       liever geen link dan een link naar het verkeerde document.
+// Bronnen die geen bestand in de map zijn (ANDERE_BRONNEN): de statuspagina van 3sides, de
+// verslagen van het overleg van 29-09 en 01-10, het stappenplan, het organigram, het KPI-model,
+// het DIN in de app, Jira en het programmaboek. Waar zo'n verwijzing heen gaat, in deze volgorde:
+//   1. de link die bij "Vindplaatsen" is ingevuld (session.koppelingen), nieuw tabblad;
+//   2. de stap van deze app waar de bron staat (?stap=organigram), nieuw tabblad;
+//   3. de sectie van het naslag-tabblad die de bron weergeeft (de statuspagina);
+//   4. de bronnenlijst van de analyse (sectie "documenten"), waar staat waar de tekst vandaan komt;
+//   5. geen van alle: herkenbaar als verwijzing, zonder link, met de herkomst in de tooltip.
+// Stap 2 tot en met 5 alleen binnen stap 11 (`naslagTerugval`); in de afdrukweergave blijft het tekst.
 // Alleen gebruiken binnen een client-component.
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
+import { APP_STEPS } from "@/lib/types";
+
+/** Velden bij "Vindplaatsen" (session.koppelingen) voor bronnen die geen bestand in de map zijn. */
+export type Vindplaats = "statuspagina" | "overleg2909" | "overleg0110" | "stappenplan";
 
 export interface Bron {
   /** link naar de map met de 3sides-documenten (zonder bestandsnaam) */
@@ -34,6 +59,10 @@ export interface Bron {
   naslagTerugval: boolean;
   /** het naslag-tabblad staat op deze pagina: link naar #sec-doc-N zonder nieuw tabblad */
   naslagHier: boolean;
+  /** ingevulde links voor bronnen die geen bestand in de map zijn (statuspagina, verslagen, stappenplan) */
+  vindplaatsen?: Readonly<Partial<Record<Vindplaats, string>>>;
+  /** id's van de secties die in het naslag-tabblad bestaan; alleen daarheen wordt gelinkt */
+  naslagSecties?: readonly string[];
 }
 
 export interface BronDocument {
@@ -100,7 +129,13 @@ export const BRON_DOCUMENTEN: readonly BronDocument[] = [
     afkortingen: ["DP"],
     naslag: 4,
   },
-  { id: "data-tech", bestand: "Cito_Data_&_Tech.pdf", namen: ["Data & Tech"], afkortingen: [], naslag: 7 },
+  {
+    id: "data-tech",
+    bestand: "Cito_Data_&_Tech.pdf",
+    namen: ["Cito Data & Tech", "Data & Tech-plaat", "Data & Tech plaat", "Data & Tech"],
+    afkortingen: [],
+    naslag: 7,
+  },
   {
     id: "praatplaat-funnel",
     bestand: "Praatplaat_Marketing__Sales_funnel.pdf",
@@ -117,12 +152,134 @@ export const BRON_DOCUMENTEN: readonly BronDocument[] = [
     afkortingen: [],
     naslag: 9,
   },
-  { id: "evaluatie-kib", bestand: "Evaluatie_Klant_in_Beeld.xlsx", namen: ["evaluatie Klant in Beeld"], afkortingen: [], naslag: 11 },
+  {
+    id: "evaluatie-kib",
+    bestand: "Evaluatie_Klant_in_Beeld.xlsx",
+    namen: ["evaluatie van Klant in Beeld", "evaluatie Klant in Beeld"],
+    afkortingen: [],
+    naslag: 11,
+  },
 ];
 
 /** Element-id van het document in het naslag-tabblad. */
 export function naslagAnker(doc: BronDocument): string {
   return "sec-doc-" + doc.naslag;
+}
+
+// ---------- bronnen die geen bestand in de map zijn ----------
+
+/** Sectie-id van de bronnenlijst in de analyse ("10 · Bronnen: de gebruikte documenten"). */
+export const BRONNEN_SECTIE = "documenten";
+
+/** De velden bij "Vindplaatsen" voor deze bronnen, in de volgorde waarin ze getoond worden. */
+export const VINDPLAATS_VELDEN: readonly { sleutel: Vindplaats; label: string; uitleg: string }[] = [
+  {
+    sleutel: "statuspagina",
+    label: "Statuspagina van 3sides (link)",
+    uitleg: "Zonder link openen de verwijzingen het naslag-tabblad bij de statuspagina.",
+  },
+  {
+    sleutel: "overleg2909",
+    label: "Verslag van het overleg van 29-09 (link)",
+    uitleg: "De samenvatting en transcriptie van het programmaoverleg met 3sides.",
+  },
+  {
+    sleutel: "overleg0110",
+    label: "Verslag van het interne overleg van 01-10 (link)",
+    uitleg: "Intern Cito; de link komt niet in de versie voor 3sides.",
+  },
+  {
+    sleutel: "stappenplan",
+    label: "Stappenplan analysefase (link)",
+    uitleg: "Het stappenplan van het programma van 19-08.",
+  },
+];
+
+export interface AndereBron {
+  id: "statuspagina" | "overleg-2909" | "overleg-0110" | "stappenplan" | "organigram" | "kpi-model" | "din" | "jira" | "programmaboek";
+  /** zoals in een tooltip, met lidwoord: "de statuspagina van 3sides" */
+  naam: string;
+  /** waar de tekst vandaan komt, zoals in de bronnenlijst van de analyse */
+  herkomst: string;
+  /** namen zoals ze in de teksten voorkomen (hoofdletterongevoelig) */
+  namen: readonly string[];
+  /** namen die alleen met precies deze hoofdletters tellen ("DIN") */
+  exact?: readonly string[];
+  /** veld bij Vindplaatsen waarin de echte vindplaats staat */
+  vindplaats?: Vindplaats;
+  /** stap van deze app waar de bron staat (sleutel uit APP_STEPS) */
+  stap?: string;
+  /** sectie van het naslag-tabblad die de bron weergeeft */
+  naslagSectie?: string;
+  /** te algemeen woord om als label aan het begin van een zin een bronvermelding te zijn */
+  geenLabel?: boolean;
+}
+
+// De herkomst is overgenomen uit de bronnenlijst van de analyse (integratie-3sides-default.ts,
+// sectie "documenten"); wie die lijst wijzigt, wijzigt ook deze regels.
+export const ANDERE_BRONNEN: readonly AndereBron[] = [
+  {
+    id: "statuspagina",
+    naam: "de statuspagina van 3sides",
+    herkomst:
+      "Statuspagina '3sides-as-a-service' van 3sides, als tekst aangeleverd op 29-09-2026 en in bijgewerkte vorm op 01-10-2026; de pagina zelf draagt geen datum",
+    namen: ["statuspagina van 3sides", "statuspagina 3sides", "3sides-statuspagina", "statuspagina"],
+    vindplaats: "statuspagina",
+    naslagSectie: "statuspagina-3sides-as-a-service",
+  },
+  {
+    id: "overleg-2909",
+    naam: "het verslag van het overleg van 29-09",
+    herkomst:
+      "Automatische samenvatting en transcriptie van het programmaoverleg van 29-09-2026, met 3sides; niet door beide partijen vastgesteld",
+    namen: [],
+    vindplaats: "overleg2909",
+  },
+  {
+    id: "overleg-0110",
+    naam: "het verslag van het interne overleg van 01-10",
+    herkomst: "Verslag van het interne programmaoverleg van Cito van 01-10-2026",
+    namen: [],
+    vindplaats: "overleg0110",
+  },
+  {
+    id: "stappenplan",
+    naam: "het stappenplan analysefase",
+    herkomst: "Stappenplan analysefase van het programma (19-08-2026)",
+    namen: ["stappenplan van de analysefase", "stappenplan analysefase", "stappenplan"],
+    vindplaats: "stappenplan",
+  },
+  { id: "organigram", naam: "het organigram", herkomst: "Organigram van het programma (voorstel)", namen: ["organigram"], stap: "organigram" },
+  { id: "kpi-model", naam: "het KPI-model", herkomst: "KPI-model van het programma", namen: ["KPI-model"], stap: "kpi-meetbaarheid" },
+  {
+    id: "din",
+    naam: "het Doelen-Inspanningennetwerk",
+    herkomst: "Doelen-Inspanningennetwerk (DIN) van het programma in deze app",
+    namen: [],
+    exact: ["DIN-sessie in de app", "DIN in de app", "DIN"],
+    stap: "din-mapping",
+    geenLabel: true,
+  },
+  // geen label: "Jira-bord: link toevoegen" op een werkstroomkaart is een plek om de link in te vullen
+  { id: "jira", naam: "het Jira-bord van 3sides", herkomst: "Jira-bord van 3sides", namen: ["Jira-bord", "Jira"], geenLabel: true },
+  {
+    id: "programmaboek",
+    naam: "het programmaboek",
+    herkomst: "Prevaas & Van Loon, Werken aan Programma's",
+    namen: ["programmaboek", "Werken aan Programma's"],
+  },
+];
+
+/** Datum van een overleg ("29-09") → de bron. */
+const OVERLEG_OP_DATUM: Readonly<Record<string, AndereBron["id"]>> = { "29-09": "overleg-2909", "01-10": "overleg-0110" };
+
+function andereBron(id: AndereBron["id"]): AndereBron {
+  return ANDERE_BRONNEN.find((b) => b.id === id) as AndereBron;
+}
+
+/** Een weblink (http of https)? Alleen die wordt een link; al het andere telt als niet ingevuld. */
+export function isWeblink(s: string | null | undefined): s is string {
+  return typeof s === "string" && /^https?:\/\/\S+$/i.test(s.trim());
 }
 
 /**
@@ -163,15 +320,33 @@ export function BronProvider(p: {
   jira?: string;
   /** het naslag-tabblad staat op deze pagina (tab "kern") */
   naslagHier?: boolean;
+  /** session.koppelingen: de ingevulde links voor statuspagina, verslagen en stappenplan */
+  vindplaatsen?: Readonly<Partial<Record<Vindplaats, string | undefined>>> | null;
+  /** id's van de secties die in het naslag-tabblad bestaan */
+  naslagSecties?: readonly string[];
   children: ReactNode;
 }) {
   const documentenBasis = (p.documentenBasis ?? "").trim() || STANDAARD_DOCUMENTEN_BASIS;
   const jira = (p.jira ?? "").trim();
   const naslagHier = p.naslagHier === true;
-  const waarde = useMemo<Bron>(
-    () => ({ documentenBasis, jira, naslagTerugval: true, naslagHier }),
-    [documentenBasis, jira, naslagHier]
-  );
+  // op de waarden zelf, zodat een nieuw object met dezelfde inhoud niets opnieuw laat tekenen
+  const vindplaatsSleutel = VINDPLAATS_VELDEN.map((v) => (p.vindplaatsen?.[v.sleutel] ?? "").trim()).join("\n");
+  const naslagSleutel = (p.naslagSecties ?? []).join("\n");
+  const waarde = useMemo<Bron>(() => {
+    const links = vindplaatsSleutel.split("\n");
+    const vindplaatsen: Partial<Record<Vindplaats, string>> = {};
+    VINDPLAATS_VELDEN.forEach((v, i) => {
+      if (links[i]) vindplaatsen[v.sleutel] = links[i];
+    });
+    return {
+      documentenBasis,
+      jira,
+      naslagTerugval: true,
+      naslagHier,
+      vindplaatsen,
+      naslagSecties: naslagSleutel ? naslagSleutel.split("\n") : [],
+    };
+  }, [documentenBasis, jira, naslagHier, vindplaatsSleutel, naslagSleutel]);
   return (
     <BronContext.Provider value={waarde}>
       <style>{BRON_CSS}</style>
@@ -391,13 +566,128 @@ const RIJ = `rij\\s?${BEREIK}(?:,\\s?${BEREIK})*`;
 const TAB = `tab(?:blad)?\\s+(?:"[^"\\n]+"|[^\\s·;,:()"\\n][^·;,:()"\\n]*?(?=\\s*(?:[·;,:()"\\n]|\\.\\s|\\.$|$)))`;
 // "tab Klantreis fasen, rij 24" is één verwijzing
 const VERWIJZING = `(?:${PAGINA}|${RIJ}|${TAB}(?:,\\s?${RIJ})?)`;
-// tussen naam en verwijzing: " van 3sides", " 3sides", " (", " (Excel, ", ", " of een spatie
-const TUSSEN = "(?:\\s+(?:van\\s+)?3sides)?(?:\\s*\\((?:Excel|PDF)?,?\\s*|,\\s*|\\s+)";
+// tussen naam en verwijzing: " van 3sides", " 3sides", " (", " (Excel, ", ", ", " op " of een spatie
+const TUSSEN = "(?:\\s+(?:van\\s+)?3sides)?(?:\\s*\\((?:Excel|PDF)?,?\\s*|,\\s*|\\s+op\\s+|\\s+)";
 const MET_VERWIJZING = new RegExp(`${GRENS_VOOR}(${NAAM})${GRENS_NA}(${TUSSEN})(${VERWIJZING})`, "gu");
 /** Een documentnaam of afkorting ergens in een tekst (zonder paginaverwijzing). */
 const NAAM_LOS = new RegExp(`${GRENS_VOOR}${NAAM}${GRENS_NA}`, "u");
 /** Een pagina-, rij- of tabverwijzing zonder documentnaam ervoor: "(p. 7)", "rij 23", 'tab "Competenties"'. */
 const KALE_VERWIJZING = new RegExp(`${GRENS_VOOR}${VERWIJZING}`, "gu");
+/** Alleen een kale pagina: "p. 7", "p. 6–11". */
+const KALE_PAGINA = new RegExp(`${GRENS_VOOR}${PAGINA}`, "gu");
+
+// ----- namen van de andere bronnen, en alle namen samen -----
+
+/** Naam → andere bron: gewone namen in kleine letters, exacte namen ("DIN") zoals ze zijn. */
+const ANDER_OP_NAAM = new Map<string, AndereBron>();
+for (const b of ANDERE_BRONNEN) {
+  for (const n of b.namen) ANDER_OP_NAAM.set(n.toLowerCase(), b);
+  for (const n of b.exact ?? []) ANDER_OP_NAAM.set(n, b);
+}
+
+function langsteEerst(items: { tekst: string; patroon: string }[]): string {
+  return "(?:" + items.sort((a, b) => b.tekst.length - a.tekst.length).map((x) => x.patroon).join("|") + ")";
+}
+
+const exactPatroon = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
+
+const ANDER_PATRONEN = ANDERE_BRONNEN.flatMap((b) => [
+  ...b.namen.map((n) => ({ tekst: n, patroon: ci(n) })),
+  ...(b.exact ?? []).map((n) => ({ tekst: n, patroon: exactPatroon(n) })),
+]);
+const DOC_PATRONEN = BRON_DOCUMENTEN.flatMap((d) => [
+  ...d.namen.map((n) => ({ tekst: n, patroon: ci(n) })),
+  ...d.afkortingen.map((a) => ({ tekst: a, patroon: a })),
+]);
+/** Elke naam van een document of een andere bron, langste eerst. */
+const ALLE = langsteEerst([...DOC_PATRONEN, ...ANDER_PATRONEN]);
+/** Een naam van een document of een andere bron ergens in een tekst; ook "overleg" telt als bron. */
+const BRON_LOS = new RegExp(`${GRENS_VOOR}(?:${ALLE}|(?:[Pp]rogramma)?[Oo]verleg|[Vv]erslag|[Tt]own hall)${GRENS_NA}`, "u");
+
+// ----- bronvermelding binnen haakjes of in een opsomming na "Bronnen:", per item -----
+
+const MAANDEN = "januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december";
+// wat direct na de naam mag staan om het item een bronvermelding te laten zijn:
+// "organigram v4", "plan van aanpak Q1 2027", "stappenplan 19-08", "tijdlijn januari–februari 2027",
+// "tijdlijn (stand 28-09)", "het DIN van het programma"
+const TOEVOEGING = `v\\d|Q[1-4]|20\\d\\d|\\d{1,2}-\\d{1,2}|stand\\s|van\\s+(?:\\d|3sides|Cito|het\\s+programma)|(?:${MAANDEN})|nog\\s|zelf\\s|\\(|in\\s+de\\s+app`;
+/** Het item begint met de naam: alleen de naam, de naam met een dubbele punt, of met een toevoeging. */
+const ITEM_BEGIN = new RegExp(
+  `^\\s*(?:(?:[Dd]e|[Hh]et|[Oo]ns|[Oo]nze)\\s+)?(${ALLE})${GRENS_NA}(?=\\s*\\.?\\s*$|\\s*:|\\s+(?:${TOEVOEGING}))`,
+  "u"
+);
+/** "in de tijdlijn", "uit het KPI-model", "op de statuspagina", "die van het organigram": waar ook in het item. */
+const ITEM_VOORZETSEL = new RegExp(
+  `${GRENS_VOOR}(?:[Ii]n|[Uu]it|[Vv]olgens|[Oo]p|[Zz]ie|[Cc]onform|[Dd]ie\\s+van|[Dd]at\\s+van)\\s+(?:de|het|ons|onze|hun)\\s+(?:eigen\\s+)?(${ALLE})${GRENS_NA}`,
+  "gu"
+);
+/** "bestandsgegevens tijdlijn", "resultaten plan van aanpak", "nu: stappenplan Q3", "zie organigram". */
+const ITEM_INLEIDING = new RegExp(
+  `^\\s*(?:[Bb]estandsgegevens(?:\\s+van)?|[Rr]esultaten(?:\\s+uit)?|[Bb]ron|[Nn]u|[Zz]ie|[Vv]olgens|[Cc]onform)\\s*:?\\s+(?:(?:de|het|ons|onze)\\s+)?(${ALLE})${GRENS_NA}`,
+  "u"
+);
+
+// ----- vormen die overal een bronvermelding zijn -----
+
+const DATUM = "\\d{1,2}-\\d{1,2}(?:-\\d{4})?";
+// "statuspagina 3sides, stand 29-09", "statuspagina 3sides (stand 29-09 en 01-10)", "de statuspagina van 01-10"
+// De stand hoort bij de link als hij er los achter staat of in een eigen paar haakjes; staat er
+// meer in die haakjes ("statuspagina 3sides (stand 29-09; …)"), dan is alleen de naam de link.
+const STAND = `(?:stand\\s+|van\\s+)?(${DATUM})(?:\\s+en\\s+(?:stand\\s+)?(${DATUM}))?`;
+const STATUSPAGINA = new RegExp(
+  `${GRENS_VOOR}(3sides-[Ss]tatuspagina|[Ss]tatuspagina(?:\\s+(?:van\\s+)?3sides)?)${GRENS_NA}` +
+    // geen "?" om de groep: een lege herhaling zou de stand uit de vooruitblik weer wissen
+    `(?:\\s*\\(${STAND}\\)|(?:,\\s*|\\s+)${STAND}|(?=\\s*\\(${STAND})|)`,
+  "gu"
+);
+// "overleg 29-09", "het overleg van 01-10", "ons overleg van 29 september", "actiepunt 29-09"
+const OVERLEG = new RegExp(
+  `${GRENS_VOOR}(?:(?:[Pp]rogramma)?[Oo]verleg|[Aa]ctiepunt(?:en)?)(?:\\s+van)?\\s+(\\d{1,2})(?:-(\\d{1,2})(?:-\\d{4})?|\\s+(september|oktober))${GRENS_NA}`,
+  "gu"
+);
+const MAANDNUMMER: Readonly<Record<string, string>> = { september: "09", oktober: "10" };
+// "stappenplan (19-08)", "stappenplan 19-08", "stappenplan analysefase": alleen de naam wordt de link
+const STAPPENPLAN = new RegExp(
+  `${GRENS_VOOR}[Ss]tappenplan(?:\\s+(?:van\\s+de\\s+)?analysefase${GRENS_NA}|${GRENS_NA}(?=\\s*\\(?19-08))`,
+  "gu"
+);
+// "KPI-model (stap 9)", "organigram, stap 10": alleen de naam wordt de link
+const MET_STAP = new RegExp(`${GRENS_VOOR}(${ci("KPI-model")}|${ci("organigram")})${GRENS_NA}(?=,?\\s*\\(?stap\\s+\\d)`, "gu");
+// een documentnaam met een datum erachter: "tijdlijn (stand 28-09)", "tijdlijn, stand 28-09",
+// "de tijdlijn van 28-09", "Data & Tech-plaat (werkdocument, 28-09)"; alleen de naam wordt de link
+const NAAM_MET_DATUM = new RegExp(
+  `${GRENS_VOOR}(${NAAM})${GRENS_NA}(?=,?\\s+(?:\\(?stand\\s+\\d{1,2}-\\d{1,2}|van\\s+\\d{1,2}-\\d{1,2}|\\((?:werkdocument,\\s*)?\\d{1,2}-\\d{1,2}))`,
+  "gu"
+);
+
+// ----- de bron als label aan het begin van een zin, en opsommingen na "Bronnen:" -----
+
+// Alleen namen die geen onderdeel of oplevering kunnen zijn: "Datapunten: een gedetailleerde
+// verzameling" is de naam van een onderdeel, "Organigram (voorstel): …" is een bronvermelding.
+const LABEL_NAMEN = langsteEerst([
+  ...ANDERE_BRONNEN.filter((b) => !b.geenLabel).flatMap((b) => b.namen.map((n) => ({ tekst: n, patroon: ci(n) }))),
+  ...BRON_DOCUMENTEN.filter((d) => d.id === "plan-van-aanpak" || d.id === "tijdlijn").flatMap((d) =>
+    d.namen.map((n) => ({ tekst: n, patroon: ci(n) }))
+  ),
+]);
+const LABEL = new RegExp(
+  `(?:^|(?<=[.!?…]\\s))\\s*(?:(?:Ons|Onze|Het|De)\\s+)?(${LABEL_NAMEN})${GRENS_NA}(?=(?:\\s+\\([^()\\n]{0,60}\\))?(?:,\\s[^:.;()\\n]{1,30})?:(?:\\s|$))`,
+  "gu"
+);
+const BRONNENLIJST = new RegExp(`${GRENS_VOOR}Bron(?:nen)?:\\s+`, "gu");
+/** Einde van de zin: een punt met daarna een hoofdletter of niets meer, of een regeleinde. */
+const ZINSEINDE = /\.(?=\s+\p{Lu}|\s*$)|\n/u;
+
+// Tekst tussen aanhalingstekens is een citaat: een naam daarin is geen bronvermelding. Een
+// apostrof midden in een woord ("KPI's", "we'll") opent of sluit geen citaat.
+// ("'s ochtends", "'t" openen er ook geen.)
+const CITAAT =
+  /(?<![\p{L}\p{N}])(?:'(?![st]\s)(?:[^'\n]|'(?=[\p{L}\p{N}]))*'|‘(?:[^’\n]|’(?=[\p{L}\p{N}]))*’|"[^"\n]*"|“[^”\n]*”)(?![\p{L}\p{N}])/gu;
+
+/** De tekst met elk citaat vervangen door spaties (zelfde lengte, dus dezelfde posities). */
+function zonderCitaten(tekst: string): string {
+  return tekst.replace(CITAAT, (m) => " ".repeat(m.length));
+}
 
 interface Verwijzing {
   start: number;
@@ -406,8 +696,43 @@ interface Verwijzing {
   pagina: string | null;
 }
 
+/** Verwijzing naar een bron die geen bestand in de map is. */
+export interface AndereVerwijzing {
+  start: number;
+  end: number;
+  bron: AndereBron;
+  /** de aangehaalde stand van de statuspagina ("29-09", "01-10"); leeg als die er niet bij staat */
+  stand: string[];
+}
+
 function documentBijNaam(naam: string): BronDocument | null {
   return OP_NAAM.get(naam) ?? OP_NAAM.get(normaliseer(naam)) ?? null;
+}
+
+function andereBijNaam(naam: string): AndereBron | null {
+  return ANDER_OP_NAAM.get(naam) ?? ANDER_OP_NAAM.get(normaliseer(naam)) ?? null;
+}
+
+/** "1-10-2026" → "01-10". */
+function korteDatum(d: string): string {
+  const [dag, maand] = d.split("-");
+  return dag.padStart(2, "0") + "-" + (maand ?? "").padStart(2, "0");
+}
+
+/** Namen in één item van een bronvermelding (tekst zonder citaten), met hun positie in de hele tekst. */
+function itemNamen(kaal: string, item: { start: number; end: number }): { start: number; end: number; naam: string }[] {
+  const t = kaal.slice(item.start, item.end);
+  const uit: { start: number; end: number; naam: string }[] = [];
+  const voeg = (m: RegExpMatchArray | null) => {
+    if (!m || m.index === undefined) return;
+    // de naam is het laatste van de vondst (wat erna moet staan, is alleen vooruitgekeken)
+    const start = item.start + m.index + m[0].length - m[1].length;
+    if (!uit.some((x) => start < x.end && x.start < start + m[1].length)) uit.push({ start, end: start + m[1].length, naam: m[1] });
+  };
+  voeg(t.match(ITEM_BEGIN));
+  voeg(t.match(ITEM_INLEIDING));
+  for (const m of t.matchAll(ITEM_VOORZETSEL)) voeg(m);
+  return uit;
 }
 
 /** Stukken van een tekst tussen de scheidingstekens, met hun positie. */
@@ -443,6 +768,165 @@ function kaleItems(tekst: string, items: { start: number; end: number }[]): Verw
  * dat document; een verwijzing met een documentnaam ervoor gaat voor.
  */
 export function vindVerwijzingen(tekst: string, standaard: BronDocument | null = null): Verwijzing[] {
+  return analyseer(tekst, standaard).docs;
+}
+
+/** Verwijzingen naar bronnen die geen bestand in de map zijn (statuspagina, overleg, stappenplan, …). */
+export function vindAndereBronnen(tekst: string): AndereVerwijzing[] {
+  return analyseer(tekst, null).andere;
+}
+
+/** Een kale pagina hoort bij de verwijzing ervoor als die hooguit zo ver terug staat (tekens). */
+const MAX_AFSTAND_KALE_PAGINA = 160;
+/** Grens van een zinsdeel: puntkomma, regeleinde of het einde van een zin. */
+const ZINSDEEL_GRENS = /[;\n]|[.!?…](?:\s|$)/u;
+// de naam met direct erachter haakjes die op een pagina eindigen: "adoptieframework (succes eind Q3, p. 9)"
+const NAAM_HAAKJES_PAGINA = new RegExp(`${GRENS_VOOR}(${NAAM})${GRENS_NA}\\s*\\(([^()]*?,\\s*)(${PAGINA})\\)`, "gu");
+const isPdf = (d: BronDocument) => /\.pdf$/i.test(d.bestand);
+const PLAN_VAN_AANPAK = new RegExp(`${GRENS_VOOR}${ci("plan van aanpak")}${GRENS_NA}`, "gu");
+
+/**
+ * Alle bronverwijzingen in een tekst: naar de documenten in de map (`docs`) en naar de andere
+ * bronnen (`andere`), elk gesorteerd en zonder overlap; bij overlap wint wat het eerst is gevonden
+ * (de volgorde hieronder: van de meest precieze vorm naar de minst precieze).
+ */
+function analyseer(tekst: string, standaard: BronDocument | null): { docs: Verwijzing[]; andere: AndereVerwijzing[] } {
+  const uit = documentVerwijzingen(tekst);
+  const andere: AndereVerwijzing[] = [];
+  const vrij = (start: number, end: number) =>
+    !uit.some((v) => start < v.end && v.start < end) && !andere.some((v) => start < v.end && v.start < end);
+  const kaal = zonderCitaten(tekst);
+
+  // statuspagina (met "3sides" of een stand), overleg met datum, stappenplan met datum, naam met stap
+  for (const m of kaal.matchAll(STATUSPAGINA)) {
+    const datums = m.slice(2).filter((d): d is string => !!d).map(korteDatum);
+    if (datums.length === 0 && !/3sides/.test(m[1])) continue; // kale naam: alleen als bronvermelding (hieronder)
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    if (vrij(start, end)) andere.push({ start, end, bron: andereBron("statuspagina"), stand: datums });
+  }
+  for (const m of kaal.matchAll(OVERLEG)) {
+    const id = OVERLEG_OP_DATUM[m[1].padStart(2, "0") + "-" + (m[2] ? m[2].padStart(2, "0") : MAANDNUMMER[m[3]])];
+    const start = m.index ?? 0;
+    if (id && vrij(start, start + m[0].length)) andere.push({ start, end: start + m[0].length, bron: andereBron(id), stand: [] });
+  }
+  for (const m of kaal.matchAll(STAPPENPLAN)) {
+    const start = m.index ?? 0;
+    if (vrij(start, start + m[0].length)) andere.push({ start, end: start + m[0].length, bron: andereBron("stappenplan"), stand: [] });
+  }
+  for (const m of kaal.matchAll(MET_STAP)) {
+    const b = andereBijNaam(m[1]);
+    const start = m.index ?? 0;
+    if (b && vrij(start, start + m[1].length)) andere.push({ start, end: start + m[1].length, bron: b, stand: [] });
+  }
+  // documentnaam met een datum erachter
+  for (const m of kaal.matchAll(NAAM_MET_DATUM)) {
+    const doc = documentBijNaam(m[1]);
+    const start = m.index ?? 0;
+    if (doc && vrij(start, start + m[1].length)) uit.push({ start, end: start + m[1].length, doc, pagina: null });
+  }
+
+  /** Een naam die als bronvermelding is herkend: document of andere bron. */
+  const neem = (x: { start: number; end: number; naam: string }, metDocumenten: boolean) => {
+    if (!vrij(x.start, x.end)) return;
+    const doc = documentBijNaam(x.naam);
+    if (doc) {
+      if (metDocumenten) uit.push({ start: x.start, end: x.end, doc, pagina: null });
+      return;
+    }
+    const b = andereBijNaam(x.naam);
+    if (b) andere.push({ start: x.start, end: x.end, bron: b, stand: [] });
+  };
+  /** De items van één bronvermelding: binnen haakjes, of de opsomming na "Bronnen:". */
+  const groep = (items: { start: number; end: number }[], voor: string) => {
+    // een opsomming van werkstromen is geen bronvermelding (zelfde regel als bij de kale namen)
+    const metDocumenten = !items.some((i) => WERKSTROOM_NAMEN.has(normaliseer(tekst.slice(i.start, i.end)).replace(/\.$/, "")));
+    for (const i of items) {
+      for (const x of itemNamen(kaal, i)) {
+        // "Doelen-Inspanningennetwerk (DIN)" legt de afkorting uit en is geen bronvermelding
+        if (x.naam === "DIN" && /Doelen-Inspanningennetwerk\s*\($/i.test(voor)) continue;
+        neem(x, metDocumenten);
+      }
+    }
+  };
+  for (const m of tekst.matchAll(/\(([^()]*)\)/g)) {
+    const start = m.index ?? 0;
+    groep(stukken(m[1], /\s*[;,·]\s*/g, start + 1), tekst.slice(0, start + 1));
+  }
+  for (const m of kaal.matchAll(BRONNENLIJST)) {
+    const start = (m.index ?? 0) + m[0].length;
+    const rest = kaal.slice(start);
+    const eind = rest.search(ZINSEINDE);
+    groep(stukken(eind < 0 ? rest : rest.slice(0, eind), /\s*[;,·]\s*|\s+en\s+/g, start), "");
+  }
+  // de bron als label aan het begin van een zin
+  for (const m of kaal.matchAll(LABEL)) {
+    const start = (m.index ?? 0) + m[0].length - m[1].length;
+    neem({ start, end: start + m[1].length, naam: m[1] }, true);
+  }
+
+  // (c) kale pagina-, rij- of tabverwijzing in een naslagdeel over één document
+  if (standaard) {
+    for (const m of tekst.matchAll(KALE_VERWIJZING)) {
+      const start = m.index ?? 0;
+      const end = start + m[0].length;
+      if (vrij(start, end)) uit.push({ start, end, doc: standaard, pagina: paginaUit(m[0]) });
+    }
+  } else {
+    // de naam met direct erachter haakjes die op een pagina eindigen; de haakjes horen bij de naam
+    for (const m of tekst.matchAll(NAAM_HAAKJES_PAGINA)) {
+      const doc = documentBijNaam(m[1]);
+      const naamStart = m.index ?? 0;
+      const start = naamStart + m[0].length - 1 - m[3].length;
+      const end = start + m[3].length;
+      // niet als de naam zelf in een citaat staat, of als er in de haakjes nog een bron staat
+      if (!doc || !isPdf(doc) || kaal.slice(naamStart, naamStart + m[1].length) !== m[1]) continue;
+      if (BRON_LOS.test(kaal.slice(naamStart + m[1].length, start)) || !vrij(start, end)) continue;
+      uit.push({ start, end, doc, pagina: paginaUit(m[3]) });
+    }
+    // (f) kale pagina direct na een verwijzing naar een pdf: zelfde zinsdeel, geen andere bron ertussen
+    for (const m of tekst.matchAll(KALE_PAGINA)) {
+      const start = m.index ?? 0;
+      const end = start + m[0].length;
+      if (!vrij(start, end)) continue;
+      const vorige = uit.reduce<Verwijzing | null>((b, v) => (v.end <= start && (!b || v.end > b.end) ? v : b), null);
+      // binnen één paar haakjes is de hele bronvermelding één geheel: daar mag een puntkomma tussen staan
+      const open = tekst.lastIndexOf("(", start);
+      const inHaakjes = !!vorige && open >= 0 && open < vorige.start && !tekst.slice(open, start).includes(")");
+      if (
+        vorige &&
+        isPdf(vorige.doc) &&
+        start - vorige.end <= MAX_AFSTAND_KALE_PAGINA &&
+        !andere.some((v) => v.end > vorige.end && v.start < start) &&
+        (inHaakjes ? !/\n/.test(tekst.slice(vorige.end, start)) : !ZINSDEEL_GRENS.test(tekst.slice(vorige.end, start))) &&
+        !BRON_LOS.test(tekst.slice(vorige.end, start))
+      ) {
+        uit.push({ start, end, doc: vorige.doc, pagina: paginaUit(m[0]) });
+        continue;
+      }
+      // (g) "het plan van aanpak zelf zegt Q3/Q4 (p. 7)": het plan van aanpak is in hetzelfde
+      // zinsdeel genoemd en er staat geen andere bron tussen. Alleen voor het plan van aanpak:
+      // de andere namen (adoptieframework, meetinstrument, blueprint) zijn ook een onderdeel
+      // dat 3sides oplevert, en dan hoort de pagina vaak bij het plan van aanpak.
+      const pva = BRON_DOCUMENTEN.find((d) => d.id === "plan-van-aanpak");
+      if (!pva) continue;
+      const voor = tekst.slice(0, start);
+      let begin = 0;
+      for (const g of voor.matchAll(new RegExp(ZINSDEEL_GRENS.source, "gu"))) begin = (g.index ?? 0) + g[0].length;
+      if (start - begin > MAX_AFSTAND_KALE_PAGINA) continue;
+      const zinsdeel = kaal.slice(begin, start);
+      let naamEind = -1;
+      for (const g of zinsdeel.matchAll(PLAN_VAN_AANPAK)) naamEind = (g.index ?? 0) + g[0].length;
+      if (naamEind < 0 || BRON_LOS.test(zinsdeel.slice(naamEind))) continue;
+      if (andere.some((v) => v.end > begin + naamEind && v.start < start)) continue;
+      uit.push({ start, end, doc: pva, pagina: paginaUit(m[0]) });
+    }
+  }
+  return { docs: uit.sort((a, b) => a.start - b.start), andere: andere.sort((a, b) => a.start - b.start) };
+}
+
+/** Naam + pagina, rij of tabblad, en kale namen in een opsomming of tussen haakjes (zonder overlap). */
+function documentVerwijzingen(tekst: string): Verwijzing[] {
   const uit: Verwijzing[] = [];
   // (a) naam + pagina, rij of tabblad
   for (const m of tekst.matchAll(MET_VERWIJZING)) {
@@ -471,15 +955,7 @@ export function vindVerwijzingen(tekst: string, standaard: BronDocument | null =
   for (const k of kandidaten) {
     if (!uit.some((v) => k.start < v.end && v.start < k.end)) uit.push(k);
   }
-  // (c) kale pagina-, rij- of tabverwijzing in een naslagdeel over één document
-  if (standaard) {
-    for (const m of tekst.matchAll(KALE_VERWIJZING)) {
-      const start = m.index ?? 0;
-      const end = start + m[0].length;
-      if (!uit.some((v) => start < v.end && v.start < end)) uit.push({ start, end, doc: standaard, pagina: paginaUit(m[0]) });
-    }
-  }
-  return uit.sort((a, b) => a.start - b.start);
+  return uit;
 }
 
 // ---------- weergave ----------
@@ -582,9 +1058,109 @@ function Deellink({ id, nummer, elders, children }: { id: string; nummer: number
   );
 }
 
+/**
+ * Waar een verwijzing naar een andere bron heen gaat: "extern" = de ingevulde link of het
+ * document zelf (nieuw tabblad); "app" = een andere plek in deze app (nieuw tabblad); "hier" =
+ * een anker op deze pagina; "los" = geen link, alleen herkenbaar met de herkomst als tooltip.
+ */
+interface Doel {
+  soort: "extern" | "app" | "hier" | "los";
+  href: string;
+  titel: string;
+  /** het doel is de bronnenlijst op deze pagina (in de lijst zelf is zo'n verwijzing geen link) */
+  lijst?: boolean;
+}
+
+/**
+ * Het doel van een verwijzing naar een bron die geen bestand in de map is (zie de volgorde
+ * bovenaan dit bestand). null = geen link en geen markering: de tekst blijft zoals hij is
+ * (buiten stap 11, bijvoorbeeld in de afdrukweergave zonder ingevulde link).
+ */
+function andereDoel(b: AndereBron, stand: readonly string[], bron: Bron, secties: readonly SectieKaart[]): Doel | null {
+  if (b.id === "jira") {
+    if (isWeblink(bron.jira)) return { soort: "extern", href: bron.jira.trim(), titel: "Opent het Jira-bord van 3sides (nieuw tabblad)" };
+    // zonder link naar het bord: de schermafdruk van Jira in het plan van aanpak (p. 5)
+    const pva = BRON_DOCUMENTEN.find((d) => d.id === "plan-van-aanpak");
+    const href = pva ? bronUrl(bron.documentenBasis, pva, 5) : null;
+    if (pva && href) {
+      return {
+        soort: "extern",
+        href,
+        titel:
+          `Jira kennen we alleen als schermafdruk in het plan van aanpak: opent ${pva.bestand} op pagina 5 (nieuw tabblad).` +
+          (bron.naslagTerugval ? " Vul bij Vindplaatsen de link van het Jira-bord in om naar het bord zelf te verwijzen." : ""),
+      };
+    }
+  }
+  const eigen = b.vindplaats ? bron.vindplaatsen?.[b.vindplaats] : undefined;
+  if (isWeblink(eigen)) {
+    const bijStand =
+      b.id === "statuspagina" && stand.length > 0
+        ? ` Aangehaald is de stand van ${stand.join(" en ")}; de pagina zelf draagt geen datum en kan sindsdien zijn bijgewerkt.`
+        : "";
+    return { soort: "extern", href: eigen.trim(), titel: `Opent ${b.naam} (nieuw tabblad).${bijStand}` };
+  }
+  if (!bron.naslagTerugval) return null;
+  const stap = b.stap ? APP_STEPS.find((s) => s.key === b.stap) : undefined;
+  if (stap) {
+    return { soort: "app", href: "?stap=" + stap.key, titel: `Opent ${b.naam} in deze app: stap ${stap.nummer}, ${stap.label} (nieuw tabblad)` };
+  }
+  const nogGeenLink = b.vindplaats ? " Nog geen link ingesteld bij Vindplaatsen." : "";
+  if (b.naslagSectie && (bron.naslagSecties ?? []).includes(b.naslagSectie)) {
+    // Het naslag geeft de statuspagina weer zoals die op 29-09 is aangeleverd.
+    const later = stand.filter((s) => s !== "29-09");
+    const titel =
+      `Naslag: ${b.naam}, samengevat naar de tekst van 29-09.` +
+      (later.length > 0 ? ` De bijgewerkte tekst van ${later.join(" en ")} staat niet in de app.` : "") +
+      nogGeenLink;
+    return bron.naslagHier
+      ? { soort: "hier", href: "#sec-" + b.naslagSectie, titel }
+      : { soort: "app", href: NASLAG_TAB + "#sec-" + b.naslagSectie, titel: titel + " (nieuw tabblad)" };
+  }
+  const lijst = secties.find((s) => s.id === BRONNEN_SECTIE);
+  if (lijst) {
+    const titel = `${b.herkomst}.${nogGeenLink} Opent de bronnenlijst (deel ${lijst.nummer})`;
+    return lijst.elders
+      ? { soort: "app", href: ANALYSE_TAB_LINK + "#sec-" + BRONNEN_SECTIE, titel: titel + " in de analyse (nieuw tabblad)" }
+      : { soort: "hier", href: "#sec-" + BRONNEN_SECTIE, titel, lijst: true };
+  }
+  return { soort: "los", href: "", titel: `${b.herkomst}.${nogGeenLink || " Deze bron is niet als link beschikbaar."}` };
+}
+
+/** Verwijzing naar een bron die geen bestand in de map is, naar het doel uit `andereDoel`. */
+function AndereBronlink({ doel, children }: { doel: Doel; children: ReactNode }) {
+  if (doel.soort === "los") {
+    return (
+      <span className="ok-bron-los" title={doel.titel}>
+        {children}
+      </span>
+    );
+  }
+  if (doel.soort === "hier") {
+    return (
+      <a className={"ok-bron ok-bron-app" + (doel.lijst ? " ok-bron-lijst" : "")} href={doel.href} title={doel.titel}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <a
+      className={"ok-bron" + (doel.soort === "app" ? " ok-bron-app" : " ok-bron-vindplaats")}
+      href={doel.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={doel.titel}
+    >
+      <MetPijl>{children}</MetPijl>
+    </a>
+  );
+}
+
 type Stuk =
   /** href = link naar het document (met map); null = terugval naar het naslag */
   | { soort: "doc"; start: number; end: number; doc: BronDocument; pagina: string | null; href: string | null }
+  /** verwijzing naar een bron die geen bestand in de map is */
+  | { soort: "ander"; start: number; end: number; doel: Doel }
   | { soort: "deel"; start: number; end: number; id: string; nummer: number; elders: boolean }
   /** expliciete verwijzing [[…]] die geen document is: tekst zonder haken */
   | { soort: "plat"; start: number; end: number; weergave: string };
@@ -618,11 +1194,17 @@ function verdeel(
   }
   const inExpliciet = (s: number, e: number) => expliciet.some((x) => s < x.end && x.start < e);
   if (bron.documentenBasis !== "" || bron.naslagTerugval) {
-    for (const v of vindVerwijzingen(tekst, standaard)) {
+    const gevonden = analyseer(tekst, standaard);
+    for (const v of gevonden.docs) {
       if (inExpliciet(v.start, v.end)) continue;
       const href = bron.documentenBasis ? bronUrl(bron.documentenBasis, v.doc, v.pagina) : null;
       if (!href && !bron.naslagTerugval) continue;
       stukken.push({ soort: "doc", ...v, href });
+    }
+    for (const v of gevonden.andere) {
+      if (inExpliciet(v.start, v.end)) continue;
+      const doel = andereDoel(v.bron, v.stand, bron, secties);
+      if (doel) stukken.push({ soort: "ander", start: v.start, end: v.end, doel });
     }
   }
   if (secties.length > 0) {
@@ -651,6 +1233,12 @@ function verdeel(
         <Deellink key={i} id={v.id} nummer={v.nummer} elders={v.elders}>
           {fragment}
         </Deellink>
+      );
+    } else if (v.soort === "ander") {
+      uit.push(
+        <AndereBronlink key={i} doel={v.doel}>
+          {fragment}
+        </AndereBronlink>
       );
     } else {
       uit.push(
@@ -706,4 +1294,6 @@ export const BRON_CSS = `
 .ok-bron-i{display:inline-block;font-size:.72em;line-height:1;margin-left:.12em;vertical-align:.3em;opacity:.65;text-decoration:none}
 .ok-bron:hover .ok-bron-i{opacity:1}
 .ok-nw{white-space:nowrap}
+.ok-bron-los{text-decoration:underline dotted rgba(74,85,101,.7);text-underline-offset:2px;text-decoration-thickness:1px;cursor:help}
+#sec-${BRONNEN_SECTIE} .ok-bron-lijst{color:inherit;text-decoration:none;pointer-events:none}
 `;

@@ -1,22 +1,29 @@
 "use client";
 
 // De afdrukweergave "Evaluatie 3sides": de uitsnede uit evaluatie-uitsnede.ts als A4-document,
-// alleen-lezen. Volgorde: voorblok, (versie voor 3sides) de begeleidende brief op een eigen
-// pagina, de agenda, deel 1 tot en met 3 en de bronnen.
+// alleen-lezen, in twee versies:
+// - voor 3sides: wat Cito aan 3sides communiceert, met de begeleidende brief op een eigen pagina;
+// - intern ("Intern Cito" op elke pagina): alles, ook wat Cito zelf doet (het actiebord in het
+//   deel Planning en per kader een eigen blok), ons oordeel, de notities en de onderbouwing.
+// Volgorde: voorblok met de inhoud, (versie voor 3sides) de brief, de agenda, de delen uit
+// u.delen (nu twee: planning en evaluatie) en de bronnen. De inhoudsopgave en de koppen volgen
+// u.delen; er staat hier geen vast aantal delen.
 //
-// Deel 1 en 2, de agenda en de brief worden getekend met het echte BewerkbaarDocument uit de
-// app (weergave, zonder potlood en zonder opmerkingen), zodat tabellen, kaarten, tijdlijn en
-// voortgangsbord er net zo uitzien als op het tabblad. Per stuk van een deel staat er één
-// BewerkbaarDocument met twee secties: een verborgen sectie met de gegevens die de blokken van
-// elkaar lezen (tijdlijn, voortgangsbord, werkstroomkaarten) en de sectie met de blokken die
-// op die plek staan. Zo kloppen de onderdelen op de kaarten en de cijfers op het bord, ook als
-// de tijdlijn zelf per werkstroom in losse figuren op papier staat. Deel 3 (de evaluatie)
-// heeft eigen opmaak (EvaluatieKaders).
+// De planning, de agenda en de brief worden getekend met het echte BewerkbaarDocument uit de
+// app (weergave, zonder potlood en zonder opmerkingen), zodat tabellen, tijdlijn, voortgangsbord
+// en actiebord er net zo uitzien als op het tabblad. Per stuk van een deel staat er één
+// BewerkbaarDocument met twee secties: een verborgen sectie met de gegevens waar de blokken mee
+// rekenen (u.gegevens: de tijdlijn, het voortgangsbord en de werkstroomkaarten uit de analyse;
+// alleen om mee te rekenen, ze worden niet getoond) en de sectie met de blokken die op die plek
+// staan. Zo kloppen de cijfers op het voortgangsbord en de kleuren en leads op het actiebord,
+// ook nu de werkstroomkaarten zelf geen deel van dit document zijn. De evaluatie heeft eigen
+// opmaak (EvaluatieKaders).
 //
 // Niets op deze pagina schrijft naar de sessie: onChange doet niets, en er is geen
 // SessionProvider. Na het tekenen worden links die alleen in de app werken, tooltips en de
 // tabvolgorde van keuzelijsten en vinkjes weggehaald (maakStatisch); in de versie voor 3sides
-// alle links, zodat er geen adres van Cito in de pdf komt.
+// alle links, zodat er geen adres van Cito in de pdf komt. Zinnen over de bediening van de app
+// in het voortgangsbord hebben de klasse vb-alleen-app en staan niet op papier (stijl.ts).
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
@@ -28,8 +35,8 @@ import { oplossen } from "@/lib/doc-versie";
 import { exportBestandsnaam, maakUitsnede, zonderLinktekens } from "@/lib/evaluatie-uitsnede";
 import type { EvaluatieUitsnede, ExportVersie } from "@/lib/evaluatie-uitsnede";
 import BewerkbaarDocument from "@/components/bewerkbaar/BewerkbaarDocument";
-import { BRON_CSS, BronContext, STANDAARD_DOCUMENTEN_BASIS, metBronlinks } from "@/components/bewerkbaar/bron-context";
-import type { Bron } from "@/components/bewerkbaar/bron-context";
+import { BRON_CSS, BronContext, STANDAARD_DOCUMENTEN_BASIS, VINDPLAATS_VELDEN, isWeblink, metBronlinks } from "@/components/bewerkbaar/bron-context";
+import type { Bron, Vindplaats } from "@/components/bewerkbaar/bron-context";
 import EvaluatieKaders from "./EvaluatieKaders";
 import { afdrukCss } from "./stijl";
 
@@ -47,7 +54,7 @@ type Stuk =
 
 /** Id van de verborgen sectie met gegevens (zie stijl.ts: #sec-evp-gegevens). */
 const GEGEVENS_ID = "evp-gegevens";
-/** Bloktypen die andere blokken lezen (useBlok): die gaan mee in de verborgen sectie. */
+/** Bloktypen die andere blokken lezen (useBlok): het eerste van elk uit u.gegevens gaat mee in de verborgen sectie. */
 const GEGEVENS_TYPEN: readonly DocBlok["type"][] = ["tijdlijn", "voortgangsbord", "werkstromen"];
 const NIETS = () => {};
 const GEEN_BLOKKEN: DocBlok[] = [];
@@ -102,7 +109,7 @@ function stukken(blokken: DocBlok[]): Stuk[] {
 /** Bloktypen die de breedte van een liggende pagina nodig hebben (plus een tabel met zes of meer kolommen). */
 const BREDE_TYPEN: readonly DocBlok["type"][] = ["tijdlijn", "voortgangsbord", "werkstromen"];
 
-/** Liggende pagina's voor een deel met werkstroomkaarten, de tijdlijn, het voortgangsbord of een brede tabel. */
+/** Liggende pagina's voor een deel met de tijdlijn, het voortgangsbord of een brede tabel. */
 function isLiggend(blokken: DocBlok[]): boolean {
   return blokken.some((b) => BREDE_TYPEN.includes(b.type) || (b.type === "tabel" && b.kolommen.length >= 6));
 }
@@ -112,7 +119,7 @@ const MIN_PX = 12;
 /** Vergroting van blokken uit de app op een staande pagina; liggend staan ze op ware grootte. */
 const ZOOM_STAAND = 1.1;
 
-/** "1 · De vier werkstromen: wat 3sides doet" → nummer, hoofdtitel en ondertitel. */
+/** "1 · Planning en voortgang: de tijdlijn als basis" → nummer, hoofdtitel en ondertitel. */
 function titelDelen(titel: string): { nr: string; hoofd: string; sub: string } {
   const m = /^\s*(\d+)\s*·\s*(.*)$/.exec(titel);
   const rest = (m ? m[2] : titel).trim();
@@ -185,15 +192,10 @@ function Kop({ label, titel, intro, toon }: { label: string; titel: string; intr
   );
 }
 
-/**
- * Zinnen over de bediening van de app die vast in het voortgangsbord staan (VoortgangsbordBlok):
- * waar ze staan, wat eruit gaat en wat ervoor terugkomt. Op papier valt er niets af te vinken
- * of te kiezen, en het actiebord staat niet in de export.
- */
-const BEDIENING: readonly [kiezer: string, patroon: RegExp, wordt: string][] = [
-  [".vb-pk-sub", /; vink af wat binnen is\.\s*Wat Cito zelf doet, staat in het actiebord\./, "."],
-  [".vb-legenda-vast", /\s*De status van een onderdeel kies je in het keuzelijstje[\s\S]*$/, ""],
-];
+/** Een kader uit de app dat hoger is dan dit (mm op papier) mag over een paginarand lopen. */
+const KADER_BREEKBAAR_MM = 105;
+/** Eén CSS-pixel in mm. */
+const MM_PER_PX = 25.4 / 96;
 
 /** Heeft dit element eigen tekst (niet alleen via kinderen)? Een keuzelijst telt ook. */
 function heeftEigenTekst(el: HTMLElement): boolean {
@@ -208,8 +210,9 @@ function heeftEigenTekst(el: HTMLElement): boolean {
  * - Links die alleen in de app werken gaan weg (in de versie voor 3sides alle links), net als
  *   tooltips en de tabvolgorde van keuzelijsten en vinkjes.
  * - Een koppeling "Jira-bord" zonder adres is in de app een plek om een link in te vullen; op
- *   papier vervalt ze. Zinnen over de bediening van de app in het voortgangsbord vervallen ook.
+ *   papier vervalt ze.
  * - Tekst in de blokken uit de app die op papier kleiner dan 9pt zou zijn, wordt 9pt.
+ * - Een lang kader (callout) mag over een paginarand lopen; een kort kader blijft bij elkaar.
  */
 function maakStatisch(papier: HTMLElement, versie: ExportVersie) {
   for (const a of papier.querySelectorAll<HTMLAnchorElement>("a[href]")) {
@@ -226,19 +229,17 @@ function maakStatisch(papier: HTMLElement, versie: ExportVersie) {
     const regel = el.parentElement;
     (regel && regel.tagName === "LI" ? regel : el).hidden = true;
   }
-  for (const [kiezer, patroon, wordt] of BEDIENING) {
-    for (const el of papier.querySelectorAll<HTMLElement>(kiezer)) {
-      for (const n of el.childNodes) {
-        if (n.nodeType === Node.TEXT_NODE && n.nodeValue && patroon.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(patroon, wordt);
-      }
-    }
-  }
   for (const app of papier.querySelectorAll<HTMLElement>(".evp-app")) {
     const min = MIN_PX / (Number(app.dataset.zoom) || 1);
     const maat = Math.ceil(min * 100) / 100 + "px";
     for (const el of app.querySelectorAll<HTMLElement>(".okd-sec:not(#sec-" + GEGEVENS_ID + ") *")) {
       if (!heeftEigenTekst(el)) continue;
       if (parseFloat(getComputedStyle(el).fontSize) < min - 0.01) el.style.fontSize = maat;
+    }
+    // na het vergroten van de letters meten: een lang kader mag breken
+    const zoom = Number(app.dataset.zoom) || 1;
+    for (const el of app.querySelectorAll<HTMLElement>(".okd-sec:not(#sec-" + GEGEVENS_ID + ") .okd-call")) {
+      el.classList.toggle("evp-breekbaar", el.offsetHeight * zoom * MM_PER_PX > KADER_BREEKBAAR_MM);
     }
   }
 }
@@ -266,14 +267,29 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
     return links ? uit : diepTekst(uit, zonderLinktekens);
   }, [bewaardAnalyse, bewaardGesprek, versie, links]);
 
-  const bron = useMemo<Bron>(() => ({ documentenBasis: basis, jira, naslagTerugval: false, naslagHier: false }), [basis, jira]);
+  // Interne versie: ook de links uit Vindplaatsen (statuspagina, verslagen, stappenplan), als ze zijn ingevuld.
+  const koppelingen = session.koppelingen;
+  const vindplaatsen = useMemo(() => {
+    const uit: Partial<Record<Vindplaats, string>> = {};
+    if (!intern) return uit;
+    for (const v of VINDPLAATS_VELDEN) {
+      const link = (koppelingen?.[v.sleutel] ?? "").trim();
+      if (isWeblink(link)) uit[v.sleutel] = link;
+    }
+    return uit;
+  }, [intern, koppelingen]);
+  const bron = useMemo<Bron>(
+    () => ({ documentenBasis: basis, jira, naslagTerugval: false, naslagHier: false, vindplaatsen }),
+    [basis, jira, vindplaatsen]
+  );
   const toon = useCallback((s: string): ReactNode => (links ? metBronlinks(s) : s), [links]);
 
-  // De gegevens die de blokken van elkaar lezen: het eerste blok per type, zoals useBlok.
-  const gegevens = useMemo<DocBlok[]>(() => {
-    const alle = u.delen.flatMap((d) => d.sectie.blokken);
-    return GEGEVENS_TYPEN.flatMap((type) => alle.filter((b) => b.type === type).slice(0, 1));
-  }, [u]);
+  // De gegevens waar de blokken mee rekenen: het eerste blok per type uit u.gegevens, zoals
+  // useBlok het in de analyse vindt. De werkstroomkaarten staan niet in de delen, wel hier.
+  const gegevens = useMemo<DocBlok[]>(
+    () => GEGEVENS_TYPEN.flatMap((type) => (u.gegevens ?? []).filter((b) => b.type === type).slice(0, 1)),
+    [u]
+  );
   const delen = useMemo(
     () => u.delen.map((d) => ({ ...d, stukken: stukken(d.sectie.blokken), liggend: isLiggend(d.sectie.blokken) })),
     [u]
@@ -369,8 +385,8 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
           <span>
             <b>Afdrukweergave Evaluatie 3sides.</b>{" "}
             {intern
-              ? "Interne versie voor de programma-eigenaar: met ons oordeel, de notities en de onderbouwing."
-              : "Versie om aan 3sides te overhandigen: met de begeleidende brief, zonder wat intern is."}
+              ? "Interne versie voor de programma-eigenaar: alles, ook wat Cito zelf doet, ons oordeel, de notities en de onderbouwing."
+              : "Versie om aan 3sides te overhandigen: wat we aan 3sides communiceren, met de begeleidende brief."}
           </span>
         </p>
         <div className="evp-balk-doe">
@@ -387,7 +403,8 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
           <span className="evp-hint">
             Kies bij Bestemming: <b>Opslaan als PDF</b>. De browser stelt de naam {naam} voor.
           </span>
-          <a className="evp-terug" href={`/sessies/${encodeURIComponent(session.id)}?stap=integratie&tab=evaluatie`}>
+          {/* de interne versie hoort bij het tabblad Evaluatie intern, die voor 3sides bij Evaluatie 3sides */}
+          <a className="evp-terug" href={`/sessies/${encodeURIComponent(session.id)}?stap=integratie&tab=${intern ? "evaluatie-intern" : "evaluatie"}`}>
             ← Terug naar het tabblad
           </a>
         </div>
@@ -424,6 +441,11 @@ export default function Afdruk({ session, versie, afdrukken }: { session: DINSes
               <dd>{datum}</dd>
             </div>
           </dl>
+          <p className="evp-versie">
+            {intern
+              ? "Deze versie bevat alles: wat we aan 3sides communiceren en, als intern gemarkeerd, wat Cito zelf doet, ons oordeel met de notities en de onderbouwing."
+              : "Deze versie bevat wat we aan 3sides communiceren: de planning met wat er is geleverd en onze bevindingen per kader, met de begeleidende brief."}
+          </p>
           {inhoud.length > 0 && (
             <nav className="evp-inhoud" aria-label="Inhoud">
               <h2>Inhoud</h2>

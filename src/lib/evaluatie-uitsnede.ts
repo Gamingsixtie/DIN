@@ -12,8 +12,13 @@
 import type { BewerkbaarDocument, DocBlok, DocSectie } from "@/lib/schemas";
 import { GESPREK_AGENDA, GESPREK_BRIEF } from "@/lib/evaluatie-gesprek-default";
 
-/** De sectie-id's uit de analyse die op het tabblad Evaluatie staan, in volgorde. */
-export const UITSNEDE_SECTIES = ["werkstromen", "planning", "evaluatie"] as const;
+/**
+ * De sectie-id's uit de analyse die op het tabblad Evaluatie 3sides staan, in volgorde:
+ * eerst het overzicht (de tijdlijn, wat opvalt, wat er is geleverd), dan de evaluatie.
+ * De werkstroomkaarten (deel 4) staan er niet bij: die beschrijven de werkstromen in detail
+ * en horen bij de analyse; voor de evaluatie telt wat is toegezegd en wat er is geleverd.
+ */
+export const UITSNEDE_SECTIES = ["planning", "evaluatie"] as const;
 
 export type UitsnedeSectie = (typeof UITSNEDE_SECTIES)[number];
 
@@ -28,9 +33,34 @@ export function isActiebord(b: DocBlok): boolean {
   return b.type === "tabel" && b.groepKolom !== undefined;
 }
 
-/** Staat dit blok op het tabblad Evaluatie? Alles uit de drie delen, behalve het actiebord. */
+/** Leeswijzer voor intern gebruik: een kader met toon "info" in het deel Evaluatie. */
+function isInterneNotitie(sectieId: string, b: DocBlok): boolean {
+  return sectieId === "evaluatie" && b.type === "callout" && b.toon === "info";
+}
+
+/**
+ * Staat dit blok op het tabblad Evaluatie 3sides? Alles uit de drie delen wat we aan 3sides
+ * communiceren: dus niet het actiebord van Cito en niet de interne notitie bij de evaluatie.
+ */
 export function inUitsnede(sectieId: string, b: DocBlok): boolean {
-  return (UITSNEDE_SECTIES as readonly string[]).includes(sectieId) && !isActiebord(b);
+  return (UITSNEDE_SECTIES as readonly string[]).includes(sectieId) && !isActiebord(b) && !isInterneNotitie(sectieId, b);
+}
+
+/** De secties waaruit het tabblad Evaluatie intern put, in volgorde. */
+export const INTERN_SECTIES = ["evaluatie", "planning"] as const;
+
+/**
+ * Staat dit blok op het tabblad Evaluatie intern? De hele evaluatie (met de interne notitie),
+ * en uit het deel Planning alleen het actiebord: wat Cito zelf doet.
+ */
+export function inInternTab(sectieId: string, b: DocBlok): boolean {
+  return sectieId === "evaluatie" || (sectieId === "planning" && isActiebord(b));
+}
+
+/** Staat dit blok in de export? Voor 3sides als op het tabblad; intern komt het actiebord erbij. */
+function inExport(sectieId: string, b: DocBlok, versie: ExportVersie): boolean {
+  if (versie === "3sides") return inUitsnede(sectieId, b);
+  return (UITSNEDE_SECTIES as readonly string[]).includes(sectieId);
 }
 
 // ---------- de export: een losse, alleen-lezen kopie ----------
@@ -54,9 +84,18 @@ export interface EvaluatieUitsnede {
   /** de agenda voor het evaluatiegesprek; null als hij leeg is */
   agenda: DocSectie | null;
   delen: UitsnedeDeel[];
+  /**
+   * Gegevens waar blokken in de delen mee rekenen, ook als hun eigen deel niet in de export
+   * staat: de werkstroomkaarten, de tijdlijn en het voortgangsbord uit de analyse (kopieën,
+   * met dezelfde verwijzingen als de delen). Alleen om mee te rekenen, niet om te tonen.
+   */
+  gegevens: DocBlok[];
   /** de gebruikte documenten (platte tekst, zonder linktekens) */
   bronnen: string[];
 }
+
+/** Bloktypes waar het voortgangsbord en de kaarten in de app mee rekenen (DocContext). */
+const GEGEVENS_TYPES: readonly DocBlok["type"][] = ["werkstromen", "tijdlijn", "voortgangsbord"];
 
 /** "4 · Titel" → "Titel". */
 const NUMMER_VOORAAN = /^\s*\d{1,2}\s*·\s*/;
@@ -129,9 +168,13 @@ function isBedieningsuitleg(s: DocSectie, bi: number): boolean {
  */
 function exportBlok(sectieId: string, b: DocBlok, versie: ExportVersie): DocBlok | null {
   if (versie !== "3sides") return b;
-  if (sectieId === "evaluatie" && b.type === "callout" && b.toon === "info") return null;
+  if (isInterneNotitie(sectieId, b)) return null;
   if (b.type === "evaluatie") {
-    return { ...b, kaders: b.kaders.map((k) => ({ ...k, oordeel: "", notitie: "", secties: [] })) };
+    // alleen wat over 3sides gaat: geen "wat Cito zelf doet", geen "aan zet", geen oordeel, notitie of onderbouwing
+    return {
+      ...b,
+      kaders: b.kaders.map((k) => ({ ...k, aanZetCito: "", actieBij: "", oordeel: "", notitie: "", secties: [] })),
+    };
   }
   return b;
 }
@@ -143,10 +186,10 @@ function exportBlok(sectieId: string, b: DocBlok, versie: ExportVersie): DocBlok
  */
 function bronVoor3sides(regel: string, tekstVoor3sides: string): string | null {
   if (/programmaoverleg van Cito van 01-10/i.test(regel)) {
-    return "Programmaoverleg van Cito van 01-10-2026, zonder 3sides (in dit stuk: overleg 01-10): gebruikt voor waarnemingen van het programmateam, zonder namen";
+    return "Ons programmaoverleg van 01-10-2026, zonder 3sides (in dit stuk: overleg 01-10): gebruikt voor waarnemingen van ons programmateam, zonder namen";
   }
   if (/^\s*Programma:/i.test(regel)) {
-    return "Stukken van het programma: het Doelen-Inspanningennetwerk (stand 29-09-2026), het stappenplan analysefase (19-08-2026) en het organigram (voorstel)";
+    return "Onze eigen stukken: het Doelen-Inspanningennetwerk (stand 29-09-2026), het stappenplan analysefase (19-08-2026) en het organigram (voorstel)";
   }
   // Een document dat in deze versie nergens wordt aangehaald, staat niet in de lijst
   // (de dag van de BV en de evaluatie van Klant in Beeld komen alleen in de onderbouwing voor).
@@ -186,11 +229,13 @@ export function maakUitsnede(analyse: BewerkbaarDocument, gesprek: BewerkbaarDoc
     const oud = titelNummer(s.titel);
     if (oud !== null) kaart.set(oud, i + 1);
   });
-  const tekst = (t: string) => herschrijfVerwijzingen(actiebordInAnalyse(t), kaart, versie);
+  // Voor 3sides zit het actiebord er niet in: een verwijzing ernaar wijst dan naar de analyse.
+  // Intern zit het actiebord er wel in (in het deel Planning); "deel N" loopt daar gewoon mee.
+  const tekst = (t: string) => herschrijfVerwijzingen(versie === "3sides" ? actiebordInAnalyse(t) : t, kaart, versie);
 
   const delen: UitsnedeDeel[] = gekozen.map((s, i) => {
     const blokken = s.blokken
-      .filter((b, bi) => inUitsnede(s.id, b) && !isBedieningsuitleg(s, bi))
+      .filter((b, bi) => inExport(s.id, b, versie) && !isBedieningsuitleg(s, bi))
       .map((b) => exportBlok(s.id, b, versie))
       .filter((b): b is DocBlok => b !== null);
     const sectie: DocSectie = diep({ ...s, blokken }, tekst);
@@ -216,6 +261,10 @@ export function maakUitsnede(analyse: BewerkbaarDocument, gesprek: BewerkbaarDoc
     brief: versie === "3sides" && metInhoud(brief) ? diep(brief, tekst) : null,
     agenda: metInhoud(agenda) ? diep(agenda, tekst) : null,
     delen,
+    gegevens: diep(
+      analyse.secties.flatMap((s) => s.blokken.filter((b) => GEGEVENS_TYPES.includes(b.type))),
+      tekst
+    ),
     bronnen,
   };
 }

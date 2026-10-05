@@ -1,7 +1,8 @@
 "use client";
 
-// Afdrukweergave van het tabblad "Evaluatie 3sides" (stap 11): /sessies/<id>/evaluatie-afdruk
-// ?versie=intern|3sides (standaard intern), met &afdrukken=1 opent het afdrukvenster vanzelf.
+// Afdrukweergave van de tabbladen "Evaluatie 3sides" en "Evaluatie intern" (stap 11):
+// /sessies/<id>/evaluatie-afdruk?versie=intern|3sides (standaard intern); met &afdrukken=1 opent
+// het afdrukvenster vanzelf.
 // De PDF maak je met het afdrukvenster van de browser (Bestemming: Opslaan als PDF).
 //
 // De sessie komt uit dezelfde bron als de sessiepagina: eerst localStorage (din_session_<id>,
@@ -87,15 +88,15 @@ function AfdrukPagina() {
   }, [id, lokaal]);
 
   const session = lokaal ?? (remote && remote.id === id ? remote.session : null);
-  const terug = `/sessies/${encodeURIComponent(id)}?stap=integratie&tab=evaluatie`;
+  const terug = `/sessies/${encodeURIComponent(id)}?stap=integratie&tab=${versie === "intern" ? "evaluatie-intern" : "evaluatie"}`;
 
   if (!session) {
     const gezocht = !lokaal && remote !== null && remote.id === id;
     return gezocht ? (
       <Melding titel="Deze sessie is hier niet gevonden">
         <p>
-          De afdrukweergave leest de sessie uit deze browser. Open de sessie eerst in de app en kies daar op het tabblad
-          Evaluatie 3sides opnieuw voor PDF.
+          De afdrukweergave leest de sessie uit deze browser. Open de sessie eerst in de app en kies daar op het tabblad{" "}
+          {versie === "intern" ? "Evaluatie intern" : "Evaluatie 3sides"} opnieuw voor PDF.
         </p>
         <p>
           <a className="evp-terug" href={terug}>

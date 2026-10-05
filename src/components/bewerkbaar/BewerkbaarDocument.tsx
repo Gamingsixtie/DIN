@@ -1638,6 +1638,18 @@ function VersieGroep(p: { versies: { label: string; toelichting: string }[]; ren
   );
 }
 
+/**
+ * Eigen kop voor een sectie in een uitsnede die van die sectie maar één onderdeel toont (bijv.
+ * alleen het actiebord uit het deel Planning): de titel en inleiding van het hele deel zouden
+ * daar iets anders beloven. De kop is vaste tekst van de pagina, niet te bewerken.
+ */
+export interface EigenKop {
+  titel: string;
+  intro?: string;
+  /** kort merk vóór de titel, bijv. "Intern Cito" */
+  merk?: string;
+}
+
 const Sectie = memo(function Sectie(p: {
   s: DocSectie;
   i: number;
@@ -1656,8 +1668,10 @@ const Sectie = memo(function Sectie(p: {
   vast?: boolean;
   /** regel in weergave als de sectie geen inleiding en geen blokken heeft; zonder: niets */
   leegTekst?: string;
+  /** uitsnede: eigen kop in plaats van de titel en inleiding van de sectie (zie BewerkbaarDocument) */
+  eigenKop?: EigenKop;
 }) {
-  const { s, i, edit, vraag, ankers, onZet, onVraag, onBewerk, toonBlok, vast, leegTekst } = p;
+  const { s, i, edit, vraag, ankers, onZet, onVraag, onBewerk, toonBlok, vast, leegTekst, eigenKop } = p;
   // Welk blok om bevestiging van verwijderen vraagt, en het soort van een nieuw blok.
   const [vraagBlok, setVraagBlok] = useState<number | null>(null);
   const [nieuwSoort, setNieuwSoort] = useState<NieuwSoort>("tekst");
@@ -1762,7 +1776,14 @@ const Sectie = memo(function Sectie(p: {
       <SectieDocumentContext.Provider value={documentVanSectie(s.id)}>
       <div className="okd-kop">
         <h3 className="ok-kop">
-          <V v={s.titel} on={(x) => upd((n) => void (n.titel = x))} edit={edit} ph="Titel van de sectie" />
+          {eigenKop ? (
+            <>
+              {eigenKop.merk && <span className="okd-merk">{eigenKop.merk}</span>}
+              {eigenKop.titel}
+            </>
+          ) : (
+            <V v={s.titel} on={(x) => upd((n) => void (n.titel = x))} edit={edit} ph="Titel van de sectie" />
+          )}
         </h3>
         {!edit && onBewerk && (
           <button type="button" className="okd-potlood" onClick={() => onBewerk(s.id)} title="Dit deel bewerken">
@@ -1794,18 +1815,20 @@ const Sectie = memo(function Sectie(p: {
             <WegKnop titel="Sectie verwijderen" label="× sectie" on={() => onVraag(s.id)} />
           ))}
       </div>
-      {(edit || s.intro) && (
-        <V
-          v={s.intro}
-          on={(x) => upd((n) => void (n.intro = x))}
-          edit={edit}
-          ml
-          cls="ok-sub"
-          block
-          ph="Inleiding (optioneel)"
-        />
-      )}
-      {!edit && leegTekst && getoond.length === 0 && !(s.intro ?? "").trim() && (
+      {eigenKop
+        ? eigenKop.intro && <div className="ok-sub">{eigenKop.intro}</div>
+        : (edit || s.intro) && (
+            <V
+              v={s.intro}
+              on={(x) => upd((n) => void (n.intro = x))}
+              edit={edit}
+              ml
+              cls="ok-sub"
+              block
+              ph="Inleiding (optioneel)"
+            />
+          )}
+      {!edit && leegTekst && getoond.length === 0 && !((eigenKop ? eigenKop.intro : s.intro) ?? "").trim() && (
         <p className="okd-p okd-leeg" role="note">
           {leegTekst}
         </p>
@@ -1855,7 +1878,8 @@ const Sectie = memo(function Sectie(p: {
             </div>
           );
         })}
-        {edit && (
+        {/* met een eigen kop staat hier maar een onderdeel van de sectie: een nieuw blok zou in het deel elders belanden */}
+        {edit && !eigenKop && (
           <div className="okd-blok-plus">
             <Keuze v={nieuwSoort} opties={NIEUW_BLOK_OPTIES} on={setNieuwSoort} titel="Soort van het nieuwe blok" />
             <PlusKnop label="+ blok" on={() => upd((n) => void n.blokken.push(nieuwBlok(nieuwSoort)))} />
@@ -1874,6 +1898,7 @@ const BLOK_CSS = `
 .okd .okd-blok-soort{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)}
 .okd .okd-blok-balk .okd-dp-knoppen{margin-bottom:0}
 .okd .okd-blok-plus{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.okd .okd-merk{display:inline-block;margin-right:10px;vertical-align:.2em;font-size:10.5px;font-weight:800;line-height:1.5;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;color:#fff;background:var(--cito);border:1px solid var(--cito);border-radius:999px;padding:1px 10px}
 .okd .okd-kolom-knop{margin-top:4px}
 .okd .okd-t th.okd-kolom-plus{width:auto;min-width:0;padding:6px 8px;text-align:right}
 .okd .okd-laag-plus{display:flex;flex-wrap:wrap;gap:6px}
@@ -1938,6 +1963,7 @@ export default function BewerkbaarDocument({
   paginaAnkers,
   deelKaart,
   leegTekst,
+  eigenKoppen,
   stijl = true,
 }: {
   doc: DocData;
@@ -1976,6 +2002,13 @@ export default function BewerkbaarDocument({
   deelKaart?: readonly SectieKaart[];
   /** regel in weergave bij een sectie zonder inleiding en zonder blokken; zonder: niets */
   leegTekst?: string;
+  /**
+   * Uitsnede: per sectie-id een eigen kop in plaats van de titel en inleiding van de sectie,
+   * voor een pagina die van die sectie maar één onderdeel toont (met `toonBlok`). De titel en
+   * inleiding van de sectie zijn daar dan niet te zien en niet te bewerken, en "+ blok"
+   * vervalt (een nieuw blok hoort bij het hele deel). Geef een vast object mee.
+   */
+  eigenKoppen?: Readonly<Record<string, EigenKop>>;
   /** false: de <style> met DOCUMENT_CSS niet meerenderen (de ouder heeft die al geplaatst) */
   stijl?: boolean;
 }) {
@@ -2119,6 +2152,7 @@ export default function BewerkbaarDocument({
           toonBlok={toonBlok}
           vast={uitsnede}
           leegTekst={leegTekst}
+          eigenKop={eigenKoppen?.[s.id]}
         />
       ))}
 

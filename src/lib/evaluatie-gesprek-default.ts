@@ -5,8 +5,13 @@
 // op het tabblad als uitsnede getoond (evaluatie-uitsnede.ts).
 // Standaardinhoud; in de app per kop en cel aanpasbaar en opgeslagen onder
 // session.documenten[EVALUATIE_GESPREK_SLEUTEL].
-// De agenda verwijst naar de delen met de nummers van de analyse (deel 4, 5 en 8); in de
-// export worden dat deel 1, 2 en 3 (evaluatie-uitsnede.ts: herschrijfVerwijzingen).
+// De evaluatie is een extern stuk over 3sides, geschreven als Cito ("wij"): wat 3sides heeft
+// toegezegd en wat er is geleverd. Agenda en brief zeggen niets over wat Cito zelf nog doet;
+// dat staat op het actiebord en op het tabblad Evaluatie intern.
+// De agenda volgt de zes kaders in de volgorde van het document en verwijst naar de delen met
+// de nummers van de analyse (deel 5 en 8); in de export worden dat deel 1 en 2
+// (evaluatie-uitsnede.ts: herschrijfVerwijzingen). Deel 4 (de werkstroomkaarten) staat niet
+// op het tabblad en niet in de export: verwijs er hier niet naar.
 // De tijden zijn een voorstel; de brief heeft plekken tussen haken die de afzender invult.
 
 import type { BewerkbaarDocument } from "@/lib/schemas";
@@ -19,14 +24,14 @@ export const GESPREK_BRIEF = "brief";
 
 export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
   titel: "Evaluatie Klant in Zicht: de eerste drie maanden met 3sides",
-  ondertitel: "Wat er per werkstroom ligt, wat er is geleverd en de evaluatie op zes kaders",
+  ondertitel: "De planning van 3sides, wat er is geleverd en onze evaluatie op zes kaders",
   status: "Stand van de bronnen: 01-10-2026",
   secties: [
     {
       id: GESPREK_AGENDA,
       titel: "Agenda voor het evaluatiegesprek",
       intro:
-        "Eén uur, alleen de evaluatie. De opbouw: eerst wat er ligt, dan de planning, dan de zes kaders en tot slot de afspraken. Bij elk onderdeel eerst de constatering met de bron, daarna de reactie van 3sides.",
+        "Eén uur, alleen de evaluatie. We beginnen bij de lessen uit Klant in Beeld en volgen daarna de zes kaders in de volgorde van het document: leveren, tempo, rapporteren, medewerkers meenemen, ons framework en eigenaarschap, en onze regie. Per kader eerst onze bevinding met de bron, daarna de reactie van 3sides. We sluiten af met wat 3sides oplevert, wanneer, en hoe het rapporteert.",
       blokken: [
         {
           type: "tabel",
@@ -34,45 +39,39 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
           kolommen: ["Tijd", "Onderwerp", "Wat we bespreken", "Uitkomst"],
           rijen: [
             [
-              "0:00–0:05",
-              "Opening",
-              "Het doel van het gesprek: na drie maanden samen vaststellen waar we staan. De werkwijze: per onderdeel de constatering met de bron, daarna de reactie van 3sides.",
-              "Hetzelfde beeld van doel en werkwijze",
+              "0:00–0:08",
+              "Opening en startpunt: de lessen uit Klant in Beeld (deel 8)",
+              "Het doel: na drie maanden de samenwerking evalueren op zes kaders. De werkwijze: per kader onze bevinding met de bron, daarna de reactie van 3sides. Het uitgangspunt: wij leiden, 3sides volgt en voert uit. Het startpunt: welke drie lessen haalt 3sides zelf uit de evaluatie van Klant in Beeld, en waar zien wij elk daarvan vóór eind december terug: in welk onderdeel van de tijdlijn en met welke datum?",
+              "Hetzelfde beeld van doel, werkwijze en uitgangspunt; drie lessen van 3sides, elk met een onderdeel en een datum",
             ],
             [
-              "0:05–0:15",
-              "Wat er per werkstroom ligt (deel 4)",
-              "Per werkstroom: de resultaten uit het plan van aanpak van 3sides, wat er nu ligt en wat het plan van aanpak nog mist.",
-              "Per werkstroom vastgesteld wat er ligt en wat ontbreekt",
+              "0:08–0:20",
+              "Leveren (deel 8, kader 1)",
+              "Levert 3sides wat het heeft toegezegd: de onderdelen uit de tijdlijn met een oplevermaand tot en met oktober, van Klant in Beeld-klantreizen samenvoegen (augustus) tot adoptieframework opstellen (oktober). Ze staan bij naam in kader 1 en in de tabel 'Geleverd?' (deel 5). Als onderbouwing: die tabel en de tijdlijn.",
+              "Per onderdeel de stand volgens 3sides, en een nieuwe datum waar de maand is verstreken",
             ],
             [
-              "0:15–0:25",
-              "Planning en opleveringen (deel 5)",
-              "De negen onderdelen met een oplevering tot en met oktober: geleverd, ja of nee. Welke datums zijn verschoven en welke onderdelen hebben nog geen datum.",
-              "Per onderdeel de stand, en een nieuwe datum waar de oude is verstreken",
-            ],
-            [
-              "0:25–0:35",
-              "Leveren, tempo en rapporteren (deel 8, kader 1 tot en met 3)",
-              "Levert 3sides wat is afgesproken, blijft het tempo erin, en lezen we uit de rapportage wat af is en wat vastzit.",
+              "0:20–0:30",
+              "Tempo en rapporteren (deel 8, kader 2 en 3)",
+              "Blijft het tempo erin, en lezen wij uit de rapportage wat af is, wat vastzit en waarom. Met de tijdlijn erbij (deel 5).",
               "Per kader de reactie van 3sides en wat er verandert",
             ],
             [
-              "0:35–0:45",
-              "Eén framework, eigenaarschap en medewerkers meenemen (deel 8, kader 4 en 5)",
-              "Werkt 3sides in het ene framework van het programma, ligt het eigenaarschap bij Cito, en hoe neemt 3sides de medewerkers van Cito mee.",
+              "0:30–0:40",
+              "Medewerkers meenemen (deel 8, kader 4)",
+              "Hoe neemt 3sides onze medewerkers mee in de verandering, en wanneer is het adoptieframework zo ver dat we ermee kunnen werken.",
+              "De reactie van 3sides en wat er verandert",
+            ],
+            [
+              "0:40–0:52",
+              "Eén framework, eigenaarschap en regie (deel 8, kader 5 en 6)",
+              "Werkt 3sides in ons framework en met onze begrippen, komt het eigenaarschap bij ons te liggen, en volgt 3sides onze regie: voorleggen, de stappen uit het eigen plan regelen en vroeg melden als iets vastloopt.",
               "Per kader de reactie van 3sides en wat er verandert",
             ],
             [
-              "0:45–0:55",
-              "Rolverdeling en wie aan zet is (deel 8, kader 6)",
-              "Het voorstel van het programma voor de rolverdeling: Cito leidt, 3sides voert uit; wie bepaalt en toetst, en wie regelt de volgende stap, ook bij een validatie door Cito. Per onderdeel dat niet is geleverd: wat doet 3sides, wat doet Cito.",
-              "De rolverdeling samen vastgelegd; per onderdeel wie aan zet is",
-            ],
-            [
-              "0:55–1:00",
+              "0:52–1:00",
               "Afspraken en vervolg",
-              "Wat spreken we af, wie doet het en wanneer. Wanneer kijken we opnieuw.",
+              "Wat 3sides oplevert, wanneer, en hoe het daarover rapporteert. Wanneer we opnieuw evalueren.",
               "Een afsprakenlijst met per afspraak een naam en een datum",
             ],
           ],
@@ -91,17 +90,22 @@ export const DEFAULT_EVALUATIE_GESPREK: BewerkbaarDocument = {
         {
           type: "tekst",
           tekst:
-            "Na drie maanden Klant in Zicht hebben wij de stand opgemaakt. Bij deze brief vind je onze evaluatie: wat er per werkstroom ligt, de planning met wat er is geleverd, en onze constateringen op zes kaders.",
+            "Na drie maanden Klant in Zicht hebben wij de samenwerking met 3sides geëvalueerd op zes punten: leveren, tempo, rapporteren, medewerkers meenemen, werken in ons framework en onze regie volgen. Bij deze brief vind je het resultaat: jullie planning met wat ons daarin opvalt, per onderdeel wat er is geleverd, en per punt onze bevinding. We beginnen bij de lessen uit de evaluatie van Klant in Beeld.",
         },
         {
           type: "tekst",
           tekst:
-            "Bij elke constatering staat de bron: jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een constatering een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar eigen stukken van Cito verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe. Per kader staat ook wie aan zet is. Waar de volgende stap bij Cito ligt, staat dat er net zo duidelijk bij. De rolverdeling staat erin als voorstel van het programma; dat voorstel is nog niet met jullie besproken en willen we in het gesprek samen vastleggen.",
+            "De maatstaf is wat jullie zelf hebben toegezegd: de resultaten in jullie plan van aanpak en de maanden in jullie tijdlijn. Bij elke bevinding staat de bron: jullie plan van aanpak, de tijdlijn, de werkdocumenten, de statuspagina en de samenvatting van ons overleg van 29 september. Waar een bevinding een waarneming van ons eigen programmateam is, staat dat erbij. Waar we naar onze eigen stukken verwijzen, het stappenplan en het organigram, lichten we die in het gesprek toe.",
         },
         {
           type: "tekst",
           tekst:
-            "We gebruiken dit stuk als basis voor ons gesprek van [datum gesprek]; de agenda staat erin. Mis je een feit of zie je iets anders, laat het ons dan vooraf weten. Dan nemen we het mee in het gesprek.",
+            "Ons uitgangspunt staat in ons stappenplan van 19-08-2026: wij leiden, 3sides volgt en voert uit. Per punt staat wat wij van jullie vragen.",
+        },
+        {
+          type: "tekst",
+          tekst:
+            "We gebruiken dit stuk als basis voor ons gesprek van [datum gesprek]; de agenda staat erin. We stellen voor de zes punten in dat gesprek punt voor punt door te lopen, en horen graag per punt jullie reactie. Mis je een feit of zie je iets anders, laat het ons dan vooraf weten.",
         },
         { type: "tekst", tekst: "Met vriendelijke groet,\n\n[naam]\nprogramma-eigenaar Klant in Zicht, Cito" },
       ],

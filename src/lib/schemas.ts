@@ -1506,11 +1506,16 @@ export const DINSessionSchema = z.object({
   // Generieke bewerkbare documenten per sleutel (stap 11: "integratie-3sides").
   // Partial zodat een later toegevoegde sectie een bestaande sessie niet ongeldig maakt.
   documenten: z.record(z.string(), BewerkbaarDocumentSchema.partial()).optional(),
-  // vindplaatsen voor stap 11: map met de 3sides-documenten (basis-url) en het Jira-bord
+  // vindplaatsen voor stap 11: map met de 3sides-documenten (basis-url) en het Jira-bord, en
+  // links naar bronnen die geen bestand in die map zijn (bron-context.tsx, VINDPLAATS_VELDEN)
   koppelingen: z
     .object({
       documentenBasis: z.string().optional().default(""),
       jira: z.string().optional().default(""),
+      statuspagina: z.string().optional().default(""),
+      overleg2909: z.string().optional().default(""),
+      overleg0110: z.string().optional().default(""),
+      stappenplan: z.string().optional().default(""),
     })
     .partial()
     .optional(),

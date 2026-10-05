@@ -18,8 +18,12 @@
 //       isStart, splitsSchakel, niveauKleur, accentKleur, isLink, isJira
 //   uit BewerkbaarDocument.tsx:          chipSoort, NUMMER_REGEL
 //   uit blokken/EvaluatieBlok.tsx:       beeldSoort, splitsBeeld (met alsZin en hoofdletter),
-//       splitsBron (met BRONWOORD), alineas (met LABEL, GENUMMERD, KOP_VOORAAN), en de namen
-//       van de oordelen (OORDELEN)
+//       splitsBron (met BRONWOORD), alineas (met LABEL, GENUMMERD, KOP_VOORAAN en
+//       OORDEEL_VOORAAN), en de namen van de oordelen (OORDELEN); gelijkgetrokken op 05-10-2026
+//
+// De afdrukweergave (src/app/sessies/[id]/evaluatie-afdruk/EvaluatieKaders.tsx) gebruikt dezelfde
+// kopie voor de evaluatie (beeldSoort, splitsBeeld, splitsBron, alineas, oordeelNaam), zodat Word
+// en PDF hetzelfde tonen.
 
 import { DOMEINEN, domein } from "@/components/bewerkbaar/blok-typen";
 import type { BlokVan } from "@/components/bewerkbaar/blok-typen";
@@ -525,13 +529,16 @@ export interface Alinea {
 }
 
 // Een label aan het begin van een zin: hoofdletter of cijfer, hooguit 45 tekens, dan ": ".
-// Geen punt, puntkomma, haakjes of dubbele aanhalingstekens erin, zodat citaten heel blijven.
+// Geen punt, puntkomma of dubbele aanhalingstekens erin, zodat citaten heel blijven; wel
+// een korte toevoeging tussen haakjes aan het eind ("Cito (Sanne):").
 const ZINSBEGIN = "(?:^|(?<=[.!?…)'’\"”]\\s))";
-const LABEL = new RegExp(`${ZINSBEGIN}((?:\\p{Lu}|\\d)[^.:;!?()"“”\\n]{1,44}):\\s`, "gu");
+const LABEL = new RegExp(`${ZINSBEGIN}((?:\\p{Lu}|\\d)[^.:;!?()"“”\\n]{1,44}(?:\\s\\([^()\\n]{1,30}\\))?):\\s`, "gu");
 /** Genummerd punt aan het begin van een zin: "2 · Van één-op-één naar …". */
 const GENUMMERD = new RegExp(`${ZINSBEGIN}(\\d{1,2}\\s·)\\s`, "gu");
 /** Kort oordeel of partij vooraan, hooguit drie woorden: "Waarschijnlijk.", "Nee, deels; …", "Beide.". */
 const KOP_VOORAAN = /^([^.;:!?()]{1,24})[.;]\s+(?=\S)/u;
+/** Een oordeelwoord met een dubbele punt erachter telt ook als kop: "Nee: niet gestart." */
+const OORDEEL_VOORAAN = /^((?:ja|nee,? deels|nee|deels|waarschijnlijk))(?![\p{L}\p{N}]):\s+(?=\S)/iu;
 
 /**
  * Knipt een sectietekst in alinea's bij de labels die er al in staan ("Afspraak: …",
@@ -544,7 +551,7 @@ export function alineas(invoer: string): Alinea[] {
     let t = regel.trim();
     if (!t) return;
     let chip = "";
-    const kop = ri === 0 ? t.match(KOP_VOORAAN) : null;
+    const kop = ri === 0 ? (t.match(OORDEEL_VOORAAN) ?? t.match(KOP_VOORAAN)) : null;
     if (kop && kop[1].trim().split(/\s+/).length <= 3) {
       chip = kop[1].trim();
       t = hoofdletter(t.slice(kop[0].length));

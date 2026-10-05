@@ -1,8 +1,11 @@
 "use client";
 
-// Stap 11, tabblad "Evaluatie 3sides": de exportknoppen (Word en PDF), in twee versies:
-// intern voor de programma-eigenaar en een versie om aan 3sides te overhandigen, met de
-// begeleidende brief. Leest zelf de sessie (useSession); het tabblad plaatst alleen dit paneel.
+// Stap 11, de tabbladen "Evaluatie 3sides" en "Evaluatie intern": de exportknoppen (Word en
+// PDF), in twee versies: een versie om aan 3sides te overhandigen (wat we aan 3sides
+// communiceren, met de begeleidende brief) en een interne versie (alles, ook wat Cito zelf
+// doet, ons oordeel en de onderbouwing). Met `versie` toont het paneel er één: het tabblad
+// Evaluatie 3sides die voor 3sides, het tabblad Evaluatie intern de interne. Zonder `versie`
+// beide naast elkaar. Leest zelf de sessie (useSession); het tabblad plaatst alleen dit paneel.
 // Word: de uitsnede (evaluatie-uitsnede.ts) gaat naar maakEvaluatieWord en wordt gedownload.
 // PDF: opent de afdrukweergave (/sessies/<id>/evaluatie-afdruk) in een nieuw tabblad; daar
 // maak je de pdf met het afdrukvenster van de browser. Elke actie meldt wat er gebeurt:
@@ -21,20 +24,31 @@ type Stand =
   | { soort: "klaar"; tekst: string }
   | { soort: "fout"; tekst: string };
 
-const KEUZES: { versie: ExportVersie; titel: string; merk: string; zin: string; rand: string; merkCls: string }[] = [
+const KEUZES: {
+  versie: ExportVersie;
+  titel: string;
+  merk: string;
+  zin: string;
+  /** als alleen deze versie wordt getoond: waar de andere staat */
+  andere: string;
+  rand: string;
+  merkCls: string;
+}[] = [
   {
     versie: "intern",
-    titel: "Intern (programma-eigenaar)",
+    titel: "Interne versie",
     merk: "Intern Cito",
-    zin: "Alles van dit tabblad, met per kader ons oordeel, de notities en de onderbouwing. Op elke pagina staat 'Intern Cito'.",
+    zin: "Alles: wat we aan 3sides communiceren, en wat alleen voor Cito is: wat Cito zelf doet, ons oordeel met de notities en de onderbouwing per kader. Op elke pagina staat 'Intern Cito'.",
+    andere: "De versie voor 3sides maak je op het tabblad Evaluatie 3sides.",
     rand: "border-l-[#003366]",
     merkCls: "border-[#003366] bg-[#003366] text-white",
   },
   {
     versie: "3sides",
-    titel: "Voor 3sides (met begeleidende brief)",
+    titel: "Voor 3sides",
     merk: "Om te overhandigen",
-    zin: "Met de begeleidende brief. Zonder ons interne oordeel, de notities en de onderbouwing per kader, en zonder het actiebord van Cito.",
+    zin: "Wat we aan 3sides communiceren, met de begeleidende brief: de agenda, de planning met wat er is geleverd en per kader onze bevinding, de feiten, wat we van 3sides vragen en de vraag voor het gesprek.",
+    andere: "De interne versie maak je op het tabblad Evaluatie intern.",
     rand: "border-l-[#0e7490]",
     merkCls: "border-[#0e7490] bg-white text-[#0b5c72]",
   },
@@ -90,7 +104,7 @@ function download(blob: Blob, naam: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-export default function EvaluatieExport() {
+export default function EvaluatieExport({ versie }: { /** alleen deze versie tonen; zonder: beide */ versie?: ExportVersie }) {
   const { session } = useSession();
   const [stand, setStand] = useState<Partial<Record<ExportVersie, Stand>>>({});
 
@@ -134,17 +148,22 @@ export default function EvaluatieExport() {
     }
   }
 
+  const keuzes = versie ? KEUZES.filter((k) => k.versie === versie) : KEUZES;
+  const een = keuzes.length === 1;
+
   return (
     <section aria-labelledby="evaluatie-export-kop">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h3 id="evaluatie-export-kop" className="text-base font-bold text-[#003366]">
           Delen als Word of PDF
         </h3>
-        <p className="text-[13px] leading-relaxed text-[#4a5565]">Kies eerst voor wie het stuk is; de twee versies verschillen in wat erin staat.</p>
+        <p className="text-[13px] leading-relaxed text-[#4a5565]">
+          {een ? keuzes[0].andere : "Kies eerst voor wie het stuk is; de twee versies verschillen in wat erin staat."}
+        </p>
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        {KEUZES.map((k) => {
+      <div className={"mt-3 grid gap-3 " + (een ? "max-w-3xl" : "md:grid-cols-2")}>
+        {keuzes.map((k) => {
           const s = stand[k.versie];
           const bezig = s?.soort === "bezig";
           const kopId = "evaluatie-export-" + k.versie;
@@ -159,13 +178,13 @@ export default function EvaluatieExport() {
               <p className="mt-1.5 text-[13px] leading-relaxed text-[#374151]">{k.zin}</p>
               {k.versie === "3sides" && brief.leeg && (
                 <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-900" role="note">
-                  De begeleidende brief is nog leeg. Vul hem verderop op dit tabblad in; zonder tekst komt er geen brief in deze versie.
+                  De begeleidende brief is nog leeg. Vul hem in op het tabblad Evaluatie 3sides; zonder tekst komt er geen brief in deze versie.
                 </p>
               )}
               {k.versie === "3sides" && brief.invulplekken.length > 0 && (
                 <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-900" role="note">
-                  In de brief staan nog plekken om in te vullen: {brief.invulplekken.join(", ")}. Vul ze verderop op dit tabblad in
-                  voordat je deze versie deelt.
+                  In de brief staan nog plekken om in te vullen: {brief.invulplekken.join(", ")}. Vul ze in bij de begeleidende brief op het
+                  tabblad Evaluatie 3sides, voordat je deze versie deelt.
                 </p>
               )}
 
