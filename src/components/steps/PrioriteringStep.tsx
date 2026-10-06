@@ -105,6 +105,7 @@ const PLACEHOLDER_TITELS: Record<EffortDomain, string> = {
   mens: "Gezamenlijke mens-inspanning",
   data_systemen: "Gezamenlijke data & systemen-inspanning",
   processen: "Gezamenlijke processen-inspanning",
+  overig: "Programma-brede inspanning",
 };
 
 function makeBundelIdFromStap4(b: SubEffortAdvies): string {

@@ -13,6 +13,10 @@ import DINMappingStep from "@/components/steps/DINMappingStep";
 import GovernanceStep from "@/components/steps/GovernanceStep";
 import PrioriteringStep from "@/components/steps/PrioriteringStep";
 import ExportStep from "@/components/steps/ExportStep";
+import BerekeningenStep from "@/components/steps/BerekeningenStep";
+import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
+import OrganigramStep from "@/components/steps/OrganigramStep";
+import IntegratieStep from "@/components/steps/IntegratieStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -30,6 +34,14 @@ function StepContent({ step }: { step: AppStep }) {
       return <PrioriteringStep />;
     case "export":
       return <ExportStep />;
+    case "berekeningen":
+      return <BerekeningenStep />;
+    case "kpi-meetbaarheid":
+      return <KPIMeetbaarheidStep />;
+    case "organigram":
+      return <OrganigramStep />;
+    case "integratie":
+      return <IntegratieStep />;
   }
 }
 
@@ -41,6 +53,16 @@ function SessionFlow() {
   useEffect(() => {
     if (id) loadSession(id);
   }, [id, loadSession]);
+
+  // Deep-link naar een stap: /sessies/<id>?stap=organigram
+  useEffect(() => {
+    if (!session) return;
+    const gevraagd = new URLSearchParams(window.location.search).get("stap");
+    if (!gevraagd) return;
+    const stap = APP_STEPS.find((s) => s.key === gevraagd);
+    if (stap && stap.key !== currentStep) setCurrentStep(stap.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
 
   const completions = useMemo(() => {
     if (!session) return [];
@@ -80,6 +102,13 @@ function SessionFlow() {
               Stap {currentStepIndex + 1} van {APP_STEPS.length}
             </span>
             <a
+              href="/actielijst"
+              className="text-blue-200 hover:text-white text-sm transition-colors"
+              title="Actielijst vakantie — te bespreken met Sanne"
+            >
+              Actielijst ↗
+            </a>
+            <a
               href="/methodiek"
               className="text-blue-200 hover:text-white text-sm transition-colors"
               title="Methodiek-toelichting"
@@ -91,7 +120,7 @@ function SessionFlow() {
       </header>
 
       <nav className="bg-white border-b border-cito-border px-6 py-3">
-        <div className="max-w-6xl mx-auto flex gap-1">
+        <div className="max-w-6xl mx-auto flex gap-1 flex-wrap items-center">
           {APP_STEPS.map((step) => {
             const completion = completions.find((c) => c.step === step.key);
             const hasData = completion && completion.percentage > 0;
@@ -118,11 +147,18 @@ function SessionFlow() {
               </button>
             );
           })}
+          <a
+            href="/actielijst"
+            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
+            title="Actielijst vakantie — te bespreken met Sanne"
+          >
+            Actielijst
+          </a>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-xl border border-cito-border p-8">
+      <main className={"mx-auto p-3 sm:p-6 " + (currentStep === "integratie" ? "max-w-[1400px]" : "max-w-6xl")}>
+        <div className="bg-white rounded-xl border border-cito-border p-3 sm:p-8">
           <h2 className="text-2xl font-bold text-cito-blue mb-6">
             {APP_STEPS.find((s) => s.key === currentStep)?.label}
           </h2>
