@@ -1388,8 +1388,8 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
         ),
         {
           type: "evaluatie",
-          titel: "",
-          intro: "",
+          titel: "Onze evaluatie op zes punten",
+          intro: "Tot hier hebben we laten zien wat 3sides heeft toegezegd, wat er ligt en wat de lessen uit Klant in Beeld zijn. Nu volgt onze evaluatie. We hebben het werk van 3sides bekeken op zes punten, in de volgorde van wat 3sides doet: eerst het werk zelf (levert 3sides wat is toegezegd, en houdt het het tempo), dan hoe wij dat kunnen volgen (rapporteren), dan onze medewerkers (helpt 3sides ons hen mee te nemen), en tot slot de samenwerking (werkt 3sides in ons framework en komt het eigenaarschap bij ons, en volgt 3sides onze regie). De lessen uit Klant in Beeld komen in deze punten terug: concreet maken en afmaken bij leveren, tempo bij tempo, samenwerken over afdelingen heen bij framework en eigenaarschap. Per punt staat eerst onze bevinding in één woord (Ja, Deels of Nee) met een korte uitleg; daaronder wat we zien, met de bron, wat we van 3sides vragen en de vraag voor het gesprek.",
           rolCito: "leidt: bepaalt, toetst en beslist",
           rol3sides: "volgt en voert uit: stelt op, levert, bereidt de stappen uit het eigen plan voor en plant ze in",
           kaders: [
