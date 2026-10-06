@@ -1331,25 +1331,25 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
           "Klant in Zicht bouwt voort op Klant in Beeld, het voortraject dat 3sides ook begeleidde. 3sides evalueerde dat zelf en deelde de resultaten; dat waarderen we. 13 deelnemers antwoordden (volgens onze opgave waren er 34 aangeschreven): 3 vinden het doel behaald, 10 niet (evaluatie Klant in Beeld; microspace 3sides, stand 01-10).\n\nEen kanttekening: de evaluatie is pas begin september gehouden, toen Klant in Zicht al twee maanden liep. Op 1 oktober kon dus nog niet alles zijn verwerkt. De lessen willen wij terugzien in de planning van het vierde kwartaal van 2026. De kaarten hieronder zetten ze naast wat we nu zien."
         ),
         tabel(
-          ["Les", "Zien we het terug?", "Wat deelnemers schreven", "Wat we nu zien in Klant in Zicht", "Onze vraag aan 3sides"],
+          ["Les", "Is de les toegepast?", "Wat deelnemers schreven", "Wat we nu zien in Klant in Zicht", "Onze vraag aan 3sides"],
           [
             [
               "Maak het concreet en maak het af",
-              "Zien we terug",
+              "Nog niet: het blijft hoog over",
               "7 van de 13 schrijven dat een concreet vervolg of resultaat uitbleef.\n'Omdat het bij ideeën lijkt te zijn gebleven'\n'Afmaken waar we aan begonnen zijn'\nBron: evaluatie Klant in Beeld",
-              "Wat in augustus of september af moest zijn, hebben wij niet gezien zoals het plan van aanpak van 3sides het beschrijft.\n3sides noemt vier van de eerste vijf opleveringen zelf 'Draft', een eerste versie.\n3sides lichtte de werkwijze toe: eerst de basis, daarna stap voor stap met teams. Dat past bij een andere les uit de evaluatie: eerst het kernprobleem, dan de oplossingen. Maar het concrete resultaat komt er later door.\nHet eerste moment waarop medewerkers anders gaan werken, de pilot, stond in het eerste voorstel in Q3 2026. In de tijdlijn staat het nu in januari en februari 2027.\nBron: microspace 3sides, stand 01-10; overleg 29-09, transcriptie; voorstel 3sides; tijdlijn, stand 28-09",
+              "Wat in augustus of september af moest zijn, hebben wij niet gezien zoals het plan van aanpak van 3sides het beschrijft.\nWij krijgen veel informatie, maar die blijft hoog over: de stukken zijn eerste versies en zeggen nog niet concreet wat er wanneer gebeurt. In ons programmateam is het adoptieframework 'wel echt hoogover' genoemd (waarneming van ons programmateam; overleg 01-10).\n3sides noemt vier van de eerste vijf opleveringen zelf 'Draft', een eerste versie.\n3sides lichtte de werkwijze toe: eerst de basis, daarna stap voor stap met teams. Dat past bij een andere les uit de evaluatie: eerst het kernprobleem, dan de oplossingen. Maar het concrete resultaat komt er later door.\nHet eerste moment waarop medewerkers anders gaan werken, de pilot, stond in het eerste voorstel in Q3 2026. In de tijdlijn staat het nu in januari en februari 2027.\nBron: microspace 3sides, stand 01-10; overleg 29-09, transcriptie; voorstel 3sides; tijdlijn, stand 28-09",
               "Welk eerste concrete resultaat merken onze medewerkers vóór eind december?\nBij welk onderdeel van de tijdlijn hoort dat resultaat?",
             ],
             [
               "Houd het tempo",
-              "Speelt opnieuw",
+              "Nee: speelt opnieuw",
               "9 van de 13 noemen tijd of tempo.\n'Ik heb het idee dat het sneller had gekund'\n8 van de 13 vinden de tijd het wel waard.\nBron: evaluatie Klant in Beeld",
               "Toen ging het om de tijd in de sessies, nu om de datums waarop iets af is.\n3sides noemt deze les zelf: 'Uit Klant in Beeld hebben we geleerd dat projecten bij Cito soms lang doorlopen'.\nToch zijn drie onderdelen op 1 oktober over hun oplevermaand, zonder nieuwe datum; een vierde alleen volgens de tijdlijn.\nBron: microspace 3sides, stand 01-10; tijdlijn, stand 28-09; plan van aanpak p. 7",
               "Wat doet 3sides in Klant in Zicht anders om het tempo te houden, behalve zorgen dat het team beschikbaar is?",
             ],
             [
               "Werk samen, over afdelingen heen\n\nDit ging goed in Klant in Beeld.",
-              "Nog niet zo",
+              "Nog niet",
               "Een sterk punt, volgens ten minste 6 van de 13.\n'omdat we voor het eerst met verschillende disciplines samen zaten'\nBron: evaluatie Klant in Beeld",
               "3sides noemt dit zelf als opbrengst van Klant in Beeld: 'Waardevolle samenwerking tussen afdelingen, voor het eerst gezamenlijk om tafel'.\nIn Klant in Zicht werkt 3sides tot nu toe vooral met losse gesprekken: de microspace noemt gesprekken met afzonderlijke leden van ons programmateam en 'diverse bijeenkomsten' met medewerkers. In ons programmateam is gezegd dat 3sides de gesprekken vooral één-op-één voert.\nHet adoptieframework, het plan om onze medewerkers mee te nemen, noemt werksessies per fase van de klantreis.\nBron: BV-dag p. 4; microspace 3sides, stand 29-09; overleg 01-10; adoptieframework p. 11",
               "Wat neemt 3sides uit de werkwijze van Klant in Beeld mee naar Klant in Zicht?\nWanneer starten de werksessies?",
@@ -1380,7 +1380,7 @@ export const DEFAULT_INTEGRATIE_3SIDES: BewerkbaarDocument = {
             titel: "De lessen uit Klant in Beeld naast wat we nu zien",
             chipKolom: 1,
             kaartWeergave: true,
-            legenda: "Kanttekening: de evaluatie van Klant in Beeld is pas laat gehouden, van 1 tot en met 10 september 2026. Klant in Zicht liep toen al twee maanden. De lessen konden dus niet vanaf de start worden meegenomen, en op 1 oktober kon nog niet alles zijn verwerkt.\nBron: een vragenlijst, ingevuld door 13 deelnemers; volgens onze opgave waren er 34 aangeschreven. De citaten zijn letterlijk. De antwoorden wijzen zelden iemand aan: de lessen gaan over het traject als geheel, niet alleen over de begeleiding door 3sides. De aantallen bij de gesloten vragen zijn geteld uit de vragenlijst; de tellingen per les zijn van ons, uit de open antwoorden. 'Zien we het terug?' is onze eigen samenvatting van de kolom ernaast.",
+            legenda: "Kanttekening: de evaluatie van Klant in Beeld is pas laat gehouden, van 1 tot en met 10 september 2026. Klant in Zicht liep toen al twee maanden. De lessen konden dus niet vanaf de start worden meegenomen, en op 1 oktober kon nog niet alles zijn verwerkt.\nBron: een vragenlijst, ingevuld door 13 deelnemers; volgens onze opgave waren er 34 aangeschreven. De citaten zijn letterlijk. De antwoorden wijzen zelden iemand aan: de lessen gaan over het traject als geheel, niet alleen over de begeleiding door 3sides. De aantallen bij de gesloten vragen zijn geteld uit de vragenlijst; de tellingen per les zijn van ons, uit de open antwoorden. 'Is de les toegepast?' is onze eigen samenvatting van de kolom ernaast.",
           }
         ),
         tekst(
