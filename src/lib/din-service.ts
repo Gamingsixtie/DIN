@@ -18,6 +18,7 @@ import type {
   AIPromotedEffort,
   FindingSuggestion,
 } from "./schemas";
+import { bronnenStapCompletion } from "./bronnenanalyse-service";
 import { SECTORS } from "./types";
 import { deduplicateById } from "./persistence";
 import { tokenize, tokenSimilarity, SIMILARITY_THRESHOLD } from "./nl-tokenizer";
@@ -638,6 +639,10 @@ export function getStepCompletions(session: DINSession): StepCompletion[] {
       step: "berekeningen",
       percentage: 0,
       details: "Audit van out-of-pocket berekeningen",
+    },
+    {
+      step: "bronnen",
+      ...bronnenStapCompletion(session),
     },
   ];
 }
