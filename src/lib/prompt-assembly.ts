@@ -40,7 +40,8 @@ export type ProgrammaboekUseCase =
   | "batenprofiel"
   | "cross-analyse"
   | "governance-organisatie"
-  | "governance-rasci";
+  | "governance-rasci"
+  | "bronnenanalyse";
 
 /**
  * Vaste mapping van AI use case naar programmaboek-secties (D-03).
@@ -77,6 +78,9 @@ const USE_CASE_CONTEXT_MAP: Record<ProgrammaboekUseCase, string> = {
   // Governance: Hfst 6 programmaorganisatie + RASCI
   "governance-organisatie": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
   "governance-rasci": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
+
+  // Bronnenanalyse (stap 12): DIN-keten + vermogens — bijdragen toetsen op vermogensniveau
+  "bronnenanalyse": [PROGRAMMABOEK_DIN, PROGRAMMABOEK_VERMOGENS].join("\n\n"),
 };
 
 /**
