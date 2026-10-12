@@ -172,8 +172,10 @@ export function verifieerCitaat(citaat: string, brontekst: string): boolean {
 // --- Muteren (geeft altijd een nieuw object terug) ----------------------
 
 /**
- * Zet de analyse van een bron. Een handmatig bewerkte bron wordt alleen overschreven met
- * forceer: true (dan is hij daarna niet meer "bewerkt").
+ * Zet de analyse van een bron. `bewerkt` beschermt alleen een BESTAANDE analyse: een handmatig
+ * bewerkte analyse wordt alleen overschreven met forceer: true (dan is hij daarna niet meer
+ * "bewerkt"). Een bron zonder analyse mag altijd geanalyseerd worden — ook als er een oude
+ * `bewerkt: true` op staat van alleen een metadata-wijziging.
  */
 export function pasAnalyseToe(
   ba: BronnenAnalyse,
@@ -185,19 +187,24 @@ export function pasAnalyseToe(
     ...ba,
     bronnen: ba.bronnen.map((b) => {
       if (b.id !== bronId) return b;
-      if (b.bewerkt && !opties.forceer) return b;
+      if (b.bewerkt && b.analyse && !opties.forceer) return b;
       return { ...b, analyse: capBronAnalyse(analyse), bewerkt: false };
     }),
   };
 }
 
-/** Past velden van een bron aan; markeert de bron als handmatig bewerkt. */
+/**
+ * Past velden van een bron aan. Heeft de bron een analyse, dan wordt hij als handmatig bewerkt
+ * gemarkeerd (de seed/AI overschrijft die analyse dan niet meer). Zonder analyse is er niets te
+ * beschermen: `bewerkt` blijft false, zodat de eerste analyse gewoon wordt toegepast.
+ */
 export function bewerkBron(ba: BronnenAnalyse, bronId: string, wijziging: Partial<Bron>): BronnenAnalyse {
   return {
     ...ba,
     bronnen: ba.bronnen.map((b) => {
       if (b.id !== bronId) return b;
-      const nieuw: Bron = { ...b, ...wijziging, id: b.id, bewerkt: true };
+      const samengevoegd: Bron = { ...b, ...wijziging, id: b.id };
+      const nieuw: Bron = { ...samengevoegd, bewerkt: Boolean(samengevoegd.analyse) };
       if (nieuw.analyse) nieuw.analyse = { ...nieuw.analyse, door: "handmatig" };
       return nieuw;
     }),

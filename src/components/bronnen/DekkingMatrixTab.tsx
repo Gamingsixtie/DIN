@@ -11,8 +11,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { BronnenAnalyse, WerkstroomOordeel } from "@/lib/schemas";
 import { NOG_NODIG_STATUS_LABELS, OORDEEL_LABELS, TE_BEPALEN, VOORSTEL_LABEL } from "@/lib/bronnenanalyse-default";
 import { berekenDekkingMatrix, type DekkingCel } from "@/lib/bronnenanalyse-service";
+import CitaatBadge from "@/components/bronnen/CitaatBadge";
 import {
-  Citaat,
   DomeinPillen,
   Etiket,
   KAART,
@@ -201,10 +201,11 @@ function Cel({ cel, onOpenBron }: { cel: DekkingCel; onOpenBron: (id: string) =>
         </div>
       )}
       {cel.citaat.trim() && (
-        <details className="mt-1">
+        // Een niet letterlijk teruggevonden citaat staat standaard open, zodat de waarschuwing zichtbaar is.
+        <details className="mt-1" open={cel.citaatGeverifieerd === false}>
           <summary className="cursor-pointer text-xs font-semibold text-[#003366]">Citaat en vindplaats</summary>
           <div className="mt-1">
-            <Citaat citaat={cel.citaat} vindplaats={cel.vindplaats} />
+            <CitaatBadge citaat={cel.citaat} vindplaats={cel.vindplaats} geverifieerd={cel.citaatGeverifieerd} compact />
           </div>
         </details>
       )}

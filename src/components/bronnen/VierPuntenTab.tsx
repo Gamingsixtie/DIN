@@ -10,7 +10,8 @@ import { useMemo, useState } from "react";
 import type { BronnenAnalyse } from "@/lib/schemas";
 import { GEEL_PUNTEN, GEEL_PUNTEN_BRON } from "@/lib/bronnenanalyse-default";
 import { berekenPuntenOverzicht } from "@/lib/bronnenanalyse-service";
-import { Citaat, KNOP_LINK, MeldingRegel, TeBepalen, type Melding } from "@/components/bronnen/BronnenRegisterTab";
+import CitaatBadge from "@/components/bronnen/CitaatBadge";
+import { KNOP_LINK, MeldingRegel, TeBepalen, type Melding } from "@/components/bronnen/BronnenRegisterTab";
 import { Conclusie } from "@/components/bronnen/DekkingMatrixTab";
 
 type Props = {
@@ -76,7 +77,7 @@ export default function VierPuntenTab({ ba, onWijzig, onOpenBron }: Props) {
                           </button>
                           <p className="mt-0.5 text-sm text-gray-900">{w.watErAlIs}</p>
                           <div className="mt-0.5">
-                            <Citaat citaat={w.citaat} vindplaats={w.vindplaats} />
+                            <CitaatBadge citaat={w.citaat} vindplaats={w.vindplaats} geverifieerd={w.citaatGeverifieerd} compact />
                           </div>
                         </li>
                       ))}

@@ -88,17 +88,6 @@ export function DomeinPillen({ domeinen }: { domeinen: EffortDomain[] }) {
   );
 }
 
-/** Citaat (cursief, tussen aanhalingstekens) met vindplaats; leeg citaat → niets. */
-export function Citaat({ citaat, vindplaats }: { citaat: string; vindplaats: string }) {
-  if (!citaat.trim()) return null;
-  return (
-    <p className="text-sm text-gray-800">
-      <span className="italic">“{citaat}”</span>
-      <span className="ml-1 text-gray-700">— {vindplaats.trim() ? vindplaats : "vindplaats te bepalen"}</span>
-    </p>
-  );
-}
-
 /** Letterlijk "te bepalen", donkergrijs (niet lichtgrijs). */
 export function TeBepalen({ prefix }: { prefix?: string }) {
   return (
