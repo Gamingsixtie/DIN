@@ -40,6 +40,7 @@ import BronAnalysePaneel from "@/components/bronnen/BronAnalysePaneel";
 import DekkingMatrixTab from "@/components/bronnen/DekkingMatrixTab";
 import VierPuntenTab from "@/components/bronnen/VierPuntenTab";
 import ActiesTab from "@/components/bronnen/ActiesTab";
+import BronnenExport from "@/components/bronnen/BronnenExport";
 
 const TABBLADEN = [
   { id: "register", label: "Bronnenregister" },
@@ -68,6 +69,10 @@ const MAX_BYTES = MAX_MB * 1024 * 1024;
 const OPSLAG_FOUT = "Opslaan in de database mislukt; lokaal bewaard.";
 const GEEN_BESTAND =
   "Geen bestand of tekst gekoppeld — upload het bestand of gebruik 'Plak tekst'.";
+const GEEN_SLEUTEL =
+  "De AI-analyse is niet beschikbaar: er is geen API-sleutel ingesteld. Registreren en handmatig bewerken werkt wel.";
+const GEEN_ANTWOORD = "De analyse duurde te lang of de server gaf geen antwoord";
+const GEEN_ANTWOORD_LEZEN = "Het lezen van het bestand duurde te lang of de server gaf geen antwoord";
 
 /** Publieke storage-url van het eigen Supabase-project; alleen daarvandaan mag de parse-route lezen. */
 const STORAGE_PREFIX = (() => {
@@ -286,7 +291,10 @@ export default function BronnenAnalyseStep() {
       body: JSON.stringify({ url, bestandsnaam: bron.bestandsnaam || doc?.bestandsnaam || bron.titel }),
     });
     const json = await leesJson<ParseBronResponse>(res);
-    if (!json) return { fout: `Lezen van het bestand mislukt (${res.status}).` };
+    if (!json) {
+      console.error("[bronnenanalyse] parse zonder JSON-antwoord", res.status);
+      return { fout: `${GEEN_ANTWOORD_LEZEN} (${res.status}).` };
+    }
     if (!json.success) return { fout: json.error };
     return { tekst: json.rawText };
   }
@@ -301,6 +309,7 @@ export default function BronnenAnalyseStep() {
     setStapMelding(null);
     let klaar = 0;
     let mislukt = 0;
+    let geenSleutel = false;
 
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
@@ -332,19 +341,20 @@ export default function BronnenAnalyseStep() {
         });
         const json = await leesJson<AnalyseerBronResponse>(res);
         if (!json) {
-          zetStatus(id, "fout", `Analyse mislukt (${res.status}).`);
+          // Geen JSON-body: typisch een time-out (504) of storing van het platform.
+          console.error("[bronnenanalyse] analyse zonder JSON-antwoord", res.status);
+          zetStatus(id, "fout", `${GEEN_ANTWOORD} (${res.status}).`);
           mislukt += 1;
           continue;
         }
         if (!json.success) {
-          zetStatus(id, "fout", json.error);
-          mislukt += 1;
           if (json.code === "geen_api_key") {
-            // Zonder sleutel heeft doorgaan geen zin: overige items krijgen dezelfde melding.
-            for (const rest of ids.slice(i + 1)) zetStatus(rest, "fout", json.error);
-            mislukt += ids.length - i - 1;
+            // Zonder sleutel heeft doorgaan geen zin: één melding bovenaan de stap, niet per bron.
+            geenSleutel = true;
             break;
           }
+          zetStatus(id, "fout", json.error);
+          mislukt += 1;
           continue;
         }
 
@@ -364,10 +374,22 @@ export default function BronnenAnalyseStep() {
     }
 
     setWachtrijBezig(false);
-    setStapMelding({
-      soort: mislukt > 0 ? "fout" : "klaar",
-      tekst: `${klaar} geanalyseerd, ${mislukt} mislukt.`,
-    });
+    if (geenSleutel) {
+      // De niet-verwerkte bronnen blijven gewoon "Niet geanalyseerd"; geen herhaalde foutregels.
+      setWachtrij((w) => w.filter((x) => x.status === "klaar" || x.status === "fout"));
+      setStapMelding({
+        soort: "fout",
+        tekst:
+          klaar + mislukt > 0
+            ? `${GEEN_SLEUTEL} (${klaar} geanalyseerd, ${mislukt} mislukt vóór deze melding.)`
+            : GEEN_SLEUTEL,
+      });
+    } else {
+      setStapMelding({
+        soort: mislukt > 0 ? "fout" : "klaar",
+        tekst: `${klaar} geanalyseerd, ${mislukt} mislukt.`,
+      });
+    }
     if (klaar > 0) await bewaarDirect();
   }
 
@@ -384,12 +406,18 @@ export default function BronnenAnalyseStep() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold text-[#003366]">Bronnenanalyse</h2>
-        <p className="mt-1 text-sm text-gray-700">
-          Alle bronnen op een rij: wat we per werkstroom al hebben, wat daarvan bruikbaar is en wat nog ontbreekt — en wat
-          nu al in gang kan.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-bold text-[#003366]">Bronnenanalyse</h2>
+          <p className="mt-1 text-sm text-gray-700">
+            Alle bronnen op een rij: wat we per werkstroom al hebben, wat daarvan bruikbaar is en wat nog ontbreekt — en
+            wat nu al in gang kan.
+          </p>
+        </div>
+        {/* Word-export, zichtbaar op elk tabblad. */}
+        <div className="w-full lg:w-auto lg:max-w-sm">
+          <BronnenExport />
+        </div>
       </div>
 
       <div role="tablist" aria-label="Onderdelen van stap 12" className="flex flex-wrap items-center gap-2">
