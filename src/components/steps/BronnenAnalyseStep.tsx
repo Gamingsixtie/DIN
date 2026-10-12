@@ -348,10 +348,8 @@ export default function BronnenAnalyseStep() {
           continue;
         }
 
-        // Een bron zonder analyse heeft niets te beschermen; anders alleen met forceer.
-        const actueel = baRef.current.bronnen.find((b) => b.id === id);
-        const forceer = opts.forceer === true || !actueel?.analyse;
-        if (!schrijf(pasAnalyseToe(baRef.current, id, json.analyse, { forceer }))) {
+        // pasAnalyseToe beschermt alleen een bestaande, handmatig bewerkte analyse.
+        if (!schrijf(pasAnalyseToe(baRef.current, id, json.analyse, { forceer: opts.forceer === true }))) {
           zetStatus(id, "fout", "Niet opgeslagen.");
           mislukt += 1;
           continue;

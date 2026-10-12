@@ -16,6 +16,7 @@ import {
   OPEN_PUNTEN_MAX,
   SAMENVATTING_MAX,
   berekenDekkingMatrix,
+  bewerkBron,
   bronLabel,
   capBronAnalyse,
   pasAnalyseToe,
@@ -248,6 +249,23 @@ describe("bronnenanalyse-service", () => {
     expect(met.bronnen[0].bewerkt).toBe(false);
     // het origineel blijft ongemoeid
     expect(ba.bronnen[0].analyse?.samenvatting).toBe("Eigen.");
+  });
+
+  it("bewerkt beschermt alleen een bestaande analyse: metadata bewerken blokkeert de eerste analyse niet", () => {
+    const ba = leeg([bron("b1")]);
+    const bewerkt = bewerkBron(ba, "b1", { titel: "Nieuwe titel" });
+    expect(bewerkt.bronnen[0].titel).toBe("Nieuwe titel");
+    expect(bewerkt.bronnen[0].bewerkt).toBe(false);
+    const nieuw = analyse("klantreizen", { samenvatting: "Eerste analyse.", door: "claude" });
+    const na = pasAnalyseToe(bewerkt, "b1", nieuw);
+    expect(na.bronnen[0].analyse?.samenvatting).toBe("Eerste analyse.");
+    expect(na.bronnen[0].titel).toBe("Nieuwe titel");
+    // Oude sessie met bewerkt: true maar zonder analyse: toch toepassen.
+    const oud = leeg([bron("b2", { bewerkt: true })]);
+    expect(pasAnalyseToe(oud, "b2", nieuw).bronnen[0].analyse?.samenvatting).toBe("Eerste analyse.");
+    // Met analyse markeert metadata bewerken de bron wél als bewerkt.
+    const metAnalyse = bewerkBron(leeg([bron("b3", { analyse: nieuw })]), "b3", { titel: "X" });
+    expect(metAnalyse.bronnen[0].bewerkt).toBe(true);
   });
 
   it("berekenDekkingMatrix markeert een werkstroom zonder bruikbare bron als te bepalen", () => {
