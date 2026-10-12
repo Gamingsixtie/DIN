@@ -71,7 +71,11 @@ class Uitvoer {
   }
   tekst(): string {
     const t = this.delen.join("\n");
-    return t.length > BRONTEKST_MAX ? t.slice(0, BRONTEKST_MAX) : t;
+    // Bij te veel tekst een markering ná het maximum laten staan: de route kapt zelf af op
+    // BRONTEKST_MAX en zet dan `afgekapt: true`. Kapten we hier al exact af (en trimt de aanroeper),
+    // dan zag de route nooit dat er meer was.
+    if (this.vol || t.length > BRONTEKST_MAX) return `${t.slice(0, BRONTEKST_MAX)}\n[afgekapt]`;
+    return t;
   }
 }
 

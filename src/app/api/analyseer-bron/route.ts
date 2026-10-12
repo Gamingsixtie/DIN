@@ -23,6 +23,8 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const MODEL = "claude-sonnet-4-6";
+const AI_VELD_MAX = 400; // dekt / watErAlIs
+const AI_REGEL_MAX = 200; // één open punt of actie
 
 const RequestSchema = z.object({
   bron: z.object({
@@ -119,12 +121,30 @@ Analyseer deze bron volgens de instructies en antwoord alleen met het JSON-objec
   const puntIds = new Set<string>(GEEL_PUNTEN.map((p) => p.id));
   const ai = resultaat.data;
 
+  // Extra grenzen op AI-uitvoer (T-12-17, sessieblob-grootte): hooguit één dekkingsregel per
+  // werkstroom en één bijdrage per punt (in aantal), en een maximum per vrij tekstveld.
+  // Alleen hier (AI), niet in capBronAnalyse: handmatige tekst wordt nooit stil ingekort.
+  const AI_DEKKING_REGELS_MAX = werkstromen.length;
+  const AI_PUNTEN_REGELS_MAX = GEEL_PUNTEN.length;
+  const kort = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
   const dekking = (ai.dekking ?? [])
     .filter((d) => werkstroomIds.has(d.werkstroom))
-    .map((d) => ({ ...d, citaatGeverifieerd: verifieerCitaat(d.citaat ?? "", tekst) }));
+    .slice(0, AI_DEKKING_REGELS_MAX)
+    .map((d) => ({
+      ...d,
+      dekt: kort(d.dekt ?? "", AI_VELD_MAX),
+      openPunten: (d.openPunten ?? []).map((o) => kort(o, AI_REGEL_MAX)),
+      citaatGeverifieerd: verifieerCitaat(d.citaat ?? "", tekst),
+    }));
   const punten = (ai.punten ?? [])
     .filter((p) => puntIds.has(p.punt))
-    .map((p) => ({ ...p, citaatGeverifieerd: verifieerCitaat(p.citaat ?? "", tekst) }));
+    .slice(0, AI_PUNTEN_REGELS_MAX)
+    .map((p) => ({
+      ...p,
+      watErAlIs: kort(p.watErAlIs ?? "", AI_VELD_MAX),
+      actiesNogTeDoen: (p.actiesNogTeDoen ?? []).map((x) => kort(x, AI_REGEL_MAX)),
+      citaatGeverifieerd: verifieerCitaat(p.citaat ?? "", tekst),
+    }));
 
   const gecapt = capBronAnalyse({ ...ai, dekking, punten });
   const analyse: BronAnalyse = {
