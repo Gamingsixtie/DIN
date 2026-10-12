@@ -5,7 +5,8 @@
 // de vier punten). Bewerkbaar (bewerken → Opslaan/Annuleren, patroon OrganigramStep); elke
 // bewerking gaat via bewerkAnalyse/bewerkBron en zet "Handmatig bewerkt".
 // Bovenaan de wachtrij "Analyseer nieuwe bronnen" met voortgang per bron.
-// Geen useSession: alles via props. Citaat-verificatiebadges volgen in fase 3.
+// Geen useSession: alles via props. Citaten via CitaatBadge (amber bij niet letterlijk teruggevonden);
+// handmatig een citaat wijzigen zet citaatGeverifieerd op undefined (de gebruiker is dan de bron).
 
 import { useMemo, useState } from "react";
 import type { Bron, BronAnalyse, BronDekking, BronnenAnalyse, BronPuntBijdrage, BronStatus, EffortDomain, GeelPunt } from "@/lib/schemas";
@@ -17,8 +18,8 @@ import {
   bronnenZonderAnalyse,
   type WachtrijItem,
 } from "@/lib/bronnenanalyse-service";
+import CitaatBadge from "@/components/bronnen/CitaatBadge";
 import {
-  Citaat,
   DOMEIN_INFO,
   DOMEIN_VOLGORDE,
   DomeinPillen,
@@ -206,6 +207,10 @@ function BronDetail({
   const werkstroomNaam = (id: string) => naamVan.get(id) ?? "—";
   const buitenApp = bron.type === "miro" || bron.type === "audio_video";
   const a = bron.analyse;
+  // Aantal citaten (dekking + vier punten) dat niet letterlijk in de brontekst is teruggevonden.
+  const nietGeverifieerd = a
+    ? [...a.dekking, ...a.punten].filter((x) => x.citaat.trim() && x.citaatGeverifieerd === false).length
+    : 0;
 
   function startBewerken() {
     setDraft(kloon(bron.analyse ?? legeAnalyse()));
@@ -315,6 +320,17 @@ function BronDetail({
 
           <div>
             <h4 className="text-sm font-bold text-[#003366]">Dekking per werkstroom</h4>
+            {nietGeverifieerd > 0 && (
+              <p
+                role="status"
+                className="mt-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900"
+              >
+                {nietGeverifieerd === 1
+                  ? "1 citaat niet letterlijk teruggevonden."
+                  : `${nietGeverifieerd} citaten niet letterlijk teruggevonden.`}{" "}
+                <span className="font-normal">Controleer deze in het originele document.</span>
+              </p>
+            )}
             {a.dekking.length === 0 ? (
               <p className="mt-1">
                 <TeBepalen />
@@ -329,7 +345,7 @@ function BronDetail({
                     </div>
                     <p className="mt-1 text-sm text-gray-900">{d.dekt}</p>
                     <div className="mt-1">
-                      <Citaat citaat={d.citaat} vindplaats={d.vindplaats} />
+                      <CitaatBadge citaat={d.citaat} vindplaats={d.vindplaats} geverifieerd={d.citaatGeverifieerd} />
                     </div>
                     {d.openPunten.length > 0 && (
                       <div className="mt-1">
@@ -364,7 +380,7 @@ function BronDetail({
                       </p>
                       <p className="mt-1 text-sm text-gray-900">{p.watErAlIs}</p>
                       <div className="mt-1">
-                        <Citaat citaat={p.citaat} vindplaats={p.vindplaats} />
+                        <CitaatBadge citaat={p.citaat} vindplaats={p.vindplaats} geverifieerd={p.citaatGeverifieerd} />
                       </div>
                       {p.actiesNogTeDoen.length > 0 && (
                         <div className="mt-1">
@@ -444,7 +460,7 @@ function BronDetail({
                     className={VELD}
                     maxLength={300}
                     value={d.citaat}
-                    onChange={(e) => zetDekking(i, { citaat: e.target.value })}
+                    onChange={(e) => zetDekking(i, { citaat: e.target.value, citaatGeverifieerd: undefined })}
                   />
                 </label>
                 <div>
@@ -525,7 +541,7 @@ function BronDetail({
                 </label>
                 <label className={LABEL}>
                   Letterlijk citaat (max 300 tekens)
-                  <textarea className={VELD} maxLength={300} value={p.citaat} onChange={(e) => zetPunt(i, { citaat: e.target.value })} />
+                  <textarea className={VELD} maxLength={300} value={p.citaat} onChange={(e) => zetPunt(i, { citaat: e.target.value, citaatGeverifieerd: undefined })} />
                 </label>
                 <label className={LABEL}>
                   Acties nog te doen (één per regel, max 3)
