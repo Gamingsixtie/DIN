@@ -76,6 +76,8 @@ export const AppStepSchema = z.enum([
   "kpi-meetbaarheid",
   "organigram",
   "integratie",
+  // Stap 12 — achteraan: currentStep is een index, dus nooit tussenvoegen
+  "bronnen",
 ]);
 
 // ============================================================
@@ -1460,6 +1462,202 @@ export const OpmerkingSchema = z.object({
     .default([]),
 });
 
+// ============================================================
+// Stap 12 — Bronnenanalyse
+// Register van alle bronnen (3sides-documenten, Miro, mail, uploads) met per bron een
+// analyse: wat dekt het per werkstroom, wat levert het voor de vier punten van Sanne.
+// Alleen analyse-uitkomsten in de sessie, nooit documenttekst (sessie = één JSON-blob).
+// Lengtes worden NIET via .max() afgedwongen maar door capBronAnalyse in de service,
+// zodat een te lang AI-citaat geen hele call of oude sessie ongeldig maakt.
+// ============================================================
+
+// Bestandssoort van de bron
+export const BronTypeSchema = z.enum([
+  "pdf",
+  "docx",
+  "doc",
+  "xlsx",
+  "pptx",
+  "txt",
+  "md",
+  "eml",
+  "msg",
+  "html",
+  "miro",
+  "audio_video",
+  "anders",
+]);
+
+// Waar de bron vandaan komt ("upload" = via stap 12 geüpload, "anders" = vangnet)
+export const BronHerkomstSchema = z.enum([
+  "downloads",
+  "desktop",
+  "project",
+  "miro",
+  "mail",
+  "microspace",
+  "platform",
+  "upload",
+  "anders",
+]);
+
+// Bruikbaarheid van de bron voor het programma
+export const BronStatusSchema = z.enum(["bruikbaar", "deels_bruikbaar", "verouderd", "niet_geanalyseerd"]);
+
+// De vier (gele) punten uit de opmerking van Sanne (12-10)
+export const GeelPuntSchema = z.enum([
+  "nulmeting_systemen",
+  "klantcontactmomenten",
+  "gesprekken",
+  "funnelmodel",
+]);
+
+// Wie de analyse maakte: Claude (AI), de bulk-seed of handmatig
+export const AnalyseDoorSchema = z.enum(["claude", "seed", "handmatig"]);
+
+// Wat een bron dekt voor één werkstroom
+export const BronDekkingSchema = z.object({
+  // werkstroom-id uit het organigram (werkstromen zijn bewerkbaar, dus string)
+  werkstroom: z.string(),
+  // wat deze bron voor die werkstroom levert
+  dekt: z.string(),
+  // letterlijk citaat uit de bron (max 300 tekens, via capBronAnalyse)
+  citaat: z.string().optional().default(""),
+  // vindplaats in de bron, bijv. "p. 4", "[Dia 3]", "[Tabblad: Kosten]"
+  vindplaats: z.string().optional().default(""),
+  // server-side gezet: staat het citaat letterlijk in de brontekst?
+  citaatGeverifieerd: z.boolean().optional(),
+  // inspanningsdomeinen die geraakt worden
+  domeinen: z.array(EffortDomainSchema).optional().default([]),
+  // open punten die de bron zelf noemt (max 3)
+  openPunten: z.array(z.string()).optional().default([]),
+});
+
+// Wat een bron bijdraagt aan één van de vier punten
+export const BronPuntBijdrageSchema = z.object({
+  // welk van de vier punten
+  punt: GeelPuntSchema,
+  // wat er voor dit punt al is
+  watErAlIs: z.string(),
+  // letterlijk citaat (max 300 tekens)
+  citaat: z.string().optional().default(""),
+  // vindplaats in de bron
+  vindplaats: z.string().optional().default(""),
+  // server-side gezet: staat het citaat letterlijk in de brontekst?
+  citaatGeverifieerd: z.boolean().optional(),
+  // acties die nog te doen zijn (max 3)
+  actiesNogTeDoen: z.array(z.string()).optional().default([]),
+});
+
+// De analyse van één bron
+export const BronAnalyseSchema = z.object({
+  // korte samenvatting (max 600 tekens)
+  samenvatting: z.string(),
+  // bruikbaarheid
+  status: BronStatusSchema,
+  // dekking per werkstroom
+  dekking: z.array(BronDekkingSchema).optional().default([]),
+  // bijdrage aan de vier punten
+  punten: z.array(BronPuntBijdrageSchema).optional().default([]),
+  // wie de analyse maakte
+  door: AnalyseDoorSchema,
+  // ISO-datum van de analyse
+  geanalyseerdOp: z.string(),
+  // gebruikte AI-model (alleen bij door = "claude")
+  model: z.string().optional(),
+});
+
+// Wat de AI teruggeeft: zonder door/datum/model (die zet de server)
+export const AIBronAnalyseSchema = BronAnalyseSchema.omit({ door: true, geanalyseerdOp: true, model: true });
+
+// Eén bron in het register
+export const BronSchema = z.object({
+  // stabiele slug, NOOIT tonen aan de gebruiker
+  id: z.string(),
+  // leesbare titel
+  titel: z.string(),
+  // originele bestandsnaam
+  bestandsnaam: z.string().optional().default(""),
+  // bestandssoort
+  type: BronTypeSchema,
+  // ISO-datum of leeg
+  datum: z.string().optional().default(""),
+  // id van de bron waarvan dit een (oudere) versie is; UI toont de titel
+  versieVan: z.string().optional(),
+  // waar de bron vandaan komt
+  herkomst: BronHerkomstSchema,
+  // koppeling naar session.sessieDocumenten
+  sessieDocumentId: z.string().optional(),
+  // externe vindplaats, bijv. Miro-bord of bucket-url
+  url: z.string().optional(),
+  // de analyse (ontbreekt = niet geanalyseerd)
+  analyse: BronAnalyseSchema.optional(),
+  // merge-bescherming: handmatig bewerkt, seed overschrijft niet
+  bewerkt: z.boolean().optional().default(false),
+  // tombstone: verwijderd, seed brengt hem niet terug
+  verwijderd: z.boolean().optional().default(false),
+});
+
+// Iets wat nog nodig is (gat in de dekking of open punt)
+export const NogNodigItemSchema = z.object({
+  id: z.string(),
+  // wat er nodig is; ongesourcd = letterlijk "te bepalen"
+  tekst: z.string(),
+  // werkstroom-id (optioneel)
+  werkstroom: z.string().optional(),
+  // een van de vier punten (optioneel)
+  punt: GeelPuntSchema.optional(),
+  // wat de actie is
+  actie: z.string().optional().default(""),
+  status: z.enum(["open", "belegd", "afgerond"]).optional().default("open"),
+  // bron-label VERPLICHT, bijv. "Gat in dekking — bronnenanalyse" of de titel van de bron
+  bron: z.string(),
+  // merge-bescherming
+  bewerkt: z.boolean().optional().default(false),
+});
+
+// Oordeel per werkstroom: kan hij starten? Altijd een voorstel.
+export const WerkstroomOordeelSchema = z.object({
+  // werkstroom-id
+  werkstroom: z.string(),
+  oordeel: z.enum(["startklaar", "deels_startklaar", "wacht_op"]),
+  // waarop gewacht wordt
+  wachtOp: z.string().optional().default(""),
+  // onderbouwing uit de dekking
+  toelichting: z.string().optional().default(""),
+  // gelabeld als voorstel; besluit ligt bij Pim/stuurgroep
+  voorstel: z.boolean().optional().default(true),
+  // merge-bescherming
+  bewerkt: z.boolean().optional().default(false),
+});
+
+// Actie die nu al in gang kan
+export const KanNuInGangSchema = z.object({
+  id: z.string(),
+  actie: z.string(),
+  // werkstroom-id
+  werkstroom: z.string(),
+  // bron-ids; UI resolveert naar titels
+  onderbouwing: z.array(z.string()).optional().default([]),
+  status: z.enum(["voorstel", "overgenomen", "gestart", "afgerond"]).optional().default("voorstel"),
+  // merge-bescherming
+  bewerkt: z.boolean().optional().default(false),
+});
+
+// De hele bronnenanalyse in de sessie
+export const BronnenAnalyseSchema = z.object({
+  bronnen: z.array(BronSchema).optional().default([]),
+  nogNodig: z.array(NogNodigItemSchema).optional().default([]),
+  werkstroomOordelen: z.array(WerkstroomOordeelSchema).optional().default([]),
+  kanNuInGang: z.array(KanNuInGangSchema).optional().default([]),
+  // conclusie per werkstroom-id
+  werkstroomConclusies: z.record(z.string(), z.string()).optional().default({}),
+  // conclusie per geel punt
+  puntConclusies: z.record(z.string(), z.string()).optional().default({}),
+  // versie van de seed waarmee de sessie het laatst gemerged is
+  seedVersie: z.number().optional().default(0),
+});
+
 export const DINSessionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1529,6 +1727,10 @@ export const DINSessionSchema = z.object({
   // Opmerkingen bij een specifiek blok van een bewerkbaar document, zoals in Word:
   // gekoppeld aan document (sleutel), sectie en blok.
   opmerkingen: z.array(OpmerkingSchema).optional(),
+  // Stap 12: Bronnenanalyse — register van bronnen met analyse-uitkomsten (nooit documenttekst;
+  // de sessie is één JSON-blob in din_sessions.data). Partial zodat een later toegevoegd veld
+  // een bestaande sessie niet ongeldig maakt.
+  bronnenAnalyse: BronnenAnalyseSchema.partial().optional(),
 });
 
 // ============================================================
@@ -1958,3 +2160,19 @@ export type AIItemRasci = z.infer<typeof AIItemRasciSchema>;
 export type AIGovernanceItemRasciResponse = z.infer<typeof AIGovernanceItemRasciResponseSchema>;
 export type GezamenlijkeRasciSectie = z.infer<typeof GezamenlijkeRasciSectieSchema>;
 export type GezamenlijkRasciItem = z.infer<typeof GezamenlijkRasciItemSchema>;
+
+// Stap 12 — Bronnenanalyse
+export type Bron = z.infer<typeof BronSchema>;
+export type BronType = z.infer<typeof BronTypeSchema>;
+export type BronHerkomst = z.infer<typeof BronHerkomstSchema>;
+export type BronStatus = z.infer<typeof BronStatusSchema>;
+export type GeelPunt = z.infer<typeof GeelPuntSchema>;
+export type AnalyseDoor = z.infer<typeof AnalyseDoorSchema>;
+export type BronDekking = z.infer<typeof BronDekkingSchema>;
+export type BronPuntBijdrage = z.infer<typeof BronPuntBijdrageSchema>;
+export type BronAnalyse = z.infer<typeof BronAnalyseSchema>;
+export type AIBronAnalyse = z.infer<typeof AIBronAnalyseSchema>;
+export type NogNodigItem = z.infer<typeof NogNodigItemSchema>;
+export type WerkstroomOordeel = z.infer<typeof WerkstroomOordeelSchema>;
+export type KanNuInGang = z.infer<typeof KanNuInGangSchema>;
+export type BronnenAnalyse = z.infer<typeof BronnenAnalyseSchema>;

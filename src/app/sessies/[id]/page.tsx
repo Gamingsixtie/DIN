@@ -17,6 +17,7 @@ import BerekeningenStep from "@/components/steps/BerekeningenStep";
 import KPIMeetbaarheidStep from "@/components/steps/KPIMeetbaarheidStep";
 import OrganigramStep from "@/components/steps/OrganigramStep";
 import IntegratieStep from "@/components/steps/IntegratieStep";
+import BronnenAnalyseStep from "@/components/steps/BronnenAnalyseStep";
 
 function StepContent({ step }: { step: AppStep }) {
   switch (step) {
@@ -42,6 +43,8 @@ function StepContent({ step }: { step: AppStep }) {
       return <OrganigramStep />;
     case "integratie":
       return <IntegratieStep />;
+    case "bronnen":
+      return <BronnenAnalyseStep />;
   }
 }
 
@@ -157,7 +160,7 @@ function SessionFlow() {
         </div>
       </nav>
 
-      <main className={"mx-auto p-3 sm:p-6 " + (currentStep === "integratie" ? "max-w-[1400px]" : "max-w-6xl")}>
+      <main className={"mx-auto p-3 sm:p-6 " + (currentStep === "integratie" || currentStep === "bronnen" ? "max-w-[1400px]" : "max-w-6xl")}>
         <div className="bg-white rounded-xl border border-cito-border p-3 sm:p-8">
           <h2 className="text-2xl font-bold text-cito-blue mb-6">
             {APP_STEPS.find((s) => s.key === currentStep)?.label}
