@@ -3,23 +3,43 @@
 // Stap 12 — "Bronnenanalyse".
 // Doel (opdracht Sanne, 12-10): per werkstroom zicht op wat we al hebben, wat daarvan
 // bruikbaar is en wat nog ontbreekt — actiegericht, zodat duidelijk wordt wat nu al in
-// gang kan. Vijf tabbladen:
+// gang kan. Vijf tabbladen (componenten in src/components/bronnen/):
 // 1. Bronnenregister: alle bronnen (3sides-documenten, Miro-borden, mail, uploads) met
-//    type, datum, herkomst, versie en status.
-// 2. Analyse per bron: wat elke bron dekt per werkstroom, met citaat en vindplaats.
-// 3. Dekking per werkstroom: wat hebben we al, wat is bruikbaar, wat is nog nodig.
+//    type, datum, herkomst, versie en status; bron toevoegen (upload, plak tekst, registreren).
+// 2. Analyse per bron: wat elke bron dekt per werkstroom, met citaat en vindplaats;
+//    bewerkbaar, plus de wachtrij "Analyseer nieuwe bronnen".
+// 3. Dekking per werkstroom: oordeel (voorstel) en de matrix al / bruikbaar / nog nodig.
 // 4. De vier punten: wat er al is voor de vier punten van Sanne, en wat nog te doen is.
-// 5. Acties: wat nog nodig is, oordeel per werkstroom (voorstel) en wat nu al in gang kan.
+// 5. Acties: wat nu in gang kan, wat nog nodig is en voorstellen uit de analyse.
 // Direct te openen met ?stap=bronnen&tab=<register|analyse|dekking|punten|acties>.
-// Dit is het skelet (fundament): alleen-lezen register; de overige tabbladen volgen.
-// Bewust GEEN schrijf-logica (updateSession) zodat er nooit lege state wordt opgeslagen.
+//
+// Deze stap is de ENIGE schrijver van session.bronnenAnalyse (de tabbladen krijgen alles via
+// props). Opslag: schrijf() → updateSession (localStorage eerst, dan Supabase); na een
+// AI-batch of upload ook saveNow(). Nooit lege state opslaan. De wachtrij werkt op een ref
+// met de laatste waarde, zodat bron 2 de uitkomst van bron 1 niet overschrijft.
+// Geplakte tekst blijft alleen in het geheugen; de sessie bevat nooit documenttekst.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "@/lib/session-context";
-import type { BronnenAnalyse, BronStatus } from "@/lib/schemas";
+import type { Bron, BronHerkomst, BronnenAnalyse, SessieDocument } from "@/lib/schemas";
 import { mergeOrganigram } from "@/lib/organigram-default";
-import { BRON_STATUS_LABELS, BRON_TYPE_LABELS, HERKOMST_LABELS, mergeBronnenAnalyse } from "@/lib/bronnenanalyse-default";
-import { actieveBronnen, bronLabel } from "@/lib/bronnenanalyse-service";
+import { mergeBronnenAnalyse } from "@/lib/bronnenanalyse-default";
+import {
+  bronTypeUitBestandsnaam,
+  bronnenZonderAnalyse,
+  maakBronId,
+  pasAnalyseToe,
+  type AnalyseerBronRequest,
+  type AnalyseerBronResponse,
+  type ParseBronResponse,
+  type WachtrijItem,
+  type WachtrijStatus,
+} from "@/lib/bronnenanalyse-service";
+import BronnenRegisterTab, { MeldingRegel, Spinner, vandaagIso, type Melding } from "@/components/bronnen/BronnenRegisterTab";
+import BronAnalysePaneel from "@/components/bronnen/BronAnalysePaneel";
+import DekkingMatrixTab from "@/components/bronnen/DekkingMatrixTab";
+import VierPuntenTab from "@/components/bronnen/VierPuntenTab";
+import ActiesTab from "@/components/bronnen/ActiesTab";
 
 const TABBLADEN = [
   { id: "register", label: "Bronnenregister" },
@@ -43,29 +63,41 @@ function zetUrl(tabId: string) {
   window.history.replaceState(window.history.state, "", url);
 }
 
-const STATUS_STIJL: Record<BronStatus, string> = {
-  bruikbaar: "bg-emerald-100 text-emerald-900 border-emerald-300",
-  deels_bruikbaar: "bg-amber-100 text-amber-900 border-amber-300",
-  verouderd: "bg-gray-200 text-gray-800 border-gray-400",
-  niet_geanalyseerd: "bg-white text-gray-800 border-gray-500",
-};
+const MAX_MB = 25;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
+const OPSLAG_FOUT = "Opslaan in de database mislukt; lokaal bewaard.";
+const GEEN_BESTAND =
+  "Geen bestand of tekst gekoppeld — upload het bestand of gebruik 'Plak tekst'.";
 
-function formatDatum(iso: string | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+/** Publieke storage-url van het eigen Supabase-project; alleen daarvandaan mag de parse-route lezen. */
+const STORAGE_PREFIX = (() => {
+  const basis = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/+$/, "");
+  return basis ? `${basis}/storage/v1/object/public/` : "";
+})();
+
+/** JSON van een antwoord; bij een antwoord zonder JSON (bijv. te groot verzoek) null. */
+async function leesJson<T>(res: Response): Promise<T | null> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
-const SKELET_TEKST: Record<string, string> = {
-  analyse: "Analyse per bron: per bron wat ze dekt per werkstroom, met citaat en vindplaats.",
-  dekking: "Dekking per werkstroom: wat we al hebben, wat bruikbaar is en wat nog nodig is.",
-  punten: "De vier punten: wat er per punt al is en wat nog te doen is.",
-  acties: "Acties: wat nog nodig is, het oordeel per werkstroom (voorstel) en wat nu al in gang kan.",
-};
+function zonderExtensie(naam: string): string {
+  const i = naam.lastIndexOf(".");
+  return i > 0 ? naam.slice(0, i) : naam;
+}
+
+/** Is er iets om op te slaan? (CLAUDE.md: nooit lege state wegschrijven.) */
+function heeftInhoud(ba: BronnenAnalyse): boolean {
+  return (
+    ba.bronnen.length > 0 || ba.nogNodig.length > 0 || ba.kanNuInGang.length > 0 || ba.werkstroomOordelen.length > 0
+  );
+}
 
 export default function BronnenAnalyseStep() {
-  const { session } = useSession();
+  const { session, updateSession, saveNow } = useSession();
   const [actief, setActief] = useState(beginTab);
   const tab = TABBLADEN[actief];
 
@@ -73,21 +105,292 @@ export default function BronnenAnalyseStep() {
     () => mergeBronnenAnalyse(session?.bronnenAnalyse as Partial<BronnenAnalyse> | undefined),
     [session?.bronnenAnalyse],
   );
-  const werkstromen = useMemo(() => mergeOrganigram(session?.organigram).werkstromen, [session?.organigram]);
+  const organigramWerkstromen = useMemo(() => mergeOrganigram(session?.organigram).werkstromen, [session?.organigram]);
+  const werkstromen = useMemo(
+    () => organigramWerkstromen.map((w) => ({ id: w.id, naam: w.naam })),
+    [organigramWerkstromen],
+  );
+
+  // Laatste waarde voor de (asynchrone) wachtrij en uploads.
+  const baRef = useRef<BronnenAnalyse>(ba);
+  useEffect(() => {
+    baRef.current = ba;
+  }, [ba]);
+  const documentenRef = useRef<SessieDocument[]>(session?.sessieDocumenten ?? []);
+  useEffect(() => {
+    documentenRef.current = session?.sessieDocumenten ?? [];
+  }, [session?.sessieDocumenten]);
+  const werkstromenRef = useRef(organigramWerkstromen);
+  useEffect(() => {
+    werkstromenRef.current = organigramWerkstromen;
+  }, [organigramWerkstromen]);
+
+  const [geselecteerdeBronId, setGeselecteerdeBronId] = useState<string | null>(null);
+  const [uploadBezig, setUploadBezig] = useState(false);
+  const [uploadMelding, setUploadMelding] = useState<Melding | null>(null);
+  const [wachtrij, setWachtrij] = useState<WachtrijItem[]>([]);
+  const [wachtrijBezig, setWachtrijBezig] = useState(false);
+  const [stapMelding, setStapMelding] = useState<Melding | null>(null);
+  const [opslagMelding, setOpslagMelding] = useState<Melding | null>(null);
 
   function kies(i: number) {
     zetUrl(TABBLADEN[i].id);
     setActief(i);
   }
 
-  const bronnen = actieveBronnen(ba);
+  function openBron(id: string) {
+    setGeselecteerdeBronId(id);
+    kies(TABBLADEN.findIndex((t) => t.id === "analyse"));
+  }
+
+  /** Schrijft de bronnenanalyse (localStorage eerst via updateSession). false = niet geschreven. */
+  function schrijf(nieuw: BronnenAnalyse): boolean {
+    if (!heeftInhoud(nieuw)) {
+      console.error("[bronnenanalyse] lege bronnenanalyse niet opgeslagen");
+      setOpslagMelding({ soort: "fout", tekst: "Niet opgeslagen: de bronnenanalyse zou leeg worden." });
+      return false;
+    }
+    baRef.current = nieuw;
+    updateSession(() => ({ bronnenAnalyse: nieuw }));
+    setOpslagMelding(null);
+    return true;
+  }
+
+  /** Direct naar Supabase (na AI-batches en uploads); bij een fout een rode melding. */
+  async function bewaarDirect(): Promise<boolean> {
+    // Eén tick wachten zodat de laatste updateSession verwerkt is.
+    await new Promise((r) => setTimeout(r, 0));
+    const versie = await saveNow();
+    if (versie === false) {
+      setOpslagMelding({ soort: "fout", tekst: OPSLAG_FOUT });
+      return false;
+    }
+    return true;
+  }
+
+  // ---------- upload ----------
+
+  async function onUpload(file: File, titel: string, herkomst: BronHerkomst): Promise<void> {
+    if (!session) return;
+    if (file.size > MAX_BYTES) {
+      setUploadMelding({ soort: "fout", tekst: `Het bestand is te groot (maximaal ${MAX_MB} MB).` });
+      return;
+    }
+    setUploadBezig(true);
+    setUploadMelding(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("sessionId", session.id);
+      const res = await fetch("/api/sessie-document", { method: "POST", body: form });
+      const json = await leesJson<{
+        success?: boolean;
+        error?: string;
+        data?: { pad?: string; url?: string; grootte?: number; type?: string };
+      }>(res);
+      if (!res.ok || !json?.success || !json.data?.pad || !json.data.url) {
+        const fout =
+          json?.error ??
+          (res.status === 413 ? `Het bestand is te groot voor de server (maximaal ${MAX_MB} MB).` : `Uploaden mislukt (${res.status}).`);
+        throw new Error(fout);
+      }
+      const nu = new Date().toISOString();
+      const schoneTitel = titel.trim() || zonderExtensie(file.name) || file.name;
+      const doc: SessieDocument = {
+        id: crypto.randomUUID(),
+        titel: schoneTitel,
+        bestandsnaam: file.name,
+        pad: json.data.pad,
+        url: json.data.url,
+        grootte: json.data.grootte ?? file.size,
+        type: json.data.type || file.type || "",
+        door: "",
+        datum: nu,
+        hoortBij: "Programmabreed",
+        opmerking: "Toegevoegd via Bronnenanalyse",
+      };
+      const huidig = baRef.current;
+      const bron: Bron = {
+        id: maakBronId(schoneTitel, huidig.bronnen.map((b) => b.id)),
+        titel: schoneTitel,
+        bestandsnaam: file.name,
+        type: bronTypeUitBestandsnaam(file.name),
+        datum: vandaagIso(),
+        herkomst,
+        sessieDocumentId: doc.id,
+        url: doc.url,
+        bewerkt: false,
+        verwijderd: false,
+      };
+      const nieuw: BronnenAnalyse = { ...huidig, bronnen: [...huidig.bronnen, bron] };
+      // Document en bron in één schrijfactie (localStorage eerst).
+      baRef.current = nieuw;
+      documentenRef.current = [doc, ...documentenRef.current];
+      updateSession((prev) => ({
+        sessieDocumenten: [doc, ...(prev.sessieDocumenten ?? [])],
+        bronnenAnalyse: nieuw,
+      }));
+      setUploadMelding({ soort: "klaar", tekst: "Bron toegevoegd. Klik op 'Analyseer nieuwe bronnen' om hem te laten analyseren." });
+      await bewaarDirect();
+    } catch (err) {
+      const tekst =
+        err instanceof TypeError || !(err instanceof Error) || !err.message
+          ? "Uploaden mislukt: geen verbinding met de server."
+          : err.message;
+      console.error("[bronnenanalyse] upload", err);
+      setUploadMelding({ soort: "fout", tekst });
+    } finally {
+      setUploadBezig(false);
+    }
+  }
+
+  // ---------- plak tekst ----------
+
+  async function onPlakTekst(titel: string, tekst: string): Promise<void> {
+    const huidig = baRef.current;
+    const bron: Bron = {
+      id: maakBronId(titel, huidig.bronnen.map((b) => b.id)),
+      titel: titel.trim(),
+      bestandsnaam: "",
+      type: "txt",
+      datum: vandaagIso(),
+      herkomst: "anders",
+      bewerkt: false,
+      verwijderd: false,
+    };
+    if (!schrijf({ ...huidig, bronnen: [...huidig.bronnen, bron] })) return;
+    setUploadMelding({ soort: "klaar", tekst: `"${bron.titel}" toegevoegd; de analyse loopt.` });
+    openBron(bron.id);
+    // De geplakte tekst gaat alleen naar de analyse en wordt niet bewaard.
+    await analyseerBronnen([bron.id], { tekstPerBron: { [bron.id]: tekst } });
+  }
+
+  // ---------- wachtrij ----------
+
+  function zetStatus(bronId: string, status: WachtrijStatus, melding?: string) {
+    setWachtrij((w) => w.map((x) => (x.bronId === bronId ? { ...x, status, melding } : x)));
+  }
+
+  async function haalTekst(bron: Bron, tekstPerBron?: Record<string, string>): Promise<{ tekst: string } | { fout: string }> {
+    const geplakt = tekstPerBron?.[bron.id];
+    if (geplakt !== undefined) return { tekst: geplakt };
+
+    const doc = bron.sessieDocumentId ? documentenRef.current.find((d) => d.id === bron.sessieDocumentId) : undefined;
+    const eigenUrl = bron.url && STORAGE_PREFIX && bron.url.startsWith(STORAGE_PREFIX) ? bron.url : undefined;
+    const url = doc?.url ?? eigenUrl;
+    if (!url) return { fout: GEEN_BESTAND };
+
+    const res = await fetch("/api/parse-bron", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, bestandsnaam: bron.bestandsnaam || doc?.bestandsnaam || bron.titel }),
+    });
+    const json = await leesJson<ParseBronResponse>(res);
+    if (!json) return { fout: `Lezen van het bestand mislukt (${res.status}).` };
+    if (!json.success) return { fout: json.error };
+    return { tekst: json.rawText };
+  }
+
+  async function analyseerBronnen(
+    ids: string[],
+    opts: { tekstPerBron?: Record<string, string>; forceer?: boolean } = {},
+  ): Promise<void> {
+    if (ids.length === 0 || wachtrijBezig) return;
+    setWachtrij(ids.map((bronId) => ({ bronId, status: "wacht" as WachtrijStatus })));
+    setWachtrijBezig(true);
+    setStapMelding(null);
+    let klaar = 0;
+    let mislukt = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const bron = baRef.current.bronnen.find((b) => b.id === id);
+      if (!bron) {
+        zetStatus(id, "fout", "Bron niet gevonden.");
+        mislukt += 1;
+        continue;
+      }
+      zetStatus(id, "bezig");
+      try {
+        const t = await haalTekst(bron, opts.tekstPerBron);
+        if ("fout" in t) {
+          zetStatus(id, "fout", t.fout);
+          mislukt += 1;
+          continue;
+        }
+
+        const body: AnalyseerBronRequest = {
+          bron: { id: bron.id, titel: bron.titel, bestandsnaam: bron.bestandsnaam ?? "", type: bron.type, datum: bron.datum ?? "" },
+          tekst: t.tekst,
+          // Uit het organigram, zodat bewerkingen van stap 10 doorwerken.
+          werkstromen: werkstromenRef.current.map((w) => ({ id: w.id, naam: w.naam, landtIn: w.landtIn })),
+        };
+        const res = await fetch("/api/analyseer-bron", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await leesJson<AnalyseerBronResponse>(res);
+        if (!json) {
+          zetStatus(id, "fout", `Analyse mislukt (${res.status}).`);
+          mislukt += 1;
+          continue;
+        }
+        if (!json.success) {
+          zetStatus(id, "fout", json.error);
+          mislukt += 1;
+          if (json.code === "geen_api_key") {
+            // Zonder sleutel heeft doorgaan geen zin: overige items krijgen dezelfde melding.
+            for (const rest of ids.slice(i + 1)) zetStatus(rest, "fout", json.error);
+            mislukt += ids.length - i - 1;
+            break;
+          }
+          continue;
+        }
+
+        // Een bron zonder analyse heeft niets te beschermen; anders alleen met forceer.
+        const actueel = baRef.current.bronnen.find((b) => b.id === id);
+        const forceer = opts.forceer === true || !actueel?.analyse;
+        if (!schrijf(pasAnalyseToe(baRef.current, id, json.analyse, { forceer }))) {
+          zetStatus(id, "fout", "Niet opgeslagen.");
+          mislukt += 1;
+          continue;
+        }
+        zetStatus(id, "klaar");
+        klaar += 1;
+      } catch (err) {
+        console.error("[bronnenanalyse] analyse", err);
+        zetStatus(id, "fout", "Verbinding mislukt");
+        mislukt += 1;
+      }
+    }
+
+    setWachtrijBezig(false);
+    setStapMelding({
+      soort: mislukt > 0 ? "fout" : "klaar",
+      tekst: `${klaar} geanalyseerd, ${mislukt} mislukt.`,
+    });
+    if (klaar > 0) await bewaarDirect();
+  }
+
+  function onAnalyseerNieuw() {
+    void analyseerBronnen(bronnenZonderAnalyse(baRef.current).map((b) => b.id));
+  }
+
+  function onHeranalyseer(id: string) {
+    // De bevestiging bij een handmatig bewerkte bron zit al in het paneel.
+    void analyseerBronnen([id], { forceer: true });
+  }
+
+  const klaarAantal = wachtrij.filter((w) => w.status === "klaar" || w.status === "fout").length;
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-[#003366]">Bronnenanalyse</h2>
         <p className="mt-1 text-sm text-gray-700">
-          Alle bronnen op een rij: wat we per werkstroom al hebben, wat daarvan bruikbaar is en wat nog ontbreekt.
+          Alle bronnen op een rij: wat we per werkstroom al hebben, wat daarvan bruikbaar is en wat nog ontbreekt — en wat
+          nu al in gang kan.
         </p>
       </div>
 
@@ -111,64 +414,45 @@ export default function BronnenAnalyseStep() {
         ))}
       </div>
 
-      {tab.id === "register" ? (
-        <section className="rounded-xl border border-slate-300 bg-white p-4">
-          <h3 className="text-lg font-bold text-[#003366]">Bronnenregister</h3>
-          <p className="mt-1 text-sm text-gray-700">
-            {bronnen.length} bronnen · {werkstromen.length} werkstromen in het organigram
-          </p>
-          {bronnen.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-900">Nog geen bronnen geregistreerd.</p>
-          ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm text-gray-900 border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-[#003366] text-left text-[#003366]">
-                    <th className="py-2 pr-3 font-semibold">Titel</th>
-                    <th className="py-2 pr-3 font-semibold">Type</th>
-                    <th className="py-2 pr-3 font-semibold">Datum</th>
-                    <th className="py-2 pr-3 font-semibold">Herkomst</th>
-                    <th className="py-2 pr-3 font-semibold">Versie van</th>
-                    <th className="py-2 pr-3 font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bronnen.map((b) => {
-                    const status: BronStatus = b.analyse?.status ?? "niet_geanalyseerd";
-                    return (
-                      <tr key={b.id} className="border-b border-slate-200 align-top">
-                        <td className="py-2 pr-3">
-                          <span className="font-semibold">{b.titel}</span>
-                          {b.bestandsnaam && <div className="text-sm text-gray-700">{b.bestandsnaam}</div>}
-                        </td>
-                        <td className="py-2 pr-3">{BRON_TYPE_LABELS[b.type] ?? "—"}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{formatDatum(b.datum)}</td>
-                        <td className="py-2 pr-3">{HERKOMST_LABELS[b.herkomst] ?? "—"}</td>
-                        <td className="py-2 pr-3">{b.versieVan ? bronLabel(ba, b.versieVan) : "—"}</td>
-                        <td className="py-2 pr-3">
-                          <span
-                            className={
-                              "inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold " +
-                              STATUS_STIJL[status]
-                            }
-                          >
-                            {BRON_STATUS_LABELS[status]}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      ) : (
-        <section className="rounded-xl border border-slate-300 bg-white p-4">
-          <h3 className="text-lg font-bold text-[#003366]">{tab.label}</h3>
-          <p className="mt-1 text-sm text-gray-700">{SKELET_TEKST[tab.id]}</p>
-        </section>
+      {wachtrijBezig && tab.id !== "analyse" && (
+        <p role="status" className="flex items-center gap-2 rounded-lg border border-[#003366]/40 bg-blue-50 px-3 py-2 text-sm font-semibold text-[#003366]">
+          <Spinner /> Analyse loopt: {klaarAantal} van {wachtrij.length} verwerkt
+        </p>
       )}
+      <MeldingRegel melding={stapMelding} />
+      <MeldingRegel melding={opslagMelding} />
+
+      <div role="tabpanel" aria-label={tab.label}>
+        {tab.id === "register" && (
+          <BronnenRegisterTab
+            ba={ba}
+            onWijzig={schrijf}
+            onUpload={onUpload}
+            onPlakTekst={onPlakTekst}
+            bezig={uploadBezig || wachtrijBezig}
+            melding={uploadMelding}
+            onOpenAnalyse={openBron}
+          />
+        )}
+        {tab.id === "analyse" && (
+          <BronAnalysePaneel
+            ba={ba}
+            onWijzig={schrijf}
+            werkstromen={werkstromen}
+            geselecteerdeBronId={geselecteerdeBronId}
+            onSelecteer={setGeselecteerdeBronId}
+            wachtrij={wachtrij}
+            wachtrijBezig={wachtrijBezig}
+            onAnalyseerNieuw={onAnalyseerNieuw}
+            onHeranalyseer={onHeranalyseer}
+          />
+        )}
+        {tab.id === "dekking" && (
+          <DekkingMatrixTab ba={ba} onWijzig={schrijf} werkstromen={werkstromen} onOpenBron={openBron} />
+        )}
+        {tab.id === "punten" && <VierPuntenTab ba={ba} onWijzig={schrijf} werkstromen={werkstromen} onOpenBron={openBron} />}
+        {tab.id === "acties" && <ActiesTab ba={ba} onWijzig={schrijf} werkstromen={werkstromen} onOpenBron={openBron} />}
+      </div>
     </div>
   );
 }
