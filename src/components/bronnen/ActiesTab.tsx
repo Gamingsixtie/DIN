@@ -491,7 +491,8 @@ function NogNodigRij({
       </div>
       <p className="mt-1 text-sm text-gray-800">
         {waar && <span className="font-semibold">{waar} · </span>}
-        Actie: {item.actie.trim() ? item.actie : <span className="italic text-gray-700">{TE_BEPALEN}</span>}
+        {item.status === "open" ? "Voorgestelde actie: " : "Actie: "}
+        {item.actie.trim() ? item.actie : <span className="italic text-gray-700">{TE_BEPALEN}</span>}
       </p>
       <p className="mt-0.5 text-xs font-semibold text-gray-800">Bron: {item.bron || "—"}</p>
       <div className="mt-2 flex flex-wrap gap-2">

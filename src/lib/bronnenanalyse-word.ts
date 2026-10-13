@@ -535,7 +535,14 @@ function deelActies(ba: BronnenAnalyse, werkstromen: { id: string; naam: string 
       return [
         cel([celTekst(of(n.tekst))], { breedte: breedtes[0] }),
         cel([celTekst(waar || "—")], { breedte: breedtes[1] }),
-        cel([celTekst(of(n.actie))], { breedte: breedtes[2] }),
+        cel(
+          [
+            n.status === "open" && n.actie.trim()
+              ? new Paragraph({ spacing: { after: 40, line: 264 }, children: [run(n.actie, { size: G.tabel }), ...pil(VOORSTEL_LABEL)] })
+              : celTekst(of(n.actie)),
+          ],
+          { breedte: breedtes[2] },
+        ),
         cel([celTekst(NOG_NODIG_STATUS_LABELS[n.status])], { breedte: breedtes[3] }),
         cel([celTekst(of(n.bron, "—"), { color: TEXT_SECONDARY })], { breedte: breedtes[4] }),
       ];
