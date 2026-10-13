@@ -22,7 +22,7 @@ import { GEEL_PUNTEN } from "@/lib/bronnenanalyse-default";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-sonnet-5-5";
 const AI_VELD_MAX = 400; // dekt / watErAlIs
 const AI_REGEL_MAX = 200; // één open punt of actie
 
@@ -102,7 +102,8 @@ Analyseer deze bron volgens de instructies en antwoord alleen met het JSON-objec
   // 4. AI-aanroep met schema-validatie
   const resultaat = await callClaudeWithValidation(AIBronAnalyseSchema, systemPrompt, userMessage, {
     model: MODEL,
-    maxTokens: 3000,
+    maxTokens: 16000,
+    effort: "medium",
   });
   if (!resultaat.success) {
     console.error(
