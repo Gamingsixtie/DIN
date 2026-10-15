@@ -114,6 +114,9 @@ function WerkstroomKaart({ p, w, breed }: { p: Praatplaat; w: PpWerkstroom; bree
             Cito-lead <span className="font-bold text-gray-900">{w.citoLead}</span>{w.leadNoot ? ` (${w.leadNoot})` : ""} · 3sides-lead <span className="font-bold text-gray-900">{w.sidesLead}</span>
             <span className="text-gray-700"> · {w.vermogensdeel}</span>
           </p>
+          <p className="flex flex-wrap gap-1.5">
+            {w.domeinen.map((id) => { const d = p.domeinen.find((x) => x.id === id); return d ? <span key={id} className="rounded px-1.5 py-px text-[11px] font-bold uppercase tracking-wide text-white" style={{ backgroundColor: d.kleur }}>{d.naam}</span> : null; })}
+          </p>
           <div className="flex flex-wrap gap-1.5 pt-0.5">
             {w.punten.map((pt) => (
               <span key={pt.nr} className="rounded px-1.5 py-0.5 text-xs font-bold text-gray-900" style={{ background: MARKEER }} title="Geel gemarkeerd punt in het document">
@@ -134,7 +137,7 @@ function WerkstroomKaart({ p, w, breed }: { p: Praatplaat; w: PpWerkstroom; bree
           <a href="#wacht-op-3sides" className="block rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-950 hover:bg-amber-100">
             <span className="font-bold">⚑ {it.length} onderdelen leunen op 3sides</span> · Cito zelf: <span className="font-bold text-emerald-800">{t("ja")} ja</span> · <span className="font-bold text-amber-800">{t("deels")} deels</span> · <span className="font-bold text-rose-800">{t("nee")} nee</span> <span className="underline">→ bekijk</span>
           </a>); })()}
-        <div className={breed ? "grid gap-4 md:grid-cols-3" : "space-y-3"}>
+        <div className={breed ? "grid gap-4 lg:grid-cols-[1fr_1fr_1.15fr]" : "space-y-3"}>
           <Lijst soort="ligt" items={w.ligt} />
           <Lijst soort="ontbreekt" items={w.ontbreekt} />
           <KanNu p={p} w={w} />
@@ -189,8 +192,6 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
     );
   }
 
-  const [adoptie, ...rest] = p.werkstromen.filter((w) => w.id !== "nulmeting");
-  const nulmeting = p.werkstromen.find((w) => w.id === "nulmeting");
 
   return (
     <div className="space-y-3">
@@ -288,11 +289,7 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
           <div className="grid gap-3 lg:grid-cols-[132px_1fr]">
             <Rail label="Werkstromen" sub="inspanningen · Cito-lead vóór 3sides-lead" />
             <div className="space-y-3">
-              <div className="grid gap-3 xl:grid-cols-4">
-                {adoptie && <div className="xl:col-span-2"><WerkstroomKaart p={p} w={adoptie} /></div>}
-                {rest.map((w) => <div key={w.id}><WerkstroomKaart p={p} w={w} /></div>)}
-              </div>
-              {nulmeting && <WerkstroomKaart p={p} w={nulmeting} breed />}
+              {p.werkstromen.map((w) => <WerkstroomKaart key={w.id} p={p} w={w} breed />)}
             </div>
           </div>
         </section>
