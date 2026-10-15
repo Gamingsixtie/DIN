@@ -1645,6 +1645,17 @@ export const KanNuInGangSchema = z.object({
 });
 
 // De hele bronnenanalyse in de sessie
+// Opmerking op de praatplaat (stap 12), per onderdeel; alleen in de sessie
+export const PraatplaatOpmerkingSchema = z.object({
+  id: z.string(),
+  onderdeel: z.string(),
+  tekst: z.string(),
+  door: z.string().optional().default(""),
+  datum: z.string(),
+  status: z.enum(["open", "verwerkt"]).optional().default("open"),
+});
+export type PraatplaatOpmerking = z.infer<typeof PraatplaatOpmerkingSchema>;
+
 export const BronnenAnalyseSchema = z.object({
   bronnen: z.array(BronSchema).optional().default([]),
   nogNodig: z.array(NogNodigItemSchema).optional().default([]),
@@ -1656,6 +1667,8 @@ export const BronnenAnalyseSchema = z.object({
   puntConclusies: z.record(z.string(), z.string()).optional().default({}),
   // praatplaat "Antwoord op het doel" (JSON-tekst, gevuld via de sessie)
   antwoordDoel: z.string().optional().default(""),
+  // opmerkingen van collega's op de praatplaat
+  opmerkingen: z.array(PraatplaatOpmerkingSchema).optional().default([]),
   // versie van de seed waarmee de sessie het laatst gemerged is
   seedVersie: z.number().optional().default(0),
 });

@@ -453,7 +453,7 @@ export default function BronnenAnalyseStep() {
       <MeldingRegel melding={opslagMelding} />
 
       <div role="tabpanel" aria-label={tab.label}>
-        {tab.id === "antwoord" && <AntwoordDoelTab ba={ba} onNaarTab={(id) => kies(TABBLADEN.findIndex((x) => x.id === id))} />}
+        {tab.id === "antwoord" && <AntwoordDoelTab ba={ba} onWijzig={schrijf} onBewaar={bewaarDirect} onNaarTab={(id) => kies(TABBLADEN.findIndex((x) => x.id === id))} />}
         {tab.id === "uitwerking" && <UitwerkingTab ba={ba} onNaarTab={(id) => kies(TABBLADEN.findIndex((x) => x.id === id))} />}
         {tab.id === "register" && (
           <BronnenRegisterTab

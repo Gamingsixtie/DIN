@@ -201,6 +201,7 @@ export const DEFAULT_BRONNEN_ANALYSE: BronnenAnalyse = {
   werkstroomConclusies: {},
   puntConclusies: {},
   antwoordDoel: "",
+  opmerkingen: [],
   seedVersie: BRONNENANALYSE_SEED_VERSIE,
 };
 
@@ -313,6 +314,7 @@ export function mergeBronnenAnalyse(opgeslagen?: Partial<BronnenAnalyse> | null)
     werkstroomConclusies: { ...basis.werkstroomConclusies, ...(opgeslagen.werkstroomConclusies ?? {}) },
     puntConclusies: { ...basis.puntConclusies, ...(opgeslagen.puntConclusies ?? {}) },
     antwoordDoel: opgeslagen.antwoordDoel || basis.antwoordDoel || "",
+    opmerkingen: kloon(opgeslagen.opmerkingen ?? []),
     seedVersie: BRONNENANALYSE_SEED_VERSIE,
   };
 }

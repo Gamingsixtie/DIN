@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { BronnenAnalyse } from "@/lib/schemas";
 import { domeinKleuren, leesPraatplaat, MARKEER, type Praatplaat, type PpWerkstroom, type WachtItem } from "@/lib/praatplaat";
 import WachtOp3sides from "@/components/bronnen/WachtOp3sides";
+import OpmerkingenPraatplaat from "@/components/bronnen/OpmerkingenPraatplaat";
 
 const BLAUW = "#003366";
 const ZELF_KLEUR: Record<string, string> = {
@@ -108,7 +109,7 @@ function Onderbouwing({ p, w }: { p: Praatplaat; w: PpWerkstroom }) {
   );
 }
 
-function WerkstroomKaart({ p, w, open, onWissel }: { p: Praatplaat; w: PpWerkstroom; open: boolean; onWissel: () => void }) {
+function WerkstroomKaart({ p, w, open, onWissel, aantalOpm, onOpmerking }: { p: Praatplaat; w: PpWerkstroom; open: boolean; onWissel: () => void; aantalOpm: number; onOpmerking: () => void }) {
   const wacht = wachtItems(p, w.naam);
   const telZelf = (z: string) => wacht.filter((x) => x.zelf === z).length;
   return (
@@ -166,9 +167,14 @@ function WerkstroomKaart({ p, w, open, onWissel }: { p: Praatplaat; w: PpWerkstr
           </ul>
         </div>
 
-        <button type="button" onClick={onWissel} aria-expanded={open} className="text-sm font-semibold text-[#003366] underline print:hidden">
-          {open ? "Verberg onderbouwing" : "Toon onderbouwing: wat er ligt en waarvoor, wat ontbreekt, waarom nu"}
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
+          <button type="button" onClick={onWissel} aria-expanded={open} className="text-sm font-semibold text-[#003366] underline">
+            {open ? "Verberg onderbouwing" : "Toon onderbouwing: wat er ligt en waarvoor, wat ontbreekt, waarom nu"}
+          </button>
+          <button type="button" onClick={onOpmerking} className="rounded-md border border-[#003366]/50 px-2 py-1 text-xs font-semibold text-[#003366] hover:bg-blue-50">
+            Opmerking{aantalOpm ? ` (${aantalOpm})` : ""}
+          </button>
+        </div>
         <div className={open ? "block" : "hidden print:block"}>
           <Onderbouwing p={p} w={w} />
         </div>
@@ -177,12 +183,13 @@ function WerkstroomKaart({ p, w, open, onWissel }: { p: Praatplaat; w: PpWerkstr
   );
 }
 
-export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse; onNaarTab: (id: string) => void }) {
+export default function AntwoordDoelTab({ ba, onNaarTab, onWijzig, onBewaar }: { ba: BronnenAnalyse; onNaarTab: (id: string) => void; onWijzig: (nieuw: BronnenAnalyse) => boolean | void; onBewaar: () => Promise<boolean> }) {
   const p = useMemo(() => leesPraatplaat(ba.antwoordDoel), [ba.antwoordDoel]);
   const plaatRef = useRef<HTMLDivElement>(null);
   const [vol, setVol] = useState(false);
   const [melding, setMelding] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [opmOnderdeel, setOpmOnderdeel] = useState("Algemeen");
 
   useEffect(() => {
     const opVerandering = () => setVol(document.fullscreenElement === plaatRef.current);
@@ -227,7 +234,9 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
   const wissel = (id: string) => setOpen((o) => ({ ...o, [id]: !o[id] }));
   const kaart = (id: string) => {
     const w = p.werkstromen.find((x) => x.id === id);
-    return w ? <WerkstroomKaart p={p} w={w} open={!!open[w.id]} onWissel={() => wissel(w.id)} /> : null;
+    if (!w) return null;
+    const aantalOpm = (ba.opmerkingen ?? []).filter((o) => o.onderdeel === w.naam && o.status !== "verwerkt").length;
+    return <WerkstroomKaart p={p} w={w} open={!!open[w.id]} onWissel={() => wissel(w.id)} aantalOpm={aantalOpm} onOpmerking={() => { setOpmOnderdeel(w.naam); document.getElementById("opmerkingen")?.scrollIntoView({ behavior: "smooth" }); }} />;
   };
   const spanVan = (w: PpWerkstroom) => (w.domeinen.length >= 4 ? "xl:col-span-4" : w.domeinen.length === 2 ? "xl:col-span-2" : "");
 
@@ -353,16 +362,14 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
           </ol>
         </section>
 
-        {/* Opmerkingen: functie volgt */}
-        <section aria-label="Opmerkingen" className="mt-6 rounded-xl border-2 border-dashed border-[#003366]/40 bg-white p-4 print:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-extrabold text-[#003366]">Opmerkingen toevoegen · deze functie komt nog</p>
-              <p className="text-[13px] text-gray-800">Straks kunnen collega’s per onderdeel van de plaat een opmerking of vraag plaatsen. Die worden in de sessie bewaard en meegenomen in de volgende versie.</p>
-            </div>
-            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-slate-400 bg-slate-100 px-3 py-2 text-sm font-semibold text-gray-700">Opmerking toevoegen (binnenkort)</button>
-          </div>
-        </section>
+        <OpmerkingenPraatplaat
+          ba={ba}
+          onderdelen={["Algemeen", "Voorlopig antwoord", "Doel en baten", "Vermogen", ...p.werkstromen.map((w) => w.naam), "Wacht op 3sides", "Besluiten", "Uitwerking"]}
+          gekozen={opmOnderdeel}
+          onKies={setOpmOnderdeel}
+          onWijzig={onWijzig}
+          onBewaar={onBewaar}
+        />
 
         <footer className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-300 pt-3 text-xs text-gray-800">
           <span>* plek van dit punt: besluitpunt</span>
