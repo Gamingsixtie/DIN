@@ -94,7 +94,7 @@ function Onderbouwing({ p, w }: { p: Praatplaat; w: PpWerkstroom }) {
           <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu · waarom</p>
           <ul className="mt-1.5 space-y-1.5">
             {w.nu.map((n, i) => {
-              const z = n.vlag ? wacht.find((x) => x.id === n.id) : undefined;
+              const z = n.id ? wacht.find((x) => x.id === n.id) : undefined;
               return (
                 <li key={i} className="text-[13px] leading-snug text-gray-900">
                   <span className="font-semibold">{n.wat}</span>
@@ -154,7 +154,7 @@ function WerkstroomKaart({ p, w, open, onWissel, aantalOpm, onOpmerking }: { p: 
           <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu</p>
           <ul className="mt-1 space-y-1">
             {w.nu.map((n, i) => {
-              const z = n.vlag ? wacht.find((x) => x.id === n.id) : undefined;
+              const z = n.id ? wacht.find((x) => x.id === n.id) : undefined;
               return (
                 <li key={i} className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[13px] leading-snug">
                   <span aria-hidden="true" className="font-bold text-[#003366]">→</span>

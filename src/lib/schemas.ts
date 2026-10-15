@@ -1667,6 +1667,8 @@ export const BronnenAnalyseSchema = z.object({
   puntConclusies: z.record(z.string(), z.string()).optional().default({}),
   // praatplaat "Antwoord op het doel" (JSON-tekst, gevuld via de sessie)
   antwoordDoel: z.string().optional().default(""),
+  // doeltoets langs het document: werkstromen en activiteiten getoetst vanuit het doel (JSON-tekst, via de sessie)
+  doeltoets: z.string().optional().default(""),
   // opmerkingen van collega's op de praatplaat
   opmerkingen: z.array(PraatplaatOpmerkingSchema).optional().default([]),
   // versie van de seed waarmee de sessie het laatst gemerged is
