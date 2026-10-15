@@ -11,7 +11,7 @@
 // 3. Dekking per werkstroom: oordeel (voorstel) en de matrix al / bruikbaar / nog nodig.
 // 4. De vier punten: wat er al is voor de vier punten van Sanne, en wat nog te doen is.
 // 5. Acties: wat nu in gang kan, wat nog nodig is en voorstellen uit de analyse.
-// Direct te openen met ?stap=bronnen&tab=<antwoord|register|analyse|dekking|punten|acties>.
+// Direct te openen met ?stap=bronnen&tab=<antwoord|uitwerking|register|analyse|dekking|punten|acties>.
 //
 // Deze stap is de ENIGE schrijver van session.bronnenAnalyse (de tabbladen krijgen alles via
 // props). Opslag: schrijf() → updateSession (localStorage eerst, dan Supabase); na een
@@ -41,10 +41,12 @@ import DekkingMatrixTab from "@/components/bronnen/DekkingMatrixTab";
 import VierPuntenTab from "@/components/bronnen/VierPuntenTab";
 import ActiesTab from "@/components/bronnen/ActiesTab";
 import AntwoordDoelTab from "@/components/bronnen/AntwoordDoelTab";
+import UitwerkingTab from "@/components/bronnen/UitwerkingTab";
 import BronnenExport from "@/components/bronnen/BronnenExport";
 
 const TABBLADEN = [
-  { id: "antwoord", label: "Antwoord op het doel" },
+  { id: "antwoord", label: "Praatplaat" },
+  { id: "uitwerking", label: "Uitwerking" },
   { id: "register", label: "Bronnenregister" },
   { id: "analyse", label: "Analyse per bron" },
   { id: "dekking", label: "Dekking per werkstroom" },
@@ -452,6 +454,7 @@ export default function BronnenAnalyseStep() {
 
       <div role="tabpanel" aria-label={tab.label}>
         {tab.id === "antwoord" && <AntwoordDoelTab ba={ba} onNaarTab={(id) => kies(TABBLADEN.findIndex((x) => x.id === id))} />}
+        {tab.id === "uitwerking" && <UitwerkingTab ba={ba} onNaarTab={(id) => kies(TABBLADEN.findIndex((x) => x.id === id))} />}
         {tab.id === "register" && (
           <BronnenRegisterTab
             ba={ba}
