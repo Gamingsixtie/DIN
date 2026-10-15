@@ -8,7 +8,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BronnenAnalyse } from "@/lib/schemas";
-import { domeinKleuren, leesPraatplaat, MARKEER, type Praatplaat, type PpWerkstroom } from "@/lib/praatplaat";
+import { domeinKleuren, leesPraatplaat, MARKEER, type Praatplaat, type PpWerkstroom, type WachtItem } from "@/lib/praatplaat";
+import WachtOp3sides from "@/components/bronnen/WachtOp3sides";
+
+const ZELF_KLEUR: Record<string, string> = { ja: "bg-emerald-50 border-emerald-600 text-emerald-900", deels: "bg-amber-50 border-amber-500 text-amber-900", nee: "bg-rose-50 border-rose-600 text-rose-900" };
+
+function wachtItems(p: Praatplaat, naam: string): WachtItem[] {
+  return p.wachtOp3sides?.werkstromen.find((w) => w.naam === naam)?.items ?? [];
+}
 
 const BLAUW = "#003366";
 
@@ -69,7 +76,8 @@ function Lijst({ soort, items }: { soort: "ligt" | "ontbreekt"; items: string[] 
   );
 }
 
-function KanNu({ w }: { w: PpWerkstroom }) {
+function KanNu({ p, w }: { p: Praatplaat; w: PpWerkstroom }) {
+  const wacht = wachtItems(p, w.naam);
   return (
     <div className="rounded-lg border border-[#003366]/25 bg-[#003366]/[0.04] p-3">
       <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu · en waarom</p>
@@ -80,6 +88,7 @@ function KanNu({ w }: { w: PpWerkstroom }) {
             <div className="text-[13px] leading-snug">
               <span className="font-semibold text-gray-900">{n.wat}</span>
               <Vlag v={n.vlag} />
+              {n.vlag && (() => { const z = wacht.find((x) => x.id === n.id); return z ? <span className={"ml-1 inline-flex rounded-full border px-1.5 py-px text-[11px] font-bold align-middle " + ZELF_KLEUR[z.zelf]}>Cito zelf: {z.zelf}</span> : null; })()}
               <p className="mt-0.5 text-xs text-gray-700">Waarom nu: {n.waarom}</p>
             </div>
           </li>
@@ -121,10 +130,14 @@ function WerkstroomKaart({ p, w, breed }: { p: Praatplaat; w: PpWerkstroom; bree
             )}
           </div>
         </header>
+        {wachtItems(p, w.naam).length > 0 && (() => { const it = wachtItems(p, w.naam); const t = (z: string) => it.filter((x) => x.zelf === z).length; return (
+          <a href="#wacht-op-3sides" className="block rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-950 hover:bg-amber-100">
+            <span className="font-bold">⚑ {it.length} onderdelen leunen op 3sides</span> · Cito zelf: <span className="font-bold text-emerald-800">{t("ja")} ja</span> · <span className="font-bold text-amber-800">{t("deels")} deels</span> · <span className="font-bold text-rose-800">{t("nee")} nee</span> <span className="underline">→ bekijk</span>
+          </a>); })()}
         <div className={breed ? "grid gap-4 md:grid-cols-3" : "space-y-3"}>
           <Lijst soort="ligt" items={w.ligt} />
           <Lijst soort="ontbreekt" items={w.ontbreekt} />
-          <KanNu w={w} />
+          <KanNu p={p} w={w} />
         </div>
       </div>
     </article>
@@ -283,6 +296,10 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
             </div>
           </div>
         </section>
+
+        {p.wachtOp3sides && (
+          <WachtOp3sides data={p.wachtOp3sides} kleurVan={(naam) => domeinKleuren(p, p.werkstromen.find((x) => x.naam === naam)?.domeinen ?? [])} />
+        )}
 
         {/* Besluiten */}
         <section aria-label="Om te besluiten" className="mt-6 grid gap-3 lg:grid-cols-[132px_1fr]">

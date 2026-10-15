@@ -74,6 +74,7 @@ function leeg(bronnen: Bron[] = [], nogNodig: NogNodigItem[] = []): BronnenAnaly
     kanNuInGang: [],
     werkstroomConclusies: {},
     puntConclusies: {},
+    antwoordDoel: "",
     seedVersie: BRONNENANALYSE_SEED_VERSIE,
   };
 }

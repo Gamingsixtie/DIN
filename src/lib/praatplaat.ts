@@ -4,7 +4,9 @@
 export type DomeinId = "cultuur" | "mens" | "data" | "processen";
 
 export interface PpDomein { id: DomeinId; naam: string; kleur: string; vermogen: string }
-export interface PpNu { wat: string; waarom: string; vlag?: string }
+export interface PpNu { wat: string; waarom: string; vlag?: string; id?: string }
+export interface WachtItem { id?: string; wat: string; afhankelijk: string; fase?: string; zelf: "ja" | "deels" | "nee"; hoe: string; nodig: string; wanneer: string; bron?: string }
+export interface WachtOp3sidesData { titel: string; toelichting: string; kern: string; werkstromen: { naam: string; samenvatting: string; items: WachtItem[] }[] }
 export interface PpPunt { nr: number; label: string; voorbehoud?: string }
 export interface PpWerkstroom {
   id: string;
@@ -34,6 +36,7 @@ export interface Praatplaat {
   baten: { sectoren: { naam: string; noot: string }[]; kpi: { kop: string; tekst: string } };
   domeinen: PpDomein[];
   werkstromen: PpWerkstroom[];
+  wachtOp3sides?: WachtOp3sidesData;
   besluiten: { vraag: string; wie: string }[];
   legenda: string[];
   uitwerking: {
