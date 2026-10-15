@@ -25,6 +25,7 @@ interface Praatplaat {
   antwoord: string;
   kolommen: Kolom[];
   nulmeting: Omit<Kolom, "domeinen">;
+  secties?: { titel: string; toelichting?: string; kop: string[]; rijen: string[][] }[];
   besluiten: { vraag: string; wie: string }[];
   legenda: string;
 }
@@ -172,6 +173,30 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
             <Lijst kop="Wat nu kan" items={p.nulmeting.nu} accent="#003366" />
           </div>
         </div>
+
+        {/* Uitgebreide blokken: gele punten, bouwstenen, planning, gaten */}
+        {(p.secties ?? []).map((s, si) => (
+          <div key={si} className="rounded-xl border border-slate-300 overflow-hidden break-inside-avoid-page">
+            <div className="bg-[#003366] px-4 py-2">
+              <p className="text-sm font-bold text-white">{s.titel}</p>
+              {s.toelichting && <p className="text-xs text-blue-100">{s.toelichting}</p>}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-blue-50">
+                  <tr>{s.kop.map((k, ki) => <th key={ki} className="text-left align-top px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#003366] border-b border-slate-300">{k}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {s.rijen.map((r, ri) => (
+                    <tr key={ri} className="odd:bg-white even:bg-slate-50 align-top">
+                      {r.map((c, ci) => <td key={ci} className={"px-3 py-2 text-gray-900 whitespace-pre-line border-b border-slate-200 " + (ci === 0 ? "font-semibold" : "")}>{c}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
 
         {/* Besluiten */}
         <div className="rounded-xl border-2 border-amber-500 bg-amber-50 p-4">
