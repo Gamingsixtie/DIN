@@ -77,7 +77,7 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
   const c: Los = d.conclusie ?? {};
   const oordeel = tekst(c.antwoord?.oordeel ?? c.oordeel);
   const nav = [
-    ["conclusie", "Conclusie"], ["werkstromen", "Toets per werkstroom"], ["mist", "Wat mist"], ["concretisering", "Concretiseringsslag"],
+    ["anders", "Anders dan eerst"], ["conclusie", "Conclusie"], ["werkstromen", "Toets per werkstroom"], ["mist", "Wat mist"], ["concretisering", "Concretiseringsslag"],
     ["fasen", "Fasenplan"], ["weken", "Weekoverzicht"], ["voorstellen", "Voorstel 1 en 2"], ["besluiten", "Besluiten"], ["lijnen", "Per bouwsteen"],
   ];
 
@@ -106,6 +106,19 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
           </ol>
         )}
       </header>
+
+      {/* Wat we anders doen dan eerst: de feedback uit de meeting (heikelpunt) */}
+      {lijst(d.andersDanEerst).length > 0 && (
+        <section className="space-y-3">
+          <Kop id="anders" nr="00" titel="Wat we anders doen dan eerst" sub="Hoe de feedback uit de meeting van 15-10 is verwerkt: vertrekken bij het doel en het document, de activiteiten los toetsen, concreet maken." />
+          <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white">
+            <table className="w-full min-w-[760px] text-[13px]">
+              <thead><tr className="bg-[#003366] text-left text-xs font-bold uppercase tracking-wide text-white"><th className="px-3 py-2 w-[28%]">Feedback</th><th className="px-3 py-2">Eerst</th><th className="px-3 py-2">Nu</th></tr></thead>
+              <tbody>{lijst(d.andersDanEerst).map((r, i) => <tr key={i} className="border-t border-slate-200 align-top odd:bg-white even:bg-slate-50"><td className="px-3 py-2 font-semibold italic text-gray-900">{tekst(r.feedback)}</td><td className="px-3 py-2 text-gray-800">{tekst(r.eerst)}</td><td className="px-3 py-2 text-gray-900"><span className="font-semibold text-emerald-800">→ </span>{tekst(r.nu)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* Conclusie */}
       <section className="space-y-3">
@@ -234,6 +247,7 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
                       <p className="text-[13px] font-bold leading-snug text-gray-900">{tekst(a.wat)}</p>
                       <Badge waarde={tekst(a.vergelijkHuidig)} />
                     </div>
+                    {a.omschrijving && <p className="mt-1 text-[13px] leading-snug text-gray-800">{tekst(a.omschrijving)}</p>}
                     <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs text-gray-900">
                       {a.weken && <><dt className="font-bold text-[#003366]">Week</dt><dd>{tekst(a.weken)}</dd></>}
                       {a.resultaat && <><dt className="font-bold text-[#003366]">Resultaat</dt><dd>{tekst(a.resultaat)}</dd></>}
@@ -249,6 +263,35 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
             </div>
           ))}
         </div>
+        {(lijst(d.mijlpalen).length > 0 || d.startdatum) && (
+          <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
+            {lijst(d.mijlpalen).length > 0 && (
+              <div className="rounded-xl border border-amber-400 bg-amber-50 p-4">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">Mijlpalen per fase</p>
+                <ul className="mt-1 space-y-1.5">{lijst(d.mijlpalen).map((m, i) => <li key={i} className="text-[13px] text-gray-900"><span className="font-bold">{tekst(m.fase)}:</span> {tekst(m.mijlpaal)}</li>)}</ul>
+              </div>
+            )}
+            {d.startdatum && (
+              <div className="rounded-xl border border-slate-300 bg-white p-4">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Startdatum week 1</p>
+                <p className="mt-1 text-sm font-bold text-gray-900">{tekst(d.startdatum.waarde ?? d.startdatum)}</p>
+                {d.startdatum.rekensom && <p className="mt-1 text-xs text-gray-800">{tekst(d.startdatum.rekensom)}</p>}
+              </div>
+            )}
+          </div>
+        )}
+        {lijst(d.vervalt).length > 0 && (
+          <div className="rounded-xl border border-rose-300 bg-white p-4">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-rose-700">Vervalt (voorstel)</p>
+            <ul className="mt-1 space-y-1.5">{lijst(d.vervalt).map((v, i) => <li key={i} className="text-[13px] text-gray-900"><span className="font-bold">{tekst(v.wat)}</span><span className="block text-xs text-gray-700">{tekst(v.waarom)}</span></li>)}</ul>
+          </div>
+        )}
+        {lijst(d.risicos).length > 0 && (
+          <div className="rounded-xl border border-slate-300 bg-white p-4">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-900">Risico’s en beheersing</p>
+            <ul className="mt-1 space-y-2">{lijst(d.risicos).map((r, i) => <li key={i} className="text-[13px] text-gray-900"><span className="font-bold">{tekst(r.risico)}</span><span className="block text-xs text-gray-800"><span className="font-semibold text-emerald-800">Beheersing:</span> {tekst(r.beheersing)}</span></li>)}</ul>
+          </div>
+        )}
         {lijst(d.schuift).length > 0 && (
           <div className="rounded-xl border border-slate-300 bg-white p-4">
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-800">Schuift naar later</p>
@@ -264,7 +307,8 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {lijst(d.weekoverzicht).map((w, i) => (
               <div key={i} className="rounded-lg border border-slate-300 bg-white p-3">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-[#003366]">Week {tekst(w.week)}</p>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-[#003366]">Week {tekst(w.week)}{w.fase ? <span className="ml-1 font-semibold normal-case text-gray-700">· {tekst(w.fase)}</span> : null}</p>
+                {w.datumAlsWeek1Is2November && <p className="text-[11px] text-gray-700">als week 1 op 2 november begint: {tekst(w.datumAlsWeek1Is2November)}</p>}
                 <div className="mt-1"><Punten items={lijst(w.watGebeurt)} /></div>
               </div>
             ))}
