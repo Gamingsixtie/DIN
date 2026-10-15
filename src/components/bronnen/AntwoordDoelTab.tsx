@@ -3,44 +3,41 @@
 // Tabblad "Praatplaat": het antwoord op het doel van de analyse als plaat langs het DIN
 // (Doelen-Inspanningennetwerk). Lees van boven naar beneden om te sturen (doel → baten → vermogen
 // → werkstromen), van onder naar boven om te bouwen. Domeinen in de Cito-volgorde: cultuur → mens →
-// data & systemen → processen. De gele punten uit het document staan als geelmarkering op de werkstroom
-// waar ze landen. De inhoud komt uit de sessie (bronnenAnalyse.antwoordDoel), niet uit de code.
+// data & systemen → processen; elke werkstroom staat onder het domein waar hij het vermogen opbouwt.
+// De gele punten uit het document staan als geelmarkering op de werkstroom waar ze landen.
+// Compact op de plaat; de onderbouwing per werkstroom klapt uit. Inhoud uit de sessie
+// (bronnenAnalyse.antwoordDoel), niet uit de code.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BronnenAnalyse } from "@/lib/schemas";
 import { domeinKleuren, leesPraatplaat, MARKEER, type Praatplaat, type PpWerkstroom, type WachtItem } from "@/lib/praatplaat";
 import WachtOp3sides from "@/components/bronnen/WachtOp3sides";
 
-const ZELF_KLEUR: Record<string, string> = { ja: "bg-emerald-50 border-emerald-600 text-emerald-900", deels: "bg-amber-50 border-amber-500 text-amber-900", nee: "bg-rose-50 border-rose-600 text-rose-900" };
+const BLAUW = "#003366";
+const ZELF_KLEUR: Record<string, string> = {
+  ja: "bg-emerald-50 border-emerald-600 text-emerald-900",
+  deels: "bg-amber-50 border-amber-500 text-amber-900",
+  nee: "bg-rose-50 border-rose-600 text-rose-900",
+};
 
 function wachtItems(p: Praatplaat, naam: string): WachtItem[] {
   return p.wachtOp3sides?.werkstromen.find((w) => w.naam === naam)?.items ?? [];
 }
 
-const BLAUW = "#003366";
-
 function Vlag({ v }: { v?: string }) {
   if (!v) return null;
   return (
-    <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500 bg-amber-50 px-1.5 py-px text-[11px] font-bold text-amber-900 whitespace-nowrap align-middle">
+    <span className="inline-flex items-center rounded-full border border-amber-500 bg-amber-50 px-1.5 py-px text-[11px] font-bold text-amber-900 whitespace-nowrap">
       {v === "⚑" ? "⚑ wacht op 3sides" : "⚑ deels 3sides"}
     </span>
   );
 }
 
-function DomeinBalk({ kleuren }: { kleuren: string[] }) {
-  return (
-    <div className="flex h-1.5 w-full" aria-hidden="true">
-      {kleuren.map((k, i) => <div key={i} className="flex-1" style={{ backgroundColor: k }} />)}
-    </div>
-  );
-}
-
 function Rail({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="hidden lg:flex flex-col items-end justify-center pr-4 text-right">
+    <div className="hidden lg:flex flex-col items-end justify-start pt-2 pr-4 text-right">
       <span className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: BLAUW }}>{label}</span>
-      <span className="text-[11px] text-gray-700 leading-tight">{sub}</span>
+      <span className="text-[11px] leading-tight text-gray-700">{sub}</span>
     </div>
   );
 }
@@ -49,7 +46,7 @@ function Verbinding({ tekst }: { tekst: string }) {
   return (
     <div className="grid lg:grid-cols-[132px_1fr]" aria-hidden="true">
       <div className="hidden lg:block" />
-      <div className="flex items-center gap-2 py-1 pl-2">
+      <div className="flex items-center gap-2 py-1.5 pl-2">
         <svg width="14" height="18" viewBox="0 0 14 18" className="shrink-0"><path d="M7 17V3M2 8l5-5 5 5" fill="none" stroke={BLAUW} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <span className="text-[11px] font-semibold uppercase tracking-wide text-[#003366]">{tekst}</span>
       </div>
@@ -57,90 +54,123 @@ function Verbinding({ tekst }: { tekst: string }) {
   );
 }
 
-function Lijst({ soort, items }: { soort: "ligt" | "ontbreekt"; items: string[] }) {
-  const stijl = soort === "ligt"
-    ? { kop: "Ligt er", kleur: "#047857", teken: "✓" }
-    : { kop: "Ontbreekt", kleur: "#be123c", teken: "○" };
+function Teller({ teken, aantal, label, kleur }: { teken: string; aantal: number; label: string; kleur: string }) {
   return (
-    <div>
-      <p className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: stijl.kleur }}>{stijl.kop}</p>
-      <ul className="mt-1.5 space-y-1.5">
-        {items.map((t, i) => (
-          <li key={i} className="flex gap-2 text-[13px] leading-snug text-gray-900">
-            <span aria-hidden="true" className="mt-px font-bold" style={{ color: stijl.kleur }}>{stijl.teken}</span>
-            <span>{t}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-bold" style={{ borderColor: kleur, color: kleur }}>
+      <span aria-hidden="true">{teken}</span>{aantal} {label}
+    </span>
   );
 }
 
-function KanNu({ p, w }: { p: Praatplaat; w: PpWerkstroom }) {
+function Onderbouwing({ p, w }: { p: Praatplaat; w: PpWerkstroom }) {
   const wacht = wachtItems(p, w.naam);
   return (
-    <div className="rounded-lg border border-[#003366]/25 bg-[#003366]/[0.04] p-3">
-      <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu · en waarom</p>
-      <ul className="mt-1.5 space-y-2">
-        {w.nu.map((n, i) => (
-          <li key={i} className="flex gap-2">
-            <span aria-hidden="true" className="font-bold text-[#003366]">→</span>
-            <div className="text-[13px] leading-snug">
-              <span className="font-semibold text-gray-900">{n.wat}</span>
-              <Vlag v={n.vlag} />
-              {n.vlag && (() => { const z = wacht.find((x) => x.id === n.id); return z ? <span className={"ml-1 inline-flex rounded-full border px-1.5 py-px text-[11px] font-bold align-middle " + ZELF_KLEUR[z.zelf]}>Cito zelf: {z.zelf}</span> : null; })()}
-              <p className="mt-0.5 text-xs text-gray-700">Waarom nu: {n.waarom}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="grid gap-4 border-t border-slate-200 pt-3 md:grid-cols-2">
+      <div>
+        <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">Ligt er · en waarvoor</p>
+        <ul className="mt-1.5 space-y-2">
+          {w.ligt.map((t, i) => {
+            const [wat, waarvoor] = t.split("||");
+            return (
+              <li key={i} className="flex gap-2 text-[13px] leading-snug text-gray-900">
+                <span aria-hidden="true" className="font-bold text-emerald-700">✓</span>
+                <span>{wat}{waarvoor && <span className="mt-0.5 block text-xs text-gray-700"><span className="font-semibold text-emerald-800">Bruikbaar voor:</span> {waarvoor}</span>}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-rose-700">Ontbreekt</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {w.ontbreekt.map((t, i) => (
+              <li key={i} className="flex gap-2 text-[13px] leading-snug text-gray-900"><span aria-hidden="true" className="font-bold text-rose-700">○</span><span>{t}</span></li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu · waarom</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {w.nu.map((n, i) => {
+              const z = n.vlag ? wacht.find((x) => x.id === n.id) : undefined;
+              return (
+                <li key={i} className="text-[13px] leading-snug text-gray-900">
+                  <span className="font-semibold">{n.wat}</span>
+                  <span className="block text-xs text-gray-700">{n.waarom}{z ? ` · Cito zelf: ${z.zelf} — ${z.hoe}` : ""}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
 
-function WerkstroomKaart({ p, w, breed }: { p: Praatplaat; w: PpWerkstroom; breed?: boolean }) {
+function WerkstroomKaart({ p, w, open, onWissel }: { p: Praatplaat; w: PpWerkstroom; open: boolean; onWissel: () => void }) {
+  const wacht = wachtItems(p, w.naam);
+  const telZelf = (z: string) => wacht.filter((x) => x.zelf === z).length;
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-[0_1px_0_rgba(0,51,102,0.06),0_8px_24px_-16px_rgba(0,51,102,0.35)] break-inside-avoid">
-      <DomeinBalk kleuren={domeinKleuren(p, w.domeinen)} />
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <header className="space-y-1.5">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <article className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-[0_8px_24px_-18px_rgba(0,51,102,0.45)] break-inside-avoid">
+      <div className="flex h-1.5" aria-hidden="true">{domeinKleuren(p, w.domeinen).map((k, i) => <div key={i} className="flex-1" style={{ backgroundColor: k }} />)}</div>
+      <div className="space-y-3 p-4">
+        <header className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-lg font-extrabold tracking-tight text-gray-900">{w.naam}</h3>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400 bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
-              <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />{w.stand}<span className="font-semibold">· voorstel</span>
+              <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />{w.stand}
             </span>
           </div>
-          <p className="text-xs text-gray-700">
+          <p className="text-xs text-gray-800">
             Cito-lead <span className="font-bold text-gray-900">{w.citoLead}</span>{w.leadNoot ? ` (${w.leadNoot})` : ""} · 3sides-lead <span className="font-bold text-gray-900">{w.sidesLead}</span>
-            <span className="text-gray-700"> · {w.vermogensdeel}</span>
           </p>
-          <p className="flex flex-wrap gap-1.5">
-            {w.domeinen.map((id) => { const d = p.domeinen.find((x) => x.id === id); return d ? <span key={id} className="rounded px-1.5 py-px text-[11px] font-bold uppercase tracking-wide text-white" style={{ backgroundColor: d.kleur }}>{d.naam}</span> : null; })}
-          </p>
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {w.punten.map((pt) => (
-              <span key={pt.nr} className="rounded px-1.5 py-0.5 text-xs font-bold text-gray-900" style={{ background: MARKEER }} title="Geel gemarkeerd punt in het document">
-                Geel punt {pt.nr} · {pt.label}{pt.voorbehoud ? <span className="font-semibold text-gray-800"> ({pt.voorbehoud})</span> : null}
-              </span>
-            ))}
-            {(w.extraLabels ?? []).map((l) => (
-              <span key={l} className="rounded border border-slate-400 bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-gray-800">{l}</span>
-            ))}
-            {w.bouwstenen.length > 0 && (
-              <span className="rounded border border-slate-400 bg-white px-1.5 py-0.5 text-xs font-semibold text-gray-800">
-                Bouwsteen {w.bouwstenen.join(", ")}
-              </span>
-            )}
-          </div>
         </header>
-        {wachtItems(p, w.naam).length > 0 && (() => { const it = wachtItems(p, w.naam); const t = (z: string) => it.filter((x) => x.zelf === z).length; return (
-          <a href="#wacht-op-3sides" className="block rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-950 hover:bg-amber-100">
-            <span className="font-bold">⚑ {it.length} onderdelen leunen op 3sides</span> · Cito zelf: <span className="font-bold text-emerald-800">{t("ja")} ja</span> · <span className="font-bold text-amber-800">{t("deels")} deels</span> · <span className="font-bold text-rose-800">{t("nee")} nee</span> <span className="underline">→ bekijk</span>
-          </a>); })()}
-        <div className={breed ? "grid gap-4 lg:grid-cols-[1fr_1fr_1.15fr]" : "space-y-3"}>
-          <Lijst soort="ligt" items={w.ligt} />
-          <Lijst soort="ontbreekt" items={w.ontbreekt} />
-          <KanNu p={p} w={w} />
+
+        {(w.punten.length > 0 || (w.extraLabels ?? []).length > 0 || w.bouwstenen.length > 0) && (
+          <div className="flex flex-wrap gap-1.5">
+            {w.punten.map((pt) => (
+              <span key={pt.nr} className="rounded px-1.5 py-0.5 text-xs font-bold text-gray-900" style={{ background: MARKEER }} title={pt.voorbehoud ?? "Geel gemarkeerd punt in het document"}>
+                Geel punt {pt.nr} · {pt.label}{pt.voorbehoud ? " *" : ""}
+              </span>
+            ))}
+            {(w.extraLabels ?? []).map((l) => <span key={l} className="rounded border border-slate-400 bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-gray-800">{l}</span>)}
+            {w.bouwstenen.length > 0 && <span className="rounded border border-slate-400 bg-white px-1.5 py-0.5 text-xs font-semibold text-gray-800">Bouwsteen {w.bouwstenen.join(", ")}</span>}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-1.5">
+          <Teller teken="✓" aantal={w.ligt.length} label="ligt er" kleur="#047857" />
+          <Teller teken="○" aantal={w.ontbreekt.length} label="ontbreekt" kleur="#be123c" />
+          {wacht.length > 0 && (
+            <a href="#wacht-op-3sides" className="inline-flex items-center gap-1 rounded-md border border-amber-500 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100">
+              ⚑ {wacht.length} leunen op 3sides · zelf: {telZelf("ja")} ja, {telZelf("deels")} deels, {telZelf("nee")} nee
+            </a>
+          )}
+        </div>
+
+        <div className="rounded-lg bg-[#003366]/[0.05] p-3">
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#003366]">Kan nu</p>
+          <ul className="mt-1 space-y-1">
+            {w.nu.map((n, i) => {
+              const z = n.vlag ? wacht.find((x) => x.id === n.id) : undefined;
+              return (
+                <li key={i} className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[13px] leading-snug">
+                  <span aria-hidden="true" className="font-bold text-[#003366]">→</span>
+                  <span className="font-semibold text-gray-900">{n.wat}</span>
+                  <Vlag v={n.vlag} />
+                  {z && <span className={"rounded-full border px-1.5 py-px text-[11px] font-bold " + ZELF_KLEUR[z.zelf]}>Cito zelf: {z.zelf}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <button type="button" onClick={onWissel} aria-expanded={open} className="text-sm font-semibold text-[#003366] underline print:hidden">
+          {open ? "Verberg onderbouwing" : "Toon onderbouwing: wat er ligt en waarvoor, wat ontbreekt, waarom nu"}
+        </button>
+        <div className={open ? "block" : "hidden print:block"}>
+          <Onderbouwing p={p} w={w} />
         </div>
       </div>
     </article>
@@ -152,6 +182,7 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
   const plaatRef = useRef<HTMLDivElement>(null);
   const [vol, setVol] = useState(false);
   const [melding, setMelding] = useState("");
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const opVerandering = () => setVol(document.fullscreenElement === plaatRef.current);
@@ -192,16 +223,24 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
     );
   }
 
+  const allesOpen = p.werkstromen.every((w) => open[w.id]);
+  const wissel = (id: string) => setOpen((o) => ({ ...o, [id]: !o[id] }));
+  const kaart = (id: string) => {
+    const w = p.werkstromen.find((x) => x.id === id);
+    return w ? <WerkstroomKaart p={p} w={w} open={!!open[w.id]} onWissel={() => wissel(w.id)} /> : null;
+  };
+  const spanVan = (w: PpWerkstroom) => (w.domeinen.length >= 4 ? "xl:col-span-4" : w.domeinen.length === 2 ? "xl:col-span-2" : "");
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <p className="max-w-2xl text-sm text-gray-800">
           Eén plaat om te delen en te bespreken. De uitwerking (gele punten, bouwstenen, planning, gaten) staat in{" "}
-          <button type="button" onClick={() => onNaarTab("uitwerking")} className="font-semibold text-[#003366] underline">Uitwerking</button>; de onderbouwing per bron in de andere tabbladen.
+          <button type="button" onClick={() => onNaarTab("uitwerking")} className="font-semibold text-[#003366] underline">Uitwerking</button>.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {melding && <span role="status" className="text-sm font-semibold text-emerald-800">{melding}</span>}
+          <button type="button" onClick={() => setOpen(Object.fromEntries(p.werkstromen.map((w) => [w.id, !allesOpen])))} className="rounded-lg border border-[#003366] bg-white px-3 py-2 text-sm font-semibold text-[#003366] hover:bg-blue-50">{allesOpen ? "Alles inklappen" : "Alles uitklappen"}</button>
           <button type="button" onClick={kopieerLink} className="rounded-lg border border-[#003366] bg-white px-3 py-2 text-sm font-semibold text-[#003366] hover:bg-blue-50">Link kopiëren</button>
           <button type="button" onClick={() => window.print()} className="rounded-lg border border-[#003366] bg-white px-3 py-2 text-sm font-semibold text-[#003366] hover:bg-blue-50">Afdrukken / PDF</button>
           <button type="button" onClick={presenteer} className="rounded-lg bg-[#003366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#002244]">{vol ? "Sluiten" : "Presenteren"}</button>
@@ -210,7 +249,7 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
 
       <div
         ref={plaatRef}
-        className={"relative overflow-auto rounded-2xl border border-slate-300 bg-white " + (vol ? "p-8" : "p-5 md:p-7")}
+        className={"relative overflow-x-hidden overflow-y-auto rounded-2xl border border-slate-300 bg-white " + (vol ? "p-8" : "p-5 md:p-7")}
         style={{
           backgroundImage: "linear-gradient(rgba(0,51,102,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(0,51,102,0.045) 1px, transparent 1px)",
           backgroundSize: "28px 28px",
@@ -287,9 +326,11 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
           <Verbinding tekst="de werkstromen bouwen het vermogen op" />
 
           <div className="grid gap-3 lg:grid-cols-[132px_1fr]">
-            <Rail label="Werkstromen" sub="inspanningen · Cito-lead vóór 3sides-lead" />
-            <div className="space-y-3">
-              {p.werkstromen.map((w) => <WerkstroomKaart key={w.id} p={p} w={w} breed />)}
+            <Rail label="Werkstromen" sub="onder het domein dat ze opbouwen" />
+            <div className="grid items-start gap-3 xl:grid-cols-4">
+              {p.werkstromen.map((w) => (
+                <div key={w.id} className={spanVan(w)}>{kaart(w.id)}</div>
+              ))}
             </div>
           </div>
         </section>
@@ -324,6 +365,7 @@ export default function AntwoordDoelTab({ ba, onNaarTab }: { ba: BronnenAnalyse;
         </section>
 
         <footer className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-300 pt-3 text-xs text-gray-800">
+          <span>* plek van dit punt: besluitpunt</span>
           {p.legenda.map((l) => <span key={l}>{l}</span>)}
         </footer>
       </div>
