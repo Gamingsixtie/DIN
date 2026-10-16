@@ -234,7 +234,7 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
 
       {/* Fasenplan */}
       <section className="space-y-3">
-        <Kop id="fasen" nr="05" titel="Fasenplan langs het 90-dagenplan" sub="Per activiteit: week, resultaat, eigenaar, klaar als en de eerste stap." />
+        <Kop id="fasen" nr="05" titel="Fasenplan langs het 90-dagenplan" sub="Per activiteit: week, resultaat, eigenaar, klaar als, de eerste stap en, waar AI meedoet, de AI-regel (voorstel)." />
         <div className="grid gap-4 xl:grid-cols-3">
           {lijst(d.fasen).map((f, i) => (
             <div key={i} className="flex flex-col overflow-hidden rounded-xl border border-slate-300 bg-white">
@@ -257,6 +257,16 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
                       {a.klaarAls && <><dt className="font-bold text-[#003366]">Klaar als</dt><dd>{tekst(a.klaarAls)}</dd></>}
                       {a.eersteStap && <><dt className="font-bold text-[#003366]">Eerste stap</dt><dd>{tekst(a.eersteStap)}</dd></>}
                       {a.besluit && <><dt className="font-bold text-amber-800">Besluit</dt><dd>{tekst(a.besluit)}</dd></>}
+                      {a.aanvullingAI && (
+                        <>
+                          <dt className="font-bold text-[#003366]">AI-regel</dt>
+                          <dd>
+                            <span className="mr-1 rounded border border-[#003366] px-1 text-[10px] font-bold text-[#003366]">voorstel</span>
+                            {tekst(a.aanvullingAI)}
+                            {a.klaarAlsAI && <span className="block text-gray-800"><span className="font-semibold">Klaar als (AI):</span> {tekst(a.klaarAlsAI)}</span>}
+                          </dd>
+                        </>
+                      )}
                     </dl>
                   </li>
                 ))}
