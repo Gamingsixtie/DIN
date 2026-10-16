@@ -20,6 +20,7 @@ export interface PpWerkstroom {
   punten: PpPunt[];
   bouwstenen: number[];
   extraLabels?: string[];
+  doeltoets?: { oordeel: string; kort?: string };
   ligt: string[];
   ontbreekt: string[];
   nu: PpNu[];
@@ -37,6 +38,7 @@ export interface Praatplaat {
   domeinen: PpDomein[];
   werkstromen: PpWerkstroom[];
   wachtOp3sides?: WachtOp3sidesData;
+  doeltoetsKern?: { oordeel: string; punten: string[]; advies?: string };
   besluiten: { vraag: string; wie: string }[];
   legenda: string[];
   uitwerking: {
