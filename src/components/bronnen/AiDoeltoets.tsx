@@ -84,6 +84,39 @@ export default function AiDoeltoets({ ai }: { ai: Los }) {
         )}
       </div>
 
+      {/* De AI-proef: de lopende crawler (besluit Pim) */}
+      {ai.aiProef && (
+        <div className="overflow-hidden rounded-xl border-2 border-[#7c3aed] bg-white">
+          <div className="bg-[#7c3aed] px-4 py-2 text-white">
+            <p className="text-sm font-extrabold">{tekst(ai.aiProef.titel) || "De AI-proef"}</p>
+          </div>
+          <div className="space-y-3 p-4">
+            {ai.aiProef.citaat && <p className="text-sm italic text-gray-900">“{tekst(ai.aiProef.citaat)}”{ai.aiProef.bron ? <span className="not-italic text-xs text-gray-700"> ({tekst(ai.aiProef.bron)})</span> : null}</p>}
+            {ai.aiProef.sector?.citaat && <p className="text-sm italic text-gray-900">“{tekst(ai.aiProef.sector.citaat)}”{ai.aiProef.sector.bron ? <span className="not-italic text-xs text-gray-700"> ({tekst(ai.aiProef.sector.bron)})</span> : null}</p>}
+            {ai.aiProef.wat && <p className="text-[13px] text-gray-900">{tekst(ai.aiProef.wat)}</p>}
+            {ai.aiProef.sector?.wat && <p className="text-[13px] text-gray-900"><span className="font-bold">Sector: </span>{tekst(ai.aiProef.sector.wat)}</p>}
+            {lijst(ai.aiProef.regels).length > 0 && (
+              <Tabel
+                koppen={["Fase", "Activiteit", "Week", "Wat er gebeurt", "Klaar als", "Eigenaar"]}
+                rijen={lijst(ai.aiProef.regels).map((r) => [tekst(r.fase), `${tekst(r.activiteit)} ${tekst(r.titel)}`.trim(), tekst(r.week), tekst(r.kort), tekst(r.klaarAls), tekst(r.eigenaar)])}
+              />
+            )}
+            {lijst(ai.aiProef.waarom).length > 0 && (
+              <ul className="space-y-1.5">
+                {lijst(ai.aiProef.waarom).map((w, i) => (
+                  <li key={i} className="flex gap-2 text-[13px] leading-snug text-gray-900"><span aria-hidden="true" className="font-bold text-[#7c3aed]">→</span><span>{w.kop ? <span className="font-bold">{tekst(w.kop)} </span> : null}{tekst(w.tekst ?? w)}</span></li>
+                ))}
+              </ul>
+            )}
+            <div className="grid gap-2 md:grid-cols-2">
+              {ai.aiProef.persoonsgegevens && <p className="rounded-lg bg-amber-50 border border-amber-400 px-3 py-2 text-[13px] text-gray-900"><span className="font-bold">Privacy: </span>{tekst(ai.aiProef.persoonsgegevens)}</p>}
+              {ai.aiProef.teBepalen && <p className="rounded-lg bg-slate-50 border border-slate-300 px-3 py-2 text-[13px] text-gray-900"><span className="font-bold">Te bepalen: </span>{tekst(ai.aiProef.teBepalen)}</p>}
+            </div>
+            {(ai.aiProef.bronnen || ai.aiProef.dinPlek) && <p className="text-xs text-gray-800">{[tekst(ai.aiProef.dinPlek), tekst(ai.aiProef.bronnen)].filter(Boolean).join(" · ")}</p>}
+          </div>
+        </div>
+      )}
+
       {/* Plaat per domein en fase */}
       {lijst(plaat.rijen).length > 0 && (
         <div className="space-y-2">
