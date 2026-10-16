@@ -46,6 +46,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; text: string }> = {
   processen: { bg: "bg-domain-processen/10", text: "text-domain-processen" },
   data_systemen: { bg: "bg-domain-data/10", text: "text-domain-data" },
   cultuur: { bg: "bg-domain-cultuur/10", text: "text-domain-cultuur" },
+  overig: { bg: "bg-gray-500/10", text: "text-gray-700" },
 };
 
 

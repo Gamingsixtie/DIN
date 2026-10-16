@@ -1,0 +1,419 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+BRONDATA — wat StapOptimaliseren / §4.1 begrotingadvies gebruikt
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Sessie: d8b97442-ce8f-4134-b2c7-67dc8e3a3f93
+StartJaar: 2026
+JaarlijksBudget (Cito-norm): —
+
+████████████████████████████████████████████████████████████████████████████████████████████████████
+█ BLOK 1 — BRON-TEKSTEN per inspanning (input voor begroting-advies AI)
+████████████████████████████████████████████████████████████████████████████████████████████████████
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+## Gespreksvaardigheidstraining outside-in voor alle sectoren realiseren
+Domein: mens
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+**Beschrijving:** Medewerkers met klantcontact in alle drie sectoren worden gezamenlijk opgeleid en gecoacht in outside-in gespreksvaardigheden: de vraag achter de vraag stellen, een sturend waardeverhaal voeren vanuit het brede Cito-portfolio en diepgaande klantinzichten ophalen. Het curriculum wordt sectorspecifiek ingekleurd — leerkrachten en schoolbesturen voor PO, schoolleiders en bestuurders voor VO, opdrachtgevers en kandidaten voor Zakelijk — maar gebouwd op een gedeelde methodische kern. Training combineert kennisoverdracht, casusoefeningen met echte klantcontexten en gedragsgerichte coaching op gespreksregie. Daarnaast wordt voor de afdeling sales expliciet aandacht besteed aan commerciële vaardigheden: medewerkers leren om met een commerciële instelling en een concrete incentive in gedachten — zoals omzetgroei, hogere conversie of contractverlenging — de klant outside-in te bedienen, zodat klantbehoeften en Cito-commerciële doelen structureel met elkaar verbonden worden.
+
+**Beargumentatie:** Alle drie sectoren kennen hetzelfde competentievraagstuk: medewerkers zijn overwegend zendend in klantcontact en missen de gespreksregie om de vraag achter de vraag te stellen. PO brengt een concrete trainingsopzet in (bron-inspanning); VO draagt bij via de gap in het profielGewenst — relatiemanagers die tijdig op bestuursniveau moeten kunnen anticiperen maar dat nu niet vaardig doen; Zakelijk draagt bij via de gap dat eigenaarschap voor de klantrelatie onvoldoende verankerd is in dagelijks gedrag en dat commerciële slagkracht vraagt om medewerkers die met een expliciete commerciële intentie — hogere NPS, betere conversieratio, aantoonbare omzetgroei — de klantdialoog voeren. Gezamenlijk aanpakken levert een gemeenschappelijke gespreksstandaard, wederzijdse leeromgeving én een geschatte kostenbesparing van ~30% ten opzichte van drie losse curricula. De hefboomwerking is drieledig: één gedeeld curriculum versterkt drie vermogens (strategisch klantpartnerschap PO, klantfasegericht commercieel relatievermogen VO, klantgerichte commerciële slagkracht Zakelijk), die samen de baat van proactief en voorspelbaar klanthandelen realiseren en zo direct bijdragen aan het focusdoel 'integraal klantbeeld en outside-in werken als strategisch fundament'. Dit sluit aan op het Cito-kerndoel 'medewerker-ontwikkeling' én 'commerciële slagkracht versterken' uit het kader 2026; het formatie-kader (stabiel 2027-2028) vereist dat de rollout efficiënt en binnen bestaande FTE wordt ingericht.
+
+**Vermogen-impact:** [object Object],[object Object],[object Object]
+
+**Dossier:**
+  - Eigenaar: Jasper, Bert Thijs, Leontine, Meryl
+  - Inspanningsleider: Yara
+  - Verwacht resultaat: nader te bepalen
+  - Randvoorwaarden: Commitmant van leidingevende dat we de inspanning gaan uitvoeren,Commitment van alle drie sectormanagers op deelname en vrijstelling van medewerkers; beschikbaarheid van echte klantcases per sector als trainingsmateriaal; externe trainingspartner met aantoonbare multi-sector ervaring in B2B en onderwijs; afstemming met de cultuur-inspanning (leiderschapsprogramma) zodat leidinggevenden het geleerde versterken; borging dat voor de salesafdeling commerciële doelstellingen en incentives expliciet onderdeel zijn van het trainingsprogramma en worden vertaald naar meetbare gedragsindicatoren per medewerker.
+
+**Kostenraming-tekst (de bron voor parser én AI):**
+De totale investering voor de cross-sectorale gespreksvaardigheidstraining outside-in wordt geraamd op circa €125.000–€160.000 over een looptijd van ca. 10–12 maanden (incl. twee blokken van drie maanden training en twee evaluatiemomenten). Het eenmalige deel — curriculum- en casusontwikkeling, nulmeting en opstart — bedraagt circa €20.000–€30.000; het structurele uitvoeringsgedeelte (externe trainingspartner voor alle sessies, interne verzuimde productietijd van 66 deelnemers en begeleiding door inspanningsleider) bedraagt circa €100.000–€130.000 verdeeld over de looptijd.
+
+**Parser-uitkomst (parseDossierRaming):**
+  eenmalig: low=€ 125.000  mid=€ 142.500  high=€ 160.000
+  structureel: low=€ 0/jr  mid=€ 0/jr  high=€ 0/jr
+  unparsed: false
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+## Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten
+Domein: processen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+**Beschrijving:** Voor alle rollen met klantcontact — in alle drie sectoren — worden eenduidige werkprocessen ingericht die vastleggen hoe, wanneer en door wie klantinformatie wordt geregistreerd: van eerste lead tot actieve relatie en verlengingsmoment. Het procesontwerp omvat rolspecifieke procesbeschrijvingen (accountmanager PO, relatiemanager VO, adviseur Zakelijk), eenduidige vastleggingsprotocollen per funnelfase en een overkoepelende governancestructuur die borgt dat klantdata structureel en consistent wordt bijgehouden. Elke sector vult het generieke kader in met sectorspecifieke klantcontexten (schoolbesturen, directeuren, opdrachtgevers) maar hanteert dezelfde funnellogica en definitiesystematiek. 
+
+**Beargumentatie:** Alle drie sectoren kennen hetzelfde procesvraagstuk: klantinformatie wordt wisselend, inconsistent of onvolledig vastgelegd, waardoor proactief handelen niet mogelijk is. Zakelijk brengt een concrete werkprocesinspanning in (bron-inspanning); PO draagt bij via de gap dat medewerkers onvoldoende grip hebben op klant- en productdata om geloofwaardige gesprekken te voeren — een procesontwerp is noodzakelijk fundament; VO draagt bij via de gap dat segmentatie nu op omzet en schoolgrootte plaatsvindt zonder kwalitatieve fasering, waardoor aflopende overeenkomsten onverwacht binnenkomen. Een gedeeld proceskader met eenduidige funneldefinities — één van de expliciet genoemde ambities in het focusdoel — maakt cross-sectorale vergelijking en gedeelde rapportage mogelijk en sluit aan op Cito's strategische ambitie van commerciële slagkracht versterken; kostenefficiëntie (formatie-kader stabiel) is geborgd doordat één ontwerp-traject drie sectorvarianten oplevert.
+
+**Vermogen-impact:** [object Object],[object Object],[object Object]
+
+**Dossier:**
+  - Eigenaar: Jasper, Bert Thijs, Leontine, Meryl
+  - Inspanningsleider: Procesconsultants ( per sector)
+  - Verwacht resultaat: ntb
+  - Randvoorwaarden: Werken met het programma Smartprocess waar alle wat processen in staan vermeld, Rol ligt bij procesconsultant om dat meer onder de aandacht te brengen, Procesontwerp vereist actieve inbreng van rolhouders uit alle drie sectoren (werkgroepdeelname, minimaal 8 uur per deelnemer); afstemming met data_systemen-inspanning (CRM-inrichting) zodat procesontwerp en systeeminrichting parallel lopen; benoeming van één proceseigenaar per sector die verantwoordelijk is voor adoptie en naleving; formele besluitvorming over funneldefinities en KPI-systematiek vóór start.
+
+**Kostenraming-tekst (de bron voor parser én AI):**
+De eenmalige out-of-pocket investering voor het ontwerpen, inrichten en uitrollen van het uniforme klantproces-kader over drie sectoren wordt geraamd op €55.000–€70.000, verdeeld over een looptijd van circa 9 maanden; dit omvat externe procesbegeleiding (p.m. €25.000–€40.000) en sessiebegeleiding/onboarding (ca. €15.000–€25.000) en externe materialen/methodieken (ca. €5.000–€10.000). Structureel rekening houden met €10.000–€15.000 per jaar aan externe ondersteuning voor proceseigenaarschap-borging. NB: interne werkgroepuren (~€20.000–€30.000 schaduwkosten over de looptijd) en proceseigenaarschap-uren (4–8 uur/maand × 3 sectoren) zijn meegenomen in §4.2 Interne uren — niet in deze out-of-pocket-raming.
+
+**Parser-uitkomst (parseDossierRaming):**
+  eenmalig: low=€ 55.000  mid=€ 62.500  high=€ 70.000
+  structureel: low=€ 10.000/jr  mid=€ 12.500/jr  high=€ 15.000/jr
+  unparsed: false
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+## Integraal CRM-klantdashboard cross-sectoraal implementeren en inrichten
+Domein: data_systemen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+**Beschrijving:** Het CRM-systeem wordt cross-sectoraal heringericht zodat alle relevante klantdata — interacties, productgebruik, klachten, funnelstatus en klantsegmentatie — eenduidig en volledig worden vastgelegd voor alle drie sectoren. Aanvullend wordt een integraal klantdashboard gebouwd dat voor alle medewerkers met klantcontact real-time inzicht biedt in de complete klantstatus en funnelpositie per klant, ingericht op de specifieke klantcontexten: schoolbesturen en leerkrachten (PO), schooldirecteuren en bestuurders inclusief kwalitatieve schoolfasering (VO), en opdrachtgevers en kandidaten (Zakelijk). De technische architectuur, datamodel en toegangsrechten worden organisatiebreed gestandaardiseerd.
+
+**Beargumentatie:** Alle drie sectoren kennen hetzelfde systemische vraagstuk: klantdata is onvolledig, inconsistent of niet ontsloten, waardoor medewerkers niet proactief kunnen handelen en kansen niet tijdig worden gesignaleerd — precies het probleem dat het focusdoel adresseert. Zakelijk brengt een concrete CRM- en dashboard-inspanning in (bron-inspanning); PO draagt bij via de gap dat medewerkers nu onvoldoende grip hebben op klant- en productdata en een CRM-fundament nodig hebben voor geloofwaardige gesprekken; VO draagt bij via de gap dat het CRM inconsistent wordt bijgehouden en schoolfasering kwalitatief ontbreekt, waardoor aflopende overeenkomsten onverwacht binnenkomen. Een gedeeld datamodel en dashboardarchitectuur maakt cross-sectorale managementrapportage en portfoliosturing mogelijk — aansluitend op Cito's kader-aandachtspunt rondom IT-afstand verkleinen en digitale achterstanden wegwerken; één implementatietraject is aanzienlijk kostenefficiënter dan drie losse CRM-projecten.
+
+**Vermogen-impact:** [object Object],[object Object],[object Object]
+
+**Dossier:**
+  - Eigenaar: Manager Data & Technologie 
+  - Inspanningsleider: Sven (SIO)
+  - Verwacht resultaat: ntb
+  - Randvoorwaarden: Mandaat voor cross-sectorale standaardisering van het datamodel en toegangsrechten-architectuur; afstemming met processen-inspanning (funnelprocessen en vastleggingsprotocollen moeten technisch zijn vertaald vóór bouw); data-eigenaarschapsafspraken per sector formeel vastgelegd vóór start; IT-capaciteit geborgd (inclusief borging dat huidige digitale achterstanden niet interfereren met implementatietijdlijn); externe implementatiepartner met CRM-ervaring in B2B en onderwijs.
+
+**Kostenraming-tekst (de bron voor parser én AI):**
+De totale out-of-pocket investering voor het cross-sectoraal implementeren en inrichten van het integraal CRM-klantdashboard wordt geraamd op circa €455K–€680K eenmalig over de looptijd 2026–2028, met een PM-buffer van 30% zolang de Stichting Cito-afhankelijkheid en de platformkeuze nog open zijn (worst-case plafond circa €830K). De eenmalige kosten omvatten externe implementatie en dashboardbouw (€250K–€375K), datamigratie en 7–8 bronsysteemintegraties (€75K–€125K), training en adoptie-begeleiding voor 85 medewerkers inclusief externe schaduwbegeleiding (€40K–€55K) en dubbele licentielast tijdens de transitieperiode van 6–12 maanden (€30K–€60K). Structureel na go-live bedragen de kosten €75K–€110K per jaar, bestaande uit CRM-licenties voor 85 gebruikers op een Microsoft Dynamics-equivalent (€50K–€75K/jaar) en beheer plus doorontwikkeling (€25K–€35K/jaar). NB: interne capaciteitskosten (~1.466 uur × €74/uur = circa €110K opportunity-kosten) zijn meegenomen in §4.2 Interne uren — niet in deze out-of-pocket-raming.
+
+**Parser-uitkomst (parseDossierRaming):**
+  eenmalig: low=€ 455.000  mid=€ 567.500  high=€ 680.000
+  structureel: low=€ 75.000/jr  mid=€ 92.500/jr  high=€ 110.000/jr
+  unparsed: false
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+## Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren
+Domein: cultuur
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+**Beschrijving:** Leidinggevenden en sectormanagers uit alle drie sectoren nemen deel aan een gezamenlijk leiderschapsprogramma waarin outside-in denken als norm wordt uitgedragen en voorgeleefd: zij creëren bewust ruimte weg uit de vergadercultuur en de waan van de dag, nodigen medewerkers actief uit tot klantgericht handelen en ritualiseren eigenaarschap via gezamenlijke klantbezoeken, intervisiesessies en expliciete gedragscontracten. Het programma maakt het culturele vertrekpunt expliciet — lef, standvastigheid en proactief ophalen van klantbehoeften — en versterkt dit via cross-sectorale leerkringen waarin leidinggevenden van PO, VO en Zakelijk van elkaars klantcultuur leren.
+
+**Beargumentatie:** Alle drie sectoren kennen hetzelfde cultuurgat: outside-in werken als gedragsnorm is onvoldoende verankerd in leiderschapsstijl en dagelijkse werkcultuur, wat de effectiviteit van de mens- en processen-inspanningen ondermijnt als het niet ook cultureel wordt gedragen. PO brengt een concrete leiderschapsinterventie in (bron-inspanning); VO draagt bij via de cultuur-gap dat relatiemanagers nu reactief werken en eigenaarschap voor de schoolrelatie onvoldoende verankerd is in dagelijks gedrag; Zakelijk draagt bij via de cultuur-gap dat eigenaarschap voor de klantrelatie en proactieve prioritering ontbreken in gedrag en cultuur. Een cross-sectoraal leiderschapsprogramma creëert een gedeelde taal en gedeelde norm, versterkt de hefboom van alle andere inspanningen en sluit aan op Cito's strategische cultuurambities (lef, eigenaarschap, transparantie, cross-functionele samenwerking); het Cito-kader benadrukt dat cultuurverandering en leiderschapsontwikkeling noodzakelijk zijn om de transformatie van productleverancier naar strategische partner te realiseren.
+
+**Vermogen-impact:** [object Object],[object Object],[object Object]
+
+**Dossier:**
+  - Eigenaar: het MT
+  - Inspanningsleider: Yara( HR business partner)
+  - Verwacht resultaat: NTB
+  - Randvoorwaarden: Zichtbaar commitment en deelname van het MT als rolmodel en sponsor van het programma; afstemming met de mens-inspanning (gespreksvaardigheidstraining) zodat leidinggevenden het geleerde van medewerkers actief versterken; externe begeleider met ervaring in gedragsverandering en leiderschapsontwikkeling in multi-sector-context; ruimte in agenda leidinggevenden geborgd (minimaal 5 sessiedagen + klantbezoeken); verankering van outside-in gedrag als formeel criterium in de beoordelings- en functioneringscyclus vóór programmastar zowel voor leidingevende als voor de medewerkers
+
+**Kostenraming-tekst (de bron voor parser én AI):**
+Het cross-sectorale leiderschapsprogramma 'Outside-in als gedeelde waarde' kent een totale out-of-pocket omvang van circa €60.000–€72.000 over vier jaar (2026–2029), waarvan circa €33.000–€43.000 eenmalig/intensief in 2026–2027 (programma-ontwerp, externe begeleiding €37.500, HR-instrumenten-aanpassing) en circa €25.000–€30.000 structureel in 2028–2029 als afnemende externe beheer- en borgingslast. De externe begeleider (≈15 dagen à €2.500 gemiddeld dagprijs) vertegenwoordigt circa €37.500 van de eenmalige out-of-pocket kosten. NB: interne uren (740u totaal à gemiddeld €77/u = circa €57.000) zijn meegenomen in §4.2 Interne uren — niet in deze out-of-pocket-raming.
+
+**Parser-uitkomst (parseDossierRaming):**
+  eenmalig: low=€ 60.000  mid=€ 66.000  high=€ 72.000
+  structureel: low=€ 0/jr  mid=€ 0/jr  high=€ 0/jr
+  unparsed: false
+
+
+████████████████████████████████████████████████████████████████████████████████████████████████████
+█ BLOK 2 — SCENARIO-OUTPUT zoals §4.1 toont
+████████████████████████████████████████████████████████████████████████████████████████████████████
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+### Scenario: MIN20
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Cap (jaarlijks budget): € 200.000/jr
+Aantal jaren: 10
+Totaal geraamd: € 2.050.000
+
+**Inspanningen:**
+
+  ── Integraal CRM-klantdashboard cross-sectoraal implementeren en inrichten (data_systemen) ─ totaal € 1.372.000 (78% van scenario) ─ rank 1
+     volgorde-reden: Grootste eenmalige post en technische enabler — zonder werkend CRM blijft outside-in op schaal een belofte.
+     motivatie: Het CRM is het technische fundament onder outside-in werken: zonder werkend cross-sectoraal klantdashboard blijft outside-in op schaal onuitvoerbaar. Dossier-onderbouwing: eenmalig € 440.000 – € 640.000 voor implementatie, datamigratie en 7-8 bronsysteemintegraties (middenpunt circa € 540.000); plus structureel € 92.500 per jaar voor licenties (85 gebruikers op een Microsoft Dynamics-equivalent, ~ € 63.000) en beheer plus doorontwikkeling (~ € 30.000). De business case rust op een externe implementatiepartner (1.500-2.500 consultanturen), juridisch-technische ontvlechting van Stichting Cito en dubbele licentielast tijdens de transitiefase. Het scenario-totaal in de tabel hangt af van hoe lang de structurele beheerfase loopt — hoe langer, hoe hoger het cumulatief totaal.
+     verdelingPerJaar:
+       2026: € 136.000 (?%) — Analyse & architectuur
+       2027: € 128.000 (?%) — Leverancier-selectie
+       2028: € 132.000 (?%) — Realisatie - kern
+       2029: € 145.000 (?%) — Realisatie - integraties
+       2030: € 153.000 (?%) — Acceptatie & pilot
+       2031: € 147.000 (?%) — Go-live & uitrol
+       2032: € 151.000 (?%) — In beheer
+       2033: € 127.000 (?%) — Optimalisatie
+       2034: € 125.000 (?%) — Doorontwikkeling
+       2035: € 128.000 (?%) — Continu verbeteren
+
+  ── Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten (processen) ─ totaal € 186.000 (10% van scenario) ─ rank 4
+     volgorde-reden: Strategische enabler met klein eenmalig budget — uniforme klantprocessen verbinden CRM-data aan dagelijkse werkroutines, intern uitgevoerd door procesondersteuners per sector.
+     motivatie: Uniforme klantinformatieprocessen en funnelgovernance worden cross-sectoraal ingericht door 5 interne uitvoerders die alle drie sectoren PO, VO en Professionals dekken: Projectmanager D, Procesmanager Data en Procesondersteuner per sector — inclusief de Procesondersteuner professionals als bewijs van volledige interne dekking. Dossier-onderbouwing: eenmalig € 55.000 – € 70.000 (middenpunt circa € 62.000) voor procesinventarisatie en herontwerp met externe procesbegeleider 20 dagen × € 800 (Cito-benchmark, € 16.000), sessiebegeleiding € 20.000 en methodieken/materialen € 7.500 — schaalvoordeel 30-40 % al verrekend; plus structureel € 10.000 – € 15.000 per jaar (mid € 12.000) voor proceseigenaarschap-borging via bestaande Smartprocess-tooling (geen separate licentiekost), aangevuld met € 10.000 cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM) en € 6.000 sectorvariatie-buffer (10 % herbewerkingsrisico bij late funneldefinitie-besluiten). Het scenario-totaal in de tabel hangt af van hoe lang de structurele borgingsfase loopt.
+     verdelingPerJaar:
+       2026: € 31.000 (?%) — Inventarisatie (as-is)
+       2027: € 29.000 (?%) — Herontwerp (to-be)
+       2028: € 28.000 (?%) — Pilot & validatie
+       2029: € 6.000 (?%) — Uitrol
+       2030: € 6.000 (?%) — Standaardisatie
+       2031: € 10.000 (?%) — Standaardisatie & adoptie
+       2032: € 11.000 (?%) — Continu verbeteren
+       2033: € 19.000 (?%) — Continu verbeteren
+       2034: € 22.000 (?%) — Continue verbetering
+       2035: € 24.000 (?%) — Verankering
+
+  ── Gespreksvaardigheidstraining outside-in voor alle sectoren realiseren (mens) ─ totaal € 230.000 (8% van scenario) ─ rank 3
+     volgorde-reden: Eenmalig trainingsblok met begrensde structurele last — vertaalt outside-in naar concreet gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over vier sectoren.
+     motivatie: De cross-sectorale gespreksvaardigheidstraining vertaalt outside-in werken naar concreet, meetbaar gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over PO, VO, Zakelijk en Professionals (uit Stap 7 selectiePerDomein, niet 66 zoals het oude dossier vermeldt). Dossier-onderbouwing: vast eenmalig € 75.000 (LMS-licentie € 30.000 voor 5+ jaar, content-ontwikkeling outside-in curriculum € 25.000, train-de-trainer voor 12 interne trainer/adviseurs A € 10.000, nulmeting + intake € 10.000) plus variabel kerntraject € 80.000 (externe trainingspartner twee blokken à circa € 31.500 voor 80 deelnemers + sessieondersteuning, locatie en materialen € 17.000). Voor langere scenario's komt daar jaarlijks circa € 15.000 refresh-sessie en € 5.000 onboarding nieuwe medewerkers vanaf jaar 4 bij. Cross-sectorale bundeling levert circa 30 % schaalvoordeel; geen executive-tarief aangenomen — vaste-prijs-contract bij start vereist. Het scenario-totaal in de tabel hangt af van het aantal jaren met onderhoud en onboarding.
+     verdelingPerJaar:
+       2026: € 43.000 (?%) — Behoeftestelling & curriculumontwerp
+       2027: € 24.000 (?%) — Curriculumvalidatie & pilot
+       2028: € 25.000 (?%) — Basistraining - blok 1
+       2029: € 22.000 (?%) — Basistraining - blok 2
+       2030: € 17.000 (?%) — Vaardigheidstraining
+       2031: € 16.000 (?%) — Toepassing in praktijk
+       2032: € 17.000 (?%) — Borging & nazorg
+       2033: € 23.000 (?%) — Borging in lijn
+       2034: € 21.000 (?%) — Verankering
+       2035: € 22.000 (?%) — Continue ontwikkeling
+
+  ── Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren (cultuur) ─ totaal € 195.000 (4% van scenario) ─ rank 2
+     volgorde-reden: In euro klein, in belang #2 — zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.
+     motivatie: Het leiderschapsprogramma 'outside-in als gedeelde waarde' richt zich op 9 leidinggevenden plus 2 HR coördinerend (kringgesprek-pattern, deelnemers gelijk aan uitvoerders). In euro klein, in belang #2: zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft de cultuurverandering oppervlakkig. Dossier-onderbouwing: eenmalig externe begeleider 15 dagen × € 2.500 (€ 37.500) plus executive-tarief reservering € 20.000 (coaches kunnen oplopen tot € 4.000/dag), individuele coaching 9 lg × € 4.000 (€ 36.000) en HR-instrumentarium-aanpassing functioneringscyclus + 360°-integratie (€ 15.000); plus structureel 360°-feedback tool licentie € 5.000/jaar over de looptijd, jaarlijkse cultuurmeting vanaf jaar 3 (€ 2.500 per meting) voor borging van verankering 12-18 maanden na slottraject, en onboarding nieuwe leiders € 2.000/jaar vanaf jaar 5. Het scenario-totaal in de tabel hangt af van het aantal jaren onderhoud, cultuurmeting en onboarding nieuwe leiders.
+     verdelingPerJaar:
+       2026: € 40.000 (?%) — Urgentiebesef
+       2027: € 19.000 (?%) — Coalitievorming
+       2028: € 15.000 (?%) — Acceptatie & rolmodelgedrag
+       2029: € 20.000 (?%) — Adoptie
+       2030: € 15.000 (?%) — Waardenverankering
+       2031: € 16.000 (?%) — Borging in HR-cyclus
+       2032: € 14.000 (?%) — Continue rolmodel-werking
+       2033: € 18.000 (?%) — Verankering
+       2034: € 20.000 (?%) — Continue ontwikkeling
+       2035: € 18.000 (?%) — Verankering in lijn
+
+  ── Post onvoorzien (programma-breed) (overig) ─ totaal € 67.000 (?% van scenario) ─ rank 5
+     volgorde-reden: Programma-brede vangnet — geen domein-specifieke post; dekt onvoorziene kosten over alle vier de inspanningen.
+     motivatie: Post onvoorzien voor programma-brede risico's bij implementatie: scope-uitloop, marktrisico tarieven externe partners, herbewerking bij late besluiten, en onvoorziene integratie-issues tussen CRM, processen en HR-tooling. Hoogte is circa 10 % van basisraming voor scenario's met cap-headroom (Snelste, +20%, Huidig); voor het langste scenario (-20%) past binnen de cap slechts een symbolische post (cap-headroom dwingt buffer naar nul) — een signaal dat dit scenario weinig veerkracht heeft bij realisatie van risico's. De post wordt niet pre-toegewezen aan een specifiek domein; vrijval bij het uitblijven van risico's komt terug in het programma-budget. Niet opgenomen in jaar 1 omdat het Cito 2026-budget hard is vastgesteld op € 250.000 (€ 200.000 voor het langste scenario) en geen ruimte laat voor onvoorzien in dat jaar.
+     verdelingPerJaar:
+       2026: € 0 (?%) — Reservering
+       2027: € 0 (?%) — Onvoorzien
+       2028: € 0 (?%) — Onvoorzien
+       2029: € 7.000 (?%) — Onvoorzien
+       2030: € 9.000 (?%) — Onvoorzien
+       2031: € 11.000 (?%) — Onvoorzien
+       2032: € 7.000 (?%) — Onvoorzien
+       2033: € 13.000 (?%) — Onvoorzien
+       2034: € 12.000 (?%) — Onvoorzien
+       2035: € 8.000 (?%) — Onvoorzien
+
+**totalenPerJaar:**
+  2026: € 250.000 (125% van cap)
+  2027: € 200.000 (100% van cap)
+  2028: € 200.000 (100% van cap)
+  2029: € 200.000 (100% van cap)
+  2030: € 200.000 (100% van cap)
+  2031: € 200.000 (100% van cap)
+  2032: € 200.000 (100% van cap)
+  2033: € 200.000 (100% van cap)
+  2034: € 200.000 (100% van cap)
+  2035: € 200.000 (100% van cap)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+### Scenario: ADVIES
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Cap (jaarlijks budget): € 341.000/jr
+Aantal jaren: 4
+Totaal geraamd: € 1.273.000
+
+**Inspanningen:**
+
+  ── Integraal CRM-klantdashboard cross-sectoraal implementeren en inrichten (data_systemen) ─ totaal € 817.000 (73% van scenario) ─ rank 1
+     volgorde-reden: Grootste eenmalige post en technische enabler — zonder werkend CRM blijft outside-in op schaal een belofte.
+     motivatie: Het CRM is het technische fundament onder outside-in werken: zonder werkend cross-sectoraal klantdashboard blijft outside-in op schaal onuitvoerbaar. Dossier-onderbouwing: eenmalig € 440.000 – € 640.000 voor implementatie, datamigratie en 7-8 bronsysteemintegraties (middenpunt circa € 540.000); plus structureel € 92.500 per jaar voor licenties (85 gebruikers op een Microsoft Dynamics-equivalent, ~ € 63.000) en beheer plus doorontwikkeling (~ € 30.000). De business case rust op een externe implementatiepartner (1.500-2.500 consultanturen), juridisch-technische ontvlechting van Stichting Cito en dubbele licentielast tijdens de transitiefase. Het scenario-totaal in de tabel hangt af van hoe lang de structurele beheerfase loopt — hoe langer, hoe hoger het cumulatief totaal.
+     verdelingPerJaar:
+       2026: € 162.000 (?%) — Analyse & architectuur
+       2027: € 221.000 (?%) — Realisatie & integraties
+       2028: € 233.000 (?%) — Acceptatie & uitrol
+       2029: € 201.000 (?%) — In beheer & optimalisatie
+
+  ── Gespreksvaardigheidstraining outside-in voor alle sectoren realiseren (mens) ─ totaal € 155.000 (13% van scenario) ─ rank 3
+     volgorde-reden: Eenmalig trainingsblok met begrensde structurele last — vertaalt outside-in naar concreet gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over vier sectoren.
+     motivatie: De cross-sectorale gespreksvaardigheidstraining vertaalt outside-in werken naar concreet, meetbaar gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over PO, VO, Zakelijk en Professionals (uit Stap 7 selectiePerDomein, niet 66 zoals het oude dossier vermeldt). Dossier-onderbouwing: vast eenmalig € 75.000 (LMS-licentie € 30.000 voor 5+ jaar, content-ontwikkeling outside-in curriculum € 25.000, train-de-trainer voor 12 interne trainer/adviseurs A € 10.000, nulmeting + intake € 10.000) plus variabel kerntraject € 80.000 (externe trainingspartner twee blokken à circa € 31.500 voor 80 deelnemers + sessieondersteuning, locatie en materialen € 17.000). Voor langere scenario's komt daar jaarlijks circa € 15.000 refresh-sessie en € 5.000 onboarding nieuwe medewerkers vanaf jaar 4 bij. Cross-sectorale bundeling levert circa 30 % schaalvoordeel; geen executive-tarief aangenomen — vaste-prijs-contract bij start vereist. Het scenario-totaal in de tabel hangt af van het aantal jaren met onderhoud en onboarding.
+     verdelingPerJaar:
+       2026: € 38.000 (?%) — Behoeftestelling & curriculumontwerp
+       2027: € 46.000 (?%) — Basistraining
+       2028: € 37.000 (?%) — Vaardigheidstraining & toepassing
+       2029: € 34.000 (?%) — Borging & nazorg
+
+  ── Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten (processen) ─ totaal € 114.000 (9% van scenario) ─ rank 4
+     volgorde-reden: Strategische enabler met klein eenmalig budget — uniforme klantprocessen verbinden CRM-data aan dagelijkse werkroutines, intern uitgevoerd door procesondersteuners per sector.
+     motivatie: Uniforme klantinformatieprocessen en funnelgovernance worden cross-sectoraal ingericht door 5 interne uitvoerders die alle drie sectoren PO, VO en Professionals dekken: Projectmanager D, Procesmanager Data en Procesondersteuner per sector — inclusief de Procesondersteuner professionals als bewijs van volledige interne dekking. Dossier-onderbouwing: eenmalig € 55.000 – € 70.000 (middenpunt circa € 62.000) voor procesinventarisatie en herontwerp met externe procesbegeleider 20 dagen × € 800 (Cito-benchmark, € 16.000), sessiebegeleiding € 20.000 en methodieken/materialen € 7.500 — schaalvoordeel 30-40 % al verrekend; plus structureel € 10.000 – € 15.000 per jaar (mid € 12.000) voor proceseigenaarschap-borging via bestaande Smartprocess-tooling (geen separate licentiekost), aangevuld met € 10.000 cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM) en € 6.000 sectorvariatie-buffer (10 % herbewerkingsrisico bij late funneldefinitie-besluiten). Het scenario-totaal in de tabel hangt af van hoe lang de structurele borgingsfase loopt.
+     verdelingPerJaar:
+       2026: € 12.000 (?%) — Inventarisatie & herontwerp
+       2027: € 30.000 (?%) — Pilot & sectorinkleuring
+       2028: € 31.000 (?%) — Uitrol & standaardisatie
+       2029: € 41.000 (?%) — Continu verbeteren
+
+  ── Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren (cultuur) ─ totaal € 130.000 (6% van scenario) ─ rank 2
+     volgorde-reden: In euro klein, in belang #2 — zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.
+     motivatie: Het leiderschapsprogramma 'outside-in als gedeelde waarde' richt zich op 9 leidinggevenden plus 2 HR coördinerend (kringgesprek-pattern, deelnemers gelijk aan uitvoerders). In euro klein, in belang #2: zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft de cultuurverandering oppervlakkig. Dossier-onderbouwing: eenmalig externe begeleider 15 dagen × € 2.500 (€ 37.500) plus executive-tarief reservering € 20.000 (coaches kunnen oplopen tot € 4.000/dag), individuele coaching 9 lg × € 4.000 (€ 36.000) en HR-instrumentarium-aanpassing functioneringscyclus + 360°-integratie (€ 15.000); plus structureel 360°-feedback tool licentie € 5.000/jaar over de looptijd, jaarlijkse cultuurmeting vanaf jaar 3 (€ 2.500 per meting) voor borging van verankering 12-18 maanden na slottraject, en onboarding nieuwe leiders € 2.000/jaar vanaf jaar 5. Het scenario-totaal in de tabel hangt af van het aantal jaren onderhoud, cultuurmeting en onboarding nieuwe leiders.
+     verdelingPerJaar:
+       2026: € 38.000 (?%) — Bewustwording & coalitievorming
+       2027: € 38.000 (?%) — Acceptatie & rolmodelgedrag
+       2028: € 22.000 (?%) — Adoptie
+       2029: € 32.000 (?%) — Waardenverankering
+
+  ── Post onvoorzien (programma-breed) (overig) ─ totaal € 57.000 (?% van scenario) ─ rank 5
+     volgorde-reden: Programma-brede vangnet — geen domein-specifieke post; dekt onvoorziene kosten over alle vier de inspanningen.
+     motivatie: Post onvoorzien voor programma-brede risico's bij implementatie: scope-uitloop, marktrisico tarieven externe partners, herbewerking bij late besluiten, en onvoorziene integratie-issues tussen CRM, processen en HR-tooling. Hoogte is circa 10 % van basisraming voor scenario's met cap-headroom (Snelste, +20%, Huidig); voor het langste scenario (-20%) past binnen de cap slechts een symbolische post (cap-headroom dwingt buffer naar nul) — een signaal dat dit scenario weinig veerkracht heeft bij realisatie van risico's. De post wordt niet pre-toegewezen aan een specifiek domein; vrijval bij het uitblijven van risico's komt terug in het programma-budget. Niet opgenomen in jaar 1 omdat het Cito 2026-budget hard is vastgesteld op € 250.000 (€ 200.000 voor het langste scenario) en geen ruimte laat voor onvoorzien in dat jaar.
+     verdelingPerJaar:
+       2026: € 0 (?%) — Reservering
+       2027: € 6.000 (?%) — Onvoorzien
+       2028: € 18.000 (?%) — Onvoorzien
+       2029: € 33.000 (?%) — Onvoorzien
+
+**totalenPerJaar:**
+  2026: € 250.000 (73% van cap)
+  2027: € 341.000 (100% van cap)
+  2028: € 341.000 (100% van cap)
+  2029: € 341.000 (100% van cap)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+### Scenario: PLUS20
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Cap (jaarlijks budget): € 300.000/jr
+Aantal jaren: 5
+Totaal geraamd: € 1.450.000
+
+**Inspanningen:**
+
+  ── Integraal CRM-klantdashboard cross-sectoraal implementeren en inrichten (data_systemen) ─ totaal € 910.000 (74% van scenario) ─ rank 1
+     volgorde-reden: Grootste eenmalige post en technische enabler — zonder werkend CRM blijft outside-in op schaal een belofte.
+     motivatie: Het CRM is het technische fundament onder outside-in werken: zonder werkend cross-sectoraal klantdashboard blijft outside-in op schaal onuitvoerbaar. Dossier-onderbouwing: eenmalig € 440.000 – € 640.000 voor implementatie, datamigratie en 7-8 bronsysteemintegraties (middenpunt circa € 540.000); plus structureel € 92.500 per jaar voor licenties (85 gebruikers op een Microsoft Dynamics-equivalent, ~ € 63.000) en beheer plus doorontwikkeling (~ € 30.000). De business case rust op een externe implementatiepartner (1.500-2.500 consultanturen), juridisch-technische ontvlechting van Stichting Cito en dubbele licentielast tijdens de transitiefase. Het scenario-totaal in de tabel hangt af van hoe lang de structurele beheerfase loopt — hoe langer, hoe hoger het cumulatief totaal.
+     verdelingPerJaar:
+       2026: € 166.000 (?%) — Analyse & architectuur
+       2027: € 197.000 (?%) — Realisatie & integraties
+       2028: € 189.000 (?%) — Acceptatie & uitrol
+       2029: € 209.000 (?%) — In beheer
+       2030: € 149.000 (?%) — Optimalisatie
+
+  ── Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten (processen) ─ totaal € 126.000 (9% van scenario) ─ rank 4
+     volgorde-reden: Strategische enabler met klein eenmalig budget — uniforme klantprocessen verbinden CRM-data aan dagelijkse werkroutines, intern uitgevoerd door procesondersteuners per sector.
+     motivatie: Uniforme klantinformatieprocessen en funnelgovernance worden cross-sectoraal ingericht door 5 interne uitvoerders die alle drie sectoren PO, VO en Professionals dekken: Projectmanager D, Procesmanager Data en Procesondersteuner per sector — inclusief de Procesondersteuner professionals als bewijs van volledige interne dekking. Dossier-onderbouwing: eenmalig € 55.000 – € 70.000 (middenpunt circa € 62.000) voor procesinventarisatie en herontwerp met externe procesbegeleider 20 dagen × € 800 (Cito-benchmark, € 16.000), sessiebegeleiding € 20.000 en methodieken/materialen € 7.500 — schaalvoordeel 30-40 % al verrekend; plus structureel € 10.000 – € 15.000 per jaar (mid € 12.000) voor proceseigenaarschap-borging via bestaande Smartprocess-tooling (geen separate licentiekost), aangevuld met € 10.000 cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM) en € 6.000 sectorvariatie-buffer (10 % herbewerkingsrisico bij late funneldefinitie-besluiten). Het scenario-totaal in de tabel hangt af van hoe lang de structurele borgingsfase loopt.
+     verdelingPerJaar:
+       2026: € 13.000 (?%) — Inventarisatie (as-is)
+       2027: € 28.000 (?%) — Herontwerp (to-be) & pilot
+       2028: € 30.000 (?%) — Uitrol
+       2029: € 21.000 (?%) — Standaardisatie
+       2030: € 34.000 (?%) — Continu verbeteren
+
+  ── Gespreksvaardigheidstraining outside-in voor alle sectoren realiseren (mens) ─ totaal € 170.000 (12% van scenario) ─ rank 2
+     volgorde-reden: Eenmalig trainingsblok met begrensde structurele last — vertaalt outside-in naar concreet gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over vier sectoren.
+     motivatie: De cross-sectorale gespreksvaardigheidstraining vertaalt outside-in werken naar concreet, meetbaar gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over PO, VO, Zakelijk en Professionals (uit Stap 7 selectiePerDomein, niet 66 zoals het oude dossier vermeldt). Dossier-onderbouwing: vast eenmalig € 75.000 (LMS-licentie € 30.000 voor 5+ jaar, content-ontwikkeling outside-in curriculum € 25.000, train-de-trainer voor 12 interne trainer/adviseurs A € 10.000, nulmeting + intake € 10.000) plus variabel kerntraject € 80.000 (externe trainingspartner twee blokken à circa € 31.500 voor 80 deelnemers + sessieondersteuning, locatie en materialen € 17.000). Voor langere scenario's komt daar jaarlijks circa € 15.000 refresh-sessie en € 5.000 onboarding nieuwe medewerkers vanaf jaar 4 bij. Cross-sectorale bundeling levert circa 30 % schaalvoordeel; geen executive-tarief aangenomen — vaste-prijs-contract bij start vereist. Het scenario-totaal in de tabel hangt af van het aantal jaren met onderhoud en onboarding.
+     verdelingPerJaar:
+       2026: € 36.000 (?%) — Behoeftestelling & curriculumontwerp
+       2027: € 37.000 (?%) — Basistraining
+       2028: € 36.000 (?%) — Vaardigheidstraining
+       2029: € 22.000 (?%) — Toepassing in praktijk
+       2030: € 39.000 (?%) — Borging & nazorg
+
+  ── Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren (cultuur) ─ totaal € 145.000 (5% van scenario) ─ rank 3
+     volgorde-reden: In euro klein, in belang #2 — zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.
+     motivatie: Het leiderschapsprogramma 'outside-in als gedeelde waarde' richt zich op 9 leidinggevenden plus 2 HR coördinerend (kringgesprek-pattern, deelnemers gelijk aan uitvoerders). In euro klein, in belang #2: zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft de cultuurverandering oppervlakkig. Dossier-onderbouwing: eenmalig externe begeleider 15 dagen × € 2.500 (€ 37.500) plus executive-tarief reservering € 20.000 (coaches kunnen oplopen tot € 4.000/dag), individuele coaching 9 lg × € 4.000 (€ 36.000) en HR-instrumentarium-aanpassing functioneringscyclus + 360°-integratie (€ 15.000); plus structureel 360°-feedback tool licentie € 5.000/jaar over de looptijd, jaarlijkse cultuurmeting vanaf jaar 3 (€ 2.500 per meting) voor borging van verankering 12-18 maanden na slottraject, en onboarding nieuwe leiders € 2.000/jaar vanaf jaar 5. Het scenario-totaal in de tabel hangt af van het aantal jaren onderhoud, cultuurmeting en onboarding nieuwe leiders.
+     verdelingPerJaar:
+       2026: € 35.000 (?%) — Bewustwording & coalitievorming
+       2027: € 31.000 (?%) — Acceptatie & rolmodelgedrag
+       2028: € 22.000 (?%) — Adoptie
+       2029: € 21.000 (?%) — Waardenverankering
+       2030: € 36.000 (?%) — Continue rolmodel-werking
+
+  ── Post onvoorzien (programma-breed) (overig) ─ totaal € 99.000 (?% van scenario) ─ rank 5
+     volgorde-reden: Programma-brede vangnet — geen domein-specifieke post; dekt onvoorziene kosten over alle vier de inspanningen.
+     motivatie: Post onvoorzien voor programma-brede risico's bij implementatie: scope-uitloop, marktrisico tarieven externe partners, herbewerking bij late besluiten, en onvoorziene integratie-issues tussen CRM, processen en HR-tooling. Hoogte is circa 10 % van basisraming voor scenario's met cap-headroom (Snelste, +20%, Huidig); voor het langste scenario (-20%) past binnen de cap slechts een symbolische post (cap-headroom dwingt buffer naar nul) — een signaal dat dit scenario weinig veerkracht heeft bij realisatie van risico's. De post wordt niet pre-toegewezen aan een specifiek domein; vrijval bij het uitblijven van risico's komt terug in het programma-budget. Niet opgenomen in jaar 1 omdat het Cito 2026-budget hard is vastgesteld op € 250.000 (€ 200.000 voor het langste scenario) en geen ruimte laat voor onvoorzien in dat jaar.
+     verdelingPerJaar:
+       2026: € 0 (?%) — Reservering
+       2027: € 7.000 (?%) — Onvoorzien
+       2028: € 23.000 (?%) — Onvoorzien
+       2029: € 27.000 (?%) — Onvoorzien
+       2030: € 42.000 (?%) — Onvoorzien
+
+**totalenPerJaar:**
+  2026: € 250.000 (83% van cap)
+  2027: € 300.000 (100% van cap)
+  2028: € 300.000 (100% van cap)
+  2029: € 300.000 (100% van cap)
+  2030: € 300.000 (100% van cap)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+### Scenario: OPTIMAAL
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Cap (jaarlijks budget): € 250.000/jr
+Aantal jaren: 7
+Totaal geraamd: € 1.750.000
+
+**Inspanningen:**
+
+  ── Integraal CRM-klantdashboard cross-sectoraal implementeren en inrichten (data_systemen) ─ totaal € 1.095.000 (76% van scenario) ─ rank 1
+     volgorde-reden: Grootste eenmalige post en technische enabler — zonder werkend CRM blijft outside-in op schaal een belofte.
+     motivatie: Het CRM is het technische fundament onder outside-in werken: zonder werkend cross-sectoraal klantdashboard blijft outside-in op schaal onuitvoerbaar. Dossier-onderbouwing: eenmalig € 440.000 – € 640.000 voor implementatie, datamigratie en 7-8 bronsysteemintegraties (middenpunt circa € 540.000); plus structureel € 92.500 per jaar voor licenties (85 gebruikers op een Microsoft Dynamics-equivalent, ~ € 63.000) en beheer plus doorontwikkeling (~ € 30.000). De business case rust op een externe implementatiepartner (1.500-2.500 consultanturen), juridisch-technische ontvlechting van Stichting Cito en dubbele licentielast tijdens de transitiefase. Het scenario-totaal in de tabel hangt af van hoe lang de structurele beheerfase loopt — hoe langer, hoe hoger het cumulatief totaal.
+     verdelingPerJaar:
+       2026: € 173.000 (?%) — Analyse & architectuur
+       2027: € 176.000 (?%) — Leverancier-selectie
+       2028: € 153.000 (?%) — Realisatie & integraties
+       2029: € 180.000 (?%) — Acceptatie & sectoruitrol
+       2030: € 150.000 (?%) — Go-live & adoptie
+       2031: € 138.000 (?%) — In beheer
+       2032: € 125.000 (?%) — Optimalisatie
+
+  ── Gespreksvaardigheidstraining outside-in voor alle sectoren realiseren (mens) ─ totaal € 200.000 (10% van scenario) ─ rank 2
+     volgorde-reden: Eenmalig trainingsblok met begrensde structurele last — vertaalt outside-in naar concreet gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over vier sectoren.
+     motivatie: De cross-sectorale gespreksvaardigheidstraining vertaalt outside-in werken naar concreet, meetbaar gespreksgedrag bij 80 klantgerichte medewerkers verdeeld over PO, VO, Zakelijk en Professionals (uit Stap 7 selectiePerDomein, niet 66 zoals het oude dossier vermeldt). Dossier-onderbouwing: vast eenmalig € 75.000 (LMS-licentie € 30.000 voor 5+ jaar, content-ontwikkeling outside-in curriculum € 25.000, train-de-trainer voor 12 interne trainer/adviseurs A € 10.000, nulmeting + intake € 10.000) plus variabel kerntraject € 80.000 (externe trainingspartner twee blokken à circa € 31.500 voor 80 deelnemers + sessieondersteuning, locatie en materialen € 17.000). Voor langere scenario's komt daar jaarlijks circa € 15.000 refresh-sessie en € 5.000 onboarding nieuwe medewerkers vanaf jaar 4 bij. Cross-sectorale bundeling levert circa 30 % schaalvoordeel; geen executive-tarief aangenomen — vaste-prijs-contract bij start vereist. Het scenario-totaal in de tabel hangt af van het aantal jaren met onderhoud en onboarding.
+     verdelingPerJaar:
+       2026: € 32.000 (?%) — Behoeftestelling & curriculumontwerp
+       2027: € 27.000 (?%) — Curriculumvalidatie & pilot
+       2028: € 30.000 (?%) — Basistraining
+       2029: € 21.000 (?%) — Vaardigheidstraining
+       2030: € 28.000 (?%) — Toepassing in praktijk
+       2031: € 30.000 (?%) — Borging & nazorg
+       2032: € 32.000 (?%) — Verankering
+
+  ── Uniforme klantinformatieprocessen en funnelgovernance cross-sectoraal inrichten (processen) ─ totaal € 150.000 (10% van scenario) ─ rank 3
+     volgorde-reden: Strategische enabler met klein eenmalig budget — uniforme klantprocessen verbinden CRM-data aan dagelijkse werkroutines, intern uitgevoerd door procesondersteuners per sector.
+     motivatie: Uniforme klantinformatieprocessen en funnelgovernance worden cross-sectoraal ingericht door 5 interne uitvoerders die alle drie sectoren PO, VO en Professionals dekken: Projectmanager D, Procesmanager Data en Procesondersteuner per sector — inclusief de Procesondersteuner professionals als bewijs van volledige interne dekking. Dossier-onderbouwing: eenmalig € 55.000 – € 70.000 (middenpunt circa € 62.000) voor procesinventarisatie en herontwerp met externe procesbegeleider 20 dagen × € 800 (Cito-benchmark, € 16.000), sessiebegeleiding € 20.000 en methodieken/materialen € 7.500 — schaalvoordeel 30-40 % al verrekend; plus structureel € 10.000 – € 15.000 per jaar (mid € 12.000) voor proceseigenaarschap-borging via bestaande Smartprocess-tooling (geen separate licentiekost), aangevuld met € 10.000 cross-sectoraal governance-instrumentarium (KPI-template + integratie-format CRM) en € 6.000 sectorvariatie-buffer (10 % herbewerkingsrisico bij late funneldefinitie-besluiten). Het scenario-totaal in de tabel hangt af van hoe lang de structurele borgingsfase loopt.
+     verdelingPerJaar:
+       2026: € 15.000 (?%) — Inventarisatie (as-is)
+       2027: € 27.000 (?%) — Herontwerp (to-be)
+       2028: € 29.000 (?%) — Pilot & validatie
+       2029: € 5.000 (?%) — Uitrol
+       2030: € 16.000 (?%) — Standaardisatie
+       2031: € 24.000 (?%) — Continu verbeteren
+       2032: € 34.000 (?%) — Verankering
+
+  ── Leiderschapsprogramma outside-in als gedeelde waarde cross-sectoraal verankeren (cultuur) ─ totaal € 165.000 (5% van scenario) ─ rank 4
+     volgorde-reden: In euro klein, in belang #2 — zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft outside-in een hol begrip.
+     motivatie: Het leiderschapsprogramma 'outside-in als gedeelde waarde' richt zich op 9 leidinggevenden plus 2 HR coördinerend (kringgesprek-pattern, deelnemers gelijk aan uitvoerders). In euro klein, in belang #2: zonder zichtbaar voorgeleefd outside-in gedrag wordt het CRM niet gebruikt zoals bedoeld en blijft de cultuurverandering oppervlakkig. Dossier-onderbouwing: eenmalig externe begeleider 15 dagen × € 2.500 (€ 37.500) plus executive-tarief reservering € 20.000 (coaches kunnen oplopen tot € 4.000/dag), individuele coaching 9 lg × € 4.000 (€ 36.000) en HR-instrumentarium-aanpassing functioneringscyclus + 360°-integratie (€ 15.000); plus structureel 360°-feedback tool licentie € 5.000/jaar over de looptijd, jaarlijkse cultuurmeting vanaf jaar 3 (€ 2.500 per meting) voor borging van verankering 12-18 maanden na slottraject, en onboarding nieuwe leiders € 2.000/jaar vanaf jaar 5. Het scenario-totaal in de tabel hangt af van het aantal jaren onderhoud, cultuurmeting en onboarding nieuwe leiders.
+     verdelingPerJaar:
+       2026: € 30.000 (?%) — Bewustwording & coalitievorming
+       2027: € 20.000 (?%) — Acceptatie & rolmodelgedrag
+       2028: € 18.000 (?%) — Adoptie
+       2029: € 17.000 (?%) — Waardenverankering
+       2030: € 22.000 (?%) — Borging in HR-cyclus
+       2031: € 26.000 (?%) — Continue rolmodel-werking
+       2032: € 32.000 (?%) — Verankering
+
+  ── Post onvoorzien (programma-breed) (overig) ─ totaal € 140.000 (?% van scenario) ─ rank 5
+     volgorde-reden: Programma-brede vangnet — geen domein-specifieke post; dekt onvoorziene kosten over alle vier de inspanningen.
+     motivatie: Post onvoorzien voor programma-brede risico's bij implementatie: scope-uitloop, marktrisico tarieven externe partners, herbewerking bij late besluiten, en onvoorziene integratie-issues tussen CRM, processen en HR-tooling. Hoogte is circa 10 % van basisraming voor scenario's met cap-headroom (Snelste, +20%, Huidig); voor het langste scenario (-20%) past binnen de cap slechts een symbolische post (cap-headroom dwingt buffer naar nul) — een signaal dat dit scenario weinig veerkracht heeft bij realisatie van risico's. De post wordt niet pre-toegewezen aan een specifiek domein; vrijval bij het uitblijven van risico's komt terug in het programma-budget. Niet opgenomen in jaar 1 omdat het Cito 2026-budget hard is vastgesteld op € 250.000 (€ 200.000 voor het langste scenario) en geen ruimte laat voor onvoorzien in dat jaar.
+     verdelingPerJaar:
+       2026: € 0 (?%) — Reservering
+       2027: € 0 (?%) — Onvoorzien
+       2028: € 20.000 (?%) — Onvoorzien
+       2029: € 27.000 (?%) — Onvoorzien
+       2030: € 34.000 (?%) — Onvoorzien
+       2031: € 32.000 (?%) — Onvoorzien
+       2032: € 27.000 (?%) — Onvoorzien
+
+**totalenPerJaar:**
+  2026: € 250.000 (100% van cap)
+  2027: € 250.000 (100% van cap)
+  2028: € 250.000 (100% van cap)
+  2029: € 250.000 (100% van cap)
+  2030: € 250.000 (100% van cap)
+  2031: € 250.000 (100% van cap)
+  2032: € 250.000 (100% van cap)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+EINDE BRON-DUMP
+════════════════════════════════════════════════════════════════════════════════════════════════════

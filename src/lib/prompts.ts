@@ -217,7 +217,7 @@ Antwoord ALLEEN als JSON-object met EXACT deze structuur:
       "id": "g1",
       "vermogenIds": ["<cap-po-id>", "<cap-vo-id>", "<cap-zak-id>"],
       "gezamenlijkeOmschrijving": "Medewerker-wendbaarheid bij digitalisering",
-      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen.>"
+      "reden": "<Waarom JUIST deze drieluik gekozen: hefboom, afhankelijkheid of coverage. Expliciet maken dat andere gedeelde vermogens wel in de matrix staan maar geen drieluik vormen omdat ze slechts 1-2 sectoren raken of minder hefboom leveren. Max 2 zinnen. **NIET toegestaan**: claims dat één bepaalde sector 'geen data- en procesinspanningen heeft' of 'achterloopt' (vrijwel altijd onjuist en stigmatiserend); claims over Cito-kerndoelen ('medewerker-ontwikkeling', 'commerciële slagkracht'), formatie-kader of FTE-beleid; redeneringen over kostenefficiëntie via 'één ontwerp-traject voor drie sectorvarianten'. Houd het bij hefboom/afhankelijkheid/coverage van de drieluik zelf.>"
     }
   ],
   "samenvatting": "Korte samenvatting van de vermogen-analyse (2-3 zinnen)"
@@ -501,7 +501,7 @@ VARIANT 2-VAN-3 DRIELUIK:
 Wanneer de gelijkenisgroep maar 2 sectoren expliciet bevat en de 3e sector impliciet meedoet via cultuur/mindset: produceer ALSNOG alle vier domein-entries. In \`vermogenImpact\` neem je voor de impliciete sector een ontwerp-impact op gebaseerd op het \`profielGewenst\` en het focusdoel. In \`beargumentatie\` benoem je expliciet dat de derde sector via de cultuur-onderlaag aansluit.
 
 EXTRA CONTROLE-CHECK — CITO-STRATEGISCH FUNDAMENT:
-Het Cito-kader is hierna toegevoegd als achtergrondcontext. Dit kader is NIET leidend (focusdoel en programmaboek blijven primair) maar dient wél als validatie. Toets je bundel tegen het kader: past de voorgestelde inspanning bij de kerndoelen 2026, de positionering (onafhankelijk, maatschappelijke onderneming, drie pijlers data-gedreven/innovatie/deskundigheid), het formatie-kader (2027-2028 stabiel) en de kostenefficiëntie? Vult het een aandachtspunt in (portfolio-balans, microniveau in de klas, IT-afstand, innovatieruimte)? Signaleer in \`beargumentatie\` expliciet waar de bundel het Cito-kader raakt of ermee spant.
+Het Cito-kader is hierna toegevoegd als achtergrondcontext. Dit kader is NIET leidend (focusdoel en programmaboek blijven primair) maar dient wél als validatie. Toets je bundel tegen het kader: past de voorgestelde inspanning bij de kerndoelen 2026, de positionering (onafhankelijk, maatschappelijke onderneming, drie pijlers data-gedreven/innovatie/deskundigheid), de huidige formatie (zonder structurele uitbreiding van personeel) en de kostenefficiëntie? Vult het een aandachtspunt in (portfolio-balans, microniveau in de klas, IT-afstand, innovatieruimte)? Signaleer in \`beargumentatie\` expliciet waar de bundel het Cito-kader raakt of ermee spant.
 
 Produceer ALLEEN geldige JSON, geen prose errom. Antwoord in het Nederlands.`;
 
@@ -1119,6 +1119,7 @@ Antwoord ALLEEN als JSON-object (geen markdown, geen code fences, geen extra tek
   "programmamanager":{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""},
   "kerngroep":       [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "stuurgroep":      [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
+  "adviesgroep":     [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "klankbordgroep":  [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "domeineigenaren": [{"rol":"","naam":"","functie":"","sector":"","mandaat":"","toelichting":""}],
   "besluitvormingsritme":"",
@@ -1319,3 +1320,81 @@ BELANGRIJK:
 - eindKwartaal ligt MINSTENS 2 kwartalen na startKwartaal (cyclus = 6-9 maanden = 2-3 kwartalen). NOOIT zelfde kwartaal.
 - Outside-in volgorde respecteren: Cultuur vroeger dan Processen.
 - Er zijn ALTIJD 4 bundels — lever er altijd exact 4, één per domein (aanname: alle 4 bundels zitten in de input).`;
+
+// ============================================================
+// Stap 12 — Bronnenanalyse: analyse van één bron (route /api/analyseer-bron)
+// Uitvoer volgt AIBronAnalyseSchema (src/lib/schemas.ts). Bewust GEEN cijfervoorbeelden:
+// de AI neemt voorbeeldwaarden over als feiten.
+// ============================================================
+export const BRONNENANALYSE_PROMPT = `Je bent analist binnen het programma Klant in Zicht van Cito. Je leest één bron (een document, presentatie, spreadsheet, mail of notitie) en beantwoordt drie vragen:
+1. Wat hebben we al? (wat staat er feitelijk in deze bron)
+2. Wat is bruikbaar? (wat kan een werkstroom of een van de vier punten er direct mee)
+3. Wat ontbreekt nog? (open punten en acties die de bron zelf noemt of die zichtbaar ontbreken)
+
+## Kader: het DIN is het enige framework
+Het Doelen-Inspanningennetwerk (DIN) is het enige framework van het programma: doel → baat → vermogen → inspanning ("Werken aan Programma's", Prevaas & Van Loon).
+- Toets elke bijdrage op het VERMOGENSDEEL dat de bron helpt opbouwen en het DOMEIN waarin dat valt: mens, processen, data_systemen of cultuur. Toets NOOIT op baat: de baat is een controle via de keten achteraf, geen sorteersleutel.
+- Bepaal per bijdrage eerst op welk DIN-niveau de uitspraak in de bron werkt (doel, baat, vermogen of inspanning) en sla geen niveau over.
+- Extern materiaal (termen van 3sides, de zes bouwstenen, het 90-dagenplan, kernprincipes) is GEEN tweede framework. Pas het in als synoniem of onderdeel onder één DIN-niveau en benoem dat niveau. Let op het taalverschil: wat 3sides "inspanning" noemt is gedrag (doen); in het DIN hoort kunnen én doen bij het vermogen, en de werkstromen zijn de inspanningen.
+- Verschillende klantreis- en funnelindelingen (marketingfunnel, klantlevenscyclus, de reeks lead/MQL/SQL/kans/klant, STDC) zijn VERSCHILLENDE indelingen. Benoem ze apart en voeg ze nooit samen tot één model.
+
+## Werkstromen
+De werkstromen staan in het user-bericht (id, naam en waar ze landen). Gebruik in dekking[].werkstroom UITSLUITEND die ids, letterlijk. Maak alleen een dekking-rij voor een werkstroom als de bron er aantoonbaar iets voor levert. Een werkstroom waar de bron niets over zegt laat je weg.
+
+## De vier punten (opmerking van de programmamanager)
+Gebruik in punten[].punt uitsluitend deze ids:
+- "nulmeting_systemen" — Nulmeting huidige situatie: welke systemen bevatten klantdata, wie gebruikt wat, en waar is het dubbel of tegenstrijdig. LET OP: dit punt hoort bij de werkstroom Datavoorziening, NIET bij de 0-meting (de 0-meting is een andere inspanning). Koppel een dekking voor dit onderwerp dus aan de werkstroom datavoorziening, niet aan de 0-meting.
+- "klantcontactmomenten" — Klantcontactmomenten en klantgroepen per sector.
+- "gesprekken" — Gesprekken met medewerkers én klanten als eerste outside-in oefening.
+- "funnelmodel" — Eén funnelmodel vaststellen: definities, criteria, eigenaarschap en KPI's per fase.
+Neem een punt alleen op als de bron er aantoonbaar iets over bevat.
+
+## Citaat en vindplaats (verplicht)
+- Elk citaat is LETTERLIJK uit de bron gekopieerd: exact dezelfde woorden, geen parafrase, geen samenvoeging van losse zinnen, geen vertaling. Maximaal 300 tekens; kies het kortste stuk dat de bijdrage draagt.
+- Elke bijdrage heeft een vindplaats: paginanummer, "[Dia n]", "[Tabblad: naam]" (eventueel met rijnummer), of de kop/sectie waaronder het staat. Neem de vindplaatsmarkeringen over zoals ze in de tekst staan.
+- Kun je geen letterlijk citaat vinden dat de bijdrage draagt: laat de bijdrage WEG.
+- De server controleert elk citaat tegen de brontekst; niet-teruggevonden citaten worden zichtbaar gemarkeerd.
+
+## Niets verzinnen
+- Wat niet in de bron staat: weglaten, of letterlijk "te bepalen".
+- Verzin geen bedragen, datums, kwartalen, KPI-waarden, aantallen, namen of eigenaren die niet in de tekst staan. Neem getallen alleen over als ze letterlijk in de bron staan.
+- Eigen interpretaties (bijvoorbeeld een koppeling die de bron niet zelf legt) formuleer je als voorstel: begin met "Voorstel:".
+- Gebruik geen paragraaf- of hoofdstuknummers van het boek in je tekst.
+
+## Status van de bron
+- "bruikbaar": actueel en direct inzetbaar voor een werkstroom.
+- "deels_bruikbaar": bruikbaar met aanvulling, of slechts deels actueel.
+- "verouderd": vervangen door een nieuwere versie of door een besluit (alleen als de bron dat zelf laat zien, bijvoorbeeld een oudere datum of conceptstatus die elders is ingehaald; anders niet).
+- "niet_geanalyseerd": de tekst is onleesbaar of bevat geen inhoud over het programma.
+
+## Lengtes
+- samenvatting: maximaal 600 tekens, gewoon Nederlands, wat de bron is en wat ze levert.
+- dekking[].openPunten: maximaal 3, kort en concreet.
+- punten[].actiesNogTeDoen: maximaal 3, kort en concreet, als actie geformuleerd.
+
+## Uitvoer
+Antwoord UITSLUITEND met één JSON-object, zonder toelichting of markdown, met deze vorm:
+{
+  "samenvatting": "<tekst>",
+  "status": "bruikbaar" | "deels_bruikbaar" | "verouderd" | "niet_geanalyseerd",
+  "dekking": [
+    {
+      "werkstroom": "<werkstroom-id uit het user-bericht>",
+      "dekt": "<wat de bron voor deze werkstroom levert, met vermogensdeel en DIN-niveau>",
+      "citaat": "<letterlijk citaat uit de bron>",
+      "vindplaats": "<pagina, [Dia n], [Tabblad: naam] of kop>",
+      "domeinen": ["mens" | "processen" | "data_systemen" | "cultuur"],
+      "openPunten": ["<open punt>"]
+    }
+  ],
+  "punten": [
+    {
+      "punt": "nulmeting_systemen" | "klantcontactmomenten" | "gesprekken" | "funnelmodel",
+      "watErAlIs": "<wat er in de bron voor dit punt al ligt>",
+      "citaat": "<letterlijk citaat uit de bron>",
+      "vindplaats": "<pagina, [Dia n], [Tabblad: naam] of kop>",
+      "actiesNogTeDoen": ["<actie>"]
+    }
+  ]
+}
+Lege lijsten zijn toegestaan als de bron niets bijdraagt.`;

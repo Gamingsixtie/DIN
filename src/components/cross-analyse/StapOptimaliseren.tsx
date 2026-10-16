@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "@/lib/session-context";
 import { useToast } from "@/components/ui/Toast";
+import { EditableText } from "@/components/ui/EditableText";
 import type { DINSession, Stap4Result, EffortDomain } from "@/lib/types";
 import type { SubEffortAdvies } from "@/lib/schemas";
 import { computeFieldDiff, type FieldDiff } from "@/lib/diff";
@@ -12,6 +13,7 @@ const DOMAIN_LABELS: Record<EffortDomain, string> = {
   processen: "Processen",
   data_systemen: "Data & Systemen",
   cultuur: "Cultuur",
+  overig: "Overig",
 };
 
 const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: string }> = {
@@ -19,6 +21,7 @@ const DOMAIN_COLORS: Record<EffortDomain, { bg: string; border: string; text: st
   processen: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
   data_systemen: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
   cultuur: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  overig: { bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700" },
 };
 
 export default function StapOptimaliseren({
@@ -144,7 +147,7 @@ export default function StapOptimaliseren({
     },
   ];
 
-  type Domein = "mens" | "processen" | "data_systemen" | "cultuur";
+  type Domein = "mens" | "processen" | "data_systemen" | "cultuur" | "overig";
   type ScenarioLabel = "optimaal" | "plus20" | "min20" | "advies";
   type InspanningBegroting = {
     inspanningTitel: string;
@@ -821,6 +824,50 @@ export default function StapOptimaliseren({
     }
   }
 
+  // Handmatige tekst-update zonder AI-call. Gebruikt door EditableText voor
+  // samenvatting / prioriteitAdvies / motivatie. Bespaart Opus-tokens en
+  // geeft programmamanager snelle controle voor afrondingsverschillen of
+  // formuleringen die hij liever zelf wil zien staan.
+  async function handleBegrotingTekstEdit(
+    scenarioKey: ScenarioLabel,
+    veld: "samenvatting" | "prioriteitAdvies",
+    newValue: string,
+  ): Promise<void> {
+    if (!begrotingAdvies) return;
+    const updated: DrieScenarioAdvies = {
+      ...begrotingAdvies,
+      scenarios: {
+        ...begrotingAdvies.scenarios,
+        [scenarioKey]: begrotingAdvies.scenarios[scenarioKey]
+          ? { ...begrotingAdvies.scenarios[scenarioKey]!, [veld]: newValue }
+          : begrotingAdvies.scenarios[scenarioKey],
+      },
+    };
+    setBegrotingAdvies(updated);
+    updateSession((prev) => {
+      const cw = prev.crossAnalyseWizard;
+      const cs = cw?.stepResults?.stap4;
+      return {
+        ...prev,
+        crossAnalyseWizard: {
+          currentStep: cw?.currentStep ?? 6,
+          completedSteps: cw?.completedSteps ?? [],
+          wizardVersion: cw?.wizardVersion ?? 2,
+          ...cw,
+          stepResults: {
+            ...(cw?.stepResults ?? {}),
+            stap4: {
+              ...(cs ?? { samenvatting: "", subEffortAnalysis: [], consolidatieAdvies: [], citobreedInzicht: [] }),
+              begrotingAdvies: updated,
+            } as NonNullable<typeof cs>,
+          },
+        },
+      };
+    });
+    const version = await saveNow();
+    if (version !== false) addToast("Tekst opgeslagen", "success");
+  }
+
   async function saveEntry(idx: number) {
     setSavingIndex(idx);
     const updated = entries[idx];
@@ -1473,7 +1520,7 @@ export default function StapOptimaliseren({
             },
             {
               key: "advies",
-              label: "Optimaal (advies)",
+              label: "Snelste scenario",
               kleur: {
                 banner: "bg-purple-800",
                 tekst: "text-purple-100",
@@ -1519,12 +1566,14 @@ export default function StapOptimaliseren({
                   mens: { dot: "bg-blue-500", tag: "text-blue-800 bg-blue-50 border-blue-200" },
                   data_systemen: { dot: "bg-purple-500", tag: "text-purple-800 bg-purple-50 border-purple-200" },
                   processen: { dot: "bg-emerald-500", tag: "text-emerald-800 bg-emerald-50 border-emerald-200" },
+                  overig: { dot: "bg-gray-500", tag: "text-gray-700 bg-gray-50 border-gray-300" },
                 };
                 const domeinLabel: Record<string, string> = {
                   cultuur: "Cultuur",
                   mens: "Mens",
                   data_systemen: "Data/Systemen",
                   processen: "Processen",
+                  overig: "Overig",
                 };
                 return (
                   <div className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4">
@@ -1650,13 +1699,57 @@ export default function StapOptimaliseren({
                       Niet tevreden? Stuur AI een instructie om de scenario&apos;s aan te passen.
                     </p>
                   )}
-                  <button
-                    onClick={() => setFinetuneOpen(true)}
-                    disabled={begrotingLoading}
-                    className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
-                  >
-                    ✎ Fineut met AI
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        generateBegrotingsAdvies({
+                          // TEKST_ONLY:-prefix triggert server-side garantie
+                          // dat alleen motivatie/samenvatting/prioriteitAdvies
+                          // worden vervangen — alle cijfers, fase-labels en
+                          // activiteit-teksten blijven letterlijk gelijk aan
+                          // previousAdvies. Server injecteert ook top-2
+                          // zwaartepunt-jaren per inspanning met exact positie-
+                          // label zodat AI niet hoeft te raden.
+                          finetuneInstructie: `TEKST_ONLY: Herschrijf de motivatie (per inspanning), samenvatting en prioriteitAdvies van dit scenario.
+
+DOEL: alleen jaartallen en looptijd-claims weghalen — alle andere onderbouwing behouden.
+
+REGEL A — VERWIJDER:
+- Absolute jaartallen ('2027', '2028', 'tot 2031', '2026-2029').
+- Looptijd-aantallen ('over 4 jaar', 'in 5 jaar', '× 9 jaar', 'jaar 4').
+- Cyclus-claims ('4-jarige cyclus', '3-jarige aanpak').
+Vervang door relatieve aanduidingen: 'in het startjaar', 'in de bouwjaren', 'rond het midden van de looptijd', 'in de achterste derde', 'in het slotjaar', 'tegen het einde'.
+
+REGEL B — BEHOUD:
+- Dossier-bedragen uit business-case Q&A (€650K eenmalig, €92.500/jaar structureel, €52K trainer, €37.500 begeleider, €87.500 procesinrichting, etc.). Die zijn dossier-feiten en MOETEN in de motivatie blijven.
+- Concrete onderbouwingen: aantallen consultanturen, bronsystemen, deelnemers, dagen externe begeleiding — die blijven staan zolang ze geen jaartal of looptijd noemen.
+
+REGEL C — SCENARIO-TOTALEN MOETEN KLOPPEN:
+Als je een scenario-totaal noemt, MOET dat exact gelijk zijn aan de som van verdelingPerJaar[].euro voor díe inspanning in dít scenario. Verzin GEEN bedragen die niet uit de tabel volgen.
+
+REGEL D — ZWAARTEPUNT-CLAIMS:
+Gebruik EXACT het positie-label dat de server bovenaan deze prompt heeft geïnjecteerd voor elke inspanning — niet zelf interpreteren.
+
+REGEL E — LANGE LOOPTIJDEN:
+Bij scenario's met lange looptijd wordt het VOLLEDIGE programma binnen die jaren uitgevoerd. Geen 'aanloopfase', geen 'vervolgfinanciering' — alle dossier-bedragen en alle inspanningen zitten in de tabel.`,
+                          previousAdvies: begrotingAdvies,
+                        })
+                      }
+                      disabled={begrotingLoading}
+                      title="Herschrijft alleen de motivatie, samenvatting en prioriteitAdvies — bedragen, percentages, fase-labels en jaar-totalen blijven server-zijde gegarandeerd onveranderd."
+                      className="text-sm px-3 py-2 rounded bg-white text-[#003366] border-2 border-[#003366] hover:bg-blue-50 disabled:opacity-50 font-medium shadow-sm"
+                    >
+                      {begrotingLoading ? "AI herschrijft teksten…" : "🔁 Herschrijf alleen teksten"}
+                    </button>
+                    <button
+                      onClick={() => setFinetuneOpen(true)}
+                      disabled={begrotingLoading}
+                      title="Pas het scenario aan op basis van stuurgroep-feedback (bv. 'voor 2026 €250K i.p.v. €330K — reken door wat dat betekent voor looptijd'). Bedragen + tekst worden samen herrekend."
+                      className="text-sm px-4 py-2 rounded bg-[#003366] text-white hover:bg-[#002244] disabled:opacity-50 font-medium shadow-sm"
+                    >
+                      ⚖ Herrekenen op basis van stuurgroep-feedback
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1674,7 +1767,15 @@ export default function StapOptimaliseren({
                           <p className={`text-[11px] font-semibold uppercase tracking-wider ${sv.kleur.tekst} mb-1`}>
                             Scenario — {sv.label}
                           </p>
-                          <p className="text-sm">{s.samenvatting}</p>
+                          <div className="bg-white/95 rounded p-2 -mx-1">
+                            <EditableText
+                              value={s.samenvatting ?? ""}
+                              onSave={(v) => handleBegrotingTekstEdit(sv.key, "samenvatting", v)}
+                              hint={`Scenario-totaal € ${s.totaalGeraamdEuro.toLocaleString("nl-NL")} over ${s.aantalJaren} jaar (${begrotingAdvies.startJaar}–${eindJaar}). Geen absolute jaartallen — gebruik 'in het startjaar', 'rond het midden van de looptijd', etc.`}
+                              rows={3}
+                              textClassName="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap"
+                            />
+                          </div>
                           <p className={`text-xs ${sv.kleur.tekst} mt-2`}>
                             € {s.jaarlijksBudgetEuro.toLocaleString("nl-NL")} / jaar × {s.aantalJaren} jaar ({begrotingAdvies.startJaar}–{eindJaar})
                             {" = "}
@@ -1703,10 +1804,15 @@ export default function StapOptimaliseren({
                         <tbody>
                           {[...s.inspanningen]
                             .sort((a, b) => a.volgorde.rank - b.volgorde.rank)
-                            .map((insp, i) => {
+                            .map((insp) => {
                               const domColor = DOMAIN_COLORS[insp.domein];
+                              // Voor key: vind de echte index in de ongesorteerde
+                              // inspanningen-lijst.
+                              const inspIdx = s.inspanningen.findIndex(
+                                (x) => x === insp || x.inspanningTitel === insp.inspanningTitel,
+                              );
                               return (
-                                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                <tr key={inspIdx} className="border-b border-gray-100 hover:bg-gray-50 align-top">
                                   <td className="py-3 px-2">
                                     <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full ${sv.kleur.banner} text-white text-xs font-bold`}>
                                       {insp.volgorde.rank}
@@ -1717,10 +1823,6 @@ export default function StapOptimaliseren({
                                       {DOMAIN_LABELS[insp.domein]}
                                     </p>
                                     <p className="text-sm font-semibold text-gray-800 mt-0.5 leading-snug">{insp.inspanningTitel}</p>
-                                    <p className="text-[11px] text-gray-600 mt-1 italic leading-snug">
-                                      Positie: {insp.volgorde.reden}
-                                    </p>
-                                    <p className="text-[11px] text-gray-600 mt-1 leading-snug">{insp.motivatie}</p>
                                   </td>
                                   {Array.from({ length: s.aantalJaren }, (_, k) => begrotingAdvies.startJaar + k).map((jr) => {
                                     const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
@@ -1806,10 +1908,12 @@ export default function StapOptimaliseren({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-[#003366]">Begroting fineuten met AI</h3>
+              <h3 className="text-lg font-semibold text-[#003366]">Herrekenen op basis van stuurgroep-feedback</h3>
               <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                Geef instructie hoe de scenario&apos;s anders moeten — een ander tempo, andere fasering,
-                of een specifiekere prioriteit-onderbouwing. Of klik op een voorbeeld hieronder om te starten.
+                Beschrijf wat de stuurgroep heeft afgesproken of wat anders moet — bedragen, tempo,
+                fasering, prioriteiten. AI rekent door wat dat betekent voor scenario-totalen, looptijd
+                en verdeling per jaar, en past de tekst daarop aan zodat alles coherent blijft. Klik
+                een voorbeeld om te starten of typ je eigen instructie.
               </p>
             </div>
             <div className="p-5 space-y-4">
@@ -1838,12 +1942,13 @@ export default function StapOptimaliseren({
                 <textarea
                   value={finetuneInstructie}
                   onChange={(e) => setFinetuneInstructie(e.target.value)}
-                  rows={5}
-                  placeholder="Bijvoorbeeld: 'Verleng huidig budget naar 7 jaar omdat cultuurverandering meer tijd vraagt' of 'Schuif data/systemen volledig naar de laatste 2 jaar'."
+                  rows={6}
+                  placeholder={"Voorbeelden van stuurgroep-input die je hier kunt typen:\n\n• \"Uit stuurgroep-overleg: voor 2026 is € 250.000 beschikbaar in plaats van € 330.000 (advies-scenario). Reken door wat dat betekent voor de looptijd en de verdeling.\"\n\n• \"Verleng huidig budget naar 7 jaar — cultuurverandering vraagt meer tijd voor verankering.\"\n\n• \"Schuif CRM-bouw naar de eerste twee jaren omdat de stuurgroep snelle datakwaliteit prioriteert.\""}
                   className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#003366] resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-gray-500 mt-1">
-                  Tip: wees specifiek over WAT en WAAROM. AI kent de huidige scenario&apos;s en past die aan op basis van je instructie.
+                  Tip: wees specifiek over WAT (bedrag, jaar, scenario) en WAAROM (stuurgroep-besluit, capaciteit, prioriteit).
+                  AI past zowel de bedragen, looptijd als tekst aan zodat alles consistent blijft.
                 </p>
               </div>
               {begrotingError && (

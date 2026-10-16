@@ -45,18 +45,72 @@ function getClient(): Anthropic {
   });
 }
 
+export type ClaudeModel =
+  | "claude-sonnet-5-5"
+  | "claude-opus-5-5"
+  | "claude-sonnet-4-6"
+  | "claude-opus-4-6"
+  | "claude-opus-4-7"
+  | "claude-haiku-4-5-20251001";
+
+export type ClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+// Sonnet 5.5 en Opus 5.5: geen assistant-prefill (400), denken staat altijd aan en telt mee in
+// max_tokens, Opus 5.5 heeft effort-standaard "medium". Daarom een eigen pad.
+const GENERATIE_5_5 = new Set<ClaudeModel>(["claude-sonnet-5-5", "claude-opus-5-5"]);
+
+async function callClaudeGeneratie55(
+  client: Anthropic,
+  systemPrompt: string,
+  userMessage: string,
+  maxTokens: number | undefined,
+  model: ClaudeModel,
+  effort: ClaudeEffort
+): Promise<{ text: string; stopReason: string | null }> {
+  const params = {
+    model,
+    max_tokens: maxTokens || 16000,
+    system: systemPrompt,
+    messages: [{ role: "user" as const, content: userMessage }],
+    output_config: { effort },
+    // Weigert het model op een veiligheidsfilter, dan neemt de API het verzoek over op een ander model.
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+  };
+  const response = (await client.beta.messages.create(
+    params as unknown as Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
+  )) as Anthropic.Beta.Messages.BetaMessage;
+  const stopReason = (response.stop_reason as string | null) ?? null;
+  if (stopReason === "refusal") {
+    throw new Error("Het model weigerde dit verzoek op grond van een veiligheidsfilter, ook na de terugval.");
+  }
+  const text = response.content
+    .filter((b): b is Anthropic.Beta.Messages.BetaTextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+  if (stopReason === "max_tokens") {
+    console.warn(`[ai-client] Output afgekapt op max_tokens (${maxTokens || 16000}).`);
+  }
+  return { text, stopReason };
+}
+
 async function callClaudeRich(
   systemPrompt: string,
   userMessage: string,
   maxTokens?: number,
-  model:
-    | "claude-sonnet-4-6"
-    | "claude-opus-4-6"
-    | "claude-opus-4-7"
-    | "claude-haiku-4-5-20251001" = "claude-sonnet-4-6",
-  options?: { prefillJson?: boolean }
+  model: ClaudeModel = "claude-sonnet-4-6",
+  options?: { prefillJson?: boolean; effort?: ClaudeEffort }
 ): Promise<{ text: string; stopReason: string | null }> {
   const client = getClient();
+  if (GENERATIE_5_5.has(model)) {
+    try {
+      return await callClaudeGeneratie55(client, systemPrompt, userMessage, maxTokens, model, options?.effort ?? "medium");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Onbekende AI-fout";
+      console.error("[ai-client] callClaudeRich fout:", message);
+      throw new Error(`Claude API-fout: ${message}`);
+    }
+  }
   try {
     const messages: { role: "user" | "assistant"; content: string }[] = [
       { role: "user", content: userMessage },
@@ -266,6 +320,7 @@ export async function callClaudeWithValidation<T>(
     maxRetries?: number;
     retryDelayMs?: number;
     prefillJson?: boolean;
+    effort?: ClaudeEffort;
   }
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
   const MAX_RETRIES = options?.maxRetries ?? 2;
@@ -285,12 +340,8 @@ export async function callClaudeWithValidation<T>(
         systemPrompt,
         userMessage,
         options?.maxTokens,
-        (options?.model as
-          | "claude-sonnet-4-6"
-          | "claude-opus-4-6"
-          | "claude-opus-4-7"
-          | "claude-haiku-4-5-20251001") || "claude-sonnet-4-6",
-        { prefillJson: options?.prefillJson }
+        (options?.model as ClaudeModel) || "claude-sonnet-4-6",
+        { prefillJson: options?.prefillJson, effort: options?.effort }
       );
       raw = rich.text;
       stopReason = rich.stopReason;

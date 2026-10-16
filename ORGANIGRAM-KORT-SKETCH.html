@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Organigram Klant in Zicht — kort</title>
+<style>
+  :root{
+    --cito:#003366; --baten:#0066cc; --vermogens:#0891b2; --tracker:#6d28d9;
+    --mens:#2563eb; --proces:#059669; --data:#7c3aed; --cultuur:#d97706;
+    --ink:#111827; --ink-2:#5b6573; --ink-3:#9aa3b0;
+    --line:#e7ebf0; --line-2:#dde3ea; --canvas:#eef1f5;
+    --amber:#b45309; --groen:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:24px 26px 70px}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .sketchlabel{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;background:var(--amber);color:#fff;border-radius:6px;padding:3px 10px}
+  .knop{display:inline-block;font-size:11.5px;font-weight:700;color:var(--cito);background:#fff;border:1.5px solid var(--cito);border-radius:8px;padding:5px 12px;text-decoration:none}
+  .knop:hover{background:#e0edff}
+  header.top{background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:16px;padding:18px 24px;box-shadow:var(--shadow)}
+  header.top .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9db9d6;font-weight:700}
+  header.top h1{font-size:21px;letter-spacing:-.02em;margin-top:4px}
+  header.top p{color:#cdddf0;font-size:12.5px;margin-top:5px}
+
+  .begrip{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 14px;box-shadow:var(--shadow);font-size:11px;color:var(--ink-2);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .begrip .bl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+  .begrip .eq{font-size:10.5px;background:#f1f5f9;border:1px solid var(--line-2);border-radius:6px;padding:2px 8px}
+  .begrip .eq b{color:var(--ink)}
+
+  .sec{margin-top:22px}
+  .seckop{font-size:16px;font-weight:700;letter-spacing:-.01em;margin-bottom:2px}
+  .secsub{font-size:11.5px;color:var(--ink-3);margin-bottom:10px}
+  .secsub b{color:var(--ink)}
+
+  /* ===== organigram ===== */
+  .orgwrap{background:linear-gradient(180deg,#f2f6fb,#fff);border:1px solid rgba(0,51,102,.18);border-radius:16px;padding:18px 20px 16px;box-shadow:var(--shadow)}
+  .sponsor{margin:0 auto 6px;max-width:300px;text-align:center;border:1.5px dashed rgba(0,51,102,.35);border-radius:9px;padding:5px 10px;background:#fff}
+  .sponsor .gl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:rgba(0,51,102,.6)}
+  .sponsor .gs{font-size:10px;color:var(--ink-2)}
+  .orggrid{display:grid;grid-template-columns:3fr 6fr 3fr;gap:14px;align-items:start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .grouplabel{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--cito);text-align:center;margin-bottom:4px}
+  .box{border:2px solid var(--line-2);border-radius:8px;padding:8px 11px;background:#fff;box-shadow:var(--shadow);width:100%;position:relative}
+  .box .r{font-size:11.5px;font-weight:700;line-height:1.3}
+  .box .n{font-size:10px;opacity:.85;margin-top:2px;line-height:1.4}
+  .box .s{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.7;margin-top:2px}
+  .box.primary{background:var(--cito);border-color:var(--cito);color:#fff}
+  .box.primary .n,.box.primary .s{color:#dbe7f5;opacity:1}
+  .box.side{background:#f8fafc;border-color:#cbd5e1;color:#334155}
+  .box.domein{background:#fffbeb;border-color:#fcd34d;color:#78350f}
+  .box.open{border-style:dashed;background:#fff;color:var(--ink-2)}
+  .box.ws{background:#f8f5ff;border-color:#c4b5fd;color:#3b1d78}
+  .box.ws .n{color:#4c1d95;opacity:1}
+  .box.ws .s{color:#6d28d9;opacity:1}
+  .vline{width:2px;height:16px;background:rgba(0,51,102,.4)}
+  .group{width:100%;border:2px solid #cbd5e1;border-radius:9px;background:#f8fafc;padding:8px}
+  .group .gt{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:#475569;text-align:center;margin-bottom:7px}
+  .group .gt small{font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink-3)}
+  .group .stack{display:flex;flex-direction:column;gap:6px}
+  .group.wsg{border-color:#c4b5fd;background:#fbfaff}
+  .group.wsg .gt{color:#5b21b6}
+  .pm2{width:100%;border:2.5px solid var(--cito);border-radius:10px;background:#fff;padding:9px 10px}
+  .pm2 .gt{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--cito);text-align:center;margin-bottom:6px}
+  .pm2 .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .pm2 .ps{font-size:9.5px;color:var(--ink-2);text-align:center;margin-top:6px;line-height:1.4}
+  .ring2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .dom4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%}
+  .maxw{width:100%;max-width:330px}
+  .operatie{margin-top:8px;width:100%;text-align:center;font-size:10.5px;color:var(--ink-2);background:#f1f5f9;border:1px solid var(--line-2);border-radius:8px;padding:6px 10px}
+  .operatie b{color:var(--ink)}
+  .hier{margin-top:12px;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:11px;padding:9px 13px;font-size:11.5px;color:#0c5460;line-height:1.55}
+  .hier b{color:#083b44}
+  .ritme{font-size:10.5px;color:var(--ink-2);line-height:1.5}
+  .ritme b{color:var(--ink)}
+  .ritme div{padding:4px 0;border-bottom:1px solid var(--line)}
+  .ritme div:last-child{border-bottom:0}
+
+  /* ===== tabellen ===== */
+  table.t{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);font-size:10.5px}
+  table.t th{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:8px 9px;background:#f8fafc;border-bottom:1px solid var(--line);vertical-align:bottom}
+  table.t td{padding:7px 9px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top;line-height:1.45}
+  table.t tr:last-child td{border-bottom:0}
+  table.t td b{color:var(--ink)}
+  table.t td.k{font-weight:700;color:var(--ink);white-space:nowrap}
+  .ras{display:inline-block;min-width:18px;text-align:center;font-size:9.5px;font-weight:800;border-radius:4px;padding:1px 5px;border:1px solid;margin-right:2px}
+  .ras.R{background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+  .ras.A{background:#fef3c7;color:#78350f;border-color:#f59e0b;font-weight:900}
+  .ras.S{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .ras.C{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}
+  .ras.I{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
+  .ras.V{background:#ecfeff;color:#155e75;border-color:#a5f3fc}
+  .legend{font-size:10px;color:var(--ink-3);margin-top:6px;line-height:1.45}
+  .tweekol{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .kaart{background:#fff;border:1px solid var(--line);border-left:6px solid var(--cito);border-radius:14px;padding:12px 15px;box-shadow:var(--shadow)}
+  .kaart h3{font-size:12.5px;margin-bottom:6px}
+  .kaart ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+  .kaart li{font-size:11px;color:var(--ink-2);line-height:1.45;padding-left:14px;position:relative}
+  .kaart li::before{content:"·";position:absolute;left:3px;font-weight:800;color:var(--ink-3)}
+  .kaart li b{color:var(--ink)}
+  .kaart.advies{border-left-color:var(--vermogens)}
+  .kaart.open{border-left-color:var(--amber)}
+  .kaart.open li::before{content:"❓";font-size:9px;left:-1px;top:1px}
+  .foot{margin-top:20px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  @media(max-width:820px){.orggrid{grid-template-columns:1fr}.tweekol,.pm2 .duo,.ring2{grid-template-columns:1fr}.dom4{grid-template-columns:1fr 1fr}table.t{display:block;overflow-x:auto}table.t td,table.t th{min-width:120px}}
+</style>
+</head>
+<body>
+<style>
+  .ws4{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .wsk{background:#fff;border:1px solid var(--line);border-top:5px solid #c4b5fd;border-radius:14px;padding:12px 14px}
+  .wsk h3{font-size:13px;margin-bottom:6px}
+  .wsk dl{display:grid;grid-template-columns:120px 1fr;gap:4px 8px;font-size:10.5px}
+  .wsk dt{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);padding-top:2px}
+  .wsk dd{color:var(--ink-2);line-height:1.45}
+  .wsk dd b{color:var(--ink)}
+  @media(max-width:820px){.ws4{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+
+  <div class="topbar">
+    <span class="sketchlabel">Voorstel · vast te stellen door de programma-eigenaar</span>
+    <a class="knop" href="ORGANIGRAM-PROGRAMMALEIDING-SKETCH.html" target="_blank" rel="noopener">Uitgebreide versie ↗</a>
+  </div>
+  <header class="top">
+    <div class="eyebrow">Programma Klant in Zicht · programmaorganisatie</div>
+    <h1>Wie doet wat in Klant in Zicht — in het kort</h1>
+    <p>Eén organigram, vijf rollen, vier werkstromen, het overlegritme en de afspraken uit de stuurgroep- en programmateam-meeting. Wat ontbreekt of open is, staat met een vraagteken. In de app (stap 10) zijn namen en teksten per kop aanpasbaar.</p>
+  </header>
+
+  <div class="begrip">
+    <span class="bl">Begrippen</span>
+    <span class="eq"><b>Programmamanagement</b> = Sanne (regie) + Pim (inhoud, programma-architect), één blok</span>
+    <span class="eq"><b>Werkstroom</b> = een van de vier werkstromen van de analysefase; Cito bepaalt wat het resultaat moet zijn en accepteert het, 3sides levert daarop. Elke werkstroom heeft een Cito-lead en een 3sides-lead</span>
+    <span class="eq"><b>Cito-lead</b> = leidt de werkstroom namens Cito: bepaalt binnen de kaders van de programma-architect wat het resultaat moet zijn, toetst het plan van aanpak dat 3sides opstelt op het afgesproken resultaat en bewaakt kaders en resultaat (boekterm: inspanningsleider)</span>
+    <span class="eq"><b>3sides-lead</b> = brengt methode, expertise en handen en stelt het plan van aanpak op en voert het uit met het team</span>
+    <span class="eq"><b>Domein</b> = onderdeel van het vermogen waarin het resultaat landt; de <b>domeineigenaar</b> draagt het in de lijn</span>
+    <span class="eq"><b>Bateneigenaren</b> = de sectormanagers, in de stuurgroep</span>
+  </div>
+
+  <!-- ===== 1. ORGANIGRAM ===== -->
+  <div class="sec">
+    <div class="seckop">1 · Het organigram</div>
+    <div class="secsub">Eén lijn omhoog (programmamanagement → programma-eigenaar), één lijn naar 3sides, en per werkstroom een Cito-lead die de werkstroom namens Cito leidt naast een 3sides-lead die het plan van aanpak opstelt en uitvoert.</div>
+    <div class="orgwrap">
+      <div class="sponsor"><div class="gl">Sponsorgroep · MT <span style="color:var(--amber)">❓ te bevestigen</span></div><div class="gs">prioriteit, middelen, benoemt de programma-eigenaar</div></div>
+      <div class="col"><div class="vline"></div></div>
+      <div class="orggrid">
+
+        <!-- links: overlegritme -->
+        <div class="col">
+          <div class="group">
+            <div class="gt">Overlegritme <small>· uit de meeting</small></div>
+            <div class="ritme">
+              <div><b>Stuurgroep</b> — 1× per 6 weken</div>
+              <div><b>Programmateam</b> — opstart 1× per week, daarna 1× per 2 weken</div>
+              <div><b>Voortgangsoverleg per werkstroom</b> — 1× per 2 weken: Cito-lead + 3sides-lead + programmamanagement</div>
+              <div><b>Programma-eigenaar ↔ programmamanagement</b> — 1× per 2 weken</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- midden -->
+        <div class="col">
+          <div class="maxw">
+            <div class="grouplabel">Programma-eigenaar</div>
+            <div class="box primary"><div class="r">Meryl</div><div class="n">programma-eigenaar · voorzitter stuurgroep · opdrachtgever 3sides</div></div>
+          </div>
+          <div class="vline"></div>
+          <div class="pm2">
+            <div class="gt">Programmamanagement · één blok</div>
+            <div class="duo">
+              <div class="box primary"><div class="r">Sanne · regie</div><div class="n">programmamanager · leiding en sturing van het programma · opdrachtgever werkstromen · regie 3sides · Cito-lead adoptieframework</div></div>
+              <div class="box primary" style="background:#0e7490;border-color:#0e7490"><div class="r">Pim · inhoud</div><div class="n">programma-architect · inhoudelijke kaders en samenhang over alle vier de werkstromen · Cito-lead 0-meting</div></div>
+            </div>
+            <div class="ps">Sanne is het aanspreekpunt naar de programma-eigenaar en de stuurgroep; Pim is de inhoudelijke autoriteit. Samen bereiden zij het programmateam en de stuurgroep voor.</div>
+          </div>
+          <div class="vline"></div>
+
+          <div class="group wsg">
+            <div class="gt">Programmateam · de vier werkstromen <small>· Cito-lead + 3sides-lead + team uit de sectoren</small></div>
+            <div class="ring2">
+              <div class="box ws"><div class="r">Klantreizen</div><div class="n">Cito-lead: <b>Saila</b> (inhoudsdeskundige sales &amp; marketing funnel en klantreizen) · 3sides-lead: <b>Sasja</b> · domeineigenaar: Processen n.t.b. ❓</div><div class="s">landt in Processen · basis voor alle vier</div></div>
+              <div class="box ws"><div class="r">Centrale datavoorziening klantcontact</div><div class="n">Cito-lead: <b>Jama</b> (product owner bedrijfsapplicaties) · 3sides-lead: <b>Lammert</b> · domeineigenaar: Cornelis</div><div class="s">landt in Data &amp; Systemen · technologielandschap</div></div>
+              <div class="box ws"><div class="r">0-meting</div><div class="n">Cito-lead: <b>Pim</b> (analyse met advies als uitkomst) · 3sides-lead: <b>Sasja</b> · domeineigenaren: alle vier</div><div class="s">landt in alle vier · startwaarden baten-KPI's</div></div>
+              <div class="box ws"><div class="r">Adoptieframework</div><div class="n">Cito-lead: <b>Sanne</b> (leidt de werkstroom: toets plan van aanpak, pilot en uitrol) · 3sides-lead: <b>Sasja</b> · domeineigenaar: Yara (Mens), Cultuur n.t.b. ❓</div><div class="s">landt in Mens en Cultuur · paraplu over alle vier</div></div>
+            </div>
+          </div>
+          <div class="vline"></div>
+
+          <div style="width:100%">
+            <div class="grouplabel" style="color:#b45309">Domeineigenaren · dragen het resultaat in de lijn · in de stuurgroep op uitnodiging</div>
+            <div class="dom4">
+              <div class="box domein"><div class="r">Data &amp; Systemen</div><div class="n">Cornelis</div></div>
+              <div class="box domein"><div class="r">Mens</div><div class="n">Yara (HR)</div></div>
+              <div class="box domein open"><div class="r">Processen</div><div class="n">n.t.b. ❓</div></div>
+              <div class="box domein open"><div class="r">Cultuur</div><div class="n">n.t.b. ❓</div></div>
+            </div>
+          </div>
+          <div class="operatie"><b>Staande organisatie</b> — sectoren PO · VO · Zakelijk · klantcontact · marketing: daar landen de vermogens en worden de baten gerealiseerd</div>
+        </div>
+
+        <!-- rechts: stuurgroep -->
+        <div class="col">
+          <div class="group">
+            <div class="gt">Stuurgroep KIZ <small>· besluitvormend · 1× per 6 weken</small></div>
+            <div class="stack">
+              <div class="box side"><div class="r">Meryl</div><div class="s">programma-eigenaar · voorzitter</div></div>
+              <div class="box side"><div class="r">Sanne en Pim</div><div class="s">programmamanagement</div></div>
+              <div class="box side"><div class="r">Sectormanagers</div><div class="s">bateneigenaren PO · VO · Zakelijk</div></div>
+              <div class="box side"><div class="r">George</div><div class="s">financiële control · adviserend</div></div>
+              <div class="box open"><div class="n">Domeineigenaren op uitnodiging, bij besluiten over hun domein</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hier"><b>Hiërarchie in één zin:</b> Meryl geeft de opdracht en zit de stuurgroep voor · programmamanagement leidt het programma, met Sanne als aanspreekpunt en Pim als inhoudelijke autoriteit · per werkstroom leidt de Cito-lead de werkstroom namens Cito, binnen de kaders van de architect, en stelt de 3sides-lead het plan van aanpak op en voert het uit met het team · de domeineigenaren laten het werken in de lijn · de sectormanagers bewaken als bateneigenaren dat de baten komen.</div>
+    </div>
+  </div>
+
+  <!-- ===== 2. VIJF ROLLEN ===== -->
+  <div class="sec">
+    <div class="seckop">2 · Vijf rollen, vijf vragen</div>
+    <div class="secsub">Dezelfde inhoud gaat door vijf handen. Wie waarvan is, en waar niet van.</div>
+    <table class="t">
+      <thead><tr><th></th><th>Programmamanager (Sanne)</th><th>Architect (Pim)</th><th>Cito-lead (per werkstroom)</th><th>Domeineigenaar / bateneigenaar</th><th>3sides-lead</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Kernvraag</td><td>Gebeurt het, op tijd, haalbaar, met de juiste mensen?</td><td>Klopt het en hangt het samen over de vier werkstromen?</td><td>Halen we het afgesproken resultaat binnen de kaders?</td><td>Werkt het bij ons, landt het, en komt de baat?</td><td>Hoe doen we het, en wat werkt elders?</td></tr>
+        <tr><td class="k">Levert op</td><td>Cyclusplan, opdrachten aan de werkstromen, voortgang en rapportage, besluitklare stuurgroepstukken, werkafspraken met 3sides</td><td>De kaders en het ontwerp (DIN, vermogens, adoptie-framework-logica, blueprint-kaders); de inhoudelijke acceptatie</td><td>Toets van het plan van aanpak van 3sides, sturing op kaders en resultaat, signalen naar programmamanagement</td><td>Het werkende vermogen in de lijn; de baat per sector</td><td>Methode, expertise en handen: blueprint, technologielandschap, 0-meting, adoptieframework en teambegeleiding, volgens het plan van aanpak</td></tr>
+        <tr><td class="k">Beslist over</td><td>Tempo, capaciteit, geld en scope binnen het programmaplan; opdracht en plan van aanpak per werkstroom; het besluitproces; de knoop bij een patstelling</td><td>Wat een werkstroom moet opleveren en of het klopt in de keten</td><td>Wat binnen de kaders van de architect nodig is om het resultaat te halen; akkoord op het plan van aanpak van 3sides vóór vaststelling</td><td>Hoe het in het eigen domein wordt uitgewerkt en gebruikt; als bateneigenaar mee over richting en middelen</td><td>De eigen werkwijze en methode binnen de opdracht; hoe te meten en uit welke bron</td></tr>
+        <tr><td class="k">Beslist niet over</td><td>De inhoud binnen de kaders (architect); de uitwerking in het domein (domeineigenaar); wat buiten het programmaplan valt (stuurgroep)</td><td>Tempo, capaciteit, geld; de uitwerking in het domein</td><td>De kaders zelf (architect); planning en capaciteit (programmamanager); de landing in de lijn (domeineigenaar)</td><td>De samenhang tussen werkstromen; het tempo van het programma</td><td>Kaders en acceptatie (architect); planning, prioriteit en scope (programmamanager); de uitwerking in het domein (domeineigenaar)</td></tr>
+        <tr><td class="k">Verantwoording aan</td><td>Programma-eigenaar</td><td>Programmamanagement, met eigen mandaat op de inhoud</td><td>Programmamanagement (voortgang en kaders); architect (inhoud)</td><td>Stuurgroep en lijn</td><td>Programma-eigenaar als opdrachtgever; dagelijks aan programmamanagement</td></tr>
+        <tr><td class="k">Zit in</td><td>Stuurgroep; voorzitter programmateam; voortgangsoverleggen; afstemming met programma-eigenaar</td><td>Stuurgroep; programmateam; voortgangsoverleggen van alle vier de werkstromen</td><td>Programmateam; voortgangsoverleg van de eigen werkstroom</td><td>Lijn; stuurgroep (sectormanagers als lid, domeineigenaren op uitnodiging)</td><td>Programmateam; voortgangsoverleg van de eigen werkstroom; op dinsdag bij Cito</td></tr>
+        <tr><td class="k">Typische zin</td><td>“Met deze bezetting halen we de datum niet; ik leg twee opties voor aan de stuurgroep.”</td><td>“Dit past niet bij de baat; zo hoort het in de keten.”</td><td>“Dit is het resultaat dat we hebben afgesproken; zo halen we het binnen de kaders.”</td><td>“Zo gaan wij dat in ons domein niet gebruiken; dít wel.”</td><td>“Dit zien we bij andere organisaties werken; zullen we het zo proberen?”</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">Cito-lead is een rol naast de eigen functie; wie hem vervult, is geen domeineigenaar van hetzelfde domein: eigenaar (lijn, landing, baat) en leider van de uitvoering (kaders, resultaat) blijven twee mensen.</div>
+  </div>
+
+  <!-- ===== 3. WERKSTROMEN ===== -->
+  <div class="sec">
+    <div class="seckop">3 · De vier werkstromen</div>
+    <div class="secsub">Per werkstroom: wie leidt namens Cito, wie levert vanuit 3sides, welke domeineigenaar het draagt, waar het landt, en wat tot nu toe is besproken als resultaat en output-KPI. Het definitieve resultaat en de output-KPI komen uit het plan van aanpak per werkstroom.</div>
+    <div class="ws4">
+      <div class="wsk">
+        <h3>Klantreizen</h3>
+        <dl>
+          <dt>Cito-lead</dt><dd><b>Saila</b> — inhoudsdeskundige sales &amp; marketing funnel en klantreizen</dd>
+          <dt>3sides-lead</dt><dd><b>Sasja</b></dd>
+          <dt>Inhoudelijke kaders</dt><dd><b>Pim</b> — programma-architect: inhoudelijke kaders van de blueprint, toets en acceptatie</dd>
+          <dt>Domeineigenaar</dt><dd>Processen: n.t.b. ❓</dd>
+          <dt>Landt in</dt><dd>Processen · basis voor alle vier</dd>
+          <dt>Resultaat 2026 · tot nu toe besproken</dt><dd>Blueprint klantreis versie 1 met de sectoren; funnelprocessen met customer loops (Q3–Q4); eenduidig Customer Success-proces (Q4)</dd>
+          <dt>Output-KPI · voorlopig</dt><dd>Blueprint geaccepteerd · funnelprocessen vastgesteld · Customer Success-proces beschreven</dd>
+          <dt>Plan van aanpak</dt><dd>Ligt er (3sides, p. 10–11); aanvullen: output-KPI, capaciteit Cito en eigenaar. 3sides (Sasja) vult aan; Saila toetst op resultaat, Pim op de kaders; Sanne stelt vast</dd>
+        </dl>
+      </div>
+      <div class="wsk">
+        <h3>Centrale datavoorziening klantcontact</h3>
+        <dl>
+          <dt>Cito-lead</dt><dd><b>Jama</b> — product owner bedrijfsapplicaties</dd>
+          <dt>3sides-lead</dt><dd><b>Lammert</b></dd>
+          <dt>Inhoudelijke kaders</dt><dd><b>Pim</b> — programma-architect: inhoudelijke eisen vanuit klantreis en baten, toets en acceptatie</dd>
+          <dt>Domeineigenaar</dt><dd>Cornelis (Data &amp; Systemen)</dd>
+          <dt>Landt in</dt><dd>Data &amp; Systemen · technologielandschap</dd>
+          <dt>Resultaat 2026 · tot nu toe besproken</dt><dd>Klantinformatie-landschap en huidig CRM in kaart, acht bronnen (Q3); quick wins (doorlopend); klantreis → CRM-requirements (Q4); richting CRM (Q4, formele keuze rond april 2027)</dd>
+          <dt>Output-KPI · voorlopig</dt><dd>Inventarisatie af · advies behouden/vervangen/loslaten opgeleverd · richting CRM besluitklaar</dd>
+          <dt>Plan van aanpak</dt><dd>Ligt er (3sides, p. 6–7); aanvullen: output-KPI en capaciteit Cito. 3sides (Lammert) vult aan; Jama toetst op resultaat, Pim op de kaders; Sanne stelt vast</dd>
+        </dl>
+      </div>
+      <div class="wsk">
+        <h3>0-meting</h3>
+        <dl>
+          <dt>Cito-lead</dt><dd><b>Pim</b> — programma-architect; analyse met advies als uitkomst</dd>
+          <dt>3sides-lead</dt><dd><b>Sasja</b></dd>
+          <dt>Inhoudelijke kaders</dt><dd><b>Pim</b> — programma-architect, tevens Cito-lead: meetprotocol-inhoud, AS-IS-dimensies en duiding</dd>
+          <dt>Domeineigenaar</dt><dd>Alle vier: Cornelis, Yara, Processen n.t.b., Cultuur n.t.b.</dd>
+          <dt>Landt in</dt><dd>Alle vier · startwaarden baten-KPI's</dd>
+          <dt>Resultaat 2026 · tot nu toe besproken</dt><dd>Meetprotocol per baten-KPI geaccordeerd met de sectormanagers (Q3); startwaarde per KPI en stand per domein (Q3; tijdlijn 3sides 28-09: oplevering oktober); advies over de gap als basis voor de vervolgsessie en het pakket 2027</dd>
+          <dt>Output-KPI · voorlopig</dt><dd>Elke baten-KPI compleet (definitie, bron, startwaarde) · stand per domein opgeleverd · advies opgeleverd</dd>
+          <dt>Plan van aanpak</dt><dd>Ligt er (3sides, p. 8–9); aanvullen: meetprotocol per baten-KPI en eigenaar per datapunt. 3sides (Sasja) vult aan; Pim toetst op resultaat en kaders; Sanne stelt vast</dd>
+        </dl>
+      </div>
+      <div class="wsk">
+        <h3>Adoptieframework</h3>
+        <dl>
+          <dt>Cito-lead</dt><dd><b>Sanne</b> — programmamanager; leidt de werkstroom: toets plan van aanpak, pilot en uitrol</dd>
+          <dt>3sides-lead</dt><dd><b>Sasja</b></dd>
+          <dt>Inhoudelijke kaders</dt><dd><b>Pim</b> — programma-architect: vertaallogica, gedrag per rol, kandidaat-indicatoren; toets en acceptatie</dd>
+          <dt>Domeineigenaar</dt><dd>Yara (Mens) · Cultuur: n.t.b. ❓</dd>
+          <dt>Landt in</dt><dd>Mens en Cultuur · paraplu over alle vier</dd>
+          <dt>Resultaat 2026 · tot nu toe besproken</dt><dd>Framework gereed en gedragen door het programmateam (Q3; tijdlijn 3sides 28-09: oktober); pilot in één sector (Q3), tweede sector Q4, derde Q1 2027 (tijdlijn 3sides 28-09: 1e sector januari–februari 2027, 2e februari–maart, 3e april–mei); ambassadeurs per sector (Q4)</dd>
+          <dt>Output-KPI · voorlopig</dt><dd>Framework vastgesteld · pilot gestart · eerste gedragsdata · ambassadeurs aangehaakt</dd>
+          <dt>Plan van aanpak</dt><dd>Ligt er (3sides, p. 12–13); aanvullen: scope, eerste pilotsector, output-KPI en capaciteit Cito en HR. 3sides (Sasja) vult aan; Sanne toetst op resultaat, Pim op de kaders; Sanne stelt vast</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="legend">Over de vier heen: de blueprint bepaalt de datavraag (centrale datavoorziening) en het gedrag (adoptieframework); de 0-meting meet wat blueprint en framework definiëren. Daarom bewaakt de architect de samenhang over alle vier. Het plan van aanpak per werkstroom wordt opgesteld door 3sides (de 3sides-lead), getoetst door de Cito-lead op het resultaat en door de architect op de kaders, en vastgesteld door de programmamanager; het bevat resultaat, output-KPI, aanpak, planning, capaciteit en de betrokken domeineigenaar.</div>
+  </div>
+
+  <!-- ===== 4. KPI'S EN DOELEN PER LAAG ===== -->
+  <div class="sec">
+    <div class="seckop">4 · KPI's en doelen per laag</div>
+    <div class="secsub">Doelen staan alleen op programmaniveau. Daaronder werken we met KPI's, streefniveaus en resultaten; anders raakt de keten doel → baat → vermogen → inspanning vervuild. Op werkstroomniveau is het <b>plan van aanpak</b> de drager: daarin staan resultaat, output-KPI, aanpak, planning en capaciteit.</div>
+    <table class="t">
+      <thead><tr><th>Laag</th><th>Wat staat er</th><th>Waarop sturen we</th><th>Wie</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Doelen (programma)</td><td>De programmadoelen van Klant in Zicht</td><td>Impact op lange termijn; geen aparte doelen per domein of werkstroom</td><td>Programma-eigenaar, stuurgroep</td></tr>
+        <tr><td class="k">Baten (per sector)</td><td>Baten-KPI's, vastgesteld in de KPI-sessies</td><td>Outcome: startwaarde uit de 0-meting, doelwaarde met datum in de vervolgsessie</td><td>Bateneigenaren: sectormanagers · meetverantwoordelijke: Strategisch Marketeer</td></tr>
+        <tr><td class="k">Domein (vermogen)</td><td>Streefniveau: van AS-IS naar TO-BE</td><td>Vermogen-indicator, pas na de 0-meting in de vervolgsessie vast te stellen; niet in overdraagbare stukken</td><td>Domeineigenaar, afleiding door de architect</td></tr>
+        <tr><td class="k">Werkstroom (inspanning) — plan van aanpak</td><td><b>Plan van aanpak per werkstroom</b>: resultaat (wat is af, wanneer), output-KPI, aanpak, planning, capaciteit, betrokken domeineigenaar</td><td>Output-KPI uit het plan van aanpak: klaar ja/nee, mijlpaal gehaald</td><td>3sides stelt het plan van aanpak op · Cito-lead toetst op resultaat, architect op de kaders · programmamanager stelt vast en bewaakt</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 5. RASCI ===== -->
+  <div class="sec">
+    <div class="seckop">5 · Wie beslist wat — de gedeelde zone</div>
+    <div class="secsub">Eén A per regel; wie C heeft, is vooraf gehoord. Niets uit deze zone gaat naar de stuurgroep, 3sides of de organisatie zonder dat Sanne en Pim er beiden achter staan.</div>
+    <table class="t">
+      <thead><tr><th>Onderdeel</th><th>Sanne</th><th>Pim</th><th>Cito-leads</th><th>Domeineigenaren</th><th>3sides</th><th>Stuurgroep</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Cyclusplan / masterplan analysefase</td><td><span class="ras A">A</span><span class="ras R">R</span></td><td><span class="ras S">S</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras S">S</span></td><td>besluit</td></tr>
+        <tr><td class="k">Inhoudelijke kaders per werkstroom</td><td><span class="ras C">C</span></td><td><span class="ras A">A</span><span class="ras R">R</span></td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras S">S</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td class="k">Plan van aanpak per werkstroom</td><td><span class="ras A">A</span></td><td><span class="ras V">V</span> kaders</td><td><span class="ras V">V</span> resultaat</td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td class="k">Uitvoering van het plan van aanpak</td><td><span class="ras I">I</span></td><td><span class="ras C">C</span></td><td><span class="ras A">A</span></td><td><span class="ras C">C</span></td><td><span class="ras R">R</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td class="k">Inhoudelijke acceptatie van een resultaat</td><td><span class="ras I">I</span></td><td><span class="ras A">A</span></td><td><span class="ras R">R</span></td><td><span class="ras C">C</span></td><td><span class="ras S">S</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td class="k">Acceptatie voor gebruik in de lijn</td><td><span class="ras I">I</span></td><td><span class="ras V">V</span></td><td><span class="ras S">S</span></td><td><span class="ras A">A</span></td><td><span class="ras S">S</span></td><td><span class="ras I">I</span></td></tr>
+        <tr><td class="k">Stuurgroepstukken en besluitvragen</td><td><span class="ras A">A</span><span class="ras R">R</span> presenteert</td><td><span class="ras R">R</span> licht inhoud toe</td><td><span class="ras C">C</span></td><td><span class="ras C">C</span></td><td><span class="ras I">I</span></td><td>ontvangt</td></tr>
+        <tr><td class="k">Pakket vervolg-inspanningen 2027</td><td><span class="ras A">A</span></td><td><span class="ras V">V</span> waartoe-toets</td><td><span class="ras R">R</span></td><td><span class="ras R">R</span></td><td><span class="ras S">S</span></td><td>besluit</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">R voert uit · A eindverantwoordelijk (één per regel) · S ondersteunt · C vooraf geraadpleegd · I geïnformeerd · V verifieert. Letters zoals in stap 5 van de app.</div>
+  </div>
+
+  <!-- ===== 6. MEETING, ADVIES, OPEN ===== -->
+  <div class="sec">
+    <div class="seckop">6 · Uit de meeting, met advies en open punten</div>
+    <div class="tweekol">
+      <div class="kaart">
+        <h3>Samenvatting stuurgroep- en programmateam-meeting</h3>
+        <ul>
+          <li><b>Stuurgroep KIZ:</b> Meryl (programma-eigenaar, voorzitter) · Pim en Sanne (programmamanagement) · sectormanagers (bateneigenaren) · George (financiële control). Cornelis was genoemd als eigenaar Data &amp; Systemen; afgesproken na de meeting: domeineigenaren op uitnodiging. Frequentie 1× per 6 weken.</li>
+          <li><b>Programmateam:</b> Pim en Sanne (programmamanagement) · Saila (Cito-lead klantreizen) · Jama (product owner bedrijfsapplicaties, Cito-lead centrale datavoorziening) · Sasja (3sides-lead klantreizen, 0-meting, adoptieframework) · Lammert (3sides-lead centrale datavoorziening klantcontact). Opstart 1× per week, later 1× per 2 weken; daarnaast 1× per 2 weken voortgangsoverleg per werkstroom met programmamanagement.</li>
+          <li><b>Overig:</b> 1× per 2 weken afstemming programma-eigenaar met programmamanagement.</li>
+          <li><b>Cito-leads uit programmamanagement:</b> Pim voor de 0-meting (analyse met advies), Sanne voor het adoptieframework.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="kaart advies" style="margin-bottom:13px">
+          <h3>Advies</h3>
+          <ul>
+            <li><b>Pim staat als programma-architect op de inhoud over alle vier de werkstromen:</b> elke Cito-lead werkt binnen de kaders van de programma-architect, ook Sanne voor het adoptieframework en Pim zelf voor de 0-meting. De 0-meting is een analyse met een advies als uitkomst en past daarmee bij de architect; voor het adoptieframework leidt Sanne als Cito-lead de werkstroom: toets van het plan van aanpak, pilot en uitrol. De voortgang van deze twee werkstromen komt in de tweewekelijkse afstemming met Meryl.</li>
+            <li><b>Cito bepaalt, 3sides levert:</b> de Cito-lead leidt de werkstroom namens Cito en de 3sides-lead stelt het plan van aanpak op en voert het uit, Cito toetst en stelt vast; geen resultaat gaat naar de stuurgroep zonder inhoudelijke acceptatie door de architect.</li>
+            <li><b>Cito-leads zijn geen domeineigenaar van hetzelfde domein:</b> eigenaar (lijn) en leider van de uitvoering uit elkaar houden voorkomt twee petten.</li>
+            <li><b>Stuurgroep klein houden:</b> domeineigenaren op uitnodiging bij besluiten over hun domein.</li>
+            <li><b>Geen extra overleggen:</b> het voortgangsoverleg per werkstroom is ook de plek voor kaders en inhoud; de duo-afstemming Sanne–Pim is de voorbereiding van het programmateam.</li>
+          </ul>
+        </div>
+        <div class="kaart open">
+          <h3>Open punten</h3>
+          <ul>
+            <li>Plan van aanpak per werkstroom: ligt er van 3sides; aanvullen (3sides), toetsen (Cito-lead op resultaat, architect op kaders), vaststellen (programmamanager)</li>
+            <li>Domeineigenaar Processen en Cultuur benoemen</li>
+            <li>Sponsorgroep (MT?) bevestigen</li>
+            <li>Rollen, mandaten en Cito-leads vaststellen door de programma-eigenaar</li>
+            <li>Vermogen-indicatoren en doelwaarden: in de vervolgsessie na de 0-meting</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Korte versie · de uitgebreide versie bevat de onderbouwing uit Werken aan Programma's (Prevaas &amp; Van Loon), de verhouding programmamanager ↔ architect, de route van een resultaat en de werkstromen met praktijkvoorbeelden<br>Bronnen: stuurgroep- en programmateam-meeting Klant in Zicht · stappenplan analysefase 2026 · KPI-sessies · Opdracht Sanne · 3sides-presentatie</div>
+
+</div>
+</body>
+</html>

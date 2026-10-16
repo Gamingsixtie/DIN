@@ -40,7 +40,8 @@ export type ProgrammaboekUseCase =
   | "batenprofiel"
   | "cross-analyse"
   | "governance-organisatie"
-  | "governance-rasci";
+  | "governance-rasci"
+  | "bronnenanalyse";
 
 /**
  * Vaste mapping van AI use case naar programmaboek-secties (D-03).
@@ -77,6 +78,9 @@ const USE_CASE_CONTEXT_MAP: Record<ProgrammaboekUseCase, string> = {
   // Governance: Hfst 6 programmaorganisatie + RASCI
   "governance-organisatie": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
   "governance-rasci": PROGRAMMABOEK_PROGRAMMAORGANISATIE,
+
+  // Bronnenanalyse (stap 12): DIN-keten + vermogens — bijdragen toetsen op vermogensniveau
+  "bronnenanalyse": [PROGRAMMABOEK_DIN, PROGRAMMABOEK_VERMOGENS].join("\n\n"),
 };
 
 /**
@@ -409,7 +413,7 @@ ${CITO_STRATEGISCH_FUNDAMENT}
 
 EXTRA CONTROLE-CHECK: Toets elk voorstel tegen bovenstaand Cito-strategisch kader.
 - Past het binnen de kerndoelen 2026 (omzetgroei, winstgevendheid 10%, commerciële slagkracht, nieuwe producten in bestaande markten, medewerker-ontwikkeling)?
-- Respecteert het het formatie-kader (2027-2028 stabiel, geen groei)?
+- Past het binnen de huidige formatie zonder dat structurele uitbreiding van het personeelsbestand noodzakelijk is?
 - Past het bij de positionering (maatschappelijke onderneming, onafhankelijk, drie pijlers)?
 - Vult het een aandachtspunt in (portfolio-balans, microniveau, IT-afstand, innovatieruimte)?
 - Respecteert het kostenefficiëntie?

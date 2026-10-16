@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Van KPI's naar baten — zo maken we het concreet</title>
+<style>
+  :root{
+    --cito:#003366; --baten:#0066cc; --vermogens:#0891b2; --tracker:#6d28d9;
+    --mens:#2563eb; --proces:#059669; --data:#7c3aed; --cultuur:#d97706;
+    --ink:#111827; --ink-2:#5b6573; --ink-3:#9aa3b0;
+    --line:#e7ebf0; --line-2:#dde3ea; --canvas:#eef1f5;
+    --amber:#b45309; --groen:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:28px 26px 80px}
+
+  header.top{background:linear-gradient(135deg,#002a52,#004a88);color:#fff;border-radius:16px;padding:20px 26px;box-shadow:var(--shadow)}
+  header.top .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9db9d6;font-weight:700}
+  header.top h1{font-size:22px;letter-spacing:-.02em;margin-top:5px}
+  header.top p{color:#cdddf0;font-size:12.5px;margin-top:6px;font-style:italic}
+
+  .sec{margin-top:26px}
+  .seckop{font-size:16.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:3px}
+  .seckop .vs{font-size:11px;font-weight:600;color:var(--amber)}
+  .secsub{font-size:11.5px;color:var(--ink-3);margin-bottom:12px}
+
+  /* keten */
+  .keten{display:flex;gap:0;align-items:stretch;flex-wrap:wrap}
+  .knode{flex:1;min-width:170px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);position:relative}
+  .knode .status{position:absolute;top:-9px;right:12px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:2px 9px;border:1px solid}
+  .status.vast{background:#e7f6ef;color:#047857;border-color:#c7f0dd}
+  .status.bouw{background:#fffbeb;color:#b45309;border-color:#fde9c8}
+  .status.doet{background:#efe9fd;color:#6d28d9;border-color:#e0d3fb}
+  .knode .kl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+  .knode .kt{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.35}
+  .knode .ks{font-size:10.5px;color:var(--ink-2);margin-top:4px;line-height:1.45}
+  .knode .ks b{color:var(--ink)}
+  .karr{display:flex;align-items:center;padding:0 6px;color:#b6c0cc;font-size:16px;font-weight:800}
+  .knode.motor{border:2px solid var(--vermogens);background:#f4fbfd}
+  .ketenconclusie{margin-top:12px;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:11px;padding:10px 14px;font-size:12px;color:#0c5460;line-height:1.55}
+  .ketenconclusie b{color:#083b44}
+
+  /* prioriteit-banner */
+  .prioband{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 15px;box-shadow:var(--shadow);margin-bottom:13px;font-size:12px}
+  .prioband .pl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-right:2px}
+  .priochip{font-size:11px;font-weight:700;border-radius:8px;padding:4px 11px;border:1px solid}
+  .p-data{background:#f3ecfe;color:#6d28d9;border-color:#e4d8fb}
+  .p-proces{background:#e7f6ef;color:#047857;border-color:#c7f0dd}
+  .p-mc{background:#fdf1e3;color:#b45309;border-color:#f6ddb9}
+  .prioband .parr{color:#b6c0cc;font-weight:800}
+  .prioband .toel{flex-basis:100%;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+
+  /* domein-plannen */
+  .domplan{background:#fff;border:1px solid var(--line);border-left:6px solid var(--line-2);border-radius:14px;padding:14px 17px;box-shadow:var(--shadow);margin-bottom:11px}
+  .domplan.d0{border-left-color:var(--cito)}
+  .domplan.d1{border-left-color:var(--data)}
+  .domplan.d2{border-left-color:var(--proces)}
+  .domplan.d3{border-left-color:var(--cultuur)}
+  .domplan h3{font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .prionr{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:4px;padding:2px 7px;border:1px solid}
+  .domplan h3 .wie{margin-left:auto;font-size:10px;color:var(--ink-3);font-weight:500}
+  .domplan ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .domplan li{font-size:11.5px;color:var(--ink-2);line-height:1.5;display:flex;gap:8px}
+  .domplan li .n{flex:none;width:17px;height:17px;border-radius:50%;background:#f1f5f9;border:1px solid #dde3ea;color:#475569;display:grid;place-items:center;font-size:9.5px;font-weight:800;margin-top:2px}
+  .domplan li.klaar .n{background:#e7f6ef;border-color:#c7f0dd;color:#047857}
+  .domplan li b{color:var(--ink)}
+  .domplan li .w{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:#f1f5f9;color:#475569;border:1px solid #dde3ea;border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
+  .domplan .vm{margin-top:8px;font-size:10.5px;color:#92400e;background:#fffbeb;border:1px solid #fde9c8;border-radius:7px;padding:6px 9px;line-height:1.45}
+  .domplan .vm b{color:#78350f}
+
+  /* doelstellingen */
+  .doelgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .doelkaart{background:#fff;border:1px solid var(--line);border-top:4px solid var(--vermogens);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
+  .doelkaart h3{font-size:12.5px;margin-bottom:8px}
+  .doelkaart h3 span{color:var(--ink-3);font-weight:500;font-size:11px}
+  .doelkaart ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .doelkaart li{font-size:11.5px;color:var(--ink-2);line-height:1.45;padding-left:19px;position:relative}
+  .doelkaart li::before{content:"☐";position:absolute;left:0;top:0;color:var(--ink-3);font-size:12px}
+  .doelkaart li b{color:var(--ink)}
+  .doelkaart .mijl{margin-top:8px;font-size:10px;font-weight:600;color:#0c5460;background:#e6f6fa;border:1px solid #b7e3ec;border-radius:7px;padding:5px 9px}
+
+  /* vraag aan 3sides */
+  .vraag3s{background:#fff;border:1px solid var(--line);border-left:6px solid var(--tracker);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+  .vraag3s p.intro3{font-size:12px;color:var(--ink-2);line-height:1.55;margin-bottom:9px}
+  .vraag3s p.intro3 b{color:var(--ink)}
+  .vraag3s ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .vraag3s li{font-size:11.5px;color:var(--ink-2);line-height:1.5;padding-left:19px;position:relative}
+  .vraag3s li::before{content:"→";position:absolute;left:0;color:var(--tracker);font-weight:800}
+  .vraag3s li b{color:var(--ink)}
+
+  /* verandermanagement */
+  .verandergrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .vkaart{background:#fff;border:1px solid var(--line);border-left:5px solid var(--cultuur);border-radius:13px;padding:12px 15px;box-shadow:var(--shadow)}
+  .vkaart h3{font-size:12px;margin-bottom:5px;color:#92400e}
+  .vkaart p{font-size:11px;color:var(--ink-2);line-height:1.5}
+  .vkaart p b{color:var(--ink)}
+
+  .foot{margin-top:22px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  @media(max-width:820px){.keten{flex-direction:column}.karr{transform:rotate(90deg);padding:4px 0;justify-content:center}.doelgrid,.verandergrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Programma Klant in Zicht · toelichting voor programma-eigenaar &amp; 3sides</div>
+    <h1>Van vastgestelde KPI's naar gerealiseerde baten — zo maken we het concreet</h1>
+    <p>"De KPI's staan en het vermogen voelt als 2–3. Wat gaan we nu precies doen, in welke volgorde, wie doet wat — en hoe pakt 3sides de analysefase aan?"</p>
+  </header>
+
+  <!-- ===== 1. IN ÉÉN OOGOPSLAG ===== -->
+  <div class="sec">
+    <div class="seckop">1 · De samenhang in één oogopslag</div>
+    <div class="secsub">Inspanningen bouwen het vermogen, het vermogen levert de baten — en de analysefase is de schakel die het concreet maakt.</div>
+    <div class="keten">
+      <div class="knode"><span class="status vast">✓ KPI's vastgesteld</span><div class="kl" style="color:var(--baten)">Baten-KPI's</div><div class="kt">Waarop we sturen</div><div class="ks">De KPI's per sector zijn vastgesteld — maar <b style="color:var(--amber)">de start- en doelwaarden ontbreken nog</b>. Die volgen uit de analysefase (doel 1 hieronder).</div></div>
+      <div class="karr">←</div>
+      <div class="knode"><span class="status bouw">meting in opbouw</span><div class="kl" style="color:var(--vermogens)">Vermogen</div><div class="kt">Wat we moeten kunnen</div><div class="ks">In de sessie scoorde elke sector zichzélf op een schaal van 1–5: <b>Zakelijk 3 · PO 2 · VO 2</b>, met <b>5 als ambitie</b>. Dit is nog een gevoel, geen meting — <b style="color:var(--amber)">de echte stand per domein komt uit de analysefase</b>.</div></div>
+      <div class="karr">←</div>
+      <div class="knode motor"><span class="status bouw">Q3–Q4 · loopt</span><div class="kl" style="color:var(--vermogens)">Analysefase 2026</div><div class="kt">De motor</div><div class="ks">Maakt KPI's <b>meetbaar</b> en <b>gemeten</b>, en vertaalt de gap naar een <b>maatregelenpakket per domein</b>. Plan &amp; doelen: hieronder.</div></div>
+      <div class="karr">←</div>
+      <div class="knode"><span class="status doet">3sides voert uit</span><div class="kl" style="color:var(--tracker)">Inspanningen</div><div class="kt">Wat we doen</div><div class="ks">Per domein, klaar j/n — met <b>quick wins parallel</b> voor zichtbaar resultaat.</div></div>
+    </div>
+    <div class="ketenconclusie"><b>Dit moet er concreet gebeuren:</b> het analysefase-plan hieronder uitvoeren, mét de Q3/Q4-doelen — dan zijn startwaarden, doelwaarden, indicatoren en de vervolg-inspanningen geen aannames meer, maar besluiten.</div>
+    <div style="margin-top:12px;background:#fffbeb;border:1px solid #fde9c8;border-left:6px solid var(--amber);border-radius:12px;padding:12px 16px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#92400e;margin-bottom:5px">Status: eerste schets — eerst valideren met de juiste stakeholders</div>
+      <p style="font-size:11.5px;color:#7c4a06;line-height:1.55">Het plan, de doelen en de inspanningen hieronder zijn een <b style="color:#5a370a">eerste aanzet</b>. Vóór we uitvoeren, zitten we met de juiste mensen aan tafel met drie vragen: <b style="color:#5a370a">① Is dit wat we willen? ② Halen we hiermee álles uit de analysefase wat we eruit willen halen? ③ Is voor iedereen helder waaróm we deze analysefase doen en wat die moet opleveren?</b> Lopende initiatieven laten zien dat er altijd nieuwe vraagstukken bijkomen — dit overzicht beweegt mee.</p>
+    </div>
+  </div>
+
+  <!-- ===== 2. DOELSTELLINGEN ANALYSEFASE ===== -->
+  <div class="sec">
+    <div class="seckop">2 · De doelen van de analysefase <span class="vs">(vaststellen met de programma-eigenaar)</span></div>
+    <div class="secsub"><b style="color:var(--ink)">Dit is de kern van dit document — deze doelen zijn waar we naartoe werken.</b> Ze zijn een voorstel voor de analysefase: in de gesprekken die volgen — zoals we die eerder rond de KPI's voerden — kunnen ze nog concreter worden. Toetsbare einddoelen, klaar j/n — geen verzonnen getallen. De mijlpalen komen uit het goedgekeurde 3sides-voorstel.</div>
+    <div class="doelgrid">
+      <div class="doelkaart">
+        <h3>Eind Q3 2026 <span>· meetbaar, gemeten &amp; gericht</span></h3>
+        <ul>
+          <li>Élke baten-KPI is dan <b>compleet ingevuld</b> — concreet betekent dat per KPI vijf dingen op papier: <b>wat</b> meten we precies (definitie) · <b>waar</b> komt het getal vandaan (systeem/rapport) · <b>hoe vaak</b> meten we · <b>waar staan we nu</b> (startwaarde uit de nulmeting) · <b>waar willen we naartoe en wanneer</b> (doelwaarde mét datum). Doelwaarden en vermogen-indicatoren stellen we <b>in één vervolgsessie direct na de nulmeting</b> vast — er is geen reden te wachten: startwaarde en meetaanpak liggen er dan</li>
+          <li>Per domein zijn de <b>inspanningsleider en het inspanningsteam vastgesteld</b> — bepaald mét de domeineigenaren (fundament, stap 2): leider + teamleden uit de sectoren; het team voor de analysefase kan in samenstelling verschillen van het team dat daarna uitvoert</li>
+          <li>Per domein — data &amp; systemen · processen · mens · cultuur — ligt er een <b>feitelijk beeld van waar de organisatie nu staat</b>: wat er al is, wat werkt en wat ontbreekt, gemeten in de nulmeting (stap 5). Dat vervangt de gevoelsscore (3/2/2) en maakt per domein de <b>gap naar de ambitie</b> zichtbaar — de onderbouwing voor het pakket vervolg-inspanningen (Q4)</li>
+          <li><b>Pilotgroep gestart</b> in 1 sector</li>
+        </ul>
+        <div class="mijl">Mijlpaal 3sides: adoptie-framework gereed &amp; gedragen door het programmateam</div>
+      </div>
+      <div class="doelkaart">
+        <h3>Eind Q4 2026 <span>· concreet &amp; besluitklaar</span></h3>
+        <ul>
+          <li>Per onderdeel een <b>concreet pakket vervolg-inspanningen voor 2027</b> — wat er moet gebeuren om te groeien, elk onderbouwd met de vraag: <b>welke baat wordt hier beter van?</b></li>
+          <li><b>Richting CRM bepaald</b> (formele keuze ~april '27)</li>
+          <li>Eerste <b>quick win zichtbaar gerealiseerd</b></li>
+        </ul>
+        <div class="mijl">Mijlpaal 3sides: pilot draait, eerste gedragsdata beschikbaar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3. HET PLAN: ANALYSEFASE PER DOMEIN, OP PRIORITEIT ===== -->
+  <div class="sec">
+    <div class="seckop">3 · Het plan — de analysefase per domein, op prioriteit</div>
+    <div class="secsub"><b style="color:var(--ink)">Dit is de eerste aanzet — wat tot nu toe is bepaald en opgeschreven.</b> Elke activiteit dient de doelen uit deel 2. De verdere specificatie (wie · wat · per week) komt uit de analysefase zelf — dat is precies onderdeel van de vraag aan 3sides (deel 4). ✓ = al gedaan.</div>
+
+    <div class="prioband">
+      <span class="pl">Prioriteit</span>
+      <span class="priochip p-data">1 · Data &amp; Systemen</span>
+      <span class="parr">→</span>
+      <span class="priochip p-proces">2 · Processen</span>
+      <span class="parr">→</span>
+      <span class="priochip" style="background:#e0edff;color:#1d4ed8;border-color:#c3d9fc">3 · Mens</span>
+      <span class="parr">→</span>
+      <span class="priochip p-mc">4 · Cultuur</span>
+      <span class="toel"><b>Alle vier de domeinen lopen in 2026 tegelijk</b> — lagere prioriteit betekent níét "later" of "niet doen", maar bepaalt waar de meeste capaciteit en nadruk zit. Data &amp; Systemen en Processen <b>starten naast elkaar</b> (sessie: "niet los, de één eerder dan de ander") — het funnelontwerp bepaalt immers wélke data nodig is. Mens en Cultuur lopen mee en worden actief bewaakt.</span>
+    </div>
+
+    <div class="domplan d0">
+      <h3><span class="prionr" style="background:#eef4fb;color:#1d4ed8;border-color:#d5e4f5">Fundament</span> Programma-breed <span class="wie">3sides · programmamanagers</span></h3>
+      <ol>
+        <li><span class="n">1</span><span><b>Iedereen opnieuw meenemen</b> — het verhaal helder vertellen: wat gaan we precies doen, waarom, en wat merkt iedereen ervan; daarbij de <b>visie, missie &amp; brand values kort hervalideren</b> (onlangs vastgesteld — even herbevestigen). <i>Met wie:</i> 3sides, MT, sectormanagers en de betrokken teams<span class="w">Q3</span></span></li>
+        <li><span class="n">2</span><span><b>Inspanningsleiders &amp; teams bepalen</b> — de <b>domeineigenaren zijn al belegd</b> — die nemen we hierin mee. In deze stap bepalen we per domein de <b>inspanningsleider</b> (beoogd: Cultuur &amp; Mens — HR-manager · Data &amp; Systemen — Product Owner · Processen — nog te benoemen) en stellen we het <b>team daarvan</b> samen: teamleden uit de sectoren (marketeers, productmanagers — op te halen via de sectormanagers). Dit doen we <b>samen met 3sides</b> — zij weten wat de analysefase per domein aan mensen vraagt. <i>Met wie:</i> 3sides, de domeineigenaren en de sectormanagers<span class="w">Q3</span></span></li>
+        <li><span class="n">3</span><span><b>Meetprotocol per baten-KPI</b> — de KPI's zíjn al gedefinieerd: ze staan in het <a href="https://din-kappa.vercel.app/sessies/d8b97442-ce8f-4134-b2c7-67dc8e3a3f93" style="color:#0066cc;font-weight:600">KPI-model (stap 9 · KPI's &amp; Meetbaarheid)</a> en in hoofdstuk 3.1 van het programmaplan. Maar een KPI-naam alleen is nog niet meetbaar. <b>Wat we doen:</b> per baten-KPI vullen we sámen met de sectormanagers het meetprotocol in — vijf vragen per KPI: <b>wát</b> meten we precies (wat telt wel en niet mee) · <b>wáár</b> komt het getal vandaan (welk systeem of welke bron) · <b>in welke eenheid</b> (aantal, percentage, dagen) · <b>hoe vaak</b> meten we · <b>wie</b> levert het getal aan. In dezelfde ronde lopen we de <b>KPI's zélf nog één keer langs</b>, zodat iedereen er expliciet akkoord op geeft. <b>Resultaat:</b> een ingevuld en geaccordeerd meetprotocol per KPI — daarmee kan de nulmeting (stap 5) direct draaien. <b>Voorbeeld</b> — voor de KPI "churn / klantbehoud" spreken we af: wat telt precies als "verloren klant", uit welk systeem het aantal komt, dat we in aantallen per jaar meten en wie het cijfer aanlevert. Zonder die afspraken meet iedereen iets anders en zijn metingen niet vergelijkbaar. <i>Met wie:</i> 3sides bereidt voor en faciliteert; <i>in deze volgorde:</i> eerst de <b>sectormanagers</b> (zij hebben de baten mee gedefinieerd — akkoord ophalen), daarna de <b>strategisch marketeer</b> (meetverantwoordelijke) en de <b>commercieel manager</b> (eigenaar); bekrachtigen in het <b>MT</b><span class="w">Q3</span></span></li>
+        <li><span class="n">4</span><span><b>Adoptie-framework bouwen &amp; vaststellen</b> — het <b>centrale veranderkundige stuurinstrument</b> van het programma. <b>Wat we doen:</b> in werksessies vertalen we de klantreizen volgens de vaste logica <i>klantreis → klantbehoefte → kritisch contactmoment → gewenst medewerkergedrag → competenties → KPI's</i>: per rol leggen we vast welk gedrag we op de kritische contactmomenten willen zien en welke competenties daarvoor nodig zijn. De KPI's staan bewust achteraan: <b>pas als je weet welk gedrag je per rol wilt zien, weet je wat je moet meten</b> — die meetpunten worden de vermogen-indicatoren. Daarnaast richten we het <b>Adoptie Team met ambassadeurs per sector</b> in. Het framework leggen we vervolgens <b>voor aan de sectormanagers en HR</b> — zo creëren we draagvlak vóór we het vaststellen. <b>Resultaat:</b> een adoptie-framework dat <b>gereed &amp; gedragen</b> is door het programmateam (mijlpaal Q3) + de basis voor de vermogen-indicatoren (stap 6). <i>Met wie:</i> 3sides, de <b>sectormanagers</b>, <b>HR</b> + per rol betrokken teamleden (<b>marketeers, productmanagers</b> — op te halen via de sectormanagers)<span class="w">Q3</span></span></li>
+        <li><span class="n">5</span><span><b>Nulmeting uitvoeren</b> — <b>Wat we doen:</b> 3sides voert het meetprotocol (stap 3) voor het eerst uit: per KPI het huidige getal ophalen uit de afgesproken bron; de meetverantwoordelijken leveren de data. Daarnaast meten we de <b>echte stand per domein</b> — het gevoel 3/2/2 kan per domein lager liggen. <b>Resultaat:</b> de <b>startwaarde van elke KPI</b> + de stand per domein: de feitelijke basis voor de doelwaarden (stap 6) en het pakket vervolg-inspanningen. <i>Met wie:</i> <b>3sides voert uit</b>; de meetverantwoordelijken leveren de databronnen<span class="w">Q3</span></span></li>
+        <li><span class="n">6</span><span><b>Vervolgsessie — direct na de nulmeting</b> — <b>Wat we doen:</b> in één sessie leggen we per KPI de <b>doelwaarde</b> vast (haalbaar t.o.v. de startwaarde, mét datum) en kiezen we de <b>vermogen-indicatoren</b> uit het adoptie-framework (stap 4), mét een eigenaar per indicator. <b>Resultaat:</b> elke KPI compleet — definitie · startwaarde · doelwaarde mét datum · eigenaar — plus vastgestelde vermogen-indicatoren; daarmee is doel 1 van de analysefase (deel 2) gehaald. <i>Met wie:</i> 3sides bereidt voor en faciliteert; <i>in deze volgorde:</i> eerst de <b>sectormanagers</b> akkoord, daarna de <b>strategisch marketeer</b> en <b>commercieel manager</b> — dezelfde stakeholders als de KPI-sessie<span class="w">Q3/Q4</span></span></li>
+        <li><span class="n">7</span><span><b>Pilot starten in 1 sector</b> (keuze: nog te bepalen). <b>Wat we doen:</b> in de pilotsector brengen we de nieuwe werkwijze in de praktijk — funnelprocessen toepassen, klantcontact vastleggen, gedrag per rol oefenen zoals in het adoptie-framework beschreven. <i>Waarom één sector:</i> klein beginnen, bewijzen dat het werkt, dan uitrollen (2e sector in Q4, 3e in Q1 '27). <b>Resultaat:</b> de eerste échte gedragsdata + een bewezen aanpak voor de uitrol. <i>Met wie:</i> 3sides, de <b>sectormanager van de pilotsector</b> + het team<span class="w">Q3</span></span></li>
+      </ol>
+      <div class="vm" style="color:#0c5460;background:#e6f6fa;border-color:#b7e3ec"><b style="color:#083b44">Waarom deze volgorde:</b> eerst iedereen meenemen (zonder draagvlak wordt geen enkele meting gedragen) → dan het protocol (anders meet je appels met peren) → dan het framework (dan weet je wat gedrag per rol betekent) → dan de nulmeting (die meet beide) → direct daarna de vervolgsessie (dan zijn doelwaarden geen giswerk maar keuzes op basis van feiten) → en de pilot brengt het in de praktijk. <b style="color:#083b44">3sides assisteert bij élke stap</b> — voorbereiden, faciliteren en tempo houden.</div>
+      <div class="vm"><b>Het adoptie-framework is geen losstaand project — het ligt als paraplu óver alle vier de domeinen.</b> Ook de puur technische activiteiten (zoals het CRM bij Data &amp; Systemen) hebben een adoptiekant: een systeem werkt pas als mensen het gebruiken en goed vullen — <i>"welk systeem je ook neerzet: als je het gedrag niet oplost, is een volgend systeem net zo slecht"</i> (sessie). Zó gaat de verandering <b>leven in de organisatie</b>: het Adoptie Team en de ambassadeurs dragen het van binnenuit, en successen worden zichtbaar gemaakt en gedeeld.</div>
+    </div>
+
+    <div class="ketenconclusie" style="margin-bottom:11px"><b>Dit zijn de onderwerpen van de analysefase:</b> per domein staat hieronder uitgespecificeerd wat we precies in kaart brengen en oppakken — van het klantinformatie-landschap (prio 1, punt 1) tot de quick wins die parallel lopen. <b>Trekkers &amp; teams per domein:</b> 3sides levert voor de domeinen Data &amp; Systemen en Processen een <b>inhoudelijk trekker</b> — die stuurt de activiteiten van dat domein aan en bewaakt het tempo (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van deze activiteiten stellen we per domein ook de <b>inspanningsteams</b> samen (fundament, stap 2) — inclusief het team voor de analysefase. Die kunnen in samenstelling <b>verschillen</b>: de analyse vraagt deels andere mensen dan de uitvoering daarna.</div>
+    <div class="domplan d1">
+      <h3><span class="prionr" style="background:#f3ecfe;color:#6d28d9;border-color:#e4d8fb">Prio 1</span> Data &amp; Systemen <span class="wie">inhoudelijk trekker 3sides · inspanningsleider: Product Owner</span></h3>
+      <ol>
+        <li><span class="n">1</span><span><b>Klantinformatie-landschap + huidig CRM in kaart</b> — wat werkt · loopt vast · kosten &amp; kansen; álle systemen met klantdata (8 bronnen, o.a. Topdesk · CRM · Maileon)<span class="w">Q3</span></span></li>
+        <li><span class="n">2</span><span><b>Quick wins direct</b> — contactgegevens centraliseren + koppeling Maileon ↔ CRM ("klein beginnen"); daarna blijven signaleren → prioriteren → implementeren<span class="w">doorlopend</span></span></li>
+        <li><span class="n">3</span><span><b>De klantreis als vertrekpunt</b> — één eenduidige klantreis per sector: wat de klant doet en nodig heeft, bepaalt welke informatie wíj moeten vastleggen. De uitkomst van de klantreis is de directe input voor data &amp; systemen<span class="w">Q3–Q4</span></span></li>
+        <li><span class="n">4</span><span><b>Datakwaliteit-eisen</b> vastleggen vanuit het funnelontwerp (met Processen) — welke data, van welke kwaliteit<span class="w">Q3–Q4</span></span></li>
+        <li><span class="n">5</span><span><b>Klantreis → CRM-requirements</b> — input voor het CRM (huidig of nieuw) rond data en integratie<span class="w">Q4</span></span></li>
+        <li><span class="n">6</span><span><b>Platformopties → richting CRM bepaald</b> (formele keuze ~april '27); lopende initiatieven rond centrale klantdata haken hierop aan<span class="w">Q4</span></span></li>
+      </ol>
+    </div>
+
+    <div class="domplan d2">
+      <h3><span class="prionr" style="background:#e7f6ef;color:#047857;border-color:#c7f0dd">Prio 2</span> Processen <span class="wie">inhoudelijk trekker 3sides · inspanningsleider: nog te benoemen</span></h3>
+      <ol>
+        <li><span class="n">1</span><span><b>Klantreizen → funnelprocessen</b> — fases · triggers · acties, incl. customer loops (retentie · migratie · nieuw); start sámen met Data &amp; Systemen<span class="w">Q3–Q4</span></span></li>
+        <li><span class="n">2</span><span><b>Eenduidig Customer Success-proces</b> — proactieve contactmomenten per klantreis, eenduidig waar het kan, sectorspecifiek waar het moet<span class="w">Q4</span></span></li>
+      </ol>
+    </div>
+
+    <div class="domplan" style="border-left-color:var(--mens)">
+      <h3><span class="prionr" style="background:#e0edff;color:#1d4ed8;border-color:#c3d9fc">Prio 3</span> Mens <span class="wie">inspanningsleider: HR-manager</span></h3>
+      <ol>
+        <li><span class="n">1</span><span><b>Curriculumontwerp vaardigheidstraining</b> — samen met HR, gebaseerd op echte klantcases (de training zelf volgt in 2027)<span class="w">2026</span></span></li>
+        <li><span class="n">2</span><span><b>Eerste intervisiegroepen live</b> — coaching &amp; intervisie op de werkvloer<span class="w">Q4</span></span></li>
+      </ol>
+    </div>
+
+    <div class="domplan d3">
+      <h3><span class="prionr" style="background:#fdf1e3;color:#b45309;border-color:#f6ddb9">Prio 4</span> Cultuur <span class="wie">inspanningsleider: HR-manager · gedragen door het MT</span></h3>
+      <ol>
+        <li><span class="n">1</span><span><b>Aanpak leiderschapsontwikkeling ontwerpen → MT-besluit → eerste sessie gepland</b> — het MT besluit expliciet dat het zó gaat gebeuren<span class="w">2026</span></span></li>
+        <li><span class="n">2</span><span><b>Rituelen ontwerpen &amp; invoeren</b> — klantverhalen delen · reflectiesessies · klantbezoeken<span class="w">2026</span></span></li>
+        <li><span class="n">3</span><span><b>Ambassadeurs per sector</b> geïdentificeerd &amp; aangehaakt<span class="w">Q4</span></span></li>
+      </ol>
+      <div class="vm"><b>Bewaking:</b> de 3sides-prioriteit ligt bij Data &amp; Systemen en Processen — daarom houdt de programmamanager samen met 3sides de domeinen Mens en Cultuur actief in de gaten, zodat deze lijnen niet stilvallen.</div>
+    </div>
+  </div>
+
+  <!-- ===== 4. DE VRAAG AAN 3SIDES ===== -->
+  <div class="sec">
+    <div class="seckop">4 · Onze opdracht aan 3sides — wij voeren de regie</div>
+    <div class="secsub">Cito is opdrachtgever: wíj bepalen wat er nodig is, 3sides levert daarop — niet andersom.</div>
+    <div class="vraag3s">
+      <p class="intro3">3sides levert de inhoudelijk trekkers voor de domeinen <b>Data &amp; Systemen en Processen</b> (senior op richting, medior op uitvoering, specialisten op afroep). Op basis van dit plan verwachten wij van 3sides, <b>binnen de eerste weken</b>:</p>
+      <ol>
+        <li><b>Assistentie bij élke stap van het fundament</b> — óók bij "iedereen opnieuw meenemen": voorbereiden, faciliteren en tempo houden. Zo benutten we de samenwerking optimaal en zetten we elke stap <b>goed voorbereid en in het juiste tempo</b></li>
+        <li><b>Een plan van aanpak per domein volgens ónze prioritering</b> hierboven — wie, wat, wanneer, per week/maand in Q3–Q4</li>
+        <li><b>Het meetprotocol per baten-KPI</b> — zodat de nulmeting direct kan draaien</li>
+        <li><b>De nulmeting mét uitsplitsing per onderdeel</b> — niet alleen per sector, ook per domein</li>
+        <li><b>Eind Q4: het pakket vervolg-inspanningen voor 2027 + kandidaat-indicatoren per domein</b> — elk onderbouwd met de baat die het dient; wij toetsen elk voorstel en besluiten</li>
+        <li><b>Voortgang zichtbaar</b> — wekelijkse rapportage + kwartaalritme met de programmamanagers; bij stilstand escaleren wij via het afgesproken pad</li>
+        <li><b>Zichtbaar aanwezig bij Cito</b> — werk regelmatig op locatie, sluit aan bij overleggen en wees aanspreekbaar voor de teams; de zichtbaarheid van 3sides draagt bij aan het draagvlak voor de verandering</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ===== 5. VERANDERMANAGEMENT ===== -->
+  <div class="sec">
+    <div class="seckop">5 · Mensen meenemen — de verandermanagement-laag</div>
+    <div class="secsub">Meten alleen verandert niets. Deze vier lijnen lopen dwars door het plan heen — zo nemen we sectormanagers en stakeholders mee (bron: sessie + 3sides-voorstel).</div>
+    <div class="verandergrid">
+      <div class="vkaart"><h3>1 · Richting en commitment vanuit het MT</h3><p>Het MT geeft de richting: het bekrachtigt de <b>programmaprioriteit — 1 Data &amp; Systemen · 2 Processen · 3 Mens · 4 Cultuur</b> —, neemt het <b>"MT-besluit"</b> over de leiderschapsaanpak en geeft de teams helder <b>mandaat</b>. Zo ziet de hele organisatie dat dit programma er écht toe doet — en kunnen de teams met vertrouwen aan de slag.</p></div>
+      <div class="vkaart"><h3>2 · Beweging van binnenuit</h3><p>Een <b>Adoptie Team</b> met <b>ambassadeurs per sector</b> zorgt voor draagvlak en borging (adoptie-framework), aangevuld met <b>intervisiegroepen</b> (Q4) — "verandering beklijft als mensen het zelf dragen." Sector voor sector via de pilot: niet alleen koplopers, het hele team.</p></div>
+      <div class="vkaart"><h3>3 · Zichtbare successen</h3><p>De <b>quick wins</b> worden direct geïmplementeerd en successen worden <b>zichtbaar gemaakt en gedeeld</b> — dat houdt energie en commitment hoog terwijl de analyse loopt.</p></div>
+      <div class="vkaart"><h3>4 · Voorleven &amp; verankeren</h3><p>Leiderschap leeft voor (klantbezoeken · sensing · klantverhalen delen) en in 2027 wordt de adoptie <b>geborgd in de lijnorganisatie</b> — een blijvende werkwijze, geen project dat wegzakt.</p></div>
+    </div>
+  </div>
+
+  <div class="foot">Sketch — na akkoord: als Word-document deelbaar + een plek bij het KPI-model<br>Bronnen: stakeholdersessie · goedgekeurd 3sides-voorstel · Werken aan Programma's (H8 baten · H9 veranderstrategie)</div>
+
+</div>
+</body>
+</html>

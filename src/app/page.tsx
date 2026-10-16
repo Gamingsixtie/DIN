@@ -210,6 +210,46 @@ export default function Home() {
           </div>
         </a>
 
+        {/* Schetsen per domein */}
+        <a
+          href="/schetsen"
+          className="block bg-white rounded-xl border border-cito-border p-5 shadow-sm hover:border-cito-blue/40 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 group-hover:text-cito-blue transition-colors">
+                Schetsen per domein
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Sessie-visuals — nu Systeem &amp; Data (donderdag)
+              </p>
+            </div>
+            <span className="text-cito-accent group-hover:translate-x-1 transition-transform text-lg">
+              →
+            </span>
+          </div>
+        </a>
+
+        {/* Actielijst vakantie */}
+        <a
+          href="/actielijst"
+          className="block bg-white rounded-xl border border-cito-border p-5 shadow-sm hover:border-cito-blue/40 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 group-hover:text-cito-blue transition-colors">
+                Actielijst vakantie
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Te bespreken met Sanne — afvinken &amp; opmerkingen
+              </p>
+            </div>
+            <span className="text-cito-accent group-hover:translate-x-1 transition-transform text-lg">
+              →
+            </span>
+          </div>
+        </a>
+
         {/* Sessies */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">

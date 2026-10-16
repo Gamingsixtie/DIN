@@ -69,8 +69,8 @@ const programmaorganisatie = {
     r("Stuurgroep", "Cornelis", "Manager Data & Technologie", "Programmabreed", "Bewaakt data/IT-haalbaarheid; senior IT-stakeholder."),
     r("Stuurgroep", "Yara", "HR-manager", "Programmabreed", "Bewaakt mens/organisatie-aspecten. Tevens inspanningsleider Mens + Cultuur (kerngroep)."),
     r("Stuurgroep", "George", "Manager Finance", "Programmabreed", "Bewaakt financiële kaders en budget."),
-    r("Stuurgroep", "", "Directeur Cito", "Programmabreed", "Eindverantwoordelijk Cito-directie — bewaakt strategische lijn en organisatie-impact.", "Naam in te vullen."),
-    r("Stuurgroep", "", "Directeur IV/IT", "Programmabreed", "Bewaakt IV/IT-portfolio en architectuur op directieniveau; heeft formele invloed op IT-keuzes die het programma raken.", "Naam in te vullen."),
+    r("Stuurgroep", "Roel", "Directeur Cito", "Programmabreed", "Eindverantwoordelijk Cito-directie — bewaakt strategische lijn en organisatie-impact."),
+    r("Stuurgroep", "Pieta", "Directeur IV/IT", "Programmabreed", "Bewaakt IV/IT-portfolio en architectuur op directieniveau; heeft formele invloed op IT-keuzes die het programma raken."),
   ],
   domeineigenaren: [
     r(

@@ -141,6 +141,7 @@ export function deriveProgrammaorganisatie(
     ...(current.programmamanager ? [current.programmamanager] : []),
     ...(current.kerngroep ?? []),
     ...(current.stuurgroep ?? []),
+    ...(current.adviesgroep ?? []),
     ...(current.domeineigenaren ?? []),
     ...(current.klankbordgroep ?? []),
   ];
@@ -157,11 +158,25 @@ export function deriveProgrammaorganisatie(
   // Directeur Cito en Directeur IV/IT BLIJVEN als ze er staan — die horen erin.
   const pmNaamNorm = normName(current.programmamanager?.naam);
   const pmFirstName = firstNameKey(current.programmamanager?.naam);
+  // Inspanningsleiders (kerngroep) horen NIET in de stuurgroep: wie een bundel trekt,
+  // zit operationeel in de kerngroep, niet in het besturende gremium. Dit ruimt de
+  // oudere auto-fill op die collectief-eigenaren (incl. inspanningsleiders zoals een
+  // HR-manager die óók bundeltrekker is) in de stuurgroep zette.
+  const inspLeiderNamen = new Set<string>();
+  for (const r of current.kerngroep ?? []) {
+    if (normName(r.rol) !== normName(ROL_INSPANNINGSLEIDER)) continue;
+    const naam = normName(r.naam);
+    if (naam) inspLeiderNamen.add(naam);
+    const fn = firstNameKey(r.naam);
+    if (fn) inspLeiderNamen.add(`firstname:${fn}`);
+  }
   const stuurgroepGefilterd = (current.stuurgroep ?? []).filter((r) => {
     const naam = normName(r.naam);
     const fn = firstNameKey(r.naam);
     if (pmNaamNorm && naam === pmNaamNorm) return false;
     if (pmFirstName && fn && fn === pmFirstName) return false;
+    if (naam && inspLeiderNamen.has(naam)) return false;
+    if (fn && inspLeiderNamen.has(`firstname:${fn}`)) return false;
     return true;
   });
 
@@ -376,6 +391,7 @@ type RolLookup = {
   stuurgroepIds: string[];
   kerngroepIds: string[];
   klankbordgroepIds: string[];
+  adviesgroepIds: string[];
 };
 
 function buildRolLookup(po: Programmaorganisatie): RolLookup {
@@ -415,6 +431,7 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
   addRol(po.opdrachtgever);
   addRol(po.programmamanager);
   for (const r of po.stuurgroep ?? []) addRol(r);
+  for (const r of po.adviesgroep ?? []) addRol(r);
   for (const r of po.domeineigenaren ?? []) addRol(r);
   for (const r of po.klankbordgroep ?? []) addRol(r);
 
@@ -426,6 +443,7 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
     ...(po.programmamanager ? [po.programmamanager] : []),
     ...(po.kerngroep ?? []),
     ...(po.stuurgroep ?? []),
+    ...(po.adviesgroep ?? []),
     ...(po.domeineigenaren ?? []),
     ...(po.klankbordgroep ?? []),
   ];
@@ -451,6 +469,7 @@ function buildRolLookup(po: Programmaorganisatie): RolLookup {
     stuurgroepIds: (po.stuurgroep ?? []).map((r) => r.id),
     kerngroepIds: (po.kerngroep ?? []).map((r) => r.id),
     klankbordgroepIds: (po.klankbordgroep ?? []).map((r) => r.id),
+    adviesgroepIds: (po.adviesgroep ?? []).map((r) => r.id),
   };
 }
 
@@ -834,7 +853,7 @@ function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
       titel: "Besluitvorming go/no-go (scope, budget, mijlpalen)",
       aId: lookup.opdrachtgeverId,
       rIds: [lookup.programmamanagerId],
-      cIds: lookup.stuurgroepIds,
+      cIds: [...lookup.stuurgroepIds, ...lookup.adviesgroepIds],
       iIds: [...lookup.kerngroepIds, ...lookup.klankbordgroepIds],
     },
     {
@@ -843,7 +862,7 @@ function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
       aId: lookup.programmamanagerId,
       rIds: [...Array.from(lookup.domeineigenaarPerDomein.values()), ...lookup.inspanningsleiderIds],
       cIds: [lookup.opdrachtgeverId],
-      iIds: [...lookup.stuurgroepIds, ...lookup.klankbordgroepIds],
+      iIds: [...lookup.stuurgroepIds, ...lookup.adviesgroepIds, ...lookup.klankbordgroepIds],
     },
     {
       itemId: "gov:escalatie",
@@ -851,7 +870,7 @@ function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
       aId: lookup.programmamanagerId,
       rIds: Array.from(lookup.domeineigenaarPerDomein.values()),
       cIds: [lookup.opdrachtgeverId],
-      iIds: lookup.stuurgroepIds,
+      iIds: [...lookup.stuurgroepIds, ...lookup.adviesgroepIds],
     },
     {
       itemId: "gov:baten_review",
@@ -859,7 +878,7 @@ function deriveProgrammagovernance(lookup: RolLookup): GezamenlijkRasciItem[] {
       aId: lookup.opdrachtgeverId,
       rIds: [lookup.programmamanagerId],
       cIds: sectormanagerIds.length > 0 ? sectormanagerIds : Array.from(lookup.domeineigenaarPerDomein.values()),
-      iIds: [...lookup.stuurgroepIds, ...lookup.klankbordgroepIds],
+      iIds: [...lookup.stuurgroepIds, ...lookup.adviesgroepIds, ...lookup.klankbordgroepIds],
     },
   ];
 

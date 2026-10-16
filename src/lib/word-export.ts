@@ -16,6 +16,8 @@ import {
   NumberFormat,
   TabStopType,
   TabStopPosition,
+  TableOfContents,
+  StyleLevel,
 } from "docx";
 import type {
   DINSession,
@@ -31,323 +33,88 @@ import type {
 } from "./types";
 import { SECTORS, DOMAIN_LABELS, STATUS_LABELS } from "./types";
 import { findSharedCapabilities, getDomainBalance, findGaps, buildChainsForSector, analyzeHefbomen } from "./din-service";
+import {
+  getAantalForRol,
+  getFunctieInputForRol,
+  collectStakeholderRollen,
+  collectReviewRollen,
+  type Domein as Domein4,
+} from "./uren-aantal";
 
-// --- Cito outside-in domeinvolgorde (cultuur → mens → data/systemen → processen) ---
-// NIET de klassieke Prevaas-volgorde. Zie memory: "Cito-outside-in volgorde".
-const DOMEIN_OUTSIDE_IN_ORDER: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+// --- Gedeelde docx-bouwstenen ---
+// Kleuren, tekst-atoms, tabelcellen, header/footer, nummering en selectie-helpers
+// staan in word-export-shared.ts, zodat de beknopte export ze kan hergebruiken
+// zonder deze module (en haar 3800 regels secties) mee te trekken.
+import {
+  DOMEIN_OUTSIDE_IN_ORDER,
+  resolveItemLabels,
+  sortDomeinenOutsideIn,
+  formatEuro,
+  formatGetal,
+  sanitizeMeetjaarTekst,
+  SCENARIO_LABELS,
+  createNumberingState,
+  numberedHeading,
+  plainH1,
+  stepHeading,
+  getActiveCaps,
+  getActiveEfforts,
+  categorizeGaps,
+  CITO_BLUE,
+  CITO_BLUE_LIGHT,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  BORDER_COLOR,
+  PURPLE_PILL,
+  PURPLE_BG,
+  AMBER_PILL,
+  AMBER_BG,
+  DOMAIN_COLORS,
+  THIN_BORDER,
+  CELL_BORDERS,
+  heading,
+  subHeading,
+  bodyText,
+  bullet,
+  emptyLine,
+  methodiekIntro,
+  styledCell,
+  headerCell,
+  horizontalRule,
+  createHeader,
+  createFooter,
+} from "./word-export-shared";
+import type { NumberingState } from "./word-export-shared";
 
-function sortDomeinenOutsideIn<T extends { domein: EffortDomain }>(items: T[]): T[] {
-  return [...items].sort(
-    (a, b) => DOMEIN_OUTSIDE_IN_ORDER.indexOf(a.domein) - DOMEIN_OUTSIDE_IN_ORDER.indexOf(b.domein)
-  );
-}
+// Re-export voor bestaande consumenten (ExportStep.tsx en word-export.test.ts
+// importeren deze namen uit "@/lib/word-export"). Niet verwijderen.
+export {
+  createNumberingState,
+  numberedHeading,
+  plainH1,
+  stepHeading,
+  getActiveCaps,
+  getActiveEfforts,
+  categorizeGaps,
+};
+export type { NumberingState };
+
 
 function resolveBundelDependencies(bundelId: string, all: BundelPlanning[]): string {
   const bundel = all.find((b) => b.bundelId === bundelId);
   if (!bundel) return "\u2014";
   const deps = bundel.afhankelijkVan ?? [];
   if (deps.length === 0) return "\u2014";
-  return deps
+  const labels = deps
     .map((depId) => {
       const dep = all.find((b) => b.bundelId === depId);
-      return dep ? dep.titel : depId;
+      return dep ? dep.titel : "";
     })
-    .join("; ");
+    .filter((s) => s.length > 0);
+  return labels.length > 0 ? labels.join("; ") : "—";
 }
 
-function formatEuro(amount: number): string {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount);
-}
-
-function formatGetal(n: number): string {
-  return new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 }).format(n);
-}
-
-const SCENARIO_LABELS: Record<"optimaal" | "plus20" | "min20" | "advies", string> = {
-  optimaal: "Huidig budget",
-  plus20: "+20% scenario",
-  min20: "\u221220% scenario",
-  advies: "Optimaal (advies)",
-};
-
-// --- Numbering State ---
-
-export interface NumberingState {
-  h1Counter: number;
-  h2Counter: number;
-  tocEntries: { level: "h1" | "h2"; text: string }[];
-}
-
-export function createNumberingState(): NumberingState {
-  return { h1Counter: 0, h2Counter: 0, tocEntries: [] };
-}
-
-export function numberedHeading(
-  text: string,
-  level: "h1" | "h2",
-  state: NumberingState
-): Paragraph {
-  if (level === "h1") {
-    state.h1Counter++;
-    state.h2Counter = 0;
-    const prefix = `${state.h1Counter}. ${text}`;
-    state.tocEntries.push({ level: "h1", text: prefix });
-    return heading(prefix, HeadingLevel.HEADING_1);
-  } else {
-    state.h2Counter++;
-    const prefix = `${state.h1Counter}.${state.h2Counter} ${text}`;
-    state.tocEntries.push({ level: "h2", text: prefix });
-    return heading(prefix, HeadingLevel.HEADING_2);
-  }
-}
-
-// H1 zonder auto-nummer-prefix (voor managementsamenvatting, bijlagen).
-// Advanceert h1Counter zodat H2-nummering in subsecties correct blijft.
-export function plainH1(text: string, state: NumberingState): Paragraph {
-  state.h1Counter++;
-  state.h2Counter = 0;
-  state.tocEntries.push({ level: "h1", text });
-  return heading(text, HeadingLevel.HEADING_1);
-}
-
-// H1 voor methodiek-stappen: "Stap X — Titel".
-export function stepHeading(stepNum: number, title: string, state: NumberingState): Paragraph {
-  state.h1Counter++;
-  state.h2Counter = 0;
-  const prefix = `Stap ${stepNum} \u2014 ${title}`;
-  state.tocEntries.push({ level: "h1", text: prefix });
-  return heading(prefix, HeadingLevel.HEADING_1);
-}
-
-// --- Consolidation filtering ---
-
-export function getActiveCaps(session: DINSession): DINCapability[] {
-  return session.capabilities.filter((c) => !c.consolidated);
-}
-
-export function getActiveEfforts(session: DINSession): DINEffort[] {
-  return session.efforts.filter((e) => !e.consolidated);
-}
-
-// --- Smart gap categorization ---
-
-export function categorizeGaps(session: DINSession) {
-  const gaps = findGaps(
-    session.goals,
-    session.benefits,
-    session.capabilities,
-    session.efforts,
-    session.goalBenefitMaps,
-    session.benefitCapabilityMaps,
-    session.capabilityEffortMaps
-  );
-
-  const volgendeCyclus: typeof session.goals = [];
-  const echteGapsGoals: typeof session.goals = [];
-
-  // Determine goal status: a goal with no benefits anywhere is "niet-begonnen"
-  // A goal with some benefits (but in gaps) is "bezig"
-  gaps.goalsWithoutBenefits.forEach((id) => {
-    const goal = session.goals.find((g) => g.id === id);
-    if (!goal) return;
-
-    // Check if this goal has any activity (benefits, capabilities, efforts linked)
-    const hasBenefits = session.goalBenefitMaps.some((m) => m.goalId === id);
-    if (!hasBenefits) {
-      // No benefits at all = niet-begonnen
-      volgendeCyclus.push(goal);
-    } else {
-      // Has some benefits but still in gap = bezig but incomplete
-      echteGapsGoals.push(goal);
-    }
-  });
-
-  return {
-    volgendeCyclus,
-    echteGapsGoals,
-    benefitsWithoutCaps: gaps.benefitsWithoutCapabilities
-      .map((id) => session.benefits.find((b) => b.id === id))
-      .filter(Boolean),
-    capsWithoutEfforts: gaps.capabilitiesWithoutEfforts
-      .map((id) => session.capabilities.find((c) => c.id === id))
-      .filter(Boolean),
-  };
-}
-
-const CITO_BLUE = "003366";
-const CITO_BLUE_LIGHT = "E8EDF3";
-const TEXT_PRIMARY = "1a1a1a";
-const TEXT_SECONDARY = "4a4a4a";
-const TEXT_MUTED = "888888";
-const BORDER_COLOR = "D0D0D0";
-
-
-const DOMAIN_COLORS: Record<EffortDomain, string> = {
-  mens: "DBEAFE",       // blauw
-  processen: "D1FAE5",  // groen
-  data_systemen: "EDE9FE", // paars
-  cultuur: "FEF3C7",    // amber
-};
-
-const THIN_BORDER = { style: BorderStyle.SINGLE, size: 1, color: BORDER_COLOR };
-const CELL_BORDERS = {
-  top: THIN_BORDER,
-  bottom: THIN_BORDER,
-  left: THIN_BORDER,
-  right: THIN_BORDER,
-};
-
-// --- Basiselementen ---
-
-function heading(text: string, level: typeof HeadingLevel[keyof typeof HeadingLevel]) {
-  return new Paragraph({
-    heading: level,
-    spacing: { before: 360, after: 120 },
-    children: [new TextRun({ text, color: CITO_BLUE, bold: true })],
-  });
-}
-
-function subHeading(text: string) {
-  return new Paragraph({
-    spacing: { before: 240, after: 80 },
-    children: [
-      new TextRun({ text: text.toUpperCase(), bold: true, size: 18, color: TEXT_SECONDARY, font: "Calibri" }),
-    ],
-  });
-}
-
-function bodyText(content: string, opts?: { bold?: boolean; italic?: boolean; size?: number; color?: string }) {
-  return new Paragraph({
-    spacing: { after: 80, line: 300 },
-    children: [
-      new TextRun({
-        text: content,
-        bold: opts?.bold,
-        italics: opts?.italic,
-        size: opts?.size || 22,
-        color: opts?.color || TEXT_PRIMARY,
-        font: "Calibri",
-      }),
-    ],
-  });
-}
-
-function bullet(content: string, indent?: number) {
-  return new Paragraph({
-    spacing: { after: 50, line: 280 },
-    indent: { left: indent || 400 },
-    children: [
-      new TextRun({ text: "\u2022  ", color: CITO_BLUE, font: "Calibri" }),
-      new TextRun({ text: content, size: 22, font: "Calibri", color: TEXT_PRIMARY }),
-    ],
-  });
-}
-
-function emptyLine(space?: number) {
-  return new Paragraph({ spacing: { after: space || 120 }, children: [] });
-}
-
-// Methodiek-intro: gestileerde alinea direct onder een stap-H1, met lichte achtergrond.
-function methodiekIntro(text: string) {
-  return new Paragraph({
-    spacing: { before: 120, after: 200, line: 300 },
-    indent: { left: 200, right: 200 },
-    shading: { fill: CITO_BLUE_LIGHT },
-    border: {
-      left: { style: BorderStyle.SINGLE, size: 12, color: CITO_BLUE },
-    },
-    children: [
-      new TextRun({
-        text,
-        italics: true,
-        size: 22,
-        color: TEXT_SECONDARY,
-        font: "Calibri",
-      }),
-    ],
-  });
-}
-
-function styledCell(content: string, opts?: { bold?: boolean; shading?: string; width?: number; color?: string; size?: number }) {
-  return new TableCell({
-    width: opts?.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
-    shading: opts?.shading ? { fill: opts.shading } : undefined,
-    borders: CELL_BORDERS,
-    children: [
-      new Paragraph({
-        spacing: { before: 50, after: 50 },
-        children: [
-          new TextRun({
-            text: content,
-            bold: opts?.bold,
-            size: opts?.size || 20,
-            font: "Calibri",
-            color: opts?.color || TEXT_PRIMARY,
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-function headerCell(content: string, width?: number) {
-  return styledCell(content, {
-    bold: true,
-    shading: CITO_BLUE_LIGHT,
-    width,
-    color: CITO_BLUE,
-    size: 18,
-  });
-}
-
-function horizontalRule() {
-  return new Paragraph({
-    spacing: { before: 200, after: 200 },
-    border: {
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: BORDER_COLOR, space: 1 },
-    },
-    children: [],
-  });
-}
-
-// --- Header en Footer ---
-
-function createHeader(sessionName: string) {
-  return new Header({
-    children: [
-      new Paragraph({
-        spacing: { after: 0 },
-        children: [
-          new TextRun({
-            text: `Programmaplan \u2014 ${sessionName}`,
-            size: 16,
-            color: TEXT_MUTED,
-            font: "Calibri",
-            italics: true,
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-function createFooter() {
-  return new Footer({
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        children: [
-          new TextRun({
-            children: [PageNumber.CURRENT],
-            size: 16,
-            color: TEXT_MUTED,
-            font: "Calibri",
-          }),
-        ],
-      }),
-    ],
-  });
-}
 
 // --- Secties ---
 
@@ -448,37 +215,20 @@ function titlePageSection(session: DINSession) {
   };
 }
 
-function tableOfContentsSection(numState: NumberingState) {
-  const children: Paragraph[] = [];
+function tableOfContentsSection(_numState: NumberingState) {
+  // Auto-populated Word TOC field — Word vraagt bij openen "Update fields?" → Ja
+  // levert dan paginanummers per heading.
+  const children: (Paragraph | TableOfContents)[] = [];
 
   children.push(heading("Inhoudsopgave", HeadingLevel.HEADING_1));
   children.push(emptyLine(60));
 
-  // Build TOC from accumulated tocEntries
-  numState.tocEntries.forEach((entry) => {
-    const indent = entry.level === "h2" ? 400 : 0;
-    children.push(
-      new Paragraph({
-        spacing: { after: entry.level === "h1" ? 80 : 50 },
-        indent: indent ? { left: indent } : undefined,
-        tabStops: [
-          {
-            type: TabStopType.RIGHT,
-            position: TabStopPosition.MAX,
-          },
-        ],
-        children: [
-          new TextRun({
-            text: entry.text,
-            size: entry.level === "h1" ? 22 : 20,
-            color: entry.level === "h1" ? TEXT_PRIMARY : TEXT_SECONDARY,
-            font: "Calibri",
-            bold: entry.level === "h1",
-          }),
-        ],
-      })
-    );
-  });
+  children.push(
+    new TableOfContents("Programmaplan-inhoudsopgave", {
+      hyperlink: true,
+      headingStyleRange: "1-2",
+    })
+  );
 
   return { properties: {}, children };
 }
@@ -491,7 +241,7 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
     methodiekIntro(
       "Deze samenvatting bundelt de kern van het programma: de visie, de omvang van het DIN-netwerk, " +
       "en de drie cross-sectorale bevindingen die de richting bepalen. Gedetailleerde onderbouwing " +
-      "volgt in de Stap 1 t/m Stap 4 hoofdstukken."
+      "volgt in Hoofdstuk 1 t/m 5."
     )
   );
 
@@ -601,14 +351,15 @@ function executiveSummarySection(session: DINSession, numState: NumberingState, 
 export function overviewSection(session: DINSession, numState: NumberingState) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(1, "Programmakader", numState));
+  children.push(numberedHeading("Programmavisie en scope", "h1", numState));
   children.push(
     methodiekIntro(
-      "Visie, doelen en scope vormen het fundament van het programma. " +
-      "Conform \"Werken aan Programma's\" (Prevaas & Van Loon, Hfst 2) bepalen zij de richting " +
-      "waartoe alle baten, vermogens en inspanningen dienen te worden opgebouwd."
+      "Dit hoofdstuk legt vast waartoe het programma bestaat en wat er wel en niet binnen de cyclus valt. " +
+      "De visie geeft de richting; de scope grenst af welke onderwerpen nu worden opgepakt en welke later. " +
+      "Samen vormen ze het kader waaraan alle baten, vermogens en inspanningen later worden gerelateerd."
     )
   );
+  children.push(emptyLine());
 
   // Visie
   if (session.vision) {
@@ -623,47 +374,6 @@ export function overviewSection(session: DINSession, numState: NumberingState) {
     }
   }
 
-  // Kernonderwerpen — top-programmadoelen met span over sectoren
-  children.push(numberedHeading("Kernonderwerpen", "h2", numState));
-  children.push(bodyText(
-    "De belangrijkste onderwerpen van dit programma, afgeleid uit de programmadoelen en hun thematische spreiding over de sectoren.",
-    { color: TEXT_SECONDARY, size: 20 }
-  ));
-
-  const kernRows = [...session.goals]
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, 8)
-    .map((g) => {
-      const benefits = session.benefits.filter((b) => b.goalId === g.id);
-      const sectorsHit = new Set(benefits.map((b) => b.sectorId));
-      return new TableRow({
-        children: [
-          styledCell(`${g.rank}`, { bold: true, width: 6, shading: CITO_BLUE_LIGHT, color: CITO_BLUE }),
-          styledCell(g.name, { bold: true, width: 46 }),
-          styledCell(`${sectorsHit.size}`, { width: 14 }),
-          styledCell(`${benefits.length}`, { width: 14 }),
-          styledCell(Array.from(sectorsHit).join(", ") || "\u2014", { width: 20 }),
-        ],
-      });
-    });
-  children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            headerCell("#", 6),
-            headerCell("Onderwerp (programmadoel)", 46),
-            headerCell("Sectoren", 14),
-            headerCell("Baten", 14),
-            headerCell("Sector-spreiding", 20),
-          ],
-        }),
-        ...kernRows,
-      ],
-    })
-  );
-  children.push(emptyLine());
 
   // Scope: alleen binnen scope. Buiten scope wordt afgeleid uit Stap 4 (volgende-cyclus doelen).
   if (session.scope) {
@@ -683,54 +393,144 @@ export function overviewSection(session: DINSession, numState: NumberingState) {
     if (buitenItems.length > 0) {
       children.push(subHeading("Buiten deze cyclus"));
       children.push(bodyText(
-        "Onderstaande items vallen buiten de huidige programmacyclus \u2014 afgeleid uit de cross-sectorale uitkomst (Stap 2) en expliciete scope-uitsluitingen.",
+        "Onderstaande items vallen buiten de huidige programmacyclus \u2014 afgeleid uit de cross-sectorale uitkomst (Hoofdstuk 3) en expliciete scope-uitsluitingen.",
         { color: TEXT_SECONDARY, size: 20 }
       ));
       buitenItems.forEach((item) => children.push(bullet(item)));
     }
   }
 
-  // Doelen
-  children.push(numberedHeading("Programmadoelen", "h2", numState));
-
-  // Doelen met data
-  const goalIdsWithBenefits = new Set(session.goalBenefitMaps.map((m) => m.goalId));
-
-  session.goals
-    .sort((a, b) => a.rank - b.rank)
-    .forEach((g) => {
-      children.push(
-        new Paragraph({
-          spacing: { after: 40 },
-          children: [
-            new TextRun({ text: `${g.rank}. `, bold: true, color: CITO_BLUE, size: 24, font: "Calibri" }),
-            new TextRun({ text: g.name, bold: true, size: 24, color: TEXT_PRIMARY, font: "Calibri" }),
-          ],
-        })
-      );
-      if (g.description) {
-        children.push(bodyText(g.description, { italic: true, color: TEXT_SECONDARY, size: 20 }));
-      }
-      // Doelen zonder baten markeren als volgende cyclus
-      if (!goalIdsWithBenefits.has(g.id)) {
-        children.push(bodyText("Uitwerking volgt in volgende cyclus", { italic: true, color: TEXT_MUTED }));
-      }
-      children.push(emptyLine(40));
-    });
 
   return { properties: {}, children };
 }
 
-function goalDINSections(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
+// --- Hoofdstuk 2 — Programmadoelen (met werkvolgorde-toelichting) ---
+function programmaDoelenSection(session: DINSession, numState: NumberingState) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(3, "De DIN-keten: van doelen naar inspanningen", numState));
+  children.push(numberedHeading("Programmadoelen", "h1", numState));
   children.push(
     methodiekIntro(
-      "In de DIN-methodiek vertalen we elk programmadoel naar concrete baten (effecten in de buitenwereld), " +
-      "vermogens (wat we moeten kunnen) en inspanningen (wat we gaan doen). Deze keten maakt zichtbaar " +
-      "waartoe elke activiteit dient en hoe sectoren samen bijdragen aan hetzelfde doel. " +
-      "Gedeelde vermogens zijn expliciet gemarkeerd \u2014 daar zit de cross-sectorale hefboom."
+      "De programmadoelen zijn de kernonderwerpen die het programma realiseert. Ze worden volgordelijk " +
+      "opgepakt zodat de organisatie focus houdt en geleerde lessen meeneemt naar het volgende doel."
+    )
+  );
+  children.push(emptyLine());
+
+  const sortedGoals = [...session.goals].sort((a, b) => a.rank - b.rank);
+  type Stap5 = { focusDoelId?: string };
+  const focusDoelId = (session.crossAnalyseWizard?.stepResults?.stap5 as Stap5 | undefined)?.focusDoelId;
+  const focusDoel = focusDoelId ? sortedGoals.find((g) => g.id === focusDoelId) : sortedGoals[0];
+  const overigeDoelen = focusDoel ? sortedGoals.filter((g) => g.id !== focusDoel.id) : sortedGoals.slice(1);
+
+  if (sortedGoals.length > 0) {
+    children.push(subHeading("Werkvolgorde"));
+    const overigeNamen = overigeDoelen.map((g) => `doel ${g.rank}`).join(", ");
+    const focusText = focusDoel ? `doel ${focusDoel.rank} ("${focusDoel.name}")` : "doel 1";
+    children.push(bodyText(
+      `De programmadoelen worden volgordelijk opgepakt. We starten met ${focusText} en bouwen vanuit daar verder uit ` +
+      (overigeNamen ? `richting de overige doelen (${overigeNamen}). ` : `richting de overige doelen. `) +
+      "Dit borgt focus en haalbaarheid, en biedt ruimte om geleerde lessen mee te nemen naar de volgende cyclus.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(emptyLine());
+
+    // Cyclische evaluatie — voorkomt het misverstand dat doel 2/3 pas na meerdere
+    // jaren in beeld komen. Iteratief mindset: 6–9 maanden cycli, met geleidelijk
+    // verschuivend zwaartepunt naar volgende doelen zodra het focusdoel verankert.
+    children.push(subHeading("Cyclische evaluatie — elke 6 tot 9 maanden"));
+    children.push(bodyText(
+      "Hoewel de doelen volgordelijk worden opgepakt, werkt het programma in cycli van zes tot negen maanden. " +
+      "Aan het eind van elke cyclus evalueren we expliciet: liggen we nog op koers voor het focusdoel, " +
+      "of moeten we het gezamenlijke doelbeeld bijstellen? Deze iteratieve mindset voorkomt dat we star " +
+      "vasthouden aan een aanvankelijk pad terwijl de omgeving verandert.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      `Tegelijk geldt: ${focusText} is meerjarig, maar de overige doelen worden niet uit het oog verloren ` +
+      "tot het focusdoel volledig is afgerond. Zodra het focusdoel voldoende verankerd raakt — typisch " +
+      "na enkele cycli — verschuift het zwaartepunt geleidelijk naar de volgende doelen. Zo blijven alle " +
+      "programmadoelen in zicht en wordt voorkomen dat ze pas na vijf jaar in beeld komen.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(emptyLine());
+  }
+
+  // 2.1 Overzicht doelen met thematische spreiding
+  children.push(numberedHeading("Overzicht programmadoelen", "h2", numState));
+  children.push(bodyText(
+    "De programmadoelen met hun thematische spreiding over de sectoren. Het focusdoel is het doel waarop het programma op dit moment werkt.",
+    { color: TEXT_SECONDARY, size: 20 }
+  ));
+
+  const doelRows = sortedGoals.slice(0, 8).map((g) => {
+    const benefits = session.benefits.filter((b) => b.goalId === g.id);
+    const sectorsHit = new Set(benefits.map((b) => b.sectorId));
+    const isFocus = g.id === focusDoel?.id;
+    return new TableRow({
+      children: [
+        styledCell(`${g.rank}`, { bold: true, width: 6, shading: isFocus ? "FEF3C7" : CITO_BLUE_LIGHT, color: CITO_BLUE }),
+        styledCell(`${g.name}${isFocus ? "  (focus)" : ""}`, { bold: true, width: 46 }),
+        styledCell(`${sectorsHit.size}`, { width: 14 }),
+        styledCell(`${benefits.length}`, { width: 14 }),
+        styledCell(Array.from(sectorsHit).join(", ") || "—", { width: 20 }),
+      ],
+    });
+  });
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            headerCell("#", 6),
+            headerCell("Onderwerp (programmadoel)", 46),
+            headerCell("Sectoren", 14),
+            headerCell("Baten", 14),
+            headerCell("Sector-spreiding", 20),
+          ],
+        }),
+        ...doelRows,
+      ],
+    })
+  );
+  children.push(emptyLine());
+
+  // 2.2 Doelen met beschrijvingen
+  children.push(numberedHeading("Programmadoelen in detail", "h2", numState));
+  const goalIdsWithBenefits = new Set(session.goalBenefitMaps.map((m) => m.goalId));
+
+  sortedGoals.forEach((g) => {
+    const isFocus = g.id === focusDoel?.id;
+    const headerChildren = [
+      new TextRun({ text: `${g.rank}. `, bold: true, color: CITO_BLUE, size: 24, font: "Calibri" }),
+      new TextRun({ text: g.name, bold: true, size: 24, color: TEXT_PRIMARY, font: "Calibri" }),
+    ];
+    if (isFocus) {
+      headerChildren.push(new TextRun({ text: "  (focus)", italics: true, size: 20, color: "B45309", font: "Calibri" }));
+    }
+    children.push(new Paragraph({ spacing: { after: 40 }, children: headerChildren }));
+    if (g.description) {
+      children.push(bodyText(g.description, { italic: true, color: TEXT_SECONDARY, size: 20 }));
+    }
+    if (!goalIdsWithBenefits.has(g.id)) {
+      children.push(bodyText("Uitwerking volgt in volgende cyclus", { italic: true, color: TEXT_MUTED }));
+    }
+    children.push(emptyLine(40));
+  });
+
+  return { properties: {}, children };
+}
+
+function dinPerSectorSection(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(numberedHeading("DIN-mapping per sector", "h1", numState));
+  children.push(
+    methodiekIntro(
+      "De kern van het programma zit in de DIN-mapping. Per sector (PO, VO, Zakelijk) zijn de doelen vertaald " +
+      "naar baten (effecten in de buitenwereld), vermogens (wat de sector moet kunnen) en inspanningen " +
+      "(wat de sector gaat doen) vanuit de eigen context. De cross-sectorale samenhang volgt in Hoofdstuk 4."
     )
   );
   children.push(emptyLine());
@@ -746,30 +546,38 @@ function goalDINSections(session: DINSession, numState: NumberingState, activeCa
     (s) => session.benefits.some((b) => b.sectorId === s)
   );
 
-  session.goals
+  const sortedGoals = [...session.goals]
     .sort((a, b) => a.rank - b.rank)
-    .forEach((goal) => {
-      const goalHasData = session.benefits.some((b) => b.goalId === goal.id);
-      if (!goalHasData) return;
+    .filter((g) => session.benefits.some((b) => b.goalId === g.id));
 
-      children.push(numberedHeading(`Doel ${goal.rank}: ${goal.name}`, "h2", numState));
+  // Sector-first iteration: per sector toon je per programmadoel de keten
+  dinActiveSectors.forEach((sector) => {
+    const sectorBenefitsCount = session.benefits.filter((b) => b.sectorId === sector).length;
+    const sectorCapsCount = activeCaps.filter((c) => c.sectorId === sector).length;
+    const sectorEffortsCount = activeEfforts.filter((e) => e.sectorId === sector).length;
 
-      // Per sector: expliciete DIN-keten via buildChainsForSector
-      dinActiveSectors.forEach((sector) => {
-        const chainResult = buildChainsForSector(activeSession, goal.id, sector);
-        if (chainResult.chains.length === 0 && chainResult.unlinkedCaps.length === 0) return;
+    children.push(numberedHeading(`Sector ${sector}`, "h2", numState));
+    children.push(bodyText(
+      `${sectorBenefitsCount} baten, ${sectorCapsCount} vermogens en ${sectorEffortsCount} inspanningen verdeeld over de programmadoelen.`,
+      { italic: true, color: TEXT_SECONDARY, size: 20 }
+    ));
+    children.push(emptyLine(60));
 
-        children.push(
-          new Paragraph({
-            spacing: { before: 200, after: 80 },
-            children: [
-              new TextRun({ text: `Sector ${sector}`, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
-            ],
-          })
-        );
+    sortedGoals.forEach((goal) => {
+      const chainResult = buildChainsForSector(activeSession, goal.id, sector);
+      if (chainResult.chains.length === 0 && chainResult.unlinkedCaps.length === 0) return;
 
-        // Gekoppelde ketens: Baat → Vermogen(s) → Inspanning(en)
-        chainResult.chains.forEach((chain) => {
+      children.push(
+        new Paragraph({
+          spacing: { before: 200, after: 80 },
+          children: [
+            new TextRun({ text: `Doel ${goal.rank}: ${goal.name}`, bold: true, size: 22, color: CITO_BLUE, font: "Calibri" }),
+          ],
+        })
+      );
+
+      // Gekoppelde ketens: Baat → Vermogen(s) → Inspanning(en)
+      chainResult.chains.forEach((chain) => {
           // Baat
           const baatLabel = chain.benefit.title || chain.benefit.description || "\u2014";
           const indicator = chain.benefit.profiel.indicator
@@ -893,64 +701,36 @@ function goalDINSections(session: DINSession, numState: NumberingState, activeCa
 function crossAnalysisSection(session: DINSession, numState: NumberingState, activeCaps: DINCapability[], activeEfforts: DINEffort[]) {
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(2, "Cross-sectorale uitkomst — de kern", numState));
+  children.push(numberedHeading("Cross-sectorale uitkomst — de kern", "h1", numState));
   children.push(
     methodiekIntro(
-      "Het hart van het programma. Het oorspronkelijke DIN-netwerk is per sector opgesteld — onderstaand een kort " +
-      "overzicht. De werkelijke programmasturing volgt echter uit de cross-analyse: synergieën tussen sectoren, " +
-      "hefboomwerking, geconsolideerde inspanningen per domein en de uiteindelijke sector-vertaling."
+      "Per sector (PO, VO, Zakelijk) is een eigen DIN-keten opgesteld — een keten van doelen, baten, vermogens en " +
+      "inspanningen. Dit hoofdstuk laat zien hoe die afzonderlijke ketens zijn samengebracht tot één samenhangend " +
+      "cross-sectoraal beeld, en welke inspanningen daaruit gezamenlijk worden opgepakt."
     )
   );
   children.push(emptyLine());
 
-  // Kort DIN-overzicht: oorspronkelijke verdeling per sector (counts B / V / I)
-  const overviewSectors = SECTORS.filter(
-    (s) =>
-      session.benefits.some((b) => b.sectorId === s) ||
-      activeCaps.some((c) => c.sectorId === s) ||
-      activeEfforts.some((e) => e.sectorId === s)
-  );
-  if (overviewSectors.length > 0) {
-    children.push(numberedHeading("DIN-netwerk per sector — beknopt overzicht", "h2", numState));
-    children.push(bodyText(
-      "Per sector zijn de programmadoelen vertaald naar baten, vermogens en inspanningen. Deze tabel toont de " +
-      "oorspronkelijke verdeling — de cross-sectorale uitkomst hieronder is leidend.",
-      { color: TEXT_SECONDARY, size: 20 }
-    ));
-    const overviewRows = overviewSectors.map((sector) => {
-      const goalIds = new Set(session.benefits.filter((b) => b.sectorId === sector).map((b) => b.goalId));
-      const baten = session.benefits.filter((b) => b.sectorId === sector).length;
-      const vermogens = activeCaps.filter((c) => c.sectorId === sector).length;
-      const inspanningen = activeEfforts.filter((e) => e.sectorId === sector).length;
-      return new TableRow({
-        children: [
-          styledCell(sector, { bold: true, width: 25, color: CITO_BLUE }),
-          styledCell(`${goalIds.size}`, { width: 15 }),
-          styledCell(`${baten}`, { width: 20 }),
-          styledCell(`${vermogens}`, { width: 20 }),
-          styledCell(`${inspanningen}`, { width: 20 }),
-        ],
-      });
-    });
-    children.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              headerCell("Sector", 25),
-              headerCell("Doelen", 15),
-              headerCell("Baten", 20),
-              headerCell("Vermogens", 20),
-              headerCell("Inspanningen", 20),
-            ],
-          }),
-          ...overviewRows,
-        ],
-      })
-    );
-    children.push(emptyLine());
-  }
+  // Hoe is het DIN opgebouwd?
+  children.push(bodyText("Hoe is het DIN opgebouwd?", { bold: true, size: 22, color: CITO_BLUE }));
+  children.push(bodyText(
+    "Een DIN-keten — Doelen-Inspanningennetwerk — verbindt vier niveaus in een logische volgorde: doelen (waartoe), " +
+    "baten (welk effect we nastreven), vermogens (wat de organisatie moet kunnen) en inspanningen (wat we concreet " +
+    "doen). Per sector — PO, VO en Zakelijk — is zo'n keten apart opgesteld, vanuit het sectorperspectief.",
+    { size: 20, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "In de cross-analyse zijn de drie sector-ketens naast elkaar gelegd. Vermogens die per sector op hetzelfde " +
+    "neerkomen zijn samengebracht in vermogen-gelijkenisgroepen; sector-baten blijven daarbij apart staan, zodat " +
+    "iedere sector zijn eigen klant-erkenning behoudt.",
+    { size: 20, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "Wat dat oplevert is een hefboomlaag van cross-sectorale inspanningen, verdeeld over de vier domeinen cultuur, " +
+    "mens, data & systemen en processen — niet drie keer hetzelfde, maar één keer goed.",
+    { size: 20, color: TEXT_PRIMARY }
+  ));
+  children.push(emptyLine());
 
   // Synergieën — gedeelde vermogens (use active caps only)
   const shared = findSharedCapabilities(activeCaps);
@@ -1108,7 +888,8 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     ));
     const sorted = sortDomeinenOutsideIn(subEffortAdvies);
     sorted.forEach((se) => {
-      const titel = se.titel || se.voorgesteldeNaam || se.items.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
+      const itemLabels = resolveItemLabels(se.items, session);
+      const titel = se.titel || se.voorgesteldeNaam || itemLabels.join(" + ") || `${DOMAIN_LABELS[se.domein]} inspanning`;
       children.push(
         new Paragraph({
           spacing: { before: 160, after: 40 },
@@ -1125,8 +906,8 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
       if (se.beargumentatie) {
         children.push(bodyText(`Beargumentatie: ${se.beargumentatie}`, { italic: true, size: 20, color: TEXT_SECONDARY }));
       }
-      if (se.items.length > 0) {
-        children.push(bodyText(`Onderliggende sector-inspanningen: ${se.items.join("; ")}`, { size: 18, color: TEXT_MUTED }));
+      if (itemLabels.length > 0) {
+        children.push(bodyText(`Onderliggende sector-inspanningen: ${itemLabels.join("; ")}`, { size: 18, color: TEXT_MUTED }));
       }
       if (se.dossier) {
         const d = se.dossier;
@@ -1147,8 +928,6 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
-  // (Raming interne uren is opzettelijk niet in het programmaplan — wordt los vastgesteld
-  //  en in de begroting bijgehouden. Het scenario-totaal staat in de managementsamenvatting.)
 
   // Uiteindelijke DIN-netwerk — integratieadvies per sector (sector-vertaling uit wizard-stap 9)
   const integratieRecord2 = session.integratieAdvies as Record<string, IntegratieAdviesResult | undefined> | undefined;
@@ -1193,6 +972,265 @@ function crossAnalysisSection(session: DINSession, numState: NumberingState, act
     });
   }
 
+  // === 3.1 Batenprofielen ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Batenprofielen", "h2", numState));
+  children.push(bodyText(
+    "Per cross-sectorale baat leggen we hieronder vast wie er eindverantwoordelijk voor is, hoe we de " +
+    "realisatie meten (indicator) en op welk moment dat plaatsvindt. Zonder die drie elementen is een " +
+    "baat niet stuurbaar — er is dan niemand die wakker ligt van het resultaat, geen indicator om " +
+    "voortgang aan af te lezen, en geen moment waarop “klaar” is vastgesteld.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(bodyText(
+    "De onderstaande batenprofielen zijn een voorstel — definitieve indicatoren, waarden en meetmomenten " +
+    "moeten nog in de stuurgroep worden besproken. Dit is één mogelijke uitwerking om de discussie te voeden.",
+    { italic: true, color: TEXT_SECONDARY, size: 18 }
+  ));
+  children.push(emptyLine(60));
+  const sortedBaten = [...session.benefits].sort((a, b) => {
+    if (a.sectorId !== b.sectorId) return a.sectorId.localeCompare(b.sectorId);
+    return (a.title || a.description).localeCompare(b.title || b.description);
+  });
+  if (sortedBaten.length > 0) {
+    const baatRows = sortedBaten.map((b) => {
+      const eigenaar = b.profiel.bateneigenaar?.trim() || b.profiel.indicatorOwner?.trim() || "— nog te benoemen";
+      const indicator = b.profiel.indicator?.trim() || "— nog te bepalen";
+      const cur = sanitizeMeetjaarTekst(b.profiel.currentValue?.trim()) || "?";
+      const tgt = b.profiel.targetValue?.trim() || "?";
+      const meet = sanitizeMeetjaarTekst(b.profiel.measurementMoment?.trim() || b.profiel.meetmethode?.trim()) || "—";
+      return new TableRow({
+        children: [
+          styledCell(b.title || b.description, { bold: true, width: 28, size: 16 }),
+          styledCell(b.sectorId, { width: 10, size: 16 }),
+          styledCell(eigenaar, { width: 18, size: 16 }),
+          styledCell(indicator, { width: 22, size: 16 }),
+          styledCell(`${cur} → ${tgt}`, { width: 12, size: 16 }),
+          styledCell(meet, { width: 10, size: 16 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Baat", 28),
+              headerCell("Sector", 10),
+              headerCell("Eigenaar", 18),
+              headerCell("Indicator", 22),
+              headerCell("Huidig → Doel", 12),
+              headerCell("Meetmoment", 10),
+            ],
+          }),
+          ...baatRows,
+        ],
+      })
+    );
+  }
+
+  // === 3.2 Vermogensprofielen ===
+  // Verantwoordelijk = per sector "Sectormanager X + Commercieel manager X",
+  // deterministisch afgeleid uit relatedSectors (fallback sectorId).
+  children.push(emptyLine());
+  children.push(numberedHeading("Vermogensprofielen", "h2", numState));
+  children.push(bodyText(
+    "De vermogens zijn samengebracht in cross-sectorale clusters. Per sector waaraan een vermogen is " +
+    "gekoppeld, dragen de Sectormanager én de Commercieel manager van die sector samen de " +
+    "verantwoordelijkheid voor de opbouw — beide rollen, voor elke sector waar het vermogen aan raakt.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(emptyLine(60));
+  const sortedVerm = [...(session.capabilities ?? [])]
+    .filter((c) => !c.consolidated)
+    .sort((a, b) => (a.title || a.description).localeCompare(b.title || b.description));
+  if (sortedVerm.length > 0) {
+    const deriveVerantw = (c: { relatedSectors?: string[]; sectorId?: string }): string => {
+      const sectoren = (c.relatedSectors && c.relatedSectors.length > 0)
+        ? c.relatedSectors
+        : (c.sectorId ? [c.sectorId] : []);
+      const uniek = Array.from(new Set(sectoren.map((s) => s.trim()).filter(Boolean)));
+      if (uniek.length === 0) return "— nog te benoemen";
+      return uniek.map((s) => `Sectormanager ${s} + Commercieel manager ${s}`).join("\n");
+    };
+    const vermRows = sortedVerm.map((c) => {
+      const verantw = deriveVerantw(c);
+      const sectoren = c.relatedSectors?.length ? c.relatedSectors.join(", ") : c.sectorId;
+      return new TableRow({
+        children: [
+          styledCell(c.title || c.description, { bold: true, width: 45, size: 16 }),
+          styledCell(sectoren, { width: 18, size: 16 }),
+          styledCell(verantw, { width: 37, size: 16 }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              headerCell("Vermogen", 45),
+              headerCell("Sectoren", 18),
+              headerCell("Verantwoordelijk", 37),
+            ],
+          }),
+          ...vermRows,
+        ],
+      })
+    );
+  }
+
+  // === 3.3 Eigenaar en inspanningsleider per domein ===
+  // Eigenaar = Domeineigenaar uit programmaorganisatie (eindverantwoordelijk).
+  // Inspanningsleider = trekker uit dossier.inspanningsleider (dagelijkse uitvoering).
+  // Twee verschillende rollen → twee kolommen.
+  children.push(emptyLine());
+  children.push(numberedHeading("Eigenaar en inspanningsleider per domein", "h2", numState));
+  children.push(bodyText(
+    "De cross-sectorale inspanningen zijn verdeeld over de vier domeinen. Per domein zijn twee rollen " +
+    "gekoppeld: een eigenaar (de domeineigenaar uit de programma-organisatie — eindverantwoordelijk voor " +
+    "de samenhang binnen het domein) en een of meer inspanningsleiders (de trekkers die de dagelijkse " +
+    "uitvoering aansturen).",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+  children.push(emptyLine(60));
+  const poVoorH33 = session.programmaorganisatie;
+  // Tel CROSS-SECTORALE inspanningen — niet de raw sector-inspanningen.
+  type SubEffortItem33 = {
+    domein: EffortDomain;
+    actie: string;
+    dossier?: { eigenaar?: string; inspanningsleider?: string };
+  };
+  const stap4SE33 = (session.crossAnalyseWizard?.stepResults as { stap4?: { subEffortAnalysis?: SubEffortItem33[] } } | undefined)?.stap4;
+  const crossSectoraleH33 = stap4SE33?.subEffortAnalysis?.filter((s) => s.actie === "combineren") ?? [];
+  const domeinenOrder: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+  const needlesH33: Record<EffortDomain, string[]> = {
+    cultuur: ["cultuur"],
+    mens: ["mens", "people", "competentie", "opleiding", "training"],
+    data_systemen: ["data", "systeem", "systemen", "tech", "it"],
+    processen: ["proces", "processen", "werkwijze", "governance"],
+    overig: ["overig", "onvoorzien", "programma"],
+  };
+  const findEigenaar = (domein: EffortDomain): string => {
+    const all = poVoorH33
+      ? [
+          ...(poVoorH33.domeineigenaren ?? []),
+          ...(poVoorH33.kerngroep ?? []),
+          ...(poVoorH33.stuurgroep ?? []),
+        ]
+      : [];
+    const lookFor = needlesH33[domein];
+    const match = all.find((r) => {
+      const haystack = `${r.rol ?? ""} ${r.functie ?? ""}`.toLowerCase();
+      return lookFor.some((n) => haystack.includes(n));
+    });
+    if (!match) return "— nog te benoemen";
+    return match.naam?.trim()
+      ? `${match.naam}${match.functie ? ` (${match.functie})` : match.rol ? ` (${match.rol})` : ""}`
+      : match.rol || match.functie || "— nog te benoemen";
+  };
+  const findLeiders = (domein: EffortDomain): string => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const s of crossSectoraleH33) {
+      if (s.domein !== domein) continue;
+      const raw = (s.dossier?.inspanningsleider ?? "").trim();
+      if (!raw) continue;
+      if (seen.has(raw)) continue;
+      seen.add(raw);
+      out.push(raw);
+    }
+    if (out.length === 0) return "— nog te benoemen";
+    return out.join("\n");
+  };
+  const inspRows = domeinenOrder.map((d) => {
+    const aantal = crossSectoraleH33.filter((s) => s.domein === d).length;
+    return new TableRow({
+      children: [
+        styledCell(DOMAIN_LABELS[d], { bold: true, width: 22, shading: DOMAIN_COLORS[d], size: 16 }),
+        styledCell(findEigenaar(d), { width: 30, size: 16 }),
+        styledCell(findLeiders(d), { width: 33, size: 16 }),
+        styledCell(`${aantal}`, { width: 15, size: 16 }),
+      ],
+    });
+  });
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            headerCell("Domein", 22),
+            headerCell("Eigenaar", 30),
+            headerCell("Inspanningsleider", 33),
+            headerCell("Aantal inspanningen", 15),
+          ],
+        }),
+        ...inspRows,
+      ],
+    })
+  );
+  children.push(bodyText(
+    "Een “— nog te benoemen” bij eigenaar betekent dat geen rol in de programma-organisatie op dit domein " +
+    "matcht; bij inspanningsleider dat in het inspanningendossier nog geen trekker is ingevuld. Beide zijn " +
+    "actiepunten voor de stuurgroep.",
+    { italic: true, size: 18, color: TEXT_MUTED }
+  ));
+
+  // === 3.4 Veranderstrategie ===
+  children.push(emptyLine());
+  children.push(numberedHeading("Veranderstrategie", "h2", numState));
+  children.push(bodyText(
+    "De inspanningen zijn niet willekeurig over de vier domeinen verdeeld. Het programma kiest bewust " +
+    "voor een dubbele aanpak: parallel werken aan de zachte kant — cultuur (waarden, gedrag, leiderschap) " +
+    "en mens (competenties, vakmanschap, opleiding) — én aan de harde kant — data & systemen " +
+    "(CRM, registratie, infrastructuur) en processen (werkwijzen, governance, samenwerking).",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "Die scheiding is geen kwestie van smaak. Wie alleen aan cultuur en gedrag werkt, ontwikkelt een " +
+    "klantgerichte mindset zonder de instrumenten om die mindset waar te maken — een doodlopende straat. " +
+    "Wie alleen aan systemen en processen sleutelt, krijgt een stelsel dat technisch klopt maar door " +
+    "medewerkers niet wordt gedragen — en zonder dragen geen blijvend resultaat. Pas wanneer beide kanten " +
+    "gelijktijdig opschuiven, ontstaat verandering die beklijft.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De roadmap in Hoofdstuk 6 plant deze zachte en harde inspanningen daarom expliciet parallel, niet " +
+    "sequentieel.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+
+  // Conclusie — gezamenlijk DIN-netwerk
+  type Stap4Conc = { subEffortAnalysis?: Array<{ actie: string }> };
+  const stap4Conc = (session.crossAnalyseWizard?.stepResults as { stap4?: Stap4Conc } | undefined)?.stap4;
+  const aantalGezamenlijke = stap4Conc?.subEffortAnalysis?.filter((s) => s.actie === "combineren").length ?? 0;
+
+  children.push(emptyLine());
+  children.push(bodyText("Conclusie — gezamenlijk DIN-netwerk", { bold: true, size: 24, color: CITO_BLUE }));
+  children.push(bodyText(
+    "De baten zijn bewust per sector onafhankelijk gehouden, zodat iedere sector zijn eigen baat herkent en " +
+    "vasthoudt aan zijn eigen klant-erkenning. Tegelijk dragen die sector-baten gezamenlijk bij aan dezelfde " +
+    "overkoepelende programmadoelstelling.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De vermogens zijn samengevoegd in cross-sectorale clusters, maar binnen het schema blijft per sector " +
+    "zichtbaar welk vermogen waar vandaan komt. Daardoor wordt zowel bij baten als bij vermogens duidelijk " +
+    "waar de overlap tussen sectoren zit — en daar konden de inspanningen cross-sectoraal worden opgepakt.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    `De uitkomst is ${aantalGezamenlijke > 0 ? `${aantalGezamenlijke} cross-sectorale inspanning${aantalGezamenlijke === 1 ? "" : "en"}` : "een set cross-sectorale inspanningen"}, ` +
+    "parallel uit te voeren over de vier domeinen cultuur, mens, data & systemen en processen. Deze vier " +
+    "domeinen zijn essentieel om de vermogens daadwerkelijk te verbeteren; pas wanneer de vermogens groeien, " +
+    "worden de baten gerealiseerd, en pas wanneer de baten landen, wordt de gezamenlijke programmadoelstelling " +
+    "waargemaakt. De financiële vertaling van deze uitkomst volgt in Hoofdstuk 4.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+
   return { properties: {}, children };
 }
 
@@ -1205,14 +1243,31 @@ function governanceSection(session: DINSession, numState: NumberingState, active
 
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(3, "Programma-organisatie en RASCI", numState));
-  children.push(
-    methodiekIntro(
-      "De programma-organisatie bepaalt de veranderkracht: wie beslist, wie draagt bij, wie wordt " +
-      "ge\u00efnformeerd. De RASCI-matrix legt per hoofdthema (vermogen- en inspanningsclusters) " +
-      "de verantwoordelijkheidsverdeling vast. Conform \"Werken aan Programma's\", Hoofdstuk 6."
-    )
-  );
+  children.push(numberedHeading("Programma-organisatie en RASCI", "h1", numState));
+  children.push(bodyText("Governance & Monitoring", { bold: true, size: 22, color: CITO_BLUE }));
+  children.push(bodyText(
+    "De besturing en monitoring van het programma zijn geregeld in drie samenhangende blokken die hieronder volgen.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De programma-organisatie opent met het organigram en de tabel van gremia (opdrachtgever, programmamanager, " +
+    "kerngroep, stuurgroep, adviesgroep, domeineigenaren en klankbordgroep) \u2014 per rol met sector en mandaat. Daarbij " +
+    "horen het besluitvormings- en escalatieritme: met welke frequentie wordt besloten en langs welke weg " +
+    "loopt opschaling als een knelpunt niet op uitvoeringsniveau wordt opgelost.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "De RASCI-matrix per hoofdthema legt vervolgens per cross-sectoraal cluster vast wie er responsible, " +
+    "accountable, supportive, consulted en informed is \u2014 geldig voor alle onderliggende baten, vermogens en " +
+    "inspanningen binnen dat cluster.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(bodyText(
+    "Het bateneigenaarschap sluit af: per baat is \u00e9\u00e9n functionaris eindverantwoordelijk voor zowel de " +
+    "realisatie als de monitoring van de bijbehorende indicator-waarden. Dat verbindt de governance terug aan " +
+    "de baten in Hoofdstuk 3 \u2014 waar geen eigenaar is, kan geen baat worden gemonitord.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
   children.push(emptyLine());
 
   // Programmaorganisatie
@@ -1223,6 +1278,7 @@ function governanceSection(session: DINSession, numState: NumberingState, active
     if (po.programmamanager) allRollen.push({ ...po.programmamanager, groep: "Programmamanager" });
     for (const r of po.kerngroep ?? []) allRollen.push({ ...r, groep: "Kerngroep" });
     for (const r of po.stuurgroep ?? []) allRollen.push({ ...r, groep: "Stuurgroep" });
+    for (const r of po.adviesgroep ?? []) allRollen.push({ ...r, groep: "Adviesgroep" });
     for (const r of po.domeineigenaren ?? []) allRollen.push({ ...r, groep: "Domeineigenaar" });
     for (const r of po.klankbordgroep ?? []) allRollen.push({ ...r, groep: "Klankbordgroep" });
   }
@@ -1475,6 +1531,12 @@ function governanceSection(session: DINSession, numState: NumberingState, active
   );
   children.push(emptyLine());
 
+  // Afsluitende regel: organigram-akkoord — vervangt vroegere Conclusie
+  children.push(bodyText(
+    "Verdere uitwerking van besluitvorming en escalatiepad — inclusief een schematische weergave van de " +
+    "programma-organisatie — wordt toegevoegd zodra de stuurgroep akkoord heeft gegeven op het organigram.",
+    { italic: true, color: TEXT_SECONDARY, size: 20 }
+  ));
 
   return { properties: {}, children };
 }
@@ -1970,11 +2032,869 @@ function sectorSection(session: DINSession, sector: SectorName, numState: Number
   return { properties: {}, children };
 }
 
+
+// --- Hoofdstuk 4 — Begroting en raming (3 subparagrafen) ---
+function begrotingEnRamingSection(session: DINSession, numState: NumberingState) {
+  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
+  type InspBegr = {
+    inspanningTitel: string;
+    domein: EffortDomain;
+    totaalEuro: number;
+    percentageTotaal: number;
+    motivatie: string;
+    verdelingPerJaar: Array<{ jaar: number; percentage: number; euro: number; fase: string; activiteit?: string }>;
+    volgorde: { rank: number; reden: string };
+  };
+  type BegrScenario = {
+    jaarlijksBudgetEuro?: number;
+    aantalJaren?: number;
+    totaalGeraamdEuro?: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    inspanningen?: InspBegr[];
+    totalenPerJaar?: Array<{ jaar: number; euro: number; percentage: number }>;
+  };
+  type BegrAdv = { startJaar?: number; scenarios?: Partial<Record<ScenarioK, BegrScenario | null>>; vergelijking?: string };
+
+  type Rol = { functieId: string; functieNaam: string; afdeling?: string; uren: number; uurtarief: number; kosten: number };
+  type JaarBlok = { jaar: number; activiteit: string; rollen: Rol[]; totaalUren?: number; totaalKosten?: number };
+  type DomeinBlok = { domein: EffortDomain; motivatie?: string; jaren: JaarBlok[]; totaalUren?: number; totaalKosten?: number };
+  type UrenScenario = {
+    aantalJaren?: number;
+    startJaar?: number;
+    uurtariefGebruikt?: number;
+    domeinen: DomeinBlok[];
+    totalenPerJaar?: Array<{ jaar: number; uren: number; kosten: number }>;
+    totaalUren?: number;
+    totaalKosten?: number;
+    samenvatting?: string;
+  };
+  type UrenAdv = { uurtariefSettings?: { basisTarief: number; referentiejaar: number; indexatiePercentage: number }; scenarios?: Partial<Record<ScenarioK, UrenScenario | null>> };
+
+  const stap4 = (session.crossAnalyseWizard?.stepResults as { stap4?: { begrotingAdvies?: BegrAdv; stap7InterneUren?: UrenAdv } } | undefined)?.stap4;
+  const begroting = stap4?.begrotingAdvies;
+  const interneUren = stap4?.stap7InterneUren;
+  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
+
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(numberedHeading("Raming", "h1", numState));
+  children.push(
+    methodiekIntro(
+      "Dit is een raming, geen vastgestelde begroting. Het betreft een eerste aanzet en een onderbouwde " +
+      "verwachting van de programmakosten — uitgesplitst in out-of-pocket-uitgaven (externe kosten zoals " +
+      "licenties, inkoop en externe inhuur) en interne uren (inzet van Cito-medewerkers, in uren én euro's). " +
+      "Beide componenten zijn doorgerekend over vier scenario's, zodat de stuurgroep de programmakosten kan " +
+      "afzetten tegen verschillende keuzes voor tempo en ambitieniveau."
+    )
+  );
+  children.push(bodyText(
+    "De opbouw van dit hoofdstuk volgt die logica: 4.1 toont de out-of-pocket-uitgaven met een conclusie en " +
+    "advies voor dit onderdeel; 4.2 doet hetzelfde voor de interne uren; 4.3 telt beide op tot het integrale " +
+    "totaal en sluit af met de aanbeveling aan de stuurgroep. De aanbeveling staat bewust aan het eind: de " +
+    "stuurgroep ziet eerst de onderbouwing per onderdeel en pas daarna welk scenario op basis van die " +
+    "onderbouwing wordt aangeraden.",
+    { size: 22, color: TEXT_PRIMARY }
+  ));
+  children.push(emptyLine());
+
+  // Bewaar aanbevolen scenario-keuze voor 4.3 (aanbeveling onderaan).
+  // 4.3 staat bewust hard op plus20 (5j) — gezonde uitloop voor Cito.
+  // Valt terug op de keuze uit stap 8, of "optimaal", als plus20 ontbreekt.
+  type Stap8K = { actiefScenario?: ScenarioK };
+  const stap8 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8K } | undefined)?.stap8;
+  const aanbev: ScenarioK = begroting?.scenarios?.plus20
+    ? "plus20"
+    : (stap8?.actiefScenario && begroting?.scenarios?.[stap8.actiefScenario]
+      ? stap8.actiefScenario
+      : "optimaal");
+  const aanbevScen = begroting?.scenarios?.[aanbev];
+  const aanbevInt = interneUren?.scenarios?.[aanbev];
+
+  // === 4.1 Raming out-of-pocket kosten ===
+  children.push(numberedHeading("Raming out-of-pocket kosten", "h2", numState));
+  if (!begroting?.scenarios || scenarioOrder.every((k) => !begroting.scenarios?.[k])) {
+    children.push(bodyText("Het begrotingsadvies (out-of-pocket) is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "Voor elk van de cross-sectorale inspanningen is een out-of-pocket-bedrag bepaald — de externe kosten " +
+      "(licenties, inkoop, externe inhuur) — en uitgesmeerd over de programmaperiode met per jaar een fase " +
+      "(opzet, opbouw, verankeren) en een activiteit. Hieronder staan vier scenario's naast elkaar; in elk " +
+      "scenario verschillen het tempo, de spreiding en de mate van parallelle uitvoering.",
+      { color: TEXT_PRIMARY, size: 20 }
+    ));
+    children.push(bodyText(
+      "Waarom vier scenario's? De stuurgroep krijgt zo één doorgerekend basisbeeld plus drie expliciete " +
+      "varianten daarop. Het verschil tussen de scenario's draait om tempo en ambitieniveau; de inhoud van " +
+      "de inspanningen blijft overal gelijk.",
+      { color: TEXT_PRIMARY, size: 20 }
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.optimaal} — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.plus20} — sneller (+20%): meer parallelle uitvoering, hogere jaarlast aan out-of-pocket; baten worden eerder gerealiseerd.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.min20} — langzamer (−20%): uitgaven uitgesmeerd, lagere jaarlast, maar langere periode zonder volledige baten.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.advies} — gewogen advies: combineren waar inhoudelijk verantwoord, faseren waar de organisatie het anders niet kan dragen.`
+    ));
+    children.push(emptyLine(40));
+
+    // KiB-aanloop in jaar 1 — subtiele voetnoot, geen aparte begrotingspost.
+    // KiB is methodisch de voorloper van DIN; doorloop in 2026 valt inhoudelijk
+    // samen met de programmastart en wordt daarom niet apart begroot.
+    children.push(bodyText(
+      "Voetnoot bij jaar 1: in de jaar-1 raming is de doorloop van het Klantenbeeld-project (KiB) " +
+      "verdisconteerd. Omdat KiB methodisch de aanloop vormt naar dit programma, dat eind juni van " +
+      "start gaat, is dit niet als aparte begrotingspost opgenomen.",
+      { size: 18, color: TEXT_MUTED, italic: true }
+    ));
+    children.push(emptyLine(60));
+
+    const startJaar = begroting.startJaar ?? new Date().getFullYear();
+    scenarioOrder.forEach((key) => {
+      const s = begroting.scenarios?.[key];
+      if (!s) return;
+      const aantalJaren = s.aantalJaren ?? 1;
+      const eindJaar = startJaar + aantalJaren - 1;
+      const inspanningen = [...(s.inspanningen ?? [])].sort((a, b) => a.volgorde.rank - b.volgorde.rank);
+
+      // Scenario banner
+      children.push(bodyText(
+        `Scenario — ${SCENARIO_LABELS[key]}`,
+        { bold: true, size: 22, color: CITO_BLUE }
+      ));
+      if (s.samenvatting) {
+        children.push(bodyText(s.samenvatting, { size: 20, color: TEXT_PRIMARY }));
+      }
+      if (s.totaalGeraamdEuro !== undefined) {
+        children.push(bodyText(
+          `${formatEuro(s.jaarlijksBudgetEuro ?? 0)} / jaar (richtbudget) — over ${aantalJaren} jaar (${startJaar}–${eindJaar}) — totaal ${formatEuro(s.totaalGeraamdEuro)}`,
+          { size: 18, color: TEXT_MUTED, italic: true }
+        ));
+      }
+      children.push(emptyLine(40));
+
+      // Inspanningen-tabel
+      if (inspanningen.length > 0) {
+        const headerCells = [
+          headerCell("#", 5),
+          headerCell("Inspanning (domein)", 35),
+        ];
+        for (let y = 0; y < aantalJaren; y++) {
+          headerCells.push(headerCell(`${startJaar + y}`, Math.floor(50 / aantalJaren)));
+        }
+        headerCells.push(headerCell("Totaal", 10));
+
+        const dataRows = inspanningen.map((insp) => {
+          const cells = [
+            styledCell(`${insp.volgorde.rank}`, { bold: true, width: 5, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 16 }),
+            styledCell(
+              `[${DOMAIN_LABELS[insp.domein]}] ${insp.inspanningTitel}`,
+              { width: 35, size: 16 }
+            ),
+          ];
+          for (let y = 0; y < aantalJaren; y++) {
+            const jr = startJaar + y;
+            const cell = insp.verdelingPerJaar.find((x) => x.jaar === jr);
+            const txt = cell && cell.euro > 0
+              ? `${formatEuro(cell.euro)} (${cell.percentage}%)${cell.fase ? ` — ${cell.fase}` : ""}${cell.activiteit ? `\n${cell.activiteit}` : ""}`
+              : "—";
+            cells.push(styledCell(txt, { width: Math.floor(50 / aantalJaren), size: 14 }));
+          }
+          cells.push(styledCell(`${formatEuro(insp.totaalEuro)}\n${insp.percentageTotaal}%`, { width: 10, bold: true, size: 16, color: CITO_BLUE }));
+          return new TableRow({ children: cells });
+        });
+
+        // Totaal-rij
+        const totalCells = [
+          styledCell("", { width: 5, shading: "F3F4F6" }),
+          styledCell("Totaal per jaar", { width: 35, bold: true, shading: "F3F4F6", size: 16 }),
+        ];
+        for (let y = 0; y < aantalJaren; y++) {
+          const jr = startJaar + y;
+          const t = s.totalenPerJaar?.find((x) => x.jaar === jr);
+          totalCells.push(styledCell(
+            t ? `${formatEuro(t.euro)} (${t.percentage}%)` : "—",
+            { width: Math.floor(50 / aantalJaren), bold: true, shading: "F3F4F6", size: 16, color: CITO_BLUE }
+          ));
+        }
+        totalCells.push(styledCell(formatEuro(s.totaalGeraamdEuro ?? 0), { width: 10, bold: true, shading: "F3F4F6", size: 16, color: CITO_BLUE }));
+
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [new TableRow({ children: headerCells }), ...dataRows, new TableRow({ children: totalCells })],
+          })
+        );
+        children.push(emptyLine());
+      }
+
+      if (s.prioriteitAdvies) {
+        children.push(bodyText("Prioriteitadvies (outside-in volgorde):", { bold: true, size: 20, color: CITO_BLUE }));
+        children.push(bodyText(
+          "De rangorde volgt de outside-in logica (cultuur → mens → data & systemen → processen) en is in alle " +
+          "vier scenario's identiek; alleen tempo verschilt. Voor de onderbouwing per inspanning en de detail-" +
+          "berekeningen per scenario: zie Bijlage A — Audit van de begroting.",
+          { size: 20, color: TEXT_PRIMARY }
+        ));
+        children.push(emptyLine());
+      }
+    });
+
+    // 4.1.1 Conclusie en advies — Out-of-pocket
+    children.push(emptyLine());
+    children.push(bodyText("4.1.1 Conclusie en advies — Out-of-pocket", { bold: true, size: 22, color: CITO_BLUE }));
+    children.push(bodyText(
+      "De vier scenario's laten zien dat de out-of-pocket-uitgaven sterk afhangen van het tempo waarin het " +
+      "programma wordt uitgevoerd: sneller leidt tot meer parallelle inkoop en hogere jaarlasten, langzamer " +
+      "rekt de uitgaven uit maar verlengt de doorlooptijd waarin baten nog niet worden gerealiseerd.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      "Voor de out-of-pocket-component verdient het +20%-scenario van vijf jaar de voorkeur. Dit scenario " +
+      "combineert inspanningen waar de inhoud dat toelaat en faseert waar parallelle uitvoering de organisatie " +
+      "zou overbelasten. De jaarlast blijft daarmee binnen wat in een Cito-jaarbudget realistisch is op te " +
+      "nemen, zonder dat momentum verloren gaat doordat zaken te ver naar achteren schuiven. Vijf jaar past " +
+      "bij de huidige situatie van Cito, bij de belastbaarheid van de organisatie, en bij de doorontwikkelingen " +
+      "die naast dit programma gewoon doorlopen.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      "Het advies voor 4.1 is daarmee een gewogen midden tussen ambitie en uitvoerbaarheid: vijf jaar geeft het " +
+      "programma het maximale rendement — kort genoeg om momentum te houden en de baten tijdig te incasseren, " +
+      "lang genoeg om de verandering duurzaam te verankeren.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(emptyLine());
+  }
+
+  // === 4.2 Interne uren ===
+  children.push(numberedHeading("Interne uren", "h2", numState));
+  if (!interneUren?.scenarios || scenarioOrder.every((k) => !interneUren.scenarios?.[k])) {
+    children.push(bodyText("Interne-uren-advies is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "Voor elk van de vier scenario's — dezelfde scenario's als in 4.1 — tonen we hieronder de inzet van " +
+      "Cito-medewerkers: per inspanningsdomein, per jaar uitgewerkt naar functierollen, uren en bijbehorende " +
+      "kosten. De volume- en spreidings-keuzes verschillen per scenario; het uurtarief geldt over alle " +
+      "scenario's gelijk.",
+      { color: TEXT_PRIMARY, size: 20 }
+    ));
+    children.push(bodyText(
+      "Waarom vier scenario's? De stuurgroep krijgt zo één doorgerekend basisbeeld plus drie expliciete " +
+      "varianten daarop. Het verschil tussen de scenario's draait om tempo en ambitieniveau; de inhoud van " +
+      "de inzet blijft overal gelijk.",
+      { color: TEXT_PRIMARY, size: 20 }
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.optimaal} — basis-uitwerking: alle inspanningen op de uitvoerings-snelheid die de inhoud zelf vraagt.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.plus20} — sneller (+20%): hogere parallelle uren-inzet per jaar; baten worden eerder gerealiseerd.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.min20} — langzamer (−20%): lagere jaarlijkse uren-belasting, maar langere periode zonder volledige baten.`
+    ));
+    children.push(bullet(
+      `${SCENARIO_LABELS.advies} — gewogen advies: combineren waar capacitair verantwoord, faseren waar de organisatie het anders niet kan dragen.`
+    ));
+    if (interneUren.uurtariefSettings) {
+      children.push(bodyText(
+        `Basisuurtarief: ${formatEuro(interneUren.uurtariefSettings.basisTarief)} (referentiejaar ${interneUren.uurtariefSettings.referentiejaar}, indexatie ${interneUren.uurtariefSettings.indexatiePercentage}%/jaar).`,
+        { italic: true, color: TEXT_SECONDARY, size: 18 }
+      ));
+    }
+    children.push(emptyLine(60));
+
+    scenarioOrder.forEach((key) => {
+      const s = interneUren.scenarios?.[key];
+      if (!s) return;
+
+      children.push(bodyText(`Scenario — ${SCENARIO_LABELS[key]}`, { bold: true, size: 22, color: CITO_BLUE }));
+      if (s.samenvatting) {
+        children.push(bodyText(s.samenvatting, { size: 20, color: TEXT_PRIMARY }));
+      }
+      if (s.totaalUren !== undefined && s.totaalKosten !== undefined) {
+        children.push(bodyText(
+          `Totaal: ${formatGetal(s.totaalUren)} u × ${formatEuro(s.uurtariefGebruikt ?? 0)} = ${formatEuro(s.totaalKosten)}`,
+          { italic: true, size: 18, color: TEXT_MUTED }
+        ));
+      }
+      children.push(emptyLine(40));
+
+      // Domein-overzicht
+      const domeinRows = s.domeinen.map((d) =>
+        new TableRow({
+          children: [
+            styledCell(DOMAIN_LABELS[d.domein], { bold: true, width: 30, shading: DOMAIN_COLORS[d.domein], size: 16 }),
+            styledCell(`${formatGetal(d.totaalUren ?? 0)} u`, { width: 30, size: 16 }),
+            styledCell(formatEuro(d.totaalKosten ?? 0), { width: 40, bold: true, size: 16, color: CITO_BLUE }),
+          ],
+        })
+      );
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [headerCell("Domein", 30), headerCell("Uren", 30), headerCell("Kosten", 40)],
+            }),
+            ...domeinRows,
+          ],
+        })
+      );
+      children.push(emptyLine(60));
+
+      // Per scenario: bepaal laatste jaar met inzet
+      const allJaren = s.domeinen.flatMap((d) => d.jaren);
+      const heeftUren = (jr: JaarBlok) =>
+        (jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0)) > 0;
+      const aangelegdeJaren = allJaren.map((j) => j.jaar);
+      const laatsteJaarTotaal = aangelegdeJaren.length > 0 ? Math.max(...aangelegdeJaren) : null;
+      const laatsteMetUren = allJaren.filter(heeftUren).reduce<number | null>(
+        (acc, jr) => (acc === null || jr.jaar > acc ? jr.jaar : acc),
+        null
+      );
+      const heeftLegeNa =
+        laatsteMetUren !== null &&
+        laatsteJaarTotaal !== null &&
+        laatsteMetUren < laatsteJaarTotaal;
+
+      // Per domein per jaar de rol-tabel — zero-jaren weglaten
+      s.domeinen.forEach((d) => {
+        const jarenMetUren = d.jaren.filter(heeftUren);
+        if ((d.totaalUren ?? 0) === 0 && jarenMetUren.length === 0) return;
+        children.push(bodyText(
+          `${DOMAIN_LABELS[d.domein]} — ${formatGetal(d.totaalUren ?? 0)} u, ${formatEuro(d.totaalKosten ?? 0)}`,
+          { bold: true, size: 20, color: CITO_BLUE }
+        ));
+        if (d.motivatie) {
+          children.push(bodyText(d.motivatie, { italic: true, size: 18, color: TEXT_SECONDARY }));
+        }
+        // Mens-footnote: 80 betrokkenen → 64 met uren-belasting
+        if (d.domein === "mens") {
+          children.push(bodyText(
+            "Mens-domein heeft 80 betrokkenen in de selectie: 47 actieve trainings-deelnemers + " +
+            "12 trainers + 3 sectormanagers + 1 Manager Klantcontact + 1 Teamleider Trainingen + " +
+            "~16 stakeholders/begeleiders. De uren-tabel toont de 64 personen met daadwerkelijke " +
+            "uren-belasting; de stakeholders staan in het 'Betrokken stakeholders'-blok onder dit scenario.",
+            { italic: true, size: 16, color: TEXT_MUTED }
+          ));
+        }
+
+        jarenMetUren.forEach((jr) => {
+          const totU = jr.totaalUren ?? jr.rollen.reduce((sum, r) => sum + r.uren, 0);
+          const totK = jr.totaalKosten ?? jr.rollen.reduce((sum, r) => sum + r.kosten, 0);
+          children.push(bodyText(
+            `${jr.jaar} — ${jr.activiteit}  (${formatGetal(totU)} u, ${formatEuro(totK)})`,
+            { bold: true, size: 18, color: TEXT_PRIMARY }
+          ));
+
+          const rolRows = jr.rollen.map((r) => {
+            const aantal = getAantalForRol(session, d.domein as Domein4, r.functieId);
+            const fi = getFunctieInputForRol(session, d.domein as Domein4, r.functieId);
+            const isStakeholder = fi?.stakeholder === true;
+            const isReview = fi?.reviewVereist === true;
+            // Aantal-kolom: paars Stakeholder-label of oranje "Review nodig"-label, anders het getal.
+            // Word-equivalent van het paarse/oranje pill-label uit de UI: gekleurde, vetgedrukte tekst.
+            const aantalCell = isStakeholder
+              ? styledCell("Stakeholder", { width: 10, size: 14, bold: true, color: PURPLE_PILL })
+              : isReview
+                ? styledCell("Review nodig", { width: 10, size: 14, bold: true, color: AMBER_PILL })
+                : styledCell(formatGetal(aantal), { width: 10, size: 14 });
+            // Uren-kolom: stakeholder krijgt em-dash (geen uren-belasting)
+            const urenCell = isStakeholder
+              ? styledCell("—", { width: 15, size: 14, color: TEXT_MUTED })
+              : styledCell(formatGetal(r.uren), { width: 15, size: 14 });
+            return new TableRow({
+              children: [
+                styledCell(`${r.functieNaam}${r.afdeling ? ` (${r.afdeling})` : ""}`, { width: 45, size: 14 }),
+                aantalCell,
+                urenCell,
+                styledCell(formatEuro(r.uurtarief), { width: 13, size: 14, color: TEXT_SECONDARY }),
+                styledCell(formatEuro(r.kosten), { width: 17, bold: true, size: 14 }),
+              ],
+            });
+          });
+          children.push(
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [headerCell("Rol", 45), headerCell("Aantal", 10), headerCell("Uren", 15), headerCell("€/u", 13), headerCell("Kosten", 17)],
+                }),
+                ...rolRows,
+              ],
+            })
+          );
+          children.push(emptyLine(40));
+        });
+        children.push(emptyLine());
+      });
+
+      // Stakeholders & open beslispunten — apart blok per scenario (cat-2 + cat-3 vlaggen)
+      const stakeholders = collectStakeholderRollen(session);
+      const reviews = collectReviewRollen(session);
+      if (stakeholders.length > 0) {
+        children.push(emptyLine(40));
+        children.push(bodyText(
+          `Betrokken stakeholders (${stakeholders.length}) — geen uren-belasting`,
+          { bold: true, size: 18, color: PURPLE_PILL }
+        ));
+        children.push(bodyText(
+          "Cat-2: rol levert review/input, telt niet mee in uren-totaal van dit scenario.",
+          { italic: true, size: 14, color: TEXT_MUTED }
+        ));
+        const stakeholderRows = stakeholders.map((it) => new TableRow({
+          children: [
+            styledCell(`${it.naam}${it.afdeling ? ` (${it.afdeling})` : ""}`, { width: 30, size: 14 }),
+            styledCell(formatGetal(it.aantal), { width: 8, size: 14 }),
+            styledCell(DOMAIN_LABELS[it.domein] ?? it.domein, {
+              width: 20,
+              size: 12,
+              bold: true,
+              color: CITO_BLUE,
+              shading: DOMAIN_COLORS[it.domein] ?? CITO_BLUE_LIGHT,
+            }),
+            styledCell(it.toelichting ?? "—", { width: 42, size: 14, color: TEXT_SECONDARY }),
+          ],
+        }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Rol", 30),
+                  headerCell("Aantal", 8),
+                  headerCell("Domein", 20),
+                  headerCell("Toelichting", 42),
+                ],
+              }),
+              ...stakeholderRows,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+      }
+
+      if (reviews.length > 0) {
+        children.push(bodyText(
+          `Open beslispunten (${reviews.length}) — handmatige review nodig`,
+          { bold: true, size: 18, color: AMBER_PILL }
+        ));
+        children.push(bodyText(
+          "Cat-3: vraag bepaalt of/hoeveel uren de rol uiteindelijk krijgt.",
+          { italic: true, size: 14, color: TEXT_MUTED }
+        ));
+        const reviewRows = reviews.map((it) => new TableRow({
+          children: [
+            styledCell(
+              `${it.naam}${it.afdeling ? ` (${it.afdeling})` : ""}${it.aantal > 1 ? ` × ${it.aantal}` : ""}`,
+              { width: 30, size: 14 }
+            ),
+            styledCell(DOMAIN_LABELS[it.domein] ?? it.domein, {
+              width: 20,
+              size: 12,
+              bold: true,
+              color: CITO_BLUE,
+              shading: DOMAIN_COLORS[it.domein] ?? CITO_BLUE_LIGHT,
+            }),
+            styledCell(it.vraag ?? "—", { width: 50, size: 14, color: TEXT_PRIMARY }),
+          ],
+        }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Rol", 30),
+                  headerCell("Domein", 20),
+                  headerCell("Vraag", 50),
+                ],
+              }),
+              ...reviewRows,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+      }
+
+      if (heeftLegeNa && laatsteMetUren !== null) {
+        children.push(bodyText(
+          `Het programma is in scenario "${SCENARIO_LABELS[key]}" afgerond na ${laatsteMetUren}; latere jaren tonen geen interne inzet meer.`,
+          { italic: true, size: 18, color: TEXT_MUTED }
+        ));
+        children.push(emptyLine(40));
+      }
+    });
+
+    // 4.2.1 Conclusie en advies — Interne uren
+    children.push(emptyLine());
+    children.push(bodyText("4.2.1 Conclusie en advies — Interne uren", { bold: true, size: 22, color: CITO_BLUE }));
+    children.push(bodyText(
+      "Voor de interne uren — de inzet van Cito-medewerkers — sluit het advies aan op de keuze in 4.1: het " +
+      "+20%-scenario van vijf jaar. Een consistent scenario over out-of-pocket en interne uren voorkomt dat " +
+      "we in geld realistisch begroten maar in capaciteit alsnog overvragen, of omgekeerd.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      "De interne capaciteit van Cito moet zorgvuldig over de programma's en het reguliere lijnwerk worden " +
+      "verdeeld; sleutelrollen zijn schaars en zitten doorgaans op meerdere trajecten tegelijk. Vijf jaar " +
+      "houdt rekening met die realiteit: de jaarlijkse uren-belasting blijft op een niveau dat naast het " +
+      "reguliere werk en de lopende doorontwikkelingen gedragen kan worden, zonder dat het programma stilvalt " +
+      "zodra één sleutelrol uitvalt.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(bodyText(
+      "De doorlooptijd die hieruit volgt is geen vaststaand getal, maar het gevolg van die capaciteits- en " +
+      "consistentiekeuze; per scenario verschuift hij navenant.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    children.push(emptyLine());
+  }
+
+  // === 4.3 Totaaloverzicht ===
+  // Spiegelt de in-app ScenarioTotaalBlock: per scenario een jaartabel
+  // (Categorie × jaar), een domein-verdelingstabel en een tabel met de drie
+  // grootste kostendrijvers. Daarna een Samenvatting-per-scenario tabel
+  // (Word-equivalent van BegrotingAdviesSamenvattingBlock) gevolgd door de
+  // aanbeveling.
+  children.push(numberedHeading("Totaaloverzicht — vier scenario's", "h2", numState));
+
+  type ScenTot43 = {
+    key: ScenarioK;
+    oop: number;
+    intK: number;
+    intU: number;
+    tot: number;
+    samenvatting?: string;
+    prioriteitAdvies?: string;
+    aantalJaren?: number;
+  };
+  const scenarioTotals43: ScenTot43[] = [];
+  scenarioOrder.forEach((key) => {
+    const b = begroting?.scenarios?.[key];
+    const i = interneUren?.scenarios?.[key];
+    const oop = b?.totaalGeraamdEuro ?? 0;
+    const intK = i?.totaalKosten ?? 0;
+    const intU = i?.totaalUren ?? 0;
+    const tot = oop + intK;
+    if (oop === 0 && intK === 0 && tot === 0) return;
+    scenarioTotals43.push({
+      key,
+      oop,
+      intK,
+      intU,
+      tot,
+      samenvatting: b?.samenvatting,
+      prioriteitAdvies: b?.prioriteitAdvies,
+      aantalJaren: b?.aantalJaren,
+    });
+  });
+
+  if (scenarioTotals43.length === 0) {
+    children.push(bodyText("Totaaloverzicht is nog niet beschikbaar.", { italic: true, color: TEXT_MUTED }));
+  } else {
+    children.push(bodyText(
+      "De totale programmakosten kennen twee componenten: out-of-pocket (externe uitgaven per inspanning — " +
+      "licenties, inkoop, externe inhuur) en interne uren (tijd van Cito-medewerkers, vermenigvuldigd met het " +
+      "interne uurtarief tot interne kosten). Onderstaande vier scenario's zijn gelijkwaardig doorgerekend. " +
+      "De stuurgroep kiest hieruit het scenario waarmee de programmabegroting verder wordt vastgezet.",
+      { color: TEXT_PRIMARY, size: 20 }
+    ));
+
+    // Bevindingen — spread, conclusie en advies
+    const totalen43 = scenarioTotals43.map((r) => r.tot);
+    const minTot43 = Math.min(...totalen43);
+    const maxTot43 = Math.max(...totalen43);
+    const minRij43 = scenarioTotals43.find((r) => r.tot === minTot43);
+    const maxRij43 = scenarioTotals43.find((r) => r.tot === maxTot43);
+    const advRij43 = scenarioTotals43.find((r) => r.key === "advies") ?? scenarioTotals43.find((r) => r.key === "optimaal");
+    const spread43 = maxTot43 > 0 && minTot43 > 0 ? Math.round(((maxTot43 - minTot43) / minTot43) * 100) : 0;
+
+    if (minRij43 && maxRij43 && advRij43) {
+      children.push(emptyLine(40));
+      children.push(bodyText("Bevindingen", { bold: true, size: 20, color: CITO_BLUE }));
+      children.push(bodyText(
+        "Het totaaloverzicht voegt de out-of-pocket-raming (4.1) en de interne-uren-raming (4.2) samen tot de " +
+        "integrale programmakosten per scenario. Ieder scenario rekent met dezelfde programma-inhoud, maar " +
+        "verschilt in tempo, fasering en jaarbudget.",
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+      const cijfersText43 = scenarioTotals43
+        .map((r) => `${SCENARIO_LABELS[r.key]} ${formatEuro(r.tot)}`)
+        .join(" · ");
+      children.push(bodyText(
+        `De vier scenario's in cijfers: ${cijfersText43}. De spread tussen het goedkoopste ` +
+        `(${SCENARIO_LABELS[minRij43.key]}) en duurste (${SCENARIO_LABELS[maxRij43.key]}) scenario is ` +
+        `${formatEuro(maxTot43 - minTot43)} (${spread43}%).`,
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+      children.push(bodyText(
+        `Conclusie en aanbeveling: het scenario "${SCENARIO_LABELS[advRij43.key]}" komt uit op ` +
+        `${formatEuro(advRij43.tot)} (${formatEuro(advRij43.oop)} out-of-pocket + ${formatEuro(advRij43.intK)} ` +
+        `interne uren). Dit is het scenario dat de stuurgroep is geadviseerd, omdat het de inhoudelijke ` +
+        `randvoorwaarden van het programma respecteert zonder dat momentum verloren gaat.`,
+        { size: 20, color: TEXT_PRIMARY }
+      ));
+    }
+    children.push(emptyLine());
+
+    // Per-scenario detail: jaartabel + domein-verdeling + top-3 kostendrijvers
+    type PerJaar43 = { jaar: number; outOfPocket: number; interneUren: number; interneKosten: number; totaal: number };
+    type Stap8Detail43 = { scenarios?: Partial<Record<ScenarioK, { perJaar?: PerJaar43[] } | null>> };
+    const stap8Detail43 = (session.crossAnalyseWizard?.stepResults as { stap8?: Stap8Detail43 } | undefined)?.stap8;
+
+    const jarenForScenario43 = (key: ScenarioK): PerJaar43[] => {
+      const fromStap8 = stap8Detail43?.scenarios?.[key]?.perJaar ?? [];
+      if (fromStap8.length > 0) return fromStap8;
+      const begrPerJaar = begroting?.scenarios?.[key]?.totalenPerJaar ?? [];
+      const urenPerJaar = interneUren?.scenarios?.[key]?.totalenPerJaar ?? [];
+      if (begrPerJaar.length === 0 && urenPerJaar.length === 0) return [];
+      const alleJaren = Array.from(
+        new Set([...begrPerJaar.map((b) => b.jaar), ...urenPerJaar.map((u) => u.jaar)])
+      ).sort();
+      return alleJaren.map((jaar) => {
+        const b = begrPerJaar.find((x) => x.jaar === jaar);
+        const u = urenPerJaar.find((x) => x.jaar === jaar);
+        const oop = b?.euro ?? 0;
+        const intK = u?.kosten ?? 0;
+        return { jaar, outOfPocket: oop, interneUren: u?.uren ?? 0, interneKosten: intK, totaal: oop + intK };
+      });
+    };
+
+    scenarioTotals43.forEach((scen) => {
+      children.push(emptyLine(40));
+      children.push(bodyText(`Scenario — ${SCENARIO_LABELS[scen.key]}`, { bold: true, size: 22, color: CITO_BLUE }));
+      children.push(bodyText(
+        `Out-of-pocket ${formatEuro(scen.oop)} + interne uren ${formatEuro(scen.intK)}` +
+        (scen.intU > 0 ? ` (${formatGetal(scen.intU)} u)` : "") +
+        ` = totaal ${formatEuro(scen.tot)}` +
+        (scen.aantalJaren ? ` over ${scen.aantalJaren} jaar` : ""),
+        { italic: true, size: 18, color: TEXT_MUTED }
+      ));
+
+      const jaren43 = jarenForScenario43(scen.key);
+      if (jaren43.length > 0) {
+        const totOop = jaren43.reduce((s, j) => s + j.outOfPocket, 0);
+        const totInt = jaren43.reduce((s, j) => s + j.interneKosten, 0);
+        const totUren = jaren43.reduce((s, j) => s + j.interneUren, 0);
+        const colW = Math.max(7, Math.floor(55 / (jaren43.length + 1)));
+        const labelW = Math.max(20, 100 - colW * (jaren43.length + 1));
+
+        const headerCells43 = [headerCell("Categorie", labelW)];
+        jaren43.forEach((j) => headerCells43.push(headerCell(`${j.jaar}`, colW)));
+        headerCells43.push(headerCell("Totaal", colW));
+
+        const oopRow = new TableRow({
+          children: [
+            styledCell("Out-of-pocket — externe uitgaven", { width: labelW, size: 16 }),
+            ...jaren43.map((j) => styledCell(formatEuro(j.outOfPocket), { width: colW, size: 16 })),
+            styledCell(formatEuro(totOop), { width: colW, bold: true, color: CITO_BLUE, size: 16 }),
+          ],
+        });
+        const intRow = new TableRow({
+          children: [
+            styledCell("Interne uren — Cito-medewerkers (uren × tarief)", { width: labelW, size: 16 }),
+            ...jaren43.map((j) =>
+              styledCell(`${formatEuro(j.interneKosten)} (${formatGetal(j.interneUren)} u)`, { width: colW, size: 16 })
+            ),
+            styledCell(`${formatEuro(totInt)} (${formatGetal(totUren)} u)`, { width: colW, bold: true, color: CITO_BLUE, size: 16 }),
+          ],
+        });
+        const totRow = new TableRow({
+          children: [
+            styledCell("TOTAAL", { width: labelW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 18 }),
+            ...jaren43.map((j) =>
+              styledCell(formatEuro(j.totaal), { width: colW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 18 })
+            ),
+            styledCell(formatEuro(scen.tot), { width: colW, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 20 }),
+          ],
+        });
+
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [new TableRow({ children: headerCells43 }), oopRow, intRow, totRow],
+          })
+        );
+        children.push(emptyLine(40));
+      }
+
+      // Domein-verdeling + top-3 inspanningen
+      type Insp43Min = { inspanningTitel: string; domein: EffortDomain; totaalEuro: number };
+      const inspanningen43: Insp43Min[] = (begroting?.scenarios?.[scen.key]?.inspanningen ?? []) as Insp43Min[];
+      if (inspanningen43.length > 0) {
+        const domeinenOrder43: EffortDomain[] = ["cultuur", "mens", "data_systemen", "processen"];
+        const perDomein43 = domeinenOrder43.map((d) => {
+          const items = inspanningen43.filter((i) => i.domein === d);
+          return { domein: d, totaal: items.reduce((s, i) => s + i.totaalEuro, 0), count: items.length };
+        });
+        const grandTotal43 = perDomein43.reduce((s, d) => s + d.totaal, 0) || 1;
+        const domeinRows43 = perDomein43.map((d) =>
+          new TableRow({
+            children: [
+              styledCell(DOMAIN_LABELS[d.domein], { bold: true, width: 35, shading: DOMAIN_COLORS[d.domein], size: 16 }),
+              styledCell(`${d.count}`, { width: 20, size: 16 }),
+              styledCell(formatEuro(d.totaal), { width: 25, size: 16 }),
+              styledCell(`${Math.round((d.totaal / grandTotal43) * 100)}%`, { width: 20, size: 16 }),
+            ],
+          })
+        );
+        children.push(bodyText("Verdeling over de vier inspanningsdomeinen", { bold: true, size: 18, color: CITO_BLUE }));
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  headerCell("Domein", 35),
+                  headerCell("Inspanningen", 20),
+                  headerCell("Out-of-pocket", 25),
+                  headerCell("Aandeel", 20),
+                ],
+              }),
+              ...domeinRows43,
+            ],
+          })
+        );
+        children.push(emptyLine(40));
+
+        const sortedInsp43 = [...inspanningen43].sort((a, b) => b.totaalEuro - a.totaalEuro);
+        const top43 = sortedInsp43.slice(0, Math.min(3, sortedInsp43.length));
+        if (top43.length > 0) {
+          const topRows43 = top43.map((insp, i) =>
+            new TableRow({
+              children: [
+                styledCell(`${i + 1}`, { width: 6, bold: true, shading: CITO_BLUE_LIGHT, color: CITO_BLUE, size: 16 }),
+                styledCell(insp.inspanningTitel, { width: 50, bold: true, size: 16 }),
+                styledCell(DOMAIN_LABELS[insp.domein], {
+                  width: 20,
+                  size: 14,
+                  bold: true,
+                  color: CITO_BLUE,
+                  shading: DOMAIN_COLORS[insp.domein],
+                }),
+                styledCell(formatEuro(insp.totaalEuro), { width: 16, bold: true, color: CITO_BLUE, size: 16 }),
+                styledCell(`${Math.round((insp.totaalEuro / grandTotal43) * 100)}%`, { width: 8, size: 14, color: TEXT_SECONDARY }),
+              ],
+            })
+          );
+          children.push(bodyText("Grootste kostendrijvers in dit scenario", { bold: true, size: 18, color: CITO_BLUE }));
+          children.push(
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    headerCell("#", 6),
+                    headerCell("Inspanning", 50),
+                    headerCell("Domein", 20),
+                    headerCell("Bedrag", 16),
+                    headerCell("Aandeel", 8),
+                  ],
+                }),
+                ...topRows43,
+              ],
+            })
+          );
+          children.push(emptyLine(40));
+        }
+      }
+
+      const motivatie43 = scen.samenvatting?.trim();
+      if (motivatie43) {
+        children.push(bodyText(motivatie43, { italic: true, size: 18, color: TEXT_SECONDARY }));
+      }
+    });
+
+    // Samenvatting per scenario — Word-equivalent BegrotingAdviesSamenvattingBlock
+    children.push(emptyLine());
+    children.push(bodyText("Samenvatting per scenario", { bold: true, size: 22, color: CITO_BLUE }));
+    const summaryRows43 = scenarioTotals43.map((scen) => {
+      const isAanbevolen = scen.key === aanbev;
+      const labelText = `${SCENARIO_LABELS[scen.key]}${isAanbevolen ? "  ✓ advies" : ""}`;
+      const samen = scen.samenvatting?.trim() ?? "";
+      return new TableRow({
+        children: [
+          styledCell(labelText, {
+            bold: true,
+            width: 22,
+            shading: isAanbevolen ? CITO_BLUE_LIGHT : undefined,
+            color: CITO_BLUE,
+            size: 18,
+          }),
+          styledCell(formatEuro(scen.tot), { bold: true, width: 18, size: 20, color: CITO_BLUE }),
+          styledCell(samen || "—", { width: 60, size: 16, color: TEXT_PRIMARY }),
+        ],
+      });
+    });
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [headerCell("Scenario", 22), headerCell("Totaal", 18), headerCell("Samenvatting", 60)],
+          }),
+          ...summaryRows43,
+        ],
+      })
+    );
+    children.push(emptyLine());
+
+    // Aanbeveling aan de stuurgroep — afsluitend in 4.3
+    children.push(bodyText("Aanbeveling aan de stuurgroep", { bold: true, size: 24, color: "065F46" }));
+    children.push(bodyText(
+      "Op basis van out-of-pocket plus interne uren samengeteld komt het +20%-scenario van vijf jaar uit als " +
+      "de aanbevolen route. Vijf jaar is een gezonde uitloop voor dit programma: het past bij de huidige " +
+      "situatie van Cito, bij de belastbaarheid van de organisatie, en bij de doorontwikkelingen die naast " +
+      "dit programma gewoon doorlopen. In deze looptijd haalt het programma het maximale rendement — kort " +
+      "genoeg om momentum te houden en de baten tijdig te incasseren, lang genoeg om de verandering duurzaam " +
+      "te verankeren in cultuur, mens, data & systemen en processen.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+    if (aanbevScen) {
+      const totaal = (aanbevScen.totaalGeraamdEuro ?? 0) + (aanbevInt?.totaalKosten ?? 0);
+      children.push(bodyText(
+        `Kies scenario "${SCENARIO_LABELS[aanbev]}" — totaal ${formatEuro(totaal)}${aanbevScen.aantalJaren ? ` over ${aanbevScen.aantalJaren} jaar` : ""}.`,
+        { size: 22, color: TEXT_PRIMARY, bold: true }
+      ));
+      if (aanbevScen.samenvatting) {
+        children.push(bodyText(aanbevScen.samenvatting, { size: 20, color: TEXT_PRIMARY }));
+      }
+      if (aanbevScen.prioriteitAdvies) {
+        children.push(bodyText(
+          "De prioriteitsvolgorde voor dit aanbevolen scenario en de detail-berekeningen per inspanning staan " +
+          "in Bijlage A — Audit van de begroting.",
+          { italic: true, size: 18, color: TEXT_SECONDARY }
+        ));
+      }
+    }
+    if (begroting?.vergelijking) {
+      children.push(bodyText("Vergelijking van de vier scenario's", { bold: true, size: 20, color: CITO_BLUE }));
+      children.push(bodyText(begroting.vergelijking, { size: 18, color: TEXT_PRIMARY }));
+    }
+    children.push(bodyText(
+      "Met deze aanbeveling kan de stuurgroep het scenario vaststellen waarmee het programma definitief wordt " +
+      "vastgezet en waarop de detailbegroting voor het eerstvolgende jaar wordt opgebouwd.",
+      { size: 22, color: TEXT_PRIMARY }
+    ));
+  }
+
+  return { properties: {}, children };
+}
+
 export function roadmapSection(session: DINSession, numState: NumberingState, _activeEfforts: DINEffort[]) {
   void _activeEfforts;
   const children: (Paragraph | Table)[] = [];
 
-  children.push(stepHeading(4, "Roadmap: van bundels naar uitvoering", numState));
+  children.push(numberedHeading("Planning en roadmap", "h1", numState));
   children.push(
     methodiekIntro(
       "De roadmap groepeert inspanningen in cycli en bundels, maakt afhankelijkheden zichtbaar en " +
@@ -2538,6 +3458,67 @@ export async function generateVerrijktSectorplanDocument(
   return Packer.toBlob(doc);
 }
 
+// --- Bijlage A — Audit van de begroting ---
+// Bevat de detail-onderbouwing per scenario die in §4.1 alleen samengevat staat.
+// De volledige prioriteitAdvies-tekst (met aannames en uitsplitsingen) verhuist hierheen,
+// zodat §4.1 beknopt blijft en de stuurgroep de berekeningen apart kan raadplegen.
+export function bijlageBegrotingsberekeningenSection(session: DINSession, numState: NumberingState) {
+  type ScenarioK = "optimaal" | "plus20" | "min20" | "advies";
+  type BegrScenarioMin = { prioriteitAdvies?: string; samenvatting?: string };
+  type BegrAdvMin = { scenarios?: Partial<Record<ScenarioK, BegrScenarioMin | null>> };
+
+  const begroting = (
+    session.crossAnalyseWizard?.stepResults as
+      | { stap4?: { begrotingAdvies?: BegrAdvMin } }
+      | undefined
+  )?.stap4?.begrotingAdvies;
+
+  const children: (Paragraph | Table)[] = [];
+  children.push(plainH1("Bijlage A — Audit van de begroting", numState));
+  children.push(bodyText(
+    "Deze bijlage bevat de detail-onderbouwing en aannames achter de prioriteitsvolgorde van de inspanningen " +
+    "per scenario. In §4.1 staat alleen een korte samenvatting; de volledige berekeningen — uitsplitsingen " +
+    "per inspanning, eenmalige en structurele bedragen, doelgroep-aannames — staan hieronder per scenario " +
+    "uitgewerkt. De rangorde volgt de outside-in logica (cultuur → mens → data & systemen → processen) en " +
+    "is in alle vier scenario's identiek; alleen tempo verschilt.",
+    { color: TEXT_PRIMARY, size: 20 }
+  ));
+
+  if (!begroting?.scenarios) {
+    children.push(emptyLine());
+    children.push(bodyText(
+      "Het begrotingsadvies is nog niet beschikbaar; deze bijlage vult zich automatisch zodra Stap 4 in de " +
+      "cross-analyse-wizard is uitgevoerd.",
+      { italic: true, color: TEXT_MUTED, size: 18 }
+    ));
+    return { properties: {}, children };
+  }
+
+  const scenarioOrder: ScenarioK[] = ["optimaal", "plus20", "min20", "advies"];
+  let renderedAny = false;
+  scenarioOrder.forEach((key) => {
+    const s = begroting.scenarios?.[key];
+    if (!s || !s.prioriteitAdvies) return;
+    renderedAny = true;
+    children.push(emptyLine());
+    children.push(bodyText(
+      `Scenario — ${SCENARIO_LABELS[key]}`,
+      { bold: true, size: 22, color: CITO_BLUE }
+    ));
+    children.push(bodyText(s.prioriteitAdvies, { size: 20, color: TEXT_PRIMARY }));
+  });
+
+  if (!renderedAny) {
+    children.push(emptyLine());
+    children.push(bodyText(
+      "Voor de huidige scenario's is nog geen prioriteitadvies gegenereerd.",
+      { italic: true, color: TEXT_MUTED, size: 18 }
+    ));
+  }
+
+  return { properties: {}, children };
+}
+
 // --- Hoofdfunctie ---
 
 export async function generateWordDocument(session: DINSession): Promise<Blob> {
@@ -2558,39 +3539,53 @@ export async function generateWordDocument(session: DINSession): Promise<Blob> {
   const numState = createNumberingState();
 
   // Voeg headers/footers toe aan alle content-secties (behalve titelpagina)
-  const addHeaderFooter = (section: { properties: Record<string, unknown>; children: (Paragraph | Table)[] }) => ({
+  type SectionChild = Paragraph | Table | TableOfContents;
+  const addHeaderFooter = (section: { properties: Record<string, unknown>; children: readonly SectionChild[] }) => ({
     ...section,
     properties: { ...section.properties, ...pageProps },
     headers: { default: header },
     footers: { default: footer },
   });
 
-  type SectionType = { properties: Record<string, unknown>; children: (Paragraph | Table)[] };
+  type SectionType = { properties: Record<string, unknown>; children: readonly SectionChild[] };
 
   // Build all content sections first (advancing numState), then build TOC from tocEntries.
-  // Methodische opbouw (DIN/Prevaas & Van Loon):
-  //   Managementsamenvatting \u2192 Stap 1 programmakader (visie, kernonderwerpen, scope, doelen) \u2192
-  //   Stap 2 cross-sectorale uitkomst (kort DIN-overzicht per sector, synergie\u00ebn, hefboom,
-  //     externe projecten, stap-optimalisatie/subEffortAdvies, uiteindelijke DIN-netwerk) \u2192
-  //   Stap 3 programma-organisatie en RASCI \u2192 Stap 4 roadmap.
+  // Methodische opbouw conform "Werken aan Programma's" (Prevaas & Van Loon):
+  //   Managementsamenvatting \u2192
+  //   1. Programmavisie en scope \u2192
+  //   2. Programmadoelen (met werkvolgorde) \u2192
+  //   3. Cross-sectorale uitkomst \u2014 de kern (DIN-onderbouwing per sector blijft als data-bron
+  //      maar wordt cross-sectoraal geconsolideerd in dit hoofdstuk: synergie, hefboom,
+  //      optimalisatie, scenario-totaal, uiteindelijke DIN per sector) \u2192
+  //   4. Programma-organisatie en RASCI \u2192
+  //   5. Planning en roadmap \u2192
+  //   Verantwoording methodiek (dekking 'Werken aan Programma's')
   const contentSections: SectionType[] = [];
 
-  // 0. Managementsamenvatting (cross-sectorale nadruk)
-  contentSections.push(executiveSummarySection(session, numState, activeEfforts, activeCaps));
+  // Geen managementsamenvatting \u2014 die droeg op programmaplan-niveau te weinig signaal
+  // (hardcoded counts en domeinbalans gaven verwarrende 25%-verdeling bij ontbrekende data).
 
-  // Stap 1 \u2014 Programmakader (visie, kernonderwerpen, scope, doelen)
+  // Hoofdstuk 1 \u2014 Programmavisie en scope
   contentSections.push(overviewSection(session, numState));
 
-  // Stap 2 \u2014 Cross-sectorale uitkomst (de kern). Begint met kort DIN-overzicht per sector,
-  // dan synergie\u00ebn/hefbomen/externe projecten, stap-optimalisatie, uiteindelijke DIN-netwerk.
+  // Hoofdstuk 2 \u2014 Programmadoelen (met werkvolgorde 1\u21922\u21923)
+  contentSections.push(programmaDoelenSection(session, numState));
+
+  // Hoofdstuk 3 \u2014 Cross-sectorale uitkomst (synergie, hefboom, optimalisatie, uiteindelijke DIN)
   contentSections.push(crossAnalysisSection(session, numState, activeCaps, activeEfforts));
 
-  // Stap 3 \u2014 Programma-organisatie en RASCI
+  // Hoofdstuk 4 \u2014 Begroting en raming (4.1 out-of-pocket, 4.2 interne uren, 4.3 totaaloverzicht)
+  contentSections.push(begrotingEnRamingSection(session, numState));
+
+  // Hoofdstuk 5 \u2014 Programma-organisatie en RASCI
   const governance = governanceSection(session, numState, activeEfforts);
   if (governance) contentSections.push(governance);
 
-  // Stap 4 \u2014 Roadmap
+  // Hoofdstuk 6 \u2014 Planning en roadmap
   contentSections.push(roadmapSection(session, numState, activeEfforts));
+
+  // (Bijlage B verwijderd \u2014 detail-berekeningen staan al in Bijlage A via BerekeningenView)
+  void bijlageBegrotingsberekeningenSection;
 
   // Now build TOC from accumulated tocEntries
   const tocSection = tableOfContentsSection(numState);
