@@ -309,6 +309,20 @@ export default function AntwoordDoelTab({ ba, onNaarTab, onWijzig, onBewaar }: {
           </section>
         )}
 
+        {p.ai && p.ai.punten.length > 0 && (
+          <section aria-label="AI voor marketing en sales" className="mb-6 overflow-hidden rounded-2xl border-2 border-[#7c3aed] bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#7c3aed] px-5 py-2.5 text-white">
+              <p className="text-sm font-extrabold uppercase tracking-wide">AI voor marketing en sales · en agents voor de uitvoering</p>
+              <button type="button" onClick={() => onNaarTab("doeltoets")} className="rounded-md bg-white px-3 py-1 text-xs font-bold text-[#5b21b6] hover:bg-violet-50 print:hidden">Naar de uitwerking →</button>
+            </div>
+            <div className="space-y-2 p-5">
+              <ul className="space-y-1.5">{p.ai.punten.map((t, i) => <li key={i} className="flex gap-2 text-[13px] leading-snug text-gray-900"><span aria-hidden="true" className="font-bold text-[#7c3aed]">→</span><span>{t}</span></li>)}</ul>
+              {p.ai.advies && <p className="rounded-lg bg-emerald-50 border border-emerald-600 px-3 py-2 text-[13px] font-semibold text-emerald-950">Advies (voorstel): {p.ai.advies}</p>}
+              {p.ai.agents && <p className="rounded-lg bg-slate-50 border border-slate-300 px-3 py-2 text-[13px] text-gray-900"><span className="font-bold">Agents: </span>{p.ai.agents}</p>}
+            </div>
+          </section>
+        )}
+
         {/* De DIN-keten */}
         <section aria-label="Het DIN: doel, baten, vermogen, werkstromen">
           <div className="grid gap-3 lg:grid-cols-[132px_1fr]">

@@ -39,6 +39,8 @@ export interface Praatplaat {
   werkstromen: PpWerkstroom[];
   wachtOp3sides?: WachtOp3sidesData;
   doeltoetsKern?: { oordeel: string; punten: string[]; advies?: string };
+  /** AI voor commerciële marketing en sales, en agents voor de uitvoering (analyse 16-10). */
+  ai?: { punten: string[]; advies?: string; agents?: string };
   besluiten: { vraag: string; wie: string }[];
   legenda: string[];
   uitwerking: {

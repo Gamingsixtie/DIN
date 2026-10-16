@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import type { BronnenAnalyse } from "@/lib/schemas";
+import AiDoeltoets from "@/components/bronnen/AiDoeltoets";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Los = any;
@@ -78,8 +79,9 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
   const oordeel = tekst(c.antwoord?.oordeel ?? c.oordeel);
   const nav = [
     ["anders", "Anders dan eerst"], ["conclusie", "Conclusie"], ["werkstromen", "Toets per werkstroom"], ["mist", "Wat mist"], ["concretisering", "Concretiseringsslag"],
-    ["fasen", "Fasenplan"], ["weken", "Weekoverzicht"], ["voorstellen", "Voorstel 1 en 2"], ["besluiten", "Besluiten"], ["lijnen", "Per bouwsteen"],
+    ["fasen", "Fasenplan"], ["weken", "Weekoverzicht"], ["voorstellen", "Voorstel 1 en 2"], ...(d.ai ? [["ai", "AI en agents"]] : []), ["besluiten", "Besluiten"], ["lijnen", "Per bouwsteen"],
   ];
+  const nr = (basis: number) => String(d.ai ? basis + 1 : basis).padStart(2, "0");
 
   return (
     <div className="space-y-8" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
@@ -359,9 +361,17 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
         )}
       </section>
 
+      {/* AI voor marketing en sales, en agents (analyse 16-10) */}
+      {d.ai && (
+        <section className="space-y-3">
+          <Kop id="ai" nr="08" titel="AI voor marketing en sales, en agents" sub="Hoe AI voor commerciële marketing en sales in het programma past, voor alle sectoren, en waar agents de uitvoering ondersteunen." />
+          <AiDoeltoets ai={d.ai} />
+        </section>
+      )}
+
       {/* Besluiten */}
       <section className="space-y-3">
-        <Kop id="besluiten" nr="08" titel="Besluitpunten" />
+        <Kop id="besluiten" nr={nr(8)} titel="Besluitpunten" />
         <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {lijst(d.besluiten).map((b, i) => (
             <li key={i} className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3">
@@ -375,7 +385,7 @@ export default function DoeltoetsTab({ ba, onNaarTab }: { ba: BronnenAnalyse; on
 
       {/* Per bouwsteen */}
       <section className="space-y-3">
-        <Kop id="lijnen" nr="09" titel="Per bouwsteen: eindbeeld, stand, gat en activiteiten" sub="De basis van de toets: vanuit het doel en het document per bouwsteen wat nodig is." />
+        <Kop id="lijnen" nr={nr(9)} titel="Per bouwsteen: eindbeeld, stand, gat en activiteiten" sub="De basis van de toets: vanuit het doel en het document per bouwsteen wat nodig is." />
         <div className="space-y-2">
           {lijst(d.lijnen).map((l, i) => {
             const k = tekst(l.k) || String(i);
